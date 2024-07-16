@@ -223,9 +223,12 @@ public class SMGCPAAbstractionManager {
         }
         SMGValue nextPointerValue = readNfoEdges.get(0).hasValue();
         if (!smg.isPointer(nextPointerValue)
+            || !smg.getPTEdge(nextPointerValue).orElseThrow().getOffset().isNumericValue()
             || !smg.getPTEdge(nextPointerValue)
                 .orElseThrow()
                 .getOffset()
+                .asNumericValue()
+                .bigIntegerValue()
                 .equals(sllHeapObj.getNextPointerTargetOffset())) {
           // Incorrect or not usable next element, maybe a prev exists though, don't put current in
           // seen list, and it will be found via the prev object
@@ -288,7 +291,8 @@ public class SMGCPAAbstractionManager {
             BigInteger ptrValueOffsetInHeapObj = valueEdge.getOffset();
             // pointerTargetOffset is the offset of the pointer towards to target, not the offset
             // of any value! This has to be the same for all ptrs between list elements!
-            BigInteger pointerTargetOffset = pointsToEdge.getOffset();
+            Value pointerTargetOffset = pointsToEdge.getOffset();
+            Preconditions.checkArgument(pointerTargetOffset.isNumericValue());
 
             if (target != heapObj
                 && smg.isValid(target)
@@ -297,7 +301,11 @@ public class SMGCPAAbstractionManager {
 
               maybeCandidate =
                   lookThroughObject(
-                      heapObj, target, ptrValueOffsetInHeapObj, pointerTargetOffset, alreadySeen);
+                      heapObj,
+                      target,
+                      ptrValueOffsetInHeapObj,
+                      pointerTargetOffset.asNumericValue().bigIntegerValue(),
+                      alreadySeen);
               if (maybeCandidate.isListCandidate()) {
                 SMGCandidate candidate = maybeCandidate.getCandidate();
                 if (candidate.suspectedElements.size() > 1) {
@@ -427,7 +435,10 @@ public class SMGCPAAbstractionManager {
         Optional<SMGPointsToEdge> maybePrevPTE = smg.getPTEdge(nextValueEdge.hasValue());
         if (maybePrevPTE.isPresent() && maybePrevPTE.orElseThrow().pointsTo().equals(currentObj)) {
           maybePfo = Optional.of(nextValueEdge.getOffset());
-          maybePrevPointerTargetOffset = Optional.of(maybePrevPTE.orElseThrow().getOffset());
+          Value pteTargetOffsetValue = maybePrevPTE.orElseThrow().getOffset();
+          Preconditions.checkArgument(pteTargetOffsetValue.isNumericValue());
+          maybePrevPointerTargetOffset =
+              Optional.of(pteTargetOffsetValue.asNumericValue().bigIntegerValue());
         }
       }
     }
@@ -642,7 +653,9 @@ public class SMGCPAAbstractionManager {
               SMGObject targetOfPtrInNextObj = pointsToEdge.pointsTo();
               // pointerTargetOffset is the offset of the pointer towards to target, not the offset
               // of any value! This has to be the same for all ptrs between list elements!
-              BigInteger pointerTargetOffset = pointsToEdge.getOffset();
+              Value pteTargetOffset = pointsToEdge.getOffset();
+              Preconditions.checkArgument(pteTargetOffset.isNumericValue());
+              BigInteger pointerTargetOffset = pteTargetOffset.asNumericValue().bigIntegerValue();
               if (nextPointerTargetOffset.equals(pointerTargetOffset)) {
                 // viable next pointer and possibly viable next obj
                 return lookThroughNext(
@@ -730,7 +743,11 @@ public class SMGCPAAbstractionManager {
         Set<SMGObject> objsWithPtrsTowardsHeapObj =
             smg.getValuesToRegionsTheyAreSavedIn().get(ptrValue).keySet();
         SMGPointsToEdge pte = smg.getPTEdge(ptrValue).orElseThrow();
-        if (!pte.getOffset().equals(nextPointerTargetOffset)) {
+        if (!pte.getOffset().isNumericValue()
+            || !pte.getOffset()
+                .asNumericValue()
+                .bigIntegerValue()
+                .equals(nextPointerTargetOffset)) {
           continue;
         }
 

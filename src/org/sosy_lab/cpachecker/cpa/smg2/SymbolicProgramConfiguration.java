@@ -1242,7 +1242,7 @@ public class SymbolicProgramConfiguration {
   public SymbolicProgramConfiguration copyAndAddPointerFromAddressToMemory(
       Value address,
       SMGObject target,
-      BigInteger offsetInBits,
+      Value offsetInBits,
       int nestingLevel,
       SMGTargetSpecifier pSMGTargetSpecifier) {
     // If there is no SMGValue for this Value (address) we create it, else we use the existing
@@ -1326,18 +1326,18 @@ public class SymbolicProgramConfiguration {
    * there is none. (This always assumes SMGTargetSpecifier.IS_REGION)
    *
    * @param target {@link SMGObject} that is the target of the points-to-edge.
-   * @param offset {@link BigInteger} offset in bits in the target.
+   * @param offset {@link Value} offset in bits in the target.
    * @return either an empty {@link Optional} if there is no such edge, but the {@link SMGValue}
    *     within if there is such a points-to-edge.
    */
-  public Optional<SMGValue> getAddressValueForPointsToTarget(SMGObject target, BigInteger offset) {
+  public Optional<SMGValue> getAddressValueForPointsToTarget(SMGObject target, Value offset) {
     assert !target.isSLL();
     Map<SMGValue, SMGPointsToEdge> pteMapping = getSmg().getPTEdgeMapping();
     SMGPointsToEdge searchedForEdge =
         new SMGPointsToEdge(target, offset, SMGTargetSpecifier.IS_REGION);
 
     for (Entry<SMGValue, SMGPointsToEdge> entry : pteMapping.entrySet()) {
-      if (entry.getValue().compareTo(searchedForEdge) == 0) {
+      if (entry.getValue().equals(searchedForEdge)) {
         return Optional.of(entry.getKey());
       }
     }
@@ -1356,7 +1356,7 @@ public class SymbolicProgramConfiguration {
    *     within if there is such a points-to-edge.
    */
   public Optional<SMGValue> getAddressValueForPointsToTarget(
-      SMGObject target, BigInteger offset, int pointerLevel) {
+      SMGObject target, Value offset, int pointerLevel) {
     Map<SMGValue, SMGPointsToEdge> pteMapping = getSmg().getPTEdgeMapping();
     SMGPointsToEdge searchedForEdge =
         new SMGPointsToEdge(target, offset, SMGTargetSpecifier.IS_REGION);

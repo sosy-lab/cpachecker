@@ -37,6 +37,8 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
@@ -1587,7 +1589,7 @@ public class SMG {
         .filter(
             entry -> {
               SMGPointsToEdge edge = entry.getValue();
-              return edge.getOffset().equals(pOffset)
+              return edge.getOffset().equals(new NumericValue(pOffset))
                   && edge.targetSpecifier().equals(pTargetSpecifier)
                   && edge.pointsTo().equals(targetObject);
             })
@@ -2379,8 +2381,8 @@ public class SMG {
             .getOrDefault(pTarget, PathCopyingPersistentTreeMap.of())
             .keySet()) {
       // All existing pointers towards the target
-      if (getNestingLevel(ptr) == pNestingLevel
-          && pointsToEdges.get(ptr).getOffset().equals(pOffset)) {
+      Value pteOffset = pointsToEdges.get(ptr).getOffset();
+      if (getNestingLevel(ptr) == pNestingLevel && pteOffset.equals(new NumericValue(pOffset))) {
         return Optional.of(ptr);
       }
     }
@@ -2407,7 +2409,7 @@ public class SMG {
       // All existing pointers towards the target
       SMGPointsToEdge pte = pointsToEdges.get(ptr);
       if (getNestingLevel(ptr) == pNestingLevel
-          && pte.getOffset().equals(pOffset)
+          && pte.getOffset().equals(new NumericValue(pOffset))
           && specifierAllowedToOverride.contains(pte.targetSpecifier())) {
         return Optional.of(ptr);
       }

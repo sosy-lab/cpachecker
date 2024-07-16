@@ -816,6 +816,18 @@ public class SMGTransferRelation
         return null;
       }
       return handledAssumptions;
+    } catch (SMGSolverException e) {
+      if (e.isSolverException()) {
+        throw new CPATransferException(
+            "Error while computing the constraint for "
+                + expression
+                + ". With: \n"
+                + e.getSolverException());
+      } else if (e.isInterruptedException()) {
+        throw e.getInterruptedException();
+      } else {
+        throw e.getUnrecognizedCodeException();
+      }
     } catch (SolverException e) {
       throw new CPATransferException(
           "Error while computing the constraint for " + expression + ".");
@@ -926,41 +938,34 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> handleStatementEdge(CStatementEdge pCfaEdge, CStatement cStmt)
       throws CPATransferException {
-    try {
-      // Either assignments a = b; or function calls foo(..);
-      if (cStmt instanceof CAssignment cAssignment) {
-        // Assignments, evaluate the right hand side value using the value visitor and write it into
-        // the address returned by the address evaluator for the left hand side.
-        CExpression lValue = cAssignment.getLeftHandSide();
-        CRightHandSide rValue = cAssignment.getRightHandSide();
-        ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
-        for (SMGState currentState : createVariableOnTheSpot(lValue, state)) {
-          stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
-        }
-        return stateBuilder.build();
-
-      } else if (cStmt instanceof CFunctionCallStatement cFCall) {
-        // Check the arguments for the function, then simply execute the function
-        CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
-        CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
-        String calledFunctionName = fileNameExpression.toASTString();
-
-        ImmutableList.Builder<SMGState> resultStatesBuilder = ImmutableList.builder();
-
-        // function calls without assignments
-        resultStatesBuilder.addAll(
-            handleFunctionCallWithoutBody(state, pCfaEdge, cFCExpression, calledFunctionName));
-
-        return resultStatesBuilder.build();
-      } else {
-        // Fall through for unneeded cases
-        return ImmutableList.of(state);
+    // Either assignments a = b; or function calls foo(..);
+    if (cStmt instanceof CAssignment cAssignment) {
+      // Assignments, evaluate the right hand side value using the value visitor and write it into
+      // the address returned by the address evaluator for the left hand side.
+      CExpression lValue = cAssignment.getLeftHandSide();
+      CRightHandSide rValue = cAssignment.getRightHandSide();
+      ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
+      for (SMGState currentState : createVariableOnTheSpot(lValue, state)) {
+        stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
       }
-    } catch (SolverException e) {
-      throw new CPATransferException("Solver error handling a statement with SMG analysis: ", e);
-    } catch (InterruptedException e) {
-      throw new CPATransferException(
-          "Solver interrupted handling a statement with SMG analysis: ", e);
+      return stateBuilder.build();
+
+    } else if (cStmt instanceof CFunctionCallStatement cFCall) {
+      // Check the arguments for the function, then simply execute the function
+      CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
+      CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
+      String calledFunctionName = fileNameExpression.toASTString();
+
+      ImmutableList.Builder<SMGState> resultStatesBuilder = ImmutableList.builder();
+
+      // function calls without assignments
+      resultStatesBuilder.addAll(
+          handleFunctionCallWithoutBody(state, pCfaEdge, cFCExpression, calledFunctionName));
+
+      return resultStatesBuilder.build();
+    } else {
+      // Fall through for unneeded cases
+      return ImmutableList.of(state);
     }
   }
 
@@ -973,7 +978,7 @@ public class SMGTransferRelation
       CStatementEdge pCfaEdge,
       CFunctionCallExpression cFCExpression,
       String calledFunctionName)
-      throws CPATransferException, SolverException, InterruptedException {
+      throws CPATransferException {
     SMGCPABuiltins builtins = evaluator.getBuiltinFunctionHandler();
     List<ValueAndSMGState> uselessValuesAndStates;
     if (builtins.isABuiltIn(calledFunctionName)) {
@@ -1285,9 +1290,7 @@ public class SMGTransferRelation
           // Offset known but not 0, search for/create the correct address
           List<ValueAndSMGState> newAddressesAndStates =
               evaluator.findOrcreateNewPointer(
-                  addressInValue.getMemoryAddress(),
-                  addressInValue.getOffset().asNumericValue().bigIntegerValue(),
-                  currentState);
+                  addressInValue.getMemoryAddress(), addressInValue.getOffset(), currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here
           Preconditions.checkArgument(newAddressesAndStates.size() == 1);
@@ -1322,13 +1325,11 @@ public class SMGTransferRelation
             && addressInValue.getOffset().asNumericValue().longValue() == 0) {
           // offset == 0 -> write the value directly (known pointer)
           valueToWrite = addressInValue.getMemoryAddress();
-        } else if (addressInValue.getOffset().isNumericValue()) {
+        } else if (addressInValue.getOffset().isNumericValue() || options.trackPredicates()) {
           // Offset known but not 0, search for/create the correct address
           List<ValueAndSMGState> newAddressesAndStates =
               evaluator.findOrcreateNewPointer(
-                  addressInValue.getMemoryAddress(),
-                  addressInValue.getOffset().asNumericValue().bigIntegerValue(),
-                  currentState);
+                  addressInValue.getMemoryAddress(), addressInValue.getOffset(), currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here
           Preconditions.checkArgument(newAddressesAndStates.size() == 1);

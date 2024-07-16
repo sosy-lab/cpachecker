@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.smg.join;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
@@ -117,9 +118,12 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
     recursiveCopyMapAndAddObject(dlls1, pNestingLevelDiff);
 
     // step 9
+    Preconditions.checkArgument(pToEdge1.getOffset().isNumericValue());
     Optional<SMGValue> resultOptional =
         destSMG.findAddressForEdge(
-            freshCopyDLLS1, pToEdge1.getOffset(), pToEdge1.targetSpecifier());
+            freshCopyDLLS1,
+            pToEdge1.getOffset().asNumericValue().bigIntegerValue(),
+            pToEdge1.targetSpecifier());
     if (resultOptional.isEmpty()) {
       int nestingLvl = inputSMG1.getNestingLevel(pValue1) + pNestingLevelDiff;
       value = SMGValue.of();

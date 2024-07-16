@@ -162,7 +162,8 @@ public class SMGCPAValueVisitorTest {
     options = new SMGOptions(defaultOptionsNoPreciseRead);
 
     // null, null is fine as long as builtin functions are not used!
-    evaluator = new SMGCPAExpressionEvaluator(MACHINE_MODEL, logger, null, null, makeTestSolver());
+    evaluator =
+        new SMGCPAExpressionEvaluator(MACHINE_MODEL, logger, null, options, makeTestSolver());
 
     currentState = SMGState.of(MACHINE_MODEL, logger, options, evaluator, new SMGCPAStatistics());
 
@@ -1996,7 +1997,7 @@ public class SMGCPAValueVisitorTest {
               .getMemoryModel()
               .getObjectForVisibleVariable(variableName + typeToTest)
               .orElseThrow();
-      BigInteger expectedOffset = BigInteger.ZERO;
+      Value expectedOffset = new NumericValue(BigInteger.ZERO);
       // The returned Value is an address, theoretically addresses may be any Value type
       assertThat(resultValue).isInstanceOf(Value.class);
       // First check general existance of a points to edge, then its target and offset
@@ -2004,13 +2005,7 @@ public class SMGCPAValueVisitorTest {
           .isTrue();
       assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
           .isEqualTo(expectedTarget);
-      assertThat(
-              currentState
-                  .dereferencePointer(resultValue)
-                  .get(0)
-                  .getOffsetForObject()
-                  .asNumericValue()
-                  .bigIntegerValue())
+      assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
           .isEqualTo(expectedOffset);
       // Check that the other methods return the correct points-to-edge leading to the correct
       // memory location and never to the 0 object
@@ -2071,7 +2066,7 @@ public class SMGCPAValueVisitorTest {
               .getMemoryModel()
               .getObjectForVisibleVariable(arrayVariableName)
               .orElseThrow();
-      BigInteger expectedOffset = BigInteger.ZERO;
+      Value expectedOffset = new NumericValue(BigInteger.ZERO);
       // The returned Value is an address, theoretically addresses may be any Value type
       assertThat(resultValue).isInstanceOf(Value.class);
       // First check general existance of a points to edge, then its target and offset
@@ -2079,13 +2074,7 @@ public class SMGCPAValueVisitorTest {
           .isTrue();
       assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
           .isEqualTo(expectedTarget);
-      assertThat(
-              currentState
-                  .dereferencePointer(resultValue)
-                  .get(0)
-                  .getOffsetForObject()
-                  .asNumericValue()
-                  .bigIntegerValue())
+      assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
           .isEqualTo(expectedOffset);
       // Check that the other methods return the correct points-to-edge leading to the correct
       // memory location and never to the 0 object
@@ -2153,8 +2142,8 @@ public class SMGCPAValueVisitorTest {
 
         SMGObject expectedTarget =
             currentState.dereferencePointer(heapAddress).get(0).getSMGObject();
-        BigInteger expectedOffset =
-            BigInteger.valueOf(currentIndice).multiply(sizeOfCurrentTypeInBits);
+        Value expectedOffset =
+            new NumericValue(BigInteger.valueOf(currentIndice).multiply(sizeOfCurrentTypeInBits));
         // The returned Value is an address, theoretically addresses may be any Value type
         assertThat(resultValue).isInstanceOf(Value.class);
         // First check general existance of a points to edge, then its target and offset
@@ -2162,13 +2151,7 @@ public class SMGCPAValueVisitorTest {
             .isTrue();
         assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
             .isEqualTo(expectedTarget);
-        assertThat(
-                currentState
-                    .dereferencePointer(resultValue)
-                    .get(0)
-                    .getOffsetForObject()
-                    .asNumericValue()
-                    .bigIntegerValue())
+        assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
@@ -2233,8 +2216,8 @@ public class SMGCPAValueVisitorTest {
 
         SMGObject expectedTarget =
             currentState.dereferencePointer(heapAddress).get(0).getSMGObject();
-        BigInteger expectedOffset =
-            BigInteger.valueOf(currentIndice).multiply(sizeOfCurrentTypeInBits);
+        Value expectedOffset =
+            new NumericValue(BigInteger.valueOf(currentIndice).multiply(sizeOfCurrentTypeInBits));
         // The returned Value is an address, theoretically addresses may be any Value type
         assertThat(resultValue).isInstanceOf(Value.class);
         // First check general existance of a points to edge, then its target and offset
@@ -2242,13 +2225,7 @@ public class SMGCPAValueVisitorTest {
             .isTrue();
         assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
             .isEqualTo(expectedTarget);
-        assertThat(
-                currentState
-                    .dereferencePointer(resultValue)
-                    .get(0)
-                    .getOffsetForObject()
-                    .asNumericValue()
-                    .bigIntegerValue())
+        assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
@@ -2315,7 +2292,7 @@ public class SMGCPAValueVisitorTest {
               .getMemoryModel()
               .getObjectForVisibleVariable(COMPOSITE_VARIABLE_NAME + j)
               .orElseThrow();
-      BigInteger expectedOffset = BigInteger.ZERO;
+      Value expectedOffset = new NumericValue(BigInteger.ZERO);
       // The returned Value is an address, theoretically addresses may be any Value type
       assertThat(resultValue).isInstanceOf(Value.class);
       // First check general existance of a points to edge, then its target and offset
@@ -2323,13 +2300,7 @@ public class SMGCPAValueVisitorTest {
           .isTrue();
       assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
           .isEqualTo(expectedTarget);
-      assertThat(
-              currentState
-                  .dereferencePointer(resultValue)
-                  .get(0)
-                  .getOffsetForObject()
-                  .asNumericValue()
-                  .bigIntegerValue())
+      assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
           .isEqualTo(expectedOffset);
       // Check that the other methods return the correct points-to-edge leading to the correct
       // memory location and never to the 0 object
@@ -2393,7 +2364,7 @@ public class SMGCPAValueVisitorTest {
               .getMemoryModel()
               .getObjectForVisibleVariable(COMPOSITE_VARIABLE_NAME + j)
               .orElseThrow();
-      BigInteger expectedOffset = BigInteger.ZERO;
+      Value expectedOffset = new NumericValue(BigInteger.ZERO);
       // The returned Value is an address, theoretically addresses may be any Value type
       assertThat(resultValue).isInstanceOf(Value.class);
       // First check general existance of a points to edge, then its target and offset
@@ -2401,8 +2372,7 @@ public class SMGCPAValueVisitorTest {
           currentState.dereferencePointer(resultValue).get(0);
       assertThat(resultMaybeTarget.hasSMGObjectAndOffset()).isTrue();
       assertThat(resultMaybeTarget.getSMGObject()).isEqualTo(expectedTarget);
-      assertThat(resultMaybeTarget.getOffsetForObject().asNumericValue().bigIntegerValue())
-          .isEqualTo(expectedOffset);
+      assertThat(resultMaybeTarget.getOffsetForObject()).isEqualTo(expectedOffset);
       // Check that the other methods return the correct points-to-edge leading to the correct
       // memory location and never to the 0 object
       assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
@@ -2467,8 +2437,8 @@ public class SMGCPAValueVisitorTest {
 
         SMGObject expectedTarget =
             currentState.dereferencePointer(addressForHeap).get(0).getSMGObject();
-        BigInteger expectedOffset =
-            BigInteger.valueOf(getOffsetInBitsWithPadding(listOfTypes, indice));
+        Value expectedOffset =
+            new NumericValue(BigInteger.valueOf(getOffsetInBitsWithPadding(listOfTypes, indice)));
         // The returned Value is an address, theoretically addresses may be any Value type
         assertThat(resultValue).isInstanceOf(Value.class);
         // First check general existance of a points to edge, then its target and offset
@@ -2476,13 +2446,7 @@ public class SMGCPAValueVisitorTest {
             .isTrue();
         assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
             .isEqualTo(expectedTarget);
-        assertThat(
-                currentState
-                    .dereferencePointer(resultValue)
-                    .get(0)
-                    .getOffsetForObject()
-                    .asNumericValue()
-                    .bigIntegerValue())
+        assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
@@ -2550,8 +2514,8 @@ public class SMGCPAValueVisitorTest {
                 .getMemoryModel()
                 .getObjectForVisibleVariable(COMPOSITE_VARIABLE_NAME + j)
                 .orElseThrow();
-        BigInteger expectedOffset =
-            BigInteger.valueOf(getOffsetInBitsWithPadding(listOfTypes, indice));
+        Value expectedOffset =
+            new NumericValue(BigInteger.valueOf(getOffsetInBitsWithPadding(listOfTypes, indice)));
         // The returned Value is an address, theoretically addresses may be any Value type
         assertThat(resultValue).isInstanceOf(Value.class);
         // First check general existance of a points to edge, then its target and offset
@@ -2559,13 +2523,7 @@ public class SMGCPAValueVisitorTest {
             .isTrue();
         assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
             .isEqualTo(expectedTarget);
-        assertThat(
-                currentState
-                    .dereferencePointer(resultValue)
-                    .get(0)
-                    .getOffsetForObject()
-                    .asNumericValue()
-                    .bigIntegerValue())
+        assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
@@ -3355,7 +3313,8 @@ public class SMGCPAValueVisitorTest {
    * This expects the stack var to be present! Updates the visitor.
    */
   private void writeToStackVariableInMemoryModel(
-      String stackVariableName, int writeOffsetInBits, int writeSizeInBits, Value valueToWrite) {
+      String stackVariableName, int writeOffsetInBits, int writeSizeInBits, Value valueToWrite)
+      throws SMGException {
     if (valueToWrite instanceof AddressExpression) {
       ValueAndSMGState valueToWriteAndState = currentState.transformAddressExpression(valueToWrite);
       valueToWrite = valueToWriteAndState.getValue();
@@ -3403,7 +3362,7 @@ public class SMGCPAValueVisitorTest {
         spc.copyAndAddPointerFromAddressToMemory(
             addressValue,
             smgHeapObject,
-            BigInteger.valueOf(offset),
+            new NumericValue(BigInteger.valueOf(offset)),
             0,
             SMGTargetSpecifier.IS_REGION);
 

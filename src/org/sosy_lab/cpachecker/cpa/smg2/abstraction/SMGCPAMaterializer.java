@@ -549,9 +549,12 @@ public class SMGCPAMaterializer {
                 !e.hasValue().isZero()
                     && smg.isPointer(e.hasValue())
                     && smg.getPTEdge(e.hasValue()).orElseThrow().pointsTo().equals(newAbsListSeg)
+                    && smg.getPTEdge(e.hasValue()).orElseThrow().getOffset().isNumericValue()
                     && smg.getPTEdge(e.hasValue())
                         .orElseThrow()
                         .getOffset()
+                        .asNumericValue()
+                        .bigIntegerValue()
                         .equals(
                             ((SMGDoublyLinkedListSegment) newAbsListSeg)
                                 .getPrevPointerTargetOffset())
@@ -795,13 +798,13 @@ public class SMGCPAMaterializer {
           // Create a new pointer to the new memory that is equal to the old and save in newConcrete
           SMGPointsToEdge oldPTE =
               currentState.getMemoryModel().getSmg().getPTEdge(smgValue).orElseThrow();
-          BigInteger oldOffset = oldPTE.getOffset();
+          Value oldOffset = oldPTE.getOffset();
           Preconditions.checkArgument(
               targetMemoryAndState
                   .getOffsetForObject()
                   .asNumericValue()
                   .bigIntegerValue()
-                  .equals(oldOffset));
+                  .equals(oldOffset.asNumericValue().bigIntegerValue()));
           int oldPtrNestingLvl = currentState.getMemoryModel().getNestingLevel(value);
           SMGTargetSpecifier oldPtrTargetSpec = oldPTE.targetSpecifier();
           if (!(newTarget instanceof SMGSinglyLinkedListSegment)) {

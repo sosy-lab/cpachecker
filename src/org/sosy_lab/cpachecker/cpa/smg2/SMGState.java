@@ -2165,7 +2165,7 @@ public class SMGState
 
     SMGValue smgValue = maybeSmgValue1.orElseThrow();
     SMGPointsToEdge targetEdge = memoryModel.getSmg().getPTEdge(smgValue).orElseThrow();
-    return new NumericValue(targetEdge.getOffset());
+    return targetEdge.getOffset();
   }
 
   /** Logs the error entered using the states logger. */
@@ -2901,7 +2901,7 @@ public class SMGState
         return Optional.of(
             SMGObjectAndOffsetMaybeNestingLvl.of(
                 pointerEdgeOptional.orElseThrow().pointsTo(),
-                new NumericValue(pointerEdgeOptional.orElseThrow().getOffset())));
+                pointerEdgeOptional.orElseThrow().getOffset()));
       }
     }
     return Optional.empty();
@@ -2913,43 +2913,52 @@ public class SMGState
    * existing pointers before creating new ones. Always returns the entered value for
    * offset == 0. But unknown for unknown offsets.
    */
-  private ValueAndSMGState searchOrCreateAddressForAddressExpr(Value pValue) {
+  private ValueAndSMGState searchOrCreateAddressForAddressExpr(Value pValue) throws SMGException {
     if (pValue instanceof AddressExpression addressExprValue) {
       Value offsetAddr = addressExprValue.getOffset();
-      if (offsetAddr.isNumericValue()) {
-        BigInteger offsetAddrBI = offsetAddr.asNumericValue().bigIntegerValue();
-        if (offsetAddrBI.compareTo(BigInteger.ZERO) != 0) {
-          Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTargetAndOffset =
-              getPointsToTarget(addressExprValue.getMemoryAddress());
-          if (maybeTargetAndOffset.isEmpty()) {
-            return ValueAndSMGState.ofUnknownValue(this);
-          }
-          SMGObjectAndOffsetMaybeNestingLvl targetAndOffset = maybeTargetAndOffset.orElseThrow();
 
-          SMGObject target = targetAndOffset.getSMGObject();
-          Value offsetPointer = targetAndOffset.getOffsetForObject();
-          if (!offsetPointer.isNumericValue()) {
-            return ValueAndSMGState.ofUnknownValue(this);
-          }
-          BigInteger offsetOverall =
-              offsetPointer.asNumericValue().bigIntegerValue().add(offsetAddrBI);
-          SMGTargetSpecifier specifier = SMGTargetSpecifier.IS_REGION;
-          assert !(target instanceof SMGSinglyLinkedListSegment);
-          Preconditions.checkArgument(
-              0 == getMemoryModel().getNestingLevel(addressExprValue.getMemoryAddress()));
-          // search for existing pointer first and return if found; else make a new one
-          ValueAndSMGState addressAndState =
-              searchOrCreateAddress(target, offsetOverall, 0, specifier);
-          return ValueAndSMGState.of(
-              AddressExpression.withZeroOffset(
-                  addressAndState.getValue(), addressExprValue.getType()),
-              addressAndState.getState());
-        }
-      } else {
+      if (offsetAddr.isNumericValue()
+          && offsetAddr.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+        return ValueAndSMGState.of(pValue, this);
+      }
+
+      Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTargetAndOffset =
+          getPointsToTarget(addressExprValue.getMemoryAddress());
+      if (maybeTargetAndOffset.isEmpty()) {
         return ValueAndSMGState.ofUnknownValue(this);
       }
+      SMGObjectAndOffsetMaybeNestingLvl targetAndOffset = maybeTargetAndOffset.orElseThrow();
+
+      SMGObject target = targetAndOffset.getSMGObject();
+      Value offsetPointer = targetAndOffset.getOffsetForObject();
+      Value offsetOverall = SMGCPAExpressionEvaluator.addOffsetValues(offsetPointer, offsetAddr);
+      SMGTargetSpecifier specifier = SMGTargetSpecifier.IS_REGION;
+      assert !(target instanceof SMGSinglyLinkedListSegment);
+      Preconditions.checkArgument(
+          0 == getMemoryModel().getNestingLevel(addressExprValue.getMemoryAddress()));
+      // search for existing pointer first and return if found; else make a new one
+      ValueAndSMGState addressAndState = searchOrCreateAddress(target, offsetOverall, 0, specifier);
+      return ValueAndSMGState.of(
+          AddressExpression.withZeroOffset(addressAndState.getValue(), addressExprValue.getType()),
+          addressAndState.getState());
+
+    } else {
+      return ValueAndSMGState.ofUnknownValue(this);
     }
-    return ValueAndSMGState.of(pValue, this);
+  }
+
+  /**
+   * Takes a target and offset and tries to find an address (not AddressExpression) that fits them.
+   * If none can be found a new address (SMGPointsToEdge) is created and returned as Value (Not
+   * AddressExpression).
+   *
+   * @param targetObject {@link SMGObject} target.
+   * @param offsetInBits Offset in the target as Value.
+   * @return a {@link Value} (NOT AddressExpression) and state with the address/address added.
+   */
+  public ValueAndSMGState searchOrCreateAddress(SMGObject targetObject, Value offsetInBits) {
+    assert !(targetObject instanceof SMGSinglyLinkedListSegment);
+    return searchOrCreateAddress(targetObject, offsetInBits, 0, SMGTargetSpecifier.IS_REGION);
   }
 
   /**
@@ -2963,7 +2972,8 @@ public class SMGState
    */
   public ValueAndSMGState searchOrCreateAddress(SMGObject targetObject, BigInteger offsetInBits) {
     assert !(targetObject instanceof SMGSinglyLinkedListSegment);
-    return searchOrCreateAddress(targetObject, offsetInBits, 0, SMGTargetSpecifier.IS_REGION);
+    return searchOrCreateAddress(
+        targetObject, new NumericValue(offsetInBits), 0, SMGTargetSpecifier.IS_REGION);
   }
 
   /**
@@ -2980,6 +2990,26 @@ public class SMGState
   public ValueAndSMGState searchOrCreateAddress(
       SMGObject targetObject,
       BigInteger offsetInBits,
+      int pointerNestingLevel,
+      SMGTargetSpecifier pTargetSpecifier) {
+    return searchOrCreateAddress(
+        targetObject, new NumericValue(offsetInBits), pointerNestingLevel, pTargetSpecifier);
+  }
+
+  /**
+   * Takes a target and offset and tries to find an address (not AddressExpression) that fits them.
+   * If none can be found a new address (SMGPointsToEdge) is created and returned as Value (Not
+   * AddressExpression).
+   *
+   * @param targetObject {@link SMGObject} target.
+   * @param offsetInBits Offset as Value.
+   * @param pointerNestingLevel pointer nesting level
+   * @param pTargetSpecifier the {@link SMGTargetSpecifier}
+   * @return a {@link Value} (NOT AddressExpression) and state with the address/address added.
+   */
+  public ValueAndSMGState searchOrCreateAddress(
+      SMGObject targetObject,
+      Value offsetInBits,
       int pointerNestingLevel,
       SMGTargetSpecifier pTargetSpecifier) {
     Preconditions.checkArgument(pointerNestingLevel >= 0);
@@ -4072,7 +4102,7 @@ public class SMGState
    * @param value might be AddressExpression.
    * @return a non AddressExpression Value.
    */
-  ValueAndSMGState transformAddressExpression(Value value) {
+  ValueAndSMGState transformAddressExpression(Value value) throws SMGException {
     if (value instanceof AddressExpression) {
       ValueAndSMGState valueToWriteAndState = searchOrCreateAddressForAddressExpr(value);
       // The returned Value might be a non AddressExpression
@@ -4134,8 +4164,7 @@ public class SMGState
    * @param offsetInBits offset in the object.
    * @return the new {@link SMGState} with the pointer and mapping added.
    */
-  public SMGState createAndAddPointer(
-      Value addressValue, SMGObject target, BigInteger offsetInBits) {
+  public SMGState createAndAddPointer(Value addressValue, SMGObject target, Value offsetInBits) {
     assert !(target instanceof SMGSinglyLinkedListSegment);
     return createAndAddPointer(addressValue, target, offsetInBits, 0, SMGTargetSpecifier.IS_REGION);
   }
@@ -4157,6 +4186,30 @@ public class SMGState
       Value addressValue,
       SMGObject target,
       BigInteger offsetInBits,
+      int nestingLevel,
+      SMGTargetSpecifier specifier) {
+    return copyAndReplaceMemoryModel(
+        memoryModel.copyAndAddPointerFromAddressToMemory(
+            addressValue, target, new NumericValue(offsetInBits), nestingLevel, specifier));
+  }
+
+  /**
+   * Creates a pointer (points-to-edge) from the value to the target at the specified offset. The
+   * Value is mapped to a SMGValue if no mapping exists, else the existing will be used. This does
+   * not check whether a pointer already exists but will override the target if the value already
+   * has a mapping!
+   *
+   * @param addressValue {@link Value} used as address pointing to the target at the offset.
+   * @param target {@link SMGObject} where the pointer points to.
+   * @param offsetInBits offset in the object.
+   * @param nestingLevel nesting level of the value.
+   * @param specifier {@link SMGTargetSpecifier} used for the pointer.
+   * @return the new {@link SMGState} with the pointer and mapping added.
+   */
+  public SMGState createAndAddPointer(
+      Value addressValue,
+      SMGObject target,
+      Value offsetInBits,
       int nestingLevel,
       SMGTargetSpecifier specifier) {
     return copyAndReplaceMemoryModel(
@@ -4604,14 +4657,17 @@ public class SMGState
     SMGAndHasValueEdges nfoReadEdges =
         smg.readValue(objWPointersTowardsTarget, nfo, smg.getSizeOfPointer(), false);
     if (nfoReadEdges.getHvEdges().size() != 1
-        || !smg.isPointer(nfoReadEdges.getHvEdges().get(0).hasValue())
-        || !smg.getPTEdge(nfoReadEdges.getHvEdges().get(0).hasValue())
-            .orElseThrow()
-            .pointsTo()
-            .equals(target)
-        || !smg.getPTEdge(nfoReadEdges.getHvEdges().get(0).hasValue())
-            .orElseThrow()
+        || !smg.isPointer(nfoReadEdges.getHvEdges().get(0).hasValue())) {
+      return false;
+    }
+    SMGPointsToEdge nfoPteForHv =
+        smg.getPTEdge(nfoReadEdges.getHvEdges().get(0).hasValue()).orElseThrow();
+    if (!nfoPteForHv.pointsTo().equals(target)
+        || !nfoPteForHv.getOffset().isNumericValue()
+        || !nfoPteForHv
             .getOffset()
+            .asNumericValue()
+            .bigIntegerValue()
             .equals(nextPointerTargetOffset)) {
       // Next ptr location/Offset does not match
       if (maybePfo.isEmpty()) {
@@ -4621,14 +4677,17 @@ public class SMGState
         SMGAndHasValueEdges pfoReadEdges =
             smg.readValue(objWPointersTowardsTarget, pfo, smg.getSizeOfPointer(), false);
         if (pfoReadEdges.getHvEdges().size() != 1
-            || !smg.isPointer(pfoReadEdges.getHvEdges().get(0).hasValue())
-            || !smg.getPTEdge(pfoReadEdges.getHvEdges().get(0).hasValue())
-                .orElseThrow()
-                .pointsTo()
-                .equals(target)
-            || !smg.getPTEdge(pfoReadEdges.getHvEdges().get(0).hasValue())
-                .orElseThrow()
+            || !smg.isPointer(pfoReadEdges.getHvEdges().get(0).hasValue())) {
+          return false;
+        }
+        SMGPointsToEdge pfoPteForHv =
+            smg.getPTEdge(pfoReadEdges.getHvEdges().get(0).hasValue()).orElseThrow();
+        if (!pfoPteForHv.pointsTo().equals(target)
+            || !pfoPteForHv.getOffset().isNumericValue()
+            || !pfoPteForHv
                 .getOffset()
+                .asNumericValue()
+                .bigIntegerValue()
                 .equals(prevPointerTargetOffset.orElseThrow())) {
           // Prev ptr location does not match
           return false;
@@ -5383,9 +5442,12 @@ public class SMGState
     if (readValues.size() == 1) {
       SMGHasValueEdge readValue = readValues.get(0);
       if (smg.isPointer(readValue.hasValue())
+          && smg.getPTEdge(readValue.hasValue()).orElseThrow().getOffset().isNumericValue()
           && smg.getPTEdge(readValue.hasValue())
               .orElseThrow()
               .getOffset()
+              .asNumericValue()
+              .bigIntegerValue()
               .equals(pNextPointerTargetOffset)) {
         return true;
       }
@@ -5480,7 +5542,7 @@ public class SMGState
     Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
     return ImmutableList.of(
         SMGStateAndOptionalSMGObjectAndOffset.of(
-            ptEdge.pointsTo(), new NumericValue(ptEdge.getOffset()), currentState));
+            ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
   }
 
   /**
@@ -5526,7 +5588,7 @@ public class SMGState
           ptEdge = maybePtEdge.orElseThrow();
           returnBuilder.add(
               SMGStateAndOptionalSMGObjectAndOffset.of(
-                  ptEdge.pointsTo(), new NumericValue(ptEdge.getOffset()), currentState));
+                  ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
         }
         return returnBuilder.build();
 
@@ -5547,7 +5609,7 @@ public class SMGState
     Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
     return ImmutableList.of(
         SMGStateAndOptionalSMGObjectAndOffset.of(
-            ptEdge.pointsTo(), new NumericValue(ptEdge.getOffset()), currentState));
+            ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
   }
 
   /**
@@ -5568,7 +5630,7 @@ public class SMGState
     SMGPointsToEdge ptEdge = memoryModel.getSmg().getPTEdge(smgValueAddress).orElseThrow();
     return Optional.of(
         SMGStateAndOptionalSMGObjectAndOffset.of(
-            ptEdge.pointsTo(), new NumericValue(ptEdge.getOffset()), currentState));
+            ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
   }
 
   /**
@@ -5677,12 +5739,12 @@ public class SMGState
    * @param addressValue the pointer {@link Value} or {@link AddressExpression}
    * @return Optional, either a {@link BigInteger} as numeric address (pointer in Bytes) or empty.
    */
-  public Optional<Value> transformAddressIntoNumericValue(Value addressValue) {
-    BigInteger offset;
+  public Optional<Value> transformAddressIntoNumericValue(Value addressValue) throws SMGException {
+    Value offset;
     SMGObject target;
     if (addressValue instanceof AddressExpression addressExpr) {
       if (addressExpr.getOffset().isNumericValue()) {
-        offset = addressExpr.getOffset().asNumericValue().bigIntegerValue();
+        offset = addressExpr.getOffset();
       } else {
         return Optional.empty();
       }
@@ -5693,7 +5755,7 @@ public class SMGState
                   memoryModel.getSMGValueFromValue(addressExpr.getMemoryAddress()).orElseThrow())
               .orElseThrow();
       target = ptEdge.pointsTo();
-      offset = offset.add(ptEdge.getOffset());
+      offset = SMGCPAExpressionEvaluator.addOffsetValues(offset, ptEdge.getOffset());
 
     } else if (memoryModel.isPointer(addressValue)) {
       SMGPointsToEdge ptEdge =
@@ -5706,8 +5768,15 @@ public class SMGState
     } else {
       return Optional.empty();
     }
+    if (!offset.isNumericValue()) {
+      throw new SMGException(
+          "Symbolic pointer offsets can not be used to assume a numerical offset.");
+    }
     return Optional.of(
-        new NumericValue(memoryModel.getNumericAssumptionForMemoryRegion(target).add(offset)));
+        new NumericValue(
+            memoryModel
+                .getNumericAssumptionForMemoryRegion(target)
+                .add(offset.asNumericValue().bigIntegerValue())));
   }
 
   public boolean isSMGObjectAStackVariable(SMGObject obj) {
