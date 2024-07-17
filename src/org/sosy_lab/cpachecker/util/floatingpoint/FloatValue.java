@@ -2464,6 +2464,11 @@ public class FloatValue extends Number {
 
     int expValue = Integer.parseInt(exponent);
 
+    // Abort if the significand has no digits
+    if (digits.isEmpty()) {
+      throw new IllegalArgumentException();
+    }
+
     // Get the fractional part of the number (and add ".0" if it has none)
     int radix = digits.indexOf('.');
     if (radix == -1) {
