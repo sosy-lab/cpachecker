@@ -51,7 +51,7 @@ public class SMGCPAAbstractionManager {
 
   private EqualityCache<SMGObject> objectCache;
 
-  private int minimumLengthForListsForAbstraction;
+  private final int minimumLengthForListsForAbstraction;
 
   private final SMGCPAStatistics statistics;
 
@@ -277,8 +277,7 @@ public class SMGCPAAbstractionManager {
         SMGCandidateOrRejectedObject maybeCandidate = null;
         // Search through all possible values of the object first, remember to reject the obj if
         // nothing is found
-        for (int i = 0; i < valuesInHeapObj.size(); i++) {
-          SMGHasValueEdge valueEdge = valuesInHeapObj.get(i);
+        for (SMGHasValueEdge valueEdge : valuesInHeapObj) {
           Optional<SMGPointsToEdge> maybePTE = smg.getPTEdge(valueEdge.hasValue());
 
           if (maybePTE.isPresent()) {
@@ -405,8 +404,7 @@ public class SMGCPAAbstractionManager {
       SMGObject nextObj,
       BigInteger suspectedNfo,
       BigInteger nextPointerTargetOffset,
-      Set<SMGObject> alreadySeen)
-      throws SMGException {
+      Set<SMGObject> alreadySeen) {
     SMG smg = state.getMemoryModel().getSmg();
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> objsAndHVEs =
         smg.getSMGObjectsWithSMGHasValueEdges();
@@ -457,8 +455,7 @@ public class SMGCPAAbstractionManager {
       BigInteger nextPointerTargetOffset,
       Optional<BigInteger> maybePfo,
       Optional<BigInteger> maybePrevPointerTargetOffset,
-      Set<SMGObject> alreadySeenInChain)
-      throws SMGException {
+      Set<SMGObject> alreadySeenInChain) {
     SMG smg = state.getMemoryModel().getSmg();
     int minimumLengthForLists = minimumLengthForListsForAbstraction - 1;
     // We count the currentObj as being the first valid candidate
@@ -499,7 +496,7 @@ public class SMGCPAAbstractionManager {
             alreadySeenInChain,
             minimumLengthForLists);
     if (!listType.equals(ListType.NONE)) {
-      Preconditions.checkArgument(ListType.DLL != listType || !maybePfo.isEmpty());
+      Preconditions.checkArgument(ListType.DLL != listType || maybePfo.isPresent());
       boolean isDll = listType.equals(ListType.DLL) || listType.equals(ListType.LOOPINGDLL);
       maybePfo = isDll ? maybePfo : Optional.empty();
       maybePrevPointerTargetOffset = isDll ? maybePrevPointerTargetOffset : Optional.empty();
@@ -1091,7 +1088,7 @@ public class SMGCPAAbstractionManager {
         return Optional.of(dll.getPrevOffset());
       } else if (dll.getPrevOffset().compareTo(nfo) == 0) {
         // DLL got turned, turn back
-
+        throw new AssertionError("Error during shape refinement.");
       } else {
         throw new AssertionError("Error during shape refinement.");
       }
@@ -1198,7 +1195,7 @@ public class SMGCPAAbstractionManager {
 
     ImmutableSet<SMGHasValueEdge> setOfPointers =
         getPointersToSameSizeObjectsWithoutOffset(root, smg, alreadyVisited, nfo);
-    if (setOfPointers.size() < 1) {
+    if (setOfPointers.isEmpty()) {
       return Optional.empty();
     }
 
@@ -1239,7 +1236,7 @@ public class SMGCPAAbstractionManager {
 
     ImmutableSet<SMGHasValueEdge> setOfPointers =
         getPointersToSameSizeObjectsWithoutOffset(root, smg, alreadyVisited, nfo);
-    if (setOfPointers.size() < 1) {
+    if (setOfPointers.isEmpty()) {
       return Optional.empty();
     }
 
@@ -1266,7 +1263,8 @@ public class SMGCPAAbstractionManager {
     return Optional.empty();
   }
 
-  private SMGObject findNextObjectForListWithNFO(SMGObject root, BigInteger nfo, SMG smg) {
+  private @Nullable SMGObject findNextObjectForListWithNFO(
+      SMGObject root, BigInteger nfo, SMG smg) {
     SMGObject nextObject = null;
     for (SMGHasValueEdge hve : smg.getEdges(root)) {
       SMGValue value = hve.hasValue();
@@ -1297,9 +1295,8 @@ public class SMGCPAAbstractionManager {
       return Optional.empty();
     }
     thisAlreadyVisited.add(potentialRoot);
-    if (potentialRoot instanceof SMGSinglyLinkedListSegment) {
+    if (potentialRoot instanceof SMGSinglyLinkedListSegment sll) {
       pAlreadyVisited.add(potentialRoot);
-      SMGSinglyLinkedListSegment sll = (SMGSinglyLinkedListSegment) potentialRoot;
       // BigInteger.ZERO is potentially wrong, but this code is about to be removed
       return Optional.of(new SMGCandidate(potentialRoot, sll.getNextOffset(), BigInteger.ZERO));
     }
@@ -1337,7 +1334,7 @@ public class SMGCPAAbstractionManager {
           pAlreadyVisited.add(potentialRoot);
           // BigInteger.ZERO is potentially wrong, but this code is about to be removed
           return Optional.of(new SMGCandidate(potentialRoot, nfo, BigInteger.ZERO));
-        } else if (true) {
+        } else {
           // TODO: check that there is a "external" pointer pointing towards this (a pointer that is
           // not inside the list)
           pAlreadyVisited.add(potentialRoot);
@@ -1467,10 +1464,13 @@ public class SMGCPAAbstractionManager {
   }
 
   protected static class SMGCandidateOrRejectedObject {
-    private final SMGObject nonListObj;
-    private final SMGCandidate possibleCandidate;
 
-    private SMGCandidateOrRejectedObject(SMGObject pNonListObj, SMGCandidate pPossibleCandidate) {
+    private final SMGObject nonListObj;
+
+    @Nullable private final SMGCandidate possibleCandidate;
+
+    private SMGCandidateOrRejectedObject(
+        SMGObject pNonListObj, @Nullable SMGCandidate pPossibleCandidate) {
       nonListObj = pNonListObj;
       possibleCandidate = pPossibleCandidate;
     }
@@ -1498,28 +1498,28 @@ public class SMGCPAAbstractionManager {
 
   @VisibleForTesting
   protected static class SMGCandidate {
-    private SMGObject object;
-    private BigInteger suspectedNfo;
+    private final SMGObject object;
+    private final BigInteger suspectedNfo;
 
     // If not present -> SLL
-    private Optional<BigInteger> suspectedPfo;
+    private final Optional<BigInteger> suspectedPfo;
 
     /*
      * The offset of the nfo pointer in the target.
      */
-    private BigInteger suspectedNfoTargetPointerOffset;
+    private final BigInteger suspectedNfoTargetPointerOffset;
 
-    private Optional<BigInteger> suspectedPfoTargetOffset;
+    private final Optional<BigInteger> suspectedPfoTargetOffset;
 
     /*
      * Other suspected list elements. This is the maximal possible over approximation for the same size/nfo!
      * Equalities are not checked and this might not reflect the final abstracted list.
      * Used to find accurate nesting.
      */
-    private Set<SMGObject> suspectedElements;
+    private final Set<SMGObject> suspectedElements;
 
     // Max size. Not checked for abstractable length!
-    private int maximalSizeOfList;
+    private final int maximalSizeOfList;
 
     private boolean looping = false;
 
