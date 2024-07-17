@@ -2033,7 +2033,7 @@ public class FloatValue extends Number {
     return toInteger()
         .flatMap(
             integerValue ->
-                (integerValue.compareTo(min) > -1 && integerValue.compareTo(max) < 1)
+                (integerValue.compareTo(min) >= 0 && integerValue.compareTo(max) <= 0)
                     ? Optional.of(integerValue.byteValue())
                     : Optional.empty());
   }
@@ -2061,7 +2061,7 @@ public class FloatValue extends Number {
     return toInteger()
         .flatMap(
             integerValue ->
-                (integerValue.compareTo(min) > -1 && integerValue.compareTo(max) < 1)
+                (integerValue.compareTo(min) >= 0 && integerValue.compareTo(max) <= 0)
                     ? Optional.of(integerValue.shortValue())
                     : Optional.empty());
   }
@@ -2089,7 +2089,7 @@ public class FloatValue extends Number {
     return toInteger()
         .flatMap(
             integerValue ->
-                (integerValue.compareTo(min) > -1 && integerValue.compareTo(max) < 1)
+                (integerValue.compareTo(min) >= 0 && integerValue.compareTo(max) <= 0)
                     ? Optional.of(integerValue.intValue())
                     : Optional.empty());
   }
