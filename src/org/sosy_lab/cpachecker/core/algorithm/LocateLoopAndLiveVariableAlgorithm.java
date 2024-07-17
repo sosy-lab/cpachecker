@@ -211,6 +211,42 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
               locationOfDefinition,
               locationOfRecursiveCalls,
               parameters));
+
+      // Check if the currect recursion is a mutual recursion.
+      // If so, add the information of another corresponding function.
+      Set<FunctionEntryNode> otherFuntionsCalledInCurrentRecursion = new HashSet<>();
+      for (CFAEdge cfaEdge : recursion.getInnerLoopEdges()) {
+        if (cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
+            && !getFunctionFromFunctionCallEdge(cfaEdge).equals(function)) {
+          otherFuntionsCalledInCurrentRecursion.add(getFunctionFromFunctionCallEdge(cfaEdge));
+        }
+      }
+      for (FunctionEntryNode otherFuntion : otherFuntionsCalledInCurrentRecursion) {
+        int startLine = otherFuntion.getFileLocation().getStartingLineInOrigin();
+        int endLine = otherFuntion.getFileLocation().getEndingLineInOrigin();
+        Set<Integer> locationOfRecursiveCallsOfOtherFunction = new HashSet<>();
+
+        if (recursion.getInnerLoopEdges()
+            .stream()
+            .anyMatch(
+                e -> e.getFileLocation().getStartingLineInOrigin() >= startLine
+                    && e.getFileLocation().getStartingLineInOrigin() <= endLine)) {
+          for (CFAEdge cfaEdge : recursion.getInnerLoopEdges()) {
+            if (cfaEdge.getRawStatement().contains(" " + otherFuntion.getFunctionName() + "(")
+                || cfaEdge.getRawStatement().startsWith(otherFuntion.getFunctionName() + "(")) {
+              locationOfRecursiveCallsOfOtherFunction
+                  .add(cfaEdge.getFileLocation().getStartingLineInOrigin());
+            }
+          }
+        }
+
+        allRecursionInfos.add(
+            new RecursionInfo(
+                "*" + otherFuntion.getFunctionName(),
+                startLine,
+                locationOfRecursiveCallsOfOtherFunction,
+                parameters));
+      }
     }
 
     return allRecursionInfos;
