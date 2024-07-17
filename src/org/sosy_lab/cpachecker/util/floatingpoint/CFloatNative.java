@@ -252,9 +252,12 @@ class CFloatNative extends CFloat {
   }
 
   public static CFloat castOtherTo(Number value, int fromType, int toType) {
+    throw new UnsupportedOperationException();
+    // FIXME: castOtherToFP is currently broken, we should split it up like castFpToX to fix this
+    /*
     CFloatWrapper newFloat = CFloatNativeAPI.castOtherToFp(value, fromType, toType);
-
     return new CFloatNative(newFloat, toType);
+    */
   }
 
   @Override
