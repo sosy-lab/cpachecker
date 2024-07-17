@@ -38,8 +38,7 @@ class CFloatNativeAPI {
     USHORT(9),
     UINT(10),
     ULONG(11),
-    ULONG_LONG(12),
-    HALF(13);
+    ULONG_LONG(12);
 
     private final int ordinal;
 
@@ -67,7 +66,6 @@ class CFloatNativeAPI {
       case 10 -> CNativeType.UINT;
       case 11 -> CNativeType.ULONG;
       case 12 -> CNativeType.ULONG_LONG;
-      case 13 -> CNativeType.HALF;
       default -> throw new IllegalArgumentException();
     };
   }

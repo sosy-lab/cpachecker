@@ -276,7 +276,6 @@ class CFloatImpl extends CFloat {
   @Override
   public CFloat castTo(CNativeType toType) {
     return switch (toType) {
-      case HALF -> new CFloatImpl(delegate.withPrecision(Format.Float16));
       case SINGLE -> new CFloatImpl(delegate.withPrecision(Format.Float32));
       case DOUBLE -> new CFloatImpl(delegate.withPrecision(Format.Float64));
       case LONG_DOUBLE -> new CFloatImpl(delegate.withPrecision(Format.Extended));
@@ -314,9 +313,7 @@ class CFloatImpl extends CFloat {
 
   @Override
   public int getType() {
-    if (Format.Float16.equals(delegate.getFormat())) {
-      return CNativeType.HALF.getOrdinal();
-    } else if (Format.Float32.equals(delegate.getFormat())) {
+    if (Format.Float32.equals(delegate.getFormat())) {
       return CNativeType.SINGLE.getOrdinal();
     } else if (Format.Float64.equals(delegate.getFormat())) {
       return CNativeType.DOUBLE.getOrdinal();

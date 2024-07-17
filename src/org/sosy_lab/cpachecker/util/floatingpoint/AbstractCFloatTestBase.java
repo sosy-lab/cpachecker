@@ -837,9 +837,6 @@ abstract class AbstractCFloatTestBase {
 
   private CNativeType toNativeType(Format pFormat) {
     int r = -1;
-    if (pFormat.equals(Format.Float16)) {
-      r = CNativeType.HALF.getOrdinal();
-    }
     if (pFormat.equals(Format.Float32)) {
       r = CNativeType.SINGLE.getOrdinal();
     }

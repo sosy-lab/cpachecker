@@ -265,8 +265,6 @@ class MpfrFloat extends CFloat {
   public CFloat castTo(CNativeType toType) {
     BinaryMathContext ldouble = new BinaryMathContext(64, 15);
     return switch (toType) {
-      case HALF ->
-          new MpfrFloat(value.round(BinaryMathContext.BINARY16), BinaryMathContext.BINARY16);
       case SINGLE ->
           new MpfrFloat(value.round(BinaryMathContext.BINARY32), BinaryMathContext.BINARY32);
       case DOUBLE ->
