@@ -195,13 +195,25 @@ public class FloatValue extends Number {
   public record Format(int expBits, int sigBits) implements Serializable {
     @Serial private static final long serialVersionUID = -6677404553596078315L;
 
+    /** The minimal number of bits of the exponent field */
+    private static final int MIN_EXPONENT_WIDTH = 2;
+
+    /** The maximal number of bits of the exponent field */
+    private static final int MAX_EXPONENT_WIDTH = 25;
+
     public Format {
       // Check that the arguments are valid
       Preconditions.checkArgument(
-          expBits >= 2 && expBits <= 25, "Exponent field must be between 2 and 25 bits wide");
+          expBits >= MIN_EXPONENT_WIDTH && expBits <= MAX_EXPONENT_WIDTH,
+          "Exponent field must be between %s and %s bits wide",
+          MIN_EXPONENT_WIDTH,
+          MAX_EXPONENT_WIDTH);
       Preconditions.checkArgument(
           sigBits >= 0, "Significand field must not have negative bit width");
     }
+
+    private static final int FLOAT8_EXP_BITS = 4;
+    private static final int FLOAT8_SIG_BITS = 3;
 
     /**
      * An 8bit floating-point format
@@ -211,7 +223,10 @@ public class FloatValue extends Number {
      *
      * @see <a href="https://en.wikipedia.org/wiki/Minifloat">Wikipedia</a>
      */
-    static final Format Float8 = new Format(4, 3);
+    static final Format Float8 = new Format(FLOAT8_EXP_BITS, FLOAT8_SIG_BITS);
+
+    private static final int FLOAT16_EXP_BITS = 5;
+    private static final int FLOAT16_SIG_BITS = 10;
 
     /**
      * Half-precision floating-point format
@@ -222,7 +237,10 @@ public class FloatValue extends Number {
      * @see <a
      *     href="https://en.wikipedia.org/wiki/Half-precision_floating-point_format">Wikipedia</a>
      */
-    public static final Format Float16 = new Format(5, 10);
+    public static final Format Float16 = new Format(FLOAT16_EXP_BITS, FLOAT16_SIG_BITS);
+
+    private static final int FLOAT32_EXP_BITS = 8;
+    private static final int FLOAT32_SIG_BITS = 23;
 
     /**
      * Single-precision floating-point format
@@ -233,7 +251,10 @@ public class FloatValue extends Number {
      * @see <a
      *     href="https://en.wikipedia.org/wiki/Single-precision_floating-point_format">Wikipedia</a>
      */
-    public static final Format Float32 = new Format(8, 23);
+    public static final Format Float32 = new Format(FLOAT32_EXP_BITS, FLOAT32_SIG_BITS);
+
+    private static final int FLOAT64_EXP_BITS = 11;
+    private static final int FLOAT64_SIG_BITS = 52;
 
     /**
      * Double-precision floating-point format
@@ -244,7 +265,10 @@ public class FloatValue extends Number {
      * @see <a
      *     href="https://en.wikipedia.org/wiki/Double-precision_floating-point_format">Wikipedia</a>
      */
-    public static final Format Float64 = new Format(11, 52);
+    public static final Format Float64 = new Format(FLOAT64_EXP_BITS, FLOAT64_SIG_BITS);
+
+    private static final int FLOAT128_EXP_BITS = 15;
+    private static final int FLOAT128_SIG_BITS = 112;
 
     /**
      * Quadruple-precision floating-point format
@@ -255,7 +279,10 @@ public class FloatValue extends Number {
      * @see <a
      *     href="https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format"f>Wikipedia</a>
      */
-    public static final Format Float128 = new Format(15, 112);
+    public static final Format Float128 = new Format(FLOAT128_EXP_BITS, FLOAT128_SIG_BITS);
+
+    private static final int FLOAT256_EXP_BITS = 19;
+    private static final int FLOAT256_SIG_BITS = 236;
 
     /**
      * Octuple-precision floating-point format
@@ -266,7 +293,10 @@ public class FloatValue extends Number {
      * @see <a
      *     href="https://en.wikipedia.org/wiki/Octuple-precision_floating-point_format">Wikipedia</a>
      */
-    public static final Format Float256 = new Format(19, 236);
+    public static final Format Float256 = new Format(FLOAT256_EXP_BITS, FLOAT256_SIG_BITS);
+
+    private static final int FLOAT_EXTENDED_EXP_BITS = 15;
+    private static final int FLOAT_EXTENDED_SIG_BITS = 63;
 
     /**
      * Extended-precision floating-point format
@@ -276,7 +306,8 @@ public class FloatValue extends Number {
      *
      * @see <a href="https://en.wikipedia.org/wiki/Extended_precision">Wikipedia</a>
      */
-    public static final Format Extended = new Format(15, 63);
+    public static final Format Extended =
+        new Format(FLOAT_EXTENDED_EXP_BITS, FLOAT_EXTENDED_SIG_BITS);
 
     /**
      * The exponent 'bias' of a FloatValue value in this format.
@@ -319,7 +350,7 @@ public class FloatValue extends Number {
      * written in their normalized form in this larger format.
      */
     private Format withUnlimitedExponent() {
-      return new Format(25, sigBits);
+      return new Format(MAX_EXPONENT_WIDTH, sigBits);
     }
 
     /**
