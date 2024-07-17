@@ -262,19 +262,20 @@ class CFloatNative extends CFloat {
 
   @Override
   public Number castToOther(CNativeType toType) {
-    if (toType == CNativeType.CHAR) {
-      return CFloatNativeAPI.castFpToByte(wrapper, type);
+    long r =
+        switch (toType) {
+          case CHAR -> CFloatNativeAPI.castFpToByte(wrapper, type);
+          case SHORT -> CFloatNativeAPI.castFpToShort(wrapper, type);
+          case INT -> CFloatNativeAPI.castFpToInt(wrapper, type);
+          case LONG -> CFloatNativeAPI.castFpToLong(wrapper, type);
+          default -> throw new IllegalArgumentException();
+        };
+
+    if (!trunc().equalTo(new CFloatNative(String.valueOf(r), getType()))) {
+      // Throw an exception if the value was too large for the target type
+      throw new IllegalArgumentException();
     }
-    if (toType == CNativeType.SHORT) {
-      return CFloatNativeAPI.castFpToShort(wrapper, type);
-    }
-    if (toType == CNativeType.INT) {
-      return CFloatNativeAPI.castFpToInt(wrapper, type);
-    }
-    if (toType == CNativeType.LONG) {
-      return CFloatNativeAPI.castFpToLong(wrapper, type);
-    }
-    throw new IllegalArgumentException();
+    return r;
   }
 
   private int constructParametersForMultiOperation(

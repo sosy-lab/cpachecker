@@ -107,7 +107,7 @@ public record NumericValue(Number number) implements Value {
         || number instanceof BigDecimal
         || number instanceof Rational
         || number instanceof FloatValue) {
-      return floatingPointValue().toInteger();
+      return floatingPointValue().integerValue();
     } else {
       return new BigInteger(number.toString());
     }

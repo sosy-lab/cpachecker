@@ -871,24 +871,56 @@ abstract class AbstractCFloatTestBase {
   @Test
   public void castToByteTest() {
     assume().that(getRefImpl()).isEqualTo(ReferenceImpl.NATIVE);
-    testIntegerFunction("castToByteTest", (CFloat a) -> a.castToOther(CNativeType.CHAR));
+    testIntegerFunction(
+        "castToByteTest",
+        (CFloat a) -> {
+          try {
+            return a.castToOther(CNativeType.CHAR);
+          } catch (IllegalArgumentException e) {
+            return 0;
+          }
+        });
   }
 
   @Test
   public void castToShortTest() {
     assume().that(getRefImpl()).isEqualTo(ReferenceImpl.NATIVE);
-    testIntegerFunction("castToShortTest", (CFloat a) -> a.castToOther(CNativeType.SHORT));
+    testIntegerFunction(
+        "castToShortTest",
+        (CFloat a) -> {
+          try {
+            return a.castToOther(CNativeType.SHORT);
+          } catch (IllegalArgumentException e) {
+            return 0;
+          }
+        });
   }
 
   @Test
   public void castToIntTest() {
     assume().that(getRefImpl()).isEqualTo(ReferenceImpl.NATIVE);
-    testIntegerFunction("castToIntTest", (CFloat a) -> a.castToOther(CNativeType.INT));
+    testIntegerFunction(
+        "castToIntTest",
+        (CFloat a) -> {
+          try {
+            return a.castToOther(CNativeType.INT);
+          } catch (IllegalArgumentException e) {
+            return 0;
+          }
+        });
   }
 
   @Test
   public void castToLongTest() {
     assume().that(getRefImpl()).isEqualTo(ReferenceImpl.NATIVE);
-    testIntegerFunction("castToLongTest", (CFloat a) -> a.castToOther(CNativeType.LONG));
+    testIntegerFunction(
+        "castToLongTest",
+        (CFloat a) -> {
+          try {
+            return a.castToOther(CNativeType.LONG);
+          } catch (IllegalArgumentException e) {
+            return 0;
+          }
+        });
   }
 }

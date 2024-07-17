@@ -525,14 +525,14 @@ public class FloatValue extends Number {
 
   /** True if the value is an integer, that is if there is no fractional part */
   public boolean isInteger() {
-    BigInteger intValue = toInteger();
-    return equals(fromInteger(format, intValue));
+    BigInteger integerValue = toInteger().orElse(BigInteger.ZERO);
+    return equals(fromInteger(format, integerValue));
   }
 
   /** True if the value is an odd integer number */
   private boolean isOddInteger() {
-    BigInteger intValue = toInteger();
-    return equals(fromInteger(format, intValue)) && intValue.testBit(0);
+    BigInteger integerValue = toInteger().orElse(BigInteger.ZERO);
+    return equals(fromInteger(format, integerValue)) && integerValue.testBit(0);
   }
 
   @Override
@@ -1786,7 +1786,7 @@ public class FloatValue extends Number {
       return nan(precision);
     } else if (arg2.isInteger()) {
       // pow(base, exponent) where exponent is integer: calculate with powInt
-      return arg1.powInt(arg2.toInteger());
+      return arg1.powInt(arg2.toInteger().get());
     } else if (arg2.equals(
         new FloatValue(precision, false, -1, BigInteger.ONE.shiftLeft(precision.sigBits)))) {
       // pow(base, exponent) where exponent=1/2: calculate sqrt(a) instead
@@ -1847,7 +1847,7 @@ public class FloatValue extends Number {
 
       if (arg2.isInteger()) {
         done = true;
-        r = arg1.powInt(arg2.toInteger());
+        r = arg1.powInt(arg2.toInteger().get());
       }
     }
     return r.withPrecision(format);
@@ -1991,122 +1991,146 @@ public class FloatValue extends Number {
    * <p>If the value is not already an integer the fractional part will be cut off. This is
    * equivalent to rounding with {@link RoundingMode#TRUNCATE RoundingMode.TRUNCATE}. If a different
    * rounding mode is desired use {@link FloatValue#roundToInteger} first.
+   *
+   * <p>If the value is NaN or an infinity this method will return {@link Optional#empty()}.
    */
-  public BigInteger toInteger() {
-    if (exponent < -1) {
-      return BigInteger.ZERO;
+  public Optional<BigInteger> toInteger() {
+    if (isNan() || isInfinite()) {
+      return Optional.empty();
+    } else if (exponent < 0) {
+      // Return zero straight away if the exponent is negative
+      return Optional.of(BigInteger.ZERO);
+    } else {
+      // Shift the significand to truncate the fractional part. For large exponents the expression
+      // 'format.sigBits - exponent' will become negative, and the shift is to the left, adding
+      // additional zeroes.
+      BigInteger resultSignificand = significand.shiftRight((int) (format.sigBits - exponent));
+      if (sign) {
+        resultSignificand = resultSignificand.negate();
+      }
+      return Optional.of(resultSignificand);
     }
-    // Shift the significand to truncate the fractional part. For large exponents the expression
-    // 'format.sigBits - exponent' will become negative, and the shift is to the left, adding
-    // additional zeroes.
-    BigInteger resultSignificand = significand.shiftRight((int) (format.sigBits - exponent));
-    if (sign) {
-      resultSignificand = resultSignificand.negate();
-    }
-    return resultSignificand;
   }
 
   /**
-   * Cast the value to a byte.
+   * Cast the value to a {@link BigInteger}
    *
-   * <p>Note that the result of this operation is undefined if the integer value of the float is too
-   * large for the target type. According to the C99 standard:
+   * <p>Throws an {@link IllegalArgumentException} if the value was NaN or Infinity.
+   */
+  public BigInteger integerValue() {
+    return toInteger().orElseThrow(IllegalArgumentException::new);
+  }
+
+  /**
+   * Cast the value to a byte
    *
-   * <pre>F.4 Floating to integer conversion
-   *  If the floating value is infinite or NaN or if the integral part of the floating value exceeds
-   *  the range of the integer type, then the ‘‘invalid’’ floating-point exception is raised and the
-   *  resulting value is unspecified. Whether conversion of non-integer floating values whose
-   *  integral part is within the range of the integer type raises the ‘‘inexact’’ floating-point
-   *  exception is unspecified</pre>
+   * <p>This method returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was
+   * too large to fit into a byte.
+   */
+  public Optional<Byte> toByte() {
+    BigInteger max = BigInteger.valueOf(Byte.MAX_VALUE);
+    BigInteger min = BigInteger.valueOf(Byte.MIN_VALUE);
+    return toInteger()
+        .flatMap(
+            integerValue ->
+                (integerValue.compareTo(min) > -1 && integerValue.compareTo(max) < 1)
+                    ? Optional.of(integerValue.byteValue())
+                    : Optional.empty());
+  }
+
+  /**
+   * Cast the value to a byte
    *
-   * However, gcc does not always set the inexact flag correctly (see <a
-   * href="https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27682">this</a> bugreport) and the check has
-   * to be performed manually. It is also possible to check the range in advance, but this again has
-   * to be done by the programmer.
-   *
-   * <p>We therefore try to emulate the default behaviour of gcc, which is to return a special
-   * indefinite value if the real value is out of range. For signed integers this indefinite value
-   * is 0x80000000 for int and 0x8000000000000000 for long. Conversion to byte or short happens in
-   * two steps: first the float is converted to a 32bit integer, and then this value is truncated.
-   * The indefinite value is therefore 0 in both cases.
+   * <p>Throws an {@link IllegalArgumentException} if the value was NaN or Infinity, or if it was
+   * too large to fit into a byte.
    */
   @Override
   public byte byteValue() {
-    BigInteger integerValue = toInteger();
-    BigInteger maxPositive =
-        BigInteger.valueOf(format.equals(Format.Extended) ? Byte.MAX_VALUE : Integer.MAX_VALUE);
-    BigInteger maxNegative =
-        BigInteger.valueOf(format.equals(Format.Extended) ? Byte.MIN_VALUE : Integer.MIN_VALUE);
-    if (isNan()
-        || isInfinite()
-        || (integerValue.compareTo(maxPositive) > 0)
-        || integerValue.compareTo(maxNegative) < 0) {
-      return (format.equals(Format.Extended)
-              && integerValue.compareTo(BigInteger.valueOf(Short.MAX_VALUE)) <= 0
-              && integerValue.compareTo(BigInteger.valueOf(Short.MIN_VALUE)) >= 0)
-          ? integerValue.byteValue()
-          : 0;
-    }
-    return integerValue.byteValue();
+    return toByte().orElseThrow(IllegalArgumentException::new);
   }
 
   /**
-   * Cast the value to a short.
+   * Cast the value to a short
    *
-   * <p>See {@link FloatValue#byteValue()} for some notes.
+   * <p>This method returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was
+   * too large to fit into a short.
+   */
+  public Optional<Short> toShort() {
+    BigInteger max = BigInteger.valueOf(Short.MAX_VALUE);
+    BigInteger min = BigInteger.valueOf(Short.MIN_VALUE);
+    return toInteger()
+        .flatMap(
+            integerValue ->
+                (integerValue.compareTo(min) > -1 && integerValue.compareTo(max) < 1)
+                    ? Optional.of(integerValue.shortValue())
+                    : Optional.empty());
+  }
+
+  /**
+   * Cast the value to a short
+   *
+   * <p>Throws an {@link IllegalArgumentException} if the value was NaN or Infinity, or if it was
+   * too large to fit into a short.
    */
   @Override
   public short shortValue() {
-    BigInteger integerValue = toInteger();
-    BigInteger maxPositive =
-        BigInteger.valueOf(format.equals(Format.Extended) ? Short.MAX_VALUE : Integer.MAX_VALUE);
-    BigInteger maxNegative =
-        BigInteger.valueOf(format.equals(Format.Extended) ? Short.MIN_VALUE : Integer.MIN_VALUE);
-    if (isNan()
-        || isInfinite()
-        || (integerValue.compareTo(maxPositive) > 0)
-        || integerValue.compareTo(maxNegative) < 0) {
-      integerValue = format.equals(Format.Extended) ? maxNegative : BigInteger.ZERO;
-    }
-    return integerValue.shortValue();
+    return toShort().orElseThrow(IllegalArgumentException::new);
   }
 
   /**
-   * Cast the value to an int.
+   * Cast the value to an int
    *
-   * <p>See {@link FloatValue#byteValue()} for some notes.
+   * <p>This method returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was
+   * too large to fit into an int.
+   */
+  public Optional<Integer> toInt() {
+    BigInteger max = BigInteger.valueOf(Integer.MAX_VALUE);
+    BigInteger min = BigInteger.valueOf(Integer.MIN_VALUE);
+    return toInteger()
+        .flatMap(
+            integerValue ->
+                (integerValue.compareTo(min) > -1 && integerValue.compareTo(max) < 1)
+                    ? Optional.of(integerValue.intValue())
+                    : Optional.empty());
+  }
+
+  /**
+   * Cast the value to an int
+   *
+   * <p>Throws an {@link IllegalArgumentException} if the value was NaN or Infinity, or if it was
+   * too large to fit into an int.
    */
   @Override
   public int intValue() {
-    BigInteger integerValue = toInteger();
-    BigInteger maxPositive = BigInteger.valueOf(Integer.MAX_VALUE);
-    BigInteger maxNegative = BigInteger.valueOf(Integer.MIN_VALUE);
-    if (isNan()
-        || isInfinite()
-        || (integerValue.compareTo(maxPositive) > 0)
-        || integerValue.compareTo(maxNegative) < 0) {
-      return maxNegative.intValue();
-    }
-    return integerValue.intValue();
+    return toInt().orElseThrow(IllegalArgumentException::new);
   }
 
   /**
-   * Cast the value to a long.
+   * Cast the value to a long
    *
-   * <p>See {@link FloatValue#byteValue()} for some notes.
+   * <p>This method returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was
+   * too large to fit into a long.
+   */
+  public Optional<Long> toLong() {
+    BigInteger max = BigInteger.valueOf(Long.MAX_VALUE);
+    BigInteger min = BigInteger.valueOf(Long.MIN_VALUE);
+    return toInteger()
+        .flatMap(
+            integerValue ->
+                (integerValue.compareTo(min) > -1 && integerValue.compareTo(max) < 1)
+                    ? Optional.of(integerValue.longValue())
+                    : Optional.empty());
+  }
+
+  /**
+   * Cast the value to a long
+   *
+   * <p>Throws an {@link IllegalArgumentException} if the value was NaN or Infinity, or if it was
+   * too large to fit into a long.
    */
   @Override
   public long longValue() {
-    BigInteger integerValue = toInteger();
-    BigInteger maxPositive = BigInteger.valueOf(Long.MAX_VALUE);
-    BigInteger maxNegative = BigInteger.valueOf(Long.MIN_VALUE);
-    if (isNan()
-        || isInfinite()
-        || (integerValue.compareTo(maxPositive) > 0)
-        || integerValue.compareTo(maxNegative) < 0) {
-      return maxNegative.longValue();
-    }
-    return integerValue.longValue();
+    return toLong().orElseThrow(IllegalArgumentException::new);
   }
 
   /**
