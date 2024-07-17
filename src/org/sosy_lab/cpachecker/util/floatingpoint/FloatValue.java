@@ -372,15 +372,17 @@ public class FloatValue extends Number {
      * type.
      */
     public static Format fromCType(CType pType) {
-      if (pType.equals(CNumericTypes.FLOAT)) {
-        return Format.Float32;
-      } else if (pType.equals(CNumericTypes.DOUBLE)) {
-        return Format.Float64;
-      } else if (pType.equals(CNumericTypes.LONG_DOUBLE)) {
-        return Format.Extended;
+      if (pType instanceof CSimpleType pSimpleType) {
+        return switch (pSimpleType.getType()) {
+          case FLOAT -> Format.Float32;
+          case DOUBLE -> pSimpleType.hasLongSpecifier() ? Format.Extended : Format.Float64;
+          case FLOAT128 -> Format.Float128;
+          default ->
+              throw new IllegalArgumentException(
+                  String.format("`%s` is not a floating point type", pType));
+        };
       } else {
-        throw new IllegalArgumentException(
-            String.format("`%s` is not a floating point type", pType));
+        throw new IllegalArgumentException(String.format("`%s` is not a simple type", pType));
       }
     }
   }
