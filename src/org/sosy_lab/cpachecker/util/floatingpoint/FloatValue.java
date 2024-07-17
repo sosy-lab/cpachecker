@@ -2109,108 +2109,153 @@ public class FloatValue extends Number {
     return integerValue.longValue();
   }
 
-  /** Convert a `float` to {@link FloatValue} */
-  public static FloatValue fromFloat(float pFloat) {
-    Format format = Format.Float32;
-    if (Float.isNaN(pFloat)) {
-      boolean sign = (Float.floatToRawIntBits(pFloat) & 0x80000000) != 0;
-      return sign ? FloatValue.nan(format).negate() : FloatValue.nan(format);
-    } else if (Float.isInfinite(pFloat)) {
-      return (pFloat < 0.0) ? FloatValue.negativeInfinity(format) : FloatValue.infinity(format);
-    } else {
-      int floatBits = Float.floatToIntBits(pFloat);
+  /**
+   * Helper class for the conversion between {@link FloatValue} and float
+   *
+   * @param sign The sign bit, 'true' if the value is negative
+   * @param exponent The exponent field, without the IEEE bias
+   * @param significand The significand. including the hidden bit
+   */
+  private record FloatBitField(boolean sign, int exponent, int significand) {
+    /** Bit mask for the sign bit */
+    private static final int SIGN_MASK = (1 << Format.FLOAT32_EXP_BITS) << Format.FLOAT32_SIG_BITS;
+
+    /** Bit mask for the exponent field */
+    private static final int EXPONENT_MASK =
+        ((1 << Format.FLOAT32_EXP_BITS) - 1) << Format.FLOAT32_SIG_BITS;
+
+    /** Bit mask for the significand field */
+    private static final int SIGNIFICAND_MASK = (1 << Format.FLOAT32_SIG_BITS) - 1;
+
+    /** Convert a float to its bitfield representation */
+    public static FloatBitField fromFloat(float pFloat) {
+      int rawBits = Float.floatToRawIntBits(pFloat);
 
       // Get the sign
-      boolean sign = ((floatBits >> 23) & 0x100) != 0;
+      boolean sign = (rawBits & SIGN_MASK) != 0;
 
-      // Extract exponent and significand
-      int expBits = (floatBits >> 23) & 0xFF;
-      int sigBits = floatBits & 0x7FFFFF;
+      // Extract the exponent and the significand
+      int expBits = (rawBits & EXPONENT_MASK) >> Format.FLOAT32_SIG_BITS;
+      int sigBits = rawBits & SIGNIFICAND_MASK;
 
       // Add the hidden bit to the significand
       if (expBits != 0) {
-        sigBits += 1 << 23;
+        sigBits |= 1 << Format.FLOAT32_SIG_BITS;
       }
 
       // Remove the bias from the exponent
-      long exp = expBits - format.bias();
+      expBits = expBits - (int) Format.Float32.bias();
 
-      return new FloatValue(Format.Float32, sign, exp, BigInteger.valueOf(sigBits));
+      return new FloatBitField(sign, expBits, sigBits);
     }
+
+    /** Create a float from its bitfield representation */
+    public float toFloat() {
+      // Set the sign
+      int signBit = sign ? SIGN_MASK : 0;
+      // Add the bias to the exponent
+      int expBits = (exponent + (int) Format.Float32.bias()) << Format.FLOAT32_SIG_BITS;
+      // Remove the hidden bit from the significand
+      int sigBits = significand & SIGNIFICAND_MASK;
+
+      return Float.intBitsToFloat(signBit | expBits | sigBits);
+    }
+  }
+
+  /** Convert a `float` to {@link FloatValue} */
+  public static FloatValue fromFloat(float pFloat) {
+    FloatBitField floatBitField = FloatBitField.fromFloat(pFloat);
+    return new FloatValue(
+        Format.Float32,
+        floatBitField.sign,
+        floatBitField.exponent,
+        BigInteger.valueOf(floatBitField.significand));
   }
 
   @Override
   public float floatValue() {
     FloatValue f = withPrecision(Format.Float32);
-    if (f.isNan()) {
-      return f.isNegative() ? Float.intBitsToFloat(0xFFC00000) : Float.NaN;
-    } else if (f.isInfinite()) {
-      return f.isNegative() ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
-    } else {
-      int sigBits = f.significand.clearBit(Format.Float32.sigBits).intValue();
-      int expBits = (int) (f.exponent + Format.Float32.bias());
-      if (f.sign) {
-        expBits += 0x100;
+    return new FloatBitField(f.sign, (int) f.exponent, f.significand.intValue()).toFloat();
+  }
+
+  /**
+   * Helper class for the conversion between {@link FloatValue} and double
+   *
+   * @param sign The sign bit, 'true' if the value is negative
+   * @param exponent The exponent field, without the IEEE bias
+   * @param significand The significand. including the hidden bit
+   */
+  private record DoubleBitField(boolean sign, long exponent, long significand) {
+    /** Bit mask for the sign bit */
+    private static final long SIGN_MASK =
+        (1L << Format.FLOAT64_EXP_BITS) << Format.FLOAT64_SIG_BITS;
+
+    /** Bit mask for the exponent field */
+    private static final long EXPONENT_MASK =
+        ((1L << Format.FLOAT64_EXP_BITS) - 1L) << Format.FLOAT64_SIG_BITS;
+
+    /** Bit mask for the significand field */
+    private static final long SIGNIFICAND_MASK = (1L << Format.FLOAT64_SIG_BITS) - 1L;
+
+    /** Convert a double to its bitfield representation */
+    public static DoubleBitField fromDouble(double pDouble) {
+      long rawBits = Double.doubleToRawLongBits(pDouble);
+
+      // Get the sign
+      boolean sign = (rawBits & SIGN_MASK) != 0;
+
+      // Extract the exponent and the significand
+      long expBits = (rawBits & EXPONENT_MASK) >> Format.FLOAT64_SIG_BITS;
+      long sigBits = rawBits & SIGNIFICAND_MASK;
+
+      // Add the hidden bit to the significand
+      if (expBits != 0) {
+        sigBits |= 1L << Format.FLOAT64_SIG_BITS;
       }
-      return Float.intBitsToFloat((expBits << 23) | sigBits);
+
+      // Remove the bias from the exponent
+      expBits = expBits - Format.Float64.bias();
+
+      return new DoubleBitField(sign, expBits, sigBits);
+    }
+
+    /** Create a double from its bitfield representation */
+    public double toDouble() {
+      // Set the sign
+      long signBit = sign ? SIGN_MASK : 0;
+      // Add the bias to the exponent
+      long expBits = (exponent + Format.Float64.bias()) << Format.FLOAT64_SIG_BITS;
+      // Remove the hidden bit from the significand
+      long sigBits = significand & SIGNIFICAND_MASK;
+
+      return Double.longBitsToDouble(signBit | expBits | sigBits);
     }
   }
 
   /** Convert a `double` to {@link FloatValue#byteValue()} */
   public static FloatValue fromDouble(double pDouble) {
-    Format format = Format.Float64;
-    if (Double.isNaN(pDouble)) {
-      boolean sign = (Double.doubleToRawLongBits(pDouble) & 0x8000000000000000L) != 0;
-      return sign ? FloatValue.nan(format).negate() : FloatValue.nan(format);
-    } else if (Double.isInfinite(pDouble)) {
-      return (pDouble < 0.0) ? FloatValue.negativeInfinity(format) : FloatValue.infinity(format);
-    } else {
-      long doubleBits = Double.doubleToLongBits(pDouble);
-
-      // Get the sign
-      boolean sign = ((doubleBits >> 52) & 0x800) != 0;
-
-      // Extract exponent and significand
-      long expBits = (doubleBits >> 52) & 0x7FF;
-      long sigBits = doubleBits & 0xFFFFFFFFFFFFFL;
-
-      // Add the hidden bit to the significand
-      if (expBits != 0) {
-        sigBits += 1L << 52;
-      }
-
-      // Remove the bias from the exponent
-      long exp = expBits - format.bias();
-
-      return new FloatValue(Format.Float64, sign, exp, BigInteger.valueOf(sigBits));
-    }
+    DoubleBitField doubleBitField = DoubleBitField.fromDouble(pDouble);
+    return new FloatValue(
+        Format.Float64,
+        doubleBitField.sign,
+        doubleBitField.exponent,
+        BigInteger.valueOf(doubleBitField.significand));
   }
 
   @Override
   public double doubleValue() {
     FloatValue d = withPrecision(Format.Float64);
-    if (d.isNan()) {
-      return d.isNegative() ? Double.longBitsToDouble(0xFFF8000000000000L) : Double.NaN;
-    } else if (d.isInfinite()) {
-      return d.isNegative() ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
-    } else {
-      long sigBits = d.significand.clearBit(Format.Float64.sigBits).longValue();
-      long expBits = d.exponent + Format.Float64.bias();
-      if (d.sign) {
-        expBits += 0x800;
-      }
-      return Double.longBitsToDouble((expBits << 52) | sigBits);
-    }
+    return new DoubleBitField(d.sign, d.exponent, d.significand.longValue()).toDouble();
   }
 
   /**
    * Create a floating point value from its hexadecimal string representation.
    *
-   * <p>Converting from base 16 to base 2 is a special case as the two radixes are "commensurable",
-   * that is, they are both powers of another integer. In this case this integer is simply 2 and the
-   * two bases can then be expressed as 2^1 and 2^4. Intuitively this means that the conversion can
-   * be done one digit at a time as each hexadecimal digit can simply be expanded into 4 bits to
-   * create the base2 representation.
+   * <p>ConvertingUse Format.Extended in CFloatImpl from base 16 to base 2 is a special case as the
+   * two radixes are "commensurable", that is, they are both powers of another integer. In this case
+   * this integer is simply 2 and the two bases can then be expressed as 2^1 and 2^4. Intuitively
+   * this means that the conversion can be done one digit at a time as each hexadecimal digit can
+   * simply be expanded into 4 bits to create the base2 representation.
    *
    * @see <a href="https://dl.acm.org/doi/pdf/10.1145/93542.93557">How to Read Floating Point
    *     Numbers Accurately</a>
