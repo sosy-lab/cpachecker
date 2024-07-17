@@ -79,13 +79,19 @@ class CFloatImpl extends CFloat {
   }
 
   private CFloatWrapper toWrapper(FloatValue floatValue) {
-    if (Format.Float32.equals(floatValue.getFormat())
-        || Format.Float64.equals(floatValue.getFormat())
-        || Format.Extended.equals(floatValue.getFormat())) {
-      long signBit = floatValue.isNegative() ? getExponentMask() : 0;
+    Format format = floatValue.getFormat();
+    if (Format.Float8.equals(format)
+        || Format.Float16.equals(format)
+        || Format.Float32.equals(format)
+        || Format.Float64.equals(format)
+        || Format.Extended.equals(format)) {
+      long signBit = floatValue.isNegative() ? getSignBitMask() : 0;
       long exponent = floatValue.getExponent() + floatValue.getFormat().bias();
-      long mantissa = floatValue.getSignificand().longValue();
-      return new CFloatWrapper(signBit | exponent, mantissa);
+      BigInteger mantissa = floatValue.getSignificand();
+      if (!format.equals(Format.Extended)) {
+        mantissa = mantissa.clearBit(format.sigBits());
+      }
+      return new CFloatWrapper(signBit | exponent, mantissa.longValue());
     } else {
       throw new IllegalArgumentException();
     }
@@ -313,11 +319,16 @@ class CFloatImpl extends CFloat {
 
   @Override
   public int getType() {
-    if (Format.Float32.equals(delegate.getFormat())) {
+    Format format = delegate.getFormat();
+    if (Format.Float8.equals(format)
+        || Format.Float16.equals(format)
+        || Format.Float32.equals(format)) {
+      // We return "single-precision" format for Float8 and Float16
+      // FIXME: This may potentially cause issues with subnormal numbers
       return CNativeType.SINGLE.getOrdinal();
-    } else if (Format.Float64.equals(delegate.getFormat())) {
+    } else if (Format.Float64.equals(format)) {
       return CNativeType.DOUBLE.getOrdinal();
-    } else if (Format.Extended.equals(delegate.getFormat())) {
+    } else if (Format.Extended.equals(format)) {
       return CNativeType.LONG_DOUBLE.getOrdinal();
     } else {
       throw new IllegalStateException();
