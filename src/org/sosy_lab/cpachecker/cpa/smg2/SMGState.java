@@ -4438,6 +4438,10 @@ public class SMGState
           prevPointerTargetOffset)) {
         return true;
       }
+    } else {
+      if (nestedMemoryHasOutsidePointers(prevObj, nfo, maybePfo)) {
+        return true;
+      }
     }
     return objectHasOutsidePointerTowards(
         nextObj, nfo, nextPointerTargetOffset, maybePfo, prevPointerTargetOffset);
@@ -4525,7 +4529,8 @@ public class SMGState
       }
     }
 
-    return false;
+    // Check that nested structures (e.g. lists) don't have outside pointers
+    return nestedMemoryHasOutsidePointers(target, nfo, maybePfo);
   }
 
   /**
@@ -4569,8 +4574,56 @@ public class SMGState
         return true;
       }
     }
+    // Check that nested structures (e.g. lists) don't have outside pointers
+    return nestedMemoryHasOutsidePointers(target, nfo, maybePfo);
+  }
 
-    return false;
+  private boolean nestedMemoryHasOutsidePointers(
+      SMGObject pTarget, BigInteger pNfo, Optional<BigInteger> pMaybePfo) {
+    SMG smg = getMemoryModel().getSmg();
+    // Check that nested structures (e.g. lists) don't have outside pointers
+    // Traverse all connected heap and gather all objects. Also gather all objs pointing towards
+    // these objects and then compare. The only obj allowed for the abstraction case is the initial
+    // obj pointing inside
+    Set<SMGObject> traversedObjects = new HashSet<>();
+    // We add the obj leading into the nested memory directly
+    traversedObjects.add(pTarget);
+    Set<SMGObject> objsPointingAtTraversed = new HashSet<>();
+    // Filter out nfo, pfo, zeros and non-pointers
+    FluentIterable<SMGHasValueEdge> nonListPointers =
+        smg.getHasValueEdgesByPredicate(
+            pTarget,
+            h ->
+                !h.hasValue().isZero()
+                    && smg.isPointer(h.hasValue())
+                    && !h.getOffset().equals(pNfo)
+                    && (pMaybePfo.isEmpty() || !h.getOffset().equals(pMaybePfo.orElseThrow())));
+    for (SMGHasValueEdge ptrEdge : nonListPointers) {
+      SMGObject nonListMemory = smg.getPTEdge(ptrEdge.hasValue()).orElseThrow().pointsTo();
+      gatherConnectedMemory(nonListMemory, traversedObjects, objsPointingAtTraversed);
+    }
+    return !traversedObjects.containsAll(objsPointingAtTraversed);
+  }
+
+  private void gatherConnectedMemory(
+      SMGObject nestedMemory,
+      Set<SMGObject> pTraversedObjects,
+      Set<SMGObject> pObjsPointingAtTraversed) {
+    if (pTraversedObjects.contains(nestedMemory)) {
+      return;
+    }
+    pTraversedObjects.add(nestedMemory);
+    SMG smg = getMemoryModel().getSmg();
+
+    pObjsPointingAtTraversed.addAll(smg.getAllSourcesForPointersPointingTowards(nestedMemory));
+
+    FluentIterable<SMGHasValueEdge> conntectedMemoryPtrs =
+        smg.getHasValueEdgesByPredicate(
+            nestedMemory, h -> !h.hasValue().isZero() && smg.isPointer(h.hasValue()));
+    for (SMGHasValueEdge ptrEdge : conntectedMemoryPtrs) {
+      SMGObject connectedMemory = smg.getPTEdge(ptrEdge.hasValue()).orElseThrow().pointsTo();
+      gatherConnectedMemory(connectedMemory, pTraversedObjects, pObjsPointingAtTraversed);
+    }
   }
 
   /**
