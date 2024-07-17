@@ -1990,7 +1990,9 @@ public class FloatValue extends Number {
    *
    * <p>If the value is not already an integer the fractional part will be cut off. This is
    * equivalent to rounding with {@link RoundingMode#TRUNCATE RoundingMode.TRUNCATE}. If a different
-   * rounding mode is desired use {@link FloatValue#round} first.
+   * rounding mode is desired {@link FloatValue#round} may be used first:
+   *
+   * <pre> myNumber.round(roundingMode).toInteger()</pre>
    *
    * <p>If the value is NaN or an infinity this method will return {@link Optional#empty()}.
    */
@@ -2016,6 +2018,9 @@ public class FloatValue extends Number {
    * Cast the value to a {@link BigInteger}
    *
    * <p>Throws an {@link IllegalArgumentException} if the value was NaN or Infinity.
+   *
+   * <p>This method will truncate the number if it is not already an integer. See {@link
+   * FloatValue#toInteger} for more details.
    */
   public BigInteger integerValue() {
     return toInteger().orElseThrow(IllegalArgumentException::new);
@@ -2024,8 +2029,11 @@ public class FloatValue extends Number {
   /**
    * Cast the value to a byte
    *
-   * <p>This method returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was
-   * too large to fit into a byte.
+   * <p>Returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was too large to
+   * fit into a byte.
+   *
+   * <p>This method will truncate the number if it is not already an integer. See {@link
+   * FloatValue#toInteger} for more details.
    */
   public Optional<Byte> toByte() {
     BigInteger max = BigInteger.valueOf(Byte.MAX_VALUE);
@@ -2043,6 +2051,9 @@ public class FloatValue extends Number {
    *
    * <p>Throws an {@link IllegalArgumentException} if the value was NaN or Infinity, or if it was
    * too large to fit into a byte.
+   *
+   * <p>This method will truncate the number if it is not already an integer. See {@link
+   * FloatValue#toInteger} for more details.
    */
   @Override
   public byte byteValue() {
@@ -2052,8 +2063,11 @@ public class FloatValue extends Number {
   /**
    * Cast the value to a short
    *
-   * <p>This method returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was
-   * too large to fit into a short.
+   * <p>Returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was too large to
+   * fit into a short.
+   *
+   * <p>This method will truncate the number if it is not already an integer. See {@link
+   * FloatValue#toInteger} for more details.
    */
   public Optional<Short> toShort() {
     BigInteger max = BigInteger.valueOf(Short.MAX_VALUE);
@@ -2071,6 +2085,9 @@ public class FloatValue extends Number {
    *
    * <p>Throws an {@link IllegalArgumentException} if the value was NaN or Infinity, or if it was
    * too large to fit into a short.
+   *
+   * <p>This method will truncate the number if it is not already an integer. See {@link
+   * FloatValue#toInteger} for more details.
    */
   @Override
   public short shortValue() {
@@ -2080,8 +2097,11 @@ public class FloatValue extends Number {
   /**
    * Cast the value to an int
    *
-   * <p>This method returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was
-   * too large to fit into an int.
+   * <p>Returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was too large to
+   * fit into an int.
+   *
+   * <p>This method will truncate the number if it is not already an integer. See {@link
+   * FloatValue#toInteger} for more details.
    */
   public Optional<Integer> toInt() {
     BigInteger max = BigInteger.valueOf(Integer.MAX_VALUE);
@@ -2099,6 +2119,9 @@ public class FloatValue extends Number {
    *
    * <p>Throws an {@link IllegalArgumentException} if the value was NaN or Infinity, or if it was
    * too large to fit into an int.
+   *
+   * <p>This method will truncate the number if it is not already an integer. See {@link
+   * FloatValue#toInteger} for more details.
    */
   @Override
   public int intValue() {
@@ -2108,8 +2131,11 @@ public class FloatValue extends Number {
   /**
    * Cast the value to a long
    *
-   * <p>This method returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was
-   * too large to fit into a long.
+   * <p>Returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was too large to
+   * fit into a long.
+   *
+   * <p>This method will truncate the number if it is not already an integer. See {@link
+   * FloatValue#toInteger} for more details.
    */
   public Optional<Long> toLong() {
     BigInteger max = BigInteger.valueOf(Long.MAX_VALUE);
@@ -2127,6 +2153,9 @@ public class FloatValue extends Number {
    *
    * <p>Throws an {@link IllegalArgumentException} if the value was NaN or Infinity, or if it was
    * too large to fit into a long.
+   *
+   * <p>This method will truncate the number if it is not already an integer. See {@link
+   * FloatValue#toInteger} for more details.
    */
   @Override
   public long longValue() {
