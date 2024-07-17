@@ -40,17 +40,9 @@ public final class CDefaults {
       CBasicType basicType = ((CSimpleType) type).getType();
       return switch (basicType) {
         case CHAR -> initializerFor(new CCharLiteralExpression(fileLoc, type, '\0'), fileLoc);
-        case FLOAT ->
+        case FLOAT, DOUBLE, FLOAT128 ->
             initializerFor(
-                new CFloatLiteralExpression(fileLoc, type, FloatValue.zero(Format.Float32)),
-                fileLoc);
-        case DOUBLE ->
-            initializerFor(
-                new CFloatLiteralExpression(fileLoc, type, FloatValue.zero(Format.Float64)),
-                fileLoc);
-        case FLOAT128 ->
-            initializerFor(
-                new CFloatLiteralExpression(fileLoc, type, FloatValue.zero(Format.Float128)),
+                new CFloatLiteralExpression(fileLoc, type, FloatValue.zero(Format.fromCType(type))),
                 fileLoc);
         case UNSPECIFIED, BOOL, INT128, INT ->
             initializerFor(new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);
