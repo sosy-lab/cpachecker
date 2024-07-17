@@ -40,6 +40,20 @@ public class Float16Test extends AbstractCFloatTestBase {
   @Ignore
   @Override
   @Test
+  public void castToTest() {
+    // Not implemented
+  }
+
+  @Ignore
+  @Override
+  @Test
+  public void castToRoundingTest() {
+    // Not implemented
+  }
+
+  @Ignore
+  @Override
+  @Test
   public void castToByteTest() {
     // Disabled
   }
