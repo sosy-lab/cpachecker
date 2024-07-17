@@ -6,18 +6,17 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-FROM ubuntu:bionic
+FROM ubuntu:noble
 
 # set default locale
-RUN apt-get update \
- && apt-get install -y \
-        locales locales-all
+RUN apt-get update && apt-get install -y \
+        locales \
+        locales-all
 ENV LC_ALL en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US.UTF-8
 
-RUN    apt-get update            \
-    && apt-get install --yes     \
+RUN apt-get update && apt-get install --yes \
         ant                      \
         autogen                  \
         automake1.11             \
@@ -30,9 +29,10 @@ RUN    apt-get update            \
         libtool                  \
         shtool                   \
         patchelf                 \
-        openjdk-11-jdk           \
+        openjdk-17-jdk           \
         python3                  \
-        curl
+        curl                     \
+        maven
 
 WORKDIR /dependencies
 RUN curl -O https://gmplib.org/download/gmp/gmp-6.3.0.tar.xz \
@@ -49,18 +49,15 @@ RUN curl -O https://www.mpfr.org/mpfr-current/mpfr-4.2.1.tar.bz2 \
  && make \
  && make install \
  && cd --
-RUN curl -O https://dlcdn.apache.org/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.tar.gz \
- && tar xf apache-maven-3.9.6-bin.tar.gz
-ENV PATH="/dependencies/apache-maven-3.9.6/bin:${PATH}"
 
-# Add the user "developer" with UID:1000, GID:1000, home at /developer.
+# Add the user "developer" with UID:999, GID:1001, home at /developer.
 # This allows to map the docker-internal user to the local user 1000:1000 outside of the container.
 # This avoids to have new files created with root-rights.
-RUN groupadd -r developer -g 1000 \
- && useradd -u 1000 -r -g developer -m -d /developer -s /sbin/nologin -c "JavaSMT Development User" developer \
+RUN groupadd -r developer -g 1001 \
+ && useradd -u 999 -r -g developer -m -d /developer -s /sbin/nologin -c "CPAchecker Development User" developer \
  && chmod 755 /developer
 
 USER developer
 
 # JNI is not found when compiling mpfr-java in the image, so we need to set JAVA_HOME
-ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64/
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64/

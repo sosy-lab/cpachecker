@@ -14,58 +14,59 @@ MPFR, a C library for multiprecision floating point operations with correct roun
 build the dependencies [GMP](https://gmplib.org) and [MPFR](https://www.mpfr.org/) and then compile
 the mpfr-java library itself.
 
-### Building GMP
-Download the latest release of GMP from their website:
+### Create the docker image and compile the dependencies
+
+We use docker to compile the dependencies for our build environment:
 ```
-curl -O https://gmplib.org/download/gmp/gmp-6.3.0.tar.xz
-tar xf gmp-6.3.0.tar.xz
-cd gmp-6.3.0
-```
-Then build the library and copy it to the CPAchecker folder:
-```
-./configure
-make
-chmod 644 .libs/libgmp.so.10.5.0
-cp .libs/libgmp.so.10.5.0 $CPACHECKER/lib/native/x86_64-linux/libgmp.so
+cd $CPACHECKER/lib/native/source/mpfr-java
+docker build -t mpfrjava-noble - < ubuntu2404.Dockerfile
+docker run -it \
+  --mount type=bind,source=$HOME/workspace,target=/workspace \
+  --workdir /workspace \
+  --user $(id -u):$(id -g) \
+  mpfrjava-noble
 ```
 
-### Building MPFR
-Download the source:
+### Copy the MPFR and GMP libraries
+
+The binaries for GMP and MPFR were already compiled by the Docker script. We only need to copy them
+over to the CPAchecker folder:
 ```
-curl -O https://www.mpfr.org/mpfr-current/mpfr-4.2.1.tar.bz2
-tar xf mpfr-4.2.1.tar.bz2 
-cd mpfr-4.2.1/
-```
-Then build the library and copy it to the CPAchecker folder:
-```
-./configure
-make
-chmod 644 src/.libs/libmpfr.so.6.2.1 
-cp src/.libs/libmpfr.so.6.2.1 $CPACHECKER/lib/native/x86_64-linux/libmpfr.so
+cd /dependencies/
+cp gmp-6.3.0/.libs/libgmp.so.10.5.0 $CPACHECKER/lib/native/x86_64-linux/libgmp.so
+cp mpfr-4.2.1/src/.libs/libmpfr.so.6.2.1 $CPACHECKER/lib/native/x86_64-linux/libmpfr.so
 ```
 
-### Building mpfr-java
-Download the code
+### Compile mpfr-java
+
+We can now compile `mpfr-java` itself. First fetch the source and apply our patch:
 ```
 git clone https://github.com/runtimeverification/mpfr-java.git
 cd mpfr-java
+git apply ../cpachecker/lib/native/source/mpfr-java/mpfr-java.patch
 ```
-Apply the patch to fix library loading when mpfr-java is used in CPAchecker:
-```
-git apply $CPACHECKER/lib/native/source/mpfr-java.patch
-```
-Then build the package and copy the files to the CPAchecker folder:
+
+Then compile and copy the binaries to the CPAchecker directory:
 ```
 mvn install -DskipTests
-chmod 644 target/native-build/.libs/libmpfr_java-1.4.so
 cp target/native-build/.libs/libmpfr_java-1.4.so $CPACHECKER/lib/native/x86_64-linux/libmpfr_java.so
 cp target/mpfr_java-1.4.jar $CPACHECKER/lib/mpfr_java.jar
 ```
 
-### Fix the dependencies
-In the CPAchecker folder use patchelf to fix the dependencies:
+### Patch the binaries
+
+We still need to patch the binaries. First leave the docker image:
+
 ```
-cd lib/native/x86_64-linux
+exit
+```
+
+Then strip the libraries to remove unnecessary debug symbols, and fix the dependencies with
+`patchelf`:
+
+```
+cd $CPACHECKER/lib/native/x86_64-linux
+strip libgmp.so libmpfr.so libmpfr_java.so
 patchelf --set-rpath '$ORIGIN' --replace-needed libgmp.so.10 libgmp.so libmpfr.so
 patchelf --set-rpath '$ORIGIN' --replace-needed libmpfr.so.6 libmpfr.so --replace-needed libgmp.so.10 libgmp.so libmpfr_java.so
 ```
