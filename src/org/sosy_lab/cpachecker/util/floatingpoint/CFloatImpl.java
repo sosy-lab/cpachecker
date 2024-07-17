@@ -223,22 +223,22 @@ class CFloatImpl extends CFloat {
 
   @Override
   public CFloat round() {
-    return new CFloatImpl(delegate.roundToInteger(RoundingMode.NEAREST_AWAY));
+    return new CFloatImpl(delegate.round(RoundingMode.NEAREST_AWAY));
   }
 
   @Override
   public CFloat trunc() {
-    return new CFloatImpl(delegate.roundToInteger(RoundingMode.TRUNCATE));
+    return new CFloatImpl(delegate.round(RoundingMode.TRUNCATE));
   }
 
   @Override
   public CFloat ceil() {
-    return new CFloatImpl(delegate.roundToInteger(RoundingMode.CEILING));
+    return new CFloatImpl(delegate.round(RoundingMode.CEILING));
   }
 
   @Override
   public CFloat floor() {
-    return new CFloatImpl(delegate.roundToInteger(RoundingMode.FLOOR));
+    return new CFloatImpl(delegate.round(RoundingMode.FLOOR));
   }
 
   @Override

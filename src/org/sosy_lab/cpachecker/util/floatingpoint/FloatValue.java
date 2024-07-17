@@ -561,7 +561,7 @@ public class FloatValue extends Number {
   }
 
   /**
-   * Supported rounding modes for {@link FloatValue#roundToInteger(RoundingMode)}.
+   * Supported rounding modes for {@link FloatValue#round(RoundingMode)}.
    *
    * <p>All other operations currently use {@link RoundingMode#NEAREST_EVEN} by default.
    */
@@ -1907,7 +1907,7 @@ public class FloatValue extends Number {
    * FloatValue#toInteger()} or the methods {@link FloatValue#byteValue()}, {@link
    * FloatValue#shortValue()}, {@link FloatValue#intValue()} and {@link FloatValue#longValue()}
    */
-  public FloatValue roundToInteger(RoundingMode pRoundingMode) {
+  public FloatValue round(RoundingMode pRoundingMode) {
     if (isInfinite()) {
       // If the argument is infinite, just return it
       return this;
@@ -1990,7 +1990,7 @@ public class FloatValue extends Number {
    *
    * <p>If the value is not already an integer the fractional part will be cut off. This is
    * equivalent to rounding with {@link RoundingMode#TRUNCATE RoundingMode.TRUNCATE}. If a different
-   * rounding mode is desired use {@link FloatValue#roundToInteger} first.
+   * rounding mode is desired use {@link FloatValue#round} first.
    *
    * <p>If the value is NaN or an infinity this method will return {@link Optional#empty()}.
    */

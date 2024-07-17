@@ -1453,7 +1453,7 @@ public class ValueAnalysisTransferRelation
               if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE)
                   .contains(paramType.getType())) {
                 FloatValue integralPartValue =
-                    numericValue.floatingPointValue().roundToInteger(RoundingMode.TRUNCATE);
+                    numericValue.floatingPointValue().round(RoundingMode.TRUNCATE);
                 CFloatLiteralExpression integralPart =
                     new CFloatLiteralExpression(
                         functionCallExpression.getFileLocation(), paramType, integralPartValue);

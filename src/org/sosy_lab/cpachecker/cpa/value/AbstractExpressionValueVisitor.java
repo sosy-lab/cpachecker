@@ -982,8 +982,7 @@ public abstract class AbstractExpressionValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof FloatValue floatingPointValue) {
-                return new NumericValue(
-                    floatingPointValue.roundToInteger(FloatValue.RoundingMode.FLOOR));
+                return new NumericValue(floatingPointValue.round(FloatValue.RoundingMode.FLOOR));
               } else if (number instanceof Float) {
                 return new NumericValue(Math.floor(number.floatValue()));
               } else if (number instanceof Double) {
@@ -1001,8 +1000,7 @@ public abstract class AbstractExpressionValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof FloatValue floatingPointValue) {
-                return new NumericValue(
-                    floatingPointValue.roundToInteger(FloatValue.RoundingMode.CEILING));
+                return new NumericValue(floatingPointValue.round(FloatValue.RoundingMode.CEILING));
               } else if (number instanceof Float) {
                 return new NumericValue(Math.ceil(number.floatValue()));
               } else if (number instanceof Double) {
@@ -1022,7 +1020,7 @@ public abstract class AbstractExpressionValueVisitor
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof FloatValue floatingPointValue) {
                 return new NumericValue(
-                    floatingPointValue.roundToInteger(FloatValue.RoundingMode.NEAREST_AWAY));
+                    floatingPointValue.round(FloatValue.RoundingMode.NEAREST_AWAY));
               } else if (number instanceof Float) {
                 float f = number.floatValue();
                 if (0 == f || Float.isInfinite(f)) {
@@ -1047,8 +1045,7 @@ public abstract class AbstractExpressionValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof FloatValue floatingPointValue) {
-                return new NumericValue(
-                    floatingPointValue.roundToInteger(FloatValue.RoundingMode.TRUNCATE));
+                return new NumericValue(floatingPointValue.round(FloatValue.RoundingMode.TRUNCATE));
               } else if (number instanceof Float) {
                 float f = number.floatValue();
                 if (0 == f || Float.isInfinite(f) || Float.isNaN(f)) {
