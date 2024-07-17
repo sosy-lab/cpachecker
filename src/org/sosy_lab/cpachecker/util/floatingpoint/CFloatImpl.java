@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
-import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Map;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
@@ -80,23 +79,13 @@ class CFloatImpl extends CFloat {
   }
 
   private CFloatWrapper toWrapper(FloatValue floatValue) {
-    ImmutableList<Format> tiny = ImmutableList.of(Format.Float8, Format.Float16, Format.Float32);
-    if (tiny.contains(floatValue.getFormat())) {
-      // FIXME: In Float8 and Float16 this may be broken for subnormal numbers
-      long bits = Float.floatToRawIntBits(floatValue.floatValue());
-      long exponent = ((bits & 0xFF800000L) >> 23) & 0x1FF;
-      long mantissa = bits & 0x007FFFFF;
-      return new CFloatWrapper(exponent, mantissa);
-    } else if (Format.Float64.equals(floatValue.getFormat())) {
-      long bits = Double.doubleToRawLongBits(floatValue.doubleValue());
-      long exponent = ((bits & 0xFFF0000000000000L) >> 52) & 0xFFFL;
-      long mantissa = bits & 0xFFFFFFFFFFFFFL;
-      return new CFloatWrapper(exponent, mantissa);
-    } else if (Format.Extended.equals(floatValue.getFormat())) {
-      long signBit = floatValue.isNegative() ? 1 << 15 : 0;
-      long exponent = signBit + floatValue.getExponent() + floatValue.getFormat().bias();
+    if (Format.Float32.equals(floatValue.getFormat())
+        || Format.Float64.equals(floatValue.getFormat())
+        || Format.Extended.equals(floatValue.getFormat())) {
+      long signBit = floatValue.isNegative() ? getExponentMask() : 0;
+      long exponent = floatValue.getExponent() + floatValue.getFormat().bias();
       long mantissa = floatValue.getSignificand().longValue();
-      return new CFloatWrapper(exponent, mantissa);
+      return new CFloatWrapper(signBit | exponent, mantissa);
     } else {
       throw new IllegalArgumentException();
     }
