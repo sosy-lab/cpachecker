@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -181,46 +182,28 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     Set<RecursionInfo> allRecursionInfos = new HashSet<>();
 
     for (Loop recursion : LoopStructure.getRecursions(cfa)) {
-      String functionName = "";
+      FunctionEntryNode function =
+          getFunctionFromFunctionCallEdge(
+              recursion.getIncomingEdges().stream().findFirst().orElseThrow());
+
+      String functionName = function.getFunctionName();
       int locationOfDefinition;
       Set<Integer> locationOfRecursiveCalls = new HashSet<>();
       List<String> parameters = new ArrayList<>();
 
-      // Determine function name
-      CFAEdge firstIncomingEdge = recursion.getIncomingEdges().stream().findFirst().orElseThrow();
-      AAstNode astNode = firstIncomingEdge.getRawAST().orElseThrow();
-      if (astNode instanceof CFunctionCallStatement) {
-        CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) astNode;
-        functionName =
-            cFunctionCallStatement.getFunctionCallExpression()
-                .getFunctionNameExpression()
-                .toString();
-      } else if (astNode instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement =
-            (CFunctionCallAssignmentStatement) astNode;
-        CFunctionCallExpression cRightHandSide =
-            cFunctionCallAssignmentStatement.getRightHandSide();
-        functionName = cRightHandSide.getFunctionNameExpression().toString();
-      }
-
       // Determine location Of definition
-      locationOfDefinition =
-          cfa.getAllFunctions().get(functionName).getFileLocation().getStartingLineInOrigin();
+      locationOfDefinition = function.getFileLocation().getStartingLineInOrigin();
 
       // Determine location of recursive calls
       for (CFAEdge cfaEdge : recursion.getInnerLoopEdges()) {
         if (cfaEdge.getRawStatement().contains(" " + functionName + "(")
-            || cfaEdge.getRawStatement().contains(functionName + "(")
-                && (cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge)) {
+            || cfaEdge.getRawStatement().startsWith(functionName + "(")) {
           locationOfRecursiveCalls.add(cfaEdge.getFileLocation().getStartingLineInOrigin());
         }
       }
 
       // Determine parameters
-      cfa.getAllFunctions()
-          .get(functionName)
-          .getFunctionParameters()
-          .forEach(e -> parameters.add(e.toString()));
+      function.getFunctionParameters().forEach(e -> parameters.add(e.toString()));
 
       allRecursionInfos.add(
           new RecursionInfo(
@@ -231,6 +214,30 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     }
 
     return allRecursionInfos;
+  }
+
+  private FunctionEntryNode getFunctionFromFunctionCallEdge(CFAEdge cfaEdge) {
+    if (cfaEdge.getEdgeType() != CFAEdgeType.FunctionCallEdge) {
+      throw new IllegalArgumentException(
+          "The type of the given CFA edge must be \"FunctionCallEdge\"");
+    }
+
+    AAstNode astNode = cfaEdge.getRawAST().orElseThrow();
+    if (astNode instanceof CFunctionCallStatement) {
+      CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) astNode;
+      return cfa.getAllFunctions()
+          .get(
+              cFunctionCallStatement.getFunctionCallExpression()
+                  .getFunctionNameExpression()
+                  .toString());
+    } else if (astNode instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement =
+          (CFunctionCallAssignmentStatement) astNode;
+      CFunctionCallExpression cRightHandSide = cFunctionCallAssignmentStatement.getRightHandSide();
+      return cfa.getAllFunctions().get(cRightHandSide.getFunctionNameExpression().toString());
+    }
+
+    return null;
   }
 }
 
