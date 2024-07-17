@@ -49,7 +49,7 @@ class CFloatImpl extends CFloat {
     return switch (pType) {
       case SINGLE -> Format.Float32;
       case DOUBLE -> Format.Float64;
-      case LONG_DOUBLE -> new Format(15, 63);
+      case LONG_DOUBLE -> Format.Extended;
       default -> throw new UnsupportedOperationException();
     };
   }
@@ -92,7 +92,7 @@ class CFloatImpl extends CFloat {
       long exponent = ((bits & 0xFFF0000000000000L) >> 52) & 0xFFFL;
       long mantissa = bits & 0xFFFFFFFFFFFFFL;
       return new CFloatWrapper(exponent, mantissa);
-    } else if (new Format(15, 63).equals(floatValue.getFormat())) {
+    } else if (Format.Extended.equals(floatValue.getFormat())) {
       long signBit = floatValue.isNegative() ? 1 << 15 : 0;
       long exponent = signBit + floatValue.getExponent() + floatValue.getFormat().bias();
       long mantissa = floatValue.getSignificand().longValue();
@@ -290,7 +290,7 @@ class CFloatImpl extends CFloat {
       case HALF -> new CFloatImpl(delegate.withPrecision(Format.Float16));
       case SINGLE -> new CFloatImpl(delegate.withPrecision(Format.Float32));
       case DOUBLE -> new CFloatImpl(delegate.withPrecision(Format.Float64));
-      case LONG_DOUBLE -> new CFloatImpl(delegate.withPrecision(new Format(15, 63)));
+      case LONG_DOUBLE -> new CFloatImpl(delegate.withPrecision(Format.Extended));
       default -> throw new IllegalArgumentException();
     };
   }
