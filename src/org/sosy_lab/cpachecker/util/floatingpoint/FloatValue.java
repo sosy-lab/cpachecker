@@ -23,7 +23,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 // TODO: Add support for more rounding modes
@@ -2220,11 +2220,17 @@ public class FloatValue extends Number {
   /** Convert a `float` to {@link FloatValue} */
   public static FloatValue fromFloat(float pFloat) {
     FloatBitField floatBitField = FloatBitField.fromFloat(pFloat);
-    return new FloatValue(
-        Format.Float32,
-        floatBitField.sign,
-        floatBitField.exponent,
-        BigInteger.valueOf(floatBitField.significand));
+    if (Float.isNaN(pFloat)) {
+      return floatBitField.sign ? nan(Format.Float32).negate() : nan(Format.Float32);
+    } else if (Float.isInfinite(pFloat)) {
+      return floatBitField.sign ? negativeInfinity(Format.Float32) : infinity(Format.Float32);
+    } else {
+      return new FloatValue(
+          Format.Float32,
+          floatBitField.sign,
+          floatBitField.exponent,
+          BigInteger.valueOf(floatBitField.significand));
+    }
   }
 
   @Override
@@ -2290,11 +2296,17 @@ public class FloatValue extends Number {
   /** Convert a `double` to {@link FloatValue#byteValue()} */
   public static FloatValue fromDouble(double pDouble) {
     DoubleBitField doubleBitField = DoubleBitField.fromDouble(pDouble);
-    return new FloatValue(
-        Format.Float64,
-        doubleBitField.sign,
-        doubleBitField.exponent,
-        BigInteger.valueOf(doubleBitField.significand));
+    if (Double.isNaN(pDouble)) {
+      return doubleBitField.sign ? nan(Format.Float64).negate() : nan(Format.Float64);
+    } else if (Double.isInfinite(pDouble)) {
+      return doubleBitField.sign ? negativeInfinity(Format.Float64) : infinity(Format.Float64);
+    } else {
+      return new FloatValue(
+          Format.Float64,
+          doubleBitField.sign,
+          doubleBitField.exponent,
+          BigInteger.valueOf(doubleBitField.significand));
+    }
   }
 
   @Override
