@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
@@ -1788,7 +1790,7 @@ public class FloatValue extends Number {
       return nan(precision);
     } else if (arg2.isInteger()) {
       // pow(base, exponent) where exponent is integer: calculate with powInt
-      return arg1.powInt(arg2.toInteger().get());
+      return arg1.powInt(arg2.toInteger().orElseThrow());
     } else if (arg2.equals(
         new FloatValue(precision, false, -1, BigInteger.ONE.shiftLeft(precision.sigBits)))) {
       // pow(base, exponent) where exponent=1/2: calculate sqrt(a) instead
@@ -1849,7 +1851,7 @@ public class FloatValue extends Number {
 
       if (arg2.isInteger()) {
         done = true;
-        r = arg1.powInt(arg2.toInteger().get());
+        r = arg1.powInt(arg2.toInteger().orElseThrow());
       }
     }
     return r.withPrecision(format);
@@ -2459,10 +2461,9 @@ public class FloatValue extends Number {
 
     // Abort if we have a hexadecimal float literal with no exponent part
     int sep = isHexLiteral ? pInput.indexOf('p') : pInput.indexOf('e');
-    if (sep == -1 && isHexLiteral) {
-      throw new IllegalArgumentException(
-          "Hexadecimal floating point numbers need to have an exponent part");
-    }
+    checkArgument(
+        sep != -1 || !isHexLiteral,
+        "Hexadecimal floating point numbers need to have an exponent part");
 
     // Split off the exponent part (if there is one)
     String digits = sep > -1 ? pInput.substring(0, sep) : pInput;
@@ -2471,10 +2472,9 @@ public class FloatValue extends Number {
     int expValue = Integer.parseInt(exponent);
 
     // Abort if the significand has no digits
-    if (digits.isEmpty() || digits.equals(".")) {
-      throw new IllegalArgumentException(
-          "There needs to be at least one digit for the decimal part");
-    }
+    checkArgument(
+        !digits.isEmpty() && !digits.equals("."),
+        "There needs to be at least one digit for the decimal part");
 
     // Get the fractional part of the number (and add ".0" if it has none)
     int radix = digits.indexOf('.');
