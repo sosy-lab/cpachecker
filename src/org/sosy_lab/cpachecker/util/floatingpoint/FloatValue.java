@@ -2457,8 +2457,14 @@ public class FloatValue extends Number {
       pInput = pInput.substring(2);
     }
 
-    // Split off the exponent part (if there is one)
+    // Abort if we have a hexadecimal float literal with no exponent part
     int sep = isHexLiteral ? pInput.indexOf('p') : pInput.indexOf('e');
+    if (sep == -1 && isHexLiteral) {
+      throw new IllegalArgumentException(
+          "Hexadecimal floating point numbers need to have an exponent part");
+    }
+
+    // Split off the exponent part (if there is one)
     String digits = sep > -1 ? pInput.substring(0, sep) : pInput;
     String exponent = sep > -1 ? pInput.substring(sep + 1) : "0";
 
@@ -2466,7 +2472,8 @@ public class FloatValue extends Number {
 
     // Abort if the significand has no digits
     if (digits.isEmpty()) {
-      throw new IllegalArgumentException();
+      throw new IllegalArgumentException(
+          "There needs to be at least one digit for the decimal part");
     }
 
     // Get the fractional part of the number (and add ".0" if it has none)

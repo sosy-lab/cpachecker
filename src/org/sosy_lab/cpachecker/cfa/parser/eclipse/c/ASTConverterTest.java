@@ -204,15 +204,16 @@ public class ASTConverterTest {
             new TestCase("5e2f", "5.00000000e+02", CNumericTypes.FLOAT),
             new TestCase("5e+2", "5.00000000e+02", CNumericTypes.FLOAT),
             new TestCase("5e+2f", "5.00000000e+02", CNumericTypes.FLOAT),
-            new TestCase("0x5e2", "1.50600000e+03", CNumericTypes.FLOAT),
-            new TestCase("0x5e2f", "1.50600000e+03", CNumericTypes.FLOAT),
+            new TestCase("0x5e2p0", "1.50600000e+03", CNumericTypes.FLOAT),
+            new TestCase("0x5e2p0f", "1.50600000e+03", CNumericTypes.FLOAT),
+            new TestCase("0x5e2fp0", "2.41110000e+04", CNumericTypes.FLOAT),
             new TestCase("0x5ep2", "3.76000000e+02", CNumericTypes.FLOAT),
             new TestCase("0x5ep-2", "2.35000000e+01", CNumericTypes.FLOAT),
             new TestCase("3.41E+38", "3.4100000000000000e+38", CNumericTypes.DOUBLE),
             new TestCase("-308e-2f", "-3.07999992e+00", CNumericTypes.FLOAT),
             new TestCase("-308L", "-3.08000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
             new TestCase("-0x308p-2F", "-1.94000000e+02", CNumericTypes.FLOAT),
-            new TestCase("-0x30al", "-7.78000000000000000000e+02", CNumericTypes.LONG_DOUBLE));
+            new TestCase("-0x30ap0l", "-7.78000000000000000000e+02", CNumericTypes.LONG_DOUBLE));
 
     for (ASTLiteralConverter converter : converters) {
       for (TestCase test : input_output) {
