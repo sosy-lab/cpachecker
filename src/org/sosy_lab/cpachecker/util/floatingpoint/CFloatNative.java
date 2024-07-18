@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.primitives.Ints.max;
 
 import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.DoNotCall;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
@@ -251,6 +252,7 @@ class CFloatNative extends CFloat {
     return new CFloatNative(newFloat, toType.getOrdinal());
   }
 
+  @DoNotCall("Always throws java.lang.UnsupportedOperationException")
   public static CFloat castOtherTo(Number value, int fromType, int toType) {
     throw new UnsupportedOperationException();
     // FIXME: castOtherToFP is currently broken, we should split it up like castFpToX to fix this
