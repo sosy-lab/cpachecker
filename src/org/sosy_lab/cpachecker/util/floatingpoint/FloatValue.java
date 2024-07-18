@@ -2471,7 +2471,7 @@ public class FloatValue extends Number {
     int expValue = Integer.parseInt(exponent);
 
     // Abort if the significand has no digits
-    if (digits.isEmpty()) {
+    if (digits.isEmpty() || digits.equals(".")) {
       throw new IllegalArgumentException(
           "There needs to be at least one digit for the decimal part");
     }
