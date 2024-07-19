@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.model;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public sealed class CFANode implements Comparable<CFANode>
     permits CFALabelNode, CFATerminationNode, FunctionEntryNode, FunctionExitNode {
@@ -72,6 +74,46 @@ public sealed class CFANode implements Comparable<CFANode>
 
   public CFANode(AFunctionDeclaration pFunction) {
     function = pFunction;
+    nodeNumber = idGenerator.getFreshId();
+  }
+
+  /** Creates and returns a deep copy of this CFANode. Only the nodeNumber (= ID) is different. */
+  public CFANode createDeepCopy() {
+    return new CFANode(
+        CFAUtils.enteringEdges(this),
+        CFAUtils.leavingEdges(this),
+        function,
+        isLoopStart,
+        outOfScopeVariables,
+        leavingSummaryEdge,
+        enteringSummaryEdge,
+        reversePostorderId
+    );
+  }
+
+  /**
+   * Private constructor used to deep copy a CFANode. All Variables are the same, except
+   * {@link CFANode#nodeNumber} which is generated anew.
+   */
+  private CFANode(
+      FluentIterable<CFAEdge> pEnteringEdges,
+      FluentIterable<CFAEdge> pLeavingEdges,
+      AFunctionDeclaration pFunction,
+      boolean pIsLoopStart,
+      Set<CSimpleDeclaration> pOutOfScopeVariables,
+      FunctionSummaryEdge pLeavingSummaryEdge,
+      FunctionSummaryEdge pEnteringSummaryEdge,
+      int pReversePostorderId) {
+
+    pEnteringEdges.stream().forEach(enteringEdge -> enteringEdges.add(enteringEdge));
+    pLeavingEdges.stream().forEach(leavingEdge -> leavingEdges.add(leavingEdge));
+    function = pFunction;
+    isLoopStart = pIsLoopStart;
+    outOfScopeVariables = pOutOfScopeVariables;
+    leavingSummaryEdge = pLeavingSummaryEdge;
+    enteringSummaryEdge = pEnteringSummaryEdge;
+    reversePostorderId = pReversePostorderId;
+
     nodeNumber = idGenerator.getFreshId();
   }
 

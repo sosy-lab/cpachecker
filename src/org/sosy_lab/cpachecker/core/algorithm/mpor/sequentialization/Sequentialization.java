@@ -47,7 +47,7 @@ public class Sequentialization {
    * Tries to add pNode to the {@link Sequentialization#mutableNetwork}.
    *
    * @param pNode CFANode to be added
-   * @return true if {@link Sequentialization#mutableNetwork} was modified as a result of this call
+   * @return true if {@link Sequentialization#mutableNetwork} did not contain pNode already
    */
   public boolean addNode(CFANode pNode) {
     return mutableNetwork.addNode(pNode);
@@ -59,7 +59,8 @@ public class Sequentialization {
    * @param pPredecessor CFANode whose leaving CFAEdges contains pEdge
    * @param pSuccessor CFANode whose entering CFAEdges contains pEdge
    * @param pEdge CFAEdge to be added
-   * @return true if {@link Sequentialization#mutableNetwork} was modified as a result of this call
+   * @return true if {@link Sequentialization#mutableNetwork} did not contain a CFAEdge from
+   *     pPredecessor to pSuccessor already
    */
   public boolean addEdge(CFANode pPredecessor, CFANode pSuccessor, CFAEdge pEdge) {
     return mutableNetwork.addEdge(pPredecessor, pSuccessor, pEdge);

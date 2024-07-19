@@ -140,6 +140,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pExistingStates the set of already visited MPORStates
    * @param pCurrentState the current MPORState we analyze
    * @param pFunctionReturnNodes the map of MPORThreads to their current FunctionReturnNodes
+   * @param pFunctionCallMap map from CFANodes before FunctionCallEdges to FunctionReturnNodes
+   * @param pGlobalAccessChecker used to check the leaving edges of pCurrentNode for global access
+   * @param pSequentialization TODO
    */
   private void handleState(
       Set<MPORState> pExistingStates,
@@ -206,8 +209,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    *     variables to the CFANodes current FunctionReturnNode
    * @param pCurrentNode the current CFANode whose leaving edges successor nodes we analyze
    * @param pFunctionReturnNode the current FunctionReturnNode of the thread
-   * @param pFunctionCallMap the map of
+   * @param pThreadExitNode FunctionExitNode of the current MPORThread start routine. If a thread
+   *     encounters its own exitNode, the algorithm does not search pCurrentNodes successors
+   * @param pFunctionCallMap map from CFANodes before FunctionCallEdges to FunctionReturnNodes
    * @param pGlobalAccessChecker used to check the leaving edges of pCurrentNode for global access
+   * @param pSequentialization TODO
    */
   private void findGlobalAccessPrecedingNodes(
       Map<CFANode, CFANode> pGlobalAccessPrecedingNodes,
@@ -219,21 +225,17 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       Sequentialization pSequentialization) {
 
     if (!pGlobalAccessPrecedingNodes.containsKey(pCurrentNode)) {
-      pSequentialization.addNode(pCurrentNode);
-      // TODO if we only search for the global access preceding nodes, we will never reach the
-      //  thread exit nodes because they should not have any leaving edges.
-      //  we should change the algorithm so that if we encounter an exit node, the nodes and edges
-      //  are still added to the CFA but the recursion stops
+      // TODO add node / mporState to sequentialization here
       if (!pCurrentNode.equals(pThreadExitNode)) {
         for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
           CFANode updatedFunctionReturnNode =
               getFunctionReturnNode(pCurrentNode, pFunctionReturnNode, pFunctionCallMap);
           if (pGlobalAccessChecker.hasGlobalAccess(cfaEdge)) {
             pGlobalAccessPrecedingNodes.put(pCurrentNode, updatedFunctionReturnNode);
-            // not using break if for any reason the other leaving edge(s) do not access global vars
+            // not using break if for any reason the other leaving edge(s) don't access global vars
           } else {
             CFANode newNode = cfaEdge.getSuccessor();
-            pSequentialization.addEdge(pCurrentNode, newNode, cfaEdge);
+            // TODO add edge to sequentialization here
             findGlobalAccessPrecedingNodes(
                 pGlobalAccessPrecedingNodes,
                 newNode,
@@ -317,7 +319,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
-   * Checks whether any edge in the CFA contains a pthread_create call. If that is not the case, the
+   * Checks whether any edge in pCfa contains a pthread_create call. If that is not the case, the
    * algorithm ends and the user is informed that MPOR is meant to analyze parallel programs.
    */
   private void checkForParallelProgram(CFA pCfa) {
@@ -396,6 +398,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * the calling context of each thread.
    *
    * @param pCfa the CFA to be analyzed
+   * @param pFunctionCallMap map from CFANodes before FunctionCallEdges to FunctionReturnNodes
    * @return the set of threads
    */
   private ImmutableSet<MPORThread> getThreads(
@@ -433,6 +436,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pPthreadT the pthread_t object, set to empty for the main thread
    * @param pEntryNode the entry node of the start routine or main function of the thread
    * @param pExitNode the exit node of the start routine or main function of the thread
+   * @param pFunctionCallMap map from CFANodes before FunctionCallEdges to FunctionReturnNodes
    * @return a MPORThread object with properly initialized variables
    */
   private MPORThread createThread(
@@ -474,6 +478,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pFunctionReturnNode pFunctionReturnNode used to track the original context when entering
    *     the CFA of another function. see {@link MPORAlgorithm#getFunctionCallMap(CFA)} for more
    *     info.
+   * @param pFunctionCallMap map from CFANodes before FunctionCallEdges to FunctionReturnNodes
    */
   private void initThreadVariables(
       final FunctionExitNode pExitNode,
@@ -510,6 +515,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pCurrentNode the CFANode whose leaving CFAEdges we analyze for mutex_locks
    * @param pFunctionReturnNode used to track the original context when entering the CFA of another
    *     function. see {@link MPORAlgorithm#getFunctionCallMap(CFA)} for more info.
+   * @param pFunctionCallMap map from CFANodes before FunctionCallEdges to FunctionReturnNodes
    */
   private void searchThreadForMutexes(
       ImmutableSet.Builder<MPORMutex> pMutexes,
@@ -569,6 +575,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pCurrentNode the current CFANode whose leaving Edges we search for mutex_unlocks
    * @param pFunctionReturnNode used to track the original context when entering the CFA of another
    *     function. see {@link MPORAlgorithm#getFunctionCallMap(CFA)} for more info.
+   * @param pFunctionCallMap map from CFANodes before FunctionCallEdges to FunctionReturnNodes
    */
   private void initMutexVariables(
       final CExpression pPthreadMutexT,
@@ -613,6 +620,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pCurrentNode the CFANode whose leaving CFAEdges we analyze for pthread_joins
    * @param pFunctionReturnNode used to track the original context when entering the CFA of another
    *     function. see {@link MPORAlgorithm#getFunctionCallMap(CFA)} for more info.
+   * @param pFunctionCallMap map from CFANodes before FunctionCallEdges to FunctionReturnNodes
    */
   private void searchThreadForJoins(
       ImmutableSet.Builder<MPORJoin> pJoins,
