@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -23,9 +22,25 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression
   private static final long serialVersionUID = 5021145411123854111L;
 
   public CFloatLiteralExpression(FileLocation pFileLocation, CType pType, FloatValue pValue) {
-    super(pFileLocation, pType, pValue);
-    // Make sure that the provided type matches the type of the float value
-    Preconditions.checkArgument(Format.fromCType(pType).equals(pValue.getFormat()));
+    super(pFileLocation, pType, matchType(pType, pValue));
+  }
+
+  /**
+   * Convert the value to the type of the floating point literal
+   *
+   * <p>This is needed to handle implicit casts in the code. Only upcasting is allowed, except for
+   * NaN and Infinity, where downcasting won't cause any loss of precision. Throws an exception if
+   * the type of the literal can't be matched.
+   */
+  private static FloatValue matchType(CType pType, FloatValue pValue) {
+    Format format = pValue.getFormat();
+    Format target = Format.fromCType(pType);
+
+    if (pValue.isNan() || pValue.isInfinite() || format.join(target).equals(target)) {
+      return pValue.withPrecision(target);
+    } else {
+      throw new IllegalArgumentException();
+    }
   }
 
   @Override
