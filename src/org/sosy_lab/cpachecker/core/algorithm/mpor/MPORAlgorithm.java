@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCloner;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
@@ -266,6 +267,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final Sequentialization sequentialization;
 
+  /** Used to create copies of CFANodes. */
+  private final FunctionCloner functionCloner;
+
   /**
    * A map from FunctionCallEdge Predecessors to Return Nodes. Needs to be initialized before {@link
    * MPORAlgorithm#threads}.
@@ -299,6 +303,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     globalAccessChecker = new GlobalAccessChecker();
     sequentialization = new Sequentialization(config);
+    functionCloner = new FunctionCloner("", "", false);
 
     // TODO performance stuff:
     //  merge functions that go through each Edge together into one?

@@ -97,7 +97,7 @@ import org.sosy_lab.cpachecker.util.Pair;
  * <p>There should not be any functioncall- or return-edges. Currently only the language C is
  * supported.
  */
-class FunctionCloner implements CFAVisitor {
+public class FunctionCloner implements CFAVisitor {
 
   private static final String ONLY_C_SUPPORTED = "only C supported";
   private static final String SUPERGRAPH_BUILD_TOO_EARLY =
@@ -118,12 +118,12 @@ class FunctionCloner implements CFAVisitor {
 
   /** FunctionCloner clones a function of the cfa and uses a new functionName. */
   public FunctionCloner(
-      final String oldFunctionName,
-      final String newFunctionName,
-      final boolean replaceFunctionOnly) {
-    this.oldFunctionName = oldFunctionName;
-    this.newFunctionName = newFunctionName;
-    this.replaceFunctionOnly = replaceFunctionOnly;
+      final String pOldFunctionName,
+      final String pNewFunctionName,
+      final boolean pReplaceFunctionOnly) {
+    this.oldFunctionName = pOldFunctionName;
+    this.newFunctionName = pNewFunctionName;
+    this.replaceFunctionOnly = pReplaceFunctionOnly;
   }
 
   /**
@@ -305,7 +305,7 @@ class FunctionCloner implements CFAVisitor {
 
   /** clones a node: copies all content and inserts a new functionName */
   @SuppressWarnings("unchecked")
-  private <T extends CFANode> T cloneNode(@NonNull final T node) {
+  public <T extends CFANode> T cloneNode(@NonNull final T node) {
     Preconditions.checkNotNull(node);
 
     if (nodeCache.containsKey(node)) {
