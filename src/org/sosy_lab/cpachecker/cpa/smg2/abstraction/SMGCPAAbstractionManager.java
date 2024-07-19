@@ -559,6 +559,7 @@ public class SMGCPAAbstractionManager {
     if (!looping
         && state.areTwoObjectsPartOfList(
             potentialNextObj, prevObj, maybeNfo, nextPointerTargetOffset)
+        && state.nestedMemoryHasEqualOutsidePointers(prevObj, potentialNextObj, maybeNfo, maybePfo)
         && !state.listElementsHaveOutsidePointerInBetween(
             prevObj,
             potentialNextObj,

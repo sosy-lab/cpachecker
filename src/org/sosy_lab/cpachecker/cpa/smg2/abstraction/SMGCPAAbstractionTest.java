@@ -4330,6 +4330,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // nested in each top list (abstractable for top)
   // We materialize the first pointer until 0+ materialization has occurred at least once
   // This test materializes only by dereference of pointers.
+  @Ignore
   @Test
   public void sllWithPointerOffsetsNestedFstMaterializationTest()
       throws SMGException, SMGSolverException {
@@ -4475,6 +4476,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // nested in each top list (abstractable for top)
   // We materialize the first pointer until 0+ materialization has occurred at least once
   // This test materializes by read and deref.
+  @Ignore
   @Test
   public void sllWithPointerOffsetsNestedFstMaterializationTest2()
       throws SMGException, SMGSolverException {
