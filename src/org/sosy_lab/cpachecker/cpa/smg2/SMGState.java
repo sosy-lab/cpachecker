@@ -4495,7 +4495,7 @@ public class SMGState
             && sll.getNextOffset().equals(nfo)
             && sll.getNextPointerTargetOffset().equals(nextPointerTargetOffset));
 
-    if (target instanceof SMGDoublyLinkedListSegment dll) {
+    if (target instanceof SMGDoublyLinkedListSegment dll && maybePfo.isPresent()) {
       Preconditions.checkArgument(
           dll.getPrevOffset().equals(maybePfo.orElseThrow())
               && dll.getPrevPointerTargetOffset().equals(prevPointerTargetOffset.orElseThrow()));
