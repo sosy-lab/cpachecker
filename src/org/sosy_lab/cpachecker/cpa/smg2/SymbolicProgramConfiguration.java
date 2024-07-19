@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.SMG;
@@ -56,6 +57,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.util.SMGAndHasValueEdges;
+import org.sosy_lab.cpachecker.util.smg.util.SMGAndSMGValues;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -835,6 +837,26 @@ public class SymbolicProgramConfiguration {
   /** Returns true if there is a return object for the current stack frame. */
   public boolean hasReturnObjectForCurrentStackFrame() {
     return stackVariableMapping.peek().getReturnObject().isPresent();
+  }
+
+  public SymbolicProgramConfiguration replacePointerValuesWithExistingOrNew(
+      SMGObject pOldTargetObj,
+      SMGValue pointerToNewObj,
+      Set<SMGTargetSpecifier> pSpecifierToSwitch) {
+    Preconditions.checkArgument(smg.isPointer(pointerToNewObj));
+    SMGObject newTargetObj = smg.getPTEdge(pointerToNewObj).orElseThrow().pointsTo();
+
+    SMGAndSMGValues newSMGAndNewValuesForMapping =
+        smg.replaceHVEPointersWithExistingHVEPointers(
+            pOldTargetObj, newTargetObj, pSpecifierToSwitch);
+    SymbolicProgramConfiguration newSPC = copyAndReplaceSMG(newSMGAndNewValuesForMapping.getSMG());
+    for (SMGValue newSMGValue : newSMGAndNewValuesForMapping.getSMGValues()) {
+      Value newAddressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+      newSPC =
+          newSPC.copyAndPutValue(
+              newAddressValue, newSMGValue, smg.getNestingLevel(pointerToNewObj));
+    }
+    return newSPC;
   }
 
   /**

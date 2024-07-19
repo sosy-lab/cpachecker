@@ -142,10 +142,9 @@ public class SMGCPAMaterializer {
         currentState.copyAndReplaceMemoryModel(
             currentState
                 .getMemoryModel()
-                .replacePointersWithSMGValue(
+                .replacePointerValuesWithExistingOrNew(
                     pListSeg,
                     nextPointerValue,
-                    0,
                     ImmutableSet.of(
                         SMGTargetSpecifier.IS_FIRST_POINTER, SMGTargetSpecifier.IS_ALL_POINTER)));
 
@@ -174,11 +173,12 @@ public class SMGCPAMaterializer {
         currentState.copyAndReplaceMemoryModel(
             currentState
                 .getMemoryModel()
-                .replacePointersWithSMGValue(
+                .replacePointerValuesWithExistingOrNew(
                     pListSeg,
                     prevPointerValue,
-                    0,
                     ImmutableSet.of(SMGTargetSpecifier.IS_LAST_POINTER)));
+
+    assert currentState.getMemoryModel().getSmg().getPointerValuesForTarget(pListSeg).isEmpty();
 
     // We can assume that a 0+ does not have other valid pointers to it!
     // Remove all other pointers/subgraphs associated with the 0+ object

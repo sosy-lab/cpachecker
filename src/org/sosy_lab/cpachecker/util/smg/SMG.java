@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.util.SMGAndHasValueEdges;
+import org.sosy_lab.cpachecker.util.smg.util.SMGAndSMGValues;
 
 /**
  * Class to represent a immutable bipartite symbolic memory graph. Manipulating methods return a
@@ -2418,6 +2419,84 @@ public class SMG {
       }
     }
     return Optional.empty();
+  }
+
+  // Switch all HVEs everywhere that are pointers w the fitting specifier towards oldTarget with
+  // existing or newly created HVEs that are pointers towards newTarget.
+  // Important: all target offsets are retained here
+  // Returned SMGValues need NEW mapping in the SPC
+  public SMGAndSMGValues replaceHVEPointersWithExistingHVEPointers(
+      SMGObject pOldTargetObj,
+      SMGObject pNewTargetObj,
+      Set<SMGTargetSpecifier> pSpecifierToSwitch) {
+    SMG newSMG = this;
+
+    Set<SMGValue> pointersTowardsOld =
+        objectsAndPointersPointingAtThem
+            .getOrDefault(pOldTargetObj, PathCopyingPersistentTreeMap.of())
+            .keySet()
+            .stream()
+            .filter(v -> pSpecifierToSwitch.contains(pointsToEdges.get(v).targetSpecifier()))
+            .collect(ImmutableSet.toImmutableSet());
+    // TODO: merge the set into the for-each loop?
+    Set<SMGObject> sourcesOfPointersTowardsOld = ImmutableSet.of();
+    for (SMGValue ptrToRemove : pointersTowardsOld) {
+      sourcesOfPointersTowardsOld =
+          ImmutableSet.<SMGObject>builder()
+              .addAll(
+                  valuesToRegionsTheyAreSavedIn
+                      .getOrDefault(ptrToRemove, PathCopyingPersistentTreeMap.of())
+                      .keySet())
+              .addAll(sourcesOfPointersTowardsOld)
+              .build();
+    }
+
+    ImmutableSet.Builder<SMGValue> newValuesWithNeedOfMapping = ImmutableSet.builder();
+
+    // Replace HVEs (automatically increments reverse maps)
+    for (SMGObject valueSource : sourcesOfPointersTowardsOld) {
+      for (SMGHasValueEdge oldHve : hasValueEdges.get(valueSource)) {
+        if (pointersTowardsOld.contains(oldHve.hasValue())) {
+          // Replace, get existing if possible, else create a new edge
+          SMGPointsToEdge oldPTEdge = pointsToEdges.get(oldHve.hasValue());
+          Value ptrTargetOffset = oldPTEdge.getOffset();
+          SMGTargetSpecifier newTargetSpec =
+              !(pNewTargetObj instanceof SMGSinglyLinkedListSegment)
+                  ? SMGTargetSpecifier.IS_REGION
+                  : oldPTEdge.targetSpecifier();
+          SMGValue replacementValue = null;
+          SMGPointsToEdge searchedForEdge =
+              new SMGPointsToEdge(pNewTargetObj, ptrTargetOffset, newTargetSpec);
+
+          if (pNewTargetObj.isZero()) {
+            replacementValue = SMGValue.zeroValue();
+          } else {
+            PersistentMap<SMGValue, Integer> allPtrsTowardsNew =
+                objectsAndPointersPointingAtThem.getOrDefault(
+                    pNewTargetObj, PathCopyingPersistentTreeMap.of());
+            for (SMGValue valuesWithPtrsToNew : allPtrsTowardsNew.keySet()) {
+              SMGPointsToEdge pteTowardsNew = pointsToEdges.get(valuesWithPtrsToNew);
+              if (pteTowardsNew.equals(searchedForEdge)) {
+                replacementValue = valuesWithPtrsToNew;
+              }
+            }
+
+            if (replacementValue == null) {
+              // ALL of these need to be mapped to new symbolic values in the SPC!!!!
+              // Use: copyAndPutValue()
+              replacementValue = SMGValue.of();
+              newValuesWithNeedOfMapping.add(replacementValue);
+            }
+          }
+
+          SMGHasValueEdge replacementHVE =
+              new SMGHasValueEdge(replacementValue, oldHve.getOffset(), oldHve.getSizeInBits());
+          newSMG = newSMG.copyAndReplaceHVEdge(valueSource, oldHve, replacementHVE);
+        }
+      }
+    }
+
+    return SMGAndSMGValues.of(newSMG, newValuesWithNeedOfMapping.build());
   }
 
   public SMG replacePointersWithSMGValue(
