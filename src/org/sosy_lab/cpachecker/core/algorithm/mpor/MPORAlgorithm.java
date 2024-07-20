@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCloner;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
@@ -200,6 +199,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     }
   }
 
+  // TODO pthread-divine/barrier_2t.i seemingly results in an infinite loop here
   /**
    * Recursively finds all global access preceding nodes (i.e. CFANodes whose leaving edges read /
    * write a global variable) reachable from the initial value of pCurrentNode. Successors of nodes
@@ -226,7 +226,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       Sequentialization pSequentialization) {
 
     if (!pGlobalAccessPrecedingNodes.containsKey(pCurrentNode)) {
-      // TODO add node / mporState to sequentialization here
+      // TODO once we can build a program / CFA from our sequentialization graph, find out if the
+      //  cloned nodes and edges should always be in the main function
+      CFANode clonedCurrentNode = pSequentialization.cloneNode(pCurrentNode);
+      pSequentialization.addNode(clonedCurrentNode);
       if (!pCurrentNode.equals(pThreadExitNode)) {
         for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
           CFANode updatedFunctionReturnNode =
@@ -235,11 +238,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             pGlobalAccessPrecedingNodes.put(pCurrentNode, updatedFunctionReturnNode);
             // not using break if for any reason the other leaving edge(s) don't access global vars
           } else {
-            CFANode newNode = cfaEdge.getSuccessor();
-            // TODO add edge to sequentialization here
+            CFANode clonedNextNode = pSequentialization.cloneNode(cfaEdge.getSuccessor());
+            CFAEdge clonedEdge =
+                pSequentialization.cloneEdge(cfaEdge, clonedCurrentNode, clonedNextNode);
+            pSequentialization.addEdge(clonedCurrentNode, clonedNextNode, clonedEdge);
             findGlobalAccessPrecedingNodes(
                 pGlobalAccessPrecedingNodes,
-                newNode,
+                // this method runs on inputCfa, clonedNodes are only used in the sequentialization
+                cfaEdge.getSuccessor(),
                 updatedFunctionReturnNode,
                 pThreadExitNode,
                 pFunctionCallMap,
@@ -266,9 +272,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private final GlobalAccessChecker globalAccessChecker;
 
   private final Sequentialization sequentialization;
-
-  /** Used to create copies of CFANodes. */
-  private final FunctionCloner functionCloner;
 
   /**
    * A map from FunctionCallEdge Predecessors to Return Nodes. Needs to be initialized before {@link
@@ -302,8 +305,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     inputCfa = pInputCfa;
 
     globalAccessChecker = new GlobalAccessChecker();
-    sequentialization = new Sequentialization(config);
-    functionCloner = new FunctionCloner("", "", false);
+    sequentialization = new Sequentialization(config, inputCfa.getMainFunction().getFunction());
 
     // TODO performance stuff:
     //  merge functions that go through each Edge together into one?
