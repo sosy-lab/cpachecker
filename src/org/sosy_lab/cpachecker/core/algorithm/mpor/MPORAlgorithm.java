@@ -17,6 +17,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.GAPNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -104,15 +106,20 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     Map<MPORThread, CFANode> initFunctionReturnNodes =
         getInitialFunctionReturnNodes(initState, functionCallMap);
 
-    handleState(
-        existingStates,
-        initState,
-        initAbstractState,
-        initFunctionReturnNodes,
-        functionCallMap,
-        globalAccessChecker,
-        sequentialization,
-        predicateTransferRelation);
+    // using try-catch here so that we don't have to add SolverExceptions to the method signature
+    try {
+      handleState(
+          existingStates,
+          initState,
+          initAbstractState,
+          initFunctionReturnNodes,
+          functionCallMap,
+          globalAccessChecker,
+          sequentialization,
+          predicateTransferRelation);
+    } catch (Exception e) {
+      logManager.logDebugException(e);
+    }
 
     // TODO
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
@@ -139,7 +146,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       final GlobalAccessChecker pGlobalAccessChecker,
       Sequentialization pSequentialization,
       PredicateTransferRelation pPredicateTransferRelation)
-      throws CPATransferException, InterruptedException {
+      throws CPATransferException, InterruptedException, SolverException {
 
     // make sure the MPORState was not yet visited to prevent infinite loops
     if (!pExistingStates.contains(pCurrentState)) {
@@ -152,32 +159,35 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
         // make sure the thread has not yet terminated
         if (!currentNode.equals(currentThread.exitNode)) {
-          Map<CFANode, CFANode> globalAccessPrecedingNodes = new HashMap<>();
+          Set<GAPNode> gapNodes = new HashSet<>();
           findGlobalAccessPrecedingNodes(
-              globalAccessPrecedingNodes,
+              gapNodes,
               currentNode,
               pFunctionReturnNodes.get(currentThread),
+              pAbstractState,
               currentThread.exitNode,
               pFunctionCallMap,
               pGlobalAccessChecker,
               pSequentialization,
               pPredicateTransferRelation);
 
-          for (var entry : globalAccessPrecedingNodes.entrySet()) {
-            CFANode cfaNode = entry.getKey();
-            CFANode functionReturnNode = entry.getValue();
+          for (GAPNode gapNode : gapNodes) {
+            CFANode functionReturnNode = gapNode.functionReturnNode;
+            PredicateAbstractState abstractState = gapNode.predicateAbstractState;
             // update the functionReturnNode to the one found in findGlobalAccessPrecedingNodes
             pFunctionReturnNodes.put(currentThread, functionReturnNode);
 
+            // TODO use doEdgesCommute here
+            //  go through all possible combinations of contextSensitiveLeavingEdges
             // create and visit a new state for each global variable access edge
-            for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(cfaNode, functionReturnNode)) {
+            for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(gapNode.node, functionReturnNode)) {
               MPORState nextState =
                   createUpdatedState(
                       pExistingStates, pCurrentState, currentThread, cfaEdge.getSuccessor(), null);
               handleState(
                   pExistingStates,
                   nextState,
-                  getNextAbstractState(pAbstractState, cfaEdge, pPredicateTransferRelation),
+                  getNextAbstractState(abstractState, cfaEdge, pPredicateTransferRelation),
                   updateFunctionReturnNodes(
                       nextState.threadNodes, pFunctionReturnNodes, pFunctionCallMap),
                   pFunctionCallMap,
@@ -198,8 +208,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * before global accesses are not considered, i.e. we consider all paths from pCurrentNode
    * containing exactly one global variable access.
    *
-   * @param pGlobalAccessPrecedingNodes the map of CFANodes whose leaving edges access global
-   *     variables to the CFANodes current FunctionReturnNode
+   * @param pGapNodes the map of CFANodes whose leaving edges access global variables to the
+   *     CFANodes current FunctionReturnNode
    * @param pCurrentNode the current CFANode whose leaving edges successor nodes we analyze
    * @param pFunctionReturnNode the current FunctionReturnNode of the thread
    * @param pThreadExitNode FunctionExitNode of the current MPORThread start routine. If a thread
@@ -209,16 +219,21 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pSequentialization TODO
    */
   private void findGlobalAccessPrecedingNodes(
-      Map<CFANode, CFANode> pGlobalAccessPrecedingNodes,
+      Set<GAPNode> pGapNodes,
       CFANode pCurrentNode,
       CFANode pFunctionReturnNode,
+      PredicateAbstractState pAbstractState,
       final CFANode pThreadExitNode,
       final ImmutableMap<CFANode, CFANode> pFunctionCallMap,
+      // TODO link gac and ptr to sequentialization
       final GlobalAccessChecker pGlobalAccessChecker,
       Sequentialization pSequentialization,
-      PredicateTransferRelation pPredicateTransferRelation) {
+      PredicateTransferRelation pPredicateTransferRelation)
+      throws CPATransferException, InterruptedException {
 
-    if (!pGlobalAccessPrecedingNodes.containsKey(pCurrentNode)) {
+    // TODO inefficient, create separate list as parameter?
+    List<CFANode> gapNodes = pGapNodes.stream().map(GAPNode::getNode).toList();
+    if (!gapNodes.contains(pCurrentNode)) {
       // TODO once we can build a program / CFA from our sequentialization graph, find out if the
       //  cloned nodes and edges should always be in the main function
       CFANode clonedCurrentNode = pSequentialization.cloneNode(pCurrentNode);
@@ -227,8 +242,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
           CFANode updatedFunctionReturnNode =
               getFunctionReturnNode(pCurrentNode, pFunctionReturnNode, pFunctionCallMap);
+          PredicateAbstractState abstractState =
+              getNextAbstractState(pAbstractState, cfaEdge, pPredicateTransferRelation);
           if (pGlobalAccessChecker.hasGlobalAccess(cfaEdge)) {
-            pGlobalAccessPrecedingNodes.put(pCurrentNode, updatedFunctionReturnNode);
+            pGapNodes.add(new GAPNode(pCurrentNode, updatedFunctionReturnNode, abstractState));
             // not using break if for any reason the other leaving edge(s) don't access global vars
           } else {
             CFANode clonedNextNode = pSequentialization.cloneNode(cfaEdge.getSuccessor());
@@ -236,10 +253,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                 pSequentialization.cloneEdge(cfaEdge, clonedCurrentNode, clonedNextNode);
             pSequentialization.addEdge(clonedCurrentNode, clonedNextNode, clonedEdge);
             findGlobalAccessPrecedingNodes(
-                pGlobalAccessPrecedingNodes,
+                pGapNodes,
                 // this method runs on inputCfa, clonedNodes are only used in the sequentialization
                 cfaEdge.getSuccessor(),
                 updatedFunctionReturnNode,
+                abstractState,
                 pThreadExitNode,
                 pFunctionCallMap,
                 pGlobalAccessChecker,
