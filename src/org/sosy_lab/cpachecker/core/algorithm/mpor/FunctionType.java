@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+
 public enum FunctionType {
   // TODO decide which of these are actually relevant for us
   // TODO create barrier logic, see e.g. pthread-divine/barrier_2t.i
@@ -30,5 +33,22 @@ public enum FunctionType {
 
   FunctionType(String pName) {
     this.name = pName;
+  }
+
+  /**
+   * Tries to extract the CFunctionCallStatement from pCfaEdge and checks if it is a call to
+   * pFunctionType.
+   *
+   * @param pCfaEdge the CFAEdge to be analyzed
+   * @param pFunctionType the desired FunctionType
+   * @return true if pCfaEdge is a call to pFunctionType
+   */
+  public static boolean isEdgeCallToFunctionType(CFAEdge pCfaEdge, FunctionType pFunctionType) {
+    return CFAUtils.isCfaEdgeCFunctionCallStatement(pCfaEdge)
+        && CFAUtils.getCFunctionCallStatementFromCfaEdge(pCfaEdge)
+            .getFunctionCallExpression()
+            .getFunctionNameExpression()
+            .toASTString()
+            .equals(pFunctionType.name);
   }
 }
