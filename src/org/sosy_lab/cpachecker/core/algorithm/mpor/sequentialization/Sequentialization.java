@@ -14,8 +14,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.graph.MutableNetwork;
 import com.google.common.graph.NetworkBuilder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -32,31 +35,47 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class Sequentialization {
 
-  private final Configuration config;
+  private final Configuration configuration;
+
+  private final LogManager logManager;
+
+  private final CFA inputCfa;
+
+  private final AFunctionDeclaration mainFunction;
 
   private final MutableNetwork<CFANode, CFAEdge> mutableNetwork;
 
   private final CFAToCTranslator cfaToCTranslator;
 
-  private final AFunctionDeclaration mainFunction;
-
-  public Sequentialization(Configuration pConfig, AFunctionDeclaration pMainFunction)
+  public Sequentialization(
+      Configuration pConfiguration,
+      LogManager pLogManager,
+      CFA pInputCfa,
+      AFunctionDeclaration pMainFunction)
       throws InvalidConfigurationException {
-    config = pConfig;
+
+    configuration = pConfiguration;
+    logManager = pLogManager;
+    inputCfa = pInputCfa;
     // TODO allowSelfLoops? should be false based on my current unterstanding
     mutableNetwork = NetworkBuilder.directed().allowsSelfLoops(true).build();
-    cfaToCTranslator = new CFAToCTranslator(config);
+    cfaToCTranslator = new CFAToCTranslator(configuration);
     mainFunction = pMainFunction;
   }
 
-  public String createCProgram() {
-    return null;
+  public String createCProgram() throws CPAException, IOException, InvalidConfigurationException {
+    return "";
+    /*CFA outputCfa =
+        CCfaTransformer.createCfa(
+            configuration, logManager, inputCfa, new CfaMutableNetwork(mutableNetwork), null);
+    return cfaToCTranslator.translateCfa(outputCfa);*/
     // TODO how do we get from a MutableNetwork to a CFA?
     //  MutableCFA only contains functions for adding nodes, not for adding edges
     //  CfaMutableNetwork takes only a MutableNetwork as a parameter
@@ -127,12 +146,14 @@ public class Sequentialization {
     } else if (pNode instanceof CFunctionEntryNode cFunctionEntryNode) {
       return new CFunctionEntryNode(
           cFunctionEntryNode.getFileLocation(),
-          cFunctionEntryNode.getFunctionDefinition(),
-          cFunctionEntryNode.getExitNode().orElse(null),
+          cFunctionEntryNode.getFunctionDefinition(), // TODO use mainFunction here?
+          cFunctionEntryNode.getExitNode().orElse(null), // TODO use mainFunctions exit here?
           cFunctionEntryNode.getReturnVariable());
     }
     checkArgument(
-        pNode.getClass() == CFANode.class, "unhandled subclass for CFANode: " + pNode.getClass());
+        pNode.getClass() == CFANode.class,
+        "unhandled subclass for CFANode: " + "%s",
+        pNode.getClass());
     return new CFANode(mainFunction);
   }
 

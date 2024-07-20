@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -43,9 +45,19 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * This is an implementation of a Partial Order Reduction (POR) algorithm, presented in the 2022
@@ -83,57 +95,31 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     //  and k1, k2, ..., km the number of edges for each thread 1...m
 
     checkForCorrectInitialState(pReachedSet, threads);
+
     // if there is only one element in pReachedSet, it is our initial AbstractState
-    AbstractState initialAbstractState = pReachedSet.asCollection().iterator().next();
-    MPORState initialState = getInitialState(threads, initialAbstractState);
-    Map<MPORThread, CFANode> initialFunctionReturnNodes =
-        getInitialFunctionReturnNodes(initialState, functionCallMap);
+    PredicateAbstractState initAbstractState =
+        AbstractStates.extractStateByType(
+            pReachedSet.asCollection().iterator().next(), PredicateAbstractState.class);
+    MPORState initState = getInitialState(threads, initAbstractState);
+    Map<MPORThread, CFANode> initFunctionReturnNodes =
+        getInitialFunctionReturnNodes(initState, functionCallMap);
+
     handleState(
         existingStates,
-        initialState,
-        initialFunctionReturnNodes,
+        initState,
+        initAbstractState,
+        initFunctionReturnNodes,
         functionCallMap,
         globalAccessChecker,
-        sequentialization);
-
-    /*
-    overall algorithm idea:
-
-       (1) for each AbstractState in ReachedSet:
-
-           create MPORState based on AbstractState and map the two
-           create MPORState PathFormula (= all visited CFAEdges so far, get newPathFormula with
-           convertEdgeToPathFormula(abstractState.getPathFormula(), CFAEdge)), the set of
-           PreferenceOrders and ConflictRelations
-
-           for each Node in MPORState
-               for each context sensitive leaving Edge of Node excluding edges that can be pruned
-               (see Algorithm 2 CompatiblePersistentSet(state))
-               use GlobalAccessChecker to check whether a CfaEdge reads or writes global
-               / shared variables. only shared variable access Edges are relevant for the algorithm
-                    create new set of AbstractStates when executing Edge, see
-                    PredicateTransferRelation.getAbstractSuccessorsForEdge(AbstractState, Edge),
-                    (repeat from (1) until all threads have terminated, i.e. all are at their
-                    exitNodes). its best to create a separate function HandleAbstractState(...)
-
-
-        (2) "a commutes with b under phi":
-
-            from MPORState / AbstractState q
-            for each possible combination (A, B) of two context-sensitive leaving edges that cannot
-            be pruned
-
-                create AbstractStates for a = [currentPath then A] and b = [currentPath then B]
-                create PathFormulas for abPath = [a then B] and baPath = [b then A]
-                check if NOT unsatcheck(a, abPath) and NOT unsatCheck(b, baPath) holds
-                if one holds, "a commutes with b under phi" is not fulfilled
-    */
+        sequentialization,
+        predicateTransferRelation);
 
     // TODO
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
   // TODO sleep set?
+  // TODO loops are not correctly handled (unrolled) at the moment
   /**
    * Recursively searches all possible transitions between MPORStates, i.e. interleavings.
    *
@@ -147,10 +133,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private void handleState(
       Set<MPORState> pExistingStates,
       MPORState pCurrentState,
+      PredicateAbstractState pAbstractState,
       Map<MPORThread, CFANode> pFunctionReturnNodes,
       final ImmutableMap<CFANode, CFANode> pFunctionCallMap,
       final GlobalAccessChecker pGlobalAccessChecker,
-      Sequentialization pSequentialization) {
+      Sequentialization pSequentialization,
+      PredicateTransferRelation pPredicateTransferRelation)
+      throws CPATransferException, InterruptedException {
 
     // make sure the MPORState was not yet visited to prevent infinite loops
     if (!pExistingStates.contains(pCurrentState)) {
@@ -171,7 +160,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               currentThread.exitNode,
               pFunctionCallMap,
               pGlobalAccessChecker,
-              pSequentialization);
+              pSequentialization,
+              pPredicateTransferRelation);
 
           for (var entry : globalAccessPrecedingNodes.entrySet()) {
             CFANode cfaNode = entry.getKey();
@@ -187,11 +177,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               handleState(
                   pExistingStates,
                   nextState,
+                  getNextAbstractState(pAbstractState, cfaEdge, pPredicateTransferRelation),
                   updateFunctionReturnNodes(
                       nextState.threadNodes, pFunctionReturnNodes, pFunctionCallMap),
                   pFunctionCallMap,
                   pGlobalAccessChecker,
-                  pSequentialization);
+                  pSequentialization,
+                  pPredicateTransferRelation);
             }
           }
         }
@@ -223,7 +215,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       final CFANode pThreadExitNode,
       final ImmutableMap<CFANode, CFANode> pFunctionCallMap,
       final GlobalAccessChecker pGlobalAccessChecker,
-      Sequentialization pSequentialization) {
+      Sequentialization pSequentialization,
+      PredicateTransferRelation pPredicateTransferRelation) {
 
     if (!pGlobalAccessPrecedingNodes.containsKey(pCurrentNode)) {
       // TODO once we can build a program / CFA from our sequentialization graph, find out if the
@@ -250,18 +243,47 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                 pThreadExitNode,
                 pFunctionCallMap,
                 pGlobalAccessChecker,
-                pSequentialization);
+                pSequentialization,
+                pPredicateTransferRelation);
           }
         }
       }
     }
   }
 
+  /**
+   * TODO
+   *
+   * @param pPredicateAbstractState TODO
+   * @param pCfaEdge TODO
+   * @param pPredicateTransferRelation TODO
+   * @return TODO
+   * @throws CPATransferException TODO
+   * @throws InterruptedException TODO
+   */
+  public static PredicateAbstractState getNextAbstractState(
+      PredicateAbstractState pPredicateAbstractState,
+      CFAEdge pCfaEdge,
+      PredicateTransferRelation pPredicateTransferRelation)
+      throws CPATransferException, InterruptedException {
+
+    checkArgument(pPredicateAbstractState != null);
+    Collection<? extends AbstractState> abstractStates =
+        pPredicateTransferRelation.getAbstractSuccessorsForEdge(
+            pPredicateAbstractState, null, pCfaEdge); // TODO precision?
+    checkState(abstractStates.size() == 1); // should always hold
+    PredicateAbstractState rAbstractSuccessor =
+        AbstractStates.extractStateByType(
+            abstractStates.iterator().next(), PredicateAbstractState.class);
+    checkState(rAbstractSuccessor != null);
+    return rAbstractSuccessor;
+  }
+
   private final ConfigurableProgramAnalysis cpa;
 
-  private final LogManager logger;
+  private final LogManager logManager;
 
-  private final Configuration config;
+  private final Configuration configuration;
 
   private final ShutdownNotifier shutdownNotifier;
 
@@ -272,6 +294,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private final GlobalAccessChecker globalAccessChecker;
 
   private final Sequentialization sequentialization;
+
+  private final PredicateTransferRelation predicateTransferRelation;
 
   /**
    * A map from FunctionCallEdge Predecessors to Return Nodes. Needs to be initialized before {@link
@@ -290,22 +314,27 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   public MPORAlgorithm(
       ConfigurableProgramAnalysis pCpa,
-      Configuration pConfig,
-      LogManager pLogger,
+      Configuration pConfiguration,
+      LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
       CFA pInputCfa)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     cpa = pCpa;
-    config = pConfig;
-    logger = pLogger;
+    configuration = pConfiguration;
+    logManager = pLogManager;
     shutdownNotifier = pShutdownNotifier;
     specification = pSpecification;
     inputCfa = pInputCfa;
 
     globalAccessChecker = new GlobalAccessChecker();
-    sequentialization = new Sequentialization(config, inputCfa.getMainFunction().getFunction());
+    sequentialization =
+        new Sequentialization(
+            configuration, logManager, inputCfa, inputCfa.getMainFunction().getFunction());
+    PredicateCPA predicateCpa =
+        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, PredicateRefiner.class);
+    predicateTransferRelation = predicateCpa.getTransferRelation();
 
     // TODO performance stuff:
     //  merge functions that go through each Edge together into one?
@@ -1019,5 +1048,60 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     // otherwise, return a new MPORState object and (costly) initialize variables
     return new MPORState(
         updatedThreadNodes, getPreferenceOrdersForThreadNodes(updatedThreadNodes), pAbstractState);
+  }
+
+  /**
+   * TODO
+   *
+   * @param pPredicateTransferRelation TODO
+   * @param pAbstractState TODO
+   * @param pEdgeA TODO
+   * @param pEdgeB TODO
+   * @return TODO
+   */
+  public static boolean doEdgesCommute(
+      PredicateTransferRelation pPredicateTransferRelation,
+      AbstractState pAbstractState,
+      CFAEdge pEdgeA,
+      CFAEdge pEdgeB)
+      throws CPATransferException, InterruptedException, SolverException {
+
+    // execute edge A, then edge B
+    Collection<? extends AbstractState> aSuccessors =
+        pPredicateTransferRelation.getAbstractSuccessorsForEdge(pAbstractState, null, pEdgeA);
+    Collection<AbstractState> abSuccessors = new HashSet<>();
+    for (AbstractState abstractState : aSuccessors) {
+      abSuccessors.addAll(
+          pPredicateTransferRelation.getAbstractSuccessorsForEdge(abstractState, null, pEdgeB));
+    }
+    for (AbstractState abstractState : abSuccessors) {
+      if (abstractState instanceof PredicateAbstractState predicateAbstractState) {
+        AbstractionFormula abstractionFormula = predicateAbstractState.getAbstractionFormula();
+        PathFormula pathFormula = predicateAbstractState.getPathFormula();
+        if (pPredicateTransferRelation.unsatCheck(abstractionFormula, pathFormula)) {
+          return false;
+        }
+      }
+    }
+
+    // execute edge B, then edge A
+    Collection<? extends AbstractState> bSuccessors =
+        pPredicateTransferRelation.getAbstractSuccessorsForEdge(pAbstractState, null, pEdgeA);
+    Collection<AbstractState> baSuccessors = new HashSet<>();
+    for (AbstractState abstractState : bSuccessors) {
+      baSuccessors.addAll(
+          pPredicateTransferRelation.getAbstractSuccessorsForEdge(abstractState, null, pEdgeB));
+    }
+    for (AbstractState abstractState : baSuccessors) {
+      if (abstractState instanceof PredicateAbstractState predicateAbstractState) {
+        AbstractionFormula abstractionFormula = predicateAbstractState.getAbstractionFormula();
+        PathFormula pathFormula = predicateAbstractState.getPathFormula();
+        if (pPredicateTransferRelation.unsatCheck(abstractionFormula, pathFormula)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 }
