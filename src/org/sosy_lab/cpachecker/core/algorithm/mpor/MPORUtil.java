@@ -76,20 +76,23 @@ public final class MPORUtil {
    * TODO
    *
    * @param pPtr TODO
-   * @param pInitialState TODO
+   * @param pAbstractStateA TODO
+   * @param pAbstractStateB TODO
    * @param pEdgeA TODO
    * @param pEdgeB TODO
    * @return TODO
    */
   public static boolean doEdgesCommute(
       @NonNull PredicateTransferRelation pPtr,
-      @NonNull PredicateAbstractState pInitialState,
+      @NonNull PredicateAbstractState pAbstractStateA,
+      @NonNull PredicateAbstractState pAbstractStateB,
       @NonNull CFAEdge pEdgeA,
       @NonNull CFAEdge pEdgeB)
       throws CPATransferException, InterruptedException, SolverException {
 
     checkNotNull(pPtr);
-    checkNotNull(pInitialState);
+    checkNotNull(pAbstractStateA);
+    checkNotNull(pAbstractStateB);
     checkNotNull(pEdgeA);
     checkNotNull(pEdgeB);
 
@@ -97,13 +100,13 @@ public final class MPORUtil {
     //  can we check if the two states abstraction + pathFormulas are semantically equivalent?
 
     // execute edgeA, then edgeB
-    PredicateAbstractState aState = getNextPredicateAbstractState(pPtr, pInitialState, pEdgeA);
+    PredicateAbstractState aState = getNextPredicateAbstractState(pPtr, pAbstractStateA, pEdgeA);
     PredicateAbstractState abState = getNextPredicateAbstractState(pPtr, aState, pEdgeB);
     if (pPtr.unsatCheck(abState.getAbstractionFormula(), abState.getPathFormula())) {
       return false;
     }
     // execute edgeB, then edgeA
-    PredicateAbstractState bState = getNextPredicateAbstractState(pPtr, pInitialState, pEdgeB);
+    PredicateAbstractState bState = getNextPredicateAbstractState(pPtr, pAbstractStateB, pEdgeB);
     PredicateAbstractState baState = getNextPredicateAbstractState(pPtr, bState, pEdgeA);
     if (pPtr.unsatCheck(baState.getAbstractionFormula(), baState.getPathFormula())) {
       return false;
