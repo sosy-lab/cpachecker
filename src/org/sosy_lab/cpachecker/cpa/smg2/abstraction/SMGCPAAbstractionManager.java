@@ -60,7 +60,8 @@ public class SMGCPAAbstractionManager {
     LOOPINGSLL,
     DLL,
     LOOPINGDLL,
-    NONE
+    NONE,
+    NONE_NOT_SLL
   }
 
   public SMGCPAAbstractionManager(
@@ -526,7 +527,13 @@ public class SMGCPAAbstractionManager {
       }
       return SMGCandidateOrRejectedObject.ofSMGCandidate(newCandidate);
     } else {
-      if (!currentObj.equals(leftMostObj)) {
+      // The current chain has been rejected, e.g. because of an outside pointer.
+      // However, it might be that the list is being reversed currently and the "next" element is in
+      // another shape.
+      // Restarting here would loop us endlessly between the current list shape and the other.
+      // Hence, we check that this is not the case
+      if (!currentObj.equals(leftMostObj)
+          && !(maybePfo.isEmpty() && listType.equals(ListType.NONE_NOT_SLL))) {
         return lookThroughPrevAndThenSearchForList(
             currentObj,
             suspectedNfo,
@@ -677,6 +684,19 @@ public class SMGCPAAbstractionManager {
         return maybePfo.isPresent() ? ListType.LOOPINGDLL : ListType.LOOPINGSLL;
       }
       return maybePfo.isPresent() ? ListType.DLL : ListType.SLL;
+    }
+    if (maybePfo.isEmpty()
+        && state
+            .getMemoryModel()
+            .getSmg()
+            .getAllSourcesForPointersPointingTowards(prevObj)
+            .contains(potentialNextObj)
+        && state
+            .getMemoryModel()
+            .getSmg()
+            .getAllSourcesForPointersPointingTowards(potentialNextObj)
+            .contains(prevObj)) {
+      return ListType.NONE_NOT_SLL;
     }
     return ListType.NONE;
   }
