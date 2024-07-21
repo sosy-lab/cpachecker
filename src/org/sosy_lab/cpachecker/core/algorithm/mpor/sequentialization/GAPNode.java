@@ -16,6 +16,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORThread;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 
+/**
+ * Represents a global access preceding (= GAP) CFANode. The leaving CFAEdge(s) of {@link
+ * GAPNode#node} are reads or writes to global variables.
+ */
 public class GAPNode {
 
   /** The CFANode preceding a global access, i.e. one or more leaving CFAEdge is a global access. */
@@ -34,8 +38,7 @@ public class GAPNode {
   public final MPORThread thread;
 
   /**
-   * Returns an object representing a Global Access Preceding (GAP) CFANode. The leaving CFAEdge(s)
-   * of {@link GAPNode#node} are reads or writes to global / shared variables.
+   * Initializes a {@link GAPNode}.
    *
    * @param pNode CFANode preceding a global access, i.e. one or more leaving CFAEdge is a global
    *     access
@@ -58,14 +61,5 @@ public class GAPNode {
     functionReturnNode = pFunctionReturnNode;
     predicateAbstractState = pPredicateAbstractState;
     thread = pThread;
-  }
-
-  /**
-   * Returns {@link GAPNode#node}, used to stream collections of GAPNodes.
-   *
-   * @return {@link GAPNode#node}
-   */
-  public CFANode getNode() {
-    return node;
   }
 }

@@ -11,7 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-/** TODO */
+/**
+ * A program contains a PreferenceOrder e.g. when one thread t0 calls pthread_join(t1) while t1 has
+ * not terminated yet -> t1 needs to execute all edges until termination (= precedingEdges) until t0
+ * can execute pthread_join(t1) (= subsequentEdge).
+ */
 public class PreferenceOrder {
 
   // TODO positional preference order ("a <q b") possible cases:
@@ -26,9 +30,6 @@ public class PreferenceOrder {
   //  __atomic_store_n / __atomic_load_n
   //  atomic blocks
   //  sequential blocks
-
-  // TODO before the first pthread_create call, the program is sequential (just main thread)
-  //  that is basically a PreferenceOrder too
 
   /** The set of CFAEdges that must be executed before {@link PreferenceOrder#subsequentEdge}. */
   public final ImmutableSet<CFAEdge> precedingEdges;

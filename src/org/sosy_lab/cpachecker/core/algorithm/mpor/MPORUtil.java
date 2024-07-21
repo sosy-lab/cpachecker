@@ -42,14 +42,12 @@ public final class MPORUtil {
   }
 
   /**
-   * TODO
+   * Returns the successor PredicateAbstractState when executing pCfaEdge.
    *
-   * @param pPtr TODO
-   * @param pCurrentState TODO
-   * @param pCfaEdge TODO
-   * @return TODO
-   * @throws CPATransferException TODO
-   * @throws InterruptedException TODO
+   * @param pPtr the PredicateTransferRelation that handles creating a successor AbstractState
+   * @param pCurrentState the current PredicateAbstractState in which we execute pCfaEdge
+   * @param pCfaEdge the CFAEdge that is executed
+   * @return the successor PredicateAbstractState when executing pCfaEdge
    */
   public static @NonNull PredicateAbstractState getNextPredicateAbstractState(
       @NonNull PredicateTransferRelation pPtr,

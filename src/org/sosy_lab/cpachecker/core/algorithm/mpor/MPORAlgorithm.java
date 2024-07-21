@@ -70,7 +70,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  *
  * <ul>
  *   <li>Using an unbounded number of threads (i.e. any loop for, while { pthread_create... }) is
- *       undefined (TODO use loop structures?)
+ *       undefined
  *   <li>The input program must be a C program
  *   <li>The input program uses POSIX threads (pthreads)
  *   <li>The start routines / main function of all pthreads / the main thread must contain a
@@ -125,7 +125,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       throws CPATransferException, InterruptedException, SolverException {
 
     // TODO loop unrolling (-> states with the same threadNodes can be visited multiple times)
-
     // make sure the MPORState was not yet visited to prevent infinite loops
     if (!existingStates.contains(pCurrentState)) {
       existingStates.add(pCurrentState);
@@ -176,12 +175,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * before global accesses are not considered, i.e. we consider all paths from pCurrentNode
    * containing exactly one global variable access.
    *
-   * @param pGapNodeBuilder the map of CFANodes whose leaving edges access global variables to the
-   *     CFANodes current FunctionReturnNode
-   * @param pVisitedNodes TODO
+   * @param pGapNodeBuilder the ImmutableSet builder we put the found GAPNodes in
+   * @param pVisitedNodes the set of already visited CFANodes to prevent infinite loops
    * @param pCurrentNode the current CFANode whose leaving edges successor nodes we analyze
    * @param pFunctionReturnNode the current FunctionReturnNode of the thread
-   * @param pAbstractState TODO
+   * @param pAbstractState the current PredicateAbstractState of pThread
    * @param pThread FunctionExitNode of the current MPORThread start routine. If a thread encounters
    *     its own exitNode, the algorithm does not search pCurrentNodes successors
    */
@@ -291,10 +289,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, PredicateRefiner.class);
     ptr = predicateCpa.getTransferRelation();
 
-    // TODO performance stuff:
-    //  merge functions that go through each Edge together into one?
-    //  merge functions that go through each Node together into one?
-
     functionCallMap = getFunctionCallMap(inputCfa);
     threads = getThreads(inputCfa, functionCallMap);
     existingStates = new HashSet<>();
@@ -382,6 +376,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     return rFunctionCallMap.buildOrThrow();
   }
 
+  // TODO pthread_create calls in loops can be considered by loop unrolling
   /**
    * Extracts all threads (main and pthreads) and the FunctionEntry / ExitNodes of their start
    * routines from the given CFA.

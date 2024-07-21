@@ -24,8 +24,6 @@ public class MPORState {
 
   public final PredicateAbstractState abstractState;
 
-  // TODO PathFormula should be here
-
   // TODO set of ConflictRelations should be here
 
   public MPORState(
