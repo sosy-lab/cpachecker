@@ -149,14 +149,37 @@ public class SMGCPAMaterializer {
                         SMGTargetSpecifier.IS_FIRST_POINTER, SMGTargetSpecifier.IS_ALL_POINTER)));
 
     // Last ptr to the current
-    // Important: last pointer specifier need to be region for the non-extended case
+    // Important: last pointer specifier need to be region for the non-extended case if it points
+    // towards a region, else last
+    assert !(currentState
+                .getMemoryModel()
+                .getSmg()
+                .getPTEdge(prevPointerValue)
+                .orElseThrow()
+                .pointsTo()
+            instanceof SMGSinglyLinkedListSegment)
+        || currentState
+            .getMemoryModel()
+            .getSmg()
+            .getPTEdge(prevPointerValue)
+            .orElseThrow()
+            .targetSpecifier()
+            .equals(SMGTargetSpecifier.IS_LAST_POINTER);
+
     assert currentState
-        .getMemoryModel()
-        .getSmg()
-        .getPTEdge(prevPointerValue)
-        .orElseThrow()
-        .targetSpecifier()
-        .equals(SMGTargetSpecifier.IS_REGION);
+                .getMemoryModel()
+                .getSmg()
+                .getPTEdge(prevPointerValue)
+                .orElseThrow()
+                .pointsTo()
+            instanceof SMGSinglyLinkedListSegment
+        || currentState
+            .getMemoryModel()
+            .getSmg()
+            .getPTEdge(prevPointerValue)
+            .orElseThrow()
+            .targetSpecifier()
+            .equals(SMGTargetSpecifier.IS_REGION);
 
     assert currentState
             .getMemoryModel()
