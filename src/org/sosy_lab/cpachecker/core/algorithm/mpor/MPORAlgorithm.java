@@ -136,6 +136,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         MPORThread currentThread = threadNode.getKey();
         findGlobalAccessPrecedingNodes(
             gapNodeBuilder,
+            new HashSet<>(),
             threadNode.getValue(),
             pFunctionReturnNodes.get(currentThread),
             pCurrentState.abstractState,
@@ -169,7 +170,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     }
   }
 
-  // TODO pthread-divine/barrier_2t.i throws an exception here
   /**
    * Recursively finds all global access preceding nodes (i.e. CFANodes whose leaving edges read /
    * write a global variable) reachable from the initial value of pCurrentNode. Successors of nodes
@@ -178,6 +178,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    *
    * @param pGapNodeBuilder the map of CFANodes whose leaving edges access global variables to the
    *     CFANodes current FunctionReturnNode
+   * @param pVisitedNodes TODO
    * @param pCurrentNode the current CFANode whose leaving edges successor nodes we analyze
    * @param pFunctionReturnNode the current FunctionReturnNode of the thread
    * @param pAbstractState TODO
@@ -186,6 +187,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    */
   private void findGlobalAccessPrecedingNodes(
       ImmutableSet.Builder<GAPNode> pGapNodeBuilder,
+      Set<CFANode> pVisitedNodes,
       CFANode pCurrentNode,
       CFANode pFunctionReturnNode,
       PredicateAbstractState pAbstractState,
@@ -193,30 +195,34 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       throws CPATransferException, InterruptedException {
 
     // TODO loop unrolling (-> the same node can be visited multiple times)
+    if (!pVisitedNodes.contains(pCurrentNode)) {
+      pVisitedNodes.add(pCurrentNode);
 
-    // TODO once we can build a program / CFA from our sequentialization graph, find out if the
-    //  cloned nodes and edges should always be in the main function
-    CFANode clonedCurrentNode = seq.cloneNode(pCurrentNode);
-    seq.addNode(clonedCurrentNode);
+      // TODO once we can build a program / CFA from our sequentialization graph, find out if the
+      //  cloned nodes and edges should always be in the main function
+      CFANode clonedCurrentNode = seq.cloneNode(pCurrentNode);
+      seq.addNode(clonedCurrentNode);
 
-    // if the thread has terminated, stop recursion
-    if (!pCurrentNode.equals(pThread.exitNode)) {
-      for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
-        if (gac.hasGlobalAccess(cfaEdge)) {
-          pGapNodeBuilder.add(
-              new GAPNode(pCurrentNode, pFunctionReturnNode, pAbstractState, pThread));
-          // not using break if for any reason the other leaving edge(s) don't access global vars
-        } else {
-          CFANode clonedNextNode = seq.cloneNode(cfaEdge.getSuccessor());
-          CFAEdge clonedEdge = seq.cloneEdge(cfaEdge, clonedCurrentNode, clonedNextNode);
-          seq.addEdge(clonedCurrentNode, clonedNextNode, clonedEdge);
-          findGlobalAccessPrecedingNodes(
-              pGapNodeBuilder,
-              // this method runs on inputCfa, clonedNodes are only used in the sequentialization
-              cfaEdge.getSuccessor(),
-              getFunctionReturnNode(pCurrentNode, pFunctionReturnNode),
-              MPORUtil.getNextPredicateAbstractState(ptr, pAbstractState, cfaEdge),
-              pThread);
+      // if the thread has terminated, stop recursion
+      if (!pCurrentNode.equals(pThread.exitNode)) {
+        for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
+          if (gac.hasGlobalAccess(cfaEdge)) {
+            pGapNodeBuilder.add(
+                new GAPNode(pCurrentNode, pFunctionReturnNode, pAbstractState, pThread));
+            // not using break if for any reason the other leaving edge(s) don't access global vars
+          } else {
+            CFANode clonedNextNode = seq.cloneNode(cfaEdge.getSuccessor());
+            CFAEdge clonedEdge = seq.cloneEdge(cfaEdge, clonedCurrentNode, clonedNextNode);
+            seq.addEdge(clonedCurrentNode, clonedNextNode, clonedEdge);
+            findGlobalAccessPrecedingNodes(
+                pGapNodeBuilder,
+                pVisitedNodes,
+                // this method runs on inputCfa, clonedNodes are only used in the sequentialization
+                cfaEdge.getSuccessor(),
+                getFunctionReturnNode(pCurrentNode, pFunctionReturnNode),
+                MPORUtil.getNextPredicateAbstractState(ptr, pAbstractState, cfaEdge),
+                pThread);
+          }
         }
       }
     }
