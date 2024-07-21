@@ -8,8 +8,18 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.tests;
 
+import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.GAPNode;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
@@ -19,5 +29,30 @@ public class MPORTests {
 
   public MPORTests(MPORAlgorithm pAlgorithm) {
     algorithm = pAlgorithm;
+  }
+
+  public static void testCommutativity(
+      LogManager pLogManager,
+      PredicateTransferRelation pPtr,
+      ImmutableMap<CFAEdge, GAPNode> pGlobalAccesses)
+      throws CPATransferException, SolverException, InterruptedException {
+
+    for (var entryA : pGlobalAccesses.entrySet()) {
+      for (var entryB : pGlobalAccesses.entrySet()) {
+        if (!entryA.equals(entryB)) {
+          PredicateAbstractState abstractStateA = entryA.getValue().predicateAbstractState;
+          PredicateAbstractState abstractStateB = entryB.getValue().predicateAbstractState;
+          CFAEdge edgeA = entryA.getKey();
+          CFAEdge edgeB = entryB.getKey();
+          if (MPORUtil.doEdgesCommute(pPtr, abstractStateA, abstractStateB, edgeA, edgeB)) {
+            pLogManager.log(
+                Level.INFO, "TRUE commute - " + edgeA.getCode() + " - " + edgeB.getCode());
+          } else {
+            pLogManager.log(
+                Level.INFO, "FALSE commute - " + edgeA.getCode() + " - " + edgeB.getCode());
+          }
+        }
+      }
+    }
   }
 }

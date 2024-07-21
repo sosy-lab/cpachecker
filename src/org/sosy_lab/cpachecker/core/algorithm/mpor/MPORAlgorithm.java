@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.GAPNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.tests.MPORTests;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -144,8 +145,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       ImmutableSet<GAPNode> gapNodes = gapNodeBuilder.build();
 
       // TODO using an immutable map builder here stops the recursion after a few runs?
-      // for all global accesses found, map them to their executing threads
-      Map<CFAEdge, MPORThread> globalAccessesMap = new HashMap<>();
+      // for all global accesses found, map them to their respective GAPNode
+      Map<CFAEdge, GAPNode> globalAccessesMap = new HashMap<>();
       for (GAPNode gapNode : gapNodes) {
         CFANode functionReturnNode = gapNode.functionReturnNode;
         PredicateAbstractState abstractState = gapNode.predicateAbstractState;
@@ -154,15 +155,18 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         // create and visit a new state for each global variable access edge
         for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(gapNode.node, functionReturnNode)) {
           checkState(gac.hasGlobalAccess(cfaEdge)); // always held in tests
-          globalAccessesMap.put(cfaEdge, gapNode.thread);
+          globalAccessesMap.put(cfaEdge, gapNode);
         }
       }
-      ImmutableMap<CFAEdge, MPORThread> globalAccesses = ImmutableMap.copyOf(globalAccessesMap);
+      ImmutableMap<CFAEdge, GAPNode> globalAccesses = ImmutableMap.copyOf(globalAccessesMap);
 
-      // TODO create combinations of all global accesses to check for commutativity here
+      MPORTests.testCommutativity(logManager, ptr, globalAccesses);
+
       // for all global accesses executed by the threads, create new states to explore
       for (var entry : globalAccesses.entrySet()) {
-        MPORState nextState = createUpdatedState(pCurrentState, entry.getValue(), entry.getKey());
+        CFAEdge executedEdge = entry.getKey();
+        MPORThread executingThread = entry.getValue().thread;
+        MPORState nextState = createUpdatedState(pCurrentState, executingThread, executedEdge);
         handleState(
             nextState, updateFunctionReturnNodes(nextState.threadNodes, pFunctionReturnNodes));
       }

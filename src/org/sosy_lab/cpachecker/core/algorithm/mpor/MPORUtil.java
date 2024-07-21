@@ -94,8 +94,9 @@ public final class MPORUtil {
     checkNotNull(pEdgeA);
     checkNotNull(pEdgeB);
 
-    // TODO are the unsatChecks sufficient to check if the edges commute?
-    //  can we check if the two states abstraction + pathFormulas are semantically equivalent?
+    // TODO based on MPORTests.testCommutativity, unsatCheck is not sufficient to check for
+    //  commutativity. e.g., two mutex_locks to the same &m commute based on this function
+    //  -> we need to check for access to the same shared variable
 
     // execute edgeA, then edgeB
     PredicateAbstractState aState = getNextPredicateAbstractState(pPtr, pAbstractStateA, pEdgeA);
