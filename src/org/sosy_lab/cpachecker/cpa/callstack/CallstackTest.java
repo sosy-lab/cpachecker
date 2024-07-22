@@ -34,7 +34,6 @@ public class CallstackTest {
    */
   @Test
   public void testCallstackPreventsUndesiredCoverage() throws Exception {
-    // FIXME: Broken by atexit transformation
     List<String> program =
         ImmutableList.of(
             "extern int __VERIFIER_nondet_int();",

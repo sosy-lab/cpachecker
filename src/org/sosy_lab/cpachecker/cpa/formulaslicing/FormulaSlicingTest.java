@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.util.test.CPATestRunner.ExpectedVerdict;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-// FIXME: Broken by atexit transformation
 @RunWith(Parameterized.class)
 public class FormulaSlicingTest {
 
