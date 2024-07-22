@@ -262,7 +262,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     Map<MemoryLocation, List<ValueAndType>> varsWithVals =
         Maps.newHashMapWithExpectedSize(vars.size());
     for (MemoryLocation var : vars) {
-      varsWithVals.put(var, new ArrayList<ValueAndType>(pValStates.size()));
+      varsWithVals.put(var, new ArrayList<>(pValStates.size()));
     }
 
     MemoryLocation var;
