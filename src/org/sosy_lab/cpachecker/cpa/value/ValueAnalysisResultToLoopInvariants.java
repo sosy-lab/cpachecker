@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.value;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableCollection.Builder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -33,7 +32,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -94,8 +93,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   @Option(
       secure = true,
       description =
-          "Enable to export linear equalities or inequalities over variables, "
-              + "e.g., ax + by + c = 0, ax + bx + c <= 0, ax + bx + c >= 0, or ax + by + cy + d = 0")
+          "Enable to export linear equalities or inequalities over variables, e.g., ax + by + c ="
+              + " 0, ax + bx + c <= 0, ax + bx + c >= 0, or ax + by + cy + d = 0")
   private boolean exportLinear = true;
 
   @Option(
@@ -168,11 +167,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       builder.put(MemoryLocation.forDeclaration(decl), decl.getType());
     }
 
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() {
     solver.close();
   }
 
@@ -311,7 +310,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
   private void addSingleVariableInvariants(
       final Map<MemoryLocation, List<ValueAndType>> pVarsWithVals,
-      final Builder<CandidateInvariant> pInvBuilder) {
+      final ImmutableCollection.Builder<CandidateInvariant> pInvBuilder) {
     // =value, >=, <=, != 0, == 0, even, odd,
     // not supported: set of values,  (allgemein x == a (mod b)
     // not supported bitwise negation ~x
@@ -341,7 +340,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
   private void addInvariantsOverTwoVariables(
       final Map<MemoryLocation, List<ValueAndType>> pVarsWithVals,
-      final Builder<CandidateInvariant> pInvBuilder) {
+      final ImmutableCollection.Builder<CandidateInvariant> pInvBuilder) {
     // two variables
     // relational
     // x > y, x<y, x>=y,x<=y, x==y, x!=y
@@ -357,9 +356,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     TwoVariableRelationInvariant relInv;
     TwoVariableArithmeticInvariant arInv;
     TwoVariableBitOpsInvariant bitInv;
-    LinearInEqualityInvariant linInv1, linInv2;
+    LinearInEqualityInvariant linInv1;
+    LinearInEqualityInvariant linInv2;
     CSimpleType type1, type2;
-    List<ValueAndType> val1, val2;
+    List<ValueAndType> val1;
+    List<ValueAndType> val2;
 
     // restricted to variable pairs that are both of CSimpleType,
     // are either both integer types or floating types and have the same sign
@@ -393,7 +394,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
           val1 = varWithVals1.getValue();
           val2 = varWithVals2.getValue();
-          if (val1.size() <= 0
+          if (val1.isEmpty()
               || val1.size() != val2.size()
               || !val1.get(0).getValue().isNumericValue()
               || !val2.get(0).getValue().isNumericValue()) {
@@ -404,15 +405,23 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
             Number[] coefficients =
                 computeCoefficientsForLinearEquation(
-                    new ValueAndType[][] {{val2.get(0), val2.get(1)}},
-                    new ValueAndType[] {val1.get(0), val1.get(1)},
+                    new ValueAndType[][] {
+                      {
+                        val2.get(0), val2.get(1),
+                      },
+                    },
+                    new ValueAndType[] {
+                      val1.get(0), val1.get(1),
+                    },
                     0,
                     type1.getType().isFloatingPointType());
 
             if (coefficients != null && !isIrrelevantLinearInvariant(coefficients)) {
               linInv1 =
                   new LinearInEqualityInvariant(
-                      new MemoryLocation[] {varWithVals1.getKey(), varWithVals2.getKey()},
+                      new MemoryLocation[] {
+                        varWithVals1.getKey(), varWithVals2.getKey(),
+                      },
                       coefficients,
                       type1.getType().isFloatingPointType());
             } else {
@@ -421,15 +430,23 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
             coefficients =
                 computeCoefficientsForLinearEquation(
-                    new ValueAndType[][] {{val1.get(0), val1.get(1)}},
-                    new ValueAndType[] {val2.get(0), val2.get(1)},
+                    new ValueAndType[][] {
+                      {
+                        val1.get(0), val1.get(1),
+                      },
+                    },
+                    new ValueAndType[] {
+                      val2.get(0), val2.get(1),
+                    },
                     1,
                     type1.getType().isFloatingPointType());
 
             if (coefficients != null && !isIrrelevantLinearInvariant(coefficients)) {
               linInv2 =
                   new LinearInEqualityInvariant(
-                      new MemoryLocation[] {varWithVals1.getKey(), varWithVals2.getKey()},
+                      new MemoryLocation[] {
+                        varWithVals1.getKey(), varWithVals2.getKey(),
+                      },
                       coefficients,
                       type1.getType().isFloatingPointType());
             } else {
@@ -495,12 +512,16 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             }
             if (linInv1 != null
                 && !linInv1.adaptToAdditionalValues(
-                    new Value[] {val1.get(i).getValue(), val2.get(i).getValue()})) {
+                    new Value[] {
+                      val1.get(i).getValue(), val2.get(i).getValue(),
+                    })) {
               linInv1 = null;
             }
             if (linInv2 != null
                 && !linInv2.adaptToAdditionalValues(
-                    new Value[] {val1.get(i).getValue(), val2.get(i).getValue()})) {
+                    new Value[] {
+                      val1.get(i).getValue(), val2.get(i).getValue(),
+                    })) {
               linInv2 = null;
             }
           }
@@ -528,13 +549,19 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
   private void addLinearInvariantsOverThreeVariables(
       final Map<MemoryLocation, List<ValueAndType>> pVarsWithVals,
-      final Builder<CandidateInvariant> pInvBuilder) {
+      final ImmutableCollection.Builder<CandidateInvariant> pInvBuilder) {
     Preconditions.checkState(exportLinear);
     Preconditions.checkState(exportTernary);
 
-    CSimpleType type1, type2, type3;
-    LinearInEqualityInvariant linInv1, linInv2, linInv3;
-    List<ValueAndType> val1, val2, val3;
+    CSimpleType type1;
+    CSimpleType type2;
+    CSimpleType type3;
+    LinearInEqualityInvariant linInv1;
+    LinearInEqualityInvariant linInv2;
+    LinearInEqualityInvariant linInv3;
+    List<ValueAndType> val1;
+    List<ValueAndType> val2;
+    List<ValueAndType> val3;
 
     Set<MemoryLocation> exploredVarsOuter = Sets.newHashSetWithExpectedSize(pVarsWithVals.size());
     Set<MemoryLocation> exploredVarsInner = Sets.newHashSetWithExpectedSize(pVarsWithVals.size());
@@ -601,10 +628,16 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
               Number[] coefficients =
                   computeCoefficientsForLinearEquation(
                       new ValueAndType[][] {
-                        {val2.get(0), val2.get(1), val2.get(2)},
-                        {val3.get(0), val3.get(1), val3.get(2)}
+                        {
+                          val2.get(0), val2.get(1), val2.get(2),
+                        },
+                        {
+                          val3.get(0), val3.get(1), val3.get(2),
+                        },
                       },
-                      new ValueAndType[] {val1.get(0), val1.get(1), val1.get(2)},
+                      new ValueAndType[] {
+                        val1.get(0), val1.get(1), val1.get(2),
+                      },
                       0,
                       type1.getType().isFloatingPointType());
 
@@ -612,7 +645,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                 linInv1 =
                     new LinearInEqualityInvariant(
                         new MemoryLocation[] {
-                          varWithVals1.getKey(), varWithVals2.getKey(), varWithVals3.getKey()
+                          varWithVals1.getKey(), varWithVals2.getKey(), varWithVals3.getKey(),
                         },
                         coefficients,
                         type1.getType().isFloatingPointType());
@@ -623,10 +656,16 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
               coefficients =
                   computeCoefficientsForLinearEquation(
                       new ValueAndType[][] {
-                        {val1.get(0), val1.get(1), val1.get(2)},
-                        {val3.get(0), val3.get(1), val3.get(2)}
+                        {
+                          val1.get(0), val1.get(1), val1.get(2),
+                        },
+                        {
+                          val3.get(0), val3.get(1), val3.get(2),
+                        },
                       },
-                      new ValueAndType[] {val2.get(0), val2.get(1), val2.get(2)},
+                      new ValueAndType[] {
+                        val2.get(0), val2.get(1), val2.get(2),
+                      },
                       1,
                       type1.getType().isFloatingPointType());
 
@@ -634,7 +673,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                 linInv2 =
                     new LinearInEqualityInvariant(
                         new MemoryLocation[] {
-                          varWithVals1.getKey(), varWithVals2.getKey(), varWithVals3.getKey()
+                          varWithVals1.getKey(), varWithVals2.getKey(), varWithVals3.getKey(),
                         },
                         coefficients,
                         type1.getType().isFloatingPointType());
@@ -645,10 +684,16 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
               coefficients =
                   computeCoefficientsForLinearEquation(
                       new ValueAndType[][] {
-                        {val1.get(0), val1.get(1), val1.get(2)},
-                        {val2.get(0), val2.get(1), val2.get(2)}
+                        {
+                          val1.get(0), val1.get(1), val1.get(2),
+                        },
+                        {
+                          val2.get(0), val2.get(1), val2.get(2),
+                        },
                       },
-                      new ValueAndType[] {val3.get(0), val3.get(1), val3.get(2)},
+                      new ValueAndType[] {
+                        val3.get(0), val3.get(1), val3.get(2),
+                      },
                       2,
                       type1.getType().isFloatingPointType());
 
@@ -656,7 +701,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                 linInv3 =
                     new LinearInEqualityInvariant(
                         new MemoryLocation[] {
-                          varWithVals1.getKey(), varWithVals2.getKey(), varWithVals3.getKey()
+                          varWithVals1.getKey(), varWithVals2.getKey(), varWithVals3.getKey(),
                         },
                         coefficients,
                         type1.getType().isFloatingPointType());
@@ -670,14 +715,14 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                 if (linInv1 != null
                     && !linInv1.adaptToAdditionalValues(
                         new Value[] {
-                          val1.get(i).getValue(), val2.get(i).getValue(), val3.get(i).getValue()
+                          val1.get(i).getValue(), val2.get(i).getValue(), val3.get(i).getValue(),
                         })) {
                   linInv1 = null;
                 }
                 if (linInv2 != null
                     && !linInv2.adaptToAdditionalValues(
                         new Value[] {
-                          val1.get(i).getValue(), val2.get(i).getValue(), val3.get(i).getValue()
+                          val1.get(i).getValue(), val2.get(i).getValue(), val3.get(i).getValue(),
                         })) {
                   linInv2 = null;
                 }
@@ -685,7 +730,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                 if (linInv3 != null
                     && !linInv3.adaptToAdditionalValues(
                         new Value[] {
-                          val1.get(i).getValue(), val2.get(i).getValue(), val3.get(i).getValue()
+                          val1.get(i).getValue(), val2.get(i).getValue(), val3.get(i).getValue(),
                         })) {
                   linInv3 = null;
                 }
@@ -799,7 +844,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       EQ,
       GEQ,
       LEQ,
-      NONE;
+      NONE
     }
 
     protected EqualCompareType updateCompareType(
@@ -1225,7 +1270,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       LT,
       LEQ,
       UNEQ,
-      NONE;
+      NONE
     }
 
     private final MemoryLocation var;
@@ -1969,7 +2014,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         final CtoFormulaConverter pC2Formula,
         final MachineModel pMachineModel) {
 
-      Formula varAdditionTerm = null, varTerm;
+      Formula varAdditionTerm = null;
+      Formula varTerm;
       MemoryLocation var;
 
       if (vars.length < 1) {

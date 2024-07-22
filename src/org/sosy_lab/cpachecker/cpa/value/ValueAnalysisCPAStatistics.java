@@ -1,4 +1,3 @@
-
 // This file is part of CPAchecker,
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
@@ -123,10 +122,10 @@ public class ValueAnalysisCPAStatistics implements Statistics {
 
   private boolean shouldExportLoopInvariants(final Result result) {
     return switch (exportLoopInvariants) {
-          case ALWAYS -> true;
-          case IF_NOT_FALSE -> result != Result.FALSE;
-          case IF_TRUE -> result == Result.TRUE;
-        };
+      case ALWAYS -> true;
+      case IF_NOT_FALSE -> result != Result.FALSE;
+      case IF_TRUE -> result == Result.TRUE;
+    };
   }
 
   /**
