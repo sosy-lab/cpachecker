@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.io.IO;
@@ -193,7 +192,6 @@ public class AppliedCustomInstructionParserTest {
     return result;
   }
 
-  @Ignore
   @Test
   public void testParse() throws Exception {
     cfa =
