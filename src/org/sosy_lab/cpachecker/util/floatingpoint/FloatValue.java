@@ -2397,16 +2397,16 @@ public class FloatValue extends Number {
    *
    * <pre>
    * floating-constant ::=
-   *     decimal-floating-constant
-   *   | hexadecimal-floating-constant
+   *     [sign] decimal-floating-constant
+   *   | [sign] hexadecimal-floating-constant
    *
    * decimal-floating-constant ::=
-   *     [sign] fractional-constant [exponent-part]
-   *   | [sign] digit-sequence exponent-part
+   *     fractional-constant [exponent-part]
+   *   | digit+ exponent-part
    *
    * hexadecimal-floating-constant ::=
    *     `0x` hexadecimal-fractional-constant binary-exponent-part
-   *   | `0x` hexadecimal-digit-sequence binary-exponent-part
+   *   | `0x` hexadecimal-digit+ binary-exponent-part
    *
    * fractional-constant ::=
    *     digit* `.` digit+
