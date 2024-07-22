@@ -265,21 +265,25 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       varsWithVals.put(var, new ArrayList<>(pValStates.size()));
     }
 
+    Entry<MemoryLocation, List<ValueAndType>> varWithVals;
     MemoryLocation var;
     Set<MemoryLocation> trackedInState;
     for (final ValueAnalysisState valueState : pValStates) {
       trackedInState = valueState.getTrackedMemoryLocations();
-      for (Iterator<MemoryLocation> varIt = varsWithVals.keySet().iterator(); varIt.hasNext(); ) {
-        var = varIt.next();
+      for (Iterator<Entry<MemoryLocation, List<ValueAndType>>> varValsIt =
+              varsWithVals.entrySet().iterator();
+          varValsIt.hasNext(); ) {
+        varWithVals = varValsIt.next();
+        var = varWithVals.getKey();
         // restrict to variables with numerical or Boolean values
         if (!trackedInState.contains(var)
             || valueState.getValueFor(var).isUnknown()
             || (!valueState.getValueFor(var).isNumericValue()
                 && !(valueState.getValueFor(var) instanceof BooleanValue))) {
-          // according to API specification removes var from Map // TODO test
-          varIt.remove();
+          // according to API specification removes var from Map
+          varValsIt.remove();
         } else {
-          varsWithVals.get(var).add(valueState.getValueAndTypeFor(var));
+          varWithVals.getValue().add(valueState.getValueAndTypeFor(var));
         }
       }
     }
