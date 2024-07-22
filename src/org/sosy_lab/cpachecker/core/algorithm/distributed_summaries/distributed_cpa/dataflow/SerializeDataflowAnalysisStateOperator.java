@@ -19,10 +19,8 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.SerializeBooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.SerializeNumeralFormulaVisitor;
 
-
 public class SerializeDataflowAnalysisStateOperator implements SerializeOperator {
   BlockNode currentBlockNode;
-  
 
   public SerializeDataflowAnalysisStateOperator(BlockNode pCurrentBlockNode) {
     currentBlockNode = pCurrentBlockNode;
@@ -34,7 +32,7 @@ public class SerializeDataflowAnalysisStateOperator implements SerializeOperator
     BooleanFormula<CompoundInterval> booleanFormula = state.asFormula();
     SerializeNumeralFormulaVisitor numeralFormulaVisitor = new SerializeNumeralFormulaVisitor();
     SerializeBooleanFormulaVisitor booleanFormulaVisitor =
-        new SerializeBooleanFormulaVisitor(numeralFormulaVisitor);    
+        new SerializeBooleanFormulaVisitor(numeralFormulaVisitor);
     String abstractionStrategy = state.getAbstractionState().getAbstractionStrategyName();
     BlockSummaryMessagePayload.Builder payload =
         BlockSummaryMessagePayload.builder()

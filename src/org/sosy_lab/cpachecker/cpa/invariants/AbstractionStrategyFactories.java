@@ -383,7 +383,7 @@ public enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                 return new EnteringEdgesBasedAbstractionState(edges, lastEdges, hints);
               }
               return BasicAbstractionStates.ALWAYS_STATE;
-            } 
+            }
 
             @Override
             public boolean equals(Object pO) {

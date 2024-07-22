@@ -10,18 +10,14 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
-
-
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
-
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class StringToBooleanFormulaParser {
@@ -32,8 +28,8 @@ public class StringToBooleanFormulaParser {
     return parseBooleanFormula(formulaString, brackets);
   }
 
-  private static BooleanFormula<CompoundInterval>
-      parseBooleanFormula(String formulaString, ArrayDeque<Character> brackets) {
+  private static BooleanFormula<CompoundInterval> parseBooleanFormula(
+      String formulaString, ArrayDeque<Character> brackets) {
     formulaString = formulaString.trim();
     if (formulaString.startsWith("(")
         && formulaString.endsWith(")")
@@ -170,14 +166,13 @@ public class StringToBooleanFormulaParser {
       intervalString = intervalString.replace("[", "").replace("]", "");
       List<String> bounds = Splitter.on(',').splitToList(intervalString);
       bitVectorIntervals.add(
-          BitVectorInterval
-              .of(bitVectorInfo, new BigInteger(bounds.get(0)), new BigInteger(bounds.get(1))));
+          BitVectorInterval.of(
+              bitVectorInfo, new BigInteger(bounds.get(0)), new BigInteger(bounds.get(1))));
     }
 
     return Constant.of(
         bitVectorInfo,
-        CompoundBitVectorInterval
-            .of(bitVectorInfo, ImmutableList.copyOf(bitVectorIntervals)));
+        CompoundBitVectorInterval.of(bitVectorInfo, ImmutableList.copyOf(bitVectorIntervals)));
   }
 
   private static BitVectorInfo parseBitVectorInfo(String typeInfo) {
@@ -198,7 +193,5 @@ public class StringToBooleanFormulaParser {
     }
 
     return BitVectorInfo.from(size, signed);
-  
   }
-
 }

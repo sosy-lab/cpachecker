@@ -33,5 +33,4 @@ public interface AbstractionState {
   boolean isLessThanOrEqualTo(AbstractionState pOther);
 
   String getAbstractionStrategyName();
-  
 }

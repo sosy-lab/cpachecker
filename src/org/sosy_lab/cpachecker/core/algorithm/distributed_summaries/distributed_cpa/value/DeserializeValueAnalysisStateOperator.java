@@ -12,7 +12,6 @@ import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -57,15 +56,15 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
                 getSimpleTypeFromString(typeParts)));
       }
 
-      valueState = new ValueAnalysisState(
-          Optional.of(cfa.getMachineModel()),
-          PathCopyingPersistentTreeMap.copyOf(constantsMap));
-
+      valueState =
+          new ValueAnalysisState(
+              Optional.of(cfa.getMachineModel()),
+              PathCopyingPersistentTreeMap.copyOf(constantsMap));
     }
     return valueState;
   }
 
-  private CSimpleType getSimpleTypeFromString(String[] typeStrParts){
+  private CSimpleType getSimpleTypeFromString(String[] typeStrParts) {
     boolean isConst = false;
     boolean isVolatile = false;
     boolean isLong = false;
@@ -76,7 +75,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     boolean isImaginary = false;
     boolean isLongLong = false;
     CBasicType basicType = CBasicType.UNSPECIFIED;
-    
+
     for (String typePart : typeStrParts) {
       switch (typePart) {
         case "const":
@@ -114,36 +113,36 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     }
 
     return new CSimpleType(
-            isConst,
-            isVolatile,
-            basicType,
-            isLong,
-            isShort,
-            isSigned,
-            isUnsigned,
-            isComplex,
-            isImaginary,
-            isLongLong);
+        isConst,
+        isVolatile,
+        basicType,
+        isLong,
+        isShort,
+        isSigned,
+        isUnsigned,
+        isComplex,
+        isImaginary,
+        isLongLong);
   }
 
   private CBasicType getTypeFromString(String typeStr) {
-  switch (typeStr) {
-    case "_Bool":
-      return CBasicType.BOOL;
-    case "char":
-      return CBasicType.CHAR;
-    case "int":
-      return CBasicType.INT;
-    case "__int128":
-      return CBasicType.INT128;
-    case "float":
-      return CBasicType.FLOAT;
-    case "double":
-      return CBasicType.DOUBLE;
-    case "__float128":
-      return CBasicType.FLOAT128;
-    default:
-      return CBasicType.UNSPECIFIED;
+    switch (typeStr) {
+      case "_Bool":
+        return CBasicType.BOOL;
+      case "char":
+        return CBasicType.CHAR;
+      case "int":
+        return CBasicType.INT;
+      case "__int128":
+        return CBasicType.INT128;
+      case "float":
+        return CBasicType.FLOAT;
+      case "double":
+        return CBasicType.DOUBLE;
+      case "__float128":
+        return CBasicType.FLOAT128;
+      default:
+        return CBasicType.UNSPECIFIED;
+    }
   }
-}
 }

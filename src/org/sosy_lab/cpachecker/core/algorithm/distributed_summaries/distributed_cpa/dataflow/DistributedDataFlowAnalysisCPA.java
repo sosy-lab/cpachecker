@@ -80,6 +80,7 @@ public class DistributedDataFlowAnalysisCPA
           InterruptedException,
           VerificationConditionException,
           SolverException {
-    return invariantsCPA.getInitialState(blockNode.getFirst(), StateSpacePartition.getDefaultPartition());
+    return invariantsCPA.getInitialState(
+        blockNode.getFirst(), StateSpacePartition.getDefaultPartition());
   }
 }

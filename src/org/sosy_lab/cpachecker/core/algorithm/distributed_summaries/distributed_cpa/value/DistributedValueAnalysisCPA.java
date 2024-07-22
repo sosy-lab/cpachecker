@@ -35,7 +35,8 @@ public class DistributedValueAnalysisCPA
   private final BlockNode blockNode;
   private final CFA cfa;
 
-  public DistributedValueAnalysisCPA(ValueAnalysisCPA pValueAnalysisCPA, BlockNode pNode, CFA pCFA) {
+  public DistributedValueAnalysisCPA(
+      ValueAnalysisCPA pValueAnalysisCPA, BlockNode pNode, CFA pCFA) {
     valueAnalysisCPA = pValueAnalysisCPA;
     serializeOperator = new SerializeValueAnalysisStateOperator(pNode);
     deserializeOperator = new DeserializeValueAnalysisStateOperator(pCFA);
@@ -43,7 +44,6 @@ public class DistributedValueAnalysisCPA
     deserializePrecisionOperator = new DeserializeVariableTrackingPrecision(pValueAnalysisCPA);
     blockNode = pNode;
     cfa = pCFA;
-    
   }
 
   @Override
@@ -91,6 +91,7 @@ public class DistributedValueAnalysisCPA
 
   @Override
   public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition) {
-    return valueAnalysisCPA.getInitialState(blockNode.getFirst(), StateSpacePartition.getDefaultPartition());
+    return valueAnalysisCPA.getInitialState(
+        blockNode.getFirst(), StateSpacePartition.getDefaultPartition());
   }
 }

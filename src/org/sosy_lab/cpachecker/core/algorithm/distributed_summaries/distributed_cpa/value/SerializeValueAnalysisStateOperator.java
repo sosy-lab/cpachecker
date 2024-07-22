@@ -8,15 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
-import java.io.IOException;
 import java.util.Map.Entry;
-
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummarySerializeUtil;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
@@ -35,8 +31,13 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
     ValueAnalysisState valueState = (ValueAnalysisState) pState;
     String serializedValueString = "";
     for (Entry<MemoryLocation, ValueAndType> entry : valueState.getConstants()) {
-      serializedValueString += 
-          entry.getKey().getIdentifier()  + ":" + entry.getValue().getType() + "=" + entry.getValue().getValue().asNumericValue().number().intValue() + " && ";
+      serializedValueString +=
+          entry.getKey().getIdentifier()
+              + ":"
+              + entry.getValue().getType()
+              + "="
+              + entry.getValue().getValue().asNumericValue().number().intValue()
+              + " && ";
     }
     if (serializedValueString == "") {
       serializedValueString = "No constants";
@@ -55,7 +56,8 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
     //   if (pState instanceof ValueAnalysisState valueAnalysisState) {
     //     return BlockSummaryMessagePayload.builder()
     //         .addEntry(
-    //             ValueAnalysisCPA.class.getName(), BlockSummarySerializeUtil.serialize(valueState))
+    //             ValueAnalysisCPA.class.getName(),
+    // BlockSummarySerializeUtil.serialize(valueState))
     //         .addEntry("readable", pState.toString())
     //         .buildPayload();
     //   }

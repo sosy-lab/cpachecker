@@ -34,5 +34,4 @@ public interface AbstractionStrategy {
    *     factory allows.
    */
   AbstractionState from(AbstractionState pOther);
-  
 }
