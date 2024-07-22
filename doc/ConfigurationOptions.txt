@@ -163,6 +163,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -4018,6 +4019,13 @@ imc.removeUnreachableStopStates = false
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
+
+# toggle the strategy to determine the hardcoded instrumentation automaton to
+# be used
+# TERMINATION: transform termination to reachability
+# NOOVERFLOW: transform no-overflow to reachability
+instrumentation.instrumentationProperty = TERMINATION
+  enum:     [TERMINATION, NOOVERFLOW]
 
 # Configuration file for the K-Induction algorithm for checking candidates on
 # invariance.
