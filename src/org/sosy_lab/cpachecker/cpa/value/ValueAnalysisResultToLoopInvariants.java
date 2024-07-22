@@ -262,24 +262,28 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     Map<MemoryLocation, List<ValueAndType>> varsWithVals =
         Maps.newHashMapWithExpectedSize(vars.size());
     for (MemoryLocation var : vars) {
-      varsWithVals.put(var, new ArrayList<ValueAndType>(pValStates.size()));
+      varsWithVals.put(var, new ArrayList<>(pValStates.size()));
     }
 
+    Entry<MemoryLocation, List<ValueAndType>> varWithVals;
     MemoryLocation var;
     Set<MemoryLocation> trackedInState;
     for (final ValueAnalysisState valueState : pValStates) {
       trackedInState = valueState.getTrackedMemoryLocations();
-      for (Iterator<MemoryLocation> varIt = varsWithVals.keySet().iterator(); varIt.hasNext(); ) {
-        var = varIt.next();
+      for (Iterator<Entry<MemoryLocation, List<ValueAndType>>> varValsIt =
+              varsWithVals.entrySet().iterator();
+          varValsIt.hasNext(); ) {
+        varWithVals = varValsIt.next();
+        var = varWithVals.getKey();
         // restrict to variables with numerical or Boolean values
         if (!trackedInState.contains(var)
             || valueState.getValueFor(var).isUnknown()
             || (!valueState.getValueFor(var).isNumericValue()
                 && !(valueState.getValueFor(var) instanceof BooleanValue))) {
-          // according to API specification removes var from Map // TODO test
-          varIt.remove();
+          // according to API specification removes var from Map
+          varValsIt.remove();
         } else {
-          varsWithVals.get(var).add(valueState.getValueAndTypeFor(var));
+          varWithVals.getValue().add(valueState.getValueAndTypeFor(var));
         }
       }
     }
@@ -358,7 +362,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     TwoVariableBitOpsInvariant bitInv;
     LinearInEqualityInvariant linInv1;
     LinearInEqualityInvariant linInv2;
-    CSimpleType type1, type2;
+    CSimpleType type1;
+    CSimpleType type2;
     List<ValueAndType> val1;
     List<ValueAndType> val2;
 
@@ -902,14 +907,14 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       boolean isFloat1 = isFloatingNumber(num1);
       boolean isFloat2 = isFloatingNumber(num2);
 
-      if (isFloat1 && (isFloat2 || isIntegral2) || isFloat2 && isIntegral1) {
+      if ((isFloat1 && (isFloat2 || isIntegral2)) || (isFloat2 && isIntegral1)) {
         return Double.compare(pVal1.doubleValue(), pVal2.doubleValue());
       }
 
       boolean isBigInt1 = num1 instanceof BigInteger;
       boolean isBigInt2 = num2 instanceof BigInteger;
 
-      if (isBigInt1 && (isBigInt2 || isIntegral2) || isBigInt2 && isIntegral1) {
+      if ((isBigInt1 && (isBigInt2 || isIntegral2)) || (isBigInt2 && isIntegral1)) {
         return pVal1.bigIntegerValue().compareTo(pVal2.bigIntegerValue());
       }
 
@@ -1170,7 +1175,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       } else if (num instanceof BigInteger) {
         return pVal.bigIntegerValue().equals(BigInteger.ZERO);
       } else if (num instanceof BigDecimal) {
-        return pVal.bigDecimalValue().equals(BigDecimal.ZERO);
+        return pVal.bigDecimalValue().compareTo(BigDecimal.ZERO) == 0;
       } else {
         return false;
       }
@@ -1410,7 +1415,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         double val1 = pVal1.doubleValue();
         double val2 = pVal2.doubleValue();
         opMul = Pair.of(val1 * val2, EqualCompareType.EQ);
-        if (divReversed && val1 == 0 || !divReversed && val2 == 0) {
+        if ((divReversed && val1 == 0) || (!divReversed && val2 == 0)) {
           opDiv = Pair.of(0.0, EqualCompareType.NONE);
         } else {
           double res = divReversed ? val2 / val1 : val1 / val2;
@@ -1423,7 +1428,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         long val1 = pVal1.longValue();
         long val2 = pVal2.longValue();
         opMul = Pair.of(val1 * val2, EqualCompareType.EQ);
-        if (divReversed && val1 == 0 || !divReversed && val2 == 0) {
+        if ((divReversed && val1 == 0) || (!divReversed && val2 == 0)) {
           opDiv = Pair.of(0, EqualCompareType.NONE);
         } else {
           long res = divReversed ? val2 / val1 : val1 / val2;
