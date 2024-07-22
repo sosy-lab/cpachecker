@@ -86,7 +86,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
                 recursionInfo.parameters()));
       }
 
-      writer.append(allLoopInfos.toString());
+      writer.write(allLoopInfos.toString());
     } catch (IOException e) {
       logger.logException(Level.SEVERE, e, "The creation of file AllLoopInfos.txt failed!");
     }
