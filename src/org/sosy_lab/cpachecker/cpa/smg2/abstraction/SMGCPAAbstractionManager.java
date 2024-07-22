@@ -496,7 +496,7 @@ public class SMGCPAAbstractionManager {
             maybePrevPointerTargetOffset,
             alreadySeenInChain,
             minimumLengthForLists);
-    if (!listType.equals(ListType.NONE)) {
+    if (!listType.equals(ListType.NONE) && !listType.equals(ListType.NONE_NOT_SLL)) {
       Preconditions.checkArgument(ListType.DLL != listType || maybePfo.isPresent());
       boolean isDll = listType.equals(ListType.DLL) || listType.equals(ListType.LOOPINGDLL);
       maybePfo = isDll ? maybePfo : Optional.empty();
