@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -31,10 +30,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * This algorithm instruments a CFA of program using intrumentation operator and instrumentation
  * automaton.
  *
- * <p>
- * Currently supported transformations are only no-overflow and termination to reachability.
+ * <p>Currently supported transformations are only no-overflow and termination to reachability.
  */
-@Options (prefix = "instrumentation")
+@Options(prefix = "instrumentation")
 public class InstrumentationOperatorAlgorithm {
   private final CFA cfa;
   private final LogManager logger;
@@ -46,8 +44,7 @@ public class InstrumentationOperatorAlgorithm {
           "toggle the strategy to determine the hardcoded instrumentation automaton to be used\n"
               + "TERMINATION: transform termination to reachability\n"
               + "NOOVERFLOW: transform no-overflow to reachability")
-  private InstrumentationProperty instrumentationProperty =
-      InstrumentationProperty.TERMINATION;
+  private InstrumentationProperty instrumentationProperty = InstrumentationProperty.TERMINATION;
 
   public InstrumentationOperatorAlgorithm(CFA pCfa, Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -59,12 +56,13 @@ public class InstrumentationOperatorAlgorithm {
 
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // Output the collected CFA information into AllCFAInfos
-     try (BufferedWriter writer =
+    try (BufferedWriter writer =
         Files.newBufferedWriter(Paths.get("output/AllCFAInfos.txt"), StandardCharsets.UTF_8)) {
-        StringBuilder allLoopInfos = new StringBuilder();
-     } catch (IOException e) {
-        logger.logException(Level.SEVERE, e, "The creation of file AllCFAInfos.txt failed!");
-     }
+      StringBuilder allLoopInfos = new StringBuilder();
+      writer.write(allLoopInfos.toString());
+    } catch (IOException e) {
+      logger.logException(Level.SEVERE, e, "The creation of file AllCFAInfos.txt failed!");
+    }
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 }
