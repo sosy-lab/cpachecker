@@ -3021,7 +3021,7 @@ cpa.smg2.abstraction.iterationThreshold = -1
 # are abstracted in any case. If you want to prevent dynamic increase of list
 # abstraction min threshold set this to the same value as
 # listAbstractionMinimumLengthThreshold.
-cpa.smg2.abstraction.listAbstractionMaximumIncreaseLengthThreshold = 12
+cpa.smg2.abstraction.listAbstractionMaximumIncreaseLengthThreshold = 6
 
 # The minimum list segments directly following each other with the same value
 # needed to abstract them.Minimum is 2.
