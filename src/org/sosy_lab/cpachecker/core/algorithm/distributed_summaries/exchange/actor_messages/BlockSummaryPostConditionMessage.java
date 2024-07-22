@@ -36,6 +36,10 @@ public class BlockSummaryPostConditionMessage extends BlockSummaryMessage {
     return SSAMap.emptySSAMap();
   }
 
+  public String getAbstractionStrategy() {
+    return (String) Objects.requireNonNull(getPayload().get(BlockSummaryMessagePayload.STRATEGY));
+  }
+
   public PointerTargetSet getPointerTargetSet() {
     if (getPayload().containsKey(BlockSummaryMessagePayload.PTS)) {
       return BlockSummarySerializeUtil.deserialize(

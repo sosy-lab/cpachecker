@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-interface AbstractionStrategy {
+public interface AbstractionStrategy {
 
   /**
    * Gets an abstraction state with no specific data.
@@ -34,4 +34,5 @@ interface AbstractionStrategy {
    *     factory allows.
    */
   AbstractionState from(AbstractionState pOther);
+  
 }

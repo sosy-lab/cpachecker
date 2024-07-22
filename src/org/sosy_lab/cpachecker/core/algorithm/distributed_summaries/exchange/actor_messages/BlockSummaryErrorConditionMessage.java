@@ -47,6 +47,10 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
     }
     return PointerTargetSet.emptyPointerTargetSet();
   }
+  
+  public String getAbstractionStrategy() {
+    return (String) Objects.requireNonNull(getPayload().get(BlockSummaryMessagePayload.STRATEGY));
+  }
 
   public String getOrigin() {
     return origin;

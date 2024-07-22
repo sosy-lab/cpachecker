@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
+public enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
   ALWAYS {
 
     @Override
@@ -383,7 +383,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                 return new EnteringEdgesBasedAbstractionState(edges, lastEdges, hints);
               }
               return BasicAbstractionStates.ALWAYS_STATE;
-            }
+            } 
 
             @Override
             public boolean equals(Object pO) {
@@ -419,6 +419,11 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
             @Override
             public Set<BooleanFormula<CompoundInterval>> getWideningHints() {
               return wideningHints;
+            }
+
+            @Override
+            public String getAbstractionStrategyName() {
+              return "ENTERING_EDGES";
             }
           }
           if (pWithEnteringEdges && pPrevious instanceof EnteringEdgesBasedAbstractionState) {
@@ -530,6 +535,11 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
       public Set<BooleanFormula<CompoundInterval>> getWideningHints() {
         return ImmutableSet.of();
       }
+
+      @Override
+      public String getAbstractionStrategyName() {
+        return "ALWAYS";
+      }
     },
 
     NEVER_STATE {
@@ -560,6 +570,11 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
       @Override
       public Set<BooleanFormula<CompoundInterval>> getWideningHints() {
         return ImmutableSet.of();
+      }
+
+      @Override
+      public String getAbstractionStrategyName() {
+        return "NEVER";
       }
     }
   }

@@ -23,7 +23,7 @@ public class SerializeBooleanFormulaVisitor
   public String visit(Equal<CompoundInterval> pEqual) {
     return "("
         + pEqual.getOperand1().accept(numeralVisitor)
-        + " : "
+        + " = "
         + pEqual.getOperand2().accept(numeralVisitor)
         + ")";
   }

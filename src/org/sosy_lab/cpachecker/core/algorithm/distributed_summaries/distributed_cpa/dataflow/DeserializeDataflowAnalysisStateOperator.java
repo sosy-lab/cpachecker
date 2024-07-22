@@ -11,8 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.invariants.AbstractionStrategyFactories;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
@@ -39,6 +42,7 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
     String booleanFormulaString =
         (String) pMessage.getAbstractState(InvariantsCPA.class).orElseThrow();
 
+
     BooleanFormula<CompoundInterval> booleanFormula =
         StringToBooleanFormulaParser.parseBooleanFormula(booleanFormulaString);
 
@@ -50,17 +54,31 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
     for (BooleanFormula<CompoundInterval> assumption : assumptionParts) {
       variableSelection = variableSelection.acceptAssumption(assumption);
     }
+    String abstractionStrategy = "";
+
+    if (pMessage instanceof BlockSummaryPostConditionMessage) {
+      abstractionStrategy = ((BlockSummaryPostConditionMessage) pMessage).getAbstractionStrategy();
+    } else if (pMessage instanceof BlockSummaryErrorConditionMessage) {
+      abstractionStrategy = ((BlockSummaryErrorConditionMessage) pMessage).getAbstractionStrategy();
+    }
+
 
     InvariantsState deserializedInvariantsState =
         new InvariantsState(
             variableSelection,
             invariantsCPA.getCompoundIntervalFormulaManagerFactory(),
             cfa.getMachineModel(),
-            null,
+            AbstractionStrategyFactories.valueOf(abstractionStrategy).createStrategy(invariantsCPA.getCompoundIntervalFormulaManagerFactory(), cfa.getMachineModel()).getAbstractionState(),
             false);
+    
+    
+    for (BooleanFormula<CompoundInterval> assumption : assumptionParts) {
+      deserializedInvariantsState = deserializedInvariantsState.assume(assumption);
+    }
     deserializedInvariantsState =
         deserializedInvariantsState.addAssumptions(ImmutableSet.copyOf(assumptionParts));
 
+        
     return deserializedInvariantsState;
   }
 }

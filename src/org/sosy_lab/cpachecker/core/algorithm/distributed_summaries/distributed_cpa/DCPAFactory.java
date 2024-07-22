@@ -95,7 +95,7 @@ public class DCPAFactory {
           integerToNodeMap);
     }
     if (pCPA instanceof ValueAnalysisCPA valueCPA) {
-      return distribute(valueCPA);
+      return distribute(valueCPA, pBlockNode, pCFA);
     }
 
     /* TODO: implement support for LocationCPA and LocationBackwardCPA
@@ -105,8 +105,8 @@ public class DCPAFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      ValueAnalysisCPA pValueAnalysisCPA) {
-    return new DistributedValueAnalysisCPA(pValueAnalysisCPA);
+      ValueAnalysisCPA pValueAnalysisCPA, BlockNode pBlockNode, CFA pCFA) {
+    return new DistributedValueAnalysisCPA(pValueAnalysisCPA, pBlockNode, pCFA);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

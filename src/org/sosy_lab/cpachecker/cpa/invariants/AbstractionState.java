@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-interface AbstractionState {
+public interface AbstractionState {
 
   /**
    * Determine on which variables to use abstraction when merging two invariants states having this
@@ -31,4 +31,7 @@ interface AbstractionState {
   AbstractionState join(AbstractionState pOther);
 
   boolean isLessThanOrEqualTo(AbstractionState pOther);
+
+  String getAbstractionStrategyName();
+  
 }

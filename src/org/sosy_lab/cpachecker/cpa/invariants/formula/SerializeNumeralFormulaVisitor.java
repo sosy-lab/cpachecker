@@ -51,8 +51,7 @@ public class SerializeNumeralFormulaVisitor
         output += ",";
       }
     }
-
-    return output;
+    return output + "->" + pConstant.getTypeInfo().toString();
   }
 
   @Override
@@ -121,7 +120,7 @@ public class SerializeNumeralFormulaVisitor
 
   @Override
   public String visit(Variable<CompoundInterval> pVariable) {
-    return pVariable.getMemoryLocation().getIdentifier();
+    return pVariable.getMemoryLocation().getQualifiedName() + "->" + pVariable.getTypeInfo().toString();
   }
 
   @Override

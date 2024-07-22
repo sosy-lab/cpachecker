@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
@@ -31,11 +32,13 @@ public class DistributedDataFlowAnalysisCPA
   private final SerializeOperator serializeOperator;
   private final DeserializeOperator deserializeOperator;
 
+  private final CFA cfa;
   private final BlockNode blockNode;
 
   public DistributedDataFlowAnalysisCPA(InvariantsCPA pInvariantsCPA, BlockNode pNode, CFA pCFA) {
     invariantsCPA = pInvariantsCPA;
     blockNode = pNode;
+    cfa = pCFA;
     serializeOperator = new SerializeDataflowAnalysisStateOperator(blockNode);
     deserializeOperator = new DeserializeDataflowAnalysisStateOperator(invariantsCPA, pCFA);
   }
@@ -67,7 +70,8 @@ public class DistributedDataFlowAnalysisCPA
 
   @Override
   public boolean isTop(AbstractState pAbstractState) {
-    throw new UnsupportedOperationException("Unimplemented method 'isTop'");
+    // deckt der zustand alle möglichen Werte ab?
+    return false;
   }
 
   @Override
@@ -76,6 +80,6 @@ public class DistributedDataFlowAnalysisCPA
           InterruptedException,
           VerificationConditionException,
           SolverException {
-    throw new UnsupportedOperationException("Unimplemented method 'computeVerificationCondition'");
+    return invariantsCPA.getInitialState(blockNode.getFirst(), StateSpacePartition.getDefaultPartition());
   }
 }

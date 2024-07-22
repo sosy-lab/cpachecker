@@ -9,14 +9,19 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+
+
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
+
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class StringToBooleanFormulaParser {
@@ -27,8 +32,8 @@ public class StringToBooleanFormulaParser {
     return parseBooleanFormula(formulaString, brackets);
   }
 
-  private static BooleanFormula<CompoundInterval> parseBooleanFormula(
-      String formulaString, ArrayDeque<Character> brackets) {
+  private static BooleanFormula<CompoundInterval>
+      parseBooleanFormula(String formulaString, ArrayDeque<Character> brackets) {
     formulaString = formulaString.trim();
     if (formulaString.startsWith("(")
         && formulaString.endsWith(")")
@@ -42,9 +47,6 @@ public class StringToBooleanFormulaParser {
       if (c == '(') {
         brackets.push(c);
       } else if (c == ')') {
-        if (brackets.isEmpty()) {
-          throw new IllegalArgumentException("Unbalanced brackets in formula: " + formulaString);
-        }
         brackets.pop();
       } else if (brackets.isEmpty()) {
         if (formulaString.substring(i).startsWith("&&")) {
@@ -53,7 +55,7 @@ public class StringToBooleanFormulaParser {
               parseBooleanFormula(formulaString.substring(i + 2).trim(), brackets));
         } else if (formulaString.substring(i).startsWith("!")) {
           return LogicalNot.of(parseBooleanFormula(formulaString.substring(1).trim(), brackets));
-        } else if (formulaString.substring(i).startsWith(":")) {
+        } else if (formulaString.substring(i).startsWith("=")) {
           return Equal.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
               parseNumeralFormula(formulaString.substring(i + 1).trim()));
@@ -130,11 +132,15 @@ public class StringToBooleanFormulaParser {
         }
       }
     }
-    if (formulaString.matches("(\\[\\d+,\\d+\\],?)+")) {
+    if (formulaString.matches("(\\[-?\\d+,-?\\d+\\],?)+->Size: \\d+; Signed: (true|false)")) {
       return parseConstant(formulaString);
     }
 
-    return Variable.of(BitVectorInfo.from(32, true), MemoryLocation.forIdentifier(formulaString));
+    String[] parts = formulaString.split("->");
+    String variableString = parts[0].trim();
+    BitVectorInfo bitVectorInfo = parseBitVectorInfo(parts[1].trim());
+
+    return Variable.of(bitVectorInfo, MemoryLocation.fromQualifiedName(variableString));
   }
 
   private static int findMatchingParenthesis(String input, int openIndex) {
@@ -153,25 +159,46 @@ public class StringToBooleanFormulaParser {
   }
 
   private static NumeralFormula<CompoundInterval> parseConstant(String input) {
+    String[] parts = input.split("->");
+    String intervalsString = parts[0].trim();
+    BitVectorInfo bitVectorInfo = parseBitVectorInfo(parts[1].trim());
+
     List<BitVectorInterval> bitVectorIntervals = new ArrayList<>();
-    BitVectorInfo bitVectorInfo = BitVectorInfo.from(32, true);
-    Iterable<String> intervalStrings = Splitter.onPattern("],\\[").split(input);
+    Iterable<String> intervalStrings = Splitter.onPattern("],\\[").split(intervalsString);
 
     for (String intervalString : intervalStrings) {
       intervalString = intervalString.replace("[", "").replace("]", "");
       List<String> bounds = Splitter.on(',').splitToList(intervalString);
       bitVectorIntervals.add(
-          BitVectorInterval.of(
-              bitVectorInfo, new BigInteger(bounds.get(0)), new BigInteger(bounds.get(1))));
-    }
-    CompoundBitVectorInterval compoundBitVectorInterval =
-        CompoundBitVectorInterval.of(bitVectorIntervals.get(0));
-    for (int i = 1; i < bitVectorIntervals.size(); i++) {
-      compoundBitVectorInterval =
-          CompoundBitVectorInterval.logicalOr(
-              compoundBitVectorInterval, CompoundBitVectorInterval.of(bitVectorIntervals.get(i)));
+          BitVectorInterval
+              .of(bitVectorInfo, new BigInteger(bounds.get(0)), new BigInteger(bounds.get(1))));
     }
 
-    return Constant.of(bitVectorInfo, compoundBitVectorInterval);
+    return Constant.of(
+        bitVectorInfo,
+        CompoundBitVectorInterval
+            .of(bitVectorInfo, ImmutableList.copyOf(bitVectorIntervals)));
   }
+
+  private static BitVectorInfo parseBitVectorInfo(String typeInfo) {
+    int size = 0;
+    boolean signed = false;
+
+    String[] parts = typeInfo.split(";");
+    for (String part : parts) {
+      String[] keyValue = part.split(":");
+      String key = keyValue[0].trim();
+      String value = keyValue[1].trim();
+
+      if (key.equals("Size")) {
+        size = Integer.parseInt(value);
+      } else if (key.equals("Signed")) {
+        signed = Boolean.parseBoolean(value);
+      }
+    }
+
+    return BitVectorInfo.from(size, signed);
+  
+  }
+
 }

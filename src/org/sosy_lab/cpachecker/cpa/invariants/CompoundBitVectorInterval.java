@@ -1978,6 +1978,10 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     return getInternal(interval);
   }
 
+  public static CompoundBitVectorInterval of(BitVectorInfo bitVectorInfo, ImmutableList<BitVectorInterval> intervals) {
+    return getInternal(bitVectorInfo, intervals);
+  }
+
   /**
    * Gets a compound state representing the given big integer value.
    *
