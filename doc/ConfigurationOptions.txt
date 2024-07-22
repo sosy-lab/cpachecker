@@ -226,6 +226,9 @@ analysis.algorithm.impact = false
 # Import faults stored in a JSON format.
 analysis.algorithm.importFaults = false
 
+# Export location of loops and variables inside the loops.
+analysis.algorithm.locateLoopAndLiveVariable = false
+
 # use nontermination witness validator to check a violation witness for
 # termination
 analysis.algorithm.nonterminationWitnessCheck = false

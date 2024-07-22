@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.Iterables;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -121,13 +123,13 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       }
       liveVariables.removeAll(variablesDeclaredInsideLoop);
       liveVariables
-          .removeIf(e -> e.contains("::") && e.split("::")[1].startsWith("__CPAchecker_TMP_"));
+          .removeIf(e -> e.contains("::") && Iterables.get(Splitter.on("::").split(e), 1).startsWith("__CPAchecker_TMP_"));
 
       // Determine type of each variable
       for (String variable : liveVariables) {
         String type = cProgramScope.lookupVariable(variable).getType().toString();
         liveVariablesAndTypes.put(
-            variable.contains("::") ? variable.split("::")[1] : variable,
+            variable.contains("::") ? Iterables.get(Splitter.on("::").split(variable), 1) : variable,
             type.startsWith("(") ? type.substring(1, type.length() - 2) + "*" : type);
       }
 
