@@ -78,7 +78,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
         allLoopInfos.append(
             String.format(
                 "Recursion    %s    %d    %s    %s%n",
-                recursionInfo.FunctionName(),
+                recursionInfo.functionName(),
                 recursionInfo.locationOfDefinition(),
                 recursionInfo.locationOfRecursiveCalls(),
                 recursionInfo.parameters()));
@@ -144,33 +144,33 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     return allNormalLoopInfos;
   }
 
-  private Set<String> getVariablesFromAAstNode(AAstNode aAstNode) {
+  private Set<String> getVariablesFromAAstNode(AAstNode pAAstNode) {
     Set<String> variables = new HashSet<>();
 
-    if (aAstNode instanceof CExpression) {
-      CFAUtils.getVariableNamesOfExpression(((CExpression) aAstNode))
+    if (pAAstNode instanceof CExpression) {
+      CFAUtils.getVariableNamesOfExpression(((CExpression) pAAstNode))
           .forEach(e -> variables.add(e));
 
-    } else if (aAstNode instanceof CExpressionStatement) {
-      CExpression cExpression = ((CExpressionStatement) aAstNode).getExpression();
+    } else if (pAAstNode instanceof CExpressionStatement) {
+      CExpression cExpression = ((CExpressionStatement) pAAstNode).getExpression();
       CFAUtils.getVariableNamesOfExpression(cExpression).forEach(e -> variables.add(e));
 
-    } else if (aAstNode instanceof CExpressionAssignmentStatement) {
-      CLeftHandSide cLeftHandSide = ((CExpressionAssignmentStatement) aAstNode).getLeftHandSide();
+    } else if (pAAstNode instanceof CExpressionAssignmentStatement) {
+      CLeftHandSide cLeftHandSide = ((CExpressionAssignmentStatement) pAAstNode).getLeftHandSide();
       CFAUtils.getVariableNamesOfExpression(cLeftHandSide).forEach(e -> variables.add(e));
 
-      CExpression cRightHandSide = ((CExpressionAssignmentStatement) aAstNode).getRightHandSide();
+      CExpression cRightHandSide = ((CExpressionAssignmentStatement) pAAstNode).getRightHandSide();
       CFAUtils.getVariableNamesOfExpression(cRightHandSide).forEach(e -> variables.add(e));
 
-    } else if (aAstNode instanceof CFunctionCallStatement) {
-      CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
+    } else if (pAAstNode instanceof CFunctionCallStatement) {
+      CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) pAAstNode;
       cFunctionCallStatement.getFunctionCallExpression()
           .getParameterExpressions()
           .forEach(e -> CFAUtils.getVariableNamesOfExpression(e).forEach(n -> variables.add(n)));
 
-    } else if (aAstNode instanceof CFunctionCallAssignmentStatement) {
+    } else if (pAAstNode instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement =
-          (CFunctionCallAssignmentStatement) aAstNode;
+          (CFunctionCallAssignmentStatement) pAAstNode;
 
       CLeftHandSide cLeftHandSide = cFunctionCallAssignmentStatement.getLeftHandSide();
       CFAUtils.getVariableNamesOfExpression(cLeftHandSide).forEach(e -> variables.add(e));
@@ -256,13 +256,13 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     return allRecursionInfos;
   }
 
-  private FunctionEntryNode getFunctionFromFunctionCallEdge(CFAEdge cfaEdge) {
-    if (cfaEdge.getEdgeType() != CFAEdgeType.FunctionCallEdge) {
+  private FunctionEntryNode getFunctionFromFunctionCallEdge(CFAEdge pCfaEdge) {
+    if (pCfaEdge.getEdgeType() != CFAEdgeType.FunctionCallEdge) {
       throw new IllegalArgumentException(
           "The type of the given CFA edge must be \"FunctionCallEdge\"");
     }
 
-    AAstNode astNode = cfaEdge.getRawAST().orElseThrow();
+    AAstNode astNode = pCfaEdge.getRawAST().orElseThrow();
     if (astNode instanceof CFunctionCallStatement) {
       CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) astNode;
       return cfa.getAllFunctions()
@@ -290,31 +290,17 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
  *                              to their types
  */
 record NormalLoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
-  NormalLoopInfo(int loopLocation, Map<String, String> liveVariablesAndTypes) {
-    this.loopLocation = loopLocation;
-    this.liveVariablesAndTypes = liveVariablesAndTypes;
-  }
 }
 
 
 /**
  * Represents a container for recursion information.
  * 
- * @param FunctionName             the name of the function
+ * @param functionName             the name of the function
  * @param locationOfDefinition     the line number where the function is defined
  * @param locationOfRecursiveCalls a set of line numbers where the recursive calls occur
  * @param parameters               the function's parameters(type + name)
  */
-record RecursionInfo(String FunctionName, int locationOfDefinition,
+record RecursionInfo(String functionName, int locationOfDefinition,
     Set<Integer> locationOfRecursiveCalls, List<String> parameters) {
-  RecursionInfo(
-      String FunctionName,
-      int locationOfDefinition,
-      Set<Integer> locationOfRecursiveCalls,
-      List<String> parameters) {
-    this.FunctionName = FunctionName;
-    this.locationOfDefinition = locationOfDefinition;
-    this.locationOfRecursiveCalls = locationOfRecursiveCalls;
-    this.parameters = parameters;
-  }
 }
