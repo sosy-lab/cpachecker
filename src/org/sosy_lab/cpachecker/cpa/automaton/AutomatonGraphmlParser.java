@@ -22,11 +22,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serial;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -2029,7 +2031,7 @@ public class AutomatonGraphmlParser {
       return transitions;
     }
 
-    public EnumSet<NodeFlag> getNodeFlags(Element pStateNode) {
+    public ImmutableSet<NodeFlag> getNodeFlags(Element pStateNode) {
       EnumSet<NodeFlag> result = EnumSet.noneOf(NodeFlag.class);
 
       NodeList dataChilds = pStateNode.getElementsByTagName(GraphMLTag.DATA.toString());
@@ -2044,7 +2046,7 @@ public class AutomatonGraphmlParser {
         }
       }
 
-      return result;
+      return Sets.immutableEnumSet(result);
     }
 
     private static String getAttributeValue(Node of, String attributeName, String exceptionMessage)
@@ -2243,7 +2245,7 @@ public class AutomatonGraphmlParser {
 
     private static final String PARSE_EXCEPTION_MESSAGE_PREFIX = "Cannot parse witness: ";
 
-    private static final long serialVersionUID = -6357416712866877118L;
+    @Serial private static final long serialVersionUID = -6357416712866877118L;
 
     public WitnessParseException(String pMessage) {
       super(PARSE_EXCEPTION_MESSAGE_PREFIX + pMessage);

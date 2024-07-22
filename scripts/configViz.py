@@ -477,6 +477,15 @@ def componentsSanityCheck(nodes):
             if "includes/" in name:
                 log("Include file %s is unmaintained!" % name, 2)
 
+        if "unmaintained/" in name:
+            maintained_parents = [p for p in node.parents if "unmaintained/" not in p]
+            if maintained_parents:
+                log(
+                    "Unmaintained file '%s' is referenced by maintained files '%s'"
+                    % (name, "', '".join(maintained_parents)),
+                    1,
+                )
+
 
 def transitiveReductionCheck(nodes):
     wlist = [node for name, node in nodes.items()]  # type is list of node names

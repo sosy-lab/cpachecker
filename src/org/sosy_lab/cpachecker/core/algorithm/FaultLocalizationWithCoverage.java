@@ -168,16 +168,12 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
 
   private SuspiciousnessMeasure createSuspiciousnessMeasure(AlgorithmType pAlgorithmType) {
     logger.log(Level.INFO, "Ranking-algorithm type: " + pAlgorithmType + " starts");
-    switch (pAlgorithmType) {
-      case TARANTULA:
-        return new Tarantula();
-      case DSTAR:
-        return new DStar();
-      case OCHIAI:
-        return new Ochiai();
-      default:
-        throw new AssertionError("Unexpected ranking-algorithm type: " + pAlgorithmType);
-    }
+    return switch (pAlgorithmType) {
+      case TARANTULA -> new Tarantula();
+      case DSTAR -> new DStar();
+      case OCHIAI -> new Ochiai();
+      default -> throw new AssertionError("Unexpected ranking-algorithm type: " + pAlgorithmType);
+    };
   }
 
   @Override

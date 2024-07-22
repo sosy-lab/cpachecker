@@ -570,22 +570,19 @@ public class ExpressionToFormulaVisitor
   public NumeralFormula<CompoundInterval> visit(JUnaryExpression pUnaryExpression)
       throws UnrecognizedCodeException {
     TypeInfo typeInfo = TypeInfo.from(machineModel, pUnaryExpression.getExpressionType());
-    switch (pUnaryExpression.getOperator()) {
-      case MINUS:
-        return compoundIntervalFormulaManager.negate(pUnaryExpression.getOperand().accept(this));
-      case COMPLEMENT:
-        return allPossibleValues(pUnaryExpression);
-      case NOT:
-        return compoundIntervalFormulaManager.fromBoolean(
-            typeInfo,
-            compoundIntervalFormulaManager.logicalNot(
-                compoundIntervalFormulaManager.fromNumeral(
-                    pUnaryExpression.getOperand().accept(this))));
-      case PLUS:
-        return pUnaryExpression.getOperand().accept(this);
-      default:
-        return allPossibleValues(pUnaryExpression);
-    }
+    return switch (pUnaryExpression.getOperator()) {
+      case MINUS ->
+          compoundIntervalFormulaManager.negate(pUnaryExpression.getOperand().accept(this));
+      case COMPLEMENT -> allPossibleValues(pUnaryExpression);
+      case NOT ->
+          compoundIntervalFormulaManager.fromBoolean(
+              typeInfo,
+              compoundIntervalFormulaManager.logicalNot(
+                  compoundIntervalFormulaManager.fromNumeral(
+                      pUnaryExpression.getOperand().accept(this))));
+      case PLUS -> pUnaryExpression.getOperand().accept(this);
+      default -> allPossibleValues(pUnaryExpression);
+    };
   }
 
   @Override

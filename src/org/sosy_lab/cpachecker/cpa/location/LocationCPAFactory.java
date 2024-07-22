@@ -42,12 +42,9 @@ class LocationCPAFactory extends AbstractCPAFactory {
   public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
     checkNotNull(cfa, "CFA instance needed to create LocationCPA");
 
-    switch (locationType) {
-      case BACKWARD:
-        return LocationCPABackwards.create(cfa, getConfiguration());
-      case FORWARD:
-        return LocationCPA.create(cfa, getConfiguration());
-    }
-    throw new AssertionError();
+    return switch (locationType) {
+      case BACKWARD -> LocationCPABackwards.create(cfa, getConfiguration());
+      case FORWARD -> LocationCPA.create(cfa, getConfiguration());
+    };
   }
 }

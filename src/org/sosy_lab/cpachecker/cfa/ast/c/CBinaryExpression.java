@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -18,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CBinaryExpression extends ABinaryExpression implements CExpression {
 
-  private static final long serialVersionUID = 1902123965106390020L;
+  @Serial private static final long serialVersionUID = 1902123965106390020L;
   private final CType calculationType;
 
   public CBinaryExpression(
@@ -123,68 +124,47 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
     }
 
     public boolean isLogicalOperator() {
-      switch (this) {
-        case MULTIPLY:
-        case DIVIDE:
-        case MODULO:
-        case PLUS:
-        case MINUS:
-        case SHIFT_LEFT:
-        case SHIFT_RIGHT:
-        case BINARY_AND:
-        case BINARY_OR:
-        case BINARY_XOR:
-          return false;
-        case LESS_EQUAL:
-        case LESS_THAN:
-        case GREATER_EQUAL:
-        case GREATER_THAN:
-        case EQUALS:
-        case NOT_EQUALS:
-          return true;
-        default:
-          throw new AssertionError("Unhandled case statement");
-      }
+      return switch (this) {
+        case MULTIPLY,
+                DIVIDE,
+                MODULO,
+                PLUS,
+                MINUS,
+                SHIFT_LEFT,
+                SHIFT_RIGHT,
+                BINARY_AND,
+                BINARY_OR,
+                BINARY_XOR ->
+            false;
+        case LESS_EQUAL, LESS_THAN, GREATER_EQUAL, GREATER_THAN, EQUALS, NOT_EQUALS -> true;
+        default -> throw new AssertionError("Unhandled case statement");
+      };
     }
 
     public BinaryOperator getSwitchOperandsSidesLogicalOperator() {
       assert isLogicalOperator();
-      switch (this) {
-        case LESS_EQUAL:
-          return GREATER_EQUAL;
-        case LESS_THAN:
-          return GREATER_THAN;
-        case GREATER_EQUAL:
-          return LESS_EQUAL;
-        case GREATER_THAN:
-          return LESS_THAN;
-        case EQUALS:
-          return EQUALS;
-        case NOT_EQUALS:
-          return NOT_EQUALS;
-        default:
-          return this;
-      }
+      return switch (this) {
+        case LESS_EQUAL -> GREATER_EQUAL;
+        case LESS_THAN -> GREATER_THAN;
+        case GREATER_EQUAL -> LESS_EQUAL;
+        case GREATER_THAN -> LESS_THAN;
+        case EQUALS -> EQUALS;
+        case NOT_EQUALS -> NOT_EQUALS;
+        default -> this;
+      };
     }
 
     public BinaryOperator getOppositLogicalOperator() {
       assert isLogicalOperator();
-      switch (this) {
-        case LESS_EQUAL:
-          return GREATER_THAN;
-        case LESS_THAN:
-          return GREATER_EQUAL;
-        case GREATER_EQUAL:
-          return LESS_THAN;
-        case GREATER_THAN:
-          return LESS_EQUAL;
-        case EQUALS:
-          return NOT_EQUALS;
-        case NOT_EQUALS:
-          return EQUALS;
-        default:
-          return this;
-      }
+      return switch (this) {
+        case LESS_EQUAL -> GREATER_THAN;
+        case LESS_THAN -> GREATER_EQUAL;
+        case GREATER_EQUAL -> LESS_THAN;
+        case GREATER_THAN -> LESS_EQUAL;
+        case EQUALS -> NOT_EQUALS;
+        case NOT_EQUALS -> EQUALS;
+        default -> this;
+      };
     }
   }
 

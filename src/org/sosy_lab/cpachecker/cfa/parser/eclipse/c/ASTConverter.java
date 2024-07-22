@@ -1929,6 +1929,8 @@ class ASTConverter {
                       + declaratorLocation.getNodeLength(),
                   fileLoc.getStartingLineNumber(),
                   declaratorLocation.getEndingLineNumber(),
+                  declaratorLocation.getStartColumnInLine(),
+                  declaratorLocation.getEndColumnInLine(),
                   fileLoc.getStartingLineInOrigin(),
                   fileLoc.getEndingLineInOrigin(),
                   fileLoc.isOffsetRelatedToOrigin());
@@ -2438,7 +2440,7 @@ class ASTConverter {
         newType = CNumericTypes.CHAR;
         break;
       case "HI": // half integer
-        assert machinemodel.getSizeofShort() == 2; // not guaranteed by C, but on our platforms
+        assert machinemodel.getSizeofShortInt() == 2; // not guaranteed by C, but on our platforms
         newType = CNumericTypes.SHORT_INT;
         break;
       case "SI": // single integer
@@ -2599,8 +2601,8 @@ class ASTConverter {
         switch (d.getKey()) {
           case IASTCompositeTypeSpecifier.k_struct -> ComplexTypeKind.STRUCT;
           case IASTCompositeTypeSpecifier.k_union -> ComplexTypeKind.UNION;
-          default -> throw parseContext.parseError(
-              "Unknown key " + d.getKey() + " for composite type", d);
+          default ->
+              throw parseContext.parseError("Unknown key " + d.getKey() + " for composite type", d);
         };
     String name = convert(d.getName());
     String origName = name;

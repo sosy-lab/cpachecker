@@ -29,6 +29,7 @@ import com.google.common.collect.Lists;
 import com.google.common.math.DoubleMath;
 import gmp.Mpfr;
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,7 +58,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
  */
 public class ApronState implements AbstractState, Serializable, FormulaReportingState {
 
-  private static final long serialVersionUID = -7953805400649927048L;
+  @Serial private static final long serialVersionUID = -7953805400649927048L;
 
   enum Type {
     INT,
@@ -701,6 +702,7 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     return newState;
   }
 
+  @Serial
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
     byte[] serialized;
@@ -713,6 +715,7 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     out.write(serialized);
   }
 
+  @Serial
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
 
@@ -750,18 +753,13 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
 
     // TODO fix size, machinemodel needed?
     BitvectorFormula rightHandside = bitFmgr.makeBitvector(32, 0);
-    switch (constraint.kind) {
-      case Tcons0.DISEQ:
-        return bFmgr.not(bitFmgr.equal(formula, rightHandside));
-      case Tcons0.EQ:
-        return bitFmgr.equal(formula, rightHandside);
-      case Tcons0.SUP:
-        return bitFmgr.greaterThan(formula, rightHandside, true);
-      case Tcons0.SUPEQ:
-        return bitFmgr.greaterOrEquals(formula, rightHandside, true);
-      default:
-        throw new AssertionError("unhandled constraint kind");
-    }
+    return switch (constraint.kind) {
+      case Tcons0.DISEQ -> bFmgr.not(bitFmgr.equal(formula, rightHandside));
+      case Tcons0.EQ -> bitFmgr.equal(formula, rightHandside);
+      case Tcons0.SUP -> bitFmgr.greaterThan(formula, rightHandside, true);
+      case Tcons0.SUPEQ -> bitFmgr.greaterOrEquals(formula, rightHandside, true);
+      default -> throw new AssertionError("unhandled constraint kind");
+    };
   }
 
   abstract static class Texpr0NodeTraversal<T> {
@@ -801,24 +799,16 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     BitvectorFormula visit(Texpr0BinNode pNode) {
       BitvectorFormula left = visit(pNode.getLeftArgument());
       BitvectorFormula right = visit(pNode.getRightArgument());
-      switch (pNode.getOperation()) {
-
-          // real operations
-        case Texpr0BinNode.OP_ADD:
-          return bitFmgr.add(left, right);
-        case Texpr0BinNode.OP_DIV:
-          return bitFmgr.divide(left, right, true);
-        case Texpr0BinNode.OP_MOD:
-          return bitFmgr.modulo(left, right, true);
-        case Texpr0BinNode.OP_SUB:
-          return bitFmgr.subtract(left, right);
-        case Texpr0BinNode.OP_MUL:
-          return bitFmgr.multiply(left, right);
-        case Texpr0BinNode.OP_POW:
-          throw new AssertionError("Pow not implemented in this visitor");
-        default:
-          throw new AssertionError("Unhandled operator for binary nodes.");
-      }
+      return switch (pNode.getOperation()) {
+        case Texpr0BinNode.OP_ADD -> bitFmgr.add(left, right);
+        case Texpr0BinNode.OP_DIV -> bitFmgr.divide(left, right, true);
+        case Texpr0BinNode.OP_MOD -> bitFmgr.modulo(left, right, true);
+        case Texpr0BinNode.OP_SUB -> bitFmgr.subtract(left, right);
+        case Texpr0BinNode.OP_MUL -> bitFmgr.multiply(left, right);
+        case Texpr0BinNode.OP_POW ->
+            throw new AssertionError("Pow not implemented in this visitor");
+        default -> throw new AssertionError("Unhandled operator for binary nodes.");
+      };
     }
 
     @Override

@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
@@ -75,6 +76,8 @@ public class SMGUseDefBasedInterpolator {
 
   private final SMGCPAExpressionEvaluator evaluator;
 
+  private final SMGCPAStatistics statistics;
+
   /**
    * This class allows the creation of (fake) interpolants by using the use-def-relation. This
    * interpolation approach only works if the given path is a sliced prefix, obtained via {@link
@@ -87,7 +90,8 @@ public class SMGUseDefBasedInterpolator {
       final Configuration pConfig,
       final LogManagerWithoutDuplicates pLogger,
       CFA pCfa,
-      final SMGCPAExpressionEvaluator pEvaluator) {
+      final SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     slicedPrefix = pSlicedPrefix;
     useDefRelation = pUseDefRelation;
     machineModel = pMachineModel;
@@ -100,6 +104,7 @@ public class SMGUseDefBasedInterpolator {
     logger = pLogger;
     cfa = pCfa;
     evaluator = pEvaluator;
+    statistics = pStatistics;
   }
 
   /**
@@ -117,7 +122,8 @@ public class SMGUseDefBasedInterpolator {
             options,
             machineModel,
             logger,
-            (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition());
+            (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition(),
+            statistics);
 
     // reverse order!
     List<Pair<ARGState, SMGInterpolant>> interpolants = new ArrayList<>();
@@ -144,7 +150,8 @@ public class SMGUseDefBasedInterpolator {
                 machineModel,
                 logger,
                 (CFunctionEntryNode) cfa.getMainFunction(),
-                evaluator);
+                evaluator,
+                statistics);
       }
     }
 
@@ -205,7 +212,8 @@ public class SMGUseDefBasedInterpolator {
         (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition(),
         ImmutableSet.of(),
         ImmutableList.of(),
-        evaluator);
+        evaluator,
+        statistics);
   }
 
   /**

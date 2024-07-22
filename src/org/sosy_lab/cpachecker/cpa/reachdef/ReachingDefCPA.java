@@ -80,30 +80,22 @@ public class ReachingDefCPA extends AbstractCPA implements ProofCheckerCPA {
 
   @Override
   public MergeOperator getMergeOperator() {
-    switch (mergeType) {
-      case "SEP":
-        return MergeSepOperator.getInstance();
-      case "JOIN":
-        return new MergeJoinOperator(getAbstractDomain());
-      case "IGNORECALLSTACK":
-        return new MergeIgnoringCallstack();
-      default:
-        throw new AssertionError("unknown merge operator");
-    }
+    return switch (mergeType) {
+      case "SEP" -> MergeSepOperator.getInstance();
+      case "JOIN" -> new MergeJoinOperator(getAbstractDomain());
+      case "IGNORECALLSTACK" -> new MergeIgnoringCallstack();
+      default -> throw new AssertionError("unknown merge operator");
+    };
   }
 
   @Override
   public StopOperator getStopOperator() {
-    switch (stopType) {
-      case "SEP":
-        return new StopSepOperator(getAbstractDomain());
-      case "JOIN":
-        return new StopJoinOperator(getAbstractDomain());
-      case "IGNORECALLSTACK":
-        return new StopIgnoringCallstack();
-      default:
-        throw new AssertionError("unknown stop operator");
-    }
+    return switch (stopType) {
+      case "SEP" -> new StopSepOperator(getAbstractDomain());
+      case "JOIN" -> new StopJoinOperator(getAbstractDomain());
+      case "IGNORECALLSTACK" -> new StopIgnoringCallstack();
+      default -> throw new AssertionError("unknown stop operator");
+    };
   }
 
   @Override

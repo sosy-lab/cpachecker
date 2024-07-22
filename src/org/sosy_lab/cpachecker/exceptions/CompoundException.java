@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.exceptions;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import java.io.Serial;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,7 +18,7 @@ import org.sosy_lab.common.annotations.SuppressForbidden;
 
 public class CompoundException extends CPAException {
 
-  private static final long serialVersionUID = -8880889342586540115L;
+  @Serial private static final long serialVersionUID = -8880889342586540115L;
 
   private final List<CPAException> exceptions;
 

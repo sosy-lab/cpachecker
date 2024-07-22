@@ -161,23 +161,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   public TerminationStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
-    logger = checkNotNull(pLogger);
-
-    totalLoops = 0;
-    witnessExporter =
-        new WitnessExporter(
-            pConfig,
-            pLogger,
-            Specification.alwaysSatisfied()
-                .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
-            pCFA);
-    locFac = new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig);
+    this(pConfig, pLogger, 0, pCFA);
   }
 
   public TerminationStatistics(
       Configuration pConfig, LogManager pLogger, int pTotalNumberOfLoops, CFA pCFA)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
+    pConfig.inject(this, TerminationStatistics.class);
     logger = checkNotNull(pLogger);
     totalLoops = pTotalNumberOfLoops;
 

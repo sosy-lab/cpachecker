@@ -628,8 +628,6 @@ public final class CCfaTransformer {
 
     private static final class SummaryPlaceholderEdge extends BlankEdge {
 
-      private static final long serialVersionUID = -4605071143372536460L;
-
       public SummaryPlaceholderEdge(
           String pRawStatement,
           FileLocation pFileLocation,

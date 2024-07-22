@@ -45,19 +45,13 @@ public class ApronManager {
 
   private Manager createManager(AbstractDomain pAbstractDomain) {
 
-    switch (pAbstractDomain) {
-      case BOX:
-        return new Box();
-      case OCTAGON:
-        return new Octagon();
-      case POLKA:
-        return new Polka(false);
-      case POLKA_STRICT:
-        return new Polka(true);
-      case POLKA_EQ:
-        return new PolkaEq();
-      default:
-        throw new UnsupportedOperationException("Unexpected argument for domain option.");
-    }
+    return switch (pAbstractDomain) {
+      case BOX -> new Box();
+      case OCTAGON -> new Octagon();
+      case POLKA -> new Polka(false);
+      case POLKA_STRICT -> new Polka(true);
+      case POLKA_EQ -> new PolkaEq();
+      default -> throw new UnsupportedOperationException("Unexpected argument for domain option.");
+    };
   }
 }

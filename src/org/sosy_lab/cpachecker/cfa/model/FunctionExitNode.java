@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 
 public final class FunctionExitNode extends CFANode {
 
-  private static final long serialVersionUID = -7883542777389959334L;
   private FunctionEntryNode entryNode;
 
   public FunctionExitNode(AFunctionDeclaration pFunction) {

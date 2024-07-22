@@ -530,14 +530,11 @@ public class ExpressionToFormulaVisitor
   public Formula visit(CTypeIdExpression tIdExp) throws UnrecognizedCodeException {
     CType lCType = tIdExp.getType();
 
-    switch (tIdExp.getOperator()) {
-      case SIZEOF:
-        return getSizeExpression(lCType);
-      case ALIGNOF:
-        return handleAlignOf(tIdExp, lCType);
-      default:
-        return visitDefault(tIdExp);
-    }
+    return switch (tIdExp.getOperator()) {
+      case SIZEOF -> getSizeExpression(lCType);
+      case ALIGNOF -> handleAlignOf(tIdExp, lCType);
+      default -> visitDefault(tIdExp);
+    };
   }
 
   /**
@@ -624,18 +621,14 @@ public class ExpressionToFormulaVisitor
 
       // Now compute sum/maximum of memberSizes. Especially for the maximum (with if-then-else)
       // a balanced tree of nested maximums seems to be likely better for the solver.
-      switch (compositeType.getKind()) {
-        case STRUCT:
-          return balancedDestructiveReduce(memberSizes, mgr::makePlus);
-
-        case UNION:
-          return balancedDestructiveReduce(
-              memberSizes,
-              (a, b) -> conv.bfmgr.ifThenElse(mgr.makeGreaterOrEqual(a, b, false), a, b));
-
-        default:
-          throw new AssertionError();
-      }
+      return switch (compositeType.getKind()) {
+        case STRUCT -> balancedDestructiveReduce(memberSizes, mgr::makePlus);
+        case UNION ->
+            balancedDestructiveReduce(
+                memberSizes,
+                (a, b) -> conv.bfmgr.ifThenElse(mgr.makeGreaterOrEqual(a, b, false), a, b));
+        default -> throw new AssertionError();
+      };
 
     } else {
       throw new AssertionError("unexpected type without known constant size: " + type);

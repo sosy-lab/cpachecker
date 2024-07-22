@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGNodeMapping;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentBiMap;
 
 public final class SMGIntersectStates {
 
@@ -480,17 +480,13 @@ public final class SMGIntersectStates {
       }
     }
 
-    switch (pObj1.getKind()) {
-      case DLL:
-        return ((SMGDoublyLinkedList) pObj1).matchSpecificShape((SMGDoublyLinkedList) pObj2);
-      case SLL:
-        return ((SMGSingleLinkedList) pObj1).matchSpecificShape((SMGSingleLinkedList) pObj2);
-      case GENERIC:
-        // TODO match generic
-        return pObj1.equals(pObj2);
-      default:
-        return true;
-    }
+    return switch (pObj1.getKind()) {
+      case DLL -> ((SMGDoublyLinkedList) pObj1).matchSpecificShape((SMGDoublyLinkedList) pObj2);
+      case SLL -> ((SMGSingleLinkedList) pObj1).matchSpecificShape((SMGSingleLinkedList) pObj2);
+      case GENERIC -> // TODO match generic
+          pObj1.equals(pObj2);
+      default -> true;
+    };
   }
 
   private static SMGObject getConcretestObject(SMGObject pObj1, SMGObject pObj2) {

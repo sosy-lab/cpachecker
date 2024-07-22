@@ -16,13 +16,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.testcase.ExpressionTestValue;
 import org.sosy_lab.cpachecker.util.testcase.InitializerTestValue;
 import org.sosy_lab.cpachecker.util.testcase.TestValue;
+import org.sosy_lab.cpachecker.util.testcase.TestValue.AuxiliaryCode;
 import org.sosy_lab.cpachecker.util.testcase.TestVector;
 
 class CodeAppender implements Appendable {
@@ -91,13 +93,13 @@ class CodeAppender implements Appendable {
   @CanIgnoreReturnValue
   private CodeAppender appendAssignment(String pRetvalName, TestValue pValue, boolean pEnclose)
       throws IOException {
-    boolean hasAuxiliaryStatmenets = !pValue.getAuxiliaryStatements().isEmpty();
-    if (hasAuxiliaryStatmenets) {
+    boolean hasAuxiliaryCode = !pValue.getAuxiliaryCode().isEmpty();
+    if (hasAuxiliaryCode) {
       if (pEnclose) {
         appendable.append("{ ");
       }
-      for (AAstNode auxiliaryStatement : pValue.getAuxiliaryStatements()) {
-        appendable.append(auxiliaryStatement.toASTString());
+      for (AuxiliaryCode auxiliaryCode : pValue.getAuxiliaryCode()) {
+        appendable.append(auxiliaryCode.code());
         if (pEnclose) {
           appendable.append(" ");
         } else {
@@ -109,7 +111,7 @@ class CodeAppender implements Appendable {
     appendable.append(" = ");
     appendable.append(pValue.getValue().toASTString());
     appendable.append(";");
-    if (hasAuxiliaryStatmenets && pEnclose) {
+    if (hasAuxiliaryCode && pEnclose) {
       appendable.append(" }");
     }
     return this;
@@ -153,45 +155,16 @@ class CodeAppender implements Appendable {
   public CodeAppender append(TestVector pVector) throws IOException {
     for (AVariableDeclaration inputVariable : pVector.getInputVariables()) {
       InitializerTestValue inputValue = pVector.getInputValue(inputVariable);
-      List<AAstNode> auxiliaryStatmenets = inputValue.getAuxiliaryStatements();
+      List<AuxiliaryCode> auxiliaryCode = inputValue.getAuxiliaryCode();
       Type type = PredefinedTypes.getCanonicalType(inputVariable.getType());
       boolean requiresInitialization = HarnessExporter.canInitialize(type);
-      if (requiresInitialization && !auxiliaryStatmenets.isEmpty()) {
-        for (AAstNode statement : inputValue.getAuxiliaryStatements()) {
-          appendln(statement.toASTString());
+      if (requiresInitialization && !auxiliaryCode.isEmpty()) {
+        for (AuxiliaryCode statement : auxiliaryCode) {
+          appendln(statement.code());
         }
       }
-      final AInitializer initializer;
-      if (!requiresInitialization) {
-        initializer = null;
-      } else {
-        initializer = inputValue.getValue();
-      }
-      final AVariableDeclaration internalDeclaration;
-      if (inputVariable instanceof CVariableDeclaration) {
-        internalDeclaration =
-            new CVariableDeclaration(
-                FileLocation.DUMMY,
-                inputVariable.isGlobal(),
-                CStorageClass.AUTO,
-                (CType) inputVariable.getType(),
-                inputVariable.getName(),
-                inputVariable.getOrigName(),
-                inputVariable.getQualifiedName(),
-                (CInitializer) initializer);
-      } else if (inputVariable instanceof JVariableDeclaration) {
-        internalDeclaration =
-            new JVariableDeclaration(
-                FileLocation.DUMMY,
-                (JType) inputVariable.getType(),
-                inputVariable.getName(),
-                inputVariable.getOrigName(),
-                inputVariable.getQualifiedName(),
-                initializer,
-                ((JVariableDeclaration) inputVariable).isFinal());
-      } else {
-        throw new AssertionError("Unsupported declaration type: " + inputVariable);
-      }
+      final AVariableDeclaration internalDeclaration =
+          getVariableDeclaration(inputVariable, requiresInitialization, inputValue);
       appendln(internalDeclaration.toASTString());
     }
     for (AFunctionDeclaration inputFunction : pVector.getInputFunctions()) {
@@ -199,7 +172,24 @@ class CodeAppender implements Appendable {
       Type returnType = inputFunction.getType().getReturnType();
       append(inputFunction);
       appendln(" {");
-      if (!returnType.equals(CVoidType.VOID)) {
+      if (inputFunction instanceof CFunctionDeclaration cDeclaration
+          && cDeclaration.getAttributes().contains(FunctionAttribute.NO_RETURN)) {
+        // if the function has attribute __noreturn__, make sure
+        // that our added definition does not return. There are two major ways to do this:
+        // 1. Run into a loop that never terminates.
+        // 2. exit/abort.
+        // We exit so that we get fast feedback from our test when a noreturn method is called.
+        String functionName = inputFunction.getName();
+        appendln(
+            "  fprintf(stderr, \"Called method "
+                + functionName
+                + " that has attribute noreturn.\\n\");");
+        // The 1 has no special meaning; it's just as good as 2 or 100, because we do not know
+        // what other status codes are used in the program.
+        // We do not use 0 to avoid confusion with the 'normal' return value that signals
+        // that everything is fine.
+        appendln("  exit(1);");
+      } else if (!returnType.equals(CVoidType.VOID)) {
         String inputFunctionVectorIndexName = "test_vector_index";
         if (inputValues.size() > 1) {
           appendVectorIndexDeclaration(inputFunctionVectorIndexName);
@@ -235,6 +225,40 @@ class CodeAppender implements Appendable {
       appendln("}");
     }
     return this;
+  }
+
+  private AVariableDeclaration getVariableDeclaration(
+      AVariableDeclaration inputVariable,
+      boolean requiresInitialization,
+      InitializerTestValue inputValue) {
+    final AInitializer initializer;
+    if (!requiresInitialization) {
+      initializer = null;
+    } else {
+      initializer = inputValue.getValue();
+    }
+    if (inputVariable instanceof CVariableDeclaration) {
+      return new CVariableDeclaration(
+          FileLocation.DUMMY,
+          inputVariable.isGlobal(),
+          CStorageClass.AUTO,
+          (CType) inputVariable.getType(),
+          inputVariable.getName(),
+          inputVariable.getOrigName(),
+          inputVariable.getQualifiedName(),
+          (CInitializer) initializer);
+    } else if (inputVariable instanceof JVariableDeclaration) {
+      return new JVariableDeclaration(
+          FileLocation.DUMMY,
+          (JType) inputVariable.getType(),
+          inputVariable.getName(),
+          inputVariable.getOrigName(),
+          inputVariable.getQualifiedName(),
+          initializer,
+          ((JVariableDeclaration) inputVariable).isFinal());
+    } else {
+      throw new AssertionError("Unsupported declaration type: " + inputVariable);
+    }
   }
 
   @CanIgnoreReturnValue

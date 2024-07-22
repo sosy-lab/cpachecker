@@ -127,16 +127,12 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       return true;
     }
     return pOther instanceof TerminationToReachState
-        && this.storedValues.equals(((TerminationToReachState) pOther).getStoredValues());
+        && storedValues.equals(((TerminationToReachState) pOther).getStoredValues());
   }
 
   private String getReadableStoredValues() {
-    return getReadableStoredValues(this);
-  }
-
-  private static String getReadableStoredValues(TerminationToReachState s) {
     StringBuilder sb = new StringBuilder();
-    for (Map.Entry<LocationState, List<BooleanFormula>> entry : s.getStoredValues().entrySet()) {
+    for (Map.Entry<LocationState, List<BooleanFormula>> entry : getStoredValues().entrySet()) {
       sb.append(entry);
     }
     return sb.toString();
@@ -144,7 +140,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   @Override
   public String toDOTLabel() {
-    return "Stored Values:\n" + getReadableStoredValues(this).replace(", ", "\n");
+    return "Stored Values:\n" + getReadableStoredValues().replace(", ", "\n");
   }
 
   @Override

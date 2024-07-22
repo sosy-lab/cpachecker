@@ -15,8 +15,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public final class CDeclarationEdge extends ADeclarationEdge implements CCfaEdge {
 
-  private static final long serialVersionUID = 1085083084922071042L;
-
   public CDeclarationEdge(
       final String pRawSignature,
       final FileLocation pFileLocation,

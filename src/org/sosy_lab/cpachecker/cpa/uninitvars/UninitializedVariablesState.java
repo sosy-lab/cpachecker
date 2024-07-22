@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -23,7 +24,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 @SuppressWarnings("checkstyle:NoClone") // refactor
 public class UninitializedVariablesState implements AbstractQueryableState, Serializable {
 
-  private static final long serialVersionUID = 5745797034946117366L;
+  @Serial private static final long serialVersionUID = 5745797034946117366L;
   private final List<String> globalVars;
   private final Deque<Pair<String, List<String>>> localVars;
 

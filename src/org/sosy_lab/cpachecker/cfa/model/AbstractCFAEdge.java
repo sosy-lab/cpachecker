@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract class AbstractCFAEdge implements CFAEdge {
 
-  private static final long serialVersionUID = -8493135984889665408L;
   private final CFANode predecessor;
   private final CFANode successor;
   private final String rawStatement;

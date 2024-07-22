@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.io.Serial;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -23,7 +24,7 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
         ConstantSymbolicExpression,
         UnarySymbolicExpression {
 
-  private static final long serialVersionUID = 2228733300503173691L;
+  @Serial private static final long serialVersionUID = 2228733300503173691L;
 
   private final Optional<MemoryLocation> representedLocation;
 
@@ -75,11 +76,11 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
   public abstract Type getType();
 
   /**
-   * Returns whether this <code>SymbolicExpression</code> is always true and does only contain
-   * explicit values.
+   * Returns whether this <code>SymbolicExpression</code> only contains explicit values.
    *
    * @return <code>true</code> if this <code>SymbolicExpression</code> is always true and does only
-   *     contain explicit values, <code>false</code> otherwise
+   *     contain explicit values. if the expression contains any SymbolicIdentifier, this method
+   *     returns <code>false</code>.
    */
   public abstract boolean isTrivial();
 

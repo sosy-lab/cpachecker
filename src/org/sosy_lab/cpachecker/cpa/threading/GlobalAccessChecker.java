@@ -72,25 +72,18 @@ public class GlobalAccessChecker {
    * the thread.
    */
   boolean hasGlobalAccess(CFAEdge edge) {
-    switch (edge.getEdgeType()) {
-      case BlankEdge:
-        return false;
-      case AssumeEdge:
-        return hasGlobalAccess(((CAssumeEdge) edge).getExpression());
-      case StatementEdge:
-        return hasGlobalAccess(((CStatementEdge) edge).getStatement());
-      case DeclarationEdge:
-        return hasGlobalAccess(((CDeclarationEdge) edge).getDeclaration());
-      case ReturnStatementEdge:
-        return ((CReturnStatementEdge) edge).getExpression().isPresent()
-            && hasGlobalAccess(((CReturnStatementEdge) edge).getExpression().orElseThrow());
-      case FunctionCallEdge:
-        return hasGlobalAccess(((CFunctionCallEdge) edge).getFunctionCall());
-      case FunctionReturnEdge:
-        return hasGlobalAccess(((FunctionReturnEdge) edge).getFunctionCall());
-      default:
-        throw new AssertionError("unexpected edge: " + edge);
-    }
+    return switch (edge.getEdgeType()) {
+      case BlankEdge -> false;
+      case AssumeEdge -> hasGlobalAccess(((CAssumeEdge) edge).getExpression());
+      case StatementEdge -> hasGlobalAccess(((CStatementEdge) edge).getStatement());
+      case DeclarationEdge -> hasGlobalAccess(((CDeclarationEdge) edge).getDeclaration());
+      case ReturnStatementEdge ->
+          ((CReturnStatementEdge) edge).getExpression().isPresent()
+              && hasGlobalAccess(((CReturnStatementEdge) edge).getExpression().orElseThrow());
+      case FunctionCallEdge -> hasGlobalAccess(((CFunctionCallEdge) edge).getFunctionCall());
+      case FunctionReturnEdge -> hasGlobalAccess(((FunctionReturnEdge) edge).getFunctionCall());
+      default -> throw new AssertionError("unexpected edge: " + edge);
+    };
   }
 
   private <T extends AAstNode> boolean hasGlobalAccess(final T ast) {

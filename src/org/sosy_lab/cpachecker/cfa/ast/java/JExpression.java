@@ -13,7 +13,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /** Interface of Side effect free Expressions. */
-@SuppressWarnings("serial") // we cannot set a UID for an interface
 public sealed interface JExpression extends JRightHandSide, AExpression
     permits JArrayCreationExpression,
         JArrayInitializer,

@@ -333,7 +333,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           if (status.isPrecise() && currentReached.wasTargetReached()) {
 
             // If the algorithm is not _precise_, verdict "false" actually means "unknown".
-            return status;
+            if (!(alwaysRestart && configFilesIterator.hasNext())) {
+              return status;
+            }
           }
 
           if (!status.isSound()) {
