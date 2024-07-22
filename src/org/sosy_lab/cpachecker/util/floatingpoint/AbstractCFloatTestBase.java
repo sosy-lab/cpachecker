@@ -315,6 +315,35 @@ abstract class AbstractCFloatTestBase {
         .build();
   }
 
+  List<BigFloat> integerTestValues() {
+    ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
+
+    Format format = getFloatType();
+    BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
+
+    // Constant values
+    builder.add(new BigFloat(Integer.MIN_VALUE, context));
+    builder.add(new BigFloat(-1.0, context));
+    builder.add(BigFloat.zero(context.precision));
+    builder.add(new BigFloat(1.0, context));
+    builder.add(
+        new BigFloat(Integer.MAX_VALUE, context)
+            .nextDown(context.minExponent, context.maxExponent) // Avoid overflow issues
+        );
+
+    // Generate random integers
+    long maxValue = FloatValue.maxValue(format).toInt().orElse(Integer.MAX_VALUE);
+    long minValue = FloatValue.maxValue(format).negate().toInt().orElse(Integer.MIN_VALUE);
+
+    Random random = new Random(0);
+
+    for (int c = 0; c < 200; c++) {
+      long r = random.nextLong(maxValue - minValue);
+      builder.add(new BigFloat(r + minValue, context));
+    }
+    return builder.build();
+  }
+
   private static int calculateExpWidth(Format pFormat) {
     BigInteger val = BigInteger.valueOf(2 * pFormat.maxExp() + 1);
     int r = val.bitLength() - 1;
@@ -429,8 +458,17 @@ abstract class AbstractCFloatTestBase {
   }
 
   private void testOperator(String name, int ulps, BinaryOperator<CFloat> operator) {
-    for (BigFloat arg1 : binaryTestValues()) {
-      for (BigFloat arg2 : binaryTestValues()) {
+    testOperator(name, ulps, operator, binaryTestValues(), binaryTestValues());
+  }
+
+  private void testOperator(
+      String name,
+      int ulps,
+      BinaryOperator<CFloat> operator,
+      List<BigFloat> values1,
+      List<BigFloat> values2) {
+    for (BigFloat arg1 : values1) {
+      for (BigFloat arg2 : values2) {
         try { // Calculate result with the reference implementation
           CFloat ref1 = toReferenceImpl(arg1);
           CFloat ref2 = toReferenceImpl(arg2);
@@ -736,13 +774,19 @@ abstract class AbstractCFloatTestBase {
 
   @Test
   public void powToIntegralTest() {
+    List<BigFloat> integers = integerTestValues();
+    List<BigFloat> positiveIntegers = integers.stream().filter((BigFloat a) -> !a.sign()).toList();
+
     // Native implementation does not support negative exponents
-    assume().that(getRefImpl()).isNotEqualTo(ReferenceImpl.NATIVE);
+    List<BigFloat> expValues =
+        getRefImpl().equals(ReferenceImpl.NATIVE) ? positiveIntegers : integers;
+
     testOperator(
         "powToInteger",
         0,
-        // FIXME: Find a better way to skip the test if x is NaN or infinite
-        (CFloat a, CFloat b) -> (b.isNan() || b.isInfinity()) ? a : a.powToIntegral(toInteger(b)));
+        (CFloat a, CFloat b) -> a.powToIntegral(toInteger(b)),
+        binaryTestValues(),
+        expValues);
   }
 
   @Test
