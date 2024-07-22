@@ -913,6 +913,12 @@ public class SMGState
       newObject =
           SMGObject.of(
               objectToCopy.getNestingLevel(), objectToCopy.getSize(), objectToCopy.getOffset());
+      if (!memoryModel.isObjectValid(objectToCopy)) {
+        return SMGObjectAndSMGState.of(
+            newObject,
+            copyAndReplaceMemoryModel(
+                memoryModel.copyAndAddHeapObject(newObject).invalidateSMGObject(newObject, false)));
+      }
     }
     return SMGObjectAndSMGState.of(
         newObject, copyAndReplaceMemoryModel(memoryModel.copyAndAddHeapObject(newObject)));
