@@ -122,14 +122,17 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
         }
       }
       liveVariables.removeAll(variablesDeclaredInsideLoop);
-      liveVariables
-          .removeIf(e -> e.contains("::") && Iterables.get(Splitter.on("::").split(e), 1).startsWith("__CPAchecker_TMP_"));
+      liveVariables.removeIf(
+          e -> e.contains("::")
+              && Iterables.get(Splitter.on("::").split(e), 1).startsWith("__CPAchecker_TMP_"));
 
       // Determine type of each variable
       for (String variable : liveVariables) {
         String type = cProgramScope.lookupVariable(variable).getType().toString();
         liveVariablesAndTypes.put(
-            variable.contains("::") ? Iterables.get(Splitter.on("::").split(variable), 1) : variable,
+            variable.contains("::")
+                ? Iterables.get(Splitter.on("::").split(variable), 1)
+                : variable,
             type.startsWith("(") ? type.substring(1, type.length() - 2) + "*" : type);
       }
 
@@ -198,8 +201,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
 
       // Determine location of recursive calls
       for (CFAEdge cfaEdge : recursion.getInnerLoopEdges()) {
-        if (cfaEdge.getRawStatement().contains(" " + functionName + "(")
-            || cfaEdge.getRawStatement().startsWith(functionName + "(")) {
+        if (cfaEdge.getDescription().startsWith(functionName + "(")) {
           locationOfRecursiveCalls.add(cfaEdge.getFileLocation().getStartingLineInOrigin());
         }
       }
@@ -214,8 +216,8 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
               locationOfRecursiveCalls,
               parameters));
 
-      // Check if the currect recursion is a mutual recursion.
-      // If so, add the information of another corresponding function.
+      // Check if the recursion is a mutual recursion.
+      // If so, add the information of another function(s).
       Set<FunctionEntryNode> otherFuntionsCalledInCurrentRecursion = new HashSet<>();
       for (CFAEdge cfaEdge : recursion.getInnerLoopEdges()) {
         if (cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
@@ -232,22 +234,22 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
             .stream()
             .anyMatch(
                 e -> e.getFileLocation().getStartingLineInOrigin() >= startLine
-                    && e.getFileLocation().getStartingLineInOrigin() <= endLine)) {
+                    && e.getFileLocation().getStartingLineInOrigin() <= endLine
+                    && e.getDescription().startsWith(functionName + "("))) {
           for (CFAEdge cfaEdge : recursion.getInnerLoopEdges()) {
-            if (cfaEdge.getRawStatement().contains(" " + otherFuntion.getFunctionName() + "(")
-                || cfaEdge.getRawStatement().startsWith(otherFuntion.getFunctionName() + "(")) {
+            if (cfaEdge.getDescription().startsWith(otherFuntion.getFunctionName() + "(")) {
               locationOfRecursiveCallsOfOtherFunction
                   .add(cfaEdge.getFileLocation().getStartingLineInOrigin());
             }
           }
-        }
 
-        allRecursionInfos.add(
-            new RecursionInfo(
-                "*" + otherFuntion.getFunctionName(),
-                startLine,
-                locationOfRecursiveCallsOfOtherFunction,
-                parameters));
+          allRecursionInfos.add(
+              new RecursionInfo(
+                  "*" + otherFuntion.getFunctionName(),
+                  startLine,
+                  locationOfRecursiveCallsOfOtherFunction,
+                  parameters));
+        }
       }
     }
 
@@ -273,9 +275,9 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
           (CFunctionCallAssignmentStatement) astNode;
       CFunctionCallExpression cRightHandSide = cFunctionCallAssignmentStatement.getRightHandSide();
       return cfa.getAllFunctions().get(cRightHandSide.getFunctionNameExpression().toString());
+    } else {
+      throw new Error("An unexpected error occurred!");
     }
-
-    return null;
   }
 }
 
