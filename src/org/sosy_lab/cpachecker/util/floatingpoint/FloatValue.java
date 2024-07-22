@@ -2320,17 +2320,23 @@ public class FloatValue extends Number {
   /**
    * Create a floating point value from its hexadecimal string representation.
    *
-   * <p>ConvertingUse Format.Extended in CFloatImpl from base 16 to base 2 is a special case as the
-   * two radixes are "commensurable", that is, they are both powers of another integer. In this case
-   * this integer is simply 2 and the two bases can then be expressed as 2^1 and 2^4. Intuitively
-   * this means that the conversion can be done one digit at a time as each hexadecimal digit can
-   * simply be expanded into 4 bits to create the base2 representation.
-   *
-   * @see <a href="https://dl.acm.org/doi/pdf/10.1145/93542.93557">How to Read Floating Point
-   *     Numbers Accurately</a>
+   * @param pFormat target precision
+   * @param pSign `true` if there is a '-' sign in front of the number
+   * @param pDigits digits of the number (with the period shifted all the way to the right)
+   * @param pExpValue exponent of the number, corrected for the period shift
    */
   private static FloatValue fromHexadecimal(
       Format pFormat, boolean pSign, String pDigits, int pExpValue) {
+    /*
+     * Converting from base 16 to base 2 is a special case as the two radixes are "commensurable",
+     * that is, they are both powers of another integer. In this case this integer is simply 2 and
+     * the two bases can then be expressed as 2^1 and 2^4. Intuitively this means that the
+     * conversion can be done one digit at a time as each hexadecimal digit can simply be expanded
+     * into 4 bits to create the base2 representation.
+     *
+     * See "How to Read Floating Point Numbers Accurately" for details:
+     *   https://dl.acm.org/doi/pdf/10.1145/93542.93557"
+     */
     FloatValue r = fromInteger(pFormat, new BigInteger(pDigits, 16));
     int finalExp = pExpValue - 4 * (pDigits.length() - 1);
     r = r.withExponent(r.exponent + finalExp);
@@ -2377,11 +2383,17 @@ public class FloatValue extends Number {
   /**
    * Create a floating point value from its decimal string representation.
    *
-   * <p>We use <b>AlgorithmM</b> from <a href="https://dl.acm.org/doi/pdf/10.1145/93548.93557">How
-   * to read floating point numbers accurately</a> to ensure correct rounding.
+   * @param pFormat target precision
+   * @param pSign `true` if there is a '-' sign in front of the number
+   * @param pDigits digits of the number (with the period shifted all the way to the right)
+   * @param pExpValue exponent of the number, corrected for the period shift
    */
   private static FloatValue fromDecimal(
       Format pFormat, boolean pSign, String pDigits, int pExpValue) {
+    /*
+     * We use `AlgorithmM` from "How to read floating point numbers accurately" to ensure correct
+     * rounding. See https://dl.acm.org/doi/pdf/10.1145/93548.93557 for the details.
+     */
     int k = pExpValue - (pDigits.length() - 1);
     BigInteger f = new BigInteger(pDigits);
     BigInteger e = BigInteger.TEN.pow(Math.abs(k));
