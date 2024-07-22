@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationByImport;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
-import org.sosy_lab.cpachecker.core.algorithm.LocateLoopAndLiveVariableAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
@@ -55,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.Counterexample
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummaryAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.instrumentation.LocateLoopAndLiveVariableAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
@@ -386,7 +386,7 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.locateLoopAndLiveVariable",
+      name = "algorithm.instrumentation.locateLoopAndLiveVariable",
       description = "Export location of loops and variables inside the loops.")
   private boolean useLocateLoopAndLiveVariableAlgorithm = false;
 
