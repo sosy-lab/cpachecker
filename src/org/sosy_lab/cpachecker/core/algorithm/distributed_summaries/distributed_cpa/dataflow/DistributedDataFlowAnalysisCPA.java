@@ -70,7 +70,6 @@ public class DistributedDataFlowAnalysisCPA
 
   @Override
   public boolean isTop(AbstractState pAbstractState) {
-    // deckt der zustand alle möglichen Werte ab?
     return false;
   }
 

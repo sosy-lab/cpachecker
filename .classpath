@@ -78,5 +78,5 @@
 	<classpathentry kind="lib" path="lib/java/runtime/snakeyaml.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.jdt.core.compiler.batch.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.osgi.service.prefs.jar"/>
-	<classpathentry kind="output" path="classes"/>
+	<classpathentry kind="output" path="bin"/>
 </classpath>

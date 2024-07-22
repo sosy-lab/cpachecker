@@ -132,9 +132,9 @@ public class StringToBooleanFormulaParser {
       return parseConstant(formulaString);
     }
 
-    String[] parts = formulaString.split("->");
-    String variableString = parts[0].trim();
-    BitVectorInfo bitVectorInfo = parseBitVectorInfo(parts[1].trim());
+    List<String> parts = Splitter.on("->").splitToList(formulaString);
+    String variableString = parts.get(0).trim();
+    BitVectorInfo bitVectorInfo = parseBitVectorInfo(parts.get(1).trim());
 
     return Variable.of(bitVectorInfo, MemoryLocation.fromQualifiedName(variableString));
   }
@@ -155,9 +155,10 @@ public class StringToBooleanFormulaParser {
   }
 
   private static NumeralFormula<CompoundInterval> parseConstant(String input) {
-    String[] parts = input.split("->");
-    String intervalsString = parts[0].trim();
-    BitVectorInfo bitVectorInfo = parseBitVectorInfo(parts[1].trim());
+
+    List<String> parts = Splitter.on("->").splitToList(input);
+    String intervalsString = parts.get(0).trim();
+    BitVectorInfo bitVectorInfo = parseBitVectorInfo(parts.get(0).trim());
 
     List<BitVectorInterval> bitVectorIntervals = new ArrayList<>();
     Iterable<String> intervalStrings = Splitter.onPattern("],\\[").split(intervalsString);
@@ -179,11 +180,11 @@ public class StringToBooleanFormulaParser {
     int size = 0;
     boolean signed = false;
 
-    String[] parts = typeInfo.split(";");
+    List<String> parts = Splitter.on(';').splitToList(typeInfo);    
     for (String part : parts) {
-      String[] keyValue = part.split(":");
-      String key = keyValue[0].trim();
-      String value = keyValue[1].trim();
+      List<String> keyValue = Splitter.on(':').splitToList(part);      
+      String key = keyValue.get(0).trim();
+      String value = keyValue.get(1).trim();
 
       if (key.equals("Size")) {
         size = Integer.parseInt(value);

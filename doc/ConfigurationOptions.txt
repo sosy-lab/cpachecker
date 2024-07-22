@@ -850,7 +850,7 @@ cfa.nonReturningFunctions = {"abort", "exit"}
 # Export CFA as pixel graphic to the given file name. The suffix is added
 # corresponding to the value of option pixelgraphic.export.formatIf set to
 # 'null', no pixel graphic is exported.
-cfa.pixelGraphicFile = "cfaPixel"
+cfa.pixelGraphicFile = no default value
 
 # export CFA as .ser file (dump Java objects)
 cfa.serialize = false
@@ -1348,7 +1348,7 @@ cpa.arg.mergeOnWrappedSubsumption = false
 # Export final ARG as pixel graphic to the given file name. The suffix is
 # added  corresponding to the value of option pixelgraphic.export.formatIf
 # set to 'null', no pixel graphic is exported.
-cpa.arg.pixelGraphicFile = "ARG"
+cpa.arg.pixelGraphicFile = no default value
 
 # export a proof as .graphml file
 cpa.arg.proofWitness = no default value

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import java.math.BigInteger;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -24,6 +25,8 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import com.google.common.base.Splitter;
 
 public class DeserializeValueAnalysisStateOperator implements DeserializeOperator {
 
@@ -44,15 +47,15 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     } else {
       Map<MemoryLocation, ValueAndType> constantsMap = new HashMap<>();
 
-      for (String constant : valueAnalysisString.split(" && ")) {
-        String[] parts = constant.split(":");
-        String[] valueParts = parts[1].split("=");
-        String[] typeParts = valueParts[0].split(" ");
+      for (String constant : Splitter.on(" && ").split(valueAnalysisString)) {
+        List<String> parts = Splitter.on(":").splitToList(constant);
+        List<String> valueParts = Splitter.on('=').splitToList(parts.get(1));
+        List<String> typeParts = Splitter.on(" ").splitToList(valueParts.get(0));
 
         constantsMap.put(
-            MemoryLocation.forIdentifier(parts[0]),
+            MemoryLocation.forIdentifier(parts.get(0)),
             new ValueAndType(
-                new NumericValue(BigInteger.valueOf(Integer.parseInt(valueParts[1]))),
+                new NumericValue(BigInteger.valueOf(Integer.parseInt(valueParts.get(1)))),
                 getSimpleTypeFromString(typeParts)));
       }
 
@@ -64,7 +67,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     return valueState;
   }
 
-  private CSimpleType getSimpleTypeFromString(String[] typeStrParts) {
+  private CSimpleType getSimpleTypeFromString(List<String> typeStrParts) {
     boolean isConst = false;
     boolean isVolatile = false;
     boolean isLong = false;
