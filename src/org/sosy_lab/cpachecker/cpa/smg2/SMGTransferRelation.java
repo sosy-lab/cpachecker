@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -34,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -79,6 +82,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
@@ -111,6 +115,8 @@ public class SMGTransferRelation
 
   private final SMGOptions options;
 
+  private final PrecAdjustmentOptions precisionAdjustmentOptions;
+
   @SuppressWarnings("unused")
   private final SMGCPAExportOptions exportSMGOptions;
 
@@ -135,6 +141,7 @@ public class SMGTransferRelation
   public SMGTransferRelation(
       LogManager pLogger,
       SMGOptions pOptions,
+      PrecAdjustmentOptions pPrecisionAdjustmentOptions,
       SMGCPAExportOptions pExportSMGOptions,
       CFA pCfa,
       ConstraintsStrengthenOperator pConstraintsStrengthenOperator,
@@ -144,6 +151,7 @@ public class SMGTransferRelation
     cfa = pCfa;
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
+    precisionAdjustmentOptions = pPrecisionAdjustmentOptions;
     exportSMGOptions = pExportSMGOptions;
     solver = pSolver;
 
@@ -162,6 +170,7 @@ public class SMGTransferRelation
   protected SMGTransferRelation(
       LogManager pLogger,
       SMGOptions pOptions,
+      PrecAdjustmentOptions pPrecisionAdjustmentOptions,
       SMGCPAExportOptions pExportSMGOptions,
       MachineModel pMachineModel,
       Collection<String> pBooleanVariables,
@@ -170,6 +179,7 @@ public class SMGTransferRelation
       throws InvalidConfigurationException {
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
+    precisionAdjustmentOptions = pPrecisionAdjustmentOptions;
     exportSMGOptions = pExportSMGOptions;
     booleanVariables = pBooleanVariables;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
@@ -846,6 +856,19 @@ public class SMGTransferRelation
     Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
     CExpression cExpression = (CExpression) simplifiedExpression.getFirst();
     truthValue = simplifiedExpression.getSecond();
+
+    if (expression instanceof CBinaryExpression binEx
+        && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound) {
+      if (binEx.getOperator().equals(LESS_THAN) || binEx.getOperator().equals(LESS_EQUAL)) {
+        // Concrete loop of the form x < 5, increment abstraction bound to 1 larger than loop
+        if (precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
+                <= loopBound.getValue().intValueExact()
+            && precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
+                < precisionAdjustmentOptions.getListAbstractionMaximumIncreaseLengthThreshold()) {
+          precisionAdjustmentOptions.incListAbstractionMinimumLengthThreshold();
+        }
+      }
+    }
 
     ImmutableList.Builder<SMGState> resultStateBuilder = ImmutableList.builder();
     // Get the value of the expression (either true[1L], false[0L], or unknown[null])

@@ -112,11 +112,23 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
 
     @Option(
         secure = true,
-        name = "listAbstractionMinimumLengthThreshhold",
+        name = "listAbstractionMinimumLengthThreshold",
         description =
             "The minimum list segments directly following each other with the same value needed to"
                 + " abstract them.Minimum is 2.")
-    private int listAbstractionMinimumLengthThreshhold = 3;
+    private int listAbstractionMinimumLengthThreshold = 3;
+
+    @Option(
+        secure = true,
+        name = "listAbstractionMaximumIncreaseLengthThreshold",
+        description =
+            "The minimum list segments that are needed for abstraction may be increased during the"
+                + " analysis based on a heuristic in fixed sized loops. This is the maximum"
+                + " increase that is allowed. E.g. all lists with the length given here are"
+                + " abstracted in any case. If you want to prevent dynamic increase of list"
+                + " abstraction min threshold set this to the same value as"
+                + " listAbstractionMinimumLengthThreshold.")
+    private int listAbstractionMaximumIncreaseLengthThreshold = 12;
 
     @Option(
         secure = true,
@@ -149,12 +161,16 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       }
     }
 
-    public int getListAbstractionMinimumLengthThreshhold() {
-      return listAbstractionMinimumLengthThreshhold;
+    public int getListAbstractionMinimumLengthThreshold() {
+      return listAbstractionMinimumLengthThreshold;
     }
 
-    public void incListAbstractionMinimumLengthThreshhold() {
-      listAbstractionMinimumLengthThreshhold++;
+    public int getListAbstractionMaximumIncreaseLengthThreshold() {
+      return listAbstractionMaximumIncreaseLengthThreshold;
+    }
+
+    public void incListAbstractionMinimumLengthThreshold() {
+      listAbstractionMinimumLengthThreshold++;
     }
 
     /**
@@ -300,7 +316,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       try {
         resultState =
             new SMGCPAAbstractionManager(
-                    resultState, options.getListAbstractionMinimumLengthThreshhold(), stats)
+                    resultState, options.getListAbstractionMinimumLengthThreshold(), stats)
                 .findAndAbstractLists();
       } catch (SMGException e) {
         // Do nothing. This should never happen anyway
