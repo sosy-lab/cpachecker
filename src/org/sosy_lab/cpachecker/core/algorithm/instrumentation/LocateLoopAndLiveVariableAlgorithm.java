@@ -14,10 +14,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -74,7 +74,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // Output the collected loop information to a file
     try (BufferedWriter writer =
-        Files.newBufferedWriter(Paths.get("output/AllLoopInfos.txt"), StandardCharsets.UTF_8)) {
+        Files.newBufferedWriter(new File("output/AllLoopInfos.txt").toPath(), StandardCharsets.UTF_8)) {
       StringBuilder allLoopInfos = new StringBuilder();
 
       for (NormalLoopInfo loopInfo : getAllNormalLoopInfos()) {

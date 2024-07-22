@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,7 +57,7 @@ public class InstrumentationOperatorAlgorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // Output the collected CFA information into AllCFAInfos
     try (BufferedWriter writer =
-        Files.newBufferedWriter(Paths.get("output/AllCFAInfos.txt"), StandardCharsets.UTF_8)) {
+        Files.newBufferedWriter(new File("output/AllLoopInfos.txt").toPath(), StandardCharsets.UTF_8)) {
       StringBuilder allLoopInfos = new StringBuilder();
       writer.write(allLoopInfos.toString());
     } catch (IOException e) {
