@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -16,6 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -29,13 +32,18 @@ public class DistributedValueAnalysisCPA
   private final DeserializeOperator deserializeOperator;
   private final SerializePrecisionOperator serializePrecisionOperator;
   private final DeserializePrecisionOperator deserializePrecisionOperator;
+  private final BlockNode blockNode;
+  private final CFA cfa;
 
-  public DistributedValueAnalysisCPA(ValueAnalysisCPA pValueAnalysisCPA) {
+  public DistributedValueAnalysisCPA(ValueAnalysisCPA pValueAnalysisCPA, BlockNode pNode, CFA pCFA) {
     valueAnalysisCPA = pValueAnalysisCPA;
-    serializeOperator = new SerializeValueAnalysisStateOperator();
-    deserializeOperator = new DeserializeValueAnalysisStateOperator();
+    serializeOperator = new SerializeValueAnalysisStateOperator(pNode);
+    deserializeOperator = new DeserializeValueAnalysisStateOperator(pCFA);
     serializePrecisionOperator = new SerializeVariableTrackingPrecision();
     deserializePrecisionOperator = new DeserializeVariableTrackingPrecision(pValueAnalysisCPA);
+    blockNode = pNode;
+    cfa = pCFA;
+    
   }
 
   @Override
@@ -83,6 +91,6 @@ public class DistributedValueAnalysisCPA
 
   @Override
   public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition) {
-    throw new UnsupportedOperationException("Unimplemented method");
+    return valueAnalysisCPA.getInitialState(blockNode.getFirst(), StateSpacePartition.getDefaultPartition());
   }
 }

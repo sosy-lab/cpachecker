@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow;
 
 import java.util.List;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -23,6 +22,8 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.SplitConjunctionsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.StringToBooleanFormulaParser;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
+
+import com.google.common.collect.ImmutableSet;
 
 public class DeserializeDataflowAnalysisStateOperator implements DeserializeOperator {
   private final CFA cfa;
@@ -58,7 +59,7 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
             null,
             false);
     deserializedInvariantsState =
-        deserializedInvariantsState.addAssumptions(Set.copyOf(assumptionParts));
+        deserializedInvariantsState.addAssumptions(ImmutableSet.copyOf(assumptionParts));
 
     return deserializedInvariantsState;
   }
