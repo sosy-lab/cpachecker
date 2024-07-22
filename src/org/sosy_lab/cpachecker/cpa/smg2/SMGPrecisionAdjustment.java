@@ -116,7 +116,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         description =
             "The minimum list segments directly following each other with the same value needed to"
                 + " abstract them.Minimum is 2.")
-    private int listAbstractionMinimumLengthThreshold = 3;
+    private int listAbstractionMinimumLengthThreshold = 4;
 
     @Option(
         secure = true,
