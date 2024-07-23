@@ -61,10 +61,6 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
   private final CProgramScope cProgramScope;
 
   public LocateLoopAndLiveVariableAlgorithm(CFA pCfa, LogManager pLogger) {
-    if (pCfa.getLoopStructure().orElseThrow().getAllLoops().isEmpty()
-        && LoopStructure.getRecursions(pCfa).isEmpty()) {
-      throw new IllegalArgumentException("Program does not contain loops!");
-    }
     cfa = pCfa;
     logger = pLogger;
     cProgramScope = new CProgramScope(pCfa, pLogger);
