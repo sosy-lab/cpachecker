@@ -1286,9 +1286,9 @@ public class SMGState
 
     // Ordered (by min len) linked list segments in both states
     List<SMGSinglyLinkedListSegment> thisValidAbstrObjs =
-        getMemoryModel().getSmg().getAllValidAbstractedObjects().stream()
-            .sorted(Comparator.comparingInt(SMGSinglyLinkedListSegment::getMinLength))
-            .collect(ImmutableList.toImmutableList());
+        ImmutableList.sortedCopyOf(
+            Comparator.comparingInt(SMGSinglyLinkedListSegment::getMinLength),
+            getMemoryModel().getSmg().getAllValidAbstractedObjects());
     List<SMGSinglyLinkedListSegment> otherValidAbstrObjs =
         new ArrayList<>(pOther.getMemoryModel().getSmg().getAllValidAbstractedObjects());
     otherValidAbstrObjs.sort(Comparator.comparingInt(SMGSinglyLinkedListSegment::getMinLength));
