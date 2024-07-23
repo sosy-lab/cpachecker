@@ -42,7 +42,8 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
       description =
           "Maximum for adjusting the bound for number of loop-head visits of the program\n"
               + "(0 is used for no maximum).\n"
-              + "Only relevant in combination with a non-static adjuster for the bound for loop-head visits.")
+              + "Only relevant in combination with a non-static adjuster for the bound for"
+              + " loop-head visits.")
   private int maxLoopIterationsUpperBound = 0;
 
   @Option(
