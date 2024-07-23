@@ -1797,6 +1797,11 @@ public class SMGState
         }
       }
 
+      if (this == otherState && thisSLL.getMinLength() != otherSLL.getMinLength()) {
+        // Not lessOrEqual, but true equality check
+        return false;
+      }
+
       if (thisSLL.getMinLength() >= otherSLL.getMinLength()) {
         // This is a look through case (either one subsumses the other by being larger,
         //   or potentially larger with 0+, or a 0+ is at some point found in the list later on)
@@ -4665,8 +4670,11 @@ public class SMGState
     }
 
     // The list objs obviously point at the nested memory
+    //   (and this might be shared in between them, which is fine for abstraction)
     objsPointingAtTraversedTarget.remove(pTarget);
     objsPointingAtTraversedOtherTarget.remove(pOtherTarget);
+    objsPointingAtTraversedTarget.remove(pOtherTarget);
+    objsPointingAtTraversedOtherTarget.remove(pTarget);
 
     return objsPointingAtTraversedOtherTarget.size() == objsPointingAtTraversedTarget.size()
         && objsPointingAtTraversedOtherTarget.containsAll(objsPointingAtTraversedTarget);
@@ -5555,6 +5563,10 @@ public class SMGState
         nfo,
         nextPointerTargetOffset,
         ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
+  }
+
+  public SMGState removeUnusedValues() {
+    return copyAndReplaceMemoryModel(memoryModel.removeUnusedValues());
   }
 
   private boolean isPointerTargetOffsetEqualTo(
