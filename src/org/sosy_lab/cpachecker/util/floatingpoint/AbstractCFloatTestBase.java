@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -951,7 +950,6 @@ abstract class AbstractCFloatTestBase {
 
   @Test
   public void castToLongTest() {
-    assume().that(getRefImpl()).isEqualTo(ReferenceImpl.NATIVE);
     testIntegerFunction(
         "castToLongTest",
         (CFloat a) -> {

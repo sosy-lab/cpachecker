@@ -211,14 +211,21 @@ class JDouble extends CFloat {
 
   @Override
   public Number castToOther(CIntegerType toType) {
-    Double doubleValue = Double.valueOf(value);
-    return switch (toType) {
-      case CHAR -> doubleValue.byteValue();
-      case SHORT -> doubleValue.shortValue();
-      case INT -> doubleValue.intValue();
-      case LONG -> doubleValue.longValue();
-      default -> throw new UnsupportedOperationException();
-    };
+    Number r =
+        switch (toType) {
+          case CHAR -> (byte) value;
+          case SHORT -> (short) value;
+          case INT -> (int) value;
+          case LONG -> (long) value;
+          default -> throw new UnsupportedOperationException();
+        };
+
+    CFloat v = new JDouble(r.doubleValue());
+    if (!v.equalTo(trunc())) {
+      // Throw an exception if the value was too large for the target type
+      throw new IllegalArgumentException();
+    }
+    return r;
   }
 
   @Override

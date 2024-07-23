@@ -212,14 +212,21 @@ class JFloat extends CFloat {
 
   @Override
   public Number castToOther(CIntegerType toType) {
-    Float floatValue = Float.valueOf(value);
-    return switch (toType) {
-      case CHAR -> floatValue.byteValue();
-      case SHORT -> floatValue.shortValue();
-      case INT -> floatValue.intValue();
-      case LONG -> floatValue.longValue();
-      default -> throw new UnsupportedOperationException();
-    };
+    Number r =
+        switch (toType) {
+          case CHAR -> (byte) value;
+          case SHORT -> (short) value;
+          case INT -> (int) value;
+          case LONG -> (long) value;
+          default -> throw new UnsupportedOperationException();
+        };
+
+    CFloat v = new JFloat(r.floatValue());
+    if (!v.equalTo(trunc())) {
+      // Throw an exception if the value was too large for the target type
+      throw new IllegalArgumentException();
+    }
+    return r;
   }
 
   @Override

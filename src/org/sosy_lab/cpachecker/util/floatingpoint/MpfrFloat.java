@@ -277,13 +277,21 @@ class MpfrFloat extends CFloat {
 
   @Override
   public Number castToOther(CIntegerType toType) {
-    return switch (toType) {
-      case CHAR -> value.byteValue();
-      case SHORT -> value.shortValue();
-      case INT -> value.intValue();
-      case LONG -> value.longValue();
-      default -> throw new UnsupportedOperationException();
-    };
+    Number r =
+        switch (toType) {
+          case CHAR -> value.byteValue();
+          case SHORT -> value.shortValue();
+          case INT -> value.intValue();
+          case LONG -> value.longValue();
+          default -> throw new UnsupportedOperationException();
+        };
+
+    CFloat v = new MpfrFloat(new BigFloat(r.toString(), format), format);
+    if (!v.equalTo(trunc())) {
+      // Throw an exception if the value was too large for the target type
+      throw new IllegalArgumentException();
+    }
+    return r;
   }
 
   @Override
