@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import static com.google.common.primitives.Ints.max;
 
 import com.google.common.base.Preconditions;
-import com.google.errorprone.annotations.DoNotCall;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 
@@ -251,7 +250,6 @@ class CFloatNative extends CFloat {
     return new CFloatNative(newFloat, toType);
   }
 
-  @DoNotCall("Always throws java.lang.UnsupportedOperationException")
   public static CFloat castOtherTo(Number value, CIntegerType fromType, CFloatType toType) {
     CFloatWrapper r =
         switch (fromType) {
