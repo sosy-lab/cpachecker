@@ -30,9 +30,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 // TODO: Add support for more rounding modes
 // TODO: Add more functions (like sin(x), etc)
-// TODO: Make castToOther return an Optional
-//  This is needed when the target type for castToOther is too small for the integer value of the
-//  float. See the comment before toByte() for more details.
 // TODO: Add support for unsigned types
 
 /**
