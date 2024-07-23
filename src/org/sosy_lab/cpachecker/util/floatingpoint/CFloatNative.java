@@ -253,13 +253,15 @@ class CFloatNative extends CFloat {
 
   @DoNotCall("Always throws java.lang.UnsupportedOperationException")
   public static CFloat castOtherTo(Number value, CIntegerType fromType, CFloatType toType) {
-    throw new UnsupportedOperationException();
-    // FIXME: castOtherToFP is currently broken, we should split it up like castFpToX to fix this
-    /*
-    CFloatWrapper newFloat =
-        CFloatNativeAPI.castOtherToFp(value, fromType.ordinal(), toType.ordinal());
-    return new CFloatNative(newFloat, toType);
-    */
+    CFloatWrapper r =
+        switch (fromType) {
+          case CHAR -> CFloatNativeAPI.castByteToFp(value.byteValue(), toType.ordinal());
+          case SHORT -> CFloatNativeAPI.castShortToFp(value.shortValue(), toType.ordinal());
+          case INT -> CFloatNativeAPI.castIntToFp(value.intValue(), toType.ordinal());
+          case LONG -> CFloatNativeAPI.castLongToFp(value.longValue(), toType.ordinal());
+          default -> throw new UnsupportedOperationException();
+        };
+    return new CFloatNative(r, toType);
   }
 
   @Override
@@ -273,7 +275,8 @@ class CFloatNative extends CFloat {
           default -> throw new IllegalArgumentException();
         };
 
-    if (!trunc().equalTo(new CFloatNative(String.valueOf(r), type))) {
+    CFloat v = castOtherTo(r, toType, type);
+    if (!v.equalTo(trunc())) {
       // Throw an exception if the value was too large for the target type
       throw new IllegalArgumentException();
     }

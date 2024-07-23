@@ -912,7 +912,6 @@ abstract class AbstractCFloatTestBase {
 
   @Test
   public void castToByteTest() {
-    assume().that(getRefImpl()).isEqualTo(ReferenceImpl.NATIVE);
     testIntegerFunction(
         "castToByteTest",
         (CFloat a) -> {
@@ -926,7 +925,6 @@ abstract class AbstractCFloatTestBase {
 
   @Test
   public void castToShortTest() {
-    assume().that(getRefImpl()).isEqualTo(ReferenceImpl.NATIVE);
     testIntegerFunction(
         "castToShortTest",
         (CFloat a) -> {
@@ -940,7 +938,6 @@ abstract class AbstractCFloatTestBase {
 
   @Test
   public void castToIntTest() {
-    assume().that(getRefImpl()).isEqualTo(ReferenceImpl.NATIVE);
     testIntegerFunction(
         "castToIntTest",
         (CFloat a) -> {
