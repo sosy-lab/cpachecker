@@ -1796,7 +1796,7 @@ class ASTConverter {
         logger.log(
             Level.WARNING, loc + ":", "Return statement without expression in non-void function.");
         CInitializer defaultValue =
-            CDefaults.forType(returnVariableDeclaration.orElseThrow().getType(), loc);
+            CDefaults.forType(machinemodel, returnVariableDeclaration.orElseThrow().getType(), loc);
         if (defaultValue instanceof CInitializerExpression) {
           rhs = ((CInitializerExpression) defaultValue).getExpression();
         }

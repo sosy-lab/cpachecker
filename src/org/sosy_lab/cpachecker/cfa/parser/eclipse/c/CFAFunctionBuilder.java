@@ -155,6 +155,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private final CBinaryExpressionBuilder binExprBuilder;
 
+  private final MachineModel machineModel;
+
   // Data structures for handling goto
   private final Map<String, CFALabelNode> labelMap = new HashMap<>();
   private final Multimap<String, GotoInformation> gotoLabelNeeded = ArrayListMultimap.create();
@@ -208,6 +210,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     parseContext = pParseContext;
     checkBinding = pCheckBinding;
     binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
+    machineModel = pMachine;
 
     shouldVisitDeclarations = true;
     shouldVisitEnumerators = true;
@@ -395,7 +398,8 @@ class CFAFunctionBuilder extends ASTVisitor {
           return prevNode;
 
         } else if (options.initializeAllVariables()) {
-          CInitializer initializer = CDefaults.forType(newD.getType(), newD.getFileLocation());
+          CInitializer initializer =
+              CDefaults.forType(machineModel, newD.getType(), newD.getFileLocation());
           newD =
               new CVariableDeclaration(
                   newD.getFileLocation(),

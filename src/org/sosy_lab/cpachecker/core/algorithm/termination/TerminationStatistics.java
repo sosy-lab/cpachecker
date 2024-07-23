@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -160,6 +161,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private final LocationStateFactory locFac;
   private @Nullable Loop nonterminatingLoop = null;
 
+  private final MachineModel machineModel;
+
   public TerminationStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
     this(pConfig, pLogger, 0, pCFA);
@@ -171,6 +174,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     pConfig.inject(this, TerminationStatistics.class);
     logger = checkNotNull(pLogger);
     totalLoops = pTotalNumberOfLoops;
+    machineModel = pCFA.getMachineModel();
 
     witnessExporter =
         new WitnessExporter(
@@ -703,10 +707,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         termVal = ((ConstantTerm) entry.getValue()).getValue();
 
         if (termVal instanceof FloatValue termFloat) {
-          // FIXME: Get the actual floating point type
           litexpr =
               new CFloatLiteralExpression(
-                  FileLocation.DUMMY, CNumericTypes.FLOAT, termFloat);
+                  FileLocation.DUMMY, machineModel, CNumericTypes.FLOAT, termFloat);
         } else if (termVal instanceof BigInteger) {
           litexpr =
               CIntegerLiteralExpression.createDummyLiteral(
@@ -731,7 +734,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     } else {
       FloatValue n = FloatValue.fromInteger(Format.Float32, rat.numerator());
       FloatValue d = FloatValue.fromInteger(Format.Float32, rat.numerator());
-      return new CFloatLiteralExpression(FileLocation.DUMMY, CNumericTypes.FLOAT, n.divide(d));
+      return new CFloatLiteralExpression(
+          FileLocation.DUMMY, machineModel, CNumericTypes.FLOAT, n.divide(d));
     }
   }
 

@@ -353,7 +353,7 @@ public class SymbolicValueAnalysisRefiner
         Value v = e.getValue().getValue();
         CType t = (CType) e.getValue().getType();
         CExpressionStatement exp;
-        toCExpressionVisitor = new ValueToCExpressionTransformer(t);
+        toCExpressionVisitor = new ValueToCExpressionTransformer(machineModel, t);
         CExpression rhs = v.accept(toCExpressionVisitor);
         CExpression lhs = getCorrespondingIdExpression(e.getKey(), t);
         CExpression assignment =
@@ -370,7 +370,7 @@ public class SymbolicValueAnalysisRefiner
       ConstraintsState newConstraints = new ConstraintsState(tempSet);
 
       for (Constraint c : newConstraints) {
-        toCExpressionVisitor = new ValueToCExpressionTransformer((CType) c.getType());
+        toCExpressionVisitor = new ValueToCExpressionTransformer(machineModel, (CType) c.getType());
         CExpressionStatement exp =
             new CExpressionStatement(FileLocation.DUMMY, c.accept(toCExpressionVisitor));
         assumptions.add(exp);

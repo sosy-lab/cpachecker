@@ -13,6 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionToCExpressionTransformer;
@@ -21,12 +22,14 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 
 public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> {
 
-  private final SymbolicExpressionToCExpressionTransformer symbolicTransformer =
-      new SymbolicExpressionToCExpressionTransformer();
+  private final SymbolicExpressionToCExpressionTransformer symbolicTransformer;
 
-  private CType type;
+  private final MachineModel machineModel;
+  private final CType type;
 
-  public ValueToCExpressionTransformer(CType pTypeOfValue) {
+  public ValueToCExpressionTransformer(MachineModel pMachineModel, CType pTypeOfValue) {
+    symbolicTransformer = new SymbolicExpressionToCExpressionTransformer(pMachineModel);
+    machineModel = pMachineModel;
     type = pTypeOfValue;
   }
 
@@ -85,7 +88,8 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
   }
 
   private CExpression visitFloatingValue(NumericValue pValue, CSimpleType pType) {
-    return new CFloatLiteralExpression(FileLocation.DUMMY, pType, pValue.floatingPointValue());
+    return new CFloatLiteralExpression(
+        FileLocation.DUMMY, machineModel, pType, pValue.floatingPointValue());
   }
 
   @Override

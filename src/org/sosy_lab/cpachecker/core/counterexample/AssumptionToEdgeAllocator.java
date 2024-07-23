@@ -1415,11 +1415,12 @@ public class AssumptionToEdgeAllocator {
       if (pValue instanceof Rational rationalValue) {
         FloatValue n = FloatValue.fromInteger(format, rationalValue.getNum());
         FloatValue d = FloatValue.fromInteger(format, rationalValue.getDen());
-        return ExplicitValueLiteral.valueOf(n.divide(d), pType);
+        return ExplicitValueLiteral.valueOf(n.divide(d), machineModel, pType);
       } else if (pValue instanceof Double doubleValue) {
-        return ExplicitValueLiteral.valueOf(FloatValue.fromDouble(doubleValue), pType);
+        return ExplicitValueLiteral.valueOf(
+            FloatValue.fromDouble(doubleValue), machineModel, pType);
       } else if (pValue instanceof Float floatValue) {
-        return ExplicitValueLiteral.valueOf(FloatValue.fromFloat(floatValue), pType);
+        return ExplicitValueLiteral.valueOf(FloatValue.fromFloat(floatValue), machineModel, pType);
       }
 
       FloatValue val;
@@ -1430,7 +1431,7 @@ public class AssumptionToEdgeAllocator {
         return UnknownValueLiteral.getInstance();
       }
 
-      return ExplicitValueLiteral.valueOf(val, pType);
+      return ExplicitValueLiteral.valueOf(val, machineModel, pType);
     }
 
     public void resolveStruct(
@@ -2105,10 +2106,11 @@ public class AssumptionToEdgeAllocator {
       return new ExplicitValueLiteral(literal);
     }
 
-    public static ValueLiteral valueOf(FloatValue value, CSimpleType pType) {
+    public static ValueLiteral valueOf(
+        FloatValue value, MachineModel pMachineModel, CSimpleType pType) {
 
       CFloatLiteralExpression literal =
-          new CFloatLiteralExpression(FileLocation.DUMMY, pType, value);
+          new CFloatLiteralExpression(FileLocation.DUMMY, pMachineModel, pType, value);
       return new ExplicitValueLiteral(literal);
     }
 

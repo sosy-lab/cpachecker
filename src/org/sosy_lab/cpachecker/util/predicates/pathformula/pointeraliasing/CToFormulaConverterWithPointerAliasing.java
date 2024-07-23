@@ -673,7 +673,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         return;
       }
       CExpression initExp =
-          ((CInitializerExpression) CDefaults.forType(type, lhs.getFileLocation())).getExpression();
+          ((CInitializerExpression) CDefaults.forType(machineModel, type, lhs.getFileLocation()))
+              .getExpression();
       defaultAssignments.add(
           new CExpressionAssignmentStatement(lhs.getFileLocation(), lhs, initExp));
     }

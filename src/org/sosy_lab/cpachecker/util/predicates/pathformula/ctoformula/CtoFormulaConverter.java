@@ -1013,6 +1013,7 @@ public class CtoFormulaConverter {
               intValue, targetType, machineModel, logger, e.getFileLocation());
       return new CFloatLiteralExpression(
           e.getFileLocation(),
+          machineModel,
           targetType,
           FloatValue.fromInteger(
               Format.fromCType(machineModel, targetType),

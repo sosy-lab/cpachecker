@@ -22,9 +22,9 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression
 
   private static final long serialVersionUID = 5021145411123854111L;
 
-  public CFloatLiteralExpression(FileLocation pFileLocation, CType pType, FloatValue pValue) {
-    // FIXME: Use the right machine model
-    super(pFileLocation, pType, matchType(MachineModel.LINUX64, pType, pValue));
+  public CFloatLiteralExpression(
+      FileLocation pFileLocation, MachineModel pMachineModel, CType pType, FloatValue pValue) {
+    super(pFileLocation, pType, matchType(pMachineModel, pType, pValue));
   }
 
   /**

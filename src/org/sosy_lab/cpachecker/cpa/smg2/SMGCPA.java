@@ -168,7 +168,8 @@ public class SMGCPA
         initializeCToFormulaConverter(
             formulaManager, logger, pConfig, pShutdownNotifier, pCfa.getMachineModel());
     constraintsSolver =
-        new ConstraintsSolver(pConfig, solver, formulaManager, converter, contraintsStats);
+        new ConstraintsSolver(
+            pConfig, machineModel, solver, formulaManager, converter, contraintsStats);
     evaluator =
         new SMGCPAExpressionEvaluator(
             machineModel, logger, exportOptions, options, constraintsSolver);

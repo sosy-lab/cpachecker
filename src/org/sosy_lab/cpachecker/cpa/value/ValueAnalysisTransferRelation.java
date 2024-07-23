@@ -1456,7 +1456,10 @@ public class ValueAnalysisTransferRelation
                     numericValue.floatingPointValue().round(RoundingMode.TRUNCATE);
                 CFloatLiteralExpression integralPart =
                     new CFloatLiteralExpression(
-                        functionCallExpression.getFileLocation(), paramType, integralPartValue);
+                        functionCallExpression.getFileLocation(),
+                        machineModel,
+                        paramType,
+                        integralPartValue);
                 newState =
                     strengthenWithPointerInformation(
                         newState,

@@ -94,7 +94,7 @@ public class ExpressionSimplificationVisitor
       } else if (basicType.isFloatingPointType()) {
         try {
           return new CFloatLiteralExpression(
-              expr.getFileLocation(), type, numericResult.floatingPointValue());
+              expr.getFileLocation(), machineModel, type, numericResult.floatingPointValue());
         } catch (NumberFormatException nfe) {
           // catch NumberFormatException here, which is caused by, e.g., value being <infinity>
           logger.logf(
@@ -282,7 +282,8 @@ public class ExpressionSimplificationVisitor
             return new CIntegerLiteralExpression(loc, exprType, negatedValue.bigIntegerValue());
           case FLOAT:
           case DOUBLE:
-            return new CFloatLiteralExpression(loc, exprType, negatedValue.floatingPointValue());
+            return new CFloatLiteralExpression(
+                loc, machineModel, exprType, negatedValue.floatingPointValue());
           default:
             // fall-through and return the original expression
         }
@@ -351,7 +352,7 @@ public class ExpressionSimplificationVisitor
             case FLOAT:
             case DOUBLE:
               return new CFloatLiteralExpression(
-                  expr.getFileLocation(), type, v.floatingPointValue());
+                  expr.getFileLocation(), machineModel, type, v.floatingPointValue());
             default:
               // fall-through and return the original expression
           }

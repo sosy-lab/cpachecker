@@ -125,6 +125,7 @@ public class SMGCPATest0 {
 
     return new ConstraintsSolver(
         Configuration.defaultConfiguration(),
+        machineModel,
         smtSolver,
         formulaManager,
         converter,

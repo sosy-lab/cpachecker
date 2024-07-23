@@ -981,7 +981,7 @@ public class SMGCPATransferRelationTest {
                               "SomeTypeNotQual",
                               "SomeTypeNotQual",
                               "SomeType",
-                              CDefaults.forType(sizeofType, FileLocation.DUMMY))),
+                              CDefaults.forType(MACHINE_MODEL, sizeofType, FileLocation.DUMMY))),
                       CUnaryExpression.UnaryOperator.SIZEOF),
                   BinaryOperator.MULTIPLY);
 

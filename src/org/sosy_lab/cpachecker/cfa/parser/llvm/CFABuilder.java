@@ -1343,7 +1343,9 @@ public class CFABuilder {
         if (basicType == CBasicType.FLOAT || basicType == CBasicType.DOUBLE) {
           // use expected type for float, not canonical
           Format format = basicType == CBasicType.FLOAT ? Format.Float32 : Format.Float64;
-          zeroExpression = new CFloatLiteralExpression(loc, pExpectedType, FloatValue.zero(format));
+          zeroExpression =
+              new CFloatLiteralExpression(
+                  loc, machineModel, pExpectedType, FloatValue.zero(format));
         } else {
           zeroExpression = CIntegerLiteralExpression.ZERO;
         }

@@ -29,7 +29,7 @@ public final class CDefaults {
 
   private CDefaults() {}
 
-  public static CInitializer forType(CType type, FileLocation fileLoc) {
+  public static CInitializer forType(MachineModel pMachineModel, CType type, FileLocation fileLoc) {
     checkNotNull(fileLoc);
     // Get default value of a type for initializations
     // according to C standard §6.7.9 (10)
@@ -42,10 +42,12 @@ public final class CDefaults {
       return switch (basicType) {
         case CHAR -> initializerFor(new CCharLiteralExpression(fileLoc, type, '\0'), fileLoc);
         case FLOAT, DOUBLE, FLOAT128 ->
-            // FIXME: Use the right MachineModel
             initializerFor(
                 new CFloatLiteralExpression(
-                    fileLoc, type, FloatValue.zero(Format.fromCType(MachineModel.LINUX64, type))),
+                    fileLoc,
+                    pMachineModel,
+                    type,
+                    FloatValue.zero(Format.fromCType(pMachineModel, type))),
                 fileLoc);
         case UNSPECIFIED, BOOL, INT128, INT ->
             initializerFor(new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);
@@ -76,7 +78,7 @@ public final class CDefaults {
       return emptyAggregate(fileLoc);
 
     } else if (type instanceof CBitFieldType) {
-      return forType(((CBitFieldType) type).getType(), fileLoc);
+      return forType(pMachineModel, ((CBitFieldType) type).getType(), fileLoc);
 
     } else {
       throw new IllegalArgumentException("Type " + type + " has no default value");

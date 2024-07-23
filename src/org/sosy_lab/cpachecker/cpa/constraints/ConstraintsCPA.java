@@ -99,7 +99,9 @@ public class ConstraintsCPA
     CtoFormulaConverter converter =
         initializeCToFormulaConverter(
             formulaManager, pLogger, pConfig, pShutdownNotifier, pCfa.getMachineModel());
-    constraintsSolver = new ConstraintsSolver(pConfig, solver, formulaManager, converter, stats);
+    constraintsSolver =
+        new ConstraintsSolver(
+            pConfig, pCfa.getMachineModel(), solver, formulaManager, converter, stats);
 
     abstractDomain = initializeAbstractDomain();
     mergeOperator = initializeMergeOperator();

@@ -833,7 +833,9 @@ public final class ValueAnalysisState
                 long value = num.getNumber().longValue();
                 val = new CIntegerLiteralExpression(loc, simpleType, BigInteger.valueOf(value));
               } else if (simpleType.getType().isFloatingPointType()) {
-                val = new CFloatLiteralExpression(loc, simpleType, num.floatingPointValue());
+                val =
+                    new CFloatLiteralExpression(
+                        loc, machineModel, simpleType, num.floatingPointValue());
               } else {
                 throw new AssertionError("Unexpected type: " + simpleType);
               }
