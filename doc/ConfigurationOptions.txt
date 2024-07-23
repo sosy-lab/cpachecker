@@ -1923,9 +1923,11 @@ cpa.loopbound.maxLoopIterationAdjusterFactory = STATIC
 # be unsound.
 cpa.loopbound.maxLoopIterations = 0
 
-# Maximum for adjusting the bound for number of loop-head visits of the program
+# Maximum for adjusting the bound for number of loop-head visits of the
+# program
 # (0 is used for no maximum).
-# Only relevant in combination with a non-static adjuster for the bound for loop-head visits.
+# Only relevant in combination with a non-static adjuster for the bound for
+# loop-head visits.
 cpa.loopbound.maxLoopIterationsUpperBound = 0
 
 # Only checks for error after loops were unrolled at least this amount of
