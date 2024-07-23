@@ -261,6 +261,20 @@ public class SymbolicProgramConfiguration {
         mallocZeroMemory);
   }
 
+  public SymbolicProgramConfiguration withNewValueMappings(
+      ImmutableBiMap<Wrapper<Value>, SMGValue> pNewValueMappings) {
+    return new SymbolicProgramConfiguration(
+        smg,
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        pNewValueMappings,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
+  }
+
   public SymbolicProgramConfiguration copyAndRemoveHasValueEdges(
       SMGObject memory, Collection<SMGHasValueEdge> edgesToRemove) {
     SMG newSMG = smg.copyAndRemoveHVEdges(edgesToRemove, memory);
@@ -2190,5 +2204,39 @@ public class SymbolicProgramConfiguration {
 
   ImmutableBiMap<Wrapper<Value>, SMGValue> getValueToSMGValueMapping() {
     return valueMapping;
+  }
+
+  public SymbolicProgramConfiguration removeUnusedValues() {
+    PersistentMap<SMGValue, PersistentMap<SMGObject, Integer>> valuesToRegionsTheyAreSavedIn =
+        smg.getValuesToRegionsTheyAreSavedIn();
+    Set<SMGValue> allValues = smg.getValues().keySet();
+    SymbolicProgramConfiguration newSPC = this;
+    ImmutableSet.Builder<SMGValue> valueMappingsToRemoveBuilder = ImmutableSet.builder();
+    SMG newSMG = smg;
+    for (SMGValue value : allValues) {
+      Optional<Value> maybeMapping = getValueFromSMGValue(value);
+      // Don't remove zero ever
+      // Remove everything that is not used and not a numeric value
+      //   (they don't do harm and having a mapping is quicker later)
+      if (!value.isZero()
+          && !valuesToRegionsTheyAreSavedIn.containsKey(value)
+          && (maybeMapping.isEmpty() || !maybeMapping.orElseThrow().isNumericValue())) {
+        // Remove from PTEs and values
+        if (newSMG.isPointer(value)) {
+          newSMG = newSPC.getSmg().copyAndRemovePointsToEdge(value);
+        }
+        newSMG = newSMG.copyAndRemoveValue(value);
+        valueMappingsToRemoveBuilder.add();
+      }
+    }
+    newSPC = newSPC.copyAndReplaceSMG(newSMG);
+    ImmutableBiMap.Builder<Wrapper<Value>, SMGValue> newValueMapping = ImmutableBiMap.builder();
+    ImmutableSet<SMGValue> valueMappingsToRemove = valueMappingsToRemoveBuilder.build();
+    for (Entry<Wrapper<Value>, SMGValue> mappedValue : valueMapping.entrySet()) {
+      if (!valueMappingsToRemove.contains(mappedValue.getValue())) {
+        newValueMapping.put(mappedValue);
+      }
+    }
+    return newSPC.withNewValueMappings(newValueMapping.build());
   }
 }
