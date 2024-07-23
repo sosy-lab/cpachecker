@@ -911,7 +911,7 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 	return transformWrapperToJava(env, fp, to_type);
 }
 
-JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castCharToFp(JNIEnv* env, jclass cl, jbyte number, jint to_fp_type) {
+JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castByteToFp(JNIEnv* env, jclass cl, jbyte number, jint to_fp_type) {
 	t_ld fp = { .ld_value = 0.0L };
         switch(to_fp_type) {
                 case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
