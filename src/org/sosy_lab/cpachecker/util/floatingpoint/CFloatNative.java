@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.primitives.Ints.max;
 
 import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.DoNotCall;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 
 /**
  * C based implementation of the {@link CFloat} interface.
@@ -25,52 +24,45 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 @Deprecated
 class CFloatNative extends CFloat {
   private final CFloatWrapper wrapper;
-  private final int type;
+  private final CFloatType type;
 
-  public CFloatNative(String rep, int pType) {
-    wrapper = CFloatNativeAPI.createFp(rep, pType);
+  public CFloatNative(String rep, CFloatType pType) {
+    wrapper = CFloatNativeAPI.createFp(rep, pType.ordinal());
     type = pType;
   }
 
-  public CFloatNative(String rep, Format pFormat) {
-    // TODO: Add support for 80bit x87 floats
-    int pType = -1;
-    if (pFormat.equals(Format.Float32)) {
-      pType = CNativeType.SINGLE.getOrdinal();
-    }
-    if (pFormat.equals(Format.Float64)) {
-      pType = CNativeType.DOUBLE.getOrdinal();
-    }
-    if (pFormat.equals(Format.Extended)) {
-      pType = CNativeType.LONG_DOUBLE.getOrdinal();
-    }
-    checkArgument(pType >= 0);
-    wrapper = CFloatNativeAPI.createFp(rep, pType);
-    type = pType;
-  }
-
-  public CFloatNative(CFloatWrapper pWrapper, int pType) {
+  public CFloatNative(CFloatWrapper pWrapper, CFloatType pType) {
     wrapper = pWrapper;
     type = pType;
+  }
+
+  /** Get the float type with the given ordinal */
+  private CFloatType toFloatType(int ordinal) {
+    return CFloatType.values()[ordinal];
   }
 
   @Override
   public CFloat add(CFloat summand) {
     CFloatWrapper newFloat =
-        CFloatNativeAPI.addFp(wrapper, type, summand.copyWrapper(), summand.getType());
-    return new CFloatNative(newFloat, max(type, summand.getType()));
+        CFloatNativeAPI.addFp(
+            wrapper, type.ordinal(), summand.copyWrapper(), summand.getType().ordinal());
+    return new CFloatNative(
+        newFloat, toFloatType(max(type.ordinal(), summand.getType().ordinal())));
   }
 
   public CFloat add3(CFloat summand1, CFloat summand2) {
     CFloatWrapper newFloat =
         CFloatNativeAPI.add3Fp(
             wrapper,
-            type,
+            type.ordinal(),
             summand1.copyWrapper(),
-            summand1.getType(),
+            summand1.getType().ordinal(),
             summand2.copyWrapper(),
-            summand2.getType());
-    return new CFloatNative(newFloat, max(type, summand1.getType(), summand1.getType()));
+            summand2.getType().ordinal());
+    return new CFloatNative(
+        newFloat,
+        toFloatType(
+            max(type.ordinal(), summand1.getType().ordinal(), summand1.getType().ordinal())));
   }
 
   @Override
@@ -90,14 +82,15 @@ class CFloatNative extends CFloat {
     maxType = constructParametersForMultiOperation(index, maxType, wrappers, types, summands);
 
     CFloatWrapper newFloat = CFloatNativeAPI.addManyFp(wrapper, types, wrappers);
-    return new CFloatNative(newFloat, maxType);
+    return new CFloatNative(newFloat, toFloatType(maxType));
   }
 
   @Override
   public CFloat multiply(CFloat factor) {
     CFloatWrapper newFloat =
-        CFloatNativeAPI.multiplyFp(wrapper, type, factor.copyWrapper(), factor.getType());
-    return new CFloatNative(newFloat, max(type, factor.getType()));
+        CFloatNativeAPI.multiplyFp(
+            wrapper, type.ordinal(), factor.copyWrapper(), factor.getType().ordinal());
+    return new CFloatNative(newFloat, toFloatType(max(type.ordinal(), factor.getType().ordinal())));
   }
 
   @Override
@@ -117,41 +110,47 @@ class CFloatNative extends CFloat {
     maxType = constructParametersForMultiOperation(index, maxType, wrappers, types, factors);
 
     CFloatWrapper newFloat = CFloatNativeAPI.multiplyManyFp(wrapper, types, wrappers);
-    return new CFloatNative(newFloat, maxType);
+    return new CFloatNative(newFloat, toFloatType(maxType));
   }
 
   @Override
   public CFloat subtract(CFloat subtrahend) {
     CFloatWrapper newFloat =
-        CFloatNativeAPI.subtractFp(wrapper, type, subtrahend.copyWrapper(), subtrahend.getType());
+        CFloatNativeAPI.subtractFp(
+            wrapper, type.ordinal(), subtrahend.copyWrapper(), subtrahend.getType().ordinal());
 
-    return new CFloatNative(newFloat, max(type, subtrahend.getType()));
+    return new CFloatNative(
+        newFloat, toFloatType(max(type.ordinal(), subtrahend.getType().ordinal())));
   }
 
   @Override
   public CFloatNative divideBy(CFloat divisor) {
     CFloatWrapper newFloat =
-        CFloatNativeAPI.divideFp(wrapper, type, divisor.copyWrapper(), divisor.getType());
+        CFloatNativeAPI.divideFp(
+            wrapper, type.ordinal(), divisor.copyWrapper(), divisor.getType().ordinal());
 
-    return new CFloatNative(newFloat, max(type, divisor.getType()));
+    return new CFloatNative(
+        newFloat, toFloatType(max(type.ordinal(), divisor.getType().ordinal())));
   }
 
   @Override
   public CFloat ln() {
-    return new CFloatNative(CFloatNativeAPI.logFp(wrapper, type), type);
+    return new CFloatNative(CFloatNativeAPI.logFp(wrapper, type.ordinal()), type);
   }
 
   @Override
   public CFloat exp() {
-    return new CFloatNative(CFloatNativeAPI.expFp(wrapper, type), type);
+    return new CFloatNative(CFloatNativeAPI.expFp(wrapper, type.ordinal()), type);
   }
 
   @Override
   public CFloat powTo(CFloat exponent) {
     CFloatWrapper newFloat =
-        CFloatNativeAPI.powFp(wrapper, type, exponent.copyWrapper(), exponent.getType());
+        CFloatNativeAPI.powFp(
+            wrapper, type.ordinal(), exponent.copyWrapper(), exponent.getType().ordinal());
 
-    return new CFloatNative(newFloat, max(type, exponent.getType()));
+    return new CFloatNative(
+        newFloat, toFloatType(max(type.ordinal(), exponent.getType().ordinal())));
   }
 
   @Override
@@ -159,75 +158,75 @@ class CFloatNative extends CFloat {
     // FIXME: Add support for negative integer exponent in floatingPoints.c
     Preconditions.checkArgument(0 <= exponent, "Negative exponents not supported");
 
-    CFloatWrapper newFloat = CFloatNativeAPI.powIntegralFp(wrapper, exponent, type);
+    CFloatWrapper newFloat = CFloatNativeAPI.powIntegralFp(wrapper, exponent, type.ordinal());
     return new CFloatNative(newFloat, type);
   }
 
   @Override
   public CFloat sqrt() {
-    CFloatWrapper newFloat = CFloatNativeAPI.sqrtFp(wrapper, type);
+    CFloatWrapper newFloat = CFloatNativeAPI.sqrtFp(wrapper, type.ordinal());
 
     return new CFloatNative(newFloat, type);
   }
 
   @Override
   public CFloat round() {
-    CFloatWrapper newFloat = CFloatNativeAPI.roundFp(wrapper, type);
+    CFloatWrapper newFloat = CFloatNativeAPI.roundFp(wrapper, type.ordinal());
 
     return new CFloatNative(newFloat, type);
   }
 
   @Override
   public CFloat trunc() {
-    CFloatWrapper newFloat = CFloatNativeAPI.truncFp(wrapper, type);
+    CFloatWrapper newFloat = CFloatNativeAPI.truncFp(wrapper, type.ordinal());
 
     return new CFloatNative(newFloat, type);
   }
 
   @Override
   public CFloat ceil() {
-    CFloatWrapper newFloat = CFloatNativeAPI.ceilFp(wrapper, type);
+    CFloatWrapper newFloat = CFloatNativeAPI.ceilFp(wrapper, type.ordinal());
 
     return new CFloatNative(newFloat, type);
   }
 
   @Override
   public CFloat floor() {
-    CFloatWrapper newFloat = CFloatNativeAPI.floorFp(wrapper, type);
+    CFloatWrapper newFloat = CFloatNativeAPI.floorFp(wrapper, type.ordinal());
 
     return new CFloatNative(newFloat, type);
   }
 
   @Override
   public CFloat abs() {
-    CFloatWrapper newFloat = CFloatNativeAPI.absFp(wrapper, type);
+    CFloatWrapper newFloat = CFloatNativeAPI.absFp(wrapper, type.ordinal());
 
     return new CFloatNative(newFloat, type);
   }
 
   @Override
   public boolean isZero() {
-    return CFloatNativeAPI.isZeroFp(wrapper, type);
+    return CFloatNativeAPI.isZeroFp(wrapper, type.ordinal());
   }
 
   @Override
   public boolean isOne() {
-    return CFloatNativeAPI.isOneFp(wrapper, type);
+    return CFloatNativeAPI.isOneFp(wrapper, type.ordinal());
   }
 
   @Override
   public boolean isNan() {
-    return CFloatNativeAPI.isNanFp(wrapper, type);
+    return CFloatNativeAPI.isNanFp(wrapper, type.ordinal());
   }
 
   @Override
   public boolean isInfinity() {
-    return CFloatNativeAPI.isInfinityFp(wrapper, type);
+    return CFloatNativeAPI.isInfinityFp(wrapper, type.ordinal());
   }
 
   @Override
   public boolean isNegative() {
-    return CFloatNativeAPI.isNegativeFp(wrapper, type);
+    return CFloatNativeAPI.isNegativeFp(wrapper, type.ordinal());
   }
 
   @Override
@@ -240,40 +239,41 @@ class CFloatNative extends CFloat {
               + source.getType()
               + " of second argument must not be different.");
     }
-    CFloatWrapper newFloat = CFloatNativeAPI.copySignFp(wrapper, source.copyWrapper(), type);
-
+    CFloatWrapper newFloat =
+        CFloatNativeAPI.copySignFp(wrapper, source.copyWrapper(), type.ordinal());
     return new CFloatNative(newFloat, type);
   }
 
   @Override
-  public CFloat castTo(CNativeType toType) {
-    CFloatWrapper newFloat = CFloatNativeAPI.castFpFromTo(wrapper, type, toType.getOrdinal());
-
-    return new CFloatNative(newFloat, toType.getOrdinal());
+  public CFloat castTo(CFloatType toType) {
+    CFloatWrapper newFloat =
+        CFloatNativeAPI.castFpFromTo(wrapper, type.ordinal(), toType.ordinal());
+    return new CFloatNative(newFloat, toType);
   }
 
   @DoNotCall("Always throws java.lang.UnsupportedOperationException")
-  public static CFloat castOtherTo(Number value, int fromType, int toType) {
+  public static CFloat castOtherTo(Number value, CIntegerType fromType, CFloatType toType) {
     throw new UnsupportedOperationException();
     // FIXME: castOtherToFP is currently broken, we should split it up like castFpToX to fix this
     /*
-    CFloatWrapper newFloat = CFloatNativeAPI.castOtherToFp(value, fromType, toType);
+    CFloatWrapper newFloat =
+        CFloatNativeAPI.castOtherToFp(value, fromType.ordinal(), toType.ordinal());
     return new CFloatNative(newFloat, toType);
     */
   }
 
   @Override
-  public Number castToOther(CNativeType toType) {
+  public Number castToOther(CIntegerType toType) {
     long r =
         switch (toType) {
-          case CHAR -> CFloatNativeAPI.castFpToByte(wrapper, type);
-          case SHORT -> CFloatNativeAPI.castFpToShort(wrapper, type);
-          case INT -> CFloatNativeAPI.castFpToInt(wrapper, type);
-          case LONG -> CFloatNativeAPI.castFpToLong(wrapper, type);
+          case CHAR -> CFloatNativeAPI.castFpToByte(wrapper, type.ordinal());
+          case SHORT -> CFloatNativeAPI.castFpToShort(wrapper, type.ordinal());
+          case INT -> CFloatNativeAPI.castFpToInt(wrapper, type.ordinal());
+          case LONG -> CFloatNativeAPI.castFpToLong(wrapper, type.ordinal());
           default -> throw new IllegalArgumentException();
         };
 
-    if (!trunc().equalTo(new CFloatNative(String.valueOf(r), getType()))) {
+    if (!trunc().equalTo(new CFloatNative(String.valueOf(r), type))) {
       // Throw an exception if the value was too large for the target type
       throw new IllegalArgumentException();
     }
@@ -282,18 +282,18 @@ class CFloatNative extends CFloat {
 
   private int constructParametersForMultiOperation(
       int index, int maxType, CFloatWrapper[] wrappers, int[] types, CFloat... summands) {
-    types[0] = type;
+    types[0] = type.ordinal();
     for (CFloat f : summands) {
       wrappers[index] = f.copyWrapper();
-      maxType = max(maxType, f.getType());
-      types[++index] = f.getType();
+      maxType = max(maxType, f.getType().ordinal());
+      types[++index] = f.getType().ordinal();
     }
     return maxType;
   }
 
   @Override
   public String toString() {
-    return CFloatNativeAPI.printFp(wrapper, type);
+    return CFloatNativeAPI.printFp(wrapper, type.ordinal());
   }
 
   @Override
@@ -302,38 +302,44 @@ class CFloatNative extends CFloat {
   }
 
   @Override
-  public int getType() {
+  public CFloatType getType() {
     return type;
   }
 
   @Override
   public boolean equalTo(CFloat other) {
-    return CFloatNativeAPI.isEqualFp(wrapper, type, other.copyWrapper(), other.getType());
+    return CFloatNativeAPI.isEqualFp(
+        wrapper, type.ordinal(), other.copyWrapper(), other.getType().ordinal());
   }
 
   @Override
   public boolean notEqualTo(CFloat other) {
-    return CFloatNativeAPI.isNotEqualFp(wrapper, type, other.copyWrapper(), other.getType());
+    return CFloatNativeAPI.isNotEqualFp(
+        wrapper, type.ordinal(), other.copyWrapper(), other.getType().ordinal());
   }
 
   @Override
   public boolean greaterThan(CFloat other) {
-    return CFloatNativeAPI.isGreaterFp(wrapper, type, other.copyWrapper(), other.getType());
+    return CFloatNativeAPI.isGreaterFp(
+        wrapper, type.ordinal(), other.copyWrapper(), other.getType().ordinal());
   }
 
   @Override
   public boolean greaterOrEqual(CFloat other) {
-    return CFloatNativeAPI.isGreaterEqualFp(wrapper, type, other.copyWrapper(), other.getType());
+    return CFloatNativeAPI.isGreaterEqualFp(
+        wrapper, type.ordinal(), other.copyWrapper(), other.getType().ordinal());
   }
 
   @Override
   public boolean lessThan(CFloat other) {
-    return CFloatNativeAPI.isLessFp(wrapper, type, other.copyWrapper(), other.getType());
+    return CFloatNativeAPI.isLessFp(
+        wrapper, type.ordinal(), other.copyWrapper(), other.getType().ordinal());
   }
 
   @Override
   public boolean lessOrEqual(CFloat other) {
-    return CFloatNativeAPI.isLessEqualFp(wrapper, type, other.copyWrapper(), other.getType());
+    return CFloatNativeAPI.isLessEqualFp(
+        wrapper, type.ordinal(), other.copyWrapper(), other.getType().ordinal());
   }
 
   @Override

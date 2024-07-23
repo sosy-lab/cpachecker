@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.TruthJUnit.assume;
@@ -32,7 +31,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /**
@@ -115,8 +115,8 @@ abstract class AbstractCFloatTestBase {
       return new BigFloat(
           val.isNegative(), val.getValue().getSignificand(), val.getValue().getExponent(), context);
     } else {
-      CNativeType toType = CFloatNativeAPI.toNativeType(value.getType());
-      if (value instanceof CFloatNative val && toType == CNativeType.LONG_DOUBLE) {
+      CFloatType toType = value.getType();
+      if (value instanceof CFloatNative val && toType == CFloatType.LONG_DOUBLE) {
         // Special case for "extended precision" with CFloatNative
         BinaryMathContext context = new BinaryMathContext(64, 15);
         if (val.isNan()) {
@@ -607,6 +607,19 @@ abstract class AbstractCFloatTestBase {
     return new CFloatImpl(repr, getFloatType());
   }
 
+  /** Convert Format to a matching native floating point type */
+  private static CFloatType toNativeType(Format pFormat) {
+    if (pFormat.equals(Format.Float32)) {
+      return CFloatType.SINGLE;
+    } else if (pFormat.equals(Format.Float64)) {
+      return CFloatType.DOUBLE;
+    } else if (pFormat.equals(Format.Extended)) {
+      return CFloatType.LONG_DOUBLE;
+    } else {
+      throw new IllegalArgumentException();
+    }
+  }
+
   /** Create a test value for the reference implementation. */
   CFloat toReferenceImpl(BigFloat value) {
     checkState(
@@ -627,7 +640,7 @@ abstract class AbstractCFloatTestBase {
                   ? new JDouble(
                       value.sign() ? Double.longBitsToDouble(0xFFF8000000000000L) : Float.NaN)
                   : new JDouble(value.doubleValue()));
-      case NATIVE -> new CFloatNative(toPlainString(value), getFloatType());
+      case NATIVE -> new CFloatNative(toPlainString(value), toNativeType(getFloatType()));
     };
   }
 
@@ -879,21 +892,6 @@ abstract class AbstractCFloatTestBase {
     testOperator("copySignFrom", 0, (CFloat a, CFloat b) -> a.copySignFrom(b));
   }
 
-  private CNativeType toNativeType(Format pFormat) {
-    int r = -1;
-    if (pFormat.equals(Format.Float32)) {
-      r = CNativeType.SINGLE.getOrdinal();
-    }
-    if (pFormat.equals(Format.Float64)) {
-      r = CNativeType.DOUBLE.getOrdinal();
-    }
-    if (pFormat.equals(Format.Extended)) {
-      r = CNativeType.LONG_DOUBLE.getOrdinal();
-    }
-    checkArgument(r >= 0);
-    return CFloatNativeAPI.toNativeType(r);
-  }
-
   @Test
   public void castToTest() {
     Format other = getFloatType().equals(Format.Float32) ? Format.Float64 : Format.Float32;
@@ -919,7 +917,7 @@ abstract class AbstractCFloatTestBase {
         "castToByteTest",
         (CFloat a) -> {
           try {
-            return a.castToOther(CNativeType.CHAR);
+            return a.castToOther(CIntegerType.CHAR);
           } catch (IllegalArgumentException e) {
             return 0;
           }
@@ -933,7 +931,7 @@ abstract class AbstractCFloatTestBase {
         "castToShortTest",
         (CFloat a) -> {
           try {
-            return a.castToOther(CNativeType.SHORT);
+            return a.castToOther(CIntegerType.SHORT);
           } catch (IllegalArgumentException e) {
             return 0;
           }
@@ -947,7 +945,7 @@ abstract class AbstractCFloatTestBase {
         "castToIntTest",
         (CFloat a) -> {
           try {
-            return a.castToOther(CNativeType.INT);
+            return a.castToOther(CIntegerType.INT);
           } catch (IllegalArgumentException e) {
             return 0;
           }
@@ -961,7 +959,7 @@ abstract class AbstractCFloatTestBase {
         "castToLongTest",
         (CFloat a) -> {
           try {
-            return a.castToOther(CNativeType.LONG);
+            return a.castToOther(CIntegerType.LONG);
           } catch (IllegalArgumentException e) {
             return 0;
           }

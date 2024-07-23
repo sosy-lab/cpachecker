@@ -25,49 +25,26 @@ class CFloatNativeAPI {
     NativeLibraries.loadLibrary("FloatingPoints");
   }
 
-  public enum CNativeType {
-    SINGLE(0),
-    DOUBLE(1),
-    LONG_DOUBLE(2),
-    CHAR(3),
-    SHORT(4),
-    INT(5),
-    LONG(6),
-    LONG_LONG(7),
-    UCHAR(8),
-    USHORT(9),
-    UINT(10),
-    ULONG(11),
-    ULONG_LONG(12);
-
-    private final int ordinal;
-
-    CNativeType(final int pOrdinal) {
-      ordinal = pOrdinal;
-    }
-
-    public int getOrdinal() {
-      return ordinal;
-    }
+  /** Native float types from C */
+  public enum CFloatType {
+    // DON'T CHANGE THIS ENUM WITHOUT UPDATING THE C HEADERS
+    SINGLE,
+    DOUBLE,
+    LONG_DOUBLE
   }
 
-  public static CNativeType toNativeType(int pType) {
-    return switch (pType) {
-      case 0 -> CNativeType.SINGLE;
-      case 1 -> CNativeType.DOUBLE;
-      case 2 -> CNativeType.LONG_DOUBLE;
-      case 3 -> CNativeType.CHAR;
-      case 4 -> CNativeType.SHORT;
-      case 5 -> CNativeType.INT;
-      case 6 -> CNativeType.LONG;
-      case 7 -> CNativeType.LONG_LONG;
-      case 8 -> CNativeType.UCHAR;
-      case 9 -> CNativeType.USHORT;
-      case 10 -> CNativeType.UINT;
-      case 11 -> CNativeType.ULONG;
-      case 12 -> CNativeType.ULONG_LONG;
-      default -> throw new IllegalArgumentException();
-    };
+  public enum CIntegerType {
+    // DON'T CHANGE THIS ENUM WITHOUT UPDATING THE C HEADERS
+    CHAR,
+    SHORT,
+    INT,
+    LONG,
+    LONG_LONG,
+    UCHAR,
+    USHORT,
+    UINT,
+    ULONG,
+    ULONG_LONG;
   }
 
   public static final CFloat ZERO_SINGLE;
@@ -82,33 +59,21 @@ class CFloatNativeAPI {
   public static final CFloat ONE_LONG_DOUBLE;
   public static final CFloat TEN_LONG_DOUBLE;
 
-  public static final int FP_TYPE_SINGLE = 0;
-  public static final int FP_TYPE_DOUBLE = 1;
-  public static final int FP_TYPE_LONG_DOUBLE = 2;
-
-  public static final int TYPE_CHAR = 3;
-  public static final int TYPE_SHORT = 4;
-  public static final int TYPE_INT = 5;
-  public static final int TYPE_LONG = 6;
-  public static final int TYPE_LONG_LONG = 7;
-  public static final int TYPE_UCHAR = 8;
-  public static final int TYPE_USHORT = 9;
-  public static final int TYPE_UINT = 10;
-  public static final int TYPE_ULONG = 11;
-  public static final int TYPE_ULONG_LONG = 12;
-
   static {
-    ZERO_SINGLE = new CFloatImpl(createFp("0.0", FP_TYPE_SINGLE), FP_TYPE_SINGLE);
-    ONE_SINGLE = new CFloatImpl(createFp("1.0", FP_TYPE_SINGLE), FP_TYPE_SINGLE);
-    TEN_SINGLE = new CFloatImpl(createFp("10.0", FP_TYPE_SINGLE), FP_TYPE_SINGLE);
+    ZERO_SINGLE = new CFloatImpl(createFp("0.0", CFloatType.SINGLE.ordinal()), CFloatType.SINGLE);
+    ONE_SINGLE = new CFloatImpl(createFp("1.0", CFloatType.SINGLE.ordinal()), CFloatType.SINGLE);
+    TEN_SINGLE = new CFloatImpl(createFp("10.0", CFloatType.SINGLE.ordinal()), CFloatType.SINGLE);
 
-    ZERO_DOUBLE = new CFloatImpl(createFp("0.0", FP_TYPE_DOUBLE), FP_TYPE_DOUBLE);
-    ONE_DOUBLE = new CFloatImpl(createFp("1.0", FP_TYPE_DOUBLE), FP_TYPE_DOUBLE);
-    TEN_DOUBLE = new CFloatImpl(createFp("10.0", FP_TYPE_DOUBLE), FP_TYPE_DOUBLE);
+    ZERO_DOUBLE = new CFloatImpl(createFp("0.0", CFloatType.DOUBLE.ordinal()), CFloatType.DOUBLE);
+    ONE_DOUBLE = new CFloatImpl(createFp("1.0", CFloatType.DOUBLE.ordinal()), CFloatType.DOUBLE);
+    TEN_DOUBLE = new CFloatImpl(createFp("10.0", CFloatType.DOUBLE.ordinal()), CFloatType.DOUBLE);
 
-    ZERO_LONG_DOUBLE = new CFloatImpl(createFp("0.0", FP_TYPE_LONG_DOUBLE), FP_TYPE_LONG_DOUBLE);
-    ONE_LONG_DOUBLE = new CFloatImpl(createFp("1.0", FP_TYPE_LONG_DOUBLE), FP_TYPE_LONG_DOUBLE);
-    TEN_LONG_DOUBLE = new CFloatImpl(createFp("10.0", FP_TYPE_LONG_DOUBLE), FP_TYPE_LONG_DOUBLE);
+    ZERO_LONG_DOUBLE =
+        new CFloatImpl(createFp("0.0", CFloatType.LONG_DOUBLE.ordinal()), CFloatType.LONG_DOUBLE);
+    ONE_LONG_DOUBLE =
+        new CFloatImpl(createFp("1.0", CFloatType.LONG_DOUBLE.ordinal()), CFloatType.LONG_DOUBLE);
+    TEN_LONG_DOUBLE =
+        new CFloatImpl(createFp("10.0", CFloatType.LONG_DOUBLE.ordinal()), CFloatType.LONG_DOUBLE);
   }
 
   public static native CFloatWrapper createFp(String stringRepresentation, int fp_type);

@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import static com.google.common.truth.Truth.assertThat;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 
 @SuppressWarnings("deprecation")
 public class CFloatTest {
@@ -22,20 +22,22 @@ public class CFloatTest {
    */
   @Test
   public void infTest() {
-    CFloat f_n1 = new CFloatNative("-1", CFloatNativeAPI.FP_TYPE_SINGLE);
-    CFloat d_n0 = new CFloatNative("-0.0", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    CFloat f_n1 = new CFloatNative("-1", CFloatNativeAPI.CFloatType.SINGLE);
+    CFloat d_n0 = new CFloatNative("-0.0", CFloatNativeAPI.CFloatType.DOUBLE);
 
     CFloat f_1 =
-        new CFloatNative(CFloatNativeAPI.ONE_SINGLE.copyWrapper(), CFloatNativeAPI.FP_TYPE_SINGLE);
+        new CFloatNative(
+            CFloatNativeAPI.ONE_SINGLE.copyWrapper(), CFloatNativeAPI.CFloatType.SINGLE);
     CFloat d_1 =
-        new CFloatNative(CFloatNativeAPI.ONE_DOUBLE.copyWrapper(), CFloatNativeAPI.FP_TYPE_DOUBLE);
+        new CFloatNative(
+            CFloatNativeAPI.ONE_DOUBLE.copyWrapper(), CFloatNativeAPI.CFloatType.DOUBLE);
     CFloat ld_1 =
         new CFloatNative(
-            CFloatNativeAPI.ONE_LONG_DOUBLE.copyWrapper(), CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+            CFloatNativeAPI.ONE_LONG_DOUBLE.copyWrapper(), CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
-    CFloat cf_f = new CFloatNative("0.0", CFloatNativeAPI.FP_TYPE_SINGLE);
-    CFloat cf_d = new CFloatNative("0.0", CFloatNativeAPI.FP_TYPE_DOUBLE);
-    CFloat cf_ld = new CFloatNative("0.0", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    CFloat cf_f = new CFloatNative("0.0", CFloatNativeAPI.CFloatType.SINGLE);
+    CFloat cf_d = new CFloatNative("0.0", CFloatNativeAPI.CFloatType.DOUBLE);
+    CFloat cf_ld = new CFloatNative("0.0", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
     assertThat(f_1.divideBy(cf_f).toString()).isEqualTo("inf");
     assertThat(f_1.divideBy(cf_d).toString()).isEqualTo("inf");
@@ -67,9 +69,9 @@ public class CFloatTest {
 
   @Test
   public void nanTest() {
-    CFloat cf_f = new CFloatNative("0.0", CFloatNativeAPI.FP_TYPE_SINGLE);
-    CFloat cf_d = new CFloatNative("0.0", CFloatNativeAPI.FP_TYPE_DOUBLE);
-    CFloat cf_ld = new CFloatNative("0.0", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    CFloat cf_f = new CFloatNative("0.0", CFloatNativeAPI.CFloatType.SINGLE);
+    CFloat cf_d = new CFloatNative("0.0", CFloatNativeAPI.CFloatType.DOUBLE);
+    CFloat cf_ld = new CFloatNative("0.0", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
     assertThat(cf_f.divideBy(cf_f).toString()).isEqualTo("-nan");
     assertThat(cf_f.divideBy(cf_d).toString()).isEqualTo("-nan");
@@ -84,8 +86,9 @@ public class CFloatTest {
     assertThat(cf_ld.divideBy(cf_ld).toString()).isEqualTo("-nan");
 
     CFloat f_1 =
-        new CFloatNative(CFloatNativeAPI.ONE_SINGLE.copyWrapper(), CFloatNativeAPI.FP_TYPE_SINGLE);
-    CFloat f_n1 = new CFloatNative("-1", CFloatNativeAPI.FP_TYPE_SINGLE);
+        new CFloatNative(
+            CFloatNativeAPI.ONE_SINGLE.copyWrapper(), CFloatNativeAPI.CFloatType.SINGLE);
+    CFloat f_n1 = new CFloatNative("-1", CFloatNativeAPI.CFloatType.SINGLE);
     CFloat inf_f = f_1.divideBy(cf_f);
     CFloat inf_nf = f_n1.divideBy(cf_f);
 
@@ -100,19 +103,19 @@ public class CFloatTest {
 
   @Test
   public void formatTest() {
-    CFloat cf_f = new CFloatNative("71236.262625", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat cf_f = new CFloatNative("71236.262625", CFloatNativeAPI.CFloatType.SINGLE);
     CFloat cf_d =
-        new CFloatNative("7891274812.82489681243896484375", CFloatNativeAPI.FP_TYPE_DOUBLE);
+        new CFloatNative("7891274812.82489681243896484375", CFloatNativeAPI.CFloatType.DOUBLE);
     CFloat cf_ld =
-        new CFloatNative("82173928379128.897125244140625", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
-    CFloat cf_f2 = new CFloatNative("10.0", CFloatNativeAPI.FP_TYPE_SINGLE);
+        new CFloatNative("82173928379128.897125244140625", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
+    CFloat cf_f2 = new CFloatNative("10.0", CFloatNativeAPI.CFloatType.SINGLE);
 
     assertThat(cf_f.toString()).isEqualTo("7.12362656e+04");
     assertThat(cf_f2.toString()).isEqualTo("1.00000000e+01");
     assertThat(cf_d.toString()).isEqualTo("7.8912748128248968e+09");
     assertThat(cf_ld.toString()).isEqualTo("8.21739283791288971252e+13");
 
-    CFloatNative two = new CFloatNative("2.0", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloatNative two = new CFloatNative("2.0", CFloatNativeAPI.CFloatType.SINGLE);
     cf_ld = cf_ld.multiply(two);
 
     assertThat(cf_ld.toString()).isEqualTo("1.64347856758257794250e+14");
@@ -148,9 +151,9 @@ public class CFloatTest {
 
   @Test
   public void zeroTest() {
-    CFloatNative zero = new CFloatNative("0.0", CFloatNativeAPI.FP_TYPE_DOUBLE);
-    CFloatNative nZero = new CFloatNative("-0.0", CFloatNativeAPI.FP_TYPE_DOUBLE);
-    CFloatNative nOne = new CFloatNative("-1.0", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    CFloatNative zero = new CFloatNative("0.0", CFloatNativeAPI.CFloatType.DOUBLE);
+    CFloatNative nZero = new CFloatNative("-0.0", CFloatNativeAPI.CFloatType.DOUBLE);
+    CFloatNative nOne = new CFloatNative("-1.0", CFloatNativeAPI.CFloatType.DOUBLE);
 
     assertThat(zero.add(nZero).toString()).isEqualTo("0.0000000000000000e+00");
     assertThat(nZero.add(zero).toString()).isEqualTo("0.0000000000000000e+00");
@@ -168,9 +171,9 @@ public class CFloatTest {
 
   @Test
   public void additionTest() {
-    CFloat ten = new CFloatImpl("10", CFloatNativeAPI.FP_TYPE_DOUBLE);
-    CFloat five = new CFloatImpl("5", CFloatNativeAPI.FP_TYPE_SINGLE);
-    CFloat nOne = new CFloatImpl("-1", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    CFloat ten = new CFloatImpl("10", CFloatNativeAPI.CFloatType.DOUBLE);
+    CFloat five = new CFloatImpl("5", CFloatNativeAPI.CFloatType.SINGLE);
+    CFloat nOne = new CFloatImpl("-1", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
     CFloatNative p = new CFloatNative(ten.copyWrapper(), ten.getType());
     CFloatNative q = new CFloatNative(five.copyWrapper(), five.getType());
@@ -178,22 +181,22 @@ public class CFloatTest {
     assertThat(q.toString()).isEqualTo("5.00000000e+00");
 
     CFloat res = ten.add(ten);
-    p = new CFloatNative(res.copyWrapper(), CFloatNativeAPI.FP_TYPE_DOUBLE);
+    p = new CFloatNative(res.copyWrapper(), CFloatNativeAPI.CFloatType.DOUBLE);
     assertThat(p.toString()).isEqualTo("2.0000000000000000e+01");
 
     res = res.add(ten, ten, five);
-    p = new CFloatNative(res.copyWrapper(), CFloatNativeAPI.FP_TYPE_DOUBLE);
+    p = new CFloatNative(res.copyWrapper(), CFloatNativeAPI.CFloatType.DOUBLE);
     assertThat(p.toString()).isEqualTo("4.5000000000000000e+01");
 
     res = res.add(nOne, nOne, nOne);
-    p = new CFloatNative(res.copyWrapper(), CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    p = new CFloatNative(res.copyWrapper(), CFloatNativeAPI.CFloatType.LONG_DOUBLE);
     assertThat(p.toString()).isEqualTo("4.20000000000000000000e+01");
   }
 
   @Test
   public void additionTest_With_Overflowing_Floats() {
-    CFloat a = new CFloatNative("1.00000011920928955078125", CFloatNativeAPI.FP_TYPE_SINGLE);
-    CFloat b = new CFloatNative("0.000000059604644775390625", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat a = new CFloatNative("1.00000011920928955078125", CFloatNativeAPI.CFloatType.SINGLE);
+    CFloat b = new CFloatNative("0.000000059604644775390625", CFloatNativeAPI.CFloatType.SINGLE);
 
     CFloat aI = new CFloatImpl(a.copyWrapper(), a.getType());
     CFloat bI = new CFloatImpl(b.copyWrapper(), b.getType());
@@ -246,11 +249,11 @@ public class CFloatTest {
     CFloat a =
         new CFloatNative(
             "1.0000000000000002220446049250313080847263336181640625",
-            CFloatNativeAPI.FP_TYPE_DOUBLE);
+            CFloatNativeAPI.CFloatType.DOUBLE);
     CFloat b =
         new CFloatNative(
             "0.00000000000000011102230246251565404236316680908203125",
-            CFloatNativeAPI.FP_TYPE_DOUBLE);
+            CFloatNativeAPI.CFloatType.DOUBLE);
 
     CFloat aI = new CFloatImpl(a.copyWrapper(), a.getType());
     CFloat bI = new CFloatImpl(b.copyWrapper(), b.getType());
@@ -281,8 +284,8 @@ public class CFloatTest {
 
   @Test
   public void multiplicationTest() {
-    CFloat a = new CFloatImpl("2", CFloatNativeAPI.FP_TYPE_SINGLE);
-    CFloat b = new CFloatImpl("3", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat a = new CFloatImpl("2", CFloatNativeAPI.CFloatType.SINGLE);
+    CFloat b = new CFloatImpl("3", CFloatNativeAPI.CFloatType.SINGLE);
 
     CFloat res = a.multiply(b);
     CFloat cRes = new CFloatNative(res.copyWrapper(), res.getType());
@@ -303,54 +306,54 @@ public class CFloatTest {
 
   @Test
   public void createTest() {
-    CFloat a = new CFloatImpl("12345.0", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    CFloat a = new CFloatImpl("12345.0", CFloatNativeAPI.CFloatType.DOUBLE);
     CFloat test = new CFloatNative(a.copyWrapper(), a.getType());
 
     assertThat(test.toString()).isEqualTo("1.2345000000000000e+04");
 
-    CFloat b = new CFloatImpl("-2345.0", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    CFloat b = new CFloatImpl("-2345.0", CFloatNativeAPI.CFloatType.DOUBLE);
     test = new CFloatNative(b.copyWrapper(), b.getType());
 
     assertThat(test.toString()).isEqualTo("-2.3450000000000000e+03");
 
-    a = new CFloatImpl("1235124562371616235", CFloatNativeAPI.FP_TYPE_SINGLE);
-    b = new CFloatNative("1235124562371616235", CFloatNativeAPI.FP_TYPE_SINGLE);
+    a = new CFloatImpl("1235124562371616235", CFloatNativeAPI.CFloatType.SINGLE);
+    b = new CFloatNative("1235124562371616235", CFloatNativeAPI.CFloatType.SINGLE);
 
     assertThat(b.toString()).isEqualTo("1.23512457e+18");
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString())
         .isEqualTo("1.23512457e+18");
 
-    a = new CFloatImpl("0.1235124562371616235", CFloatNativeAPI.FP_TYPE_SINGLE);
-    b = new CFloatNative("0.1235124562371616235", CFloatNativeAPI.FP_TYPE_SINGLE);
+    a = new CFloatImpl("0.1235124562371616235", CFloatNativeAPI.CFloatType.SINGLE);
+    b = new CFloatNative("0.1235124562371616235", CFloatNativeAPI.CFloatType.SINGLE);
 
     assertThat(b.toString()).isEqualTo("1.23512454e-01");
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString())
         .isEqualTo("1.23512454e-01");
 
-    a = new CFloatImpl("8388609", CFloatNativeAPI.FP_TYPE_SINGLE);
-    b = new CFloatNative("8388609", CFloatNativeAPI.FP_TYPE_SINGLE);
+    a = new CFloatImpl("8388609", CFloatNativeAPI.CFloatType.SINGLE);
+    b = new CFloatNative("8388609", CFloatNativeAPI.CFloatType.SINGLE);
 
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
-    a = new CFloatImpl("16777217", CFloatNativeAPI.FP_TYPE_SINGLE);
-    b = new CFloatNative("16777217", CFloatNativeAPI.FP_TYPE_SINGLE);
+    a = new CFloatImpl("16777217", CFloatNativeAPI.CFloatType.SINGLE);
+    b = new CFloatNative("16777217", CFloatNativeAPI.CFloatType.SINGLE);
 
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
-    a = new CFloatImpl("36893488147419103233", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
-    b = new CFloatNative("36893488147419103233", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    a = new CFloatImpl("36893488147419103233", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
+    b = new CFloatNative("36893488147419103233", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
     assertThat(b.toString()).isEqualTo("3.68934881474191032320e+19");
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
-    a = new CFloatImpl("18446744073709551617", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
-    b = new CFloatNative("18446744073709551617", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    a = new CFloatImpl("18446744073709551617", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
+    b = new CFloatNative("18446744073709551617", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
     assertThat(b.toString()).isEqualTo("1.84467440737095516160e+19");
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
-    a = new CFloatImpl("36893488147419103235", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
-    b = new CFloatNative("36893488147419103235", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    a = new CFloatImpl("36893488147419103235", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
+    b = new CFloatNative("36893488147419103235", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
     assertThat(b.toString()).isEqualTo("3.68934881474191032360e+19");
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
@@ -362,12 +365,12 @@ public class CFloatTest {
         new CFloatNative(
             new CFloatWrapper(
                 17000L, 0b11000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L),
-            CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+            CFloatNativeAPI.CFloatType.LONG_DOUBLE);
     CFloat b =
         new CFloatNative(
             new CFloatWrapper(
                 17063L, 0b11000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L),
-            CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+            CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
     assertThat(a.add(b).toString()).isEqualTo("7.52468476516967798424e+204");
 
@@ -375,7 +378,7 @@ public class CFloatTest {
         new CFloatNative(
             new CFloatWrapper(
                 17064L, 0b11000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L),
-            CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+            CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
     assertThat(a.add(b).toString()).isEqualTo("1.50493695303393559674e+205");
 
@@ -383,7 +386,7 @@ public class CFloatTest {
         new CFloatNative(
             new CFloatWrapper(
                 17065L, 0b11000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L),
-            CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+            CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
     assertThat(a.add(b).toString()).isEqualTo("3.00987390606787119326e+205");
 
@@ -391,12 +394,12 @@ public class CFloatTest {
         new CFloatImpl(
             new CFloatWrapper(
                 17000L, 0b11000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L),
-            CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+            CFloatNativeAPI.CFloatType.LONG_DOUBLE);
     b =
         new CFloatImpl(
             new CFloatWrapper(
                 17063L, 0b11000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L),
-            CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+            CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
     assertThat(new CFloatNative(a.add(b).copyWrapper(), a.getType()).toString())
         .isEqualTo("7.52468476516967798424e+204");
@@ -404,7 +407,7 @@ public class CFloatTest {
         new CFloatImpl(
             new CFloatWrapper(
                 17064L, 0b11000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L),
-            CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+            CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
     assertThat(new CFloatNative(a.add(b).copyWrapper(), a.getType()).toString())
         .isEqualTo("1.50493695303393559674e+205");
@@ -412,7 +415,7 @@ public class CFloatTest {
         new CFloatImpl(
             new CFloatWrapper(
                 17065L, 0b11000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L),
-            CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+            CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
     assertThat(new CFloatNative(a.add(b).copyWrapper(), a.getType()).toString())
         .isEqualTo("3.00987390606787119326e+205");
@@ -436,7 +439,7 @@ public class CFloatTest {
             0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_01111101L,
             0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000010L);
 
-    CFloat aI = new CFloatImpl(wrapperA, CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat aI = new CFloatImpl(wrapperA, CFloatNativeAPI.CFloatType.SINGLE);
     CFloat bI = new CFloatImpl(wrapperB, aI.getType());
 
     assertThat(aI.subtract(bI).copyWrapper().getMantissa()).isEqualTo(0);
@@ -466,7 +469,7 @@ public class CFloatTest {
             0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_01111101L,
             0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000010L);
 
-    aI = new CFloatImpl(wrapperA, CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    aI = new CFloatImpl(wrapperA, CFloatNativeAPI.CFloatType.LONG_DOUBLE);
     bI = new CFloatImpl(wrapperB, aI.getType());
 
     assertThat(aI.subtract(bI).copyWrapper().getMantissa()).isEqualTo(-9223372036854775808L);
@@ -486,8 +489,8 @@ public class CFloatTest {
     assertThat(aI.subtract(bI).copyWrapper().getExponent()).isEqualTo(127);
     assertThat(bI.subtract(aI).copyWrapper().getExponent()).isEqualTo(32895);
 
-    CFloat a = new CFloatNative("12345.03125", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
-    CFloat b = new CFloatNative("0.0001220703125", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat a = new CFloatNative("12345.03125", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
+    CFloat b = new CFloatNative("0.0001220703125", CFloatNativeAPI.CFloatType.SINGLE);
 
     aI = new CFloatImpl(a.copyWrapper(), a.getType());
     bI = new CFloatImpl(b.copyWrapper(), b.getType());
@@ -503,12 +506,12 @@ public class CFloatTest {
 
   @Test
   public void isZeroTest() {
-    CFloat a = new CFloatImpl("0.0", CFloatNativeAPI.FP_TYPE_SINGLE);
-    CFloat b = new CFloatNative("0.0", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat a = new CFloatImpl("0.0", CFloatNativeAPI.CFloatType.SINGLE);
+    CFloat b = new CFloatNative("0.0", CFloatNativeAPI.CFloatType.SINGLE);
 
     assertThat(a.isZero()).isEqualTo(b.isZero());
 
-    CFloat c = new CFloatImpl("-1.0", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat c = new CFloatImpl("-1.0", CFloatNativeAPI.CFloatType.SINGLE);
 
     assertThat(new CFloatNative(c.copyWrapper(), c.getType()).toString())
         .isEqualTo("-1.00000000e+00");
@@ -524,22 +527,22 @@ public class CFloatTest {
 
   @Test
   public void divisionTest() {
-    CFloat a = new CFloatImpl("4", CFloatNativeAPI.FP_TYPE_DOUBLE);
-    CFloat b = new CFloatImpl("2", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat a = new CFloatImpl("4", CFloatNativeAPI.CFloatType.DOUBLE);
+    CFloat b = new CFloatImpl("2", CFloatNativeAPI.CFloatType.SINGLE);
 
     CFloat c = a.divideBy(b).divideBy(a);
     c = new CFloatNative(a.divideBy(c).copyWrapper(), a.getType());
 
     assertThat(c.toString()).isEqualTo("8.0000000000000000e+00");
 
-    CFloat d = new CFloatImpl("12.5625", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    CFloat d = new CFloatImpl("12.5625", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
     assertThat(new CFloatNative(d.copyWrapper(), d.getType()).toString())
         .isEqualTo("1.25625000000000000000e+01");
   }
 
   @Test
   public void truncTest() {
-    CFloat a = new CFloatImpl("-0.25", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat a = new CFloatImpl("-0.25", CFloatNativeAPI.CFloatType.SINGLE);
     CFloat b = new CFloatNative(a.copyWrapper(), a.getType());
 
     assertThat(b.toString()).isEqualTo("-2.50000000e-01");
@@ -553,7 +556,7 @@ public class CFloatTest {
     assertThat(b.isNegative()).isTrue();
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
-    a = new CFloatImpl("123.625", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    a = new CFloatImpl("123.625", CFloatNativeAPI.CFloatType.DOUBLE);
     b = new CFloatNative(a.copyWrapper(), a.getType());
 
     assertThat(b.toString()).isEqualTo("1.2362500000000000e+02");
@@ -564,7 +567,7 @@ public class CFloatTest {
     assertThat(b.toString()).isEqualTo("1.2300000000000000e+02");
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
-    a = new CFloatImpl("12345667", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    a = new CFloatImpl("12345667", CFloatNativeAPI.CFloatType.DOUBLE);
     b = new CFloatNative(a.copyWrapper(), a.getType());
 
     assertThat(b.toString()).isEqualTo("1.2345667000000000e+07");
@@ -573,7 +576,7 @@ public class CFloatTest {
 
   @Test
   public void roundTest() {
-    CFloat a = new CFloatImpl("2134.5625", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    CFloat a = new CFloatImpl("2134.5625", CFloatNativeAPI.CFloatType.DOUBLE);
     CFloat b = new CFloatNative(a.copyWrapper(), a.getType());
 
     assertThat(b.toString()).isEqualTo("2.1345625000000000e+03");
@@ -587,7 +590,7 @@ public class CFloatTest {
     assertThat(a.copyWrapper().getMantissa())
         .isEqualTo(b.copyWrapper().getMantissa() & b.getNormalizedMantissaMask());
 
-    a = new CFloatImpl("-2134.5625", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    a = new CFloatImpl("-2134.5625", CFloatNativeAPI.CFloatType.DOUBLE);
     b = new CFloatNative(a.copyWrapper(), a.getType());
 
     assertThat(b.toString()).isEqualTo("-2.1345625000000000e+03");
@@ -601,7 +604,7 @@ public class CFloatTest {
     assertThat(a.copyWrapper().getMantissa())
         .isEqualTo(b.copyWrapper().getMantissa() & b.getNormalizedMantissaMask());
 
-    a = new CFloatImpl("-2134.3125", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    a = new CFloatImpl("-2134.3125", CFloatNativeAPI.CFloatType.DOUBLE);
     b = new CFloatNative(a.copyWrapper(), a.getType());
 
     assertThat(b.toString()).isEqualTo("-2.1343125000000000e+03");
@@ -615,7 +618,7 @@ public class CFloatTest {
     assertThat(a.copyWrapper().getMantissa())
         .isEqualTo(b.copyWrapper().getMantissa() & b.getNormalizedMantissaMask());
 
-    a = new CFloatImpl("63.96875", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    a = new CFloatImpl("63.96875", CFloatNativeAPI.CFloatType.DOUBLE);
     b = new CFloatNative(a.copyWrapper(), a.getType());
 
     assertThat(b.toString()).isEqualTo("6.3968750000000000e+01");
@@ -633,8 +636,8 @@ public class CFloatTest {
 
   @Test
   public void divisionTest_2() {
-    CFloat a = new CFloatImpl("625", CFloatNativeAPI.FP_TYPE_DOUBLE);
-    CFloat b = new CFloatImpl("1000", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    CFloat a = new CFloatImpl("625", CFloatNativeAPI.CFloatType.DOUBLE);
+    CFloat b = new CFloatImpl("1000", CFloatNativeAPI.CFloatType.DOUBLE);
 
     CFloat c = new CFloatNative(a.copyWrapper(), a.getType());
     CFloat d = new CFloatNative(b.copyWrapper(), b.getType());
@@ -651,9 +654,9 @@ public class CFloatTest {
     assertThat(e.copyWrapper().getMantissa())
         .isEqualTo(f.copyWrapper().getMantissa() & b.getNormalizedMantissaMask());
 
-    a = new CFloatImpl("96875", CFloatNativeAPI.FP_TYPE_DOUBLE);
-    b = new CFloatImpl("100000", CFloatNativeAPI.FP_TYPE_DOUBLE);
-    CFloat one = new CFloatImpl("1", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    a = new CFloatImpl("96875", CFloatNativeAPI.CFloatType.DOUBLE);
+    b = new CFloatImpl("100000", CFloatNativeAPI.CFloatType.DOUBLE);
+    CFloat one = new CFloatImpl("1", CFloatNativeAPI.CFloatType.DOUBLE);
 
     c = new CFloatNative(a.copyWrapper(), a.getType());
     d = new CFloatNative(b.copyWrapper(), b.getType());
@@ -671,8 +674,8 @@ public class CFloatTest {
     assertThat(e.copyWrapper().getMantissa())
         .isEqualTo(f.copyWrapper().getMantissa() & b.getNormalizedMantissaMask());
 
-    a = new CFloatImpl("87500", CFloatNativeAPI.FP_TYPE_DOUBLE);
-    b = new CFloatImpl("100000", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    a = new CFloatImpl("87500", CFloatNativeAPI.CFloatType.DOUBLE);
+    b = new CFloatImpl("100000", CFloatNativeAPI.CFloatType.DOUBLE);
 
     c = new CFloatNative(a.copyWrapper(), a.getType());
     d = new CFloatNative(b.copyWrapper(), b.getType());
@@ -695,7 +698,7 @@ public class CFloatTest {
     CFloat one = CFloatNativeAPI.ONE_DOUBLE;
     CFloat nOne = new CFloatNative(one.copyWrapper(), one.getType());
 
-    CFloat a = new CFloatImpl("123348857384573888", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    CFloat a = new CFloatImpl("123348857384573888", CFloatNativeAPI.CFloatType.DOUBLE);
     CFloat b = new CFloatNative(a.copyWrapper(), a.getType());
 
     assertThat(b.toString()).isEqualTo("1.2334885738457389e+17");
@@ -707,7 +710,7 @@ public class CFloatTest {
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString())
         .isEqualTo("8.1070876634246049e-18");
 
-    a = new CFloatImpl("123", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    a = new CFloatImpl("123", CFloatNativeAPI.CFloatType.DOUBLE);
     b = new CFloatNative(a.copyWrapper(), a.getType());
 
     assertThat(b.toString()).isEqualTo("1.2300000000000000e+02");
@@ -721,8 +724,8 @@ public class CFloatTest {
 
   @Test
   public void toStringTest() {
-    CFloat a = new CFloatImpl("2784365.34543", CFloatNativeAPI.FP_TYPE_SINGLE);
-    CFloat b = new CFloatNative("2784365.34543", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat a = new CFloatImpl("2784365.34543", CFloatNativeAPI.CFloatType.SINGLE);
+    CFloat b = new CFloatNative("2784365.34543", CFloatNativeAPI.CFloatType.SINGLE);
 
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
@@ -731,8 +734,8 @@ public class CFloatTest {
 
   @Test
   public void toStringTest_floatValueWithLeadingZero() {
-    CFloat a = new CFloatImpl("0.6", CFloatNativeAPI.FP_TYPE_SINGLE);
-    CFloat b = new CFloatNative("0.6", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat a = new CFloatImpl("0.6", CFloatNativeAPI.CFloatType.SINGLE);
+    CFloat b = new CFloatNative("0.6", CFloatNativeAPI.CFloatType.SINGLE);
 
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
@@ -741,8 +744,8 @@ public class CFloatTest {
 
   @Test
   public void toStringTest_negativeFloatValueWithLeadingZero() {
-    CFloat a = new CFloatImpl("-0.6", CFloatNativeAPI.FP_TYPE_SINGLE);
-    CFloat b = new CFloatNative("-0.6", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat a = new CFloatImpl("-0.6", CFloatNativeAPI.CFloatType.SINGLE);
+    CFloat b = new CFloatNative("-0.6", CFloatNativeAPI.CFloatType.SINGLE);
 
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
@@ -751,8 +754,8 @@ public class CFloatTest {
 
   @Test
   public void toStringTest_doubleValueWithLeadingZero() {
-    CFloat a = new CFloatImpl("0.6", CFloatNativeAPI.FP_TYPE_DOUBLE);
-    CFloat b = new CFloatNative("0.6", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    CFloat a = new CFloatImpl("0.6", CFloatNativeAPI.CFloatType.DOUBLE);
+    CFloat b = new CFloatNative("0.6", CFloatNativeAPI.CFloatType.DOUBLE);
 
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
@@ -761,8 +764,8 @@ public class CFloatTest {
 
   @Test
   public void toStringTest_negativeDoubleValueWithLeadingZero() {
-    CFloat a = new CFloatImpl("-0.6", CFloatNativeAPI.FP_TYPE_DOUBLE);
-    CFloat b = new CFloatNative("-0.6", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    CFloat a = new CFloatImpl("-0.6", CFloatNativeAPI.CFloatType.DOUBLE);
+    CFloat b = new CFloatNative("-0.6", CFloatNativeAPI.CFloatType.DOUBLE);
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
     assertThat(a.toString()).isEqualTo(b.toString());
@@ -770,8 +773,8 @@ public class CFloatTest {
 
   @Test
   public void toStringTest_longDoubleValueWithLeadingZero() {
-    CFloat a = new CFloatImpl("0.6", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
-    CFloat b = new CFloatNative("0.6", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    CFloat a = new CFloatImpl("0.6", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
+    CFloat b = new CFloatNative("0.6", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
@@ -780,8 +783,8 @@ public class CFloatTest {
 
   @Test
   public void toStringTest_negativeLongDoubleValueWithLeadingZero() {
-    CFloat a = new CFloatImpl("-0.6", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
-    CFloat b = new CFloatNative("-0.6", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    CFloat a = new CFloatImpl("-0.6", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
+    CFloat b = new CFloatNative("-0.6", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
@@ -790,8 +793,8 @@ public class CFloatTest {
 
   @Test
   public void toStringTest_floatValueWithZeroExponent() {
-    CFloat a = new CFloatImpl("1.000001", CFloatNativeAPI.FP_TYPE_SINGLE);
-    CFloat b = new CFloatNative("1.000001", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat a = new CFloatImpl("1.000001", CFloatNativeAPI.CFloatType.SINGLE);
+    CFloat b = new CFloatNative("1.000001", CFloatNativeAPI.CFloatType.SINGLE);
 
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
@@ -800,8 +803,8 @@ public class CFloatTest {
 
   @Test
   public void toStringTest_doubleValueWithZeroExponent() {
-    CFloat a = new CFloatImpl("1.000001", CFloatNativeAPI.FP_TYPE_DOUBLE);
-    CFloat b = new CFloatNative("1.000001", CFloatNativeAPI.FP_TYPE_DOUBLE);
+    CFloat a = new CFloatImpl("1.000001", CFloatNativeAPI.CFloatType.DOUBLE);
+    CFloat b = new CFloatNative("1.000001", CFloatNativeAPI.CFloatType.DOUBLE);
 
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
@@ -810,8 +813,8 @@ public class CFloatTest {
 
   @Test
   public void toStringTest_longDoubleValueWithZeroExponent() {
-    CFloat a = new CFloatImpl("1.000001", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
-    CFloat b = new CFloatNative("1.000001", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    CFloat a = new CFloatImpl("1.000001", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
+    CFloat b = new CFloatNative("1.000001", CFloatNativeAPI.CFloatType.LONG_DOUBLE);
 
     assertThat(a.copyWrapper().getExponent()).isEqualTo(b.copyWrapper().getExponent());
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
@@ -820,12 +823,12 @@ public class CFloatTest {
 
   @Test
   public void castFloatToLongDoubleTest() {
-    CFloat a = new CFloatImpl("893473.378465376", CFloatNativeAPI.FP_TYPE_SINGLE);
-    CFloat b = new CFloatNative("893473.378465376", CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat a = new CFloatImpl("893473.378465376", CFloatNativeAPI.CFloatType.SINGLE);
+    CFloat b = new CFloatNative("893473.378465376", CFloatNativeAPI.CFloatType.SINGLE);
 
     assertThat(a.toString()).isEqualTo(b.toString());
-    a = a.castTo(CNativeType.LONG_DOUBLE);
-    b = b.castTo(CNativeType.LONG_DOUBLE);
+    a = a.castTo(CFloatType.LONG_DOUBLE);
+    b = b.castTo(CFloatType.LONG_DOUBLE);
     assertThat(a.toString()).isEqualTo(b.toString());
   }
 }

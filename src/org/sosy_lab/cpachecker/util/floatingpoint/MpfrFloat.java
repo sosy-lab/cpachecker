@@ -12,7 +12,8 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /**
@@ -262,7 +263,7 @@ class MpfrFloat extends CFloat {
   }
 
   @Override
-  public CFloat castTo(CNativeType toType) {
+  public CFloat castTo(CFloatType toType) {
     BinaryMathContext ldouble = new BinaryMathContext(64, 15);
     return switch (toType) {
       case SINGLE ->
@@ -275,15 +276,12 @@ class MpfrFloat extends CFloat {
   }
 
   @Override
-  public Number castToOther(CNativeType toType) {
+  public Number castToOther(CIntegerType toType) {
     return switch (toType) {
       case CHAR -> value.byteValue();
       case SHORT -> value.shortValue();
       case INT -> value.intValue();
       case LONG -> value.longValue();
-      case SINGLE -> throw new IllegalArgumentException();
-      case DOUBLE -> throw new IllegalArgumentException();
-      case LONG_DOUBLE -> throw new IllegalArgumentException();
       default -> throw new UnsupportedOperationException();
     };
   }
@@ -299,13 +297,13 @@ class MpfrFloat extends CFloat {
   }
 
   @Override
-  public int getType() {
+  public CFloatType getType() {
     if (format.equals(BinaryMathContext.BINARY32)) {
-      return CNativeType.SINGLE.getOrdinal();
+      return CFloatType.SINGLE;
     } else if (format.equals(BinaryMathContext.BINARY64)) {
-      return CNativeType.DOUBLE.getOrdinal();
+      return CFloatType.DOUBLE;
     } else if (format.equals(new BinaryMathContext(64, 15))) {
-      return CNativeType.LONG_DOUBLE.getOrdinal();
+      return CFloatType.LONG_DOUBLE;
     } else {
       throw new IllegalArgumentException();
     }

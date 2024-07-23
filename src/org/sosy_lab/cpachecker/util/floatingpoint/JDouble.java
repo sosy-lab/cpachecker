@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 
 /**
  * Java based implementation of the {@link CFloat} interface that uses regular Java doubles.
@@ -199,7 +200,7 @@ class JDouble extends CFloat {
   }
 
   @Override
-  public CFloat castTo(CNativeType toType) {
+  public CFloat castTo(CFloatType toType) {
     return switch (toType) {
       case SINGLE -> new JFloat((float) value);
       case DOUBLE -> this;
@@ -209,16 +210,13 @@ class JDouble extends CFloat {
   }
 
   @Override
-  public Number castToOther(CNativeType toType) {
+  public Number castToOther(CIntegerType toType) {
     Double doubleValue = Double.valueOf(value);
     return switch (toType) {
       case CHAR -> doubleValue.byteValue();
       case SHORT -> doubleValue.shortValue();
       case INT -> doubleValue.intValue();
       case LONG -> doubleValue.longValue();
-      case SINGLE -> throw new IllegalArgumentException();
-      case DOUBLE -> throw new IllegalArgumentException();
-      case LONG_DOUBLE -> throw new IllegalArgumentException();
       default -> throw new UnsupportedOperationException();
     };
   }
@@ -234,8 +232,8 @@ class JDouble extends CFloat {
   }
 
   @Override
-  public int getType() {
-    return CNativeType.DOUBLE.getOrdinal();
+  public CFloatType getType() {
+    return CFloatType.DOUBLE;
   }
 
   @Override

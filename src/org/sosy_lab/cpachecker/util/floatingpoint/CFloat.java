@@ -9,7 +9,8 @@
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.base.Preconditions;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 
 /**
  * This abstract class is used to implement classes which provide floating point arithmetic
@@ -248,7 +249,7 @@ abstract class CFloat {
    * @return a new {@link CFloat} instance with the type <code>toType</code> and (approximately) the
    *     value of <code>this</code>
    */
-  public abstract CFloat castTo(final CNativeType toType);
+  public abstract CFloat castTo(final CFloatType toType);
 
   /**
    * Try to cast <code>this</code> to another number type, more precisely some implementation of the
@@ -257,7 +258,7 @@ abstract class CFloat {
    * @param toType the target number type
    * @return a new {@link Number} instance with (approximately) the value of <code>this</code>
    */
-  public abstract Number castToOther(final CNativeType toType);
+  public abstract Number castToOther(final CIntegerType toType);
 
   /**
    * Somehow create a {@link CFloatWrapper} instance holding an exponent and mantissa representing
@@ -285,7 +286,7 @@ abstract class CFloat {
    *
    * @return the type of <code>this</code>
    */
-  public abstract int getType();
+  public abstract CFloatType getType();
 
   public abstract boolean equalTo(final CFloat other);
 
@@ -319,14 +320,14 @@ abstract class CFloat {
   }
 
   public Float toFloat() {
-    Preconditions.checkState(getType() == CNativeType.SINGLE.getOrdinal());
+    Preconditions.checkState(getType() == CFloatType.SINGLE);
     long exponent = getExponent();
     long mantissa = getMantissa();
     return Float.intBitsToFloat((int) ((exponent << getMantissaLength()) + mantissa));
   }
 
   public Double toDouble() {
-    Preconditions.checkState(getType() == CNativeType.DOUBLE.getOrdinal());
+    Preconditions.checkState(getType() == CFloatType.DOUBLE);
     long exponent = getExponent();
     long mantissa = getMantissa();
     return Double.longBitsToDouble((exponent << getMantissaLength()) + mantissa);
@@ -343,29 +344,23 @@ abstract class CFloat {
 
   public final int getExponentLength() {
     return switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE -> FLOAT32_EXP_BITS;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE -> FLOAT64_EXP_BITS;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE -> FLOAT_EXTENDED_EXP_BITS;
+      case SINGLE -> FLOAT32_EXP_BITS;
+      case DOUBLE -> FLOAT64_EXP_BITS;
+      case LONG_DOUBLE -> FLOAT_EXTENDED_EXP_BITS;
       default ->
           throw new IllegalArgumentException("Unimplemented floating point type: " + getType());
     };
   }
 
   public final long getBias() {
-    return switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE,
-              CFloatNativeAPI.FP_TYPE_DOUBLE,
-              CFloatNativeAPI.FP_TYPE_LONG_DOUBLE ->
-          getExponentMask() / 2;
-      default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
-    };
+    return getExponentMask() / 2;
   }
 
   public final int getMantissaLength() {
     return switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE -> FLOAT32_SIG_BITS;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE -> FLOAT64_SIG_BITS;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE -> FLOAT_EXTENDED_SIG_BITS;
+      case SINGLE -> FLOAT32_SIG_BITS;
+      case DOUBLE -> FLOAT64_SIG_BITS;
+      case LONG_DOUBLE -> FLOAT_EXTENDED_SIG_BITS;
       default ->
           throw new IllegalArgumentException("Unimplemented floating point type: " + getType());
     };
@@ -373,9 +368,9 @@ abstract class CFloat {
 
   public final long getSignBitMask() {
     return switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE -> 1L << FLOAT32_EXP_BITS;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE -> 1L << FLOAT64_EXP_BITS;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE -> 1L << FLOAT_EXTENDED_EXP_BITS;
+      case SINGLE -> 1L << FLOAT32_EXP_BITS;
+      case DOUBLE -> 1L << FLOAT64_EXP_BITS;
+      case LONG_DOUBLE -> 1L << FLOAT_EXTENDED_EXP_BITS;
       default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
     };
   }
@@ -386,17 +381,19 @@ abstract class CFloat {
 
   public final long getMantissaMask() {
     return switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE -> (1L << FLOAT32_SIG_BITS) - 1;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE -> (1L << FLOAT64_SIG_BITS) - 1;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE -> (1L << FLOAT_EXTENDED_SIG_BITS) - 1;
+      case SINGLE -> (1L << FLOAT32_SIG_BITS) - 1;
+      case DOUBLE -> (1L << FLOAT64_SIG_BITS) - 1;
+      case LONG_DOUBLE ->
+          0b01111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
       default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
     };
   }
 
   public final long getNormalizedMantissaMask() {
     return switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE, CFloatNativeAPI.FP_TYPE_DOUBLE -> getMantissaMask();
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE ->
+      case SINGLE, DOUBLE -> getMantissaMask();
+      case LONG_DOUBLE ->
+          // We need to inlcude the leading bit as "Extended precision" stores the hidden bit there
           0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
       default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
     };

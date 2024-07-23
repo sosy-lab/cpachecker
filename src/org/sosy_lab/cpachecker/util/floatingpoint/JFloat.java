@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 
 /**
  * Java based implementation of the {@link CFloat} interface that uses regular Java floats.
@@ -200,7 +201,7 @@ class JFloat extends CFloat {
   }
 
   @Override
-  public CFloat castTo(CNativeType toType) {
+  public CFloat castTo(CFloatType toType) {
     return switch (toType) {
       case SINGLE -> this;
       case DOUBLE -> new JDouble(value);
@@ -210,16 +211,13 @@ class JFloat extends CFloat {
   }
 
   @Override
-  public Number castToOther(CNativeType toType) {
+  public Number castToOther(CIntegerType toType) {
     Float floatValue = Float.valueOf(value);
     return switch (toType) {
       case CHAR -> floatValue.byteValue();
       case SHORT -> floatValue.shortValue();
       case INT -> floatValue.intValue();
       case LONG -> floatValue.longValue();
-      case SINGLE -> throw new IllegalArgumentException();
-      case DOUBLE -> throw new IllegalArgumentException();
-      case LONG_DOUBLE -> throw new IllegalArgumentException();
       default -> throw new UnsupportedOperationException();
     };
   }
@@ -235,8 +233,8 @@ class JFloat extends CFloat {
   }
 
   @Override
-  public int getType() {
-    return CNativeType.SINGLE.getOrdinal();
+  public CFloatType getType() {
+    return CFloatType.SINGLE;
   }
 
   @Override

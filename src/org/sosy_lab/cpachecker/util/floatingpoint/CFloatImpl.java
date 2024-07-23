@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import java.math.BigInteger;
 import java.util.Map;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CNativeType;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
 
@@ -24,13 +25,13 @@ class CFloatImpl extends CFloat {
   private final CFloatWrapper wrapper;
   private final FloatValue delegate;
 
-  public CFloatImpl(CFloatWrapper pWrapper, int pType) {
+  public CFloatImpl(CFloatWrapper pWrapper, CFloatType pType) {
     wrapper = pWrapper;
-    delegate = fromWrapper(pWrapper, CFloatNativeAPI.toNativeType(pType));
+    delegate = fromWrapper(pWrapper, pType);
   }
 
-  public CFloatImpl(String repr, int pType) {
-    delegate = parseFloat(repr, toFormat(CFloatNativeAPI.toNativeType(pType)));
+  public CFloatImpl(String repr, CFloatType pType) {
+    delegate = parseFloat(repr, toFormat(pType));
     wrapper = toWrapper(delegate);
   }
 
@@ -44,7 +45,7 @@ class CFloatImpl extends CFloat {
     wrapper = toWrapper(pValue);
   }
 
-  private Format toFormat(CNativeType pType) {
+  private static Format toFormat(CFloatType pType) {
     return switch (pType) {
       case SINGLE -> Format.Float32;
       case DOUBLE -> Format.Float64;
@@ -53,7 +54,7 @@ class CFloatImpl extends CFloat {
     };
   }
 
-  private FloatValue fromWrapper(CFloatWrapper floatWrapper, CNativeType pType) {
+  private static FloatValue fromWrapper(CFloatWrapper floatWrapper, CFloatType pType) {
     Format format = toFormat(pType);
     long signMask = 1L << format.expBits();
     long exponentMask = signMask - 1;
@@ -69,7 +70,7 @@ class CFloatImpl extends CFloat {
     BigInteger mantissa = new BigInteger(Long.toUnsignedString(mantissaBits));
 
     // Check if the value is "normal" (= not 0, Inf or NaN) and add the missing 1 to the mantissa.
-    if (pType != CNativeType.LONG_DOUBLE) { // Extended precision has no hidden bit
+    if (pType != CFloatType.LONG_DOUBLE) { // Extended precision has no hidden bit
       if (exponentBits != 0 && exponentBits != exponentMask) {
         BigInteger leadingOne = BigInteger.ONE.shiftLeft(format.sigBits());
         mantissa = mantissa.add(leadingOne);
@@ -97,7 +98,7 @@ class CFloatImpl extends CFloat {
     }
   }
 
-  private FloatValue parseFloat(String repr, Format format) {
+  private static FloatValue parseFloat(String repr, Format format) {
     if ("nan".equals(repr)) {
       return FloatValue.nan(format);
     } else if ("-inf".equals(repr)) {
@@ -280,7 +281,7 @@ class CFloatImpl extends CFloat {
   }
 
   @Override
-  public CFloat castTo(CNativeType toType) {
+  public CFloat castTo(CFloatType toType) {
     return switch (toType) {
       case SINGLE -> new CFloatImpl(delegate.withPrecision(Format.Float32));
       case DOUBLE -> new CFloatImpl(delegate.withPrecision(Format.Float64));
@@ -290,15 +291,12 @@ class CFloatImpl extends CFloat {
   }
 
   @Override
-  public Number castToOther(CNativeType toType) {
+  public Number castToOther(CIntegerType toType) {
     return switch (toType) {
       case CHAR -> delegate.byteValue();
       case SHORT -> delegate.shortValue();
       case INT -> delegate.intValue();
       case LONG -> delegate.longValue();
-      case SINGLE -> throw new IllegalArgumentException();
-      case DOUBLE -> throw new IllegalArgumentException();
-      case LONG_DOUBLE -> throw new IllegalArgumentException();
       default -> throw new UnsupportedOperationException();
     };
   }
@@ -318,18 +316,18 @@ class CFloatImpl extends CFloat {
   }
 
   @Override
-  public int getType() {
+  public CFloatType getType() {
     Format format = delegate.getFormat();
     if (Format.Float8.equals(format)
         || Format.Float16.equals(format)
         || Format.Float32.equals(format)) {
       // We return "single-precision" format for Float8 and Float16
-      // FIXME: This may potentially cause issues with subnormal numbers
-      return CNativeType.SINGLE.getOrdinal();
+      // FIXME: This may cause issues with subnormal numbers
+      return CFloatType.SINGLE;
     } else if (Format.Float64.equals(format)) {
-      return CNativeType.DOUBLE.getOrdinal();
+      return CFloatType.DOUBLE;
     } else if (Format.Extended.equals(format)) {
-      return CNativeType.LONG_DOUBLE.getOrdinal();
+      return CFloatType.LONG_DOUBLE;
     } else {
       throw new IllegalStateException();
     }
