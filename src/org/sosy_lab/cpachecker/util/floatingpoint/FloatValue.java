@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -192,6 +193,7 @@ public class FloatValue extends Number {
    * 'hidden bit' is not counted. The exponent range can be derived from the width of the exponent
    * field.
    */
+  @Immutable
   public record Format(int expBits, int sigBits) implements Serializable {
     @Serial private static final long serialVersionUID = -6677404553596078315L;
 
