@@ -2237,6 +2237,6 @@ public class SymbolicProgramConfiguration {
         newValueMapping.put(mappedValue);
       }
     }
-    return newSPC.withNewValueMappings(newValueMapping.build());
+    return newSPC.withNewValueMappings(newValueMapping.buildOrThrow());
   }
 }
