@@ -27,6 +27,7 @@ import java.math.BigInteger;
 import java.nio.ByteOrder;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1274,6 +1275,49 @@ public class SMGState
   /** Returns number of times the value is saved in memory (stack variables, heap etc.) */
   public int getNumberOfValueUsages(Value value) {
     return memoryModel.getNumberOfValueUsages(value);
+  }
+
+  @SuppressWarnings("unused")
+  private boolean experimentalNestedListFilter(SMGState pOther) {
+    if (!(this.memoryModel.getHeapObjectsMinSize() >= pOther.memoryModel.getHeapObjectsMinSize())) {
+      return false;
+    }
+
+    // Ordered (by min len) linked list segments in both states
+    List<SMGSinglyLinkedListSegment> thisValidAbstrObjs =
+        getMemoryModel().getSmg().getAllValidAbstractedObjects().stream()
+            .sorted(Comparator.comparingInt(SMGSinglyLinkedListSegment::getMinLength))
+            .collect(ImmutableList.toImmutableList());
+    List<SMGSinglyLinkedListSegment> otherValidAbstrObjs =
+        pOther.getMemoryModel().getSmg().getAllValidAbstractedObjects().stream()
+            .sorted(Comparator.comparingInt(SMGSinglyLinkedListSegment::getMinLength))
+            .collect(Collectors.toList());
+    // Now check that every linked list segment in this has a smaller or equal equivalent in pOther
+    for (SMGSinglyLinkedListSegment thisLL : thisValidAbstrObjs) {
+      int thisMin = thisLL.getMinLength();
+      // Search for the closest in pOther and kick it out
+      for (int i = 0; i < otherValidAbstrObjs.size(); i++) {
+        int otherMin = otherValidAbstrObjs.get(i).getMinLength();
+        if (thisMin < otherMin) {
+          // Kick out the one before
+          if (i == 0) {
+            return false;
+          } else {
+            otherValidAbstrObjs.remove(i);
+            break;
+          }
+        }
+        if (i == otherValidAbstrObjs.size() - 1) {
+          // All in otherValidAbstrObjs are smaller, kick out any
+          otherValidAbstrObjs.remove(i);
+        }
+      }
+      // If none can be found -> false
+    }
+    if (!otherValidAbstrObjs.isEmpty()) {
+      return false;
+    }
+    return true;
   }
 
   @Override
@@ -4618,6 +4662,10 @@ public class SMGState
       gatherConnectedMemory(
           nonListMemory, traversedObjectsOtherTarget, objsPointingAtTraversedOtherTarget);
     }
+
+    // The list objs obviously point at the nested memory
+    objsPointingAtTraversedTarget.remove(pTarget);
+    objsPointingAtTraversedOtherTarget.remove(pOtherTarget);
 
     return objsPointingAtTraversedOtherTarget.size() == objsPointingAtTraversedTarget.size()
         && objsPointingAtTraversedOtherTarget.containsAll(objsPointingAtTraversedTarget);

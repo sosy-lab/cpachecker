@@ -667,6 +667,22 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
+   * Returns the number of heap objects, with abstracted objects counted with their min length.
+   * (Counts only valid objects)
+   */
+  public int getHeapObjectsMinSize() {
+    int size = 0;
+    for (SMGObject obj : heapObjects) {
+      if (obj instanceof SMGSinglyLinkedListSegment sll) {
+        size += sll.getMinLength();
+      } else {
+        size++;
+      }
+    }
+    return size;
+  }
+
+  /**
    * Remove a top stack frame from the SMG, along with all objects in it, and any edges leading
    * from/to it.
    *
