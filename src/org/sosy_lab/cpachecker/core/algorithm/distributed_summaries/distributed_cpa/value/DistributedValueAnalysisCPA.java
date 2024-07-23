@@ -33,7 +33,6 @@ public class DistributedValueAnalysisCPA
   private final SerializePrecisionOperator serializePrecisionOperator;
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final BlockNode blockNode;
-  private final CFA cfa;
 
   public DistributedValueAnalysisCPA(
       ValueAnalysisCPA pValueAnalysisCPA, BlockNode pNode, CFA pCFA) {
@@ -43,7 +42,6 @@ public class DistributedValueAnalysisCPA
     serializePrecisionOperator = new SerializeVariableTrackingPrecision();
     deserializePrecisionOperator = new DeserializeVariableTrackingPrecision(pValueAnalysisCPA);
     blockNode = pNode;
-    cfa = pCFA;
   }
 
   @Override

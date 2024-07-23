@@ -31,14 +31,11 @@ public class DistributedDataFlowAnalysisCPA
   private final InvariantsCPA invariantsCPA;
   private final SerializeOperator serializeOperator;
   private final DeserializeOperator deserializeOperator;
-
-  private final CFA cfa;
   private final BlockNode blockNode;
 
   public DistributedDataFlowAnalysisCPA(InvariantsCPA pInvariantsCPA, BlockNode pNode, CFA pCFA) {
     invariantsCPA = pInvariantsCPA;
     blockNode = pNode;
-    cfa = pCFA;
     serializeOperator = new SerializeDataflowAnalysisStateOperator(blockNode);
     deserializeOperator = new DeserializeDataflowAnalysisStateOperator(invariantsCPA, pCFA);
   }
