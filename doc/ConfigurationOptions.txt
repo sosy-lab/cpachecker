@@ -1912,7 +1912,7 @@ cpa.loopbound.cyclicStopModulus = -1
 # equivalent to no limit.
 cpa.loopbound.loopIterationsBeforeAbstraction = 0
 
-# this option controls how the maxLoopIterations condition is adjusted when a
+# This option controls how the maxLoopIterations condition is adjusted when a
 # condition adjustment is invoked.
 cpa.loopbound.maxLoopIterationAdjusterFactory = STATIC
   enum:     [STATIC, INCREMENT, DOUBLE]

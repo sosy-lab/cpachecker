@@ -48,7 +48,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
   @Option(
       secure = true,
       description =
-          "this option controls how the maxLoopIterations condition is adjusted when a condition"
+          "This option controls how the maxLoopIterations condition is adjusted when a condition"
               + " adjustment is invoked.")
   private MaxLoopIterationAdjusters maxLoopIterationAdjusterFactory =
       MaxLoopIterationAdjusters.STATIC;
