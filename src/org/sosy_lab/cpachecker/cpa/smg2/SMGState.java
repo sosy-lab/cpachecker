@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.math.BigInteger;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -1289,9 +1290,9 @@ public class SMGState
             .sorted(Comparator.comparingInt(SMGSinglyLinkedListSegment::getMinLength))
             .collect(ImmutableList.toImmutableList());
     List<SMGSinglyLinkedListSegment> otherValidAbstrObjs =
-        pOther.getMemoryModel().getSmg().getAllValidAbstractedObjects().stream()
-            .sorted(Comparator.comparingInt(SMGSinglyLinkedListSegment::getMinLength))
-            .collect(Collectors.toList());
+        new ArrayList<>(pOther.getMemoryModel().getSmg().getAllValidAbstractedObjects());
+    otherValidAbstrObjs.sort(Comparator.comparingInt(SMGSinglyLinkedListSegment::getMinLength));
+
     // Now check that every linked list segment in this has a smaller or equal equivalent in pOther
     for (SMGSinglyLinkedListSegment thisLL : thisValidAbstrObjs) {
       int thisMin = thisLL.getMinLength();
