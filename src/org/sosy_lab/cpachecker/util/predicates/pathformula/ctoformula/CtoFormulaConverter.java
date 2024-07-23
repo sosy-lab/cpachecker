@@ -1015,7 +1015,8 @@ public class CtoFormulaConverter {
           e.getFileLocation(),
           targetType,
           FloatValue.fromInteger(
-              Format.fromCType(targetType), floatValue.asNumericValue().bigIntegerValue()));
+              Format.fromCType(machineModel, targetType),
+              floatValue.asNumericValue().bigIntegerValue()));
     }
 
     return pExp;

@@ -29,12 +29,18 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /** This enum stores the sizes for all the basic types that exist. */
 public enum MachineModel {
   /** Machine model representing a 32bit Linux machine with alignment: */
   LINUX32(
-      // numeric types
+      // precision float
+      Format.Float32, // float
+      Format.Float64, // double
+      Format.Extended, // long double
+
+      // sizeof numeric types
       2, // short
       4, // int
       4, // long int
@@ -43,7 +49,7 @@ public enum MachineModel {
       8, // double
       12, // long double
 
-      // other
+      // sizeof other
       1, // void
       1, // bool
       4, // pointer
@@ -68,7 +74,12 @@ public enum MachineModel {
 
   /** Machine model representing a 64bit Linux machine with alignment: */
   LINUX64(
-      // numeric types
+      // precision float
+      Format.Float32, // float
+      Format.Float64, // double
+      Format.Extended, // long double
+
+      // sizeof numeric types
       2, // short int
       4, // int
       8, // long int
@@ -77,7 +88,7 @@ public enum MachineModel {
       8, // double
       16, // long double
 
-      // other
+      // sizeof other
       1, // void
       1, // bool
       8, // pointer
@@ -102,7 +113,12 @@ public enum MachineModel {
 
   /** Machine model representing an ARM machine with alignment: */
   ARM(
-      // numeric types
+      // precision float
+      Format.Float32, // float
+      Format.Float64, // double
+      Format.Float64, // long double
+
+      // sizeof numeric types
       2, // short int
       4, // int
       4, // long int
@@ -111,7 +127,7 @@ public enum MachineModel {
       8, // double
       8, // long double
 
-      // other
+      // sizeof other
       1, // void
       1, // bool
       4, // pointer
@@ -136,7 +152,12 @@ public enum MachineModel {
 
   /** Machine model representing an ARM64 machine with alignment: */
   ARM64(
-      // numeric types
+      // precision float
+      Format.Float32, // float
+      Format.Float64, // double
+      Format.Float64, // long double
+
+      // sizeof numeric types
       2, // short int
       4, // int
       8, // long int
@@ -145,7 +166,7 @@ public enum MachineModel {
       8, // double
       16, // long double
 
-      // other
+      // sizeof other
       1, // void
       1, // bool
       8, // pointer
@@ -168,7 +189,12 @@ public enum MachineModel {
       ByteOrder.LITTLE_ENDIAN // endianness
       );
 
-  // numeric types
+  // precision floating point types
+  private final Format precisionFloat;
+  private final Format precisionDouble;
+  private final Format precisionLongDouble;
+
+  // sizeof numeric types
   private final int sizeofShortInt;
   private final int sizeofInt;
   private final int sizeofLongInt;
@@ -177,7 +203,7 @@ public enum MachineModel {
   private final int sizeofDouble;
   private final int sizeofLongDouble;
 
-  // other
+  // sizeof other
   private final int sizeofVoid;
   private final int sizeofBool;
   private final int sizeofPtr;
@@ -210,6 +236,9 @@ public enum MachineModel {
   private final CSimpleType uintptr_t;
 
   MachineModel(
+      Format pPrecisionFloat,
+      Format pPrecisionDouble,
+      Format pPrecisionLongDouble,
       int pSizeofShort,
       int pSizeofInt,
       int pSizeofLongInt,
@@ -233,6 +262,9 @@ public enum MachineModel {
       int pAlignofMalloc,
       boolean pDefaultCharSigned,
       ByteOrder pEndianness) {
+    precisionFloat = pPrecisionFloat;
+    precisionDouble = pPrecisionDouble;
+    precisionLongDouble = pPrecisionLongDouble;
     sizeofShortInt = pSizeofShort;
     sizeofInt = pSizeofInt;
     sizeofLongInt = pSizeofLongInt;
@@ -393,6 +425,18 @@ public enum MachineModel {
       default -> // bool, void
           false;
     };
+  }
+
+  public Format getPrecisionFloat() {
+    return precisionFloat;
+  }
+
+  public Format getPrecisionDouble() {
+    return precisionDouble;
+  }
+
+  public Format getPrecisionLongDouble() {
+    return precisionLongDouble;
   }
 
   public int getSizeofCharInBits() {

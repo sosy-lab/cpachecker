@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
@@ -41,8 +42,10 @@ public final class CDefaults {
       return switch (basicType) {
         case CHAR -> initializerFor(new CCharLiteralExpression(fileLoc, type, '\0'), fileLoc);
         case FLOAT, DOUBLE, FLOAT128 ->
+            // FIXME: Use the right MachineModel
             initializerFor(
-                new CFloatLiteralExpression(fileLoc, type, FloatValue.zero(Format.fromCType(type))),
+                new CFloatLiteralExpression(
+                    fileLoc, type, FloatValue.zero(Format.fromCType(MachineModel.LINUX64, type))),
                 fileLoc);
         case UNSPECIFIED, BOOL, INT128, INT ->
             initializerFor(new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);

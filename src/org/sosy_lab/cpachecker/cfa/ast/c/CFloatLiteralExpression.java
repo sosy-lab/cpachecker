@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -22,7 +23,8 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression
   private static final long serialVersionUID = 5021145411123854111L;
 
   public CFloatLiteralExpression(FileLocation pFileLocation, CType pType, FloatValue pValue) {
-    super(pFileLocation, pType, matchType(pType, pValue));
+    // FIXME: Use the right machine model
+    super(pFileLocation, pType, matchType(MachineModel.LINUX64, pType, pValue));
   }
 
   /**
@@ -32,9 +34,9 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression
    * NaN and Infinity, where downcasting won't cause any loss of precision. Throws an exception if
    * the type of the literal can't be matched.
    */
-  private static FloatValue matchType(CType pType, FloatValue pValue) {
+  private static FloatValue matchType(MachineModel pMachineModel, CType pType, FloatValue pValue) {
     Format format = pValue.getFormat();
-    Format target = Format.fromCType(pType);
+    Format target = Format.fromCType(pMachineModel, pType);
 
     if (pValue.isNan() || pValue.isInfinite() || format.join(target).equals(target)) {
       return pValue.withPrecision(target);

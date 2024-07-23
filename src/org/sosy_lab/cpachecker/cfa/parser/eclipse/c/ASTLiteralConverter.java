@@ -175,7 +175,7 @@ class ASTLiteralConverter {
     }
 
     // Round the parsed value to the target type
-    value = value.withPrecision(Format.fromCType(pType));
+    value = value.withPrecision(Format.fromCType(machine, pType));
 
     return new CFloatLiteralExpression(pFileLoc, pType, value);
   }

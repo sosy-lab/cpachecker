@@ -25,6 +25,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -370,11 +371,14 @@ public class FloatValue extends Number {
      * <p>Throws a {@link IllegalArgumentException} if the {@link CType} is not a floating point
      * type.
      */
-    public static Format fromCType(CType pType) {
+    public static Format fromCType(MachineModel pMachineModel, CType pType) {
       if (pType instanceof CSimpleType pSimpleType) {
         return switch (pSimpleType.getType()) {
-          case FLOAT -> Format.Float32;
-          case DOUBLE -> pSimpleType.hasLongSpecifier() ? Format.Extended : Format.Float64;
+          case FLOAT -> pMachineModel.getPrecisionFloat();
+          case DOUBLE ->
+              pSimpleType.hasLongSpecifier()
+                  ? pMachineModel.getPrecisionDouble()
+                  : pMachineModel.getPrecisionLongDouble();
           case FLOAT128 -> Format.Float128;
           default ->
               throw new IllegalArgumentException(

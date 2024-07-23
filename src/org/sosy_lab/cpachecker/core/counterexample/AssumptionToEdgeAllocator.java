@@ -1410,7 +1410,7 @@ public class AssumptionToEdgeAllocator {
     }
 
     private ValueLiteral handleFloatingPointNumbers(Object pValue, CSimpleType pType) {
-      Format format = Format.fromCType(pType);
+      Format format = Format.fromCType(machineModel, pType);
 
       if (pValue instanceof Rational rationalValue) {
         FloatValue n = FloatValue.fromInteger(format, rationalValue.getNum());
