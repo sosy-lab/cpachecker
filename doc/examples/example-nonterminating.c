@@ -8,8 +8,8 @@
 
 extern unsigned __VERIFIER_nondet_uint();
 int main() {
-  unsigned int n = 1;
-  unsigned int z = __VERIFIER_nondet_uint();
+  int n = 1;
+  int z = __VERIFIER_nondet_uint();
   while (n <= z) {
     n = (n - 1) % 3;
     z = (z + 1) % 3;
