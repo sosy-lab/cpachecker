@@ -1222,6 +1222,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       alwaysOdd = alwaysOdd && isOdd(newVal);
     }
 
+    private boolean isZeroInMinMax() {
+      NumericValue zeroVal = new NumericValue(0);
+      return compareVals(minVal, zeroVal) <= 0 && compareVals(maxVal, zeroVal) >= 0;
+    }
+
     @Override
     protected Collection<BooleanFormula> asBooleanFormulae(
         final FormulaManagerView pFmgrV,
@@ -1253,7 +1258,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                 varF, encodeNumVal(pFmgrV, formulaType, varF, maxVal.getNumber()), signed));
       }
 
-      if (isNeverZero) {
+      if (isNeverZero && isZeroInMinMax()) {
         result.add(pFmgrV.makeNot(pFmgrV.makeEqual(varF, pFmgrV.makeNumber(formulaType, 0))));
       }
 
