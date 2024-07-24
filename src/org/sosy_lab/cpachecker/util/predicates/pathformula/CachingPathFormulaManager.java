@@ -147,6 +147,12 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula makeEmptyPathFormulaWithSSA(SSAMap pSsaMap) {
+    return delegate.makeEmptyPathFormulaWithSSA(pSsaMap);
+
+  }
+
+  @Override
   public PathFormula makeEmptyPathFormulaWithContextFrom(PathFormula pOldFormula) {
     PathFormula result = emptyFormulaCache.get(pOldFormula);
     if (result == null) {

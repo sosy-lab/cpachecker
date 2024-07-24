@@ -66,6 +66,10 @@ import org.sosy_lab.cpachecker.util.CPAs;
 @Options(prefix = "restartAlgorithm")
 public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpdater {
 
+  public static int reuses = 0;
+  public static int suffixReuses = 0;
+  public static int siblingCheckFalseCounter = 0;
+
   private static class RestartAlgorithmStatistics extends MultiStatistics {
 
     private final List<String> algorithms;
@@ -104,6 +108,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       out.println("Number of algorithms provided:    " + algorithms.size());
       out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
       out.println("Last algorithm used:        " + getLastAlgorithmUsed());
+      out.println("Reuses:        " + reuses);
+      out.println("Suffix Reuses:        " + suffixReuses);
+      out.println("Sibling Check False:        " + siblingCheckFalseCounter);
 
       printSubStatistics(out, result, reached);
     }

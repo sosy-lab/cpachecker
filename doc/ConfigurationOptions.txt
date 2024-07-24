@@ -1144,6 +1144,9 @@ counterexample.export.report = "Counterexample.%d.html"
 # export counterexample as source file
 counterexample.export.source = "Counterexample.%d.c"
 
+# Reuse the last variable assignments of last iteration
+counterexample.export.withReuse = false
+
 # export counterexample witness as Dot/Graphviz visualization
 counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
 

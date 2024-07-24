@@ -56,6 +56,7 @@ public interface PathFormulaManager {
    */
   PathFormula makeEmptyPathFormulaWithContext(SSAMap ssaMap, PointerTargetSet pts);
 
+  PathFormula makeEmptyPathFormulaWithSSA(SSAMap pSsaMap);
   /**
    * Creates a new path formula representing an OR of the two arguments. Differently from {@link
    * BooleanFormulaManager#or(BooleanFormula, BooleanFormula)}, it also merges the SSA maps and

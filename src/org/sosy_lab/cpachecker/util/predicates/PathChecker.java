@@ -27,6 +27,7 @@ import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -34,11 +35,13 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
@@ -73,7 +76,7 @@ public class PathChecker {
       deprecatedName = "dumpCounterexampleFormula",
       description =
           "where to dump the counterexample formula in case a specification violation is found")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
+  @FileOption(Type.OUTPUT_FILE)
   private PathTemplate dumpCounterexampleFormula =
       PathTemplate.ofFormatString("Counterexample.%d.smt2");
 
@@ -83,7 +86,7 @@ public class PathChecker {
       deprecatedName = "dumpCounterexampleModel",
       description =
           "where to dump the counterexample model in case a specification violation is found")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
+  @FileOption(Type.OUTPUT_FILE)
   private PathTemplate dumpCounterexampleModel =
       PathTemplate.ofFormatString("Counterexample.%d.assignment.txt");
 
@@ -219,7 +222,7 @@ public class PathChecker {
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
 
-      Pair<PathFormula, List<SSAMap>> replayedPath = createPrecisePathFormula(precisePath);
+      Pair<PathFormula, List<SSAMap>> replayedPath = createPrecisePathFormula(precisePath, 0, null);
       List<SSAMap> ssaMaps = replayedPath.getSecond();
       BooleanFormula pathFormula = replayedPath.getFirstNotNull().getFormula();
 
@@ -264,7 +267,7 @@ public class PathChecker {
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
 
-      Pair<PathFormula, List<SSAMap>> replayedPath = createPrecisePathFormula(precisePath);
+      Pair<PathFormula, List<SSAMap>> replayedPath = createPrecisePathFormula(precisePath, 0, null);
       List<SSAMap> ssaMaps = replayedPath.getSecond();
       BooleanFormula pathFormula = replayedPath.getFirstNotNull().getFormula();
 
@@ -276,6 +279,7 @@ public class PathChecker {
       CAssumeEdge lastAssumeEdge = null;
       CAssumeEdge previousTestGoal = null;
       int previousTestGoalInt = -1;
+      // reverse iterate through the edges
       for (int i = edges.size() - 1; i >= 0; i--) {
 
         if (edges.get(i) instanceof CAssumeEdge) {
@@ -294,34 +298,110 @@ public class PathChecker {
       }
 
       ImmutableList<ValueAssignment> model = null;
-      boolean success = false;
+      boolean successNormalReuse = false;
+      boolean successSuffix = false;
+      boolean siblingCriteria = false;
 
       FormulaManagerView fmgr = solver.getFormulaManager();
       BooleanFormula conjunctedVAFormula = null;
-      if (variableAssignmentReuse != null) {
+      TruthValue siblingReuseSuccessful = TruthValue.UNKNOWN;
 
-        for (ValueAssignment va : variableAssignmentReuse) {
-          if (conjunctedVAFormula == null) {
-            conjunctedVAFormula = va.getAssignmentAsFormula();
-          } else {
-            conjunctedVAFormula =
-                fmgr.getBooleanFormulaManager()
-                    .and(conjunctedVAFormula, va.getAssignmentAsFormula());
+      if (variableAssignmentReuse != null && !variableAssignmentReuse.isEmpty()) {
+        // TODO
+        siblingReuseSuccessful =
+            siblingCheck(previousTestGoal, lastAssumeEdge); // true if the reuse will be successful
+
+        if (!(siblingReuseSuccessful == TruthValue.FALSE)) {
+          // reuse might be possible
+
+          for (ValueAssignment va : variableAssignmentReuse) {
+            if (conjunctedVAFormula == null) {
+              conjunctedVAFormula = va.getAssignmentAsFormula();
+            } else {
+              conjunctedVAFormula =
+                  fmgr.getBooleanFormulaManager()
+                      .and(conjunctedVAFormula, va.getAssignmentAsFormula());
+            }
+          }
+
+          // before, check if a part of the path plus the model is SAT
+          // Assumption: this always holds: len(states)  == len(edges)
+          List<ARGState> suffix =
+              precisePath.asStatesList().subList(previousTestGoalInt, precisePath.size());
+          ARGPath suffixPath = new ARGPath(suffix);
+          Pair<PathFormula, List<SSAMap>> replayedPathSuffix =
+              createPrecisePathFormula(precisePath, previousTestGoalInt, ssaMaps);
+          List<CFAEdge> suffixEdges = suffixPath.getInnerEdges();
+          // TODO
+          boolean containsNewInputSuffix = false;
+          boolean containsFunctionCallOrReturnSuffix = false;
+          for (CFAEdge edge : suffixEdges) {
+            //
+            if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge
+                || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+              containsFunctionCallOrReturnSuffix = true;
+            }
+            if (edge.getEdgeType() == CFAEdgeType.StatementEdge
+                && edge.getRawStatement().contains("__VERIFIER_nondet_")) {
+              containsNewInputSuffix = true;
+            }
+            if (containsFunctionCallOrReturnSuffix && containsNewInputSuffix) {
+              break;
+            }
+          }
+
+          BooleanFormula pathFormulaSuffix = replayedPathSuffix.getFirstNotNull().getFormula();
+
+          // suffix can only be reused if there is no function call or return statement in the
+          prover.pop();
+          boolean suffixTried = false;
+          if (!containsFunctionCallOrReturnSuffix && !containsNewInputSuffix) {
+
+            prover.push(pathFormulaSuffix);
+            prover.push(conjunctedVAFormula);
+            suffixTried = true;
+
+            // when the sibling criterion is not met, the suffix must be checked
+            if (!prover.isUnsat()) {
+
+              successSuffix = true;
+              RestartAlgorithm.suffixReuses += 1;
+              previousTestGoal.workingEdges.add(lastAssumeEdge);
+              model = getModel(prover);
+            }
+            //            }
+            prover.pop();
+            prover.pop();
+          }
+
+          if (!successSuffix) {
+            prover.push(pathFormula);
+            prover.push(conjunctedVAFormula);
+            // remove the suffix and push the whole path
+
+            if (!prover.isUnsat()) {
+
+              successNormalReuse = true;
+              RestartAlgorithm.reuses += 1;
+            }
+            if (successNormalReuse) {
+              previousTestGoal.workingEdges.add(lastAssumeEdge);
+              model = getModel(prover);
+            }
+            // always remove pushed assignments and push the original path
+            prover.pop();
+            prover.pop();
+            prover.push(pathFormula);
           }
         }
-        assert conjunctedVAFormula != null;
-        prover.push(conjunctedVAFormula);
-        if (!prover.isUnsat()) {
-          // reuse successful
-          success = true;
-          model = variableAssignmentReuse;
-        }
-        // always remove pushed assignments
-        prover.pop();
       }
+      // when the reuse is not successful, get a new model, not necessary when sibling check true
+      if (!siblingCriteria && (!successNormalReuse && !successSuffix)) {
 
-      // is not successful, get a new model
-      if (!success) {
+        if (previousTestGoal != null) {
+          previousTestGoal.nonWorkingEdges.add(lastAssumeEdge);
+        }
+
         // check if the path itself is usable
         if (prover.isUnsat()) {
           logger.log(
@@ -335,7 +415,7 @@ public class PathChecker {
       CFAPathWithAssumptions pathWithAssignments =
           assignmentToPathAllocator.allocateAssignmentsToPath(precisePath, model, ssaMaps);
 
-      List<ValueAssignment> valueAssignments = new ArrayList<>(model);
+      List<ValueAssignment> valueAssignments = new ArrayList<>(model); // model
 
       if (lastAssumeEdge != null) {
         lastAssumeEdge.setReuseAssignments(valueAssignments);
@@ -352,6 +432,52 @@ public class PathChecker {
           Level.WARNING, e, "Could not replay error path! No variable values will be available.");
       return createImpreciseCounterexample(precisePath, pInfo);
     }
+  }
+
+  private List<AssumeEdge> getSiblings(AssumeEdge edge) {
+    List<AssumeEdge> siblings = new ArrayList<>();
+    int numLeavingEdges = edge.getPredecessor().getNumLeavingEdges();
+    for (int i = 0; i < numLeavingEdges; i++) {
+      CFAEdge leavingEdge = edge.getPredecessor().getLeavingEdge(i);
+      if (leavingEdge != edge) {
+
+        siblings.add((AssumeEdge) leavingEdge);
+      }
+    }
+    return siblings;
+  }
+
+  public enum TruthValue {
+    TRUE,
+    FALSE,
+    UNKNOWN
+  }
+
+  // returns true if reuse will be successful for the current testgoal
+  private TruthValue siblingCheck(AssumeEdge parentEdge, AssumeEdge testGoalEdge) {
+    // check if at least one sibling exists whose assignments have been successfully reused
+    // -> if yes, the assignment cannot be reused
+    List<AssumeEdge> testGoalSiblings = getSiblings(testGoalEdge);
+
+    if (!parentEdge.workingEdges.isEmpty()) {
+      // if one of the working edges is a sibling, it is not possible that the reuse will work
+      for (AssumeEdge element : parentEdge.workingEdges) {
+        if (testGoalSiblings.contains(element)) {
+          return TruthValue.FALSE;
+        }
+      }
+    }
+
+    // the other way around: if one of the non-working edges is a sibling, and it is the only
+    // sibling, the reuse will probably work
+    if (!parentEdge.nonWorkingEdges.isEmpty()) { // necessary? && testGoalSiblings.size() == 1
+      for (AssumeEdge element : parentEdge.nonWorkingEdges) {
+        if (testGoalSiblings.contains(element)) {
+          return TruthValue.TRUE;
+        }
+      }
+    }
+    return TruthValue.UNKNOWN;
   }
 
   /**
@@ -413,7 +539,8 @@ public class PathChecker {
    * @param pPath calculate the precise list of SSAMaps for this path.
    * @return the PathFormula and the precise list of SSAMaps for the given path.
    */
-  private Pair<PathFormula, List<SSAMap>> createPrecisePathFormula(ARGPath pPath)
+  private Pair<PathFormula, List<SSAMap>> createPrecisePathFormula(
+      ARGPath pPath, int startingPoint, List<SSAMap> pSsaMaps)
       throws CPATransferException, InterruptedException {
 
     List<SSAMap> ssaMaps = new ArrayList<>(pPath.size());
@@ -425,8 +552,19 @@ public class PathChecker {
     // for recursion we need to update SSA-indices after returning from a function call,
     // in non-recursive cases this should not change anything.
     Deque<PathFormula> callstack = new ArrayDeque<>();
+    int position = 0;
 
     while (pathIt.hasNext()) {
+      position++;
+      if (position < startingPoint) {
+        pathIt.advance();
+        // replace pathFormula with one including SSA indices
+        if (position + 1 == startingPoint && pSsaMaps != null) {
+          pathFormula = pmgr.makeEmptyPathFormulaWithSSA(pSsaMaps.get(position));
+        }
+        continue;
+      }
+
       if (pathIt.isPositionWithState()) {
         pathFormula = addAssumptions(pathFormula, pathIt.getAbstractState());
       }
@@ -443,6 +581,9 @@ public class PathChecker {
       }
 
       // for recursion
+      // TODO potential bug: suffix might have just a return edge
+      // startingPoint != 0 -> suffix
+
       if (!callstack.isEmpty() && edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
         pathFormula =
             BAMBlockFormulaStrategy.rebuildStateAfterFunctionCall(

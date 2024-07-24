@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -25,6 +26,9 @@ public class AssumeEdge extends AbstractCFAEdge {
   private final boolean artificialIntermediate;
   protected final AExpression expression;
   private List<ValueAssignment> reuseAssignments;
+  public List<AssumeEdge> workingEdges= new ArrayList<>();
+  public List<AssumeEdge> nonWorkingEdges = new ArrayList<>();
+//  public boolean reuseSuccessful = false;
 
   /**
    * Create instance.
