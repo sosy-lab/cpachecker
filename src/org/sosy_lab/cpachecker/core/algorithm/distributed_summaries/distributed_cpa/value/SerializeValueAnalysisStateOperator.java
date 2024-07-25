@@ -29,16 +29,17 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
   @Override
   public BlockSummaryMessagePayload serialize(AbstractState pState) {
     ValueAnalysisState valueState = (ValueAnalysisState) pState;
-    String serializedValueString = "";
+    StringBuilder stringBuilder = new StringBuilder();
     for (Entry<MemoryLocation, ValueAndType> entry : valueState.getConstants()) {
-      serializedValueString +=
-          entry.getKey().getIdentifier()
-              + ":"
-              + entry.getValue().getType()
-              + "="
-              + entry.getValue().getValue().asNumericValue().number().intValue()
-              + " && ";
+      stringBuilder
+          .append(entry.getKey().getIdentifier())
+          .append(":")
+          .append(entry.getValue().getType())
+          .append("=")
+          .append(entry.getValue().getValue().asNumericValue().number().intValue())
+          .append(" && ");
     }
+    String serializedValueString = stringBuilder.toString();
     if (serializedValueString.isEmpty()) {
       serializedValueString = "No constants";
     } else {
