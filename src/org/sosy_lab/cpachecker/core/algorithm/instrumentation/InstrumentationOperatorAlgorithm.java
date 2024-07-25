@@ -13,11 +13,14 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import org.mockito.internal.matchers.Null;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -82,13 +85,43 @@ public class InstrumentationOperatorAlgorithm {
 
       // MAIN INSTRUMENTATION OPERATOR ALGORITHM
       // Initialize the search
-      Set<Pair<CFANode, InstrumentationState>> waitlist = new HashSet<>();
+      List<Pair<CFANode, InstrumentationState>> waitlist = new ArrayList<>();
+      Set<Pair<CFANode, InstrumentationState>> reachlist = new HashSet<>();
       waitlist.add(Pair.of(cfa.getMetadata().getMainFunctionEntry(), new InstrumentationState()));
 
+      while (!waitlist.isEmpty()) {
+          Pair<CFANode, InstrumentationState> currentPair = waitlist.remove(waitlist.size() - 1);
+          reachlist.add(currentPair);
+          CFANode currentNode = currentPair.getFirst();
+          InstrumentationState currentState = currentPair.getSecond();
+
+          // Handling a trivial case, when the state does not match the node
+          if (currentState.toString().equals("DUMMY") ||
+              currentState.stateMatchesCfaNode(currentNode, cfa)) {
+            assert currentNode != null;
+            for (CFANode succ : getSuccessorsOfANode(currentNode)) {
+              Pair<CFANode, InstrumentationState> newPair = Pair.of(succ, currentState);
+              if (!reachlist.contains(newPair)) {
+                waitlist.add(newPair);
+              }
+            }
+            continue;
+          }
+
+
+      }
       writer.write(allLoopInfos.toString());
     } catch (IOException e) {
       logger.logException(Level.SEVERE, e, "The creation of file AllCFAInfos.txt failed!");
     }
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
+  }
+
+  private Set<CFANode> getSuccessorsOfANode(CFANode pCFANode) {
+    Set<CFANode> successors = new HashSet<>();
+    for (int i = 0; i < pCFANode.getNumLeavingEdges(); i++) {
+      successors.add(pCFANode.getLeavingEdge(i).getSuccessor());
+    }
+    return successors;
   }
 }

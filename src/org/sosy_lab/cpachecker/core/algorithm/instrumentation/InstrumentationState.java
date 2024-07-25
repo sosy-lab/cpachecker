@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.StateAnnotation;
 
 public class InstrumentationState {
@@ -25,8 +27,11 @@ public class InstrumentationState {
     this.stateAnnotation = StateAnnotation.TRUE;
   }
 
-  public StateAnnotation getStateAnnotation() {
-    return stateAnnotation;
+  public boolean stateMatchesCfaNode(CFANode pCFANode, CFA pCFA) {
+    return (stateAnnotation == StateAnnotation.TRUE) ||
+        (stateAnnotation == StateAnnotation.INIT &&
+            pCFANode.equals(pCFA.getMetadata().getMainFunctionEntry())) ||
+            (stateAnnotation == StateAnnotation.LOOPHEAD && pCFANode.isLoopStart());
   }
 
   @Override
