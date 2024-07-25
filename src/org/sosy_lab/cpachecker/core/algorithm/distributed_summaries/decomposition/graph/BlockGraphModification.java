@@ -106,14 +106,13 @@ public class BlockGraphModification {
     MutableCFA mutableCfa = createMutableCfaCopy(pCFA, pConfig, pLogger);
     ModificationMetadata modificationMetadata =
         addBlankEdgesAtBlockEnds(mutableCfa, pCFA, pBlockGraph);
-    CFA instrumentedCFA = mutableCfa.immutableCopy();
     Map<CFANode, CFANode> originalInstrumentedMapping =
         modificationMetadata.mappingInfo().originalToInstrumentedNodes();
     // Adjust the block graph to the modified CFA
     BlockGraph adjustedBlockGraph =
         adaptBlockGraph(
             pBlockGraph,
-            instrumentedCFA.getMainFunction(),
+            mutableCfa.getMainFunction(),
             modificationMetadata.mappingInfo(),
             modificationMetadata.abstractions());
 
@@ -122,18 +121,13 @@ public class BlockGraphModification {
     Optional<LoopStructure> adjustedLoopStructure =
         adjustLoopStructureToModification(pCFA, originalInstrumentedMapping);
 
-    CfaMetadata metadata = instrumentedCFA.getMetadata();
+    CfaMetadata metadata = mutableCfa.getMetadata();
     if (adjustedLoopStructure.isPresent()) {
       metadata = metadata.withLoopStructure(adjustedLoopStructure.orElseThrow());
     }
+    mutableCfa.setMetadata(metadata);
 
-    return new Modification(
-        new ImmutableCFA(
-            instrumentedCFA.getAllFunctions(),
-            ImmutableSet.copyOf(instrumentedCFA.nodes()),
-            metadata),
-        adjustedBlockGraph,
-        modificationMetadata);
+    return new Modification(mutableCfa.immutableCopy(), adjustedBlockGraph, modificationMetadata);
   }
 
   private static Modification getUnchanged(CFA pCFA, BlockGraph pBlockGraph) {
