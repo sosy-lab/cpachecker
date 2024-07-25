@@ -13,6 +13,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -21,10 +25,15 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationProperty;
+import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
+import scala.Int;
+import scala.concurrent.impl.FutureConvertersImpl.P;
 
 /**
  * This algorithm instruments a CFA of program using intrumentation operator and instrumentation
@@ -52,7 +61,6 @@ public class InstrumentationOperatorAlgorithm {
     cfa = pCfa;
     logger = pLogger;
     cProgramScope = new CProgramScope(pCfa, pLogger);
-    
   }
 
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
@@ -60,6 +68,24 @@ public class InstrumentationOperatorAlgorithm {
     try (BufferedWriter writer =
         Files.newBufferedWriter(new File("output/AllLoopInfos.txt").toPath(), StandardCharsets.UTF_8)) {
       StringBuilder allLoopInfos = new StringBuilder();
+      // For some properties we construct more automata to more effectively track variables within
+      // the scope. This map is used to map the automata to concrete line numbers in the code.
+      Map<Integer, InstrumentationAutomaton> mapAutomataToLocations = new HashMap<>();
+      Map<CFANode, Integer> mapLoopHeadsToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
+
+      if (instrumentationProperty == InstrumentationProperty.TERMINATION) {
+        for (NormalLoopInfo info : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
+          mapAutomataToLocations.put(info.loopLocation(),
+                                     new InstrumentationAutomaton(instrumentationProperty,
+                                                                  info.liveVariablesAndTypes()));
+        }
+      }
+
+      // MAIN INSTRUMENTATION OPERATOR ALGORITHM
+      // Initialize the search
+      Set<Pair<CFANode, InstrumentationState>> waitlist = new HashSet<>();
+      waitlist.add(Pair.of(cfa.getMetadata().getMainFunctionEntry(), new InstrumentationState()));
+
       writer.write(allLoopInfos.toString());
     } catch (IOException e) {
       logger.logException(Level.SEVERE, e, "The creation of file AllCFAInfos.txt failed!");

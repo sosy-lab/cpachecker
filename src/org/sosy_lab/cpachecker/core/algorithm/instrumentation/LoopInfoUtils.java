@@ -92,6 +92,25 @@ public class LoopInfoUtils {
     return ImmutableSet.copyOf(allNormalLoopInfos);
   }
 
+  public static Map<CFANode, Integer> getMapOfLoopHeadsToLineNumbers(CFA pCfa) {
+    Map<CFANode, Integer> mapLoopHeadToLineNumbers = new HashMap<>();
+
+    for (Loop loop : pCfa.getLoopStructure().orElseThrow().getAllLoops()) {
+      // Determine loop locations. There may be more than one, as some loops have multiple
+      // loop heads, e.g., goto loop.
+      List<Integer> loopLocations = new ArrayList<>();
+      for (CFANode cfaNode : loop.getLoopHeads()) {
+        mapLoopHeadToLineNumbers.put(cfaNode,
+            CFAUtils.allEnteringEdges(cfaNode)
+                .first()
+                .get()
+                .getFileLocation()
+                .getStartingLineInOrigin());
+      }
+    }
+    return mapLoopHeadToLineNumbers;
+  }
+
   private static ImmutableSet<String> getVariablesFromAAstNode(AAstNode pAAstNode) {
     Set<String> variables = new HashSet<>();
 

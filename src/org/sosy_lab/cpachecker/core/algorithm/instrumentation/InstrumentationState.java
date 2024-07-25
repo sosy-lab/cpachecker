@@ -1,0 +1,36 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
+
+import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.StateAnnotation;
+
+public class InstrumentationState {
+  private String name;
+  private StateAnnotation stateAnnotation;
+
+  public InstrumentationState(String pName, StateAnnotation pStateAnnotation) {
+    this.name = pName;
+    this.stateAnnotation = pStateAnnotation;
+  }
+
+  // Create a dummy state for the instrumentation operator, when no IA needs to be used.
+  public InstrumentationState() {
+    this.name = "DUMMY";
+    this.stateAnnotation = StateAnnotation.TRUE;
+  }
+
+  public StateAnnotation getStateAnnotation() {
+    return stateAnnotation;
+  }
+
+  @Override
+  public String toString() {
+    return name;
+  }
+}

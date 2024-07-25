@@ -65,7 +65,7 @@ public class InstrumentationAutomaton {
   }
 
   private void constructTerminationAutomaton() {
-      InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.INIT);
+      InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD);
       InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD);
       this.instrumentationStates = ImmutableList.of(q1, q2);
 
@@ -96,25 +96,6 @@ public class InstrumentationAutomaton {
               q2);
       this.instrumentationTransitions =
           ImmutableList.of(t1, t2);
-  }
-
-  private class InstrumentationState {
-    private String name;
-    private StateAnnotation stateAnnotation;
-
-    public InstrumentationState(String pName, StateAnnotation pStateAnnotation) {
-      this.name = pName;
-      this.stateAnnotation = pStateAnnotation;
-    }
-
-    public StateAnnotation getStateAnnotation() {
-      return stateAnnotation;
-    }
-
-    @Override
-    public String toString() {
-      return name;
-    }
   }
 
   private class InstrumentationTransition {
