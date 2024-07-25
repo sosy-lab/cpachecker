@@ -96,8 +96,20 @@ public class InstrumentationOperatorAlgorithm {
           InstrumentationState currentState = currentPair.getSecond();
 
           // Handling a trivial case, when the state does not match the node
-          if (currentState.toString().equals("DUMMY") ||
-              currentState.stateMatchesCfaNode(currentNode, cfa)) {
+          if (!currentState.stateMatchesCfaNode(currentNode, cfa)) {
+            // If the current state was dummy, we have to look for an automaton that matches the
+            // CFANode
+            if (currentState.toString().equals("DUMMY") &&
+                mapLoopHeadsToLineNumbers.containsKey(currentNode)) {
+              Pair<CFANode, InstrumentationState> newPair = Pair.of(currentNode,
+                  mapAutomataToLocations
+                      .get(mapLoopHeadsToLineNumbers
+                          .get(currentNode))
+                      .getInitialState());
+              waitlist.add(newPair);
+              continue;
+            }
+
             assert currentNode != null;
             for (CFANode succ : getSuccessorsOfANode(currentNode)) {
               Pair<CFANode, InstrumentationState> newPair = Pair.of(succ, currentState);

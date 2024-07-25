@@ -21,6 +21,7 @@ public class InstrumentationAutomaton {
   private ImmutableMap<String, String> liveVariablesAndTypes;
   private ImmutableList<InstrumentationState> instrumentationStates;
   private ImmutableList<InstrumentationTransition> instrumentationTransitions;
+  private InstrumentationState initialState;
 
   /**
    * Currently supported properties with encoded automata.
@@ -64,10 +65,15 @@ public class InstrumentationAutomaton {
     }
   }
 
+  public InstrumentationState getInitialState() {
+    return initialState;
+  }
+
   private void constructTerminationAutomaton() {
       InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD);
       InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD);
       this.instrumentationStates = ImmutableList.of(q1, q2);
+      this.initialState = q1;
 
       InstrumentationTransition t1 =
           new InstrumentationTransition(

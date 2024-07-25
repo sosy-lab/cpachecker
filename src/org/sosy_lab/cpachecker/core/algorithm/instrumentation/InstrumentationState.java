@@ -28,7 +28,7 @@ public class InstrumentationState {
   }
 
   public boolean stateMatchesCfaNode(CFANode pCFANode, CFA pCFA) {
-    return (stateAnnotation == StateAnnotation.TRUE) ||
+    return (stateAnnotation == StateAnnotation.TRUE && !name.equals("DUMMY")) ||
         (stateAnnotation == StateAnnotation.INIT &&
             pCFANode.equals(pCFA.getMetadata().getMainFunctionEntry())) ||
             (stateAnnotation == StateAnnotation.LOOPHEAD && pCFANode.isLoopStart());
