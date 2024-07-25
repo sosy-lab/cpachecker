@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import java.util.Objects;
 import java.util.OptionalInt;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -22,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
 public final class CArrayType extends AArrayType implements CType {
 
-  private static final long serialVersionUID = -6314468260643330323L;
+  @Serial private static final long serialVersionUID = -6314468260643330323L;
 
   private final @Nullable CExpression length;
   private final boolean isConst;

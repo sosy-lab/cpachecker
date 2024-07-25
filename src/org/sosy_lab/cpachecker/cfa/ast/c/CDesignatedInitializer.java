@@ -12,6 +12,7 @@ import static com.google.common.collect.Lists.transform;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractInitializer;
@@ -19,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class CDesignatedInitializer extends AbstractInitializer implements CInitializer {
 
-  private static final long serialVersionUID = -2567254248669651550L;
+  @Serial private static final long serialVersionUID = -2567254248669651550L;
   private final List<CDesignator> designators;
   private final CInitializer right;
 

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -22,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 /** Stores a numeric value that can be tracked by the ValueAnalysisCPA. */
 public record NumericValue(Number number) implements Value {
 
-  private static final long serialVersionUID = -3829943575180448170L;
+  @Serial private static final long serialVersionUID = -3829943575180448170L;
 
   /** Returns the number stored in the container. Same as {@link #number()} for consistency. */
   public Number getNumber() {
@@ -208,7 +209,7 @@ public record NumericValue(Number number) implements Value {
 
   public static class NegativeNaN extends Number {
 
-    private static final long serialVersionUID = 1L;
+    @Serial private static final long serialVersionUID = 1L;
 
     public static final Number VALUE = new NegativeNaN();
 

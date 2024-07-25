@@ -8,13 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignmentStatement
     implements CStatement, CAssignment, CFunctionCall {
 
-  private static final long serialVersionUID = 8744203402170708743L;
+  @Serial private static final long serialVersionUID = 8744203402170708743L;
 
   public CFunctionCallAssignmentStatement(
       FileLocation pFileLocation,

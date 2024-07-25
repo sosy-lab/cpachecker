@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -36,7 +37,7 @@ public sealed class JClassInstanceCreation extends JMethodInvocationExpression
 
   // TODO Type Variables , AnonymousClassDeclaration
 
-  private static final long serialVersionUID = -8480398251628288918L;
+  @Serial private static final long serialVersionUID = -8480398251628288918L;
 
   public JClassInstanceCreation(
       FileLocation pFileLocation,

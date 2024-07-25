@@ -392,10 +392,6 @@ analysis.restartAfterUnknown = false
 # Use heuristics to select the analysis
 analysis.selectAnalysisHeuristically = false
 
-# if this option is used, the CFA will be loaded from the given file instead
-# of parsed from sourcefile.
-analysis.serializedCfaFile = no default value
-
 # Split program in subprograms which can be analyzed separately afterwards
 analysis.split.program = false
 
@@ -851,10 +847,6 @@ cfa.nonReturningFunctions = {"abort", "exit"}
 # corresponding to the value of option pixelgraphic.export.formatIf set to
 # 'null', no pixel graphic is exported.
 cfa.pixelGraphicFile = no default value
-
-# export CFA as .ser file (dump Java objects)
-cfa.serialize = false
-cfa.serializeFile = "cfa.ser.gz"
 
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true
@@ -1923,20 +1915,22 @@ cpa.loopbound.cyclicStopModulus = -1
 # equivalent to no limit.
 cpa.loopbound.loopIterationsBeforeAbstraction = 0
 
-# this option controls how the maxLoopIterations condition is adjusted when a
+# This option controls how the maxLoopIterations condition is adjusted when a
 # condition adjustment is invoked.
 cpa.loopbound.maxLoopIterationAdjusterFactory = STATIC
   enum:     [STATIC, INCREMENT, DOUBLE]
 
-# threshold for unrolling loops of the program (0 is infinite)
-# works only if assumption storage CPA is enabled, because otherwise it would
-# be unsound
+# Bound for number of loop-head visits (number of loop unrollings + 1)
+# of the program (0 is used for no bound).
+# Works only if assumption storage CPA is enabled, because otherwise it would
+# be unsound.
 cpa.loopbound.maxLoopIterations = 0
 
-# threshold for adjusting the threshold for unrolling loops of the program (0
-# is infinite).
-# only relevant in combination with a non-static maximum loop iteration
-# adjuster.
+# Maximum for adjusting the bound for number of loop-head visits of the
+# program
+# (0 is used for no maximum).
+# Only relevant in combination with a non-static adjuster for the bound for
+# loop-head visits.
 cpa.loopbound.maxLoopIterationsUpperBound = 0
 
 # Only checks for error after loops were unrolled at least this amount of
@@ -3023,17 +3017,26 @@ cpa.smg2.abstraction.alwaysAtLoop = false
 # computations are performed (and iteration threshold was reached)
 cpa.smg2.abstraction.determinismThreshold = 85
 
-# toggle liveness abstraction
-cpa.smg2.abstraction.doLivenessAbstraction = false
+# toggle liveness abstraction. Is independent of CEGAR, but dependent on the
+# CFAs liveness variables being tracked.
+cpa.smg2.abstraction.doLivenessAbstraction = true
 
 # skip abstraction computations until the given number of iterations are
 # reached, after that decision is based on then current level of determinism,
 # setting the option to -1 always performs abstraction computations
 cpa.smg2.abstraction.iterationThreshold = -1
 
+# The minimum list segments that are needed for abstraction may be increased
+# during the analysis based on a heuristic in fixed sized loops. This is the
+# maximum increase that is allowed. E.g. all lists with the length given here
+# are abstracted in any case. If you want to prevent dynamic increase of list
+# abstraction min threshold set this to the same value as
+# listAbstractionMinimumLengthThreshold.
+cpa.smg2.abstraction.listAbstractionMaximumIncreaseLengthThreshold = 6
+
 # The minimum list segments directly following each other with the same value
 # needed to abstract them.Minimum is 2.
-cpa.smg2.abstraction.listAbstractionMinimumLengthThreshhold = 12
+cpa.smg2.abstraction.listAbstractionMinimumLengthThreshold = 4
 
 # restrict liveness abstractions to nodes with more than one entering and/or
 # leaving edge
@@ -3495,6 +3498,10 @@ cpa.value.allowedUnsupportedFunctions = {}
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.value.assignEqualityAssumptions = true
 
+# configure when to export loop invariants
+cpa.value.exportLoopInvariants = IF_TRUE
+  enum:     [ALWAYS, IF_NOT_FALSE, IF_TRUE]
+
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
 cpa.value.functionValuesForRandom = no default value
@@ -3531,6 +3538,34 @@ cpa.value.interpolation.applyUnsatSuffixOptimization = true
 
 # whether or not to manage the callstack, which is needed for BAM
 cpa.value.interpolation.manageCallstack = true
+
+# Enable invariants that use  an arithmetic operator(linear invariants are
+# enabled separately)
+cpa.value.invExport.exportArithmetic = true
+
+# Enable to export invariants that include two variables
+cpa.value.invExport.exportBinary = true
+
+# Enable invariants that use a bit operator
+cpa.value.invExport.exportBitops = true
+
+# Enable to export linear equalities or inequalities over variables, e.g., ax
+# + by + c = 0, ax + bx + c <= 0, ax + bx + c >= 0, or ax + by + cy + d = 0
+cpa.value.invExport.exportLinear = true
+
+# Enable invariants that use a shift operator, note that additionally
+# exportBitops must be enabled
+cpa.value.invExport.exportShiftops = true
+
+# Enable to export invariants that include three variables, currently only
+# effective if exportLinear is enabled, too
+cpa.value.invExport.exportTernary = true
+
+# enable if loop invariant export should consider context
+cpa.value.invExport.invariantsContextSensitive = true
+
+# target file to hold the exported loop invariants
+cpa.value.loopInvariantsFile = no default value
 
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"

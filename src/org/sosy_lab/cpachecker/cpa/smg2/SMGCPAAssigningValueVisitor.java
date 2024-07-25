@@ -141,6 +141,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                     rightValue,
                     stateWithConstraints,
                     edge);
+          } else {
+            handledStates = ImmutableList.of(stateWithConstraints);
           }
         }
 

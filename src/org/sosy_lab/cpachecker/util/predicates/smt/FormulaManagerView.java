@@ -20,6 +20,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -1368,7 +1369,7 @@ public class FormulaManagerView {
     final ImmutableSet.Builder<BooleanFormula> result = ImmutableSet.builder();
     booleanFormulaManager.visitRecursively(
         pFormula,
-        new DefaultBooleanFormulaVisitor<TraversalProcess>() {
+        new DefaultBooleanFormulaVisitor<>() {
           @Override
           protected TraversalProcess visitDefault() {
             return TraversalProcess.CONTINUE;
@@ -1410,7 +1411,7 @@ public class FormulaManagerView {
   public Optional<BooleanFormula> stripNegation(BooleanFormula f) {
     return booleanFormulaManager.visit(
         f,
-        new DefaultBooleanFormulaVisitor<Optional<BooleanFormula>>() {
+        new DefaultBooleanFormulaVisitor<>() {
           @Override
           protected Optional<BooleanFormula> visitDefault() {
             return Optional.empty();
@@ -1434,7 +1435,7 @@ public class FormulaManagerView {
   public List<BooleanFormula> splitNumeralEqualityIfPossible(BooleanFormula formula) {
     return visit(
         formula,
-        new DefaultFormulaVisitor<List<BooleanFormula>>() {
+        new DefaultFormulaVisitor<>() {
           @Override
           protected List<BooleanFormula> visitDefault(Formula f) {
             return ImmutableList.of((BooleanFormula) f);
@@ -1478,7 +1479,7 @@ public class FormulaManagerView {
     final AtomicBoolean isPurelyAtomic = new AtomicBoolean(true);
     visitRecursively(
         f,
-        new DefaultFormulaVisitor<TraversalProcess>() {
+        new DefaultFormulaVisitor<>() {
           @Override
           protected TraversalProcess visitDefault(Formula pF) {
             return TraversalProcess.CONTINUE;
@@ -1552,7 +1553,7 @@ public class FormulaManagerView {
 
     return booleanFormulaManager.visit(
         t,
-        new DefaultBooleanFormulaVisitor<Boolean>() {
+        new DefaultBooleanFormulaVisitor<>() {
 
           @Override
           public Boolean visitDefault() {
@@ -1591,7 +1592,7 @@ public class FormulaManagerView {
     final AtomicBoolean containsITE = new AtomicBoolean(false);
     visitRecursively(
         f,
-        new DefaultFormulaVisitor<TraversalProcess>() {
+        new DefaultFormulaVisitor<>() {
           @Override
           protected TraversalProcess visitDefault(Formula pF) {
             return TraversalProcess.CONTINUE;
@@ -1626,7 +1627,7 @@ public class FormulaManagerView {
 
     visitRecursively(
         f,
-        new DefaultFormulaVisitor<TraversalProcess>() {
+        new DefaultFormulaVisitor<>() {
           @Override
           protected TraversalProcess visitDefault(Formula pF) {
             return TraversalProcess.CONTINUE;
@@ -1706,7 +1707,7 @@ public class FormulaManagerView {
     Pair<String, OptionalInt> p = parseName(varName);
     String name = p.getFirst();
     OptionalInt idx = p.getSecond();
-    if (!idx.isPresent()) {
+    if (idx.isEmpty()) {
       if (ssa.containsVariable(varName)) {
         return true;
       }
@@ -1716,42 +1717,6 @@ public class FormulaManagerView {
       }
     }
     return false;
-  }
-
-  public Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa) {
-    return getFunctionNames(pFormula, varName -> isIntermediate(varName, pSsa), true);
-  }
-
-  private Set<String> getFunctionNames(
-      BooleanFormula pFormula, Predicate<String> pIsDesired, boolean extractUFs) {
-    return myGetDesiredVariables(pFormula, pIsDesired, extractUFs).keySet();
-  }
-
-  /**
-   * Do not make this method public, because the returned formulas have incorrect types (they are
-   * not appropriately wrapped).
-   */
-  private Map<String, Formula> myGetDesiredVariables(
-      BooleanFormula pFormula, Predicate<String> pIsDesired, boolean extractUF) {
-    Map<String, Formula> result = new HashMap<>();
-
-    Map<String, Formula> vars;
-    if (extractUF) {
-      vars = manager.extractVariablesAndUFs(pFormula);
-    } else {
-      vars = manager.extractVariables(pFormula);
-    }
-
-    for (Entry<String, Formula> entry : vars.entrySet()) {
-
-      String name = entry.getKey();
-      Formula varFormula = entry.getValue();
-      if (pIsDesired.apply(name)) {
-        result.put(name, varFormula);
-      }
-    }
-
-    return result;
   }
 
   /**
@@ -1764,7 +1729,6 @@ public class FormulaManagerView {
    */
   public BooleanFormula eliminateDeadVariables(final BooleanFormula pF, final SSAMap pSsa)
       throws SolverException, InterruptedException {
-
     Preconditions.checkNotNull(pSsa);
     return eliminateVariables(pF, varName -> isIntermediate(varName, pSsa));
   }
@@ -1782,15 +1746,13 @@ public class FormulaManagerView {
     Preconditions.checkNotNull(pF);
     Preconditions.checkNotNull(pToEliminate);
 
-    Map<String, Formula> irrelevantVariables = myGetDesiredVariables(pF, pToEliminate, false);
-
+    List<Formula> irrelevantVariables =
+        ImmutableList.copyOf(Maps.filterKeys(manager.extractVariables(pF), pToEliminate).values());
     BooleanFormula eliminationResult = pF;
 
     if (!irrelevantVariables.isEmpty()) {
       QuantifiedFormulaManagerView qfmgr = getQuantifiedFormulaManager();
-      BooleanFormula quantifiedFormula =
-          qfmgr.exists(ImmutableList.copyOf(irrelevantVariables.values()), pF);
-
+      BooleanFormula quantifiedFormula = qfmgr.exists(irrelevantVariables, pF);
       eliminationResult = qfmgr.eliminateQuantifiers(quantifiedFormula);
     }
 
@@ -1800,13 +1762,16 @@ public class FormulaManagerView {
 
   /** Quantify all intermediate variables in the formula. */
   public BooleanFormula quantifyDeadVariables(BooleanFormula pF, SSAMap pSSAMap) {
-    Map<String, Formula> irrelevantVariables =
-        myGetDesiredVariables(pF, varName -> isIntermediate(varName, pSSAMap), false);
+    List<Formula> irrelevantVariables =
+        ImmutableList.copyOf(
+            Maps.filterKeys(
+                    manager.extractVariables(pF), varName -> isIntermediate(varName, pSSAMap))
+                .values());
     if (irrelevantVariables.isEmpty()) {
       return pF;
+    } else {
+      return getQuantifiedFormulaManager().exists(irrelevantVariables, pF);
     }
-    return getQuantifiedFormulaManager()
-        .exists(ImmutableList.copyOf(irrelevantVariables.values()), pF);
   }
 
   public record IfThenElseParts<T>(BooleanFormula condition, T thenBranch, T elseBranch) {}
@@ -1818,7 +1783,7 @@ public class FormulaManagerView {
   public <T extends Formula> Optional<IfThenElseParts<T>> splitIfThenElse(final T pF) {
     return visit(
         pF,
-        new DefaultFormulaVisitor<Optional<IfThenElseParts<T>>>() {
+        new DefaultFormulaVisitor<>() {
 
           @Override
           protected Optional<IfThenElseParts<T>> visitDefault(Formula f) {
@@ -1994,7 +1959,7 @@ public class FormulaManagerView {
     BooleanFormula f = parse(s);
     return visit(
         f,
-        new DefaultFormulaVisitor<Formula>() {
+        new DefaultFormulaVisitor<>() {
 
           @Override
           protected Formula visitDefault(Formula pF) {

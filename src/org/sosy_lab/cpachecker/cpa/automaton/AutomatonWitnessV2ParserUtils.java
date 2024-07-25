@@ -15,6 +15,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serial;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Deque;
@@ -34,7 +35,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEnt
 public class AutomatonWitnessV2ParserUtils {
 
   public static class InvalidYAMLWitnessException extends InvalidConfigurationException {
-    private static final long serialVersionUID = -5647551194742587246L;
+    @Serial private static final long serialVersionUID = -5647551194742587246L;
 
     public InvalidYAMLWitnessException(String pReason) {
       super(pReason);

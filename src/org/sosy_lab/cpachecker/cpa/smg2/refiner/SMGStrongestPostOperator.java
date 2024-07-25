@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.Un
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAExportOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
@@ -52,10 +53,12 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
     SMGOptions options = new SMGOptions(pConfig);
     SMGCPAExportOptions exportOptions =
         new SMGCPAExportOptions(options.getExportSMGFilePattern(), options.getExportSMGLevel());
+    // TODO: get global PrecAdjustmentOptions
     transfer =
         new SMGTransferRelation(
             pLogger,
             options,
+            new PrecAdjustmentOptions(pConfig, pCfa),
             exportOptions,
             pCfa,
             new ConstraintsStrengthenOperator(pConfig, pLogger),
