@@ -33,7 +33,12 @@ final class Output {
       return systemConsole != null;
     }
     try {
-      return (Boolean) Console.class.getMethod("isTerminal").invoke(systemConsole);
+      // In proper implementations of Java 22 and later it should be ok to
+      // assume that `systemConsole != null`, but the official documentation still
+      // allows null here, so we check it explicitly.
+      // At least SubstrateVM 22.0.1 still returns null when stdout is redirected into a file.
+      return systemConsole != null
+          && (Boolean) Console.class.getMethod("isTerminal").invoke(systemConsole);
     } catch (ReflectiveOperationException e) {
       throw new LinkageError(e.getMessage(), e);
     }
