@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationProperty;
@@ -96,6 +97,7 @@ public class InstrumentationOperatorAlgorithm {
           InstrumentationState currentState = currentPair.getSecond();
 
           // Handling a trivial case, when the state does not match the node
+          assert currentState != null;
           if (!currentState.stateMatchesCfaNode(currentNode, cfa)) {
             // If the current state was dummy, we have to look for an automaton that matches the
             // CFANode
@@ -107,17 +109,21 @@ public class InstrumentationOperatorAlgorithm {
                           .get(currentNode))
                       .getInitialState());
               waitlist.add(newPair);
-              continue;
-            }
+            } else {
 
-            assert currentNode != null;
-            for (CFANode succ : getSuccessorsOfANode(currentNode)) {
-              Pair<CFANode, InstrumentationState> newPair = Pair.of(succ, currentState);
-              if (!reachlist.contains(newPair)) {
-                waitlist.add(newPair);
+              assert currentNode != null;
+              for (CFANode succ : getSuccessorsOfANode(currentNode)) {
+                Pair<CFANode, InstrumentationState> newPair = Pair.of(succ, currentState);
+                if (!reachlist.contains(newPair)) {
+                  waitlist.add(newPair);
+                }
               }
             }
-            continue;
+          } else {
+            assert currentNode != null;
+            for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
+              CFAEdge edge = currentNode.getLeavingEdge(i);
+            }
           }
 
 
