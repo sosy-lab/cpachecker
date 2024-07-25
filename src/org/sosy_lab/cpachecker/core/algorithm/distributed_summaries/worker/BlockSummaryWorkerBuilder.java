@@ -93,9 +93,12 @@ public class BlockSummaryWorkerBuilder {
     try {
       Path logDirectory = pOptions.getLogDirectory();
       if (logDirectory != null) {
-        logDirectory.toFile().mkdirs();
+        boolean logDirectoryExists = logDirectory.toFile().mkdirs();
+        if (!logDirectoryExists) {
+          throw new IOException("Could not create log directory: " + logDirectory);
+        }
         return BasicLogManager.createWithHandler(
-            new FileHandler(pOptions.getLogDirectory().toString() + "/" + workerId + ".log"));
+            new FileHandler(logDirectory + "/" + workerId + ".log"));
       }
     } catch (IOException e) {
       // fall-through to return null-log manager
