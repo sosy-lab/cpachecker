@@ -39,7 +39,7 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
               + entry.getValue().getValue().asNumericValue().number().intValue()
               + " && ";
     }
-    if (serializedValueString == "") {
+    if (serializedValueString.isEmpty()) {
       serializedValueString = "No constants";
     } else {
       serializedValueString =
