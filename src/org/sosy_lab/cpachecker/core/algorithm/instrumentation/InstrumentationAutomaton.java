@@ -60,6 +60,11 @@ public class InstrumentationAutomaton {
     this.liveVariablesAndTypes = pLiveVariablesAndTypes;
 
     if (pInstrumentationProperty == InstrumentationProperty.TERMINATION) {
+      constructTerminationAutomaton();
+    }
+  }
+
+  private void constructTerminationAutomaton() {
       InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.INIT);
       InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD);
       this.instrumentationStates = ImmutableList.of(q1, q2);
@@ -69,9 +74,9 @@ public class InstrumentationAutomaton {
               q1,
               "true",
               "int saved = 0;\n" +
-              liveVariablesAndTypes.entrySet().stream()
-                  .map((entry) -> entry.getValue() + " " + entry.getKey() + "_instr")
-                  .collect(Collectors.joining(";\n")),
+                  liveVariablesAndTypes.entrySet().stream()
+                      .map((entry) -> entry.getValue() + " " + entry.getKey() + "_instr")
+                      .collect(Collectors.joining(";\n")),
               InstrumentationOrder.BEFORE,
               q2);
       InstrumentationTransition t2 =
@@ -91,7 +96,6 @@ public class InstrumentationAutomaton {
               q2);
       this.instrumentationTransitions =
           ImmutableList.of(t1, t2);
-    }
   }
 
   private class InstrumentationState {

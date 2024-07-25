@@ -52,6 +52,7 @@ public class InstrumentationOperatorAlgorithm {
     cfa = pCfa;
     logger = pLogger;
     cProgramScope = new CProgramScope(pCfa, pLogger);
+    
   }
 
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
