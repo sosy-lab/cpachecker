@@ -8,13 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /** This is the abstract Class for Casted Expressions. */
 public abstract class ACastExpression extends AbstractLeftHandSide {
 
-  private static final long serialVersionUID = 7047818239785351507L;
+  @Serial private static final long serialVersionUID = 7047818239785351507L;
   private final AExpression operand;
   private final Type castType;
 

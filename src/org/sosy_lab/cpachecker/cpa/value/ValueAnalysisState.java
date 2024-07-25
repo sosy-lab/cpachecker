@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -93,7 +94,7 @@ public final class ValueAnalysisState
         LatticeAbstractState<ValueAnalysisState>,
         PseudoPartitionable {
 
-  private static final long serialVersionUID = -3152134511524554358L;
+  @Serial private static final long serialVersionUID = -3152134511524554358L;
 
   private static final Set<MemoryLocation> blacklist = new HashSet<>();
 
@@ -989,7 +990,7 @@ public final class ValueAnalysisState
   }
 
   public static class ValueAndType implements Serializable {
-    private static final long serialVersionUID = 1L;
+    @Serial private static final long serialVersionUID = 1L;
     private final Value value;
     private final Type type;
 

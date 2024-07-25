@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -23,7 +24,7 @@ public sealed class JVariableDeclaration extends AVariableDeclaration implements
 
   // TODO refactor to be either abstract or final
 
-  private static final long serialVersionUID = -3840765628515703031L;
+  @Serial private static final long serialVersionUID = -3840765628515703031L;
   private static final boolean IS_LOCAL = false;
   private final boolean isFinal;
 

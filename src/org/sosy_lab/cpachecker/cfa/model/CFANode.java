@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,19 +27,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
-public sealed class CFANode implements Comparable<CFANode>, Serializable
+public sealed class CFANode implements Comparable<CFANode>
     permits CFALabelNode, CFATerminationNode, FunctionEntryNode, FunctionExitNode {
-
-  private static final long serialVersionUID = 5168350921309486536L;
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
   private final int nodeNumber;
 
-  // do not serialize edges, recursive traversal of the CFA causes a stack-overflow.
-  // edge-list is final, except for serialization
-  private transient List<CFAEdge> leavingEdges = new ArrayList<>(1);
-  private transient List<CFAEdge> enteringEdges = new ArrayList<>(1);
+  private final List<CFAEdge> leavingEdges = new ArrayList<>(1);
+  private final List<CFAEdge> enteringEdges = new ArrayList<>(1);
 
   // is start node of a loop?
   private boolean isLoopStart = false;
@@ -285,15 +280,6 @@ public sealed class CFANode implements Comparable<CFANode>, Serializable
     }
 
     return "";
-  }
-
-  private void readObject(java.io.ObjectInputStream s)
-      throws java.io.IOException, ClassNotFoundException {
-    s.defaultReadObject();
-
-    // leaving and entering edges have to be updated explicitly after reading a node
-    leavingEdges = new ArrayList<>(1);
-    enteringEdges = new ArrayList<>(1);
   }
 
   public void addOutOfScopeVariables(Collection<CSimpleDeclaration> pOutOfScopeVariables) {

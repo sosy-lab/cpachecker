@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.witnessjoiner;
 
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -29,7 +30,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
     implements ExpressionTreeReportingState, Graphable {
 
-  private static final long serialVersionUID = 1125821322111655263L;
+  @Serial private static final long serialVersionUID = 1125821322111655263L;
 
   protected WitnessJoinerState(@Nullable AbstractState pWrappedState) {
     super(pWrappedState);

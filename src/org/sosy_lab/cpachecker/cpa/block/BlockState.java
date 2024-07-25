@@ -8,58 +8,55 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.VerificationConditionReportingState;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 // cannot be an AbstractStateWithLocation as initialization corrupts analysis
-public class BlockState
-    implements AbstractQueryableState, Partitionable, Targetable, FormulaReportingState {
+public class BlockState implements AbstractQueryableState, Partitionable, Targetable {
 
   public enum BlockStateType {
     INITIAL,
     MID,
-    FINAL,
-    ABSTRACTION
+    FINAL
   }
 
+  private final CFANode targetCFANode;
   private final CFANode node;
+  private final AnalysisDirection direction;
   private final BlockStateType type;
-  private final BlockNode blockNode;
-  private Optional<AbstractState> errorCondition;
+  private final boolean wasLoopHeadEncountered;
 
   public BlockState(
       CFANode pNode,
       BlockNode pTargetNode,
+      AnalysisDirection pDirection,
       BlockStateType pType,
-      Optional<AbstractState> pErrorCondition) {
+      boolean pWasLoopHeadEncountered) {
     node = pNode;
+    direction = pDirection;
     type = pType;
-    blockNode = pTargetNode;
-    errorCondition = pErrorCondition;
+    if (pTargetNode == null) {
+      targetCFANode = CFANode.newDummyCFANode();
+    } else {
+      targetCFANode =
+          direction == AnalysisDirection.FORWARD
+              ? pTargetNode.getLastNode()
+              : pTargetNode.getStartNode();
+    }
+    wasLoopHeadEncountered = pWasLoopHeadEncountered;
   }
 
-  public void setErrorCondition(AbstractState pErrorCondition) {
-    errorCondition = Optional.of(pErrorCondition);
-  }
-
-  public BlockNode getBlockNode() {
-    return blockNode;
+  public boolean hasLoopHeadEncountered() {
+    return wasLoopHeadEncountered;
   }
 
   public CFANode getLocationNode() {
@@ -82,49 +79,32 @@ public class BlockState
 
   @Override
   public String toString() {
-    return "BlockState{" + "node=" + node + ", type=" + type + '}';
+    return "Location: " + node;
   }
 
   @Override
   public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
     return isTarget()
-        ? ImmutableSet.of(
-            new BlockEntryReachedTargetInformation(
-                blockNode.getAbstractionLocation(), type == BlockStateType.ABSTRACTION))
+        ? ImmutableSet.of(new BlockEntryReachedTargetInformation(targetCFANode))
         : ImmutableSet.of();
   }
 
-  public Optional<AbstractState> getErrorCondition() {
-    return errorCondition;
-  }
-
-  @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
-    if (isTarget() && errorCondition.isPresent()) {
-      FluentIterable<BooleanFormula> approximations =
-          AbstractStates.asIterable(errorCondition.orElseThrow())
-              .filter(VerificationConditionReportingState.class)
-              .transform(s -> s.getVerificationCondition(manager));
-      return manager.getBooleanFormulaManager().and(approximations.toList());
-    }
-    return manager.getBooleanFormulaManager().makeTrue();
-  }
-
-  // error condition intentionally left out as it is mutable
   @Override
   public boolean equals(Object pO) {
-    return pO instanceof BlockState that && Objects.equals(node, that.node) && type == that.type;
+    return pO instanceof BlockState that
+        && direction == that.direction
+        && Objects.equals(targetCFANode, that.targetCFANode)
+        && Objects.equals(node, that.node)
+        && type == that.type;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(node, type);
+    return Objects.hash(targetCFANode, node, direction, type);
   }
 
   @Override
   public boolean isTarget() {
-    return (errorCondition.isEmpty() && node.equals(blockNode.getLast()))
-        || (blockNode.getAbstractionLocation().equals(node) && blockNode.isAbstractionPossible())
-        || (!blockNode.isAbstractionPossible() && blockNode.getLast().equals(node));
+    return targetCFANode.equals(node);
   }
 }

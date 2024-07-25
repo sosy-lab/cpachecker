@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.io.Serial;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -49,7 +50,7 @@ class CmdLineArguments {
   /** Exception thrown when something invalid is specified on the command line. */
   public static class InvalidCmdlineArgumentException extends Exception {
 
-    private static final long serialVersionUID = -6526968677815416436L;
+    @Serial private static final long serialVersionUID = -6526968677815416436L;
 
     InvalidCmdlineArgumentException(final String msg) {
       super(msg);
@@ -100,10 +101,10 @@ class CmdLineArguments {
               .withDescription("language of the sourcefile"),
           new PropertyAddingCmdLineArgument("--32", "-32")
               .settingProperty("analysis.machineModel", "Linux32")
-              .withDescription("set C data model to 32-bit Linux on x86 (ILP32)"),
+              .withDescription("set platform to 32-bit x86 Linux (ILP32)"),
           new PropertyAddingCmdLineArgument("--64", "-64")
               .settingProperty("analysis.machineModel", "Linux64")
-              .withDescription("set C data model to 64-bit Linux on x86 (LP64)"),
+              .withDescription("set platform to 64-bit x86 Linux (LP64)"),
           new PropertyAddingCmdLineArgument("--preprocess", "-preprocess")
               .settingProperty("parser.usePreprocessor", "true")
               .withDescription("execute a preprocessor before starting the analysis"),

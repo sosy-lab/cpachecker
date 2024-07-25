@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
@@ -22,7 +23,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class CCompositeType implements CComplexType {
 
-  private static final long serialVersionUID = -839957929135012583L;
+  @Serial private static final long serialVersionUID = -839957929135012583L;
   private final CComplexType.ComplexTypeKind kind;
   private @Nullable List<CCompositeTypeMemberDeclaration> members = null;
   private final String name;
@@ -183,7 +184,7 @@ public final class CCompositeType implements CComplexType {
    */
   public static final class CCompositeTypeMemberDeclaration implements Serializable {
 
-    private static final long serialVersionUID = 8647666228796784933L;
+    @Serial private static final long serialVersionUID = 8647666228796784933L;
     private final CType type;
     private final String name;
 

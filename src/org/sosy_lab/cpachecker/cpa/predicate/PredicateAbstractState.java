@@ -16,6 +16,7 @@ import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Verify;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collection;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -50,7 +51,7 @@ public abstract sealed class PredicateAbstractState
         Splitable,
         VerificationConditionReportingState {
 
-  private static final long serialVersionUID = -265763837277453447L;
+  @Serial private static final long serialVersionUID = -265763837277453447L;
 
   public static boolean containsAbstractionState(AbstractState state) {
     return AbstractStates.extractStateByType(state, PredicateAbstractState.class)
@@ -70,7 +71,7 @@ public abstract sealed class PredicateAbstractState
   private static final class AbstractionState extends PredicateAbstractState
       implements Graphable, FormulaReportingState, ExpressionTreeReportingState {
 
-    private static final long serialVersionUID = 8341054099315063986L;
+    @Serial private static final long serialVersionUID = 8341054099315063986L;
 
     private transient PredicateAbstractState mergedInto = null;
 
@@ -191,7 +192,7 @@ public abstract sealed class PredicateAbstractState
   }
 
   private static final class NonAbstractionState extends PredicateAbstractState {
-    private static final long serialVersionUID = -6912172362012773999L;
+    @Serial private static final long serialVersionUID = -6912172362012773999L;
 
     /** The abstract state this element was merged into. Used for fast coverage checks. */
     private transient PredicateAbstractState mergedInto = null;
@@ -367,6 +368,7 @@ public abstract sealed class PredicateAbstractState
     return pathFormula;
   }
 
+  @Serial
   protected Object readResolve() {
     if (this instanceof AbstractionState) {
       // consistency check

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -18,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CBinaryExpression extends ABinaryExpression implements CExpression {
 
-  private static final long serialVersionUID = 1902123965106390020L;
+  @Serial private static final long serialVersionUID = 1902123965106390020L;
   private final CType calculationType;
 
   public CBinaryExpression(

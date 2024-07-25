@@ -23,6 +23,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import java.io.IOException;
+import java.io.Serial;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
@@ -327,7 +328,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
 
   private static class MessageDeserializer extends StdDeserializer<BlockSummaryMessage> {
 
-    private static final long serialVersionUID = 196344175L;
+    @Serial private static final long serialVersionUID = 196344175L;
 
     public MessageDeserializer(Class<BlockSummaryMessage> vc) {
       super(vc);
@@ -367,7 +368,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
 
   private static class MessageSerializer extends StdSerializer<BlockSummaryMessage> {
 
-    private static final long serialVersionUID = 1324289L;
+    @Serial private static final long serialVersionUID = 1324289L;
 
     private MessageSerializer(Class<BlockSummaryMessage> t) {
       super(t);

@@ -8,8 +8,8 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-Changes since CPAchecker 2.4
------------------------------------------------
+Changes from CPAchecker 2.4 to CPAchecker 3.0
+---------------------------------------------
 * Default analysis no longer needs to be explicitly requested.  
   If neither a configuration file nor the argument `--cpas` is given,
   CPAchecker will automatically use its default configuration,

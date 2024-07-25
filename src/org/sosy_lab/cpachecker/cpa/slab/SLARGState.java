@@ -10,6 +10,11 @@ package org.sosy_lab.cpachecker.cpa.slab;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
+import java.io.NotSerializableException;
+import java.io.ObjectOutputStream;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,10 +34,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Splitable;
 
 /** ARGState for Symbolic Locations */
+// not actually serializable, implementing serialization would require to access the correct CFAEdge
+// instances and not just serialize the EdgeSets
+@SuppressWarnings("serial")
+@SuppressFBWarnings("SE_BAD_FIELD")
 public final class SLARGState extends ARGState
     implements AbstractState, Targetable, AbstractStateWithLocations {
 
-  private static final long serialVersionUID = -1008999926741613988L;
   private final Map<SLARGState, EdgeSet> parentsToEdgeSets;
   private final Map<SLARGState, EdgeSet> childrenToEdgeSets;
 
@@ -275,5 +283,11 @@ public final class SLARGState extends ARGState
   @Override
   public Iterable<CFAEdge> getIncomingEdges() {
     throw new UnsupportedOperationException();
+  }
+
+  @SuppressWarnings("unused")
+  @Serial
+  private void writeObject(ObjectOutputStream unused) throws IOException {
+    throw new NotSerializableException(SLARGState.class.getCanonicalName()); // see top of class
   }
 }
