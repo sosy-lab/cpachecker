@@ -14,7 +14,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -172,14 +171,14 @@ public class BlockGraphModification {
         for (String functionName : pCFA.getAllFunctionNames()) {
           outer:
           for (Loop loop : extracted.getLoopsForFunction(functionName)) {
-            Builder<CFANode> heads = ImmutableSet.builder();
+            ImmutableSet.Builder<CFANode> heads = ImmutableSet.builder();
             for (CFANode loopHead : loop.getLoopHeads()) {
               if (!originalInstrumentedMapping.containsKey(loopHead)) {
                 continue outer;
               }
               heads.add(originalInstrumentedMapping.get(loopHead));
             }
-            Builder<CFANode> nodes = ImmutableSet.builder();
+            ImmutableSet.Builder<CFANode> nodes = ImmutableSet.builder();
             for (CFANode loopNode : loop.getLoopNodes()) {
               if (!originalInstrumentedMapping.containsKey(loopNode)) {
                 continue outer;
@@ -242,7 +241,7 @@ public class BlockGraphModification {
         createMappingBetweenOriginalAndInstrumentedCFA(pOriginalCfa, pMutableCfa);
     ImmutableSet<CFANode> blockEnds =
         transformedImmutableSetCopy(pBlockGraph.getNodes(), n -> n.getLast());
-    Builder<CFANode> unableToAbstract = ImmutableSet.builder();
+    ImmutableSet.Builder<CFANode> unableToAbstract = ImmutableSet.builder();
     ImmutableMap.Builder<CFANode, CFAEdge> abstractions = ImmutableMap.builder();
     for (CFANode originalBlockEnd : blockEnds) {
       CFANode mutableCfaBlockEnd = blockMapping.originalToInstrumentedNodes().get(originalBlockEnd);
