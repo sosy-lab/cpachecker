@@ -37,7 +37,7 @@ public class DistributedValueAnalysisCPA
   public DistributedValueAnalysisCPA(
       ValueAnalysisCPA pValueAnalysisCPA, BlockNode pNode, CFA pCFA) {
     valueAnalysisCPA = pValueAnalysisCPA;
-    serializeOperator = new SerializeValueAnalysisStateOperator(pNode);
+    serializeOperator = new SerializeValueAnalysisStateOperator();
     deserializeOperator = new DeserializeValueAnalysisStateOperator(pCFA);
     serializePrecisionOperator = new SerializeVariableTrackingPrecision();
     deserializePrecisionOperator = new DeserializeVariableTrackingPrecision(pValueAnalysisCPA);

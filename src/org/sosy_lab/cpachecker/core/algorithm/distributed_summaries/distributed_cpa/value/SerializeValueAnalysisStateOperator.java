@@ -20,12 +20,6 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SerializeValueAnalysisStateOperator implements SerializeOperator {
 
-  BlockNode currentBlockNode;
-
-  public SerializeValueAnalysisStateOperator(BlockNode pCurrentBlockNode) {
-    currentBlockNode = pCurrentBlockNode;
-  }
-
   @Override
   public BlockSummaryMessagePayload serialize(AbstractState pState) {
     ValueAnalysisState valueState = (ValueAnalysisState) pState;

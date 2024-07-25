@@ -36,7 +36,7 @@ public class DistributedDataFlowAnalysisCPA
   public DistributedDataFlowAnalysisCPA(InvariantsCPA pInvariantsCPA, BlockNode pNode, CFA pCFA) {
     invariantsCPA = pInvariantsCPA;
     blockNode = pNode;
-    serializeOperator = new SerializeDataflowAnalysisStateOperator(blockNode);
+    serializeOperator = new SerializeDataflowAnalysisStateOperator();
     deserializeOperator = new DeserializeDataflowAnalysisStateOperator(invariantsCPA, pCFA);
   }
 

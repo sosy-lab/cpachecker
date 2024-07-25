@@ -20,11 +20,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.SerializeBooleanFormulaVis
 import org.sosy_lab.cpachecker.cpa.invariants.formula.SerializeNumeralFormulaVisitor;
 
 public class SerializeDataflowAnalysisStateOperator implements SerializeOperator {
-  BlockNode currentBlockNode;
-
-  public SerializeDataflowAnalysisStateOperator(BlockNode pCurrentBlockNode) {
-    currentBlockNode = pCurrentBlockNode;
-  }
 
   @Override
   public BlockSummaryMessagePayload serialize(AbstractState pState) {
