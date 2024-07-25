@@ -180,9 +180,9 @@ public class StringToBooleanFormulaParser {
     int size = 0;
     boolean signed = false;
 
-    List<String> parts = Splitter.on(';').splitToList(typeInfo);    
+    List<String> parts = Splitter.on(';').splitToList(typeInfo);
     for (String part : parts) {
-      List<String> keyValue = Splitter.on(':').splitToList(part);      
+      List<String> keyValue = Splitter.on(':').splitToList(part);
       String key = keyValue.get(0).trim();
       String value = keyValue.get(1).trim();
 

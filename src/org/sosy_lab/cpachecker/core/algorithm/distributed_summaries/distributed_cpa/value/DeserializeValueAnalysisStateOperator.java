@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
+import com.google.common.base.Splitter;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
@@ -25,8 +26,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import com.google.common.base.Splitter;
 
 public class DeserializeValueAnalysisStateOperator implements DeserializeOperator {
 
