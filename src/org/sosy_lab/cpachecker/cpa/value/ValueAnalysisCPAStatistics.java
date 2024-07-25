@@ -72,9 +72,13 @@ public class ValueAnalysisCPAStatistics implements Statistics {
       throws InvalidConfigurationException {
     this.cpa = cpa;
     logger = pLogger;
-    loopInvGenExporter =
-        new ValueAnalysisResultToLoopInvariants(
-            cfa.getAllLoopHeads().orElse(null), config, logger, pShutdownNotifier, cfa);
+    if (loopInvariantsFile != null) {
+      loopInvGenExporter =
+          new ValueAnalysisResultToLoopInvariants(
+              cfa.getAllLoopHeads().orElse(null), config, logger, pShutdownNotifier, cfa);
+    } else {
+      loopInvGenExporter = null;
+    }
 
     config.inject(this, ValueAnalysisCPAStatistics.class);
   }
