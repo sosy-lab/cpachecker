@@ -31,7 +31,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
   @Option(
       secure = true,
       description =
-          "Bound for number of loop-head visits (number of loop unrollings + 1)\n"
+          "Bound for the number of complete loop unrollings\n"
               + "of the program (0 is used for no bound).\n"
               + "Works only if assumption storage CPA is enabled, because otherwise it would\n"
               + "be unsound.")
@@ -40,7 +40,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
   @Option(
       secure = true,
       description =
-          "Maximum for adjusting the bound for number of loop-head visits of the program\n"
+          "Maximum for adjusting the bound for the number of complete loop unrollings of the program\n"
               + "(0 is used for no maximum).\n"
               + "Only relevant in combination with a non-static adjuster for the bound for"
               + " loop-head visits.")

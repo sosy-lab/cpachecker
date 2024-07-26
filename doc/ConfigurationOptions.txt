@@ -1993,14 +1993,14 @@ cpa.loopbound.loopIterationsBeforeAbstraction = 0
 cpa.loopbound.maxLoopIterationAdjusterFactory = STATIC
   enum:     [STATIC, INCREMENT, DOUBLE]
 
-# Bound for number of loop-head visits (number of loop unrollings + 1)
+# Bound for the number of complete loop unrollings
 # of the program (0 is used for no bound).
 # Works only if assumption storage CPA is enabled, because otherwise it would
 # be unsound.
 cpa.loopbound.maxLoopIterations = 0
 
-# Maximum for adjusting the bound for number of loop-head visits of the
-# program
+# Maximum for adjusting the bound for the number of complete loop unrollings
+# of the program
 # (0 is used for no maximum).
 # Only relevant in combination with a non-static adjuster for the bound for
 # loop-head visits.
