@@ -40,8 +40,8 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
   @Option(
       secure = true,
       description =
-          "Maximum for adjusting the bound for the number of complete loop unrollings of the program\n"
-              + "(0 is used for no maximum).\n"
+          "Maximum for adjusting the bound for the number of complete loop unrollings of the\n"
+              + " program (0 is used for no maximum).\n"
               + "Only relevant in combination with a non-static adjuster for the bound for"
               + " loop-head visits.")
   private int maxLoopIterationsUpperBound = 0;
