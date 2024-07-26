@@ -197,15 +197,6 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
 }
 
 /**
- * Represents a container for normal loop information(for, while, do-while, and goto loop).
- *
- * @param loopLocation the line number where the loop is located
- * @param liveVariablesAndTypes the mapping from variable names used, but not declared, in the loop
- *     to their types
- */
-record NormalLoopInfo(int loopLocation, ImmutableMap<String, String> liveVariablesAndTypes) {}
-
-/**
  * Represents a container for recursion information.
  *
  * @param functionName the name of the function

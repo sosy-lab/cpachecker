@@ -98,7 +98,6 @@ public class LoopInfoUtils {
     for (Loop loop : pCfa.getLoopStructure().orElseThrow().getAllLoops()) {
       // Determine loop locations. There may be more than one, as some loops have multiple
       // loop heads, e.g., goto loop.
-      List<Integer> loopLocations = new ArrayList<>();
       for (CFANode cfaNode : loop.getLoopHeads()) {
         mapLoopHeadToLineNumbers.put(cfaNode,
             CFAUtils.allEnteringEdges(cfaNode)

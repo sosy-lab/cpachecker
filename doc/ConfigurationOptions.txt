@@ -233,6 +233,7 @@ analysis.algorithm.impact = false
 analysis.algorithm.importFaults = false
 
 # Export location of loops and variables inside the loops.
+analysis.algorithm.instrumentation.instrumentationOperator = false
 analysis.algorithm.instrumentation.locateLoopAndLiveVariable = false
 
 # use nontermination witness validator to check a violation witness for

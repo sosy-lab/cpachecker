@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationOrder;
 
 public class InstrumentationTransition {
@@ -32,6 +34,18 @@ public class InstrumentationTransition {
     this.destination = pDestination;
   }
 
+  public boolean transitionMatchesCfaEdge(CFAEdge pCFAEdge) {
+    // TODO: Once there is a pattern class for matching, move this there
+    switch (pattern) {
+      case "[cond]" :
+        return checkCondOnTheEdge(pCFAEdge);
+      case "[!cond]" :
+        return false;
+      default :
+        return false;
+    }
+  }
+
   @Override
   public String toString() {
     return source.toString() +
@@ -39,5 +53,12 @@ public class InstrumentationTransition {
         " | " + operation +
         " | " + order.name() +
         " | " + destination.toString();
+  }
+
+  private boolean checkCondOnTheEdge(CFAEdge pCFAEdge) {
+    if (pCFAEdge instanceof CAssumeEdge) {
+      // (((CAssumeEdge) pCFAEdge).getExpression().toASTString());
+    }
+    return false;
   }
 }

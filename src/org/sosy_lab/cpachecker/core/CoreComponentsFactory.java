@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.Counterexample
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummaryAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationOperatorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.LocateLoopAndLiveVariableAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
@@ -390,6 +391,12 @@ public class CoreComponentsFactory {
       description = "Export location of loops and variables inside the loops.")
   private boolean useLocateLoopAndLiveVariableAlgorithm = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.instrumentation.instrumentationOperator",
+      description = "Export location of loops and variables inside the loops.")
+  private boolean useInstrumentationOperator = false;
+
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
@@ -504,6 +511,9 @@ public class CoreComponentsFactory {
 
     } else if (useLocateLoopAndLiveVariableAlgorithm) {
       algorithm = new LocateLoopAndLiveVariableAlgorithm(cfa, logger);
+
+    } else if (useInstrumentationOperator) {
+      algorithm = new InstrumentationOperatorAlgorithm(cfa, config, logger);
 
     } else if (useParallelAlgorithm) {
       algorithm =

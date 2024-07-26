@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import org.mockito.internal.matchers.Null;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -30,13 +29,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationProperty;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
-import scala.Int;
-import scala.concurrent.impl.FutureConvertersImpl.P;
 
 /**
  * This algorithm instruments a CFA of program using intrumentation operator and instrumentation
@@ -45,7 +42,7 @@ import scala.concurrent.impl.FutureConvertersImpl.P;
  * <p>Currently supported transformations are only no-overflow and termination to reachability.
  */
 @Options(prefix = "instrumentation")
-public class InstrumentationOperatorAlgorithm {
+public class InstrumentationOperatorAlgorithm implements Algorithm {
   private final CFA cfa;
   private final LogManager logger;
   private final CProgramScope cProgramScope;
@@ -66,6 +63,7 @@ public class InstrumentationOperatorAlgorithm {
     cProgramScope = new CProgramScope(pCfa, pLogger);
   }
 
+  @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // Output the collected CFA information into AllCFAInfos
     try (BufferedWriter writer =
