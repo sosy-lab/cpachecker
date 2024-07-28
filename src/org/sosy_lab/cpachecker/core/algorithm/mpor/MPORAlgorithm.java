@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * This is an implementation of a Partial Order Reduction (POR) algorithm, presented in the 2022
@@ -104,12 +103,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     MPORState initState = getInitialState(threads, initAbstractState);
     Map<MPORThread, CFANode> initFunctionReturnNodes = getInitialFunctionReturnNodes(initState);
 
-    // using try-catch here so that we don't have to add SolverExceptions to the method signature
-    try {
-      handleState(initState, initFunctionReturnNodes);
-    } catch (Exception e) {
-      logManager.logDebugException(e);
-    }
+    handleState(initState, initFunctionReturnNodes);
 
     // TODO
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
@@ -123,26 +117,26 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pFunctionReturnNodes the map of MPORThreads to their current FunctionReturnNodes
    */
   private void handleState(MPORState pCurrentState, Map<MPORThread, CFANode> pFunctionReturnNodes)
-      throws CPATransferException, InterruptedException, SolverException {
+      throws CPATransferException, InterruptedException {
 
     // TODO loop unrolling (-> states with the same threadNodes can be visited multiple times)
     // make sure the MPORState was not yet visited to prevent infinite loops
     if (!existingStates.contains(pCurrentState)) {
       existingStates.add(pCurrentState);
 
-      PredicateAbstractState newAbstractState = pCurrentState.abstractState;
+      PredicateAbstractState currentAbstractState = pCurrentState.abstractState;
 
       // for all threads, find the next global access preceding (= GAP) node(s)
       ImmutableSet.Builder<GAPNode> gapNodeBuilder = ImmutableSet.builder();
       for (var threadNode : pCurrentState.threadNodes.entrySet()) {
         MPORThread currentThread = threadNode.getKey();
-        newAbstractState =
+        currentAbstractState =
             findGapNodes(
                 gapNodeBuilder,
                 new HashSet<>(),
                 threadNode.getValue(),
                 pFunctionReturnNodes.get(currentThread),
-                newAbstractState,
+                currentAbstractState,
                 currentThread);
       }
       ImmutableSet<GAPNode> gapNodes = gapNodeBuilder.build();
@@ -163,7 +157,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       ImmutableMap<CFAEdge, GAPNode> globalAccesses = ImmutableMap.copyOf(globalAccessesMap);
 
       // TODO remove later
-      MPORTests.testCommutativity(logManager, ptr, newAbstractState, globalAccesses);
+      MPORTests.testCommutativity(logManager, ptr, currentAbstractState, globalAccesses);
 
       // TODO include commutativity in sequentialization
       //  if not commute, add "if (nondet()) ab else ba" to seq
@@ -174,7 +168,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         MPORThread executingThread = entry.getValue().thread;
         MPORState nextState =
             createUpdatedState(
-                pCurrentState.threadNodes, newAbstractState, executingThread, executedEdge);
+                pCurrentState.threadNodes, currentAbstractState, executingThread, executedEdge);
         handleState(
             nextState, updateFunctionReturnNodes(nextState.threadNodes, pFunctionReturnNodes));
       }

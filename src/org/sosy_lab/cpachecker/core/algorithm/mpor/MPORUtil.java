@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.java_smt.api.SolverException;
 
 /** Contains static methods that can perfectly be reused outside the MPOR context. */
 public final class MPORUtil {
@@ -84,7 +83,7 @@ public final class MPORUtil {
       @NonNull PredicateAbstractState pAbstractState,
       @NonNull CFAEdge pEdgeA,
       @NonNull CFAEdge pEdgeB)
-      throws CPATransferException, InterruptedException, SolverException {
+      throws CPATransferException, InterruptedException {
 
     checkNotNull(pPtr);
     checkNotNull(pAbstractState);
@@ -94,7 +93,7 @@ public final class MPORUtil {
     // TODO this is very costly, leaving it out for now. in tests, the state was always sat
     /*checkArgument(
     !pPtr.unsatCheck(pAbstractState.getAbstractionFormula(), pAbstractState.getPathFormula()),
-    "reached abstract must be sat");*/
+    "reached abstract state must be sat");*/
 
     // execute edgeA, then edgeB
     PredicateAbstractState aState = getNextPredicateAbstractState(pPtr, pAbstractState, pEdgeA);

@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.GAPNode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.java_smt.api.SolverException;
 
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
@@ -36,7 +35,7 @@ public class MPORTests {
       PredicateTransferRelation pPtr,
       PredicateAbstractState pAbstractState,
       ImmutableMap<CFAEdge, GAPNode> pGlobalAccesses)
-      throws CPATransferException, SolverException, InterruptedException {
+      throws CPATransferException, InterruptedException {
 
     for (var entryA : pGlobalAccesses.entrySet()) {
       for (var entryB : pGlobalAccesses.entrySet()) {
