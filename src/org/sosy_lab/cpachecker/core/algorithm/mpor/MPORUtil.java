@@ -70,13 +70,15 @@ public final class MPORUtil {
   }
 
   /**
-   * TODO
+   * Checks whether two CFAEdges a and b <i>commute</i>, i.e. if, from the current pAbstractState,
+   * executing a then b or b then a result in the same PathFormula.
    *
-   * @param pPtr TODO
-   * @param pAbstractState TODO
-   * @param pEdgeA TODO
-   * @param pEdgeB TODO
-   * @return TODO
+   * @param pPtr The PredicateTransferRelation instance used to find the next PathFormulas
+   * @param pAbstractState the current PredicateAbstractState of the program, i.e. the state
+   *     containing the current PathFormula with previous transitions
+   * @param pEdgeA CFAEdge a
+   * @param pEdgeB CFAEdge b
+   * @return true if pEdgeA and pEdgeB commute
    */
   public static boolean doEdgesCommute(
       @NonNull PredicateTransferRelation pPtr,
