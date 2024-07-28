@@ -130,17 +130,20 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     if (!existingStates.contains(pCurrentState)) {
       existingStates.add(pCurrentState);
 
+      PredicateAbstractState newAbstractState = pCurrentState.abstractState;
+
       // for all threads, find the next global access preceding (= GAP) node(s)
       ImmutableSet.Builder<GAPNode> gapNodeBuilder = ImmutableSet.builder();
       for (var threadNode : pCurrentState.threadNodes.entrySet()) {
         MPORThread currentThread = threadNode.getKey();
-        findGlobalAccessPrecedingNodes(
-            gapNodeBuilder,
-            new HashSet<>(),
-            threadNode.getValue(),
-            pFunctionReturnNodes.get(currentThread),
-            pCurrentState.abstractState,
-            currentThread);
+        newAbstractState =
+            findGapNodes(
+                gapNodeBuilder,
+                new HashSet<>(),
+                threadNode.getValue(),
+                pFunctionReturnNodes.get(currentThread),
+                newAbstractState,
+                currentThread);
       }
       ImmutableSet<GAPNode> gapNodes = gapNodeBuilder.build();
 
@@ -149,7 +152,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       Map<CFAEdge, GAPNode> globalAccessesMap = new HashMap<>();
       for (GAPNode gapNode : gapNodes) {
         CFANode functionReturnNode = gapNode.functionReturnNode;
-        PredicateAbstractState abstractState = gapNode.predicateAbstractState;
         // update the functionReturnNode to the one found in findGlobalAccessPrecedingNodes
         pFunctionReturnNodes.put(gapNode.thread, functionReturnNode);
         // create and visit a new state for each global variable access edge
@@ -160,13 +162,19 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
       ImmutableMap<CFAEdge, GAPNode> globalAccesses = ImmutableMap.copyOf(globalAccessesMap);
 
-      MPORTests.testCommutativity(logManager, ptr, globalAccesses);
+      // TODO remove later
+      MPORTests.testCommutativity(logManager, ptr, newAbstractState, globalAccesses);
 
+      // TODO include commutativity in sequentialization
+      //  if not commute, add "if (nondet()) ab else ba" to seq
+      //  if commute, simply add "ab" to seq
       // for all global accesses executed by the threads, create new states to explore
       for (var entry : globalAccesses.entrySet()) {
         CFAEdge executedEdge = entry.getKey();
         MPORThread executingThread = entry.getValue().thread;
-        MPORState nextState = createUpdatedState(pCurrentState, executingThread, executedEdge);
+        MPORState nextState =
+            createUpdatedState(
+                pCurrentState.threadNodes, newAbstractState, executingThread, executedEdge);
         handleState(
             nextState, updateFunctionReturnNodes(nextState.threadNodes, pFunctionReturnNodes));
       }
@@ -174,20 +182,20 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
-   * Recursively finds all global access preceding nodes (i.e. CFANodes whose leaving edges read /
-   * write a global variable) reachable from the initial value of pCurrentNode. Successors of nodes
-   * before global accesses are not considered, i.e. we consider all paths from pCurrentNode
+   * Recursively finds all global access preceding (GAP) nodes (i.e. CFANodes whose leaving edges
+   * read / write a global variable) reachable from the initial value of pCurrentNode. Successors of
+   * nodes before global accesses are not considered, i.e. we consider all paths from pCurrentNode
    * containing exactly one global variable access.
    *
    * @param pGapNodeBuilder the ImmutableSet builder we put the found GAPNodes in
    * @param pVisitedNodes the set of already visited CFANodes to prevent infinite loops
    * @param pCurrentNode the current CFANode whose leaving edges successor nodes we analyze
    * @param pFunctionReturnNode the current FunctionReturnNode of the thread
-   * @param pAbstractState the current PredicateAbstractState of pThread
+   * @param pAbstractState the current PredicateAbstractState of the program (i.e. of all threads)
    * @param pThread FunctionExitNode of the current MPORThread start routine. If a thread encounters
    *     its own exitNode, the algorithm does not search pCurrentNodes successors
    */
-  private void findGlobalAccessPrecedingNodes(
+  private PredicateAbstractState findGapNodes(
       ImmutableSet.Builder<GAPNode> pGapNodeBuilder,
       Set<CFANode> pVisitedNodes,
       CFANode pCurrentNode,
@@ -209,14 +217,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       if (!pCurrentNode.equals(pThread.exitNode)) {
         for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
           if (gac.hasGlobalAccess(cfaEdge)) {
-            pGapNodeBuilder.add(
-                new GAPNode(pCurrentNode, pFunctionReturnNode, pAbstractState, pThread));
+            pGapNodeBuilder.add(new GAPNode(pCurrentNode, pFunctionReturnNode, pThread));
             // not using break if for any reason the other leaving edge(s) don't access global vars
           } else {
             CFANode clonedNextNode = seq.cloneNode(cfaEdge.getSuccessor());
             CFAEdge clonedEdge = seq.cloneEdge(cfaEdge, clonedCurrentNode, clonedNextNode);
             seq.addEdge(clonedCurrentNode, clonedNextNode, clonedEdge);
-            findGlobalAccessPrecedingNodes(
+            findGapNodes(
                 pGapNodeBuilder,
                 pVisitedNodes,
                 // this method runs on inputCfa, clonedNodes are only used in the sequentialization
@@ -228,6 +235,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         }
       }
     }
+    return pAbstractState;
   }
 
   private final ConfigurableProgramAnalysis cpa;
@@ -898,23 +906,28 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * Returns a new state with the same threadNodes map except that the key pThread is assigned the
    * successor CFANode of pExecutedEdge.
    *
-   * @param pState The previous MPORState we create try to create a new one from
+   * @param pThreadNodes The previous mapping of threads to their current nodes
+   * @param pAbstractState The current PredicateAbstractState
    * @param pThread The MPORThread that has a new CFANode (= state)
    * @param pExecutedEdge The CFAEdge executed by pThread
    * @return MPORState with CFANode of pThread being the successor of pExecutedEdge
    */
   private MPORState createUpdatedState(
-      @NonNull MPORState pState, @NonNull MPORThread pThread, @NonNull CFAEdge pExecutedEdge)
+      @NonNull ImmutableMap<MPORThread, CFANode> pThreadNodes,
+      @NonNull PredicateAbstractState pAbstractState,
+      @NonNull MPORThread pThread,
+      @NonNull CFAEdge pExecutedEdge)
       throws CPATransferException, InterruptedException {
 
-    checkNotNull(pState);
+    checkNotNull(pThreadNodes);
+    checkNotNull(pAbstractState);
     checkNotNull(pThread);
     checkNotNull(pExecutedEdge);
-    checkArgument(pState.threadNodes.containsKey(pThread), "threadNodes must contain pThread");
+    checkArgument(pThreadNodes.containsKey(pThread), "threadNodes must contain pThread");
 
     // create the threadNodes map for the updatedState
     ImmutableMap.Builder<MPORThread, CFANode> threadNodesBuilder = ImmutableMap.builder();
-    for (var entry : pState.threadNodes.entrySet()) {
+    for (var entry : pThreadNodes.entrySet()) {
       if (!entry.getKey().equals(pThread)) {
         threadNodesBuilder.put(entry);
       }
@@ -923,11 +936,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     ImmutableMap<MPORThread, CFANode> newThreadNodes = threadNodesBuilder.buildOrThrow();
     PredicateAbstractState newAbstractState =
-        MPORUtil.getNextPredicateAbstractState(ptr, pState.abstractState, pExecutedEdge);
+        MPORUtil.getNextPredicateAbstractState(ptr, pAbstractState, pExecutedEdge);
 
     // for optimization reasons, check if a semantically equivalent state exists already
     for (MPORState rExistingState : existingStates) {
-      // TODO also check newAbstractState here?
+      // TODO also check newAbstractState here for equality
       if (rExistingState.areThreadNodesEqual(newThreadNodes)) {
         return rExistingState;
       }

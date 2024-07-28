@@ -74,43 +74,35 @@ public final class MPORUtil {
    * TODO
    *
    * @param pPtr TODO
-   * @param pAbstractStateA TODO
-   * @param pAbstractStateB TODO
+   * @param pAbstractState TODO
    * @param pEdgeA TODO
    * @param pEdgeB TODO
    * @return TODO
    */
   public static boolean doEdgesCommute(
       @NonNull PredicateTransferRelation pPtr,
-      @NonNull PredicateAbstractState pAbstractStateA,
-      @NonNull PredicateAbstractState pAbstractStateB,
+      @NonNull PredicateAbstractState pAbstractState,
       @NonNull CFAEdge pEdgeA,
       @NonNull CFAEdge pEdgeB)
       throws CPATransferException, InterruptedException, SolverException {
 
     checkNotNull(pPtr);
-    checkNotNull(pAbstractStateA);
-    checkNotNull(pAbstractStateB);
+    checkNotNull(pAbstractState);
     checkNotNull(pEdgeA);
     checkNotNull(pEdgeB);
 
-    // TODO based on MPORTests.testCommutativity, unsatCheck is not sufficient to check for
-    //  commutativity. e.g., two mutex_locks to the same &m commute based on this function
-    //  -> we need to check for access to the same shared variable
+    // TODO this is very costly, leaving it out for now. in tests, the state was always sat
+    /*checkArgument(
+    !pPtr.unsatCheck(pAbstractState.getAbstractionFormula(), pAbstractState.getPathFormula()),
+    "reached abstract must be sat");*/
 
     // execute edgeA, then edgeB
-    PredicateAbstractState aState = getNextPredicateAbstractState(pPtr, pAbstractStateA, pEdgeA);
+    PredicateAbstractState aState = getNextPredicateAbstractState(pPtr, pAbstractState, pEdgeA);
     PredicateAbstractState abState = getNextPredicateAbstractState(pPtr, aState, pEdgeB);
-    if (pPtr.unsatCheck(abState.getAbstractionFormula(), abState.getPathFormula())) {
-      return false;
-    }
     // execute edgeB, then edgeA
-    PredicateAbstractState bState = getNextPredicateAbstractState(pPtr, pAbstractStateB, pEdgeB);
+    PredicateAbstractState bState = getNextPredicateAbstractState(pPtr, pAbstractState, pEdgeB);
     PredicateAbstractState baState = getNextPredicateAbstractState(pPtr, bState, pEdgeA);
-    if (pPtr.unsatCheck(baState.getAbstractionFormula(), baState.getPathFormula())) {
-      return false;
-    }
 
-    return true;
+    return abState.getPathFormula().equals(baState.getPathFormula());
   }
 }

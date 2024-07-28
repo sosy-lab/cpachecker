@@ -14,7 +14,6 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORThread;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 
 /**
  * Represents a global access preceding (= GAP) CFANode. The leaving CFAEdge(s) of {@link
@@ -28,12 +27,6 @@ public class GAPNode {
   /** The function return node of {@link GAPNode#node} to track the current context. */
   public final CFANode functionReturnNode;
 
-  /**
-   * The predicate abstract state used to make predicate checks on the leaving edges of {@link
-   * GAPNode#node}
-   */
-  public final PredicateAbstractState predicateAbstractState;
-
   /** The thread executing the leaving edges of {@link GAPNode#node} */
   public final MPORThread thread;
 
@@ -44,22 +37,16 @@ public class GAPNode {
    *     access
    * @param pFunctionReturnNode function return node of {@link GAPNode#node} to track the current
    *     context
-   * @param pPredicateAbstractState predicate abstract state used to make predicate checks on the
-   *     leaving edges of {@link GAPNode#node}, i.e. the global accesses
+   * @param pThread the thread which will execute the global access(es) of pNode
    */
   public GAPNode(
-      @NonNull CFANode pNode,
-      @Nullable CFANode pFunctionReturnNode,
-      @NonNull PredicateAbstractState pPredicateAbstractState,
-      @NonNull MPORThread pThread) {
+      @NonNull CFANode pNode, @Nullable CFANode pFunctionReturnNode, @NonNull MPORThread pThread) {
 
     checkNotNull(pNode);
-    checkNotNull(pPredicateAbstractState);
     checkNotNull(pThread);
 
     node = pNode;
     functionReturnNode = pFunctionReturnNode;
-    predicateAbstractState = pPredicateAbstractState;
     thread = pThread;
   }
 }

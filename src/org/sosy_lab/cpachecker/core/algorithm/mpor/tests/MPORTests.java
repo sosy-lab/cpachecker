@@ -34,17 +34,16 @@ public class MPORTests {
   public static void testCommutativity(
       LogManager pLogManager,
       PredicateTransferRelation pPtr,
+      PredicateAbstractState pAbstractState,
       ImmutableMap<CFAEdge, GAPNode> pGlobalAccesses)
       throws CPATransferException, SolverException, InterruptedException {
 
     for (var entryA : pGlobalAccesses.entrySet()) {
       for (var entryB : pGlobalAccesses.entrySet()) {
         if (!entryA.equals(entryB)) {
-          PredicateAbstractState abstractStateA = entryA.getValue().predicateAbstractState;
-          PredicateAbstractState abstractStateB = entryB.getValue().predicateAbstractState;
           CFAEdge edgeA = entryA.getKey();
           CFAEdge edgeB = entryB.getKey();
-          if (MPORUtil.doEdgesCommute(pPtr, abstractStateA, abstractStateB, edgeA, edgeB)) {
+          if (MPORUtil.doEdgesCommute(pPtr, pAbstractState, edgeA, edgeB)) {
             pLogManager.log(
                 Level.INFO, "TRUE commute - " + edgeA.getCode() + " - " + edgeB.getCode());
           } else {
