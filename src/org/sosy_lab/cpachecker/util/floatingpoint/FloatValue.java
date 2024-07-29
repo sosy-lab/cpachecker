@@ -379,8 +379,8 @@ public class FloatValue extends Number {
           case FLOAT -> pMachineModel.getPrecisionFloat();
           case DOUBLE ->
               pSimpleType.hasLongSpecifier()
-                  ? pMachineModel.getPrecisionDouble()
-                  : pMachineModel.getPrecisionLongDouble();
+                  ? pMachineModel.getPrecisionLongDouble()
+                  : pMachineModel.getPrecisionDouble();
           case FLOAT128 -> Format.Float128;
           default ->
               throw new IllegalArgumentException(
