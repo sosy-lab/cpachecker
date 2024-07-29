@@ -55,6 +55,10 @@ public class InstrumentationTransition {
         " | " + destination.toString();
   }
 
+  public InstrumentationState getSource() {
+    return source;
+  }
+
   private boolean checkCondOnTheEdge(CFAEdge pCFAEdge) {
     if (pCFAEdge instanceof CAssumeEdge) {
       // (((CAssumeEdge) pCFAEdge).getExpression().toASTString());

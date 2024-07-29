@@ -81,7 +81,6 @@ public class InstrumentationOperatorAlgorithm implements Algorithm {
                                                                   info.liveVariablesAndTypes()));
         }
       }
-
       // MAIN INSTRUMENTATION OPERATOR ALGORITHM
       // Initialize the search
       List<Pair<CFANode, InstrumentationState>> waitlist = new ArrayList<>();
@@ -108,7 +107,6 @@ public class InstrumentationOperatorAlgorithm implements Algorithm {
                       .getInitialState());
               waitlist.add(newPair);
             } else {
-
               assert currentNode != null;
               for (CFANode succ : getSuccessorsOfANode(currentNode)) {
                 Pair<CFANode, InstrumentationState> newPair = Pair.of(succ, currentState);
@@ -121,6 +119,15 @@ public class InstrumentationOperatorAlgorithm implements Algorithm {
             assert currentNode != null;
             for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
               CFAEdge edge = currentNode.getLeavingEdge(i);
+              boolean matched = false;
+              for (InstrumentationTransition transition : currentState
+                  .getAutomatonOfTheState()
+                  .getSuccessors(currentState)) {
+                if (transition.transitionMatchesCfaEdge(edge)) {
+                  matched = true;
+                  // TODO: Print with writer the information about what should be added where
+                }
+              }
             }
           }
 

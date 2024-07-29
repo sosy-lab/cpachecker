@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -69,9 +71,19 @@ public class InstrumentationAutomaton {
     return initialState;
   }
 
+  public Set<InstrumentationTransition> getSuccessors(InstrumentationState pState) {
+    Set<InstrumentationTransition> transitions = new HashSet<>();
+    for (InstrumentationTransition transition : instrumentationTransitions) {
+      if (transition.getSource() == pState) {
+        transitions.add(transition);
+      }
+    }
+    return transitions;
+  }
+
   private void constructTerminationAutomaton() {
-      InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD);
-      InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD);
+      InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
+      InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
       this.instrumentationStates = ImmutableList.of(q1, q2);
       this.initialState = q1;
 
