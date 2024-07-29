@@ -61,6 +61,10 @@ public class InstrumentationTransition {
     return order.name();
   }
 
+  public String getPattern() {
+    return pattern;
+  }
+
   public String getOperation() {
     return operation;
   }

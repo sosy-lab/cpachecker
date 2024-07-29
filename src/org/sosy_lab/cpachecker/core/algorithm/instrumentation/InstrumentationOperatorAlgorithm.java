@@ -123,10 +123,8 @@ public class InstrumentationOperatorAlgorithm implements Algorithm {
             if (transition.transitionMatchesCfaEdge(edge)) {
               // TODO: Print with writer the information about what should be added where
               isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist);
-              // TODO: Compute the line number based on the pattern
               newEdges.add(
-                  edge.getFileLocation() + "|" +
-                  transition.getOrderAsString() + "|" +
+                  computeLineNumberBasedOnTransition(transition, edge) + "|" +
                   transition.getOperation() + "\n");
               matched = true;
             }
@@ -140,6 +138,35 @@ public class InstrumentationOperatorAlgorithm implements Algorithm {
 
     writeAllInformationIntoOutputFile(newEdges);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
+  }
+
+  /**
+   * This method computes line number depending on the pattern. For example, if the pattern
+   * is [!cond], then we want to add the edge only after the real statement in the program.
+   * Moreover, if the order is BEFORE, we want to include the edge one line before the
+   * real operation and similarly for AFTER.
+   */
+  private String computeLineNumberBasedOnTransition(InstrumentationTransition pTransition,
+                                                    CFAEdge pEdge) {
+    try {
+      int location;
+      String fileLocation = pEdge.getFileLocation().toString();
+      if (pTransition.getPattern().equals("[!cond]")) {
+        fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation().toString();
+      }
+      fileLocation = fileLocation.replaceFirst("line ", "");
+      location = Integer.parseInt(fileLocation);
+      if (pTransition.getOrderAsString().equals("BEFORE")) {
+        location += 1;
+        return Integer.toString(location);
+      } else {
+        location -= 1;
+        return Integer.toString(location);
+      }
+    } catch (NumberFormatException e) {
+      logger.logException(Level.SEVERE, e, "The line number is not Integer !");
+    }
+    return "";
   }
 
   private void writeAllInformationIntoOutputFile(Set<String> newEdges) {
