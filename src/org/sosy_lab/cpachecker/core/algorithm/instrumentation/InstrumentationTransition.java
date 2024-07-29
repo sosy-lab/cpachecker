@@ -37,10 +37,12 @@ public class InstrumentationTransition {
   public boolean transitionMatchesCfaEdge(CFAEdge pCFAEdge) {
     // TODO: Once there is a pattern class for matching, move this there
     switch (pattern) {
+      case "true" :
+        return true;
       case "[cond]" :
-        return checkCondOnTheEdge(pCFAEdge);
+        return isOriginalCond(pCFAEdge);
       case "[!cond]" :
-        return false;
+        return isNegatedCond(pCFAEdge);
       default :
         return false;
     }
@@ -59,9 +61,20 @@ public class InstrumentationTransition {
     return source;
   }
 
-  private boolean checkCondOnTheEdge(CFAEdge pCFAEdge) {
+  public InstrumentationState getDestination() {
+    return destination;
+  }
+
+  private boolean isOriginalCond(CFAEdge pCFAEdge) {
     if (pCFAEdge instanceof CAssumeEdge) {
-      // (((CAssumeEdge) pCFAEdge).getExpression().toASTString());
+      return ((CAssumeEdge) pCFAEdge).getTruthAssumption();
+    }
+    return false;
+  }
+
+  private boolean isNegatedCond(CFAEdge pCFAEdge) {
+    if (pCFAEdge instanceof CAssumeEdge) {
+      return !((CAssumeEdge) pCFAEdge).getTruthAssumption();
     }
     return false;
   }

@@ -88,56 +88,73 @@ public class InstrumentationOperatorAlgorithm implements Algorithm {
       waitlist.add(Pair.of(cfa.getMetadata().getMainFunctionEntry(), new InstrumentationState()));
 
       while (!waitlist.isEmpty()) {
-          Pair<CFANode, InstrumentationState> currentPair = waitlist.remove(waitlist.size() - 1);
-          reachlist.add(currentPair);
-          CFANode currentNode = currentPair.getFirst();
-          InstrumentationState currentState = currentPair.getSecond();
+        Pair<CFANode, InstrumentationState> currentPair = waitlist.remove(waitlist.size() - 1);
+        reachlist.add(currentPair);
+        CFANode currentNode = currentPair.getFirst();
+        InstrumentationState currentState = currentPair.getSecond();
 
-          // Handling a trivial case, when the state does not match the node
-          assert currentState != null;
-          if (!currentState.stateMatchesCfaNode(currentNode, cfa)) {
-            // If the current state was dummy, we have to look for an automaton that matches the
-            // CFANode
-            if (currentState.toString().equals("DUMMY") &&
-                mapLoopHeadsToLineNumbers.containsKey(currentNode)) {
-              Pair<CFANode, InstrumentationState> newPair = Pair.of(currentNode,
-                  mapAutomataToLocations
-                      .get(mapLoopHeadsToLineNumbers
-                          .get(currentNode))
-                      .getInitialState());
-              waitlist.add(newPair);
-            } else {
-              assert currentNode != null;
-              for (CFANode succ : getSuccessorsOfANode(currentNode)) {
-                Pair<CFANode, InstrumentationState> newPair = Pair.of(succ, currentState);
-                if (!reachlist.contains(newPair)) {
-                  waitlist.add(newPair);
-                }
-              }
-            }
+        // Handling a trivial case, when the state does not match the node
+        assert currentState != null;
+        if (!currentState.stateMatchesCfaNode(currentNode, cfa)) {
+          // If the current state was dummy, we have to look for an automaton that matches the
+          // CFANode
+          if (currentState.toString().equals("DUMMY") &&
+              mapLoopHeadsToLineNumbers.containsKey(currentNode)) {
+            isThePairNew(currentNode,
+                mapAutomataToLocations
+                    .get(mapLoopHeadsToLineNumbers
+                        .get(currentNode))
+                    .getInitialState(),
+                waitlist,
+                reachlist);
           } else {
             assert currentNode != null;
-            for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
-              CFAEdge edge = currentNode.getLeavingEdge(i);
-              boolean matched = false;
-              for (InstrumentationTransition transition : currentState
-                  .getAutomatonOfTheState()
-                  .getSuccessors(currentState)) {
-                if (transition.transitionMatchesCfaEdge(edge)) {
+            for (CFANode succ : getSuccessorsOfANode(currentNode)) {
+              isThePairNew(succ, currentState, waitlist, reachlist);
+            }
+          }
+        } else {
+          assert currentNode != null;
+          for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
+            CFAEdge edge = currentNode.getLeavingEdge(i);
+            boolean matched = false;
+            for (InstrumentationTransition transition : currentState
+                .getAutomatonOfTheState()
+                .getSuccessors(currentState)) {
+              if (transition.transitionMatchesCfaEdge(edge)) {
+                // TODO: Print with writer the information about what should be added where
+                if (isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist)) {
                   matched = true;
-                  // TODO: Print with writer the information about what should be added where
                 }
               }
             }
+            if (!matched) {
+              isThePairNew(edge.getSuccessor(), currentState, waitlist, reachlist);
+            }
           }
-
-
+        }
       }
       writer.write(allLoopInfos.toString());
     } catch (IOException e) {
       logger.logException(Level.SEVERE, e, "The creation of file AllCFAInfos.txt failed!");
     }
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
+  }
+
+  /**
+   * Checks if the pair (pCFANode, pState) has already been explored or not. If not, then it
+   * adds the state into waitlist.
+   */
+  private boolean isThePairNew(CFANode pCFANode,
+                               InstrumentationState pState,
+                               List<Pair<CFANode, InstrumentationState>> pWaitlist,
+                               Set<Pair<CFANode, InstrumentationState>> pReachSet) {
+    Pair<CFANode, InstrumentationState> newPair = Pair.of(pCFANode, pState);
+    if (!pReachSet.contains(newPair) && !pWaitlist.contains(newPair)) {
+      pWaitlist.add(newPair);
+      return true;
+    }
+    return false;
   }
 
   private Set<CFANode> getSuccessorsOfANode(CFANode pCFANode) {
