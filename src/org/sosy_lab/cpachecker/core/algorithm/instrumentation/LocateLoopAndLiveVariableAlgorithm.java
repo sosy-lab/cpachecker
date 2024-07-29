@@ -73,7 +73,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
         Files.newBufferedWriter(new File("output/AllLoopInfos.txt").toPath(), StandardCharsets.UTF_8)) {
       StringBuilder allLoopInfos = new StringBuilder();
 
-      for (NormalLoopInfo loopInfo : getAllNormalLoopInfos()) {
+      for (NormalLoopInfo loopInfo : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
         allLoopInfos.append(
             String.format(
                 "NormalLoop    %d    %s%n",
@@ -95,102 +95,6 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       logger.logException(Level.SEVERE, e, "The creation of file AllLoopInfos.txt failed!");
     }
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
-  }
-
-  private ImmutableSet<NormalLoopInfo> getAllNormalLoopInfos() {
-    Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>();
-
-    for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
-      // Determine loop locations. There may be more than one, as some loops have multiple
-      // loop heads, e.g., goto loop.
-      List<Integer> loopLocations = new ArrayList<>();
-      for (CFANode cfaNode : loop.getLoopHeads()) {
-        loopLocations.add(
-            CFAUtils.allEnteringEdges(cfaNode)
-                .first()
-                .get()
-                .getFileLocation()
-                .getStartingLineInOrigin());
-      }
-
-      // Determine the names of all variables used except those declared inside the loop
-      Set<String> liveVariables = new HashSet<>();
-      Set<String> variablesDeclaredInsideLoop = new HashSet<>();
-      Map<String, String> liveVariablesAndTypes = new HashMap<>();
-      for (CFAEdge cfaEdge : loop.getInnerLoopEdges()) {
-        if (cfaEdge.getRawAST().isPresent()) {
-          AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
-          if (aAstNode instanceof CSimpleDeclaration) {
-            variablesDeclaredInsideLoop.add(((CSimpleDeclaration) aAstNode).getQualifiedName());
-          } else {
-            liveVariables.addAll(getVariablesFromAAstNode(cfaEdge.getRawAST().orElseThrow()));
-          }
-        }
-      }
-      liveVariables.removeAll(variablesDeclaredInsideLoop);
-      liveVariables.removeIf(
-          e ->
-              e.contains("::")
-                  && Iterables.get(Splitter.on("::").split(e), 1).startsWith("__CPAchecker_TMP_"));
-
-      // Determine type of each variable
-      for (String variable : liveVariables) {
-        String type = cProgramScope.lookupVariable(variable).getType().toString();
-        liveVariablesAndTypes.put(
-            variable.contains("::")
-                ? Iterables.get(Splitter.on("::").split(variable), 1)
-                : variable,
-            type.startsWith("(") ? type.substring(1, type.length() - 2) + "*" : type);
-      }
-
-      for (Integer loopLocation : loopLocations) {
-        allNormalLoopInfos.add(
-            new NormalLoopInfo(loopLocation, ImmutableMap.copyOf(liveVariablesAndTypes)));
-      }
-    }
-
-    return ImmutableSet.copyOf(allNormalLoopInfos);
-  }
-
-  private ImmutableSet<String> getVariablesFromAAstNode(AAstNode pAAstNode) {
-    Set<String> variables = new HashSet<>();
-
-    if (pAAstNode instanceof CExpression) {
-      CFAUtils.getVariableNamesOfExpression(((CExpression) pAAstNode))
-          .forEach(e -> variables.add(e));
-
-    } else if (pAAstNode instanceof CExpressionStatement) {
-      CExpression cExpression = ((CExpressionStatement) pAAstNode).getExpression();
-      CFAUtils.getVariableNamesOfExpression(cExpression).forEach(e -> variables.add(e));
-
-    } else if (pAAstNode instanceof CExpressionAssignmentStatement) {
-      CLeftHandSide cLeftHandSide = ((CExpressionAssignmentStatement) pAAstNode).getLeftHandSide();
-      CFAUtils.getVariableNamesOfExpression(cLeftHandSide).forEach(e -> variables.add(e));
-
-      CExpression cRightHandSide = ((CExpressionAssignmentStatement) pAAstNode).getRightHandSide();
-      CFAUtils.getVariableNamesOfExpression(cRightHandSide).forEach(e -> variables.add(e));
-
-    } else if (pAAstNode instanceof CFunctionCallStatement) {
-      CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) pAAstNode;
-      cFunctionCallStatement
-          .getFunctionCallExpression()
-          .getParameterExpressions()
-          .forEach(e -> CFAUtils.getVariableNamesOfExpression(e).forEach(n -> variables.add(n)));
-
-    } else if (pAAstNode instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement =
-          (CFunctionCallAssignmentStatement) pAAstNode;
-
-      CLeftHandSide cLeftHandSide = cFunctionCallAssignmentStatement.getLeftHandSide();
-      CFAUtils.getVariableNamesOfExpression(cLeftHandSide).forEach(e -> variables.add(e));
-
-      CFunctionCallExpression cRightHandSide = cFunctionCallAssignmentStatement.getRightHandSide();
-      cRightHandSide
-          .getParameterExpressions()
-          .forEach(e -> CFAUtils.getVariableNamesOfExpression(e).forEach(n -> variables.add(n)));
-    }
-
-    return ImmutableSet.copyOf(variables);
   }
 
   private ImmutableSet<RecursionInfo> getAllRecursionInfos() {
@@ -291,15 +195,6 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     }
   }
 }
-
-/**
- * Represents a container for normal loop information(for, while, do-while, and goto loop).
- *
- * @param loopLocation the line number where the loop is located
- * @param liveVariablesAndTypes the mapping from variable names used, but not declared, in the loop
- *     to their types
- */
-record NormalLoopInfo(int loopLocation, ImmutableMap<String, String> liveVariablesAndTypes) {}
 
 /**
  * Represents a container for recursion information.
