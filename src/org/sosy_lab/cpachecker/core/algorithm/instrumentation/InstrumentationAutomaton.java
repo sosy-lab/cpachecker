@@ -71,7 +71,7 @@ public class InstrumentationAutomaton {
     return initialState;
   }
 
-  public Set<InstrumentationTransition> getSuccessors(InstrumentationState pState) {
+  public Set<InstrumentationTransition> getTransitions(InstrumentationState pState) {
     Set<InstrumentationTransition> transitions = new HashSet<>();
     for (InstrumentationTransition transition : instrumentationTransitions) {
       if (transition.getSource() == pState) {
@@ -91,10 +91,10 @@ public class InstrumentationAutomaton {
           new InstrumentationTransition(
               q1,
               "true",
-              "int saved = 0;\n" +
+              "int saved = 0; " +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) -> entry.getValue() + " " + entry.getKey() + "_instr")
-                      .collect(Collectors.joining(";\n")),
+                      .collect(Collectors.joining("; ")) + ";",
               InstrumentationOrder.BEFORE,
               q2);
       InstrumentationTransition t2 =
@@ -110,7 +110,7 @@ public class InstrumentationAutomaton {
                       .map((entry) -> "(" + entry.getKey() + " != " + entry.getKey() + "_instr" + ")")
                       .collect(Collectors.joining("|")) +
                   ");",
-              InstrumentationOrder.BEFORE,
+              InstrumentationOrder.AFTER,
               q2);
       this.instrumentationTransitions =
           ImmutableList.of(t1, t2);

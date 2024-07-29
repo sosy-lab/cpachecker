@@ -65,80 +65,95 @@ public class InstrumentationOperatorAlgorithm implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    // Output the collected CFA information into AllCFAInfos
-    try (BufferedWriter writer =
-        Files.newBufferedWriter(new File("output/AllLoopInfos.txt").toPath(), StandardCharsets.UTF_8)) {
-      StringBuilder allLoopInfos = new StringBuilder();
-      // For some properties we construct more automata to more effectively track variables within
-      // the scope. This map is used to map the automata to concrete line numbers in the code.
-      Map<Integer, InstrumentationAutomaton> mapAutomataToLocations = new HashMap<>();
-      Map<CFANode, Integer> mapLoopHeadsToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
+    // Collect all the information about the new edges for the instrumented CFA
+    Set<String> newEdges = new HashSet<>();
 
-      if (instrumentationProperty == InstrumentationProperty.TERMINATION) {
-        for (NormalLoopInfo info : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
-          mapAutomataToLocations.put(info.loopLocation(),
-                                     new InstrumentationAutomaton(instrumentationProperty,
-                                                                  info.liveVariablesAndTypes()));
-        }
+    // For some properties we construct more automata to more effectively track variables within
+    // the scope. This map is used to map the automata to concrete line numbers in the code.
+    Map<Integer, InstrumentationAutomaton> mapAutomataToLocations = new HashMap<>();
+    Map<CFANode, Integer> mapLoopHeadsToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
+
+    if (instrumentationProperty == InstrumentationProperty.TERMINATION) {
+      for (NormalLoopInfo info : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
+        mapAutomataToLocations.put(info.loopLocation(),
+                                   new InstrumentationAutomaton(instrumentationProperty,
+                                                                info.liveVariablesAndTypes()));
       }
-      // MAIN INSTRUMENTATION OPERATOR ALGORITHM
-      // Initialize the search
-      List<Pair<CFANode, InstrumentationState>> waitlist = new ArrayList<>();
-      Set<Pair<CFANode, InstrumentationState>> reachlist = new HashSet<>();
-      waitlist.add(Pair.of(cfa.getMetadata().getMainFunctionEntry(), new InstrumentationState()));
+    }
+    // MAIN INSTRUMENTATION OPERATOR ALGORITHM
+    // Initialize the search
+    List<Pair<CFANode, InstrumentationState>> waitlist = new ArrayList<>();
+    Set<Pair<CFANode, InstrumentationState>> reachlist = new HashSet<>();
+    waitlist.add(Pair.of(cfa.getMetadata().getMainFunctionEntry(), new InstrumentationState()));
 
-      while (!waitlist.isEmpty()) {
-        Pair<CFANode, InstrumentationState> currentPair = waitlist.remove(waitlist.size() - 1);
-        reachlist.add(currentPair);
-        CFANode currentNode = currentPair.getFirst();
-        InstrumentationState currentState = currentPair.getSecond();
+    while (!waitlist.isEmpty()) {
+      Pair<CFANode, InstrumentationState> currentPair = waitlist.remove(waitlist.size() - 1);
+      reachlist.add(currentPair);
+      CFANode currentNode = currentPair.getFirst();
+      InstrumentationState currentState = currentPair.getSecond();
 
-        // Handling a trivial case, when the state does not match the node
-        assert currentState != null;
-        if (!currentState.stateMatchesCfaNode(currentNode, cfa)) {
-          // If the current state was dummy, we have to look for an automaton that matches the
-          // CFANode
-          if (currentState.toString().equals("DUMMY") &&
-              mapLoopHeadsToLineNumbers.containsKey(currentNode)) {
-            isThePairNew(currentNode,
-                mapAutomataToLocations
-                    .get(mapLoopHeadsToLineNumbers
-                        .get(currentNode))
-                    .getInitialState(),
-                waitlist,
-                reachlist);
-          } else {
-            assert currentNode != null;
-            for (CFANode succ : getSuccessorsOfANode(currentNode)) {
-              isThePairNew(succ, currentState, waitlist, reachlist);
-            }
-          }
+      // Handling a trivial case, when the state does not match the node
+      assert currentState != null;
+      if (!currentState.stateMatchesCfaNode(currentNode, cfa)) {
+        // If the current state was dummy, we have to look for an automaton that matches the
+        // CFANode
+        if (currentState.toString().equals("DUMMY") &&
+            mapLoopHeadsToLineNumbers.containsKey(currentNode)) {
+          isThePairNew(currentNode,
+              mapAutomataToLocations
+                  .get(mapLoopHeadsToLineNumbers
+                      .get(currentNode))
+                  .getInitialState(),
+              waitlist,
+              reachlist);
         } else {
           assert currentNode != null;
-          for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
-            CFAEdge edge = currentNode.getLeavingEdge(i);
-            boolean matched = false;
-            for (InstrumentationTransition transition : currentState
-                .getAutomatonOfTheState()
-                .getSuccessors(currentState)) {
-              if (transition.transitionMatchesCfaEdge(edge)) {
-                // TODO: Print with writer the information about what should be added where
-                if (isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist)) {
-                  matched = true;
-                }
-              }
+          for (CFANode succ : getSuccessorsOfANode(currentNode)) {
+            isThePairNew(succ, currentState, waitlist, reachlist);
+          }
+        }
+      } else {
+        assert currentNode != null;
+        for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
+          CFAEdge edge = currentNode.getLeavingEdge(i);
+          boolean matched = false;
+          for (InstrumentationTransition transition : currentState
+              .getAutomatonOfTheState()
+              .getTransitions(currentState)) {
+            if (transition.transitionMatchesCfaEdge(edge)) {
+              // TODO: Print with writer the information about what should be added where
+              isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist);
+              // TODO: Compute the line number based on the pattern
+              newEdges.add(
+                  edge.getFileLocation() + "|" +
+                  transition.getOrderAsString() + "|" +
+                  transition.getOperation() + "\n");
+              matched = true;
             }
-            if (!matched) {
-              isThePairNew(edge.getSuccessor(), currentState, waitlist, reachlist);
-            }
+          }
+          if (!matched) {
+            isThePairNew(edge.getSuccessor(), currentState, waitlist, reachlist);
           }
         }
       }
-      writer.write(allLoopInfos.toString());
-    } catch (IOException e) {
-      logger.logException(Level.SEVERE, e, "The creation of file AllCFAInfos.txt failed!");
     }
+
+    writeAllInformationIntoOutputFile(newEdges);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
+  }
+
+  private void writeAllInformationIntoOutputFile(Set<String> newEdges) {
+    // Output the collected CFA information into AllCFAInfos
+    try (BufferedWriter writer =
+             Files.newBufferedWriter(new File("output/AllLoopInfos.txt").toPath(), StandardCharsets.UTF_8)) {
+      StringBuilder allEdgesInfo = new StringBuilder();
+      for (String edge : newEdges) {
+        allEdgesInfo.append(edge);
+      }
+      writer.write(allEdgesInfo.toString());
+    } catch (IOException e) {
+    logger.logException(Level.SEVERE, e, "The creation of file AllCFAInfos.txt failed!");
+    }
   }
 
   /**

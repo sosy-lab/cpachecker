@@ -57,6 +57,14 @@ public class InstrumentationTransition {
         " | " + destination.toString();
   }
 
+  public String getOrderAsString() {
+    return order.name();
+  }
+
+  public String getOperation() {
+    return operation;
+  }
+
   public InstrumentationState getSource() {
     return source;
   }
