@@ -44,7 +44,7 @@ class CFloatNativeAPI {
     USHORT,
     UINT,
     ULONG,
-    ULONG_LONG;
+    ULONG_LONG
   }
 
   public static final CFloat ZERO_SINGLE;
