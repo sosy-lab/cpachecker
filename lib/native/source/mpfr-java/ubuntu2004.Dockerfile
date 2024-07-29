@@ -6,7 +6,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-FROM ubuntu:noble
+FROM ubuntu:focal
 
 # set default locale
 RUN apt-get update && apt-get install -y \
@@ -16,6 +16,8 @@ ENV LC_ALL en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US.UTF-8
 
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
 RUN apt-get update && apt-get install --yes \
         ant                      \
         autogen                  \
@@ -50,11 +52,11 @@ RUN curl -O https://www.mpfr.org/mpfr-current/mpfr-4.2.1.tar.bz2 \
  && make install \
  && cd --
 
-# Add the user "developer" with UID:999, GID:1001, home at /developer.
+# Add the user "developer" with UID:1000, GID:1000, home at /developer.
 # This allows to map the docker-internal user to the local user 1000:1000 outside of the container.
 # This avoids to have new files created with root-rights.
-RUN groupadd -r developer -g 1001 \
- && useradd -u 999 -r -g developer -m -d /developer -s /sbin/nologin -c "CPAchecker Development User" developer \
+RUN groupadd -r developer -g 1000 \
+ && useradd -u 1000 -r -g developer -m -d /developer -s /sbin/nologin -c "CPAchecker Development User" developer \
  && chmod 755 /developer
 
 USER developer
