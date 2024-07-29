@@ -30,6 +30,8 @@ public final class CDefaults {
   private CDefaults() {}
 
   public static CInitializer forType(MachineModel pMachineModel, CType type, FileLocation fileLoc) {
+    checkNotNull(pMachineModel);
+    checkNotNull(type);
     checkNotNull(fileLoc);
     // Get default value of a type for initializations
     // according to C standard §6.7.9 (10)
