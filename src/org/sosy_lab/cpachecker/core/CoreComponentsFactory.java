@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.Counterexample
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummaryAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationOperatorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.instrumentation.SequentializationOperatorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.LocateLoopAndLiveVariableAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
@@ -513,7 +513,7 @@ public class CoreComponentsFactory {
       algorithm = new LocateLoopAndLiveVariableAlgorithm(cfa, logger);
 
     } else if (useInstrumentationOperator) {
-      algorithm = new InstrumentationOperatorAlgorithm(cfa, config, logger);
+      algorithm = new SequentializationOperatorAlgorithm(cfa, config, logger);
 
     } else if (useParallelAlgorithm) {
       algorithm =

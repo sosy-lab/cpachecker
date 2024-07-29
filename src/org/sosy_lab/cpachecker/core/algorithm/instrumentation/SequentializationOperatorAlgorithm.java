@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.util.Pair;
  * <p>Currently supported transformations are only no-overflow and termination to reachability.
  */
 @Options(prefix = "instrumentation")
-public class InstrumentationOperatorAlgorithm implements Algorithm {
+public class SequentializationOperatorAlgorithm implements Algorithm {
   private final CFA cfa;
   private final LogManager logger;
   private final CProgramScope cProgramScope;
@@ -55,7 +55,7 @@ public class InstrumentationOperatorAlgorithm implements Algorithm {
               + "NOOVERFLOW: transform no-overflow to reachability")
   private InstrumentationProperty instrumentationProperty = InstrumentationProperty.TERMINATION;
 
-  public InstrumentationOperatorAlgorithm(CFA pCfa, Configuration pConfig, LogManager pLogger)
+  public SequentializationOperatorAlgorithm(CFA pCfa, Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     cfa = pCfa;
