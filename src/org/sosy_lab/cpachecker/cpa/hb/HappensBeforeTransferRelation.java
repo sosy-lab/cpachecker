@@ -46,17 +46,17 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
   private final LocationCPA locationCPA;
   private final CallstackCPA callstackCPA;
-//  private final LogManager logger;
-//  private final Configuration configuration;
+  //  private final LogManager logger;
+  //  private final Configuration configuration;
   private final CFA cfa;
 
   public HappensBeforeTransferRelation(Configuration pConfig, CFA pCfa, LogManager pLogger)
       throws InvalidConfigurationException {
     //    pConfig.inject(this);
-//    configuration = pConfig;
+    //    configuration = pConfig;
     locationCPA = LocationCPA.create(pCfa, pConfig);
     callstackCPA = new CallstackCPA(pConfig, pLogger);
-//    logger = new LogManagerWithoutDuplicates(pLogger);
+    //    logger = new LogManagerWithoutDuplicates(pLogger);
     cfa = pCfa;
   }
 

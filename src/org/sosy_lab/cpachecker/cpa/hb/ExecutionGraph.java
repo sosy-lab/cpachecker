@@ -46,7 +46,8 @@ public record ExecutionGraph(
       final var newMo =
           insertIntoMapOfLists(mo, offset + i, pMemoryEvent.var().getName(), pMemoryEvent);
       for (Set<MemoryEvent> memoryEvents :
-          powerSet(revisitableReads.getOrDefault(pMemoryEvent.var().getName(), ImmutableSet.of()))) {
+          powerSet(
+              revisitableReads.getOrDefault(pMemoryEvent.var().getName(), ImmutableSet.of()))) {
         final var newRevisitableReads =
             subtractFromMapOfSets(revisitableReads, pMemoryEvent.var().getName(), memoryEvents);
         final var newRf = ImmutableMap.<MemoryEvent, MemoryEvent>builder(); // .putAll(pendingRf);

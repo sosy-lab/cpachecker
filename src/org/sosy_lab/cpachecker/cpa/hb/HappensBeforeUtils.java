@@ -29,7 +29,10 @@ class HappensBeforeUtils {
     newMap.putAll(base);
     newMap.put(
         key,
-        ImmutableSet.<Value>builder().addAll(base.getOrDefault(key, ImmutableSet.of())).add(value).build());
+        ImmutableSet.<Value>builder()
+            .addAll(base.getOrDefault(key, ImmutableSet.of()))
+            .add(value)
+            .build());
     return newMap.buildKeepingLast();
   }
 
@@ -74,7 +77,8 @@ class HappensBeforeUtils {
     newMap.putAll(base);
     newMap.put(
         key,
-        Sets.difference(base.getOrDefault(key, ImmutableSet.of()), ImmutableSet.of(value)).immutableCopy());
+        Sets.difference(base.getOrDefault(key, ImmutableSet.of()), ImmutableSet.of(value))
+            .immutableCopy());
     return newMap.buildKeepingLast();
   }
 
