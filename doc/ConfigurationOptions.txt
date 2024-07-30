@@ -4148,6 +4148,10 @@ heuristicSelection.complexLoopConfig = no default value
 # Configuration for programs containing composite types.
 heuristicSelection.compositeTypeConfig = no default value
 
+# If true, the strategy-selection algorithm does not run the selected config,
+# but only produces the statistics that show what config it would run.
+heuristicSelection.dryRun = false
+
 # Configuration for programs with loops.
 heuristicSelection.loopConfig = no default value
 
