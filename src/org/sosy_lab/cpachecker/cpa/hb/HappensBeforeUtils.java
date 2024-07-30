@@ -42,9 +42,7 @@ class HappensBeforeUtils {
       final Map<Key, List<Value>> base, final Key key, final Value value) {
     final ImmutableMap.Builder<Key, List<Value>> newMap = ImmutableMap.builder();
     newMap.putAll(base);
-    newMap.put(
-        key,
-        listAndElement(base.getOrDefault(key, ImmutableList.of()), value));
+    newMap.put(key, listAndElement(base.getOrDefault(key, ImmutableList.of()), value));
     return newMap.buildKeepingLast();
   }
 

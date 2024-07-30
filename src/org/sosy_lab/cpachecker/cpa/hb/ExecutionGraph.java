@@ -129,7 +129,8 @@ public record ExecutionGraph(
         (pS, pMemoryEvents) ->
             rPrint.put(
                 pS,
-                transformedImmutableSetCopy(pMemoryEvents, pMemoryEvent->pMemoryEvent.var().getQualifiedName())));
+                transformedImmutableSetCopy(
+                    pMemoryEvents, pMemoryEvent -> pMemoryEvent.var().getQualifiedName())));
     final var moPrint = ImmutableMap.<String, List<String>>builder();
     mo.forEach(
         (pS, pMemoryEvents) ->

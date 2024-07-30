@@ -241,7 +241,8 @@ final class HappensBeforeEdgeTools {
           assert end instanceof CFunctionEntryNode
               : "Expected FunctionExitNode: " + end + ", " + end.getClass();
           if (edge instanceof CFunctionCallEdge pCFunctionCallEdge) {
-            final var newAst = cloneAst((CFunctionCall) pCFunctionCallEdge.getRawAST().orElseThrow());
+            final var newAst =
+                cloneAst((CFunctionCall) pCFunctionCallEdge.getRawAST().orElseThrow());
             if (newAst.equals(pCFunctionCallEdge.getRawAST().orElseThrow())) {
               return edge;
             } else {
