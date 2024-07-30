@@ -80,11 +80,11 @@ public class LoopInfoUtils {
         String type = pCProgramScope.lookupVariable(variable).getType().toString();
 
         if (type.startsWith("struct ")) {
-          type = getStructDefinitionFromName(pCfa, type);
+          type = getStructDefFromDecl(pCfa, type);
         } else if (type.startsWith("(")) {
           type = type.substring(1, type.length() - 2) + "*";
         }
-        
+
         liveVariablesAndTypes.put(
             variable.contains("::")
                 ? Iterables.get(Splitter.on("::").split(variable), 1)
@@ -161,13 +161,13 @@ public class LoopInfoUtils {
     return ImmutableSet.copyOf(variables);
   }
 
-  private static String getStructDefinitionFromName(CFA pCfa, String pName) {
+  private static String getStructDefFromDecl(CFA pCfa, String pDecl) {
     for (CFAEdge cfaEdge : pCfa.edges()) {
       Optional<AAstNode> aAstNodeOp = cfaEdge.getRawAST();
       if (aAstNodeOp.isPresent() && aAstNodeOp.get() instanceof CComplexTypeDeclaration) {
         String structDef = ((CComplexTypeDeclaration) aAstNodeOp.get()).toString();
 
-        if (structDef.startsWith(pName)) {
+        if (structDef.startsWith(pDecl)) {
           structDef =
               structDef
                   .substring(0, structDef.length() - 2)
