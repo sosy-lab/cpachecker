@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.hb;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -43,10 +44,7 @@ class HappensBeforeUtils {
     newMap.putAll(base);
     newMap.put(
         key,
-        ImmutableList.<Value>builder()
-            .addAll(base.getOrDefault(key, ImmutableList.of()))
-            .add(value)
-            .build());
+        listAndElement(base.getOrDefault(key, ImmutableList.of()), value));
     return newMap.buildKeepingLast();
   }
 

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.hb;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Streams;
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.StreamSupport;
@@ -68,9 +69,7 @@ record HappensBeforeState(
   public Iterable<CFAEdge> getOutgoingEdges() {
     if (g.pendingRf().isEmpty()) {
       return nextActiveThread >= 0
-          ? StreamSupport.stream(
-                  threads.get(nextActiveThread).getFirstNotNull().getOutgoingEdges().spliterator(),
-                  false)
+          ? Streams.stream(threads.get(nextActiveThread).getFirstNotNull().getOutgoingEdges())
               .map(edge -> HappensBeforeEdgeTools.clone(edge, nextActiveThread, cssaCounters))
               .collect(ImmutableList.toImmutableList())
           : ImmutableList.of();
@@ -85,9 +84,7 @@ record HappensBeforeState(
   public Iterable<CFAEdge> getIncomingEdges() {
     if (lastG.pendingRf().isEmpty()) {
       return prevActiveThread >= 0
-          ? StreamSupport.stream(
-                  threads.get(prevActiveThread).getFirstNotNull().getIncomingEdges().spliterator(),
-                  false)
+          ? Streams.stream(threads.get(prevActiveThread).getFirstNotNull().getIncomingEdges())
               .map(edge -> HappensBeforeEdgeTools.clone(edge, prevActiveThread, cssaCounters))
               .collect(ImmutableList.toImmutableList())
           : ImmutableList.of();

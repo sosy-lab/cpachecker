@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.hb;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.cpa.hb.HappensBeforeUtils.extendMapOfSets;
 import static org.sosy_lab.cpachecker.cpa.hb.HappensBeforeUtils.insertIntoMapOfLists;
 import static org.sosy_lab.cpachecker.cpa.hb.HappensBeforeUtils.subtractFromMapOfSets;
@@ -128,9 +129,7 @@ public record ExecutionGraph(
         (pS, pMemoryEvents) ->
             rPrint.put(
                 pS,
-                pMemoryEvents.stream()
-                    .map((MemoryEvent pMemoryEvent) -> pMemoryEvent.var().getQualifiedName())
-                    .collect(ImmutableSet.toImmutableSet())));
+                transformedImmutableSetCopy(pMemoryEvents, pMemoryEvent->pMemoryEvent.var().getQualifiedName())));
     final var moPrint = ImmutableMap.<String, List<String>>builder();
     mo.forEach(
         (pS, pMemoryEvents) ->
