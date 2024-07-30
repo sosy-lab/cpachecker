@@ -17,10 +17,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -36,8 +38,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class LoopInfoUtils {
 
-  public static ImmutableSet<NormalLoopInfo> getAllNormalLoopInfos(CFA pCfa,
-                                                                   CProgramScope pCProgramScope) {
+  public static ImmutableSet<NormalLoopInfo> getAllNormalLoopInfos(
+      CFA pCfa, CProgramScope pCProgramScope) {
     Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>();
 
     for (Loop loop : pCfa.getLoopStructure().orElseThrow().getAllLoops()) {
@@ -76,11 +78,18 @@ public class LoopInfoUtils {
       // Determine type of each variable
       for (String variable : liveVariables) {
         String type = pCProgramScope.lookupVariable(variable).getType().toString();
+
+        if (type.startsWith("struct ")) {
+          type = getStructDefinitionFromName(pCfa, type);
+        } else if (type.startsWith("(")) {
+          type = type.substring(1, type.length() - 2) + "*";
+        }
+        
         liveVariablesAndTypes.put(
             variable.contains("::")
-            ? Iterables.get(Splitter.on("::").split(variable), 1)
-            : variable,
-            type.startsWith("(") ? type.substring(1, type.length() - 2) + "*" : type);
+                ? Iterables.get(Splitter.on("::").split(variable), 1)
+                : variable,
+            type);
       }
 
       for (Integer loopLocation : loopLocations) {
@@ -99,7 +108,8 @@ public class LoopInfoUtils {
       // Determine loop locations. There may be more than one, as some loops have multiple
       // loop heads, e.g., goto loop.
       for (CFANode cfaNode : loop.getLoopHeads()) {
-        mapLoopHeadToLineNumbers.put(cfaNode,
+        mapLoopHeadToLineNumbers.put(
+            cfaNode,
             CFAUtils.allEnteringEdges(cfaNode)
                 .first()
                 .get()
@@ -149,5 +159,26 @@ public class LoopInfoUtils {
     }
 
     return ImmutableSet.copyOf(variables);
+  }
+
+  private static String getStructDefinitionFromName(CFA pCfa, String pName) {
+    for (CFAEdge cfaEdge : pCfa.edges()) {
+      Optional<AAstNode> aAstNodeOp = cfaEdge.getRawAST();
+      if (aAstNodeOp.isPresent() && aAstNodeOp.get() instanceof CComplexTypeDeclaration) {
+        String structDef = ((CComplexTypeDeclaration) aAstNodeOp.get()).toString();
+
+        if (structDef.startsWith(pName)) {
+          structDef =
+              structDef
+                  .substring(0, structDef.length() - 2)
+                  .replaceAll("\n", "")
+                  .replaceAll(";  ", "; ")
+                  .replaceAll("  ", "");
+          return structDef;
+        }
+      }
+    }
+
+    return null;
   }
 }
