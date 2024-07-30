@@ -293,15 +293,18 @@ final class HappensBeforeEdgeTools {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private <T extends AAstNode> T cloneAst(final T ast) {
     return (T) cloneAstDirect(ast);
   }
 
+  @SuppressWarnings("unchecked")
   private <T extends AAstNode> T cloneAstRightSide(final T ast) {
     isLhs = false;
     return (T) cloneAstDirect(ast);
   }
 
+  @SuppressWarnings("unchecked")
   private <T extends AAstNode> T cloneAstLeftSide(final T ast) {
     isLhs = true;
     return (T) cloneAstDirect(ast);
