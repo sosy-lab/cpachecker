@@ -12,9 +12,12 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Stream;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -27,8 +30,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -64,6 +69,11 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
       Precision precision,
       CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
     if(state instanceof HappensBeforeState prevState) {
+      if(cfaEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge) && cfaEdge.getSuccessor().equals(cfaEdge.getPredecessor())) {
+        // likely our pseudo-edge
+        return List.of(prevState.clearPending());
+      }
+
       switch (cfaEdge.getEdgeType()) {
         case StatementEdge:
           {
@@ -91,6 +101,8 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
             }
             break;
           }
+        default: {
+        }
       }
 
       final var old = prevState;
@@ -100,10 +112,36 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
       final var nextLocs = locationCPA.getTransferRelation().getAbstractSuccessorsForEdge(thread.getFirstNotNull(), precision, cfaEdge);
       final var nextStacks = callstackCPA.getTransferRelation().getAbstractSuccessorsForEdge(thread.getSecondNotNull(), precision, cfaEdge);
 
-      final var nextStates = nextLocs.stream().flatMap(nextLoc -> nextStacks.stream().map(nextStack ->
-          old.updateThread(old.nextActiveThread(), (LocationState) nextLoc, (CallstackState) nextStack, firstCanExecute(
-              ImmutableMap.<Integer, Pair<LocationState, CallstackState>>builder().putAll(old.threads()).put(old.nextActiveThread(), Pair.of((LocationState) nextLoc, (CallstackState) nextStack)).buildKeepingLast()))
-      ));
+      final var nextStates = nextLocs.stream().flatMap(nextLoc -> nextStacks.stream().flatMap(nextStack -> {
+        var base = old.updateThread(
+              old.nextActiveThread(),
+              (LocationState) nextLoc,
+              (CallstackState) nextStack,
+              firstCanExecute(ImmutableMap.<Integer, Pair<LocationState, CallstackState>>builder().putAll(old.threads()).put(old.nextActiveThread(), Pair.of((LocationState) nextLoc, (CallstackState) nextStack)).buildKeepingLast()),
+              HappensBeforeEdgeTools.nextCssaCounters(cfaEdge, old.nextActiveThread(), old.cssaCounters()));
+        final var accesses = HappensBeforeEdgeTools.getAccesses(cfaEdge, old.nextActiveThread(), old.cssaCounters());
+        final var writes = accesses.getFirstNotNull();
+        final var reads = accesses.getSecondNotNull();
+
+        var ret = Set.of(base);
+        for (CVariableDeclaration write : writes) {
+          var newStates = ImmutableSet.<HappensBeforeState>builder();
+          for (HappensBeforeState happensBeforeState : ret) {
+            newStates.addAll(happensBeforeState.addWrite(old.nextActiveThread(), write));
+          }
+          ret = newStates.build();
+        }
+
+        for (CVariableDeclaration it : reads) {
+
+          var newStates = ImmutableSet.<HappensBeforeState>builder();
+          for (HappensBeforeState happensBeforeState : ret) {
+            newStates.addAll(happensBeforeState.addRead(old.nextActiveThread(), it));
+          }
+          ret = newStates.build();
+        }
+        return ret.stream();
+      }));
 
 
       return nextStates.toList();
@@ -135,6 +173,6 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
     LocationState initialLoc =
         locationCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
 
-    return old.addThread(threadId, initialLoc, initialStack);
+    return old.addThread(threadId, old.nextActiveThread(), initialLoc, initialStack);
   }
 }
