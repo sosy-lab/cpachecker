@@ -17,7 +17,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -55,7 +54,7 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
 
   public HappensBeforeTransferRelation(Configuration pConfig, CFA pCfa, LogManager pLogger)
       throws InvalidConfigurationException {
-//    pConfig.inject(this);
+    //    pConfig.inject(this);
     configuration = pConfig;
     locationCPA = LocationCPA.create(pCfa, pConfig);
     callstackCPA = new CallstackCPA(pConfig, pLogger);
@@ -65,11 +64,11 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState state,
-      Precision precision,
-      CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
-    if(state instanceof HappensBeforeState prevState) {
-      if(cfaEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge) && cfaEdge.getSuccessor().equals(cfaEdge.getPredecessor())) {
+      AbstractState state, Precision precision, CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
+    if (state instanceof HappensBeforeState prevState) {
+      if (cfaEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)
+          && cfaEdge.getSuccessor().equals(cfaEdge.getPredecessor())) {
         // likely our pseudo-edge
         return List.of(prevState.clearPending());
       }
@@ -80,18 +79,31 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
             AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
             if (statement instanceof AFunctionCall pAFunctionCall) {
               AExpression functionNameExp =
-                  pAFunctionCall
-                      .getFunctionCallExpression()
-                      .getFunctionNameExpression();
+                  pAFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
               if (functionNameExp instanceof AIdExpression pFunctionName) {
                 final String functionName = pFunctionName.getName();
                 switch (functionName) {
                   case "pthread_create":
-                    final var params = pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
-                    Preconditions.checkState(params.size() == 4, "Malformed pthread_create (not 4 params): " + pAFunctionCall);
-                    Preconditions.checkState(params.get(2) instanceof CUnaryExpression && ((CUnaryExpression) params.get(2)).getOperator() == UnaryOperator.AMPER, "Malformed pthread_create (Thread not unary expression with reference): " + params.get(2));
-                    Preconditions.checkState(((CUnaryExpression) params.get(2)).getOperand() instanceof CIdExpression, "Malformed pthread_create (Thread not CIdExpression): " + ((CUnaryExpression) params.get(2)).getOperand());
-                    prevState = addNewThread(prevState, ((CIdExpression) ((CUnaryExpression) params.get(2)).getOperand()).getName());
+                    final var params =
+                        pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
+                    Preconditions.checkState(
+                        params.size() == 4,
+                        "Malformed pthread_create (not 4 params): " + pAFunctionCall);
+                    Preconditions.checkState(
+                        params.get(2) instanceof CUnaryExpression
+                            && ((CUnaryExpression) params.get(2)).getOperator()
+                                == UnaryOperator.AMPER,
+                        "Malformed pthread_create (Thread not unary expression with reference): "
+                            + params.get(2));
+                    Preconditions.checkState(
+                        ((CUnaryExpression) params.get(2)).getOperand() instanceof CIdExpression,
+                        "Malformed pthread_create (Thread not CIdExpression): "
+                            + ((CUnaryExpression) params.get(2)).getOperand());
+                    prevState =
+                        addNewThread(
+                            prevState,
+                            ((CIdExpression) ((CUnaryExpression) params.get(2)).getOperand())
+                                .getName());
                     break;
                   default:
                     // nothing to do
@@ -101,48 +113,76 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
             }
             break;
           }
-        default: {
-        }
+        default:
+          {
+          }
       }
 
       final var old = prevState;
 
       final var thread = old.threads().get(old.nextActiveThread());
 
-      final var nextLocs = locationCPA.getTransferRelation().getAbstractSuccessorsForEdge(thread.getFirstNotNull(), precision, cfaEdge);
-      final var nextStacks = callstackCPA.getTransferRelation().getAbstractSuccessorsForEdge(thread.getSecondNotNull(), precision, cfaEdge);
+      final var nextLocs =
+          locationCPA
+              .getTransferRelation()
+              .getAbstractSuccessorsForEdge(thread.getFirstNotNull(), precision, cfaEdge);
+      final var nextStacks =
+          callstackCPA
+              .getTransferRelation()
+              .getAbstractSuccessorsForEdge(thread.getSecondNotNull(), precision, cfaEdge);
 
-      final var nextStates = nextLocs.stream().flatMap(nextLoc -> nextStacks.stream().flatMap(nextStack -> {
-        var base = old.updateThread(
-              old.nextActiveThread(),
-              (LocationState) nextLoc,
-              (CallstackState) nextStack,
-              firstCanExecute(ImmutableMap.<Integer, Pair<LocationState, CallstackState>>builder().putAll(old.threads()).put(old.nextActiveThread(), Pair.of((LocationState) nextLoc, (CallstackState) nextStack)).buildKeepingLast()),
-              HappensBeforeEdgeTools.nextCssaCounters(cfaEdge, old.nextActiveThread(), old.cssaCounters()));
-        final var accesses = HappensBeforeEdgeTools.getAccesses(cfaEdge, old.nextActiveThread(), old.cssaCounters());
-        final var writes = accesses.getFirstNotNull();
-        final var reads = accesses.getSecondNotNull();
+      final var nextStates =
+          nextLocs.stream()
+              .flatMap(
+                  nextLoc ->
+                      nextStacks.stream()
+                          .flatMap(
+                              nextStack -> {
+                                var base =
+                                    old.updateThread(
+                                        old.nextActiveThread(),
+                                        (LocationState) nextLoc,
+                                        (CallstackState) nextStack,
+                                        firstCanExecute(
+                                            ImmutableMap
+                                                .<Integer, Pair<LocationState, CallstackState>>
+                                                    builder()
+                                                .putAll(old.threads())
+                                                .put(
+                                                    old.nextActiveThread(),
+                                                    Pair.of(
+                                                        (LocationState) nextLoc,
+                                                        (CallstackState) nextStack))
+                                                .buildKeepingLast()),
+                                        HappensBeforeEdgeTools.nextCssaCounters(
+                                            cfaEdge, old.nextActiveThread(), old.cssaCounters()));
+                                final var accesses =
+                                    HappensBeforeEdgeTools.getAccesses(
+                                        cfaEdge, old.nextActiveThread(), old.cssaCounters());
+                                final var writes = accesses.getFirstNotNull();
+                                final var reads = accesses.getSecondNotNull();
 
-        var ret = Set.of(base);
-        for (CVariableDeclaration write : writes) {
-          var newStates = ImmutableSet.<HappensBeforeState>builder();
-          for (HappensBeforeState happensBeforeState : ret) {
-            newStates.addAll(happensBeforeState.addWrite(old.nextActiveThread(), write));
-          }
-          ret = newStates.build();
-        }
+                                var ret = Set.of(base);
+                                for (CVariableDeclaration write : writes) {
+                                  var newStates = ImmutableSet.<HappensBeforeState>builder();
+                                  for (HappensBeforeState happensBeforeState : ret) {
+                                    newStates.addAll(
+                                        happensBeforeState.addWrite(old.nextActiveThread(), write));
+                                  }
+                                  ret = newStates.build();
+                                }
 
-        for (CVariableDeclaration it : reads) {
+                                for (CVariableDeclaration it : reads) {
 
-          var newStates = ImmutableSet.<HappensBeforeState>builder();
-          for (HappensBeforeState happensBeforeState : ret) {
-            newStates.addAll(happensBeforeState.addRead(old.nextActiveThread(), it));
-          }
-          ret = newStates.build();
-        }
-        return ret.stream();
-      }));
-
+                                  var newStates = ImmutableSet.<HappensBeforeState>builder();
+                                  for (HappensBeforeState happensBeforeState : ret) {
+                                    newStates.addAll(
+                                        happensBeforeState.addRead(old.nextActiveThread(), it));
+                                  }
+                                  ret = newStates.build();
+                                }
+                                return ret.stream();
+                              }));
 
       return nextStates.toList();
     } else {
@@ -152,7 +192,7 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
 
   private int firstCanExecute(Map<Integer, Pair<LocationState, CallstackState>> pThreads) {
     for (Map.Entry<Integer, Pair<LocationState, CallstackState>> entry : pThreads.entrySet()) {
-      if(!allLeavingEdges(entry.getValue().getFirstNotNull().getLocationNode()).isEmpty()) {
+      if (!allLeavingEdges(entry.getValue().getFirstNotNull().getLocationNode()).isEmpty()) {
         return entry.getKey();
       }
     }
@@ -161,15 +201,16 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
 
   HappensBeforeState addNewThread(final HappensBeforeState old, final String functionName) {
     final int threadId = old.threads().size();
-//    final CFA clonedCFA = cfaCloner.execute(threadId); // the new threadID is |old threads|
+    //    final CFA clonedCFA = cfaCloner.execute(threadId); // the new threadID is |old threads|
 
     CFANode functioncallNode =
         Preconditions.checkNotNull(
-            cfa.getFunctionHead(functionName),
-            "Function '" + functionName + "' was not found.");
+            cfa.getFunctionHead(functionName), "Function '" + functionName + "' was not found.");
 
     CallstackState initialStack =
-        (CallstackState) callstackCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
+        (CallstackState)
+            callstackCPA.getInitialState(
+                functioncallNode, StateSpacePartition.getDefaultPartition());
     LocationState initialLoc =
         locationCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
 

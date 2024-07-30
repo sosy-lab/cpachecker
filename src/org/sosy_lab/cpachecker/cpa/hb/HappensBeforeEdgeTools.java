@@ -74,51 +74,60 @@ final class HappensBeforeEdgeTools {
   private static final Map<Pair<Integer, Map<String, Integer>>, HappensBeforeEdgeTools> cache =
       new LinkedHashMap<>();
 
-  static CFAEdge clone(final CFAEdge pCFAEdge, final int idx, final Map<String, Integer> cssaCounters) {
-      return cache.computeIfAbsent(Pair.of(idx, cssaCounters), (pair) -> new HappensBeforeEdgeTools(idx, cssaCounters)).cloneEdge(pCFAEdge);
+  static CFAEdge clone(
+      final CFAEdge pCFAEdge, final int idx, final Map<String, Integer> cssaCounters) {
+    return cache
+        .computeIfAbsent(
+            Pair.of(idx, cssaCounters), (pair) -> new HappensBeforeEdgeTools(idx, cssaCounters))
+        .cloneEdge(pCFAEdge);
   }
 
-  static Map<String, Integer> nextCssaCounters(final CFAEdge pCFAEdge, final int idx, final Map<String, Integer> cssaCounters) {
-      final var astIdQualifier = cache.computeIfAbsent(Pair.of(idx, cssaCounters), (pair) -> new HappensBeforeEdgeTools(idx, cssaCounters));
-      final var ignored = astIdQualifier.cloneEdge(pCFAEdge);
-      return astIdQualifier.mutableCssaCounters;
+  static Map<String, Integer> nextCssaCounters(
+      final CFAEdge pCFAEdge, final int idx, final Map<String, Integer> cssaCounters) {
+    final var astIdQualifier =
+        cache.computeIfAbsent(
+            Pair.of(idx, cssaCounters), (pair) -> new HappensBeforeEdgeTools(idx, cssaCounters));
+    final var ignored = astIdQualifier.cloneEdge(pCFAEdge);
+    return astIdQualifier.mutableCssaCounters;
   }
 
-  static Pair<List<CVariableDeclaration>, List<CVariableDeclaration>> getAccesses(final CFAEdge pCFAEdge, final int idx, final Map<String, Integer> cssaCounters) {
-    final var astIdQualifier = cache.computeIfAbsent(Pair.of(idx, cssaCounters), (pair) -> new HappensBeforeEdgeTools(idx, cssaCounters));
+  static Pair<List<CVariableDeclaration>, List<CVariableDeclaration>> getAccesses(
+      final CFAEdge pCFAEdge, final int idx, final Map<String, Integer> cssaCounters) {
+    final var astIdQualifier =
+        cache.computeIfAbsent(
+            Pair.of(idx, cssaCounters), (pair) -> new HappensBeforeEdgeTools(idx, cssaCounters));
     final var ignored = astIdQualifier.cloneEdge(pCFAEdge);
     return Pair.of(astIdQualifier.writeAccesses, astIdQualifier.readAccesses);
   }
 
   static CFAEdge createAssume(CFANode node, ExecutionGraph pG) {
     final var exprs = new ArrayList<CExpression>();
-    pG.pendingRf().forEach((r, w) -> exprs.add(new CBinaryExpression(
-        node.getFunction().getFileLocation(),
-        CNumericTypes.UNSIGNED_INT,
-        CNumericTypes.UNSIGNED_INT,
-        new CIdExpression(w.var().getFileLocation(), w.var()),
-        new CIdExpression(r.var().getFileLocation(), r.var()),
-        BinaryOperator.EQUALS
-        )));
-    final var expr = exprs.stream().reduce(CIntegerLiteralExpression.ONE, (expr1,expr2) ->
-        new CBinaryExpression(
-            node.getFunction().getFileLocation(),
-            CNumericTypes.UNSIGNED_INT,
-            CNumericTypes.UNSIGNED_INT,
-            expr1,
-            expr2,
-            BinaryOperator.BINARY_AND
-        ));
+    pG.pendingRf()
+        .forEach(
+            (r, w) ->
+                exprs.add(
+                    new CBinaryExpression(
+                        node.getFunction().getFileLocation(),
+                        CNumericTypes.UNSIGNED_INT,
+                        CNumericTypes.UNSIGNED_INT,
+                        new CIdExpression(w.var().getFileLocation(), w.var()),
+                        new CIdExpression(r.var().getFileLocation(), r.var()),
+                        BinaryOperator.EQUALS)));
+    final var expr =
+        exprs.stream()
+            .reduce(
+                CIntegerLiteralExpression.ONE,
+                (expr1, expr2) ->
+                    new CBinaryExpression(
+                        node.getFunction().getFileLocation(),
+                        CNumericTypes.UNSIGNED_INT,
+                        CNumericTypes.UNSIGNED_INT,
+                        expr1,
+                        expr2,
+                        BinaryOperator.BINARY_AND));
     return new CAssumeEdge(
-        expr.toASTString(),
-        node.getFunction().getFileLocation(),
-        node,
-        node,
-        expr,
-        false
-    );
+        expr.toASTString(), node.getFunction().getFileLocation(), node, node, expr, false);
   }
-
 
   private final Map<CFAEdge, CFAEdge> edgeCache = new LinkedHashMap<>();
   private final CExpressionCloner expCloner;
@@ -145,10 +154,12 @@ final class HappensBeforeEdgeTools {
     final String rawStatement = edge.getRawStatement();
 
     switch (edge.getEdgeType()) {
-      case BlankEdge: return edge;
-      case AssumeEdge: if (edge instanceof CAssumeEdge pCAssumeEdge) {
+      case BlankEdge:
+        return edge;
+      case AssumeEdge:
+        if (edge instanceof CAssumeEdge pCAssumeEdge) {
           final var newAst = cloneAstRightSide(pCAssumeEdge.getExpression());
-          if(newAst.equals(pCAssumeEdge.getExpression())) {
+          if (newAst.equals(pCAssumeEdge.getExpression())) {
             return edge;
           } else {
             return new CAssumeEdge(
@@ -165,15 +176,14 @@ final class HappensBeforeEdgeTools {
           throw new AssertionError(ONLY_C_SUPPORTED);
         }
       case StatementEdge:
-      {
-        if (edge instanceof CFunctionSummaryStatementEdge pCFunctionSummaryStatementEdge) {
-          final var newStatement = cloneAst(pCFunctionSummaryStatementEdge.getStatement());
-          final var newFuncCall = cloneAst(pCFunctionSummaryStatementEdge.getFunctionCall());
-          if(newStatement.equals(pCFunctionSummaryStatementEdge.getStatement()) &&
-              newFuncCall.equals(pCFunctionSummaryStatementEdge.getFunctionCall())
-          ) {
-            return edge;
-          } else {
+        {
+          if (edge instanceof CFunctionSummaryStatementEdge pCFunctionSummaryStatementEdge) {
+            final var newStatement = cloneAst(pCFunctionSummaryStatementEdge.getStatement());
+            final var newFuncCall = cloneAst(pCFunctionSummaryStatementEdge.getFunctionCall());
+            if (newStatement.equals(pCFunctionSummaryStatementEdge.getStatement())
+                && newFuncCall.equals(pCFunctionSummaryStatementEdge.getFunctionCall())) {
+              return edge;
+            } else {
               return new CFunctionSummaryStatementEdge(
                   rawStatement,
                   newStatement,
@@ -182,110 +192,101 @@ final class HappensBeforeEdgeTools {
                   end,
                   newFuncCall,
                   pCFunctionSummaryStatementEdge.getFunctionName());
-          }
-        } else if (edge instanceof CStatementEdge pCStatementEdge) {
-          final var newStatement = cloneAst(pCStatementEdge.getStatement());
-          if(newStatement.equals(pCStatementEdge.getStatement())) {
-            return edge;
+            }
+          } else if (edge instanceof CStatementEdge pCStatementEdge) {
+            final var newStatement = cloneAst(pCStatementEdge.getStatement());
+            if (newStatement.equals(pCStatementEdge.getStatement())) {
+              return edge;
+            } else {
+              return new CStatementEdge(rawStatement, newStatement, loc, start, end);
+            }
           } else {
-              return new CStatementEdge(
-                  rawStatement, newStatement, loc, start, end);
+            throw new AssertionError(ONLY_C_SUPPORTED);
           }
-        } else {
-          throw new AssertionError(ONLY_C_SUPPORTED);
         }
-      }
 
       case DeclarationEdge:
-      {
-        if (edge instanceof CDeclarationEdge pCDeclarationEdge) {
-          final var newDeclaration = cloneAstLeftSide(pCDeclarationEdge.getDeclaration());
-          if(newDeclaration.equals(pCDeclarationEdge.getDeclaration())) {
-            return edge;
+        {
+          if (edge instanceof CDeclarationEdge pCDeclarationEdge) {
+            final var newDeclaration = cloneAstLeftSide(pCDeclarationEdge.getDeclaration());
+            if (newDeclaration.equals(pCDeclarationEdge.getDeclaration())) {
+              return edge;
             } else {
               return new CDeclarationEdge(rawStatement, loc, start, end, newDeclaration);
+            }
+          } else {
+            throw new AssertionError(ONLY_C_SUPPORTED);
           }
-        } else {
-          throw new AssertionError(ONLY_C_SUPPORTED);
         }
-      }
 
       case ReturnStatementEdge:
-      {
-        assert end instanceof FunctionExitNode
-            : "Expected FunctionExitNode: " + end + ", " + end.getClass();
-        if (edge instanceof CReturnStatementEdge pCReturnStatementEdge) {
-          final var newStatement = cloneAst(pCReturnStatementEdge.getReturnStatement());
-          if(newStatement.equals(pCReturnStatementEdge.getReturnStatement())) {
-            return edge;
+        {
+          assert end instanceof FunctionExitNode
+              : "Expected FunctionExitNode: " + end + ", " + end.getClass();
+          if (edge instanceof CReturnStatementEdge pCReturnStatementEdge) {
+            final var newStatement = cloneAst(pCReturnStatementEdge.getReturnStatement());
+            if (newStatement.equals(pCReturnStatementEdge.getReturnStatement())) {
+              return edge;
+            } else {
+              return new CReturnStatementEdge(
+                  rawStatement, newStatement, loc, start, (FunctionExitNode) end);
+            }
           } else {
-          return new CReturnStatementEdge(
-                  rawStatement,
-                  newStatement,
-                  loc,
-                  start,
-                  (FunctionExitNode) end);
+            throw new AssertionError(ONLY_C_SUPPORTED);
           }
-        } else {
-          throw new AssertionError(ONLY_C_SUPPORTED);
         }
-      }
 
       case FunctionCallEdge:
-      {
-        assert end instanceof CFunctionEntryNode
-            : "Expected FunctionExitNode: " + end + ", " + end.getClass();
-        if (edge instanceof CFunctionCallEdge pCFunctionCallEdge) {
-          final var newAst = cloneAst((CFunctionCall) pCFunctionCallEdge.getRawAST().get());
-          if(newAst.equals((CFunctionCall) pCFunctionCallEdge.getRawAST().get())) {
-            return edge;
+        {
+          assert end instanceof CFunctionEntryNode
+              : "Expected FunctionExitNode: " + end + ", " + end.getClass();
+          if (edge instanceof CFunctionCallEdge pCFunctionCallEdge) {
+            final var newAst = cloneAst((CFunctionCall) pCFunctionCallEdge.getRawAST().get());
+            if (newAst.equals((CFunctionCall) pCFunctionCallEdge.getRawAST().get())) {
+              return edge;
+            } else {
+              return new CFunctionCallEdge(
+                  rawStatement,
+                  loc,
+                  start,
+                  (CFunctionEntryNode) end,
+                  newAst,
+                  pCFunctionCallEdge.getSummaryEdge());
+            }
           } else {
-          return new CFunctionCallEdge(
-              rawStatement,
-              loc,
-              start,
-              (CFunctionEntryNode) end,
-              newAst,
-              pCFunctionCallEdge.getSummaryEdge());
+            throw new AssertionError();
           }
-        } else {
-          throw new AssertionError();
         }
-      }
 
       case FunctionReturnEdge:
-      {
-        if (edge instanceof CFunctionReturnEdge pCFunctionReturnEdge) {
-          final var newEdge = (CFunctionSummaryEdge) cloneEdgeDirect(pCFunctionReturnEdge.getSummaryEdge());
-          if(newEdge.equals(pCFunctionReturnEdge.getSummaryEdge())) {
-            return edge;
+        {
+          if (edge instanceof CFunctionReturnEdge pCFunctionReturnEdge) {
+            final var newEdge =
+                (CFunctionSummaryEdge) cloneEdgeDirect(pCFunctionReturnEdge.getSummaryEdge());
+            if (newEdge.equals(pCFunctionReturnEdge.getSummaryEdge())) {
+              return edge;
             } else {
               return new CFunctionReturnEdge(loc, (FunctionExitNode) start, end, newEdge);
+            }
+          } else {
+            throw new AssertionError(ONLY_C_SUPPORTED);
           }
-        } else {
-          throw new AssertionError(ONLY_C_SUPPORTED);
         }
-      }
 
       case CallToReturnEdge:
-      {
-        if (edge instanceof CFunctionSummaryEdge pCFunctionSummaryEdge) {
-          final var newExpr = cloneAst(pCFunctionSummaryEdge.getExpression());
-          if(newExpr.equals(pCFunctionSummaryEdge.getExpression())) {
-            return edge;
+        {
+          if (edge instanceof CFunctionSummaryEdge pCFunctionSummaryEdge) {
+            final var newExpr = cloneAst(pCFunctionSummaryEdge.getExpression());
+            if (newExpr.equals(pCFunctionSummaryEdge.getExpression())) {
+              return edge;
+            } else {
+              return new CFunctionSummaryEdge(
+                  rawStatement, loc, start, end, newExpr, pCFunctionSummaryEdge.getFunctionEntry());
+            }
           } else {
-          return new CFunctionSummaryEdge(
-              rawStatement,
-              loc,
-              start,
-              end,
-              newExpr,
-              pCFunctionSummaryEdge.getFunctionEntry());
+            throw new AssertionError(ONLY_C_SUPPORTED);
           }
-        } else {
-          throw new AssertionError(ONLY_C_SUPPORTED);
         }
-      }
 
       default:
         throw new AssertionError("unhandled type of edge: " + edge.getEdgeType());
@@ -315,7 +316,7 @@ final class HappensBeforeEdgeTools {
   }
 
   private AAstNode cloneAstDirect(AAstNode ast) {
-    if(ast == null) return null;
+    if (ast == null) return null;
 
     final FileLocation loc = ast.getFileLocation();
 
@@ -360,7 +361,7 @@ final class HappensBeforeEdgeTools {
                 decl.getOrigName(),
                 changeQualifiedName(decl, decl.isGlobal()),
                 null);
-        if(decl.isGlobal()) {
+        if (decl.isGlobal()) {
           final var list = isLhs ? writeAccesses : readAccesses;
           list.add(decl);
         }
@@ -373,23 +374,14 @@ final class HappensBeforeEdgeTools {
           l.add(cloneAstRightSide(param));
         }
         return new CFunctionDeclaration(
-            loc,
-            decl.getType(),
-            decl.getName(),
-            decl.getOrigName(),
-            l,
-            decl.getAttributes());
+            loc, decl.getType(), decl.getName(), decl.getOrigName(), l, decl.getAttributes());
 
       } else if (ast instanceof CComplexTypeDeclaration decl) {
         return new CComplexTypeDeclaration(loc, decl.isGlobal(), decl.getType());
 
       } else if (ast instanceof CTypeDefDeclaration decl) {
         return new CTypeDefDeclaration(
-            loc,
-            decl.isGlobal(),
-            decl.getType(),
-            decl.getName(),
-            decl.getQualifiedName());
+            loc, decl.isGlobal(), decl.getType(), decl.getName(), decl.getQualifiedName());
 
       } else if (ast instanceof CParameterDeclaration decl) {
         CParameterDeclaration newDecl =
@@ -398,19 +390,22 @@ final class HappensBeforeEdgeTools {
         return newDecl;
 
       } else if (ast instanceof CEnumerator decl) {
-        return new CEnumerator(
-            loc, decl.getName(), decl.getQualifiedName(), decl.getValue());
+        return new CEnumerator(loc, decl.getName(), decl.getQualifiedName(), decl.getValue());
       }
 
     } else if (ast instanceof CStatement) {
 
       if (ast instanceof CFunctionCallAssignmentStatement stat) {
         return new CFunctionCallAssignmentStatement(
-            loc, cloneAstLeftSide(stat.getLeftHandSide()), cloneAstRightSide(stat.getRightHandSide()));
+            loc,
+            cloneAstLeftSide(stat.getLeftHandSide()),
+            cloneAstRightSide(stat.getRightHandSide()));
 
       } else if (ast instanceof CExpressionAssignmentStatement stat) {
         return new CExpressionAssignmentStatement(
-            loc, cloneAstLeftSide(stat.getLeftHandSide()), cloneAstRightSide(stat.getRightHandSide()));
+            loc,
+            cloneAstLeftSide(stat.getLeftHandSide()),
+            cloneAstRightSide(stat.getRightHandSide()));
 
       } else if (ast instanceof CFunctionCallStatement) {
         return new CFunctionCallStatement(
@@ -453,7 +448,7 @@ final class HappensBeforeEdgeTools {
   }
 
   private String changeQualifiedName(CSimpleDeclaration decl, boolean isGlobal) {
-    if(isGlobal) {
+    if (isGlobal) {
       final var nextId = mutableCssaCounters.computeIfAbsent(decl.getQualifiedName(), (s) -> 0) + 1;
       mutableCssaCounters.put(decl.getQualifiedName(), nextId);
       return "%s_%d".formatted(decl.getQualifiedName(), nextId);
@@ -546,5 +541,4 @@ final class HappensBeforeEdgeTools {
           exp.isRealCast());
     }
   }
-
 }

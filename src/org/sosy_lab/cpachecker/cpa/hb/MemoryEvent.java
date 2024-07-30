@@ -11,10 +11,8 @@ package org.sosy_lab.cpachecker.cpa.hb;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 
 record MemoryEvent(
-  MemoryEventType type,
-  CVariableDeclaration var,
-  Integer thread,
-  Integer eid,
-  MemoryEvent parent
-) {}
-
+    MemoryEventType type,
+    CVariableDeclaration var,
+    Integer thread,
+    Integer eid,
+    MemoryEvent parent) {}

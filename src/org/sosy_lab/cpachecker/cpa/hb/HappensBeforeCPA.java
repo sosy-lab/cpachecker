@@ -8,9 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.hb;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -32,10 +29,11 @@ public class HappensBeforeCPA extends AbstractCPA {
       throws InvalidConfigurationException {
     super("sep", "sep", new HappensBeforeTransferRelation(config, pCfa, pLogger));
   }
+
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return ((HappensBeforeTransferRelation)getTransferRelation()).addNewThread(HappensBeforeState.empty(), "main");
+    return ((HappensBeforeTransferRelation) getTransferRelation())
+        .addNewThread(HappensBeforeState.empty(), "main");
   }
-
 }
