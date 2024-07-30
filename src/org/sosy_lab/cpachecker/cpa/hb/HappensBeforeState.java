@@ -59,11 +59,11 @@ record HappensBeforeState(
         .addAll(
             nextActiveThread >= 0
                 ? threads.get(nextActiveThread).getFirstNotNull().getLocationNodes()
-                : List.of())
+                : ImmutableList.of())
         .addAll(
             prevActiveThread >= 0
                 ? threads.get(prevActiveThread).getFirstNotNull().getLocationNodes()
-                : List.of())
+                : ImmutableList.of())
         .build();
   }
 
@@ -75,10 +75,10 @@ record HappensBeforeState(
                   threads.get(nextActiveThread).getFirstNotNull().getOutgoingEdges().spliterator(),
                   false)
               .map(edge -> HappensBeforeEdgeTools.clone(edge, nextActiveThread, cssaCounters))
-              .collect(Collectors.toList())
-          : Collections.emptyList();
+              .collect(ImmutableList.toImmutableList())
+          : ImmutableList.of();
     } else {
-      return List.of(
+      return ImmutableList.of(
           HappensBeforeEdgeTools.createAssume(
               threads.get(nextActiveThread).getFirstNotNull().getLocationNode(), g));
     }
@@ -92,10 +92,10 @@ record HappensBeforeState(
                   threads.get(prevActiveThread).getFirstNotNull().getIncomingEdges().spliterator(),
                   false)
               .map(edge -> HappensBeforeEdgeTools.clone(edge, prevActiveThread, cssaCounters))
-              .collect(Collectors.toList())
-          : Collections.emptyList();
+              .collect(ImmutableList.toImmutableList())
+          : ImmutableList.of();
     } else {
-      return List.of(
+      return ImmutableList.of(
           HappensBeforeEdgeTools.createAssume(
               threads.get(nextActiveThread).getFirstNotNull().getLocationNode(), lastG));
     }

@@ -29,7 +29,7 @@ class HappensBeforeUtils {
     newMap.putAll(base);
     newMap.put(
         key,
-        ImmutableSet.<Value>builder().addAll(base.getOrDefault(key, Set.of())).add(value).build());
+        ImmutableSet.<Value>builder().addAll(base.getOrDefault(key, ImmutableSet.of())).add(value).build());
     return newMap.buildKeepingLast();
   }
 
@@ -41,7 +41,7 @@ class HappensBeforeUtils {
     newMap.put(
         key,
         ImmutableList.<Value>builder()
-            .addAll(base.getOrDefault(key, List.of()))
+            .addAll(base.getOrDefault(key, ImmutableList.of()))
             .add(value)
             .build());
     return newMap.buildKeepingLast();
@@ -52,7 +52,7 @@ class HappensBeforeUtils {
       final Map<Key, List<Value>> base, final int idx, final Key key, final Value value) {
     final ImmutableMap.Builder<Key, List<Value>> newMap = ImmutableMap.builder();
     newMap.putAll(base);
-    final var oldList = base.getOrDefault(key, List.of());
+    final var oldList = base.getOrDefault(key, ImmutableList.of());
     checkArgument(oldList.size() >= idx, "Cannot insert into list with smaller size than index!");
     newMap.put(
         key,
@@ -74,7 +74,7 @@ class HappensBeforeUtils {
     newMap.putAll(base);
     newMap.put(
         key,
-        Sets.difference(base.getOrDefault(key, Set.of()), ImmutableSet.of(value)).immutableCopy());
+        Sets.difference(base.getOrDefault(key, ImmutableSet.of()), ImmutableSet.of(value)).immutableCopy());
     return newMap.buildKeepingLast();
   }
 
@@ -91,7 +91,7 @@ class HappensBeforeUtils {
     newMap.putAll(base);
     newMap.put(
         key,
-        Sets.difference(base.getOrDefault(key, Set.of()), ImmutableSet.copyOf(value))
+        Sets.difference(base.getOrDefault(key, ImmutableSet.of()), ImmutableSet.copyOf(value))
             .immutableCopy());
     return newMap.buildKeepingLast();
   }

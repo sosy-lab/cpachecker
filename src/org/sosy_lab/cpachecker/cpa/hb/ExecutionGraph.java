@@ -30,7 +30,7 @@ public record ExecutionGraph(
     Map<MemoryEvent, MemoryEvent> pendingRf) {
 
   public static ExecutionGraph empty() {
-    return new ExecutionGraph(Map.of(), Map.of(), Map.of());
+    return new ExecutionGraph(ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of());
   }
 
   /**
@@ -39,7 +39,7 @@ public record ExecutionGraph(
    */
   Collection<ExecutionGraph> addWrite(final MemoryEvent pMemoryEvent) {
     final var ret = ImmutableList.<ExecutionGraph>builder();
-    final var localMo = mo.getOrDefault(pMemoryEvent.var().getName(), List.of());
+    final var localMo = mo.getOrDefault(pMemoryEvent.var().getName(), ImmutableList.of());
     final var visibleMo = after(localMo, lastSameWrite(pMemoryEvent));
     final var offset = localMo.size() - visibleMo.size();
 
@@ -47,12 +47,12 @@ public record ExecutionGraph(
       final var newMo =
           insertIntoMapOfLists(mo, offset + i, pMemoryEvent.var().getName(), pMemoryEvent);
       for (Set<MemoryEvent> memoryEvents :
-          powerSet(revisitableReads.getOrDefault(pMemoryEvent.var().getName(), Set.of()))) {
+          powerSet(revisitableReads.getOrDefault(pMemoryEvent.var().getName(), ImmutableSet.of()))) {
         final var newRevisitableReads =
             subtractFromMapOfSets(revisitableReads, pMemoryEvent.var().getName(), memoryEvents);
         final var newRf = ImmutableMap.<MemoryEvent, MemoryEvent>builder(); // .putAll(pendingRf);
         memoryEvents.forEach(memoryEvent -> newRf.put(memoryEvent, pMemoryEvent));
-        ret.add(new ExecutionGraph(newRevisitableReads, newMo, newRf.build()));
+        ret.add(new ExecutionGraph(newRevisitableReads, newMo, newRf.buildKeepingLast()));
       }
     }
     return ret.build();
@@ -67,7 +67,7 @@ public record ExecutionGraph(
 
     for (MemoryEvent memoryEvent :
         after(
-            mo.getOrDefault(pMemoryEvent.var().getName(), List.of()),
+            mo.getOrDefault(pMemoryEvent.var().getName(), ImmutableList.of()),
             lastSameWrite(pMemoryEvent))) {
       final var newRf =
           ImmutableMap.<MemoryEvent, MemoryEvent>builder() /*.putAll(pendingRf)*/
@@ -82,7 +82,7 @@ public record ExecutionGraph(
   }
 
   ExecutionGraph clearPending() {
-    return new ExecutionGraph(revisitableReads, mo, Map.of());
+    return new ExecutionGraph(revisitableReads, mo, ImmutableMap.of());
   }
 
   private static <T> List<T> after(List<T> collection, T afterThis) {
@@ -130,7 +130,7 @@ public record ExecutionGraph(
                 pS,
                 pMemoryEvents.stream()
                     .map((MemoryEvent pMemoryEvent) -> pMemoryEvent.var().getQualifiedName())
-                    .collect(Collectors.toSet())));
+                    .collect(ImmutableSet.toImmutableSet())));
     final var moPrint = ImmutableMap.<String, List<String>>builder();
     mo.forEach(
         (pS, pMemoryEvents) ->

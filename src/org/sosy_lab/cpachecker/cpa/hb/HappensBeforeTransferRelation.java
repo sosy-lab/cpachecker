@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.hb;
 import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
@@ -70,7 +71,7 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
       if (cfaEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)
           && cfaEdge.getSuccessor().equals(cfaEdge.getPredecessor())) {
         // likely our pseudo-edge
-        return List.of(prevState.clearPending());
+        return ImmutableList.of(prevState.clearPending());
       }
 
       switch (cfaEdge.getEdgeType()) {
@@ -162,7 +163,7 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
                                 final var writes = accesses.getFirstNotNull();
                                 final var reads = accesses.getSecondNotNull();
 
-                                var ret = Set.of(base);
+                                var ret = ImmutableSet.of(base);
                                 for (CVariableDeclaration write : writes) {
                                   var newStates = ImmutableSet.<HappensBeforeState>builder();
                                   for (HappensBeforeState happensBeforeState : ret) {
@@ -186,7 +187,7 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
 
       return nextStates.toList();
     } else {
-      return List.of();
+      return ImmutableList.of();
     }
   }
 
