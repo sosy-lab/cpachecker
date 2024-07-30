@@ -81,7 +81,9 @@ class HappensBeforeUtils {
   /** Creates a new Map resolving to a Set, with the specified element remove from a set. */
   static <Key, Value> Map<Key, Set<Value>> subtractFromMapOfSets(
       final Map<Key, Set<Value>> base, final Key key, final Collection<Value> value) {
-    if (value.isEmpty()) return base;
+    if (value.isEmpty()) {
+      return base;
+    }
     checkArgument(
         base.containsKey(key) && base.get(key).containsAll(value),
         "Cannot remove non-existent element");

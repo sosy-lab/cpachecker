@@ -111,9 +111,9 @@ public record ExecutionGraph(
     }
     List<T> list = originalSet.stream().toList();
     T head = list.get(0);
-    Set<T> rest = new LinkedHashSet<T>(list.subList(1, list.size()));
+    Set<T> rest = new LinkedHashSet<>(list.subList(1, list.size()));
     for (Set<T> set : powerSet(rest)) {
-      Set<T> newSet = new LinkedHashSet<T>();
+      Set<T> newSet = new LinkedHashSet<>();
       newSet.add(head);
       newSet.addAll(set);
       sets.add(newSet);

@@ -87,7 +87,7 @@ final class HappensBeforeEdgeTools {
     final var astIdQualifier =
         cache.computeIfAbsent(
             Pair.of(idx, cssaCounters), (pair) -> new HappensBeforeEdgeTools(idx, cssaCounters));
-    final var ignored = astIdQualifier.cloneEdge(pCFAEdge);
+    astIdQualifier.cloneEdge(pCFAEdge);
     return astIdQualifier.mutableCssaCounters;
   }
 
@@ -96,7 +96,7 @@ final class HappensBeforeEdgeTools {
     final var astIdQualifier =
         cache.computeIfAbsent(
             Pair.of(idx, cssaCounters), (pair) -> new HappensBeforeEdgeTools(idx, cssaCounters));
-    final var ignored = astIdQualifier.cloneEdge(pCFAEdge);
+    astIdQualifier.cloneEdge(pCFAEdge);
     return Pair.of(astIdQualifier.writeAccesses, astIdQualifier.readAccesses);
   }
 
@@ -242,7 +242,7 @@ final class HappensBeforeEdgeTools {
               : "Expected FunctionExitNode: " + end + ", " + end.getClass();
           if (edge instanceof CFunctionCallEdge pCFunctionCallEdge) {
             final var newAst = cloneAst((CFunctionCall) pCFunctionCallEdge.getRawAST().get());
-            if (newAst.equals((CFunctionCall) pCFunctionCallEdge.getRawAST().get())) {
+            if (newAst.equals(pCFunctionCallEdge.getRawAST().get())) {
               return edge;
             } else {
               return new CFunctionCallEdge(
@@ -319,7 +319,9 @@ final class HappensBeforeEdgeTools {
   }
 
   private AAstNode cloneAstDirect(AAstNode ast) {
-    if (ast == null) return null;
+    if (ast == null) {
+      return null;
+    }
 
     final FileLocation loc = ast.getFileLocation();
 
