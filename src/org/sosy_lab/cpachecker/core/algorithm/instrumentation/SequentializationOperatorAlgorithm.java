@@ -172,7 +172,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   private void writeAllInformationIntoOutputFile(Set<String> newEdges) {
     // Output the collected CFA information into AllCFAInfos
     try (BufferedWriter writer =
-             Files.newBufferedWriter(new File("output/AllLoopInfos.txt").toPath(), StandardCharsets.UTF_8)) {
+             Files.newBufferedWriter(new File("output/newEdgesInfo.txt").toPath(), StandardCharsets.UTF_8)) {
       StringBuilder allEdgesInfo = new StringBuilder();
       for (String edge : newEdges) {
         allEdgesInfo.append(edge);
