@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAut
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.StringUtil;
 
 /**
  * This algorithm instruments a CFA of program using intrumentation operator and instrumentation
@@ -75,10 +74,13 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     Map<CFANode, Integer> mapLoopHeadsToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
 
     if (instrumentationProperty == InstrumentationProperty.TERMINATION) {
+      int index = 0;
       for (NormalLoopInfo info : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
         mapAutomataToLocations.put(info.loopLocation(),
                                    new InstrumentationAutomaton(instrumentationProperty,
-                                                                info.liveVariablesAndTypes()));
+                                                                info.liveVariablesAndTypes(),
+                                                                index));
+        index += 1;
       }
     }
     // MAIN INSTRUMENTATION OPERATOR ALGORITHM
@@ -174,7 +176,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       String result = String.join("\n", newEdges);
       writer.write(result);
     } catch (IOException e) {
-    logger.logException(Level.SEVERE, e, "The creation of file AllCFAInfos.txt failed!");
+    logger.logException(Level.SEVERE, e, "The creation of file newEdgesInfo.txt failed!");
     }
   }
 

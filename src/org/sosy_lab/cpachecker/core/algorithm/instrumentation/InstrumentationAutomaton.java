@@ -59,11 +59,12 @@ public class InstrumentationAutomaton {
    */
   public InstrumentationAutomaton(
       InstrumentationProperty pInstrumentationProperty,
-      ImmutableMap<String, String> pLiveVariablesAndTypes) {
+      ImmutableMap<String, String> pLiveVariablesAndTypes,
+      int pIndex) {
     this.liveVariablesAndTypes = pLiveVariablesAndTypes;
 
     if (pInstrumentationProperty == InstrumentationProperty.TERMINATION) {
-      constructTerminationAutomaton();
+      constructTerminationAutomaton(pIndex);
     }
   }
 
@@ -81,7 +82,7 @@ public class InstrumentationAutomaton {
     return transitions;
   }
 
-  private void constructTerminationAutomaton() {
+  private void constructTerminationAutomaton(int pIndex) {
       InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
       InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
       this.instrumentationStates = ImmutableList.of(q1, q2);
@@ -93,7 +94,7 @@ public class InstrumentationAutomaton {
               "true",
               "int saved = 0; " +
                   liveVariablesAndTypes.entrySet().stream()
-                      .map((entry) -> entry.getValue() + " " + entry.getKey() + "_instr")
+                      .map((entry) -> entry.getValue() + " " + entry.getKey() + "_instr_" + pIndex)
                       .collect(Collectors.joining("; ")) + ";",
               InstrumentationOrder.BEFORE,
               q2);
@@ -103,11 +104,11 @@ public class InstrumentationAutomaton {
               "[cond]",
               "__VERIFIER_nondet_int() && saved == 0 ? " +
                   liveVariablesAndTypes.entrySet().stream()
-                      .map((entry) -> entry.getKey() + " = " + entry.getKey() + "_instr")
+                      .map((entry) -> entry.getKey() + " = " + entry.getKey() + "_instr_" + pIndex)
                       .collect(Collectors.joining(";")) +
                   " : " + "__VERIFIER_assert((saved == 0) | " +
                   liveVariablesAndTypes.entrySet().stream()
-                      .map((entry) -> "(" + entry.getKey() + " != " + entry.getKey() + "_instr" + ")")
+                      .map((entry) -> "(" + entry.getKey() + " != " + entry.getKey() + "_instr_" + pIndex + ")")
                       .collect(Collectors.joining("|")) +
                   ");",
               InstrumentationOrder.AFTER,
