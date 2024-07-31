@@ -993,69 +993,6 @@ public class CFABuilder {
             getExpression(
                 pItem.getOperand(0), typeConverter.getCType(pItem.getOperand(0)), pFileName));
 
-        // Comparison operations
-      case ICmp:
-      case FCmp:
-        // fall through
-
-        // Select operator
-      case Select:
-        // fall through
-
-        // Sign extension/truncation operations
-      case Trunc:
-        // fall through
-      case ZExt:
-        // fall through
-      case SExt:
-        // fall through
-      case FPToUI:
-        // fall through
-      case FPToSI:
-        // fall through
-      case UIToFP:
-        // fall through
-      case SIToFP:
-        // fall through
-      case FPTrunc:
-        // fall through
-      case FPExt:
-        // fall through
-      case AddrSpaceCast:
-        // fall through
-
-        // Aggregate operations
-      case ExtractValue:
-        // fall through
-      case InsertValue:
-        // fall through
-
-      case PHI:
-        // fall through
-
-      case UserOp1:
-        // fall through
-      case UserOp2:
-        // fall through
-      case VAArg:
-        // fall through
-
-        // Vector operations
-      case ExtractElement:
-        // fall through
-      case InsertElement:
-        // fall through
-      case ShuffleVector:
-        // fall through
-
-        // Concurrency-centric operations
-      case Fence:
-        // fall through
-
-      case AtomicCmpXchg:
-        // fall through
-      case AtomicRMW:
-        // fall through
       default:
         throw new UnsupportedOperationException(pOpCode.toString());
     }
