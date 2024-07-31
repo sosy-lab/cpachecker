@@ -124,7 +124,6 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       case BLOCK_POSTCONDITION:
         return processBlockPostCondition(message);
       case ERROR:
-        // fall through
       case FOUND_RESULT:
         shutdown = true;
         return ImmutableSet.of();

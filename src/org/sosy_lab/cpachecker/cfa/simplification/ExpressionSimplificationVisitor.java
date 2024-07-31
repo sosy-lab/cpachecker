@@ -291,7 +291,7 @@ public class ExpressionSimplificationVisitor
             }
             return new CFloatLiteralExpression(loc, exprType, BigDecimal.valueOf(v));
           default:
-            // fall-through and return the original expression
+            // return the original expression below
         }
 
       } else if (unaryOperator == UnaryOperator.TILDE
@@ -359,7 +359,7 @@ public class ExpressionSimplificationVisitor
             case DOUBLE:
               return new CFloatLiteralExpression(expr.getFileLocation(), type, v.bigDecimalValue());
             default:
-              // fall-through and return the original expression
+              // return the original expression below
           }
         }
       }

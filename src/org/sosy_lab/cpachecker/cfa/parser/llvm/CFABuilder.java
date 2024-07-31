@@ -985,7 +985,6 @@ public class CFABuilder {
         return createBitcast(pItem, pFileName);
 
       case PtrToInt:
-        // fall through
       case IntToPtr:
         return new CCastExpression(
             getLocation(pItem, pFileName),
