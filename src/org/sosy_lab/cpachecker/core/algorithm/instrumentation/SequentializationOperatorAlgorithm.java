@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAut
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.StringUtil;
 
 /**
  * This algorithm instruments a CFA of program using intrumentation operator and instrumentation
@@ -124,8 +125,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
               // TODO: Print with writer the information about what should be added where
               isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist);
               newEdges.add(
-                  computeLineNumberBasedOnTransition(transition, edge) + "|" +
-                  transition.getOperation() + "\n");
+                  computeLineNumberBasedOnTransition(transition, edge) + "|||" +
+                  transition.getOperation());
               matched = true;
             }
           }
@@ -170,11 +171,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     // Output the collected CFA information into AllCFAInfos
     try (BufferedWriter writer =
              Files.newBufferedWriter(new File("output/newEdgesInfo.txt").toPath(), StandardCharsets.UTF_8)) {
-      StringBuilder allEdgesInfo = new StringBuilder();
-      for (String edge : newEdges) {
-        allEdgesInfo.append(edge);
-      }
-      writer.write(allEdgesInfo.toString());
+      String result = String.join("\n", newEdges);
+      writer.write(result);
     } catch (IOException e) {
     logger.logException(Level.SEVERE, e, "The creation of file AllCFAInfos.txt failed!");
     }
