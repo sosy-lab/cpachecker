@@ -958,7 +958,7 @@ public class CFABuilder {
       final Value pItem, final Path pFileName, final OpCode pOpCode) throws LLVMException {
 
     switch (pOpCode) {
-        // Arithmetic operations
+      // Arithmetic operations
       case Add:
       case FAdd:
       case Sub:
@@ -1062,7 +1062,7 @@ public class CFABuilder {
             typeConverter.getCType(
                 operand1.typeOf(), /* isUnsigned= */ true, operand1.isConstant());
         operand1Exp = castToExpectedType(operand1Exp, op1type, getLocation(pItem, pFileName));
-        // $FALL-THROUGH$
+      // $FALL-THROUGH$
       case AShr: // Arithmetic shift right
         if (!(isIntegerType(op1type) && isIntegerType(op2type))) {
           throw new UnsupportedOperationException(
@@ -1778,25 +1778,25 @@ public class CFABuilder {
         break;
       case IntUGT:
         isUnsignedCmp = true;
-        // $FALL-THROUGH$
+      // $FALL-THROUGH$
       case IntSGT:
         operator = BinaryOperator.GREATER_THAN;
         break;
       case IntULT:
         isUnsignedCmp = true;
-        // $FALL-THROUGH$
+      // $FALL-THROUGH$
       case IntSLT:
         operator = BinaryOperator.LESS_THAN;
         break;
       case IntULE:
         isUnsignedCmp = true;
-        // $FALL-THROUGH$
+      // $FALL-THROUGH$
       case IntSLE:
         operator = BinaryOperator.LESS_EQUAL;
         break;
       case IntUGE:
         isUnsignedCmp = true;
-        // $FALL-THROUGH$
+      // $FALL-THROUGH$
       case IntSGE:
         operator = BinaryOperator.GREATER_EQUAL;
         break;

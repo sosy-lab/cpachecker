@@ -97,8 +97,8 @@ public class PseudoExistQeManager implements StatisticsProvider {
         Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
       switch (pFunctionDeclaration.getKind()) {
 
-          // TODO this code assumes that equality has exactly two arguments.
-          // We might have more than two.
+        // TODO this code assumes that equality has exactly two arguments.
+        // We might have more than two.
 
         case EQ: // check those functions that represent equality
         case BV_EQ:

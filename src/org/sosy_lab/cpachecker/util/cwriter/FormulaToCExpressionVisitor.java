@@ -232,7 +232,7 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
           default:
             // $FALL-THROUGH$
         }
-        // $FALL-THROUGH$
+      // $FALL-THROUGH$
       default:
         throw new UnsupportedOperationException(
             String.format(
