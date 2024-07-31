@@ -156,13 +156,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       }
       fileLocation = fileLocation.replaceFirst("line ", "");
       location = Integer.parseInt(fileLocation);
-      if (pTransition.getOrderAsString().equals("BEFORE")) {
+      if (pTransition.getOrderAsString().equals("AFTER")) {
         location += 1;
-        return Integer.toString(location);
-      } else {
-        location -= 1;
-        return Integer.toString(location);
       }
+      return Integer.toString(location);
     } catch (NumberFormatException e) {
       logger.logException(Level.SEVERE, e, "The line number is not Integer !");
     }
