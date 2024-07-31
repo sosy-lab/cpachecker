@@ -173,7 +173,8 @@ public class LoopInfoUtils {
                   .substring(0, structDef.length() - 2)
                   .replaceAll("\n", "")
                   .replaceAll(";  ", "; ")
-                  .replaceAll("  ", "");
+                  .replaceAll("  ", "")
+                  .replace("{", " {");
           return structDef;
         }
       }
