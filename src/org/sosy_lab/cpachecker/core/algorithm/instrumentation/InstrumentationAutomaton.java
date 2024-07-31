@@ -106,7 +106,7 @@ public class InstrumentationAutomaton {
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) -> entry.getKey() + " = " + entry.getKey() + "_instr_" + pIndex)
                       .collect(Collectors.joining(";")) +
-                  " : " + "__VERIFIER_assert((saved == 0) | " +
+                  "; : " + "__VERIFIER_assert((saved == 0) | " +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) -> "(" + entry.getKey() + " != " + entry.getKey() + "_instr_" + pIndex + ")")
                       .collect(Collectors.joining("|")) +
