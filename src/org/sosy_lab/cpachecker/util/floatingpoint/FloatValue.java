@@ -379,11 +379,11 @@ public class FloatValue extends Number {
     public static Format fromCType(MachineModel pMachineModel, CType pType) {
       if (pType instanceof CSimpleType pSimpleType) {
         return switch (pSimpleType.getType()) {
-          case FLOAT -> pMachineModel.getPrecisionFloat();
+          case FLOAT -> Format.Float32;
           case DOUBLE ->
               pSimpleType.hasLongSpecifier()
                   ? pMachineModel.getPrecisionLongDouble()
-                  : pMachineModel.getPrecisionDouble();
+                  : Format.Float64;
           case FLOAT128 -> Format.Float128;
           default ->
               throw new IllegalArgumentException(

@@ -36,8 +36,6 @@ public enum MachineModel {
   /** Machine model representing a 32bit Linux machine with alignment: */
   LINUX32(
       // precision float
-      FloatValue.Format.Float32, // float
-      FloatValue.Format.Float64, // double
       FloatValue.Format.Extended, // long double
 
       // sizeof numeric types
@@ -75,8 +73,6 @@ public enum MachineModel {
   /** Machine model representing a 64bit Linux machine with alignment: */
   LINUX64(
       // precision float
-      FloatValue.Format.Float32, // float
-      FloatValue.Format.Float64, // double
       FloatValue.Format.Extended, // long double
 
       // sizeof numeric types
@@ -114,8 +110,6 @@ public enum MachineModel {
   /** Machine model representing an ARM machine with alignment: */
   ARM(
       // precision float
-      FloatValue.Format.Float32, // float
-      FloatValue.Format.Float64, // double
       FloatValue.Format.Float64, // long double
 
       // sizeof numeric types
@@ -153,8 +147,6 @@ public enum MachineModel {
   /** Machine model representing an ARM64 machine with alignment: */
   ARM64(
       // precision float
-      FloatValue.Format.Float32, // float
-      FloatValue.Format.Float64, // double
       FloatValue.Format.Float64, // long double
 
       // sizeof numeric types
@@ -189,9 +181,7 @@ public enum MachineModel {
       ByteOrder.LITTLE_ENDIAN // endianness
       );
 
-  // precision floating point types
-  private final FloatValue.Format precisionFloat;
-  private final FloatValue.Format precisionDouble;
+  // floating point format used for `long double`
   private final FloatValue.Format precisionLongDouble;
 
   // sizeof numeric types
@@ -236,8 +226,6 @@ public enum MachineModel {
   private final CSimpleType uintptr_t;
 
   MachineModel(
-      FloatValue.Format pPrecisionFloat,
-      FloatValue.Format pPrecisionDouble,
       FloatValue.Format pPrecisionLongDouble,
       int pSizeofShort,
       int pSizeofInt,
@@ -262,8 +250,6 @@ public enum MachineModel {
       int pAlignofMalloc,
       boolean pDefaultCharSigned,
       ByteOrder pEndianness) {
-    precisionFloat = pPrecisionFloat;
-    precisionDouble = pPrecisionDouble;
     precisionLongDouble = pPrecisionLongDouble;
     sizeofShortInt = pSizeofShort;
     sizeofInt = pSizeofInt;
@@ -425,14 +411,6 @@ public enum MachineModel {
       default -> // bool, void
           false;
     };
-  }
-
-  public FloatValue.Format getPrecisionFloat() {
-    return precisionFloat;
-  }
-
-  public FloatValue.Format getPrecisionDouble() {
-    return precisionDouble;
   }
 
   public FloatValue.Format getPrecisionLongDouble() {
