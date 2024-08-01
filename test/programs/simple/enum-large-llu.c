@@ -12,13 +12,13 @@ enum e1 {
 	E1,
     E2,
     // upper bound of  lld
-    E3 = 9223372036854775807,
+    E3 = 9223372036854775807UL,
     // excceeding upper bound of lld
     E4,
     // lower bound of lld
-    E5 = -9223372036854775808,
+    E5 = -9223372036854775807L,
     // upper bound of llu
-    E6 = 18446744073709551615,
+    E6 = 18446744073709551615UL,
     // calculating with upper bound of llu and upper bound of lld
     E7 = E6 - E3,
     // moving within space of llu
@@ -33,22 +33,22 @@ int main() {
 	if (E2 != 1) {
 		goto ERROR;
     }
-    if (E3 != 9223372036854775807) {
+    if (E3 != 9223372036854775807L) {
         goto ERROR;
     }
-    if (E4 != 9223372036854775808) {
+    if (E4 != 9223372036854775808UL) {
         goto ERROR;
     }
-    if (E5 != -9223372036854775808) {
+    if (E5 != -9223372036854775807L) {
         goto ERROR;
     }
-    if (E6 != 18446744073709551615){
+    if (E6 != 18446744073709551615UL){
         goto ERROR;
     }
-    if (E7 != 9223372036854775808){
+    if (E7 != 9223372036854775808UL){
         goto ERROR;
     }
-    if (E8 != 18446744073709551614){
+    if (E8 != 18446744073709551614UL){
         goto ERROR;
     }
 
