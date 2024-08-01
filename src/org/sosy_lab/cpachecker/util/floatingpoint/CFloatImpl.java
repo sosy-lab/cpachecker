@@ -127,7 +127,7 @@ class CFloatImpl extends CFloat {
     Format p = new Format(2, 1); // the smallest supported format
     for (CFloat f : pSummands) {
       CFloatImpl mf = (CFloatImpl) f;
-      p = p.sup(mf.delegate.getFormat());
+      p = p.matchWith(mf.delegate.getFormat());
     }
     FloatValue r = delegate.withPrecision(p);
     for (CFloat f : pSummands) {
@@ -150,7 +150,7 @@ class CFloatImpl extends CFloat {
     Format p = new Format(2, 1); // the smallest supported format
     for (CFloat f : pFactors) {
       CFloatImpl mf = (CFloatImpl) f;
-      p = p.sup(mf.delegate.getFormat());
+      p = p.matchWith(mf.delegate.getFormat());
     }
     FloatValue r = delegate.withPrecision(p);
     for (CFloat f : pFactors) {
