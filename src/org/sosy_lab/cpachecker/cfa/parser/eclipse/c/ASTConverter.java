@@ -27,7 +27,6 @@ import java.util.Deque;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.LongSummaryStatistics;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -2649,7 +2648,8 @@ class ASTConverter {
 
   private CEnumType convert(IASTEnumerationSpecifier d) {
     List<CEnumerator> list = new ArrayList<>(d.getEnumerators().length);
-    long lastValue = -1L; // initialize with -1, so the first one gets value 0
+    BigInteger lastValue =
+        BigInteger.valueOf(-1L); // initialize with -1, so the first one gets value 0
     for (IASTEnumerationSpecifier.IASTEnumerator c : d.getEnumerators()) {
       CEnumerator newC = convert(c, lastValue);
       list.add(newC);
@@ -2688,13 +2688,12 @@ class ASTConverter {
    * representing the values of all the members of the enumeration.
    */
   private CSimpleType getEnumerationType(final List<CEnumerator> enumerators) {
-    LongSummaryStatistics enumStatistics =
-        enumerators.stream().mapToLong(CEnumerator::getValue).summaryStatistics();
+    List<BigInteger> enumeratorValues = enumerators.stream().map(CEnumerator::getValue).toList();
 
     Preconditions.checkState(
-        enumStatistics.getCount() > 0, "enumeration does not provide any values");
-    final BigInteger minValue = BigInteger.valueOf(enumStatistics.getMin());
-    final BigInteger maxValue = BigInteger.valueOf(enumStatistics.getMax());
+        !enumeratorValues.isEmpty(), "enumeration does not provide any values");
+    final BigInteger minValue = enumeratorValues.stream().min(BigInteger::compareTo).orElseThrow();
+    final BigInteger maxValue = enumeratorValues.stream().max(BigInteger::compareTo).orElseThrow();
     for (CSimpleType integerType : ENUM_REPRESENTATION_CANDIDATE_TYPES) {
       if (minValue.compareTo(machinemodel.getMinimalIntegerValue(integerType)) >= 0
           && maxValue.compareTo(machinemodel.getMaximalIntegerValue(integerType)) <= 0) {
@@ -2706,15 +2705,15 @@ class ASTConverter {
     return CNumericTypes.UNSIGNED_LONG_LONG_INT;
   }
 
-  private CEnumerator convert(IASTEnumerationSpecifier.IASTEnumerator e, long lastValue) {
-    long value;
+  private CEnumerator convert(IASTEnumerationSpecifier.IASTEnumerator e, BigInteger lastValue) {
+    BigInteger value;
 
     if (e.getValue() == null) {
-      value = lastValue + 1;
+      value = lastValue.add(BigInteger.ONE);
     } else {
       // TODO Because we fully evaluate the expression here and never add e.getValue() itself
       // to the AST, any overflows in it will not be detectable by the analysis.
-      value = evaluateIntegerConstantExpression(e.getValue()).longValueExact();
+      value = evaluateIntegerConstantExpression(e.getValue());
     }
 
     String name = convert(e.getName());

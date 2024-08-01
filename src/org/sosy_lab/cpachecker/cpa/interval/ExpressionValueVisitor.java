@@ -150,7 +150,9 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
   @Override
   public Interval visit(CIdExpression identifier) {
     if (identifier.getDeclaration() instanceof CEnumerator) {
-      return new Interval(((CEnumerator) identifier.getDeclaration()).getValue());
+      // TODO handle values that are bigger than MAX_LONG.
+      // When this happens, visit(CIntegerLiteralExpression) should also be adjusted.
+      return new Interval(((CEnumerator) identifier.getDeclaration()).getValue().longValue());
     }
 
     final String variableName = identifier.getDeclaration().getQualifiedName();

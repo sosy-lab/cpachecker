@@ -93,7 +93,9 @@ public class BDDBooleanExpressionVisitor extends DefaultCExpressionVisitor<Regio
   @Override
   public Region visit(CIdExpression idExp) {
     if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
-      return getNum(enumerator.getValue());
+      // TODO handle values that are bigger than MAX_LONG.
+      // When this happens, visit(CIntegerLiteralExpression) should also be adjusted.
+      return getNum(enumerator.getValue().longValue());
     }
 
     final Region[] result =
