@@ -413,6 +413,23 @@ public enum MachineModel {
     };
   }
 
+  /**
+   * Returns the floating point format used for `long double` on this platform
+   *
+   * <p>Depending on the compiler and the CPU architecture `long double` can mean on of these
+   * things:
+   *
+   * <ul>
+   *   <li>Double precision (64 bits)
+   *   <li>Extended precision (80 bits)
+   *   <li>Quadruple precision (128 bits)
+   *   <li>A non-IEC 60559 extended format (must include all IEC 60559 "double precision" values)
+   * </ul>
+   *
+   * Note that the format for `long double` can not be calculated from {@link
+   * MachineModel#getSizeofLongDouble} as additional padding bits may be included in the size of the
+   * type.
+   */
   public FloatValue.Format getLongDoubleFormat() {
     return longDoubleFormat;
   }
@@ -449,6 +466,13 @@ public enum MachineModel {
     return sizeofDouble;
   }
 
+  /**
+   * The size of a `long double` variable in bytes as returned by the `sizeof` operator
+   *
+   * <p>Note that the size of a `long double` is different from its precision as it may include
+   * additional padding bits. Use {@link MachineModel#getLongDoubleFormat()} to get the {@link
+   * FloatValue.Format} used for `long double` variables on this platform.
+   */
   public int getSizeofLongDouble() {
     return sizeofLongDouble;
   }
