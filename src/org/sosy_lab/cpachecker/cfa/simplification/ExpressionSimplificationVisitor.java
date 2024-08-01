@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 /**
  * This visitor visits an expression and evaluates it. The returnvalue of the visit consists of the
@@ -351,8 +352,14 @@ public class ExpressionSimplificationVisitor
                   expr.getFileLocation(), type, v.bigIntegerValue());
             case FLOAT:
             case DOUBLE:
+              // Cast the literal to the target type before assigning the value
+              // This is necessary to handle initializer like `float x = 1.0` where the type of the
+              // literal on the right is different from the type of the variable.
+              FloatValue litValue = v.floatingPointValue();
+              FloatValue castValue =
+                  litValue.withPrecision(FloatValue.Format.fromCType(machineModel, type));
               return new CFloatLiteralExpression(
-                  expr.getFileLocation(), machineModel, type, v.floatingPointValue());
+                  expr.getFileLocation(), machineModel, type, castValue);
             default:
               // fall-through and return the original expression
           }
