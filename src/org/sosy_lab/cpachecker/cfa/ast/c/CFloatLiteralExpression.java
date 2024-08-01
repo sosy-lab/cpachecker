@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 public final class CFloatLiteralExpression extends AFloatLiteralExpression
     implements CLiteralExpression {
@@ -27,7 +26,8 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression
       FileLocation pFileLocation, MachineModel pMachineModel, CType pType, FloatValue pValue) {
     super(pFileLocation, pType, pValue);
     // Make sure that the provided type matches the type of the float value
-    Preconditions.checkArgument(Format.fromCType(pMachineModel, pType).equals(pValue.getFormat()));
+    Preconditions.checkArgument(
+        FloatValue.Format.fromCType(pMachineModel, pType).equals(pValue.getFormat()));
   }
 
   @Override

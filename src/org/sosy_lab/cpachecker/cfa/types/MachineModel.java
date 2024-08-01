@@ -29,16 +29,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 /** This enum stores the sizes for all the basic types that exist. */
 public enum MachineModel {
   /** Machine model representing a 32bit Linux machine with alignment: */
   LINUX32(
       // precision float
-      Format.Float32, // float
-      Format.Float64, // double
-      Format.Extended, // long double
+      FloatValue.Format.Float32, // float
+      FloatValue.Format.Float64, // double
+      FloatValue.Format.Extended, // long double
 
       // sizeof numeric types
       2, // short
@@ -75,9 +75,9 @@ public enum MachineModel {
   /** Machine model representing a 64bit Linux machine with alignment: */
   LINUX64(
       // precision float
-      Format.Float32, // float
-      Format.Float64, // double
-      Format.Extended, // long double
+      FloatValue.Format.Float32, // float
+      FloatValue.Format.Float64, // double
+      FloatValue.Format.Extended, // long double
 
       // sizeof numeric types
       2, // short int
@@ -114,9 +114,9 @@ public enum MachineModel {
   /** Machine model representing an ARM machine with alignment: */
   ARM(
       // precision float
-      Format.Float32, // float
-      Format.Float64, // double
-      Format.Float64, // long double
+      FloatValue.Format.Float32, // float
+      FloatValue.Format.Float64, // double
+      FloatValue.Format.Float64, // long double
 
       // sizeof numeric types
       2, // short int
@@ -153,9 +153,9 @@ public enum MachineModel {
   /** Machine model representing an ARM64 machine with alignment: */
   ARM64(
       // precision float
-      Format.Float32, // float
-      Format.Float64, // double
-      Format.Float64, // long double
+      FloatValue.Format.Float32, // float
+      FloatValue.Format.Float64, // double
+      FloatValue.Format.Float64, // long double
 
       // sizeof numeric types
       2, // short int
@@ -190,9 +190,9 @@ public enum MachineModel {
       );
 
   // precision floating point types
-  private final Format precisionFloat;
-  private final Format precisionDouble;
-  private final Format precisionLongDouble;
+  private final FloatValue.Format precisionFloat;
+  private final FloatValue.Format precisionDouble;
+  private final FloatValue.Format precisionLongDouble;
 
   // sizeof numeric types
   private final int sizeofShortInt;
@@ -236,9 +236,9 @@ public enum MachineModel {
   private final CSimpleType uintptr_t;
 
   MachineModel(
-      Format pPrecisionFloat,
-      Format pPrecisionDouble,
-      Format pPrecisionLongDouble,
+      FloatValue.Format pPrecisionFloat,
+      FloatValue.Format pPrecisionDouble,
+      FloatValue.Format pPrecisionLongDouble,
       int pSizeofShort,
       int pSizeofInt,
       int pSizeofLongInt,
@@ -427,15 +427,15 @@ public enum MachineModel {
     };
   }
 
-  public Format getPrecisionFloat() {
+  public FloatValue.Format getPrecisionFloat() {
     return precisionFloat;
   }
 
-  public Format getPrecisionDouble() {
+  public FloatValue.Format getPrecisionDouble() {
     return precisionDouble;
   }
 
-  public Format getPrecisionLongDouble() {
+  public FloatValue.Format getPrecisionLongDouble() {
     return precisionLongDouble;
   }
 

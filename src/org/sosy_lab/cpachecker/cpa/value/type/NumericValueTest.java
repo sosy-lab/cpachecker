@@ -14,7 +14,6 @@ import java.math.BigInteger;
 import org.junit.Test;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 public class NumericValueTest {
 
@@ -66,21 +65,21 @@ public class NumericValueTest {
   public void bigDecimalValue_conversionFromPositiveLong() {
     NumericValue val = new NumericValue(5L);
     FloatValue result = val.floatingPointValue();
-    assertThat(result).isEqualTo(FloatValue.fromString(Format.Float64, "5"));
+    assertThat(result).isEqualTo(FloatValue.fromString(FloatValue.Format.Float64, "5"));
   }
 
   @Test
   public void bigDecimalValue_conversionFromDouble() {
     NumericValue val = new NumericValue(5.3d);
     FloatValue result = val.floatingPointValue();
-    assertThat(result).isEqualTo(FloatValue.fromString(Format.Float64, "5.3"));
+    assertThat(result).isEqualTo(FloatValue.fromString(FloatValue.Format.Float64, "5.3"));
   }
 
   @Test
   public void bigDecimalValue_conversionFromFloat() {
     NumericValue val = new NumericValue(5.3f);
     FloatValue result = val.floatingPointValue();
-    assertThat(result).isEqualTo(FloatValue.fromString(Format.Float32, "5.3"));
+    assertThat(result).isEqualTo(FloatValue.fromString(FloatValue.Format.Float32, "5.3"));
   }
 
   @Test
@@ -89,7 +88,7 @@ public class NumericValueTest {
     NumericValue val = new NumericValue(input);
 
     FloatValue result = val.floatingPointValue();
-    assertThat(result).isEqualTo(FloatValue.fromString(Format.Float64, "0.5"));
+    assertThat(result).isEqualTo(FloatValue.fromString(FloatValue.Format.Float64, "0.5"));
   }
 
   @Test
@@ -97,7 +96,8 @@ public class NumericValueTest {
     Rational input = Rational.of(BigInteger.ONE, BigInteger.valueOf(3));
     NumericValue val = new NumericValue(input);
     FloatValue result = val.floatingPointValue();
-    assertThat(result).isEqualTo(FloatValue.fromString(Format.Float64, "0.3333333333333333"));
+    assertThat(result)
+        .isEqualTo(FloatValue.fromString(FloatValue.Format.Float64, "0.3333333333333333"));
   }
 
   @Test
@@ -105,14 +105,14 @@ public class NumericValueTest {
     Rational input = Rational.of(BigInteger.TEN, BigInteger.TWO);
     NumericValue val = new NumericValue(input);
     FloatValue result = val.floatingPointValue();
-    assertThat(result).isEqualTo(FloatValue.fromString(Format.Float64, "5"));
+    assertThat(result).isEqualTo(FloatValue.fromString(FloatValue.Format.Float64, "5"));
   }
 
   @Test
   public void bigDecimalValue_conversionFromInteger() {
     NumericValue val = new NumericValue(10);
     FloatValue result = val.floatingPointValue();
-    assertThat(result).isEqualTo(FloatValue.fromString(Format.Float64, "10"));
+    assertThat(result).isEqualTo(FloatValue.fromString(FloatValue.Format.Float64, "10"));
   }
 
   @Test

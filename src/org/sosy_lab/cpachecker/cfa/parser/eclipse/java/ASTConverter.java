@@ -144,7 +144,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JReferenceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 class ASTConverter {
 
@@ -2776,7 +2775,7 @@ class ASTConverter {
 
   private FloatValue parseFloatLiteral(String valueStr) {
     // TODO: Add support for "f" and "l" suffix and use a parameter for the target type
-    return FloatValue.fromString(Format.Float64, valueStr);
+    return FloatValue.fromString(FloatValue.Format.Float64, valueStr);
   }
 
   private BigInteger parseIntegerLiteral(String s, ASTNode e) {

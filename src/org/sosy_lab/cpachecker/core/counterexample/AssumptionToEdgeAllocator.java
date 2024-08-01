@@ -107,7 +107,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /**
  * Creates assumption along an error path based on a given {@link CFAEdge} edge and a given {@link
@@ -1410,7 +1409,7 @@ public class AssumptionToEdgeAllocator {
     }
 
     private ValueLiteral handleFloatingPointNumbers(Object pValue, CSimpleType pType) {
-      Format format = Format.fromCType(machineModel, pType);
+      FloatValue.Format format = FloatValue.Format.fromCType(machineModel, pType);
 
       if (pValue instanceof Rational rationalValue) {
         FloatValue n = FloatValue.fromInteger(format, rationalValue.getNum());

@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 public final class CDefaults {
 
@@ -49,7 +48,7 @@ public final class CDefaults {
                     fileLoc,
                     pMachineModel,
                     type,
-                    FloatValue.zero(Format.fromCType(pMachineModel, type))),
+                    FloatValue.zero(FloatValue.Format.fromCType(pMachineModel, type))),
                 fileLoc);
         case UNSPECIFIED, BOOL, INT128, INT ->
             initializerFor(new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);

@@ -91,7 +91,6 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -1016,7 +1015,7 @@ public class CtoFormulaConverter {
           machineModel,
           targetType,
           FloatValue.fromInteger(
-              Format.fromCType(machineModel, targetType),
+              FloatValue.Format.fromCType(machineModel, targetType),
               floatValue.asNumericValue().bigIntegerValue()));
     }
 

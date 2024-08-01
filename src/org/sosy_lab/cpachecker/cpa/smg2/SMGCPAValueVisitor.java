@@ -83,7 +83,6 @@ import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -1237,10 +1236,12 @@ public class SMGCPAValueVisitor
             result = new NumericValue(numericValue.doubleValue());
           } else if (size == machineModel.getSizeofFloat128() * bitPerByte) {
             result =
-                new NumericValue(numericValue.floatingPointValue().withPrecision(Format.Float128));
+                new NumericValue(
+                    numericValue.floatingPointValue().withPrecision(FloatValue.Format.Float128));
           } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
             result =
-                new NumericValue(numericValue.floatingPointValue().withPrecision(Format.Extended));
+                new NumericValue(
+                    numericValue.floatingPointValue().withPrecision(FloatValue.Format.Extended));
           } else {
             // TODO: Think of floating point types!
             throw new AssertionError("Unhandled floating point type: " + type);

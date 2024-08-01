@@ -13,7 +13,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /** This class represents the float number literal AST node type. */
 public final class JFloatLiteralExpression extends AFloatLiteralExpression
@@ -27,9 +26,9 @@ public final class JFloatLiteralExpression extends AFloatLiteralExpression
 
   /** Returns the equivalent Java type for a {@link FloatValue} */
   private static JSimpleType getJType(FloatValue pValue) {
-    if (pValue.getFormat().equals(Format.Float32)) {
+    if (pValue.getFormat().equals(FloatValue.Format.Float32)) {
       return JSimpleType.getFloat();
-    } else if (pValue.getFormat().equals(Format.Float64)) {
+    } else if (pValue.getFormat().equals(FloatValue.Format.Float64)) {
       return JSimpleType.getDouble();
     } else {
       throw new IllegalArgumentException();

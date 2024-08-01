@@ -107,7 +107,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "termination")
@@ -732,8 +731,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       return CIntegerLiteralExpression.createDummyLiteral(
           rat.numerator().divide(rat.denominator()).longValue(), CNumericTypes.INT);
     } else {
-      FloatValue n = FloatValue.fromInteger(Format.Float32, rat.numerator());
-      FloatValue d = FloatValue.fromInteger(Format.Float32, rat.numerator());
+      FloatValue n = FloatValue.fromInteger(FloatValue.Format.Float32, rat.numerator());
+      FloatValue d = FloatValue.fromInteger(FloatValue.Format.Float32, rat.numerator());
       return new CFloatLiteralExpression(
           FileLocation.DUMMY, machineModel, CNumericTypes.FLOAT, n.divide(d));
     }

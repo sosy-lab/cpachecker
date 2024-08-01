@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /**
  * This Class contains functions, that convert literals (chars, numbers) from C-source into
@@ -155,15 +154,15 @@ class ASTLiteralConverter {
     // According to section 6.4.4.2 "Floating constants" of the C standard,
     // an unsuffixed floating constant has type double. If suffixed by the letter f or F, it has
     // type float. If suffixed by the letter l or L, it has type long double.
-    Format format;
+    FloatValue.Format format;
     if (input.endsWith("l")) {
       input = input.substring(0, input.length() - 1);
-      format = Format.Extended;
+      format = FloatValue.Format.Extended;
     } else if (input.endsWith("f")) {
       input = input.substring(0, input.length() - 1);
-      format = Format.Float32;
+      format = FloatValue.Format.Float32;
     } else {
-      format = Format.Float64;
+      format = FloatValue.Format.Float64;
     }
 
     FloatValue value;
@@ -175,7 +174,7 @@ class ASTLiteralConverter {
     }
 
     // Round the parsed value to the target type
-    value = value.withPrecision(Format.fromCType(machine, pType));
+    value = value.withPrecision(FloatValue.Format.fromCType(machine, pType));
 
     return new CFloatLiteralExpression(pFileLoc, machine, pType, value);
   }

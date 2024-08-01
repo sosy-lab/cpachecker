@@ -107,7 +107,6 @@ import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /**
  * This Visitor implements an evaluation strategy of simply typed expressions. An expression is
@@ -2453,10 +2452,12 @@ public abstract class AbstractExpressionValueVisitor
             result = new NumericValue(numericValue.doubleValue());
           } else if (size == machineModel.getSizeofFloat128() * bitPerByte) {
             result =
-                new NumericValue(numericValue.floatingPointValue().withPrecision(Format.Float128));
+                new NumericValue(
+                    numericValue.floatingPointValue().withPrecision(FloatValue.Format.Float128));
           } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
             result =
-                new NumericValue(numericValue.floatingPointValue().withPrecision(Format.Extended));
+                new NumericValue(
+                    numericValue.floatingPointValue().withPrecision(FloatValue.Format.Extended));
           } else {
             throw new AssertionError("Unhandled floating point type: " + type);
           }

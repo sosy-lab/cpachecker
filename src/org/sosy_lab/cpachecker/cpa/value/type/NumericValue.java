@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /** Stores a numeric value that can be tracked by the ValueAnalysisCPA. */
 public record NumericValue(Number number) implements Value {
@@ -63,7 +62,7 @@ public record NumericValue(Number number) implements Value {
 
   public FloatValue floatingPointValue() {
     // TODO: Add a parameter for the target precision
-    Format format = Format.Float64;
+    FloatValue.Format format = FloatValue.Format.Float64;
     if (number instanceof FloatValue floatValue) {
       return floatValue;
     } else if (number instanceof Double doubleValue) {
