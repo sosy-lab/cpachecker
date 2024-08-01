@@ -109,22 +109,20 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                   .getInitialState(),
               waitlist,
               reachlist);
-        } else {
-          assert currentNode != null;
-          for (CFANode succ : getSuccessorsOfANode(currentNode)) {
-            isThePairNew(succ, currentState, waitlist, reachlist);
-          }
+        }
+        assert currentNode != null;
+        for (CFANode succ : getSuccessorsOfANode(currentNode)) {
+          isThePairNew(succ, currentState, waitlist, reachlist);
         }
       } else {
         assert currentNode != null;
+        boolean matched = false;
         for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
           CFAEdge edge = currentNode.getLeavingEdge(i);
-          boolean matched = false;
           for (InstrumentationTransition transition : currentState
               .getAutomatonOfTheState()
               .getTransitions(currentState)) {
             if (transition.transitionMatchesCfaEdge(edge)) {
-              // TODO: Print with writer the information about what should be added where
               isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist);
               newEdges.add(
                   computeLineNumberBasedOnTransition(transition, edge) + "|||" +
@@ -132,8 +130,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
               matched = true;
             }
           }
-          if (!matched) {
-            isThePairNew(edge.getSuccessor(), currentState, waitlist, reachlist);
+        }
+        if (!matched) {
+          for (CFANode succ : getSuccessorsOfANode(currentNode)) {
+            isThePairNew(succ, currentState, waitlist, reachlist);
           }
         }
       }

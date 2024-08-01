@@ -39,7 +39,8 @@ public class InstrumentationAutomaton {
   enum StateAnnotation {
     TRUE,
     LOOPHEAD,
-    INIT
+    INIT,
+    FALSE
   }
 
   /**
@@ -85,7 +86,8 @@ public class InstrumentationAutomaton {
   private void constructTerminationAutomaton(int pIndex) {
       InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
       InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
-      this.instrumentationStates = ImmutableList.of(q1, q2);
+      InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
+      this.instrumentationStates = ImmutableList.of(q1, q2, q3);
       this.initialState = q1;
 
       InstrumentationTransition t1 =
@@ -112,8 +114,15 @@ public class InstrumentationAutomaton {
                       .collect(Collectors.joining("|")) +
                   ");",
               InstrumentationOrder.AFTER,
-              q2);
+              q3);
+    InstrumentationTransition t3 =
+        new InstrumentationTransition(
+            q3,
+            "true",
+            "",
+            InstrumentationOrder.AFTER,
+            q3);
       this.instrumentationTransitions =
-          ImmutableList.of(t1, t2);
+          ImmutableList.of(t1, t2, t3);
   }
 }
