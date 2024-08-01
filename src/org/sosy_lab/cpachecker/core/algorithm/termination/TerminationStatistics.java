@@ -37,6 +37,7 @@ import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -705,10 +706,14 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         varName = toOrigName((TermVariable) entry.getKey());
         termVal = ((ConstantTerm) entry.getValue()).getValue();
 
-        if (termVal instanceof FloatValue termFloat) {
+        if (termVal instanceof BigDecimal) {
+          // FIXME: Conversion from BigDecimal to FloatValue is lossy and may cause rounding issues
           litexpr =
               new CFloatLiteralExpression(
-                  FileLocation.DUMMY, machineModel, CNumericTypes.FLOAT, termFloat);
+                  FileLocation.DUMMY,
+                  machineModel,
+                  CNumericTypes.FLOAT,
+                  FloatValue.fromString(FloatValue.Format.Float32, termVal.toString()));
         } else if (termVal instanceof BigInteger) {
           litexpr =
               CIntegerLiteralExpression.createDummyLiteral(
