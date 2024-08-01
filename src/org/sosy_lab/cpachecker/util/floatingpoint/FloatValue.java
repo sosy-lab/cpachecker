@@ -2447,6 +2447,8 @@ public class FloatValue extends Number {
    */
   public static FloatValue fromString(Format pFormat, String pInput) {
     // TODO: Add error handling for broken inputs.
+    checkArgument(!pInput.isEmpty());
+
     if ("inf".equals(pInput)) {
       return infinity(pFormat);
     } else if ("-inf".equals(pInput)) {
