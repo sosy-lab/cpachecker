@@ -1132,16 +1132,11 @@ public abstract class AbstractExpressionValueVisitor
             if (target.isExplicitlyKnown() && source.isExplicitlyKnown()) {
               assert target.isNumericValue();
               assert source.isNumericValue();
-              Number targetNumber = target.asNumericValue().getNumber();
-              Number sourceNumber = source.asNumericValue().getNumber();
-              Optional<Boolean> sourceNegative = isNegative(sourceNumber);
-              Optional<Boolean> targetNegative = isNegative(targetNumber);
-              if (sourceNegative.isPresent() && targetNegative.isPresent()) {
-                if (sourceNegative.orElseThrow().equals(targetNegative.orElseThrow())) {
-                  return new NumericValue(targetNumber);
-                }
-                return target.asNumericValue().negate();
-              }
+              FloatValue f1 = target.asNumericValue().floatingPointValue();
+              FloatValue f2 = target.asNumericValue().floatingPointValue();
+              FloatValue.Format format = f1.getFormat().matchWith(f2.getFormat());
+              FloatValue r = f1.abs().withPrecision(format);
+              return new NumericValue(f2.isNegative() ? r.negate() : r);
             }
           }
         } else if (BuiltinFloatFunctions.matchesFloatClassify(calledFunctionName)) {
