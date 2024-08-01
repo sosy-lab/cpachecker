@@ -13,7 +13,6 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.Truth.assert_;
 
 import com.google.common.collect.ImmutableList;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -227,27 +226,51 @@ public class ASTConverterTest {
     }
   }
 
-  // Enable this test once BigDecimals are replaced by CFloats in CFloatLiteralExpression-class
-  // (and subsequently, when the ASTLiteralConverter#adjustPrecision() got removed)
-  @Ignore
-  public final void testInvalidFloatExpressions() {
+  @Test
+  public final void testOverflowingFloatExpressions() {
     ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
 
-    ImmutableList<String> values =
+    // TestCase consists of: input value, expected output, input type for CLiteralExpression
+    record TestCase(String input, String expected, CType type) {}
+    ImmutableList<TestCase> input_output =
         ImmutableList.of(
-            "3.41e+38f", "-4.2e+38f", "1.8e+308", "-2.3e+308", "1.2e+4932l", "-1.2e+4932l");
+            new TestCase("3.41e+38f", "inf", CNumericTypes.FLOAT),
+            new TestCase("-4.2e+38f", "-inf", CNumericTypes.FLOAT),
+            new TestCase("1.8e+308", "inf", CNumericTypes.DOUBLE),
+            new TestCase("-2.3e+308", "-inf", CNumericTypes.DOUBLE),
+            new TestCase("1.2e+4932l", "inf", CNumericTypes.LONG_DOUBLE),
+            new TestCase("-1.2e+4932l", "-inf", CNumericTypes.LONG_DOUBLE));
 
     for (ASTLiteralConverter converter : converters) {
-      for (String value : values) {
+      for (TestCase test : input_output) {
+        CFloatLiteralExpression literal =
+            (CFloatLiteralExpression)
+                converter.parseFloatLiteral(FileLocation.DUMMY, test.type(), test.input(), null);
+
+        assertThat(literal.getValue().toString()).isEqualTo(test.expected());
+        assertThat(literal.getExpressionType()).isSameInstanceAs(test.type());
+      }
+    }
+  }
+
+  @Test
+  public final void testInvalidFloatExpressions() {
+    ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
+    ImmutableList<String> inputs = ImmutableList.of("", "f", "0xf", "0x5e2f");
+
+    for (ASTLiteralConverter converter : converters) {
+      for (String value : inputs) {
+        boolean failed = false;
         try {
-          converter.parseFloatLiteral(FileLocation.DUMMY, null, value, null);
-          assertWithMessage("Failed because of value: " + value).fail();
-        } catch (CFAGenerationRuntimeException e) {
-          assertThat(e.getMessage())
-              .isAnyOf(
-                  "unable to parse floating point literal (inf)",
-                  "unable to parse floating point literal (-inf)");
+          converter.parseFloatLiteral(FileLocation.DUMMY, CNumericTypes.DOUBLE, value, null);
+        } catch (IllegalArgumentException e) {
+          failed = true;
         }
+        assertWithMessage(
+            "Expected IllegalArgumentException while parsing `%s`, but nothing was thrown",
+            value)
+            .that(failed)
+            .isTrue();
       }
     }
   }
