@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.truth.Correspondence.BinaryPredicate;
@@ -195,10 +196,9 @@ abstract class AbstractCFloatTestBase {
 
   /** Generate a list of floating point constants that cover all special case values. */
   static List<BigFloat> floatConsts(Format format) {
-    ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     int precision = format.sigBits() + 1;
     BinaryMathContext context = new BinaryMathContext(precision, format.expBits());
-    builder.add(
+    return ImmutableList.of(
         BigFloat.negativeInfinity(precision),
         BigFloat.maxValue(precision, format.maxExp()).negate(),
         new BigFloat(-17.0f, context),
@@ -217,7 +217,6 @@ abstract class AbstractCFloatTestBase {
         new BigFloat(17.0f, context),
         BigFloat.maxValue(precision, format.maxExp()),
         BigFloat.positiveInfinity(precision));
-    return builder.build();
   }
 
   /**
@@ -291,11 +290,11 @@ abstract class AbstractCFloatTestBase {
     Format format = getFloatType();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     BigFloat constant = new BigFloat(0.5f, context);
-    return ImmutableList.<BigFloat>builder()
-        .addAll(floatConsts(format))
-        .addAll(floatPowers(format, 14, constant, 20, constant))
-        .addAll(floatRandom(format, 50000))
-        .build();
+    return FluentIterable.concat(
+            floatConsts(format),
+            floatPowers(format, 14, constant, 20, constant),
+            floatRandom(format, 50000))
+        .toList();
   }
 
   /**
@@ -307,11 +306,11 @@ abstract class AbstractCFloatTestBase {
     Format format = getFloatType();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     BigFloat constant = new BigFloat(0.5f, context);
-    return ImmutableList.<BigFloat>builder()
-        .addAll(floatConsts(format))
-        .addAll(floatPowers(format, 3, constant, 3, constant))
-        .addAll(floatRandom(format, 200))
-        .build();
+    return FluentIterable.concat(
+            floatConsts(format),
+            floatPowers(format, 3, constant, 3, constant),
+            floatRandom(format, 200))
+        .toList();
   }
 
   List<BigFloat> integerTestValues() {
