@@ -381,9 +381,7 @@ public class FloatValue extends Number {
         return switch (pSimpleType.getType()) {
           case FLOAT -> Format.Float32;
           case DOUBLE ->
-              pSimpleType.hasLongSpecifier()
-                  ? pMachineModel.getPrecisionLongDouble()
-                  : Format.Float64;
+              pSimpleType.hasLongSpecifier() ? pMachineModel.getLongDoubleFormat() : Format.Float64;
           case FLOAT128 -> Format.Float128;
           default ->
               throw new IllegalArgumentException(

@@ -182,7 +182,7 @@ public enum MachineModel {
       );
 
   // floating point format used for `long double`
-  private final FloatValue.Format precisionLongDouble;
+  private final FloatValue.Format longDoubleFormat;
 
   // sizeof numeric types
   private final int sizeofShortInt;
@@ -226,7 +226,7 @@ public enum MachineModel {
   private final CSimpleType uintptr_t;
 
   MachineModel(
-      FloatValue.Format pPrecisionLongDouble,
+      FloatValue.Format pLongDoubleFormat,
       int pSizeofShort,
       int pSizeofInt,
       int pSizeofLongInt,
@@ -250,7 +250,7 @@ public enum MachineModel {
       int pAlignofMalloc,
       boolean pDefaultCharSigned,
       ByteOrder pEndianness) {
-    precisionLongDouble = pPrecisionLongDouble;
+    longDoubleFormat = pLongDoubleFormat;
     sizeofShortInt = pSizeofShort;
     sizeofInt = pSizeofInt;
     sizeofLongInt = pSizeofLongInt;
@@ -413,8 +413,8 @@ public enum MachineModel {
     };
   }
 
-  public FloatValue.Format getPrecisionLongDouble() {
-    return precisionLongDouble;
+  public FloatValue.Format getLongDoubleFormat() {
+    return longDoubleFormat;
   }
 
   public int getSizeofCharInBits() {
