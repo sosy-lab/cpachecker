@@ -267,8 +267,8 @@ public class ASTConverterTest {
           failed = true;
         }
         assertWithMessage(
-            "Expected IllegalArgumentException while parsing `%s`, but nothing was thrown",
-            value)
+                "Expected IllegalArgumentException while parsing `%s`, but nothing was thrown",
+                value)
             .that(failed)
             .isTrue();
       }
