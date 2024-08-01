@@ -2850,19 +2850,6 @@ class ASTConverter {
         return null;
       }
 
-      final CType exprType = typeConverter.convert(e.getExpressionType());
-      if (type instanceof CSimpleType simpleType
-          && simpleType.getType().isFloatingPointType()
-          && !exprType.equals(simpleType)) {
-        // If the declared variable has a floating point type, check the precision on the left and
-        // on the right, and add an explicit cast if the types don't match.
-        // For example:
-        // float x = 0.1
-        // becomes
-        // float x = (float) 0.1
-        initializer = new CCastExpression(getLocation(e), type, (CExpression) initializer);
-      }
-
       final CInitializerExpression result;
       if (initializer instanceof CAssignment) {
         sideAssignmentStack.addPreSideAssignment(initializer);

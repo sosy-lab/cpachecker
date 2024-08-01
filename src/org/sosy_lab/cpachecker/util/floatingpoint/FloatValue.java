@@ -361,7 +361,7 @@ public class FloatValue extends Number {
      * <p>Used when implementing binary operations on FloatValue values, where a common format large
      * enough for both arguments needs to be found.
      */
-    public Format join(Format pOther) {
+    Format sup(Format pOther) {
       int newExp = Math.max(expBits, pOther.expBits);
       int newSig = Math.max(sigBits, pOther.sigBits);
       return new Format(newExp, newSig);
@@ -705,7 +705,7 @@ public class FloatValue extends Number {
    * FloatValue#equals(Object)} for a bitwise comparison of the values.
    */
   public boolean equalTo(FloatValue pNumber) {
-    Format precision = format.join(pNumber.format);
+    Format precision = format.sup(pNumber.format);
 
     FloatValue arg1 = this.withPrecision(precision);
     FloatValue arg2 = pNumber.withPrecision(precision);
@@ -735,7 +735,7 @@ public class FloatValue extends Number {
   /** Strictly greater than */
   public boolean greaterThan(FloatValue pNumber) {
     // Find a common precision and convert both arguments to this precision
-    Format precision = format.join(pNumber.format);
+    Format precision = format.sup(pNumber.format);
 
     FloatValue arg1 = this.withPrecision(precision);
     FloatValue arg2 = pNumber.withPrecision(precision);
@@ -778,7 +778,7 @@ public class FloatValue extends Number {
   /** Addition */
   public FloatValue add(FloatValue pNumber) {
     // Find a common precision and convert both arguments to this precision
-    Format precision = format.join(pNumber.format);
+    Format precision = format.sup(pNumber.format);
 
     // Make sure the first argument has the larger (or equal) exponent
     FloatValue arg1;
@@ -905,7 +905,7 @@ public class FloatValue extends Number {
   /** Multiplication */
   public FloatValue multiply(FloatValue pNumber) {
     // Find a common precision and convert both arguments to this precision
-    Format precision = format.join(pNumber.format);
+    Format precision = format.sup(pNumber.format);
 
     // Make sure the first argument has the larger (or equal) exponent
     FloatValue arg1;
@@ -1030,7 +1030,7 @@ public class FloatValue extends Number {
    */
   private FloatValue multiplyExact(FloatValue pNumber) {
     // Find a common precision and convert both arguments to this precision
-    Format precision = format.join(pNumber.format);
+    Format precision = format.sup(pNumber.format);
 
     // Make sure the first argument has the larger (or equal) exponent
     FloatValue arg1;
@@ -1138,7 +1138,7 @@ public class FloatValue extends Number {
   /** Division */
   public FloatValue divide(FloatValue pNumber) {
     // Convert arguments to a common precision
-    Format precision = format.join(pNumber.format);
+    Format precision = format.sup(pNumber.format);
     // TODO: Replace with precision.intermediatePrecision()
     //   Currently this does not seem to work as we get incorrectly rounded results for Float8
     precision = /*precision.intermediatePrecision();*/
@@ -1733,7 +1733,7 @@ public class FloatValue extends Number {
    */
   FloatValue powWithStats(FloatValue pExponent, @Nullable Map<Integer, Integer> pPowStats) {
     // Find a common precision and convert both arguments to this precision
-    Format precision = format.join(pExponent.format);
+    Format precision = format.sup(pExponent.format);
 
     FloatValue arg1 = this.withPrecision(precision);
     FloatValue arg2 = pExponent.withPrecision(precision);
