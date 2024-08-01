@@ -2677,7 +2677,10 @@ class ASTConverter {
   private static final ImmutableList<CSimpleType> ENUM_REPRESENTATION_CANDIDATE_TYPES =
       // list of types with incrementing size
       ImmutableList.of(
-          CNumericTypes.SIGNED_INT, CNumericTypes.UNSIGNED_INT, CNumericTypes.SIGNED_LONG_LONG_INT);
+          CNumericTypes.SIGNED_INT,
+          CNumericTypes.UNSIGNED_INT,
+          CNumericTypes.SIGNED_LONG_LONG_INT,
+          CNumericTypes.UNSIGNED_LONG_LONG_INT);
 
   /**
    * Compute a matching integer type for an enumeration. We use SIGNED_INT and switch to larger type
@@ -2701,8 +2704,14 @@ class ASTConverter {
         return integerType;
       }
     }
-    // if nothing works, use the largest type we have: ULL
-    return CNumericTypes.UNSIGNED_LONG_LONG_INT;
+    throw new CFAGenerationRuntimeException(
+        "The range of enum values does not fit into any of the available integer types of the selected machine model."
+            + " Machine model: '"
+            + machinemodel.name()
+            + "', available integer types: '"
+            + ENUM_REPRESENTATION_CANDIDATE_TYPES.stream().map(CType::toString).toList()
+            + "', enum values: "
+            + enumerators.stream().map(CEnumerator::getValue).toList());
   }
 
   private CEnumerator convert(IASTEnumerationSpecifier.IASTEnumerator e, BigInteger lastValue) {
