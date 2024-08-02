@@ -75,11 +75,3 @@ strip libgmp.so libmpfr.so libmpfr_java.so
 patchelf --set-rpath '$ORIGIN' --replace-needed libgmp.so.10 libgmp.so libmpfr.so
 patchelf --set-rpath '$ORIGIN' --replace-needed libmpfr.so.6 libmpfr.so --replace-needed libgmp.so.10 libgmp.so libmpfr_java.so
 ```
-
-### Upload the libraries
-Commit the changes and update the repository:
-```
-git add .
-git commit -m "Updated mpfr-java binaries. This version is based on GMP 6.3.0 and MPFR 4.2.1"
-git svn dcommit
-```
