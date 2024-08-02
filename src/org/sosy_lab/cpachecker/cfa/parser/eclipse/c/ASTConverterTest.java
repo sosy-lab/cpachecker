@@ -260,17 +260,15 @@ public class ASTConverterTest {
 
     for (ASTLiteralConverter converter : converters) {
       for (String value : inputs) {
-        boolean failed = false;
         try {
           converter.parseFloatLiteral(FileLocation.DUMMY, CNumericTypes.DOUBLE, value, null);
+          assertWithMessage(
+                  "Expected IllegalArgumentException while parsing `%s`, but nothing was thrown",
+                  value)
+              .fail();
         } catch (IllegalArgumentException e) {
-          failed = true;
+          // Skip, we expect the exception
         }
-        assertWithMessage(
-                "Expected IllegalArgumentException while parsing `%s`, but nothing was thrown",
-                value)
-            .that(failed)
-            .isTrue();
       }
     }
   }
