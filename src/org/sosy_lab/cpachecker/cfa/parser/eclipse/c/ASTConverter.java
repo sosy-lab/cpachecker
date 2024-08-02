@@ -2709,8 +2709,8 @@ class ASTConverter {
       }
     }
     throw new CFAGenerationRuntimeException(
-        "The range of enum values does not fit into any of the available integer types of the selected machine model."
-            + " Machine model: '"
+        "The range of enum values does not fit into any of the available integer types of the"
+            + " selected machine model. Machine model: '"
             + machinemodel.name()
             + "', available integer types: '"
             + ENUM_REPRESENTATION_CANDIDATE_TYPES.stream().map(CType::toString).toList()
