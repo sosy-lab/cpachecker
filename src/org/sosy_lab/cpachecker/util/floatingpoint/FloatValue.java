@@ -1994,7 +1994,7 @@ public class FloatValue extends Number {
   }
 
   /**
-   * Cast the value to a BigInteger.
+   * Convert the value to a {@link BigInteger}
    *
    * <p>If the value is not already an integer the fractional part will be cut off. This is
    * equivalent to rounding with {@link RoundingMode#TRUNCATE RoundingMode.TRUNCATE}. If a different
@@ -2023,19 +2023,7 @@ public class FloatValue extends Number {
   }
 
   /**
-   * Cast the value to a {@link BigInteger}
-   *
-   * <p>Throws an {@link IllegalArgumentException} if the value was NaN or Infinity.
-   *
-   * <p>This method will truncate the number if it is not already an integer. See {@link
-   * FloatValue#toInteger} for more details.
-   */
-  public BigInteger integerValue() {
-    return toInteger().orElseThrow(IllegalArgumentException::new);
-  }
-
-  /**
-   * Cast the value to a byte
+   * Convert the value to a byte
    *
    * <p>Returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was too large to
    * fit into a byte.
@@ -2055,21 +2043,7 @@ public class FloatValue extends Number {
   }
 
   /**
-   * Cast the value to a byte
-   *
-   * <p>Throws an {@link IllegalArgumentException} if the value was NaN or Infinity, or if it was
-   * too large to fit into a byte.
-   *
-   * <p>This method will truncate the number if it is not already an integer. See {@link
-   * FloatValue#toInteger} for more details.
-   */
-  @Override
-  public byte byteValue() {
-    return toByte().orElseThrow(IllegalArgumentException::new);
-  }
-
-  /**
-   * Cast the value to a short
+   * Convert the value to a short
    *
    * <p>Returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was too large to
    * fit into a short.
@@ -2089,21 +2063,7 @@ public class FloatValue extends Number {
   }
 
   /**
-   * Cast the value to a short
-   *
-   * <p>Throws an {@link IllegalArgumentException} if the value was NaN or Infinity, or if it was
-   * too large to fit into a short.
-   *
-   * <p>This method will truncate the number if it is not already an integer. See {@link
-   * FloatValue#toInteger} for more details.
-   */
-  @Override
-  public short shortValue() {
-    return toShort().orElseThrow(IllegalArgumentException::new);
-  }
-
-  /**
-   * Cast the value to an int
+   * Convert the value to an int
    *
    * <p>Returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was too large to
    * fit into an int.
@@ -2123,21 +2083,7 @@ public class FloatValue extends Number {
   }
 
   /**
-   * Cast the value to an int
-   *
-   * <p>Throws an {@link IllegalArgumentException} if the value was NaN or Infinity, or if it was
-   * too large to fit into an int.
-   *
-   * <p>This method will truncate the number if it is not already an integer. See {@link
-   * FloatValue#toInteger} for more details.
-   */
-  @Override
-  public int intValue() {
-    return toInt().orElseThrow(IllegalArgumentException::new);
-  }
-
-  /**
-   * Cast the value to a long
+   * Convert the value to a long
    *
    * <p>Returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was too large to
    * fit into a long.
@@ -2157,17 +2103,128 @@ public class FloatValue extends Number {
   }
 
   /**
+   * Cast the value to a {@link BigInteger}
+   *
+   * <p>Returns 0 if the value is NaN and HUGE_VAL for infinite values. Here HUGE_VAL is guaranteed
+   * to be larger than any integer that can be represented in the format. Converting it back to
+   * {@link FloatValue} with the same format will again result in infinity.
+   *
+   * <pre>
+   *  -Infinity    -> -HUGE_VAL
+   *   NaN         -> 0
+   *  +Infinity    -> HUGE_VAL</pre>
+   *
+   * <p>This method will truncate the number if it is not already an integer. See {@link
+   * FloatValue#toInteger} for more details.
+   */
+  public BigInteger integerValue() {
+    if (isNan()) {
+      return BigInteger.ZERO;
+    } else {
+      return toInteger()
+          .orElseGet(
+              () -> {
+                Format extendedPrecision = new Format(format.expBits, format.sigBits + 1);
+                BigInteger infinity = maxValue(extendedPrecision).toInteger().get();
+                return isNegative() ? infinity.negate() : infinity;
+              });
+    }
+  }
+
+  /**
+   * Cast the value to a byte
+   *
+   * <p>Returns 0 if the value is NaN, and behaves like a cast in Java if the value is infinite or
+   * too large to fit into a byte:
+   *
+   * <pre>
+   *  -Infinity    -> -1
+   * < Integer.Min -> -1
+   * < Byte.Min    -> (byte)((int) value)
+   *   NaN         -> 0
+   * > Byte.Max    -> (byte)((int) value)
+   * > Integer.Max -> -1
+   *  +Infinity    -> -1</pre>
+   *
+   * <p>This method will truncate the number if it is not already an integer. See {@link
+   * FloatValue#toInteger} for more details.
+   */
+  @Override
+  public byte byteValue() {
+    return (byte) intValue();
+  }
+
+  /**
+   * Cast the value to a short
+   *
+   * <p>Returns 0 if the value is NaN, and behaves like a cast in Java if the value is infinite or
+   * too large to fit into a short:
+   *
+   * <pre>
+   *  -Infinity    -> -1
+   * < Integer.Min -> -1
+   * < Short.Min   -> (short)((int) value)
+   *   NaN         -> 0
+   * > Short.Max   -> (short)((int) value)
+   * > Integer.Max -> -1
+   *  +Infinity    -> -1</pre>
+   *
+   * <p>This method will truncate the number if it is not already an integer. See {@link
+   * FloatValue#toInteger} for more details.
+   */
+  @Override
+  public short shortValue() {
+    return (short) intValue();
+  }
+
+  /**
+   * Cast the value to an int
+   *
+   * <p>Returns 0 if the value is NaN, and behaves like a cast in Java if the value is infinite or
+   * too large to fit into an int:
+   *
+   * <pre>
+   *  -Infinity    -> Integer.Min
+   * < Integer.Min -> Integer.Min
+   *   NaN         -> 0
+   * > Integer.Max -> Integer.Max
+   *  +Infinity    -> Integer.Max</pre>
+   *
+   * <p>This method will truncate the number if it is not already an integer. See {@link
+   * FloatValue#toInteger} for more details.
+   */
+  @Override
+  public int intValue() {
+    if (isNan()) {
+      return 0;
+    } else {
+      return toInt().orElse(isNegative() ? Integer.MIN_VALUE : Integer.MAX_VALUE);
+    }
+  }
+
+  /**
    * Cast the value to a long
    *
-   * <p>Throws an {@link IllegalArgumentException} if the value was NaN or Infinity, or if it was
-   * too large to fit into a long.
+   * <p>Returns 0 if the value is NaN, and behaves like a cast in Java if the value is infinite or
+   * too large to fit into a long:
+   *
+   * <pre>
+   *  -Infinity -> Long.Min
+   * < Long.Min -> Long.Min
+   *   NaN      -> 0
+   * > Long.Max -> Long.Max
+   *  +Infinity -> Long.Max</pre>
    *
    * <p>This method will truncate the number if it is not already an integer. See {@link
    * FloatValue#toInteger} for more details.
    */
   @Override
   public long longValue() {
-    return toLong().orElseThrow(IllegalArgumentException::new);
+    if (isNan()) {
+      return 0;
+    } else {
+      return toLong().orElse(isNegative() ? Long.MIN_VALUE : Long.MAX_VALUE);
+    }
   }
 
   /**
