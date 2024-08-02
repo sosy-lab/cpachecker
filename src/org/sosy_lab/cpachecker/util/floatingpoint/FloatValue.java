@@ -2125,7 +2125,7 @@ public class FloatValue extends Number {
           .orElseGet(
               () -> {
                 Format extendedPrecision = new Format(format.expBits, format.sigBits + 1);
-                BigInteger infinity = maxValue(extendedPrecision).toInteger().get();
+                BigInteger infinity = maxValue(extendedPrecision).toInteger().orElseThrow();
                 return isNegative() ? infinity.negate() : infinity;
               });
     }
