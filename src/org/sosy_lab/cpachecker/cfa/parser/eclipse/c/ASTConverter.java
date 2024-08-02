@@ -2695,8 +2695,8 @@ class ASTConverter {
 
     Preconditions.checkState(
         !enumeratorValues.isEmpty(), "enumeration does not provide any values");
-    final BigInteger minValue = enumeratorValues.stream().min(BigInteger::compareTo).orElseThrow();
-    final BigInteger maxValue = enumeratorValues.stream().max(BigInteger::compareTo).orElseThrow();
+    final BigInteger minValue = Collections.min(enumeratorValues);
+    final BigInteger maxValue = Collections.max(enumeratorValues);
     for (CSimpleType integerType : ENUM_REPRESENTATION_CANDIDATE_TYPES) {
       if (minValue.compareTo(machinemodel.getMinimalIntegerValue(integerType)) >= 0
           && maxValue.compareTo(machinemodel.getMaximalIntegerValue(integerType)) <= 0) {
