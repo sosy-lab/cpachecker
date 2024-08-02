@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /** This enum stores the sizes for all the basic types that exist. */
 public enum MachineModel {
@@ -472,7 +471,8 @@ public enum MachineModel {
    *
    * <p>Note that the size of a `long double` is different from its precision as it may include
    * additional padding bits. Use {@link MachineModel#getLongDoubleFormat()} to get the {@link
-   * Format} used for `long double` variables on this platform.
+   * org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format} used for `long double` variables
+   * on this platform.
    */
   public int getSizeofLongDouble() {
     return sizeofLongDouble;
