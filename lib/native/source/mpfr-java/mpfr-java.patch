@@ -1,5 +1,5 @@
 diff --git a/pom.xml b/pom.xml
-index 80c3fc2..0cf5357 100644
+index 80c3fc2..bea3568 100644
 --- a/pom.xml
 +++ b/pom.xml
 @@ -17,6 +17,11 @@
@@ -14,6 +14,23 @@ index 80c3fc2..0cf5357 100644
    </dependencies>
    
    <reporting>
+@@ -42,6 +47,8 @@
+   <properties>
+     <mpfr.cppflags>
+     </mpfr.cppflags>
++    <mpfr.ldflags>
++    </mpfr.ldflags>
+     <mpfr.build>
+     </mpfr.build>
+     <mpfr.libs>
+@@ -128,6 +135,7 @@
+               <configureArgs>
+                 <arg>LIBS=${mpfr.libs}</arg>
+                 <arg>CPPFLAGS=${mpfr.cppflags}</arg>
++                <arg>LDFLAGS=${mpfr.ldflags}</arg>
+                 <arg>--build=${mpfr.build}</arg>
+               </configureArgs>
+             </configuration>
 diff --git a/src/main/java/org/kframework/mpfr/mpfr.java b/src/main/java/org/kframework/mpfr/mpfr.java
 index 60a3534..573a048 100644
 --- a/src/main/java/org/kframework/mpfr/mpfr.java
