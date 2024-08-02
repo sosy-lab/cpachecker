@@ -2675,7 +2675,11 @@ class ASTConverter {
   }
 
   private static final ImmutableList<CSimpleType> ENUM_REPRESENTATION_CANDIDATE_TYPES =
-      // list of types with incrementing size
+      // list of types with incrementing size.
+      // clang stops at unsigned long long, but GCC also uses its special signed/unsigned int128
+      // when values of that size are required.
+      // Supporting int128 may require additional implementation effort,
+      // so we stop at unsigned long long for now.
       ImmutableList.of(
           CNumericTypes.SIGNED_INT,
           CNumericTypes.UNSIGNED_INT,
