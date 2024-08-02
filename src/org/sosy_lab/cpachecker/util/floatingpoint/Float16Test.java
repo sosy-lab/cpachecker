@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
-import java.util.List;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.kframework.mpfr.BigFloat;
@@ -33,7 +32,7 @@ public class Float16Test extends AbstractCFloatTestBase {
   }
 
   @Override
-  protected List<BigFloat> unaryTestValues() {
+  protected Iterable<BigFloat> unaryTestValues() {
     return allFloats(getFloatType());
   }
 

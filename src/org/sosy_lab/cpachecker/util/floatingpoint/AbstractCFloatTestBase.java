@@ -286,15 +286,14 @@ abstract class AbstractCFloatTestBase {
   }
 
   /** The set of test inputs that should be used for unary operations in the CFloat interface. */
-  List<BigFloat> unaryTestValues() {
+  Iterable<BigFloat> unaryTestValues() {
     Format format = getFloatType();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     BigFloat constant = new BigFloat(0.5f, context);
     return FluentIterable.concat(
-            floatConsts(format),
-            floatPowers(format, 14, constant, 20, constant),
-            floatRandom(format, 50000))
-        .toList();
+        floatConsts(format),
+        floatPowers(format, 14, constant, 20, constant),
+        floatRandom(format, 50000));
   }
 
   /**
@@ -302,15 +301,14 @@ abstract class AbstractCFloatTestBase {
    * values will be used for both arguments separately. So if there are k test values in this set,
    * the number of test runs for a binary operation will be k^2.
    */
-  List<BigFloat> binaryTestValues() {
+  Iterable<BigFloat> binaryTestValues() {
     Format format = getFloatType();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     BigFloat constant = new BigFloat(0.5f, context);
     return FluentIterable.concat(
-            floatConsts(format),
-            floatPowers(format, 3, constant, 3, constant),
-            floatRandom(format, 200))
-        .toList();
+        floatConsts(format),
+        floatPowers(format, 3, constant, 3, constant),
+        floatRandom(format, 200));
   }
 
   List<BigFloat> integerTestValues() {
@@ -463,8 +461,8 @@ abstract class AbstractCFloatTestBase {
       String name,
       int ulps,
       BinaryOperator<CFloat> operator,
-      List<BigFloat> values1,
-      List<BigFloat> values2) {
+      Iterable<BigFloat> values1,
+      Iterable<BigFloat> values2) {
     for (BigFloat arg1 : values1) {
       for (BigFloat arg2 : values2) {
         try { // Calculate result with the reference implementation
