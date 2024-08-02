@@ -217,8 +217,7 @@ public class ASTConverterTest {
     for (ASTLiteralConverter converter : converters) {
       for (TestCase test : input_output) {
         CFloatLiteralExpression literal =
-            (CFloatLiteralExpression)
-                converter.parseFloatLiteral(FileLocation.DUMMY, test.type(), test.input(), null);
+            converter.parseFloatLiteral(FileLocation.DUMMY, test.type(), test.input(), null);
 
         assertThat(literal.getValue().toString()).isEqualTo(test.expected());
         assertThat(literal.getExpressionType()).isSameInstanceAs(test.type());
@@ -244,8 +243,7 @@ public class ASTConverterTest {
     for (ASTLiteralConverter converter : converters) {
       for (TestCase test : input_output) {
         CFloatLiteralExpression literal =
-            (CFloatLiteralExpression)
-                converter.parseFloatLiteral(FileLocation.DUMMY, test.type(), test.input(), null);
+            converter.parseFloatLiteral(FileLocation.DUMMY, test.type(), test.input(), null);
 
         assertThat(literal.getValue().toString()).isEqualTo(test.expected());
         assertThat(literal.getExpressionType()).isSameInstanceAs(test.type());

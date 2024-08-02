@@ -147,7 +147,7 @@ class ASTLiteralConverter {
   }
 
   @VisibleForTesting
-  CLiteralExpression parseFloatLiteral(
+  CFloatLiteralExpression parseFloatLiteral(
       FileLocation pFileLoc, CType pType, String pValueStr, IASTLiteralExpression pExp) {
     String input = Ascii.toLowerCase(pValueStr);
 
