@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
  * Abstract test class for the {@link CFloat} interface.
  *
  * <p>The idea behind this class is to compare two different implementations of the CFloat
- * interface. We alwys use {@link FloatValue} as the "tested" implementation and compare it to a
+ * interface. We always use {@link CFloatImpl} as the "tested" implementation and compare it to a
  * second "reference" implementation. There are currently 3 supported implementations that can be
  * used as a reference:
  *
