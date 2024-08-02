@@ -14,64 +14,58 @@ MPFR, a C library for multiprecision floating point operations with correct roun
 build the dependencies [GMP](https://gmplib.org) and [MPFR](https://www.mpfr.org/) and then compile
 the mpfr-java library itself.
 
-### Create the docker image and compile the dependencies
+### Downloading mpfr-java and its dependencies
 
-We use docker to compile the dependencies for our build environment:
-```
-cd $CPACHECKER/lib/native/source/mpfr-java
-
-docker build -t mpfrjava-focal - < ubuntu2004.Dockerfile
-docker run -it \
-  --mount type=bind,source=$HOME/workspace,target=/workspace \
-  --workdir /workspace \
-  --user $(id -u):$(id -g) \
-  mpfrjava-focal
-```
-
-### Copy the MPFR and GMP libraries
-
-The binaries for GMP and MPFR were already compiled by the Docker script. We only need to copy them
-over to the CPAchecker folder:
-```
-cd /dependencies/
-
-cp gmp-6.3.0/.libs/libgmp.so.10.5.0 /workspace/cpachecker/lib/native/x86_64-linux/libgmp.so
-cp mpfr-4.2.1/src/.libs/libmpfr.so.6.2.1 /workspace/cpachecker/lib/native/x86_64-linux/libmpfr.so
-```
-
-### Compile mpfr-java
-
-We can now compile `mpfr-java` itself. First fetch the source and apply our patch:
-```
-cd /workspace
-
-git clone https://github.com/runtimeverification/mpfr-java.git
-cd mpfr-java
-git apply ../cpachecker/lib/native/source/mpfr-java/mpfr-java.patch
-```
-
-Then compile and copy the binaries to the CPAchecker directory:
-```
-mvn install -DskipTests
-cp target/native-build/.libs/libmpfr_java-1.4.so /workspace/cpachecker/lib/native/x86_64-linux/libmpfr_java.so
-cp target/mpfr_java-1.4.jar /workspace/cpachecker/lib/mpfr_java.jar
-```
-
-### Patch the binaries
-
-We still need to patch the binaries. First leave the docker image:
+We assume that there is a workspace called *WORKDIR* and that CPAchecker has already been downloaded
+into this directory:
 
 ```
-exit
+cd WORKDIR
 ```
 
-Then strip the libraries to remove unnecessary debug symbols, and fix the dependencies with
-`patchelf`:
+Now download the latest version of GMP and unpack it into the working directory:
 
 ```
-cd $CPACHECKER/lib/native/x86_64-linux
-
-strip libgmp.so libmpfr.so libmpfr_java.so
-patchelf --set-rpath '$ORIGIN' --replace-needed libgmp.so.10 libgmp.so libmpfr.so
-patchelf --set-rpath '$ORIGIN' --replace-needed libmpfr.so.6 libmpfr.so --replace-needed libgmp.so.10 libgmp.so libmpfr_java.so
+curl -O https://gmplib.org/download/gmp/gmp-6.3.0.tar.xz
+tar xf gmp-6.3.0.tar.xz
 ```
+
+Then fetch MPFR and unpack it:
+```
+curl -O https://www.mpfr.org/mpfr-current/mpfr-4.2.1.tar.bz2
+tar xf mpfr-4.2.1.tar.bz2
+```
+
+Now checkout mpfr-java from github:
+
+```
+git clone https://github.com/runtimeverification/mpfr-java.git mpfrjava-1.4
+cd mpfrjava-1.4
+git checkout b7f2e4a61f45cab28f5792dc834c5f20802a11cc
+```
+
+### Compiling mpfr-java
+
+We provide a script to build the mpfr binaries with podman:
+```
+cd WORKDIR/cpachecker/lib/native/source/mpfr-java
+./buildForUbuntu2004.sh WORKDIR \
+6.3.0 \
+4.2.1 \
+1.4
+```
+
+The last three arguments are the version numbers for GMP, MPFR and mpfr-java. The build script will
+compile all three projects in the container and then installs the libraries under
+cpachecker/lib/native where they can be uploaded.
+
+Alternatively you can run the compilation script directly:
+```
+cd WORKDIR/cpachecker/lib/native/source/mpfr-java
+./compile.sh \
+WORKDIR\gmp-6.3.0 \
+WORKDIR\mpfr-4.2.1 \
+WORKDIR\mpfrjava-1.4
+```
+
+The last three arguments are paths to GMP, MPFR and mpfr-java which we downloaded earlier.
