@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import java.util.Optional;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
@@ -210,7 +211,7 @@ class JDouble extends CFloat {
   }
 
   @Override
-  public Number castToOther(CIntegerType toType) {
+  public Optional<Number> castToOther(CIntegerType toType) {
     Number r =
         switch (toType) {
           case CHAR -> (byte) value;
@@ -222,10 +223,10 @@ class JDouble extends CFloat {
 
     CFloat v = new JDouble(r.doubleValue());
     if (!v.equalTo(trunc())) {
-      // Throw an exception if the value was too large for the target type
-      throw new IllegalArgumentException();
+      // Return Optional.empty() if the value was too large for the target type
+      return Optional.empty();
     }
-    return r;
+    return Optional.of(r);
   }
 
   @Override

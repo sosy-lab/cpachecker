@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import static com.google.common.primitives.Ints.max;
 
 import com.google.common.base.Preconditions;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 
@@ -263,7 +264,7 @@ class CFloatNative extends CFloat {
   }
 
   @Override
-  public Number castToOther(CIntegerType toType) {
+  public Optional<Number> castToOther(CIntegerType toType) {
     long r =
         switch (toType) {
           case CHAR -> CFloatNativeAPI.castFpToByte(wrapper, type.ordinal());
@@ -275,10 +276,10 @@ class CFloatNative extends CFloat {
 
     CFloat v = castOtherTo(r, toType, type);
     if (!v.equalTo(trunc())) {
-      // Throw an exception if the value was too large for the target type
-      throw new IllegalArgumentException();
+      // Return Optional.empty() if the value was too large for the target type
+      return Optional.empty();
     }
-    return r;
+    return Optional.of(r);
   }
 
   private int constructParametersForMultiOperation(

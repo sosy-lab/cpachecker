@@ -910,53 +910,22 @@ abstract class AbstractCFloatTestBase {
 
   @Test
   public void castToByteTest() {
-    testIntegerFunction(
-        "castToByteTest",
-        (CFloat a) -> {
-          try {
-            return a.castToOther(CIntegerType.CHAR);
-          } catch (IllegalArgumentException e) {
-            return 0;
-          }
-        });
+    testIntegerFunction("castToByteTest", (CFloat a) -> a.castToOther(CIntegerType.CHAR).orElse(0));
   }
 
   @Test
   public void castToShortTest() {
     testIntegerFunction(
-        "castToShortTest",
-        (CFloat a) -> {
-          try {
-            return a.castToOther(CIntegerType.SHORT);
-          } catch (IllegalArgumentException e) {
-            return 0;
-          }
-        });
+        "castToShortTest", (CFloat a) -> a.castToOther(CIntegerType.SHORT).orElse(0));
   }
 
   @Test
   public void castToIntTest() {
-    testIntegerFunction(
-        "castToIntTest",
-        (CFloat a) -> {
-          try {
-            return a.castToOther(CIntegerType.INT);
-          } catch (IllegalArgumentException e) {
-            return 0;
-          }
-        });
+    testIntegerFunction("castToIntTest", (CFloat a) -> a.castToOther(CIntegerType.INT).orElse(0));
   }
 
   @Test
   public void castToLongTest() {
-    testIntegerFunction(
-        "castToLongTest",
-        (CFloat a) -> {
-          try {
-            return a.castToOther(CIntegerType.LONG);
-          } catch (IllegalArgumentException e) {
-            return 0;
-          }
-        });
+    testIntegerFunction("castToLongTest", (CFloat a) -> a.castToOther(CIntegerType.LONG).orElse(0));
   }
 }

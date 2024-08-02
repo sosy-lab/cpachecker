@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.util.Optional;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
@@ -276,7 +277,7 @@ class MpfrFloat extends CFloat {
   }
 
   @Override
-  public Number castToOther(CIntegerType toType) {
+  public Optional<Number> castToOther(CIntegerType toType) {
     Number r =
         switch (toType) {
           case CHAR -> value.byteValue();
@@ -288,10 +289,10 @@ class MpfrFloat extends CFloat {
 
     CFloat v = new MpfrFloat(new BigFloat(r.toString(), format), format);
     if (!v.equalTo(trunc())) {
-      // Throw an exception if the value was too large for the target type
-      throw new IllegalArgumentException();
+      // Return Optional.empty() if the value was too large for the target type
+      return Optional.empty();
     }
-    return r;
+    return Optional.of(r);
   }
 
   @Override

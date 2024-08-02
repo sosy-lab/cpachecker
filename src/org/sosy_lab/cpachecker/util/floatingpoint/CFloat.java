@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.base.Preconditions;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 
@@ -258,7 +259,7 @@ abstract class CFloat {
    * @param toType the target number type
    * @return a new {@link Number} instance with (approximately) the value of <code>this</code>
    */
-  public abstract Number castToOther(final CIntegerType toType);
+  public abstract Optional<Number> castToOther(final CIntegerType toType);
 
   /**
    * Somehow create a {@link CFloatWrapper} instance holding an exponent and mantissa representing

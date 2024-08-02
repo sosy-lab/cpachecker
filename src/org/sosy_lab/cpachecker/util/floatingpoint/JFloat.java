@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 
@@ -211,7 +212,7 @@ class JFloat extends CFloat {
   }
 
   @Override
-  public Number castToOther(CIntegerType toType) {
+  public Optional<Number> castToOther(CIntegerType toType) {
     Number r =
         switch (toType) {
           case CHAR -> (byte) value;
@@ -223,10 +224,10 @@ class JFloat extends CFloat {
 
     CFloat v = new JFloat(r.floatValue());
     if (!v.equalTo(trunc())) {
-      // Throw an exception if the value was too large for the target type
-      throw new IllegalArgumentException();
+      // Return Optional.empty() if the value was too large for the target type
+      return Optional.empty();
     }
-    return r;
+    return Optional.of(r);
   }
 
   @Override

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
@@ -291,12 +292,12 @@ class CFloatImpl extends CFloat {
   }
 
   @Override
-  public Number castToOther(CIntegerType toType) {
+  public Optional<Number> castToOther(CIntegerType toType) {
     return switch (toType) {
-      case CHAR -> delegate.byteValue();
-      case SHORT -> delegate.shortValue();
-      case INT -> delegate.intValue();
-      case LONG -> delegate.longValue();
+      case CHAR -> delegate.toByte().map(s -> s);
+      case SHORT -> delegate.toShort().map(s -> s);
+      case INT -> delegate.toInt().map(s -> s);
+      case LONG -> delegate.toLong().map(s -> s);
       default -> throw new UnsupportedOperationException();
     };
   }
