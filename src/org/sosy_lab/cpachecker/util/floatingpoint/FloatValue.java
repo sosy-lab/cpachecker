@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
@@ -20,7 +21,6 @@ import java.math.BigInteger;
 import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -2516,7 +2516,7 @@ public class FloatValue extends Number {
     } else if ("-nan".equals(pInput)) {
       return nan(pFormat).negate();
     }
-    pInput = pInput.toLowerCase(Locale.getDefault());
+    pInput = Ascii.toLowerCase(pInput);
 
     boolean sign = false;
 

@@ -11,11 +11,11 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static java.lang.Character.isDigit;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Locale;
 import java.util.stream.Stream;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
@@ -149,7 +149,7 @@ class ASTLiteralConverter {
   @VisibleForTesting
   CLiteralExpression parseFloatLiteral(
       FileLocation pFileLoc, CType pType, String pValueStr, IASTLiteralExpression pExp) {
-    String input = pValueStr.toLowerCase(Locale.ROOT);
+    String input = Ascii.toLowerCase(pValueStr);
 
     // According to section 6.4.4.2 "Floating constants" of the C standard,
     // an unsuffixed floating constant has type double. If suffixed by the letter f or F, it has
