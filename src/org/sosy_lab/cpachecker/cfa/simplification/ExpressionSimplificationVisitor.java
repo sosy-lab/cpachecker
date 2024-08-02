@@ -337,8 +337,8 @@ public class ExpressionSimplificationVisitor
 
     // enum constant
     if (decl instanceof CEnumerator) {
-      final long v = ((CEnumerator) decl).getValue();
-      return new CIntegerLiteralExpression(expr.getFileLocation(), type, BigInteger.valueOf(v));
+      final BigInteger v = ((CEnumerator) decl).getValue();
+      return new CIntegerLiteralExpression(expr.getFileLocation(), type, v);
     }
 
     // const variable, inline initializer
