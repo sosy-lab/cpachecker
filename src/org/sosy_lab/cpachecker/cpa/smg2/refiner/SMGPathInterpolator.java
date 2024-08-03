@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
@@ -81,6 +82,8 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
 
   private final SMGCPAExpressionEvaluator evaluator;
 
+  private final SMGCPAStatistics statistics;
+
   public SMGPathInterpolator(
       final FeasibilityChecker<SMGState> pFeasibilityChecker,
       final StrongestPostOperator<SMGState> pStrongestPostOperator,
@@ -89,7 +92,8 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
       final LogManagerWithoutDuplicates pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa,
-      SMGCPAExpressionEvaluator pEvaluator)
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics)
       throws InvalidConfigurationException {
 
     super(
@@ -100,7 +104,8 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
             pShutdownNotifier,
             pCfa,
             pLogger,
-            pEvaluator),
+            pEvaluator,
+            pStatistics),
         pFeasibilityChecker,
         pPrefixProvider,
         SMGInterpolantManager.getInstance(
@@ -109,7 +114,8 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
             pLogger,
             pCfa,
             pFeasibilityChecker.isRefineMemorySafety(),
-            pEvaluator),
+            pEvaluator,
+            pStatistics),
         pConfig,
         pLogger,
         pShutdownNotifier,
@@ -124,10 +130,12 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
             pLogger,
             pCfa,
             pFeasibilityChecker.isRefineMemorySafety(),
-            pEvaluator);
+            pEvaluator,
+            pStatistics);
     config = pConfig;
     logger = pLogger;
     evaluator = pEvaluator;
+    statistics = pStatistics;
   }
 
   @Override
@@ -179,7 +187,8 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
                 config,
                 logger,
                 cfa,
-                evaluator)
+                evaluator,
+                statistics)
             .obtainInterpolantsAsMap();
 
     totalInterpolationQueries.setNextValue(1);

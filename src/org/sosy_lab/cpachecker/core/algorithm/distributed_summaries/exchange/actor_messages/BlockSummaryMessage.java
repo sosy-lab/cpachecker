@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.Serial;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -394,7 +395,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
 
   private static class MessageDeserializer extends StdDeserializer<BlockSummaryMessage> {
 
-    private static final long serialVersionUID = 196344175L;
+    @Serial private static final long serialVersionUID = 196344175L;
 
     public MessageDeserializer(Class<BlockSummaryMessage> vc) {
       super(vc);
@@ -433,7 +434,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
 
   private static class MessageSerializer extends StdSerializer<BlockSummaryMessage> {
 
-    private static final long serialVersionUID = 1324289L;
+    @Serial private static final long serialVersionUID = 1324289L;
 
     private MessageSerializer(Class<BlockSummaryMessage> t) {
       super(t);

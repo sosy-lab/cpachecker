@@ -8,13 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CCastExpression extends ACastExpression implements CExpression {
 
-  private static final long serialVersionUID = 3935774068573745972L;
+  @Serial private static final long serialVersionUID = 3935774068573745972L;
 
   /**
    * Create instance.

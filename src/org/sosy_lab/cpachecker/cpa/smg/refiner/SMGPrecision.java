@@ -18,8 +18,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentMultimap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public abstract class SMGPrecision implements Precision {

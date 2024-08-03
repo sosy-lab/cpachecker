@@ -10,13 +10,14 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /** This type is used when the parser could not determine the correct type. */
 public final class CProblemType implements CType {
 
-  private static final long serialVersionUID = -5658149239682173246L;
+  @Serial private static final long serialVersionUID = -5658149239682173246L;
   private final String typeName;
 
   public CProblemType(String pTypeName) {

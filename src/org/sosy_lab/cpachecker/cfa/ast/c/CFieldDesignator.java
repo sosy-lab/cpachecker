@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class CFieldDesignator extends CDesignator {
 
-  private static final long serialVersionUID = -1418942274162299596L;
+  @Serial private static final long serialVersionUID = -1418942274162299596L;
   private final String name;
 
   public CFieldDesignator(final FileLocation pFileLocation, final String pName) {
@@ -26,7 +27,7 @@ public final class CFieldDesignator extends CDesignator {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return toASTString();
   }
 
@@ -36,8 +37,8 @@ public final class CFieldDesignator extends CDesignator {
   }
 
   @Override
-  public String toParenthesizedASTString(boolean pQualified) {
-    return toASTString(pQualified);
+  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return toASTString(pAAstNodeRepresentation);
   }
 
   @Override

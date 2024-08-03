@@ -89,7 +89,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizationInfoWithTraceFormula;
-import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
+import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOriginalCodeVisitor;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -700,11 +700,11 @@ class WitnessFactory implements EdgeAppender {
 
   private String getAssumptionAsCode(
       ExpressionTree<Object> assumption, Optional<AIdExpression> resultVariable) {
-    final CExpressionToOrinalCodeVisitor transformer =
+    final CExpressionToOriginalCodeVisitor transformer =
         resultVariable.isPresent()
-            ? CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER.substitute(
+            ? CExpressionToOriginalCodeVisitor.BASIC_TRANSFORMER.substitute(
                 (CIdExpression) resultVariable.orElseThrow(), "\\result")
-            : CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER;
+            : CExpressionToOriginalCodeVisitor.BASIC_TRANSFORMER;
     final Function<Object, String> converter =
         pLeafExpression -> {
           if (pLeafExpression instanceof CExpression) {

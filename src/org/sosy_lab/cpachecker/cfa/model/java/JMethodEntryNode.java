@@ -20,8 +20,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 public final class JMethodEntryNode extends FunctionEntryNode {
 
-  private static final long serialVersionUID = 169431882600055272L;
-
   public JMethodEntryNode(
       final FileLocation pFileLocation,
       final JMethodDeclaration pMethodDefinition,

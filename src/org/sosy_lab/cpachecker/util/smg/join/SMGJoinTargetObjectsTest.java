@@ -50,11 +50,11 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
   @Test
   public void matchingObjectsWithoutMappingTest() {
     smg1 = smg1.copyAndAddObject(obj1);
-    smg1 = smg1.copyAndAddValue(value1);
+    smg1 = smg1.copyAndAddValueWithNestingLevelZero(value1);
     smg1 = smg1.copyAndAddPTEdge(pt1, value1);
 
     smg2 = smg2.copyAndAddObject(obj2);
-    smg2 = smg2.copyAndAddValue(value2);
+    smg2 = smg2.copyAndAddValueWithNestingLevelZero(value2);
     smg2 = smg2.copyAndAddPTEdge(pt2, value2);
 
     SMGJoinTargetObjects jto =
@@ -72,7 +72,7 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
   @Test
   public void nonMatchingObjectsTest() {
     smg1 = smg1.copyAndAddObject(obj1);
-    smg1 = smg1.copyAndAddValue(value1);
+    smg1 = smg1.copyAndAddValueWithNestingLevelZero(value1);
     smg1 = smg1.copyAndAddPTEdge(pt1, value1);
 
     SMGMatchObjects mo =
@@ -107,11 +107,11 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
     SMGPointsToEdge pt2null = createPTRegionEdge(1, SMGObject.nullInstance());
 
     smg1 = smg1.copyAndAddObject(obj1);
-    smg1 = smg1.copyAndAddValue(value1);
+    smg1 = smg1.copyAndAddValueWithNestingLevelZero(value1);
     smg1 = smg1.copyAndAddPTEdge(pt1null, value1);
 
     smg2 = smg2.copyAndAddObject(obj2);
-    smg2 = smg2.copyAndAddValue(value2);
+    smg2 = smg2.copyAndAddValueWithNestingLevelZero(value2);
     smg2 = smg2.copyAndAddPTEdge(pt2null, value2);
 
     SMGJoinTargetObjects jto =
@@ -128,8 +128,8 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
     SMGPointsToEdge pt1null = createPTRegionEdge(0, SMGObject.nullInstance());
     SMGPointsToEdge pt2null = createPTRegionEdge(0, SMGObject.nullInstance());
 
-    smg1 = smg1.copyAndAddValue(value1);
-    smg2 = smg2.copyAndAddValue(value2);
+    smg1 = smg1.copyAndAddValueWithNestingLevelZero(value1);
+    smg2 = smg2.copyAndAddValueWithNestingLevelZero(value2);
 
     smg1 = smg1.copyAndAddPTEdge(pt1null, value1);
     smg2 = smg2.copyAndAddPTEdge(pt2null, value2);
@@ -152,8 +152,8 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
 
   @Test
   public void joinTargetObjectsAlreadyJoinedNonNull() {
-    smg1 = smg1.copyAndAddValue(value1);
-    smg2 = smg2.copyAndAddValue(value2);
+    smg1 = smg1.copyAndAddValueWithNestingLevelZero(value1);
+    smg2 = smg2.copyAndAddValueWithNestingLevelZero(value2);
 
     smg1 = smg1.copyAndAddObject(obj1);
     smg2 = smg2.copyAndAddObject(obj2);

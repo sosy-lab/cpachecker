@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.io.Serial;
 import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -20,7 +21,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 public final class CFloatLiteralExpression extends AFloatLiteralExpression
     implements CLiteralExpression {
 
-  private static final long serialVersionUID = 5021145411123854111L;
+  @Serial private static final long serialVersionUID = 5021145411123854111L;
 
   public CFloatLiteralExpression(
       FileLocation pFileLocation, MachineModel pMachineModel, CType pType, FloatValue pValue) {

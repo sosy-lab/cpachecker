@@ -286,7 +286,7 @@ public class ExpressionSimplificationVisitor
             return new CFloatLiteralExpression(
                 loc, machineModel, exprType, negatedValue.floatingPointValue());
           default:
-            // fall-through and return the original expression
+            // return the original expression below
         }
 
       } else if (unaryOperator == UnaryOperator.TILDE
@@ -332,8 +332,8 @@ public class ExpressionSimplificationVisitor
 
     // enum constant
     if (decl instanceof CEnumerator) {
-      final long v = ((CEnumerator) decl).getValue();
-      return new CIntegerLiteralExpression(expr.getFileLocation(), type, BigInteger.valueOf(v));
+      final BigInteger v = ((CEnumerator) decl).getValue();
+      return new CIntegerLiteralExpression(expr.getFileLocation(), type, v);
     }
 
     // const variable, inline initializer
@@ -361,7 +361,7 @@ public class ExpressionSimplificationVisitor
               return new CFloatLiteralExpression(
                   expr.getFileLocation(), machineModel, type, castValue);
             default:
-              // fall-through and return the original expression
+              // return the original expression below
           }
         }
       }

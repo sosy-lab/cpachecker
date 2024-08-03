@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.types.java;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -23,7 +24,7 @@ import java.util.Objects;
  */
 public final class JSimpleType implements JType {
 
-  private static final long serialVersionUID = 7153757299840260748L;
+  @Serial private static final long serialVersionUID = 7153757299840260748L;
 
   private final JBasicType type;
   private final boolean isPrimitive;

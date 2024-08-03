@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.exceptions;
 
+import java.io.Serial;
+
 /**
  * Signals that the check method of a AbstractState has been passed an Argument that could not be
  * evaluated.
  */
 public class InvalidQueryException extends CPATransferException {
-  private static final long serialVersionUID = 3410773868391514648L;
+  @Serial private static final long serialVersionUID = 3410773868391514648L;
 
   /**
    * Constructs an {@code InvalidQueryException} with the specified detail message.

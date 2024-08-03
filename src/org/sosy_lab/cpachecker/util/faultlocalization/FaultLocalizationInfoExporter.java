@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import java.io.IOException;
+import java.io.Serial;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -92,7 +93,7 @@ public class FaultLocalizationInfoExporter {
 
   private static class FaultsSerializer extends StdSerializer<IntermediateFaults> {
 
-    private static final long serialVersionUID = 851310667701420047L;
+    @Serial private static final long serialVersionUID = 851310667701420047L;
 
     private FaultsSerializer() {
       super(IntermediateFaults.class);

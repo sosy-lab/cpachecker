@@ -13,11 +13,11 @@ SPDX-License-Identifier: Apache-2.0
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="20 s" hardtimelimit="30 s" memlimit="2000 MB" cpuCores="1">
 
-  <option name="-noout"/>
-  <option name="-heap">1000M</option>
+  <option name="--no-output-files"/>
+  <option name="--heap">1000M</option>
 
   <rundefinition>
-    <option name="-valueAnalysis-java-NoCegar-RTT"/>
+    <option name="--valueAnalysis-java-NoCegar-RTT"/>
   </rundefinition>
 
   <tasks>
@@ -27,7 +27,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks>
     <requiredfiles>../programs/java/CallTests</requiredfiles>
-    <option name="-cp">test/programs/java/CallTests</option>
+    <option name="--class-path">test/programs/java/CallTests</option>
     <withoutfile>pack1.BooleanOperators</withoutfile>
     <withoutfile>pack1.CreateObjects_true_assert</withoutfile>
     <withoutfile>pack1.Arrays1</withoutfile>
@@ -42,7 +42,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks>
     <requiredfiles>../programs/java/Misc</requiredfiles>
-    <option name="-cp">test/programs/java/Misc</option>
+    <option name="--class-path">test/programs/java/Misc</option>
     <withoutfile>pack4.CastTest_true_assert</withoutfile>
     <withoutfile>pack4.Class1_true_assert</withoutfile>
     <withoutfile>pack4.Class2_true_assert</withoutfile>
@@ -53,7 +53,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks>
     <requiredfiles>../programs/java/Statements</requiredfiles>
-    <option name="-cp">test/programs/java/Statements</option>
+    <option name="--class-path">test/programs/java/Statements</option>
     <withoutfile>AnonymousClass_true_assert</withoutfile>
     <withoutfile>Arrays_true_assert</withoutfile>
     <withoutfile>Assert1_true_assert</withoutfile>

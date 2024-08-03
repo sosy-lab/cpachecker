@@ -63,7 +63,7 @@ public class CParserLocationTest {
   public void singleFileTest() throws CParserException, InterruptedException {
     String code = "void main() { }";
     ParseResult result = parser.parseString(Path.of(fileName), code);
-    FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
+    FileLocation mainLoc = result.functions().get("main").getFileLocation();
 
     assertThat(mainLoc.getFileName()).isEqualTo(Path.of(expectedFileName));
     assertThat(mainLoc.getNiceFileName()).isEmpty();
@@ -80,7 +80,7 @@ public class CParserLocationTest {
             Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, false);
     String code = "#line 5 \"foo.c\"\nvoid main() { }";
     ParseResult result = parser.parseString(Path.of(fileName), code);
-    FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
+    FileLocation mainLoc = result.functions().get("main").getFileLocation();
 
     assertThat(mainLoc.getFileName()).isEqualTo(Path.of(expectedFileName));
     assertThat(mainLoc.getNiceFileName()).isEmpty();
@@ -97,7 +97,7 @@ public class CParserLocationTest {
             Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, true);
     String code = "#line 5\nvoid main() { }";
     ParseResult result = parser.parseString(Path.of(fileName), code);
-    FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
+    FileLocation mainLoc = result.functions().get("main").getFileLocation();
 
     assertThat(mainLoc.getFileName()).isEqualTo(Path.of(expectedFileName));
     assertThat(mainLoc.getNiceFileName()).isEmpty();
@@ -114,7 +114,7 @@ public class CParserLocationTest {
             Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, true);
     String code = "#line 5 \"foo.c\"\nvoid main() { }";
     ParseResult result = parser.parseString(Path.of(fileName), code);
-    FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
+    FileLocation mainLoc = result.functions().get("main").getFileLocation();
 
     assertThat(mainLoc.getFileName()).isEqualTo(Path.of("foo.c"));
     assertThat(mainLoc.getNiceFileName()).isEqualTo("foo.c");
@@ -135,10 +135,14 @@ public class CParserLocationTest {
     String expectedAdditionalFileName = expectedFileName.replace("test", "additional");
     FileContentToParse additional =
         new FileContentToParse(Path.of(additionalFileName), additionalCode);
-    ParseResult result =
-        parser.parseString(ImmutableList.of(main, additional), new CSourceOriginMapping());
+    CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
+    ImmutableList<FileContentToParse> programFragments = ImmutableList.of(main, additional);
+    programFragments.forEach(
+        f -> sourceOriginMapping.addFileInformation(f.getFileName(), f.getFileContent()));
 
-    FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
+    ParseResult result = parser.parseString(programFragments, sourceOriginMapping);
+
+    FileLocation mainLoc = result.functions().get("main").getFileLocation();
     assertThat(mainLoc.getFileName()).isEqualTo(Path.of(expectedFileName));
     assertThat(mainLoc.getNiceFileName())
         .isEqualTo(Path.of(expectedFileName).getFileName().toString());
@@ -147,7 +151,7 @@ public class CParserLocationTest {
     assertThat(mainLoc.getStartingLineInOrigin()).isEqualTo(1);
     assertThat(mainLoc.getEndingLineInOrigin()).isEqualTo(1);
 
-    FileLocation additionalLoc = result.getFunctions().get("foo").getFileLocation();
+    FileLocation additionalLoc = result.functions().get("foo").getFileLocation();
     assertThat(additionalLoc.getFileName()).isEqualTo(Path.of(expectedAdditionalFileName));
     assertThat(additionalLoc.getNiceFileName())
         .isEqualTo(Path.of(expectedAdditionalFileName).getFileName().toString());
