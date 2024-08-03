@@ -70,7 +70,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  *     Floating-Point Arithmetic (12.1.1 The Table Maker’s Dilemma, 12.4.1 Lindemann’s theorem,
  *     11.6.3 Rounding test)</a>
  */
-public class FloatValue extends Number {
+public class FloatValue extends Number implements Comparable<FloatValue> {
   @Serial private static final long serialVersionUID = 293351032085106407L;
 
   /**
@@ -707,7 +707,6 @@ public class FloatValue extends Number {
    */
   public boolean equalTo(FloatValue pNumber) {
     Format precision = format.matchWith(pNumber.format);
-
     FloatValue arg1 = this.withPrecision(precision);
     FloatValue arg2 = pNumber.withPrecision(precision);
 
@@ -774,6 +773,36 @@ public class FloatValue extends Number {
   /** Less than or equal to */
   public boolean lessOrEqual(FloatValue pNumber) {
     return pNumber.greaterOrEqual(this);
+  }
+
+  /**
+   * Compare with total ordering
+   *
+   * <pre>
+   * -Nan < -Inf < ... < -0 < +0 < .. < +Inf < +Nan</pre>
+   */
+  @Override
+  public int compareTo(FloatValue pNumber) {
+    Format precision = format.matchWith(pNumber.format);
+    FloatValue arg1 = this.withPrecision(precision);
+    FloatValue arg2 = pNumber.withPrecision(precision);
+
+    if (arg1.equals(arg2)) {
+      // Check identity
+      return 0;
+    } else if (arg1.isNan()) {
+      // Handle NaN on the left
+      return arg1.isNegative() ? -1 : 1;
+    } else if (arg2.isNan()) {
+      // Handle NaN on the right
+      return arg2.isNegative() ? 1 : -1;
+    } else if (arg1.isZero() && arg2.isZero()) {
+      // Handle -0 < +0
+      return arg1.isNegative() ? -1 : 1;
+    } else {
+      // Everything else is already ordered
+      return arg1.lessThan(arg2) ? -1 : 1;
+    }
   }
 
   /** Addition */
