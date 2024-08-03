@@ -285,6 +285,11 @@ abstract class AbstractCFloatTestBase {
     return builder.build();
   }
 
+  /* The number of test values that should be generated for each tests */
+  int getNumberOfTests() {
+    return 50000;
+  }
+
   /** The set of test inputs that should be used for unary operations in the CFloat interface. */
   Iterable<BigFloat> unaryTestValues() {
     Format format = getFloatType();
@@ -293,7 +298,7 @@ abstract class AbstractCFloatTestBase {
     return FluentIterable.concat(
         floatConstants(format),
         floatPowers(format, 14, constant, 20, constant),
-        floatRandom(format, 50000));
+        floatRandom(format, getNumberOfTests()));
   }
 
   /**
@@ -308,7 +313,7 @@ abstract class AbstractCFloatTestBase {
     return FluentIterable.concat(
         floatConstants(format),
         floatPowers(format, 3, constant, 3, constant),
-        floatRandom(format, 200));
+        floatRandom(format, (int) Math.sqrt(getNumberOfTests())));
   }
 
   /** Generate a list of special case integer values. */
