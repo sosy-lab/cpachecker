@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
@@ -925,9 +926,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         return pVal1.bigIntegerValue().compareTo(pVal2.bigIntegerValue());
       }
 
-      if ((num1 instanceof BigDecimal || isBigInt1 || isIntegral1 || isFloat1)
-          && (num2 instanceof BigDecimal || isBigInt2 || isIntegral2 || isFloat2)) {
-        return pVal1.bigDecimalValue().compareTo(pVal2.bigDecimalValue());
+      if ((num1 instanceof FloatValue || isBigInt1 || isIntegral1 || isFloat1)
+          && (num2 instanceof FloatValue || isBigInt2 || isIntegral2 || isFloat2)) {
+        return pVal1.floatingPointValue().compareTo(pVal2.floatingPointValue());
       }
 
       if (num1 instanceof Rational) {
@@ -940,11 +941,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         if (isBigInt2) {
           return ((Rational) num1).compareTo(Rational.ofBigInteger((BigInteger) num2));
         }
-        if (num2 instanceof BigDecimal) {
-          return ((Rational) num1).compareTo(Rational.ofBigDecimal((BigDecimal) num2));
+        if (num2 instanceof FloatValue) {
+          return pVal1.floatingPointValue().compareTo(pVal2.floatingPointValue());
         }
         if (isFloat2) {
-          return ((Rational) num1).compareTo(Rational.ofBigDecimal(pVal2.bigDecimalValue()));
+          return pVal1.floatingPointValue().compareTo(pVal2.floatingPointValue());
         }
       } else if (num2 instanceof Rational) {
         if (isIntegral1) {
@@ -953,11 +954,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         if (isBigInt1) {
           return Rational.ofBigInteger((BigInteger) num1).compareTo(((Rational) num2));
         }
-        if (num1 instanceof BigDecimal) {
-          return Rational.ofBigDecimal((BigDecimal) num1).compareTo((Rational) num2);
+        if (num1 instanceof FloatValue) {
+          return pVal1.floatingPointValue().compareTo(pVal2.floatingPointValue());
         }
         if (isFloat1) {
-          return Rational.ofBigDecimal(pVal1.bigDecimalValue()).compareTo((Rational) num2);
+          return pVal1.floatingPointValue().compareTo(pVal2.floatingPointValue());
         }
       }
 
@@ -1181,8 +1182,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         return num.doubleValue() == 0;
       } else if (num instanceof BigInteger) {
         return pVal.bigIntegerValue().equals(BigInteger.ZERO);
-      } else if (num instanceof BigDecimal) {
-        return pVal.bigDecimalValue().compareTo(BigDecimal.ZERO) == 0;
+      } else if (num instanceof FloatValue) {
+        return pVal.floatingPointValue().isZero();
       } else {
         return false;
       }

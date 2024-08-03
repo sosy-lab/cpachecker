@@ -789,7 +789,7 @@ public final class ValueAnalysisState
         BigInteger value = getBigIntFromIntegerNumber(pNum.getNumber());
         val = new CIntegerLiteralExpression(loc, simpleType, value);
       } else if (simpleType.getType().isFloatingPointType()) {
-        val = new CFloatLiteralExpression(loc, machineModel, simpleType, num.floatingPointValue());
+        val = new CFloatLiteralExpression(loc, machineModel, simpleType, pNum.floatingPointValue());
       } else {
         throw new AssertionError("Unexpected type: " + simpleType);
       }
