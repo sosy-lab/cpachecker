@@ -18,6 +18,7 @@ import org.sosy_lab.common.NativeLibraries;
  * easily compare expectations towards how certain floating point operations on a given system and C
  * compilation should work with the reality from inside a Java based framework.
  */
+@SuppressWarnings("EnumOrdinal")
 class CFloatNativeAPI {
   private CFloatNativeAPI() {}
 
