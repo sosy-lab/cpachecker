@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
  * that will be generated. The following classes of test values are supported by the implementation:
  *
  * <ul>
- *   <li>{@link AbstractCFloatTestBase#floatConsts(Format)}
+ *   <li>{@link AbstractCFloatTestBase#floatConstants(Format)}
  *   <li>{@link AbstractCFloatTestBase#floatPowers(Format, int, BigFloat, int, BigFloat)}
  *   <li>{@link AbstractCFloatTestBase#floatRandom(Format, int)}
  *   <li>{@link AbstractCFloatTestBase#allFloats(Format)}
@@ -195,7 +195,7 @@ abstract class AbstractCFloatTestBase {
   }
 
   /** Generate a list of floating point constants that cover all special case values. */
-  static List<BigFloat> floatConsts(Format format) {
+  static Iterable<BigFloat> floatConstants(Format format) {
     int precision = format.sigBits() + 1;
     BinaryMathContext context = new BinaryMathContext(precision, format.expBits());
     return ImmutableList.of(
@@ -223,7 +223,7 @@ abstract class AbstractCFloatTestBase {
    * Generate a list of powers ca^px where c,p are incremented starting from 1 and a,x are
    * constants.
    */
-  static List<BigFloat> floatPowers(Format format, int c, BigFloat a, int p, BigFloat x) {
+  static Iterable<BigFloat> floatPowers(Format format, int c, BigFloat a, int p, BigFloat x) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     for (int i = 1; i <= c; i++) {
@@ -240,7 +240,7 @@ abstract class AbstractCFloatTestBase {
   }
 
   /** Generate n random floating point values. */
-  static List<BigFloat> floatRandom(Format format, int n) {
+  static Iterable<BigFloat> floatRandom(Format format, int n) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     Random random = new Random(0);
@@ -263,7 +263,7 @@ abstract class AbstractCFloatTestBase {
   }
 
   /** Generate all possible floating point values for a given precision. */
-  static List<BigFloat> allFloats(Format format) {
+  static Iterable<BigFloat> allFloats(Format format) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     for (long exponent = format.minExp() - 1; exponent <= format.maxExp() + 1; exponent++) {
@@ -291,7 +291,7 @@ abstract class AbstractCFloatTestBase {
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     BigFloat constant = new BigFloat(0.5f, context);
     return FluentIterable.concat(
-        floatConsts(format),
+        floatConstants(format),
         floatPowers(format, 14, constant, 20, constant),
         floatRandom(format, 50000));
   }
@@ -306,38 +306,45 @@ abstract class AbstractCFloatTestBase {
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     BigFloat constant = new BigFloat(0.5f, context);
     return FluentIterable.concat(
-        floatConsts(format),
+        floatConstants(format),
         floatPowers(format, 3, constant, 3, constant),
         floatRandom(format, 200));
   }
 
-  List<BigFloat> integerTestValues() {
-    ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
-
-    Format format = getFloatType();
+  /** Generate a list of special case integer values. */
+  static Iterable<BigFloat> integerConstants(Format format) {
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
-
-    // Constant values
-    builder.add(new BigFloat(Integer.MIN_VALUE, context));
-    builder.add(new BigFloat(-1.0, context));
-    builder.add(BigFloat.zero(context.precision));
-    builder.add(new BigFloat(1.0, context));
-    builder.add(
+    return ImmutableList.of(
+        new BigFloat(Integer.MIN_VALUE, context),
+        new BigFloat(-1.0, context),
+        BigFloat.zero(context.precision),
+        new BigFloat(1.0, context),
         new BigFloat(Integer.MAX_VALUE, context)
             .nextDown(context.minExponent, context.maxExponent) // Avoid overflow issues
         );
+  }
 
-    // Generate random integers
+  /** Generate n random integer values. */
+  static Iterable<BigFloat> integerRandom(Format format, int n) {
+    ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
+    BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
+
     long maxValue = FloatValue.maxValue(format).toInt().orElse(Integer.MAX_VALUE);
     long minValue = FloatValue.maxValue(format).negate().toInt().orElse(Integer.MIN_VALUE);
 
     Random random = new Random(0);
 
-    for (int c = 0; c < 200; c++) {
+    for (int c = 0; c < n; c++) {
       long r = random.nextLong(maxValue - minValue);
       builder.add(new BigFloat(r + minValue, context));
     }
     return builder.build();
+  }
+
+  /** Generate integer test inputs that include both special cases and random values. */
+  Iterable<BigFloat> integerTestValues() {
+    Format format = getFloatType();
+    return FluentIterable.concat(integerConstants(format), integerRandom(format, 200));
   }
 
   private static int calculateExpWidth(Format pFormat) {
@@ -783,11 +790,12 @@ abstract class AbstractCFloatTestBase {
 
   @Test
   public void powToIntegralTest() {
-    List<BigFloat> integers = integerTestValues();
-    List<BigFloat> positiveIntegers = integers.stream().filter((BigFloat a) -> !a.sign()).toList();
+    Iterable<BigFloat> integers = integerTestValues();
+    Iterable<BigFloat> positiveIntegers =
+        FluentIterable.from(integers).filter((BigFloat a) -> !a.sign());
 
     // Native implementation does not support negative exponents
-    List<BigFloat> expValues =
+    Iterable<BigFloat> expValues =
         getRefImpl().equals(ReferenceImpl.NATIVE) ? positiveIntegers : integers;
 
     testOperator(
