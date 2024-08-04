@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORCreate;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
@@ -119,10 +121,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private void handleState(MPORState pCurrentState, Map<MPORThread, CFANode> pFunctionReturnNodes)
       throws CPATransferException, InterruptedException {
 
-    // TODO loop unrolling (-> states with the same threadNodes can be visited multiple times)
     // make sure the MPORState was not yet visited to prevent infinite loops
     if (!existingStates.contains(pCurrentState)) {
       existingStates.add(pCurrentState);
+
+      // TODO handle preferenceOrders of MPORState here (execute all preceding edges first)
+      //  (and think about interleaving preferenceOrders)
 
       PredicateAbstractState currentAbstractState = pCurrentState.abstractState;
 
@@ -130,6 +134,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       ImmutableSet.Builder<GAPNode> gapNodeBuilder = ImmutableSet.builder();
       for (var threadNode : pCurrentState.threadNodes.entrySet()) {
         MPORThread currentThread = threadNode.getKey();
+        // TODO if we don't actually use the abstract state, we might as well just use the initial
+        //  AbstractState for the commutativity check?
         currentAbstractState =
             findGapNodes(
                 gapNodeBuilder,
@@ -159,11 +165,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       // TODO remove later
       MPORTests.testCommutativity(logManager, ptr, currentAbstractState, globalAccesses);
 
-      // TODO include commutativity in sequentialization
-      //  if not commute, add "if (nondet()) ab else ba" to seq
-      //  if commute, simply add "ab" to seq
+      // TODO include commutativity here (double loop)
+      //  for all pairs of globalAccesses, find out if they ALL commute
+      //  if any pair does not commute, create all possible combinations of globalAccesses and
+      //  create if (...) { combination... } else if (...) { combination... } ... else
+      //  { combination... } in the sequentialization
       // for all global accesses executed by the threads, create new states to explore
       for (var entry : globalAccesses.entrySet()) {
+        // TODO add seq edge here
         CFAEdge executedEdge = entry.getKey();
         MPORThread executingThread = entry.getValue().thread;
         MPORState nextState =
@@ -186,8 +195,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pCurrentNode the current CFANode whose leaving edges successor nodes we analyze
    * @param pFunctionReturnNode the current FunctionReturnNode of the thread
    * @param pAbstractState the current PredicateAbstractState of the program (i.e. of all threads)
-   * @param pThread FunctionExitNode of the current MPORThread start routine. If a thread encounters
-   *     its own exitNode, the algorithm does not search pCurrentNodes successors
+   * @param pThread the executing thread
    */
   private PredicateAbstractState findGapNodes(
       ImmutableSet.Builder<GAPNode> pGapNodeBuilder,
@@ -198,15 +206,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       final MPORThread pThread)
       throws CPATransferException, InterruptedException {
 
-    // TODO loop unrolling (-> the same node can be visited multiple times)
+    // TODO create a generic method that checks if the set contains an element, adds it if not
+    //  present and returns true if the set was modified (we use this pattern a lot here)
     if (!pVisitedNodes.contains(pCurrentNode)) {
       pVisitedNodes.add(pCurrentNode);
-
-      // TODO once we can build a program / CFA from our sequentialization graph, find out if the
-      //  cloned nodes and edges should always be in the main function
-      CFANode clonedCurrentNode = seq.cloneNode(pCurrentNode);
-      seq.addNode(clonedCurrentNode);
-
+      // TODO add seq node
       // if the thread has terminated, stop recursion
       if (!pCurrentNode.equals(pThread.exitNode)) {
         for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
@@ -214,15 +218,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             pGapNodeBuilder.add(new GAPNode(pCurrentNode, pFunctionReturnNode, pThread));
             // not using break if for any reason the other leaving edge(s) don't access global vars
           } else {
-            CFANode clonedNextNode = seq.cloneNode(cfaEdge.getSuccessor());
-            CFAEdge clonedEdge = seq.cloneEdge(cfaEdge, clonedCurrentNode, clonedNextNode);
-            seq.addEdge(clonedCurrentNode, clonedNextNode, clonedEdge);
+            // TODO add seq edge
             findGapNodes(
                 pGapNodeBuilder,
                 pVisitedNodes,
                 // this method runs on inputCfa, clonedNodes are only used in the sequentialization
                 cfaEdge.getSuccessor(),
-                getFunctionReturnNode(pCurrentNode, pFunctionReturnNode),
+                updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode),
                 MPORUtil.getNextPredicateAbstractState(ptr, pAbstractState, cfaEdge),
                 pThread);
           }
@@ -437,6 +439,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     ImmutableSet.Builder<CFAEdge> threadEdges = ImmutableSet.builder();
     initThreadVariables(pExitNode, threadNodes, threadEdges, pEntryNode, null);
 
+    ImmutableSet.Builder<MPORCreate> creates = ImmutableSet.builder();
+    searchThreadForCreates(creates, pExitNode, new HashSet<>(), new HashSet<>(), pEntryNode, null);
+
     ImmutableSet.Builder<MPORMutex> mutexes = ImmutableSet.builder();
     searchThreadForMutexes(mutexes, pExitNode, new HashSet<>(), pEntryNode, null);
 
@@ -451,13 +456,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         pExitNode,
         ImmutableSet.copyOf(threadNodes),
         threadEdges.build(),
+        creates.build(),
         mutexes.build(),
         joins.build());
   }
 
   /**
-   * Searches the CFA of a thread specified by its entry node (the first pCurrentNode) and
-   * pExitNode.
+   * Recursively searches the CFA of a thread specified by its entry node (the first pCurrentNode)
+   * and pExitNode.
    *
    * @param pExitNode the FunctionExitNode of the start routine or main function of the thread
    * @param pThreadNodes the set of already visited CFANodes that are inside the thread
@@ -484,9 +490,51 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               pThreadNodes,
               pThreadEdges,
               cfaEdge.getSuccessor(),
-              getFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
+              updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
         }
       }
+    }
+  }
+
+  /**
+   * Recursively searches the CFA of the thread with pThreadExitNode for pthread_create calls.
+   *
+   * @param pCreates the set of creates to be created
+   * @param pThreadExitNode the exit node of the thread (the FunctionExitNode of the start routine)
+   * @param pVisitedNodes keep track of already visited CFANodes to prevent an infinite loop if
+   *     there are loop structures in the CFA
+   * @param pEdgesTrace trace CFAEdges executed until pthread_create is encountered
+   * @param pCurrentNode the CFANode whose leaving CFAEdges we analyze for pthread_create
+   * @param pFunctionReturnNode used to track the original context when entering the CFA of another
+   *     function. see {@link MPORAlgorithm#getFunctionCallMap(CFA)} for more info.
+   */
+  private void searchThreadForCreates(
+      ImmutableSet.Builder<MPORCreate> pCreates,
+      final CFANode pThreadExitNode,
+      Set<CFANode> pVisitedNodes,
+      Set<CFAEdge> pEdgesTrace,
+      CFANode pCurrentNode,
+      CFANode pFunctionReturnNode) {
+
+    if (pVisitedNodes.contains(pCurrentNode) || pCurrentNode.equals(pThreadExitNode)) {
+      return;
+    }
+    pVisitedNodes.add(pCurrentNode);
+    for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
+      if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_CREATE)) {
+        pEdgesTrace.add(cfaEdge);
+        CExpression pthreadT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
+        pCreates.add(new MPORCreate(pthreadT, ImmutableSet.copyOf(pEdgesTrace)));
+      }
+      pEdgesTrace.add(cfaEdge);
+      searchThreadForCreates(
+          pCreates,
+          pThreadExitNode,
+          pVisitedNodes,
+          // copying set so that it does not contain edges from a "parallel" trace (i.e. nondet)
+          new HashSet<>(pEdgesTrace),
+          cfaEdge.getSuccessor(),
+          updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
     }
   }
 
@@ -511,6 +559,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     if (pVisitedNodes.contains(pCurrentNode) || pCurrentNode.equals(pThreadExitNode)) {
       return;
     }
+    pVisitedNodes.add(pCurrentNode);
     for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
       if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_MUTEX_LOCK)) {
         CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
@@ -530,13 +579,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                 mutexExitNodes.build());
         pMutexes.add(mutex);
       }
-      pVisitedNodes.add(pCurrentNode);
       searchThreadForMutexes(
           pMutexes,
           pThreadExitNode,
           pVisitedNodes,
           cfaEdge.getSuccessor(),
-          getFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
+          updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
     }
   }
 
@@ -577,7 +625,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               pMutexEdges,
               pMutexExitNodes,
               cfaEdge.getSuccessor(),
-              getFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
+              updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
         }
       }
     }
@@ -604,19 +652,19 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     if (pVisitedNodes.contains(pCurrentNode) || pCurrentNode.equals(pThreadExitNode)) {
       return;
     }
+    pVisitedNodes.add(pCurrentNode);
     for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
       if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_JOIN)) {
         CExpression pthreadT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
         MPORJoin join = new MPORJoin(pthreadT, pCurrentNode, cfaEdge);
         pJoins.add(join);
       }
-      pVisitedNodes.add(pCurrentNode);
       searchThreadForJoins(
           pJoins,
           pThreadExitNode,
           pVisitedNodes,
           cfaEdge.getSuccessor(),
-          getFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
+          updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
     }
   }
 
@@ -638,6 +686,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     if (pVisitedNodes.contains(pCurrentNode) || pCurrentNode.equals(pThread.exitNode)) {
       return;
     }
+    pVisitedNodes.add(pCurrentNode);
     for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
       if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.BARRIER_INIT)) {
         // TODO unsure how to handle this, SV benchmarks use their custom barrier objects and
@@ -645,12 +694,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         //  but the general approach is identifying MPORBarriers from barrier_init calls
         //  and then identify the corresponding MPORBarrierWaits
       }
-      pVisitedNodes.add(pCurrentNode);
       searchThreadForBarriers(
           pThread,
           pVisitedNodes,
           cfaEdge.getSuccessor(),
-          getFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
+          updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
     }
   }
 
@@ -675,6 +723,40 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       // TODO getBarrierPreferenceOrders
     }
     return rPreferenceOrders.build();
+  }
+
+  /**
+   * @param pThreadNodes the threads and their current CFANodes
+   * @param pCurrentThread the thread where we check if it is calling pthread_create
+   * @param pCurrentNode the current CFANode of pCurrentThread
+   * @return the set of PreferenceOrders induced by pthread_create calls
+   */
+  private ImmutableSet<PreferenceOrder> getCreatePreferenceOrder(
+      ImmutableMap<MPORThread, CFANode> pThreadNodes,
+      MPORThread pCurrentThread,
+      CFANode pCurrentNode) {
+
+    ImmutableSet.Builder<PreferenceOrder> rCreatePreferenceOrders = ImmutableSet.builder();
+
+    // if any thread is at their entryNode
+    for (var entry : pThreadNodes.entrySet()) {
+      MPORThread thread = entry.getKey();
+      if (!thread.equals(pCurrentThread)) {
+        if (entry.getValue().equals(thread.entryNode)) {
+          // check if pCurrentThread creates the thread which is at its entry
+          for (MPORCreate create : pCurrentThread.creates) {
+            if (create.pthreadT.equals(thread.threadObject.orElseThrow())) {
+              // TODO refactor PreferenceOrder to contain a set of precedingEdges
+              FluentIterable<CFAEdge> subsequentEdges = CFAUtils.leavingEdges(thread.entryNode);
+              assert subsequentEdges.size() == 1; // assume the entry of a thread is deterministic
+              rCreatePreferenceOrders.add(
+                  new PreferenceOrder(create.precedingEdges, subsequentEdges.get(0)));
+            }
+          }
+        }
+      }
+    }
+    return rCreatePreferenceOrders.build();
   }
 
   /**
@@ -787,7 +869,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     for (var entry : pInitState.threadNodes.entrySet()) {
       MPORThread currentThread = entry.getKey();
       CFANode currentNode = entry.getValue();
-      rFunctionReturnNodes.put(currentThread, getFunctionReturnNode(currentNode, null));
+      rFunctionReturnNodes.put(currentThread, updateFunctionReturnNode(currentNode, null));
     }
     return rFunctionReturnNodes;
   }
@@ -807,7 +889,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       if (pFunctionReturnNodes.containsKey(thread)) {
         CFANode currentNode = entry.getValue();
         pFunctionReturnNodes.put(
-            thread, getFunctionReturnNode(currentNode, pFunctionReturnNodes.get(thread)));
+            thread, updateFunctionReturnNode(currentNode, pFunctionReturnNodes.get(thread)));
       } else {
         throw new IllegalArgumentException(
             "invalid pState pFunctionReturnNodes pairing, they must"
@@ -865,7 +947,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pFunctionReturnNode the previous pFunctionReturnNode
    * @return the previous or new FunctionReturnNode or null if pCurrentNode exits a function
    */
-  private CFANode getFunctionReturnNode(CFANode pCurrentNode, CFANode pFunctionReturnNode) {
+  private CFANode updateFunctionReturnNode(CFANode pCurrentNode, CFANode pFunctionReturnNode) {
     return functionCallMap.getOrDefault(
         pCurrentNode,
         // reset the FunctionReturnNode when encountering a FunctionExitNode
@@ -932,9 +1014,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     PredicateAbstractState newAbstractState =
         MPORUtil.getNextPredicateAbstractState(ptr, pAbstractState, pExecutedEdge);
 
-    // for optimization reasons, check if a semantically equivalent state exists already
+    // for optimization and preventing infinite loops, search existing states for threadNodes
     for (MPORState rExistingState : existingStates) {
-      // TODO also check newAbstractState here for equality
+      // not checking pathFormulas here, their semantics are only relevant for commutativity
       if (rExistingState.areThreadNodesEqual(newThreadNodes)) {
         return rExistingState;
       }

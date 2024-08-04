@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.tests;
 
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
@@ -43,11 +42,11 @@ public class MPORTests {
           CFAEdge edgeA = entryA.getKey();
           CFAEdge edgeB = entryB.getKey();
           if (MPORUtil.doEdgesCommute(pPtr, pAbstractState, edgeA, edgeB)) {
-            pLogManager.log(
-                Level.INFO, "TRUE commute - " + edgeA.getCode() + " - " + edgeB.getCode());
+            // pLogManager.log(
+            // Level.INFO, "TRUE commute - " + edgeA.getCode() + " - " + edgeB.getCode());
           } else {
-            pLogManager.log(
-                Level.INFO, "FALSE commute - " + edgeA.getCode() + " - " + edgeB.getCode());
+            // pLogManager.log(
+            // Level.INFO, "FALSE commute - " + edgeA.getCode() + " - " + edgeB.getCode());
           }
         }
       }

@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORCreate;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 
@@ -40,6 +41,8 @@ public class MPORThread {
 
   public final ImmutableSet<CFAEdge> edges;
 
+  public final ImmutableSet<MPORCreate> creates;
+
   public final ImmutableSet<MPORMutex> mutexes;
 
   public final ImmutableSet<MPORJoin> joins;
@@ -50,6 +53,7 @@ public class MPORThread {
       FunctionExitNode pExitNode,
       ImmutableSet<CFANode> pNodes,
       ImmutableSet<CFAEdge> pEdges,
+      ImmutableSet<MPORCreate> pCreates,
       ImmutableSet<MPORMutex> pMutexes,
       ImmutableSet<MPORJoin> pJoins) {
 
@@ -58,6 +62,7 @@ public class MPORThread {
     exitNode = pExitNode;
     nodes = pNodes;
     edges = pEdges;
+    creates = pCreates;
     mutexes = pMutexes;
     joins = pJoins;
   }
