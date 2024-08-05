@@ -29,7 +29,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # Get the directory of the script
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT_DIR="$(dirname "$0")"
 
 # Create a temporary volume for the build
 mkdir /build
