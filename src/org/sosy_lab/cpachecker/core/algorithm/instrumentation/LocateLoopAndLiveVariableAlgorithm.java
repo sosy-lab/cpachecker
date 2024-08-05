@@ -202,7 +202,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       if (aAstNodeOp.isPresent() && aAstNodeOp.get() instanceof CComplexTypeDeclaration) {
         String struct = ((CComplexTypeDeclaration) aAstNodeOp.get()).toString();
 
-        if (struct.startsWith("struct")) {
+        if (struct.startsWith("struct ")) {
           String name;
           Map<String, String> members = new HashMap<>();
 
