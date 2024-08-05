@@ -912,6 +912,21 @@ abstract class AbstractCFloatTestBase {
   }
 
   @Test
+  public void compareToTestLT() {
+    testPredicate("compareTo<", (CFloat a, CFloat b) -> a.compareTo(b) < 0);
+  }
+
+  @Test
+  public void compareToTestEq() {
+    testPredicate("compareTo=", (CFloat a, CFloat b) -> a.compareTo(b) == 0);
+  }
+
+  @Test
+  public void compareToTestGT() {
+    testPredicate("compareTo<", (CFloat a, CFloat b) -> a.compareTo(b) > 0);
+  }
+
+  @Test
   public void copySignFromTest() {
     testOperator("copySignFrom", 0, (CFloat a, CFloat b) -> a.copySignFrom(b));
   }
