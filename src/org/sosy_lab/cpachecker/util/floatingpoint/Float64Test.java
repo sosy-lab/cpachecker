@@ -39,6 +39,11 @@ public class Float64Test extends AbstractCFloatTestBase {
     return refImpl;
   }
 
+  @Override
+  int getNumberOfTests() {
+    return 25000;
+  }
+
   @Test
   public void hardExpTest() {
     // Example of a "hard to round" input for the exponential function
