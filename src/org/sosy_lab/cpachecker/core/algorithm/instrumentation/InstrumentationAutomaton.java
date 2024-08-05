@@ -94,6 +94,17 @@ public class InstrumentationAutomaton {
     return dereferences;
   }
 
+  private String getAllocationForPointer(String pType) {
+    String originalType = "";
+    for (int i = 0; i < pType.length(); i++) {
+      if (pType.charAt(i) == '*') {
+        return originalType;
+      }
+      originalType = originalType + pType.charAt(i);
+    }
+    return originalType;
+  }
+
   private void constructTerminationAutomaton(int pIndex) {
       InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
       InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
@@ -108,7 +119,10 @@ public class InstrumentationAutomaton {
               "int saved = 0; " +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) ->
-                          entry.getValue() + " " + entry.getKey() + "_instr_" + pIndex)
+                          entry.getValue() + " " + entry.getKey() + "_instr_" + pIndex +
+                              (entry.getValue().charAt(entry.getValue().length() - 1) == '*'
+                               ? " = alloca(sizeof(" + getAllocationForPointer(entry.getValue()) + "))"
+                               : ""))
                       .collect(Collectors.joining("; ")) +
                       (!liveVariablesAndTypes.isEmpty() ? ";" : ""),
               InstrumentationOrder.BEFORE,
@@ -126,13 +140,13 @@ public class InstrumentationAutomaton {
                       .collect(Collectors.joining("; ")) +
                   (!liveVariablesAndTypes.isEmpty() ? "; " : "") +
                   "} else { __VERIFIER_assert((saved == 0)" +
-                  (!liveVariablesAndTypes.isEmpty() ? " | " : "") +
+                  (!liveVariablesAndTypes.isEmpty() ? " || " : "") +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) ->
                           "(" + getDereferencesForPointer(entry.getValue()) + entry.getKey()
                               + " != " + getDereferencesForPointer(entry.getValue()) + entry.getKey()
                               + "_instr_" + pIndex + ")")
-                      .collect(Collectors.joining("|")) +
+                      .collect(Collectors.joining("||")) +
                   ");}",
               InstrumentationOrder.AFTER,
               q3);
