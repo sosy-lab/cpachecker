@@ -9,63 +9,43 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 # mpfr-java
+
 The [mpfr-java](https://github.com/runtimeverification/mpfr-java) project provides Java bindings for
 MPFR, a C library for multiprecision floating point operations with correct rounding. We will first
 build the dependencies [GMP](https://gmplib.org) and [MPFR](https://www.mpfr.org/) and then compile
 the mpfr-java library itself.
 
-### Downloading mpfr-java and its dependencies
+### Building with Podman
 
-We assume that there is a workspace called *WORKDIR* and that CPAchecker has already been downloaded
-into this directory:
-
-```
-cd WORKDIR
-```
-
-Now download the latest version of GMP and unpack it into the working directory:
+We provide a script to fully automate the build with Podman. In the CPAchecker main directory type:
 
 ```
-curl -O https://gmplib.org/download/gmp/gmp-6.3.0.tar.xz
-tar xf gmp-6.3.0.tar.xz
+podman build -t mpfrjava-focal - < lib/native/source/mpfr-java/ubuntu2004.Dockerfile
+podman run --rm -v $(pwd):/cpachecker:rw -w /cpachecker mpfrjava-focal:latest
 ```
 
-Then fetch MPFR and unpack it:
+Once the build is complete the needed *.so files are copied to the cpachecker/lib
+folder and can be used from there.
+
+### Updating the Podman image
+
+When a new version of GMP, MPFR or mpfr-java should be used the build script
+*/lib/native/source/mpfr/compile.sh* first needs to be updated. Starting in line 14 the necessary
+variables can be found:
+
 ```
-curl -O https://www.mpfr.org/mpfr-current/mpfr-4.2.1.tar.bz2
-tar xf mpfr-4.2.1.tar.bz2
+# Versions for GMP, MPFR and mpfr-java that will be used for the build
+VERSION_GMP="6.3.0"
+VERSION_MPFR="4.2.1"
+VERSION_MPFRJAVA="b7f2e4a61f45cab28f5792dc834c5f20802a11cc"
 ```
 
-Now checkout mpfr-java from github:
+Note that the versions of the .so files may also need to updated whenever one of the projects
+undergoes a major version change:
 
 ```
-git clone https://github.com/runtimeverification/mpfr-java.git mpfrjava-1.4
-cd mpfrjava-1.4
-git checkout b7f2e4a61f45cab28f5792dc834c5f20802a11cc
+# Versions for the .so files from GMP, MPFR and mpfr-java
+VERSION_LIBGMP="10.5.0"
+VERSION_LIBMPFR="6.2.1"
+VERSION_LIBMPFRJAVA="1.4"
 ```
-
-### Compiling mpfr-java
-
-We provide a script to build the mpfr binaries with podman:
-```
-cd WORKDIR/cpachecker/lib/native/source/mpfr-java
-./buildForUbuntu2004.sh WORKDIR \
-6.3.0 \
-4.2.1 \
-1.4
-```
-
-The last three arguments are the version numbers for GMP, MPFR and mpfr-java. The build script will
-compile all three projects in the container and then installs the libraries under
-cpachecker/lib/native where they can be uploaded.
-
-Alternatively you can run the compilation script directly:
-```
-cd WORKDIR/cpachecker/lib/native/source/mpfr-java
-./compile.sh \
-WORKDIR\gmp-6.3.0 \
-WORKDIR\mpfr-4.2.1 \
-WORKDIR\mpfrjava-1.4
-```
-
-The last three arguments are paths to GMP, MPFR and mpfr-java which we downloaded earlier.

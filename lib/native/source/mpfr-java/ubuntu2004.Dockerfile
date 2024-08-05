@@ -40,4 +40,4 @@ RUN apt-get update && apt-get install --yes \
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64/
 
 # Call the mpfr-java build script
-ENTRYPOINT ["/workspace/cpachecker/lib/native/source/mpfr-java/compile.sh"]
+ENTRYPOINT ["/cpachecker/lib/native/source/mpfr-java/compile.sh"]
