@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
  * This abstract class is used to implement classes which provide floating point arithmetic
  * according to close to hardware level C compilations.
  */
-abstract class CFloat implements Comparable<CFloat> {
+abstract class CFloat {
 
   /**
    * Add another {@link CFloat} to <code>this</code> and return the resulting {@link CFloat}.
@@ -311,6 +311,15 @@ abstract class CFloat implements Comparable<CFloat> {
   public abstract boolean lessThan(final CFloat other);
 
   public abstract boolean lessOrEqual(final CFloat other);
+
+  /**
+   * Compare two floating point values
+   *
+   * <p>Uses the total order predicate from the 754-2008 IEEE standard (§5.10) for the comparision:
+   * <pre>
+   * -Nan < -Inf < ... < -0 < +0 < .. < +Inf < +Nan</pre>
+   */
+  public abstract int compareTo(final CFloat other);
 
   public final long getExponent() {
     return getWrapper().getExponent();
