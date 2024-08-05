@@ -315,11 +315,12 @@ abstract class CFloat {
   /**
    * Compare two floating point values
    *
-   * <p>Uses the total order predicate from the 754-2008 IEEE standard (§5.10) for the comparision:
+   * <p>Uses the total order predicate from the 754-2008 IEEE standard (§5.10) for the comparison:
    *
    * <pre>
    * -Nan < -Inf < ... < -0 < +0 < .. < +Inf < +Nan</pre>
    */
+  @SuppressWarnings("MissingImplementsComparable")
   public abstract int compareTo(final CFloat other);
 
   public final long getExponent() {
