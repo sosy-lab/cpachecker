@@ -17,12 +17,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -78,10 +76,8 @@ public class LoopInfoUtils {
       // Determine type of each variable
       for (String variable : liveVariables) {
         String type = pCProgramScope.lookupVariable(variable).getType().toString();
-
-        if (type.startsWith("struct ")) {
-          type = getStructDefFromDecl(pCfa, type);
-        } else if (type.startsWith("(")) {
+        
+        if (type.startsWith("(")) {
           type = type.substring(1, type.length() - 2) + "*";
         }
 
@@ -159,27 +155,5 @@ public class LoopInfoUtils {
     }
 
     return ImmutableSet.copyOf(variables);
-  }
-
-  private static String getStructDefFromDecl(CFA pCfa, String pDecl) {
-    for (CFAEdge cfaEdge : pCfa.edges()) {
-      Optional<AAstNode> aAstNodeOp = cfaEdge.getRawAST();
-      if (aAstNodeOp.isPresent() && aAstNodeOp.get() instanceof CComplexTypeDeclaration) {
-        String structDef = ((CComplexTypeDeclaration) aAstNodeOp.get()).toString();
-
-        if (structDef.startsWith(pDecl)) {
-          structDef =
-              structDef
-                  .substring(0, structDef.length() - 2)
-                  .replaceAll("\n", "")
-                  .replaceAll(";  ", "; ")
-                  .replaceAll("  ", "")
-                  .replace("{", " {");
-          return structDef;
-        }
-      }
-    }
-
-    return null;
   }
 }
