@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -16,14 +17,18 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -58,7 +63,8 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // Output the collected loop information to a file
     try (BufferedWriter writer =
-        Files.newBufferedWriter(new File("output/AllLoopInfos.txt").toPath(), StandardCharsets.UTF_8)) {
+        Files.newBufferedWriter(
+            new File("output/AllLoopInfos.txt").toPath(), StandardCharsets.UTF_8)) {
       StringBuilder allLoopInfos = new StringBuilder();
 
       for (NormalLoopInfo loopInfo : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
@@ -76,6 +82,11 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
                 recursionInfo.locationOfDefinition(),
                 recursionInfo.locationOfRecursiveCalls(),
                 recursionInfo.parameters()));
+      }
+
+      for (StructInfo structInfo : getAllStructInfos()) {
+        allLoopInfos.append(
+            String.format("Struct    %s    %s%n", structInfo.name(), structInfo.members()));
       }
 
       writer.write(allLoopInfos.toString());
@@ -182,6 +193,34 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       throw new Error("An unexpected error occurred!");
     }
   }
+
+  private ImmutableSet<StructInfo> getAllStructInfos() {
+    Set<StructInfo> allStructInfos = new HashSet<>();
+
+    for (CFAEdge cfaEdge : cfa.edges()) {
+      Optional<AAstNode> aAstNodeOp = cfaEdge.getRawAST();
+      if (aAstNodeOp.isPresent() && aAstNodeOp.get() instanceof CComplexTypeDeclaration) {
+        String struct = ((CComplexTypeDeclaration) aAstNodeOp.get()).toString();
+
+        if (struct.startsWith("struct")) {
+          String name;
+          Map<String, String> members = new HashMap<>();
+
+          struct =
+              struct.substring(0, struct.length() - 4).replaceAll(";", "").replaceAll("  ", "");
+          String[] structParts = struct.split("\n");
+          name = structParts[0].split(" ")[1];
+          for (int i = 1; i < structParts.length; i++) {
+            members.put(structParts[i].split(" ")[1], structParts[i].split(" ")[0]);
+          }
+
+          allStructInfos.add(new StructInfo(name, ImmutableMap.copyOf(members)));
+        }
+      }
+    }
+
+    return ImmutableSet.copyOf(allStructInfos);
+  }
 }
 
 /**
@@ -197,3 +236,5 @@ record RecursionInfo(
     int locationOfDefinition,
     ImmutableSet<Integer> locationOfRecursiveCalls,
     ImmutableList<String> parameters) {}
+
+record StructInfo(String name, ImmutableMap<String, String> members) {}
