@@ -83,6 +83,17 @@ public class InstrumentationAutomaton {
     return transitions;
   }
 
+  private String getDereferencesForPointer(String pType) {
+    String dereferences = "";
+    for (int i = pType.length() - 1; i >= 0; i--) {
+      if (pType.charAt(i) != '*') {
+        return dereferences;
+      }
+      dereferences += "*";
+    }
+    return dereferences;
+  }
+
   private void constructTerminationAutomaton(int pIndex) {
       InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
       InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
@@ -96,7 +107,8 @@ public class InstrumentationAutomaton {
               "true",
               "int saved = 0; " +
                   liveVariablesAndTypes.entrySet().stream()
-                      .map((entry) -> entry.getValue() + " " + entry.getKey() + "_instr_" + pIndex)
+                      .map((entry) ->
+                          entry.getValue() + " " + entry.getKey() + "_instr_" + pIndex)
                       .collect(Collectors.joining("; ")) +
                       (!liveVariablesAndTypes.isEmpty() ? ";" : ""),
               InstrumentationOrder.BEFORE,
@@ -107,13 +119,19 @@ public class InstrumentationAutomaton {
               "[cond]",
               "if(__VERIFIER_nondet_int() && saved == 0) { saved=1; " +
                   liveVariablesAndTypes.entrySet().stream()
-                      .map((entry) -> entry.getKey() + " = " + entry.getKey() + "_instr_" + pIndex)
+                      .map((entry) ->
+                          getDereferencesForPointer(entry.getValue()) + entry.getKey()
+                              + "_instr_" + pIndex + " = " +
+                          getDereferencesForPointer(entry.getValue()) + entry.getKey())
                       .collect(Collectors.joining("; ")) +
                   (!liveVariablesAndTypes.isEmpty() ? "; " : "") +
                   "} else { __VERIFIER_assert((saved == 0)" +
                   (!liveVariablesAndTypes.isEmpty() ? " | " : "") +
                   liveVariablesAndTypes.entrySet().stream()
-                      .map((entry) -> "(" + entry.getKey() + " != " + entry.getKey() + "_instr_" + pIndex + ")")
+                      .map((entry) ->
+                          "(" + getDereferencesForPointer(entry.getValue()) + entry.getKey()
+                              + " != " + getDereferencesForPointer(entry.getValue()) + entry.getKey()
+                              + "_instr_" + pIndex + ")")
                       .collect(Collectors.joining("|")) +
                   ");}",
               InstrumentationOrder.AFTER,
