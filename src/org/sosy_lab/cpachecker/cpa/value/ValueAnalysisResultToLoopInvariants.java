@@ -62,8 +62,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
@@ -943,7 +943,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         }
         if (isFloat2 || num2 instanceof FloatValue) {
           // FIXME: Conversion is imprecise
-          return ((Rational) num1).compareTo(Rational.ofBigDecimal(BigDecimal.valueOf(pVal2.doubleValue())));
+          return ((Rational) num1)
+              .compareTo(Rational.ofBigDecimal(BigDecimal.valueOf(pVal2.doubleValue())));
         }
       } else if (num2 instanceof Rational) {
         if (isIntegral1) {
@@ -954,7 +955,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         }
         if (isFloat1 || num1 instanceof FloatValue) {
           // FIXME: Conversion is imprecise
-          return Rational.ofBigDecimal(BigDecimal.valueOf(pVal1.doubleValue())).compareTo((Rational) num2);
+          return Rational.ofBigDecimal(BigDecimal.valueOf(pVal1.doubleValue()))
+              .compareTo((Rational) num2);
         }
       }
 
