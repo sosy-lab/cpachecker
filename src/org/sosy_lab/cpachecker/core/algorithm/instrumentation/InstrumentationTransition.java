@@ -78,6 +78,9 @@ public class InstrumentationTransition {
   }
 
   private boolean isOriginalCond(CFAEdge pCFAEdge) {
+    if (pCFAEdge.getPredecessor().getNumLeavingEdges() == 1) {
+      return true;
+    }
     if (pCFAEdge instanceof CAssumeEdge) {
       return ((CAssumeEdge) pCFAEdge).getTruthAssumption();
     }
