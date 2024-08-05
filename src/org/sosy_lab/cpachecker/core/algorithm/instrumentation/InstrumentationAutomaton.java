@@ -105,11 +105,11 @@ public class InstrumentationAutomaton {
           new InstrumentationTransition(
               q2,
               "[cond]",
-              "if(__VERIFIER_nondet_int() && saved == 0) {\n saved=1;\n " +
+              "if(__VERIFIER_nondet_int() && saved == 0) { saved=1; " +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) -> entry.getKey() + " = " + entry.getKey() + "_instr_" + pIndex)
-                      .collect(Collectors.joining(";\n")) +
-                  (!liveVariablesAndTypes.isEmpty() ? ";\n" : "") +
+                      .collect(Collectors.joining("; ")) +
+                  (!liveVariablesAndTypes.isEmpty() ? "; " : "") +
                   "} else { __VERIFIER_assert((saved == 0)" +
                   (!liveVariablesAndTypes.isEmpty() ? " | " : "") +
                   liveVariablesAndTypes.entrySet().stream()
