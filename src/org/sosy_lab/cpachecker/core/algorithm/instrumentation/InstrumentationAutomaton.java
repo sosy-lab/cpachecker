@@ -105,17 +105,17 @@ public class InstrumentationAutomaton {
           new InstrumentationTransition(
               q2,
               "[cond]",
-              "__VERIFIER_nondet_int() && saved == 0 ? " +
+              "if(__VERIFIER_nondet_int() && saved == 0) {\n saved=1;\n " +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) -> entry.getKey() + " = " + entry.getKey() + "_instr_" + pIndex)
-                      .collect(Collectors.joining(";")) +
-                  (!liveVariablesAndTypes.isEmpty() ? "; : " : " : ") +
-                  "__VERIFIER_assert((saved == 0)" +
+                      .collect(Collectors.joining(";\n")) +
+                  (!liveVariablesAndTypes.isEmpty() ? ";\n" : "") +
+                  "} else { __VERIFIER_assert((saved == 0)" +
                   (!liveVariablesAndTypes.isEmpty() ? " | " : "") +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) -> "(" + entry.getKey() + " != " + entry.getKey() + "_instr_" + pIndex + ")")
                       .collect(Collectors.joining("|")) +
-                  ");",
+                  ");}",
               InstrumentationOrder.AFTER,
               q3);
     InstrumentationTransition t3 =
