@@ -97,7 +97,8 @@ public class InstrumentationAutomaton {
               "int saved = 0; " +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) -> entry.getValue() + " " + entry.getKey() + "_instr_" + pIndex)
-                      .collect(Collectors.joining("; ")) + ";",
+                      .collect(Collectors.joining("; ")) +
+                      (!liveVariablesAndTypes.isEmpty() ? ";" : ""),
               InstrumentationOrder.BEFORE,
               q2);
       InstrumentationTransition t2 =
@@ -108,7 +109,9 @@ public class InstrumentationAutomaton {
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) -> entry.getKey() + " = " + entry.getKey() + "_instr_" + pIndex)
                       .collect(Collectors.joining(";")) +
-                  "; : " + "__VERIFIER_assert((saved == 0) | " +
+                  (!liveVariablesAndTypes.isEmpty() ? "; : " : " : ") +
+                  "__VERIFIER_assert((saved == 0)" +
+                  (!liveVariablesAndTypes.isEmpty() ? " | " : "") +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) -> "(" + entry.getKey() + " != " + entry.getKey() + "_instr_" + pIndex + ")")
                       .collect(Collectors.joining("|")) +
