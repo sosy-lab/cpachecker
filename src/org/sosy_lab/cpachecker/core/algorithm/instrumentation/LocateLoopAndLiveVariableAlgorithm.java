@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -208,10 +210,10 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
 
           struct =
               struct.substring(0, struct.length() - 4).replaceAll(";", "").replaceAll("  ", "");
-          String[] structParts = struct.split("\n");
-          name = structParts[0].split(" ")[1];
-          for (int i = 1; i < structParts.length; i++) {
-            members.put(structParts[i].split(" ")[1], structParts[i].split(" ")[0]);
+          List<String> structParts = Splitter.on('\n').splitToList(struct);
+          name = Iterables.get(Splitter.on(' ').split(structParts.get(0)), 1);
+          for (int i = 1; i < structParts.size(); i++) {
+            members.put(Iterables.get(Splitter.on(' ').split(structParts.get(i)), 1), Iterables.get(Splitter.on(' ').split(structParts.get(i)), 0));
           }
 
           allStructInfos.add(new StructInfo(name, ImmutableMap.copyOf(members)));

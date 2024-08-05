@@ -4065,6 +4065,8 @@ impact.useForcedCovering = true
 # be used
 # TERMINATION: transform termination to reachability
 # NOOVERFLOW: transform no-overflow to reachability
+instrumentation.instrumentationProperty = no default value
+  enum:     [TERMINATION, NOOVERFLOW]
 instrumentation.instrumentationProperty = TERMINATION
   enum:     [TERMINATION, NOOVERFLOW]
 
