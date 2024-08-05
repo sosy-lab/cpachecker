@@ -6,6 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#define __STDC_WANT_IEC_60559_EXT__
+
 #include"CFloatNativeAPI.h"
 
 #include<stdlib.h>
@@ -804,6 +806,37 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 			return islessequal(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
 		default:
 			throwException(env, EX_TEXT);
+	}
+}
+
+JNIEXPORT jint JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_totalOrderFp(JNIEnv* env, jclass cl, jobject fp1, jint type1, jobject fp2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, fp1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, fp2, type2);
+
+        int leq, gte;
+
+	jint maxType = max(type1, type2);
+	switch(maxType) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			leq = totalorderf(&fp_1.f_value, &fp_2.f_value);
+			gte = totalorderf(&fp_2.f_value, &fp_1.f_value);
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			leq = totalorder(&fp_1.d_value, &fp_2.d_value);
+                        gte = totalorder(&fp_2.d_value, &fp_1.d_value);
+                        break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			leq = totalorderl(&fp_1.ld_value, &fp_2.ld_value);
+                        gte = totalorderl(&fp_2.ld_value, &fp_1.ld_value);
+                        break;
+		default:
+			throwException(env, EX_TEXT);
+	}
+
+	if (leq && gte) {
+	  return 0;
+	} else {
+	  return leq ? -1 : 1;
 	}
 }
 

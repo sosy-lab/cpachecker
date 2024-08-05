@@ -383,6 +383,14 @@ class CFloatImpl extends CFloat {
   }
 
   @Override
+  public int compareTo(CFloat other) {
+    if (other instanceof CFloatImpl that) {
+      return delegate.compareTo(that.delegate);
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public String toString() {
     return delegate.toString();
   }

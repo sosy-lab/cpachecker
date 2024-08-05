@@ -155,6 +155,9 @@ class CFloatNativeAPI {
   public static native boolean isLessEqualFp(
       CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
 
+  public static native int totalOrderFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+
   public static native CFloatWrapper copySignFp(CFloatWrapper fp1, CFloatWrapper fp2, int fp_type);
 
   public static native CFloatWrapper castFpFromTo(CFloatWrapper fp, int fp_from_type, int to_type);

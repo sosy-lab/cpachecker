@@ -360,4 +360,22 @@ class MpfrFloat extends CFloat {
     BigFloat that = toBigFloat(other.getWrapper());
     return value.lessThanOrEqualTo(that);
   }
+
+  @Override
+  public int compareTo(CFloat other) {
+    if (other instanceof MpfrFloat otherMpfr) {
+      if (isNan()) {
+        if (isNegative()) {
+          return (otherMpfr.isNan() && otherMpfr.isNegative()) ? 0 : -1;
+        } else {
+          return (otherMpfr.isNan() && !otherMpfr.isNegative()) ? 0 : 1;
+        }
+      } else if (otherMpfr.isNan()) {
+        return otherMpfr.isNegative() ? 1 : -1;
+      } else {
+        return value.compareTo(otherMpfr.value);
+      }
+    }
+    throw new UnsupportedOperationException();
+  }
 }
