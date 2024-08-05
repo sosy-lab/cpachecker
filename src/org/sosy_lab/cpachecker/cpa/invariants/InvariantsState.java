@@ -42,6 +42,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -88,6 +89,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.Union;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -1115,8 +1117,9 @@ public class InvariantsState
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximation(
+  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
       final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode) {
+
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVar =
         pFormula ->
             pFormula instanceof Variable
@@ -1189,6 +1192,24 @@ public class InvariantsState
       }
     }
     return And.of(approximationsAsCode);
+  }
+
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
+      FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    throw new ReportingMethodNotImplementedException(
+        "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for"
+            + " InvariantsState.");
+  }
+
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
+      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    throw new ReportingMethodNotImplementedException(
+        "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented for"
+            + " InvariantsState.");
   }
 
   private ExpressionTree<Object> formulaToCode(BooleanFormula<CompoundInterval> pFormula) {

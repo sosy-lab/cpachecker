@@ -12,8 +12,13 @@ import java.io.Serializable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
 
-@SuppressWarnings("serial") // we cannot set a UID for an interface
 public interface AAstNode extends Serializable {
+
+  public static enum AAstNodeRepresentation {
+    DEFAULT, // Do not use qualified names for variables and do not use original names for variables
+    QUALIFIED, // use qualified names for variables
+    ORIGINAL_NAMES // use original names i.e. for the original program for variables
+  }
 
   FileLocation getFileLocation();
 
@@ -24,25 +29,23 @@ public interface AAstNode extends Serializable {
    * either use {@link #toASTString()} (fixed parameter value false) or {@link
    * #toQualifiedASTString()} (fixed parameter value true).
    *
-   * @param pQualified - if true use qualified variable names, i.e., add prefix functionname__ to
-   *     local variable names, where functionname is the name of the function that declared the
-   *     local variable
+   * @param pAAstNodeRepresentation the method with which to represent variables
    * @return AST string either using qualified names or pure names for local variables
    */
-  String toASTString(boolean pQualified);
+  String toASTString(AAstNodeRepresentation pAAstNodeRepresentation);
 
-  String toParenthesizedASTString(boolean pQualified);
+  String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation);
 
   default String toASTString() {
-    return toASTString(false);
+    return toASTString(AAstNodeRepresentation.DEFAULT);
   }
 
   default String toParenthesizedASTString() {
-    return toParenthesizedASTString(false);
+    return toParenthesizedASTString(AAstNodeRepresentation.DEFAULT);
   }
 
   default String toQualifiedASTString() {
-    return toASTString(true);
+    return toASTString(AAstNodeRepresentation.QUALIFIED);
   }
 
   /**

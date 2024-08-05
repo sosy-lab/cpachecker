@@ -75,8 +75,6 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
   private static class DummyEdge implements CFAEdge {
 
-    private static final long serialVersionUID = -8457186174249491758L;
-
     private static final String UNKNOWN = "unknown";
 
     private static Map<String, DummyEdge> existingEdges = new HashMap<>();

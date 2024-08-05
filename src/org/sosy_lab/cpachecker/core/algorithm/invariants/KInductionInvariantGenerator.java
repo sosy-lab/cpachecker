@@ -395,8 +395,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       try {
         return invariantGenerationFuture.get().getFirst();
       } catch (ExecutionException e) {
-        Throwables.propagateIfPossible(
-            e.getCause(), CPAException.class, InterruptedException.class);
+        Throwables.throwIfInstanceOf(e.getCause(), CPAException.class);
+        Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
+        Throwables.throwIfUnchecked(e.getCause());
         throw new UnexpectedCheckedException("invariant generation", e.getCause());
       } catch (CancellationException e) {
         shutdownManager.getNotifier().shutdownIfNecessary();
@@ -418,8 +419,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       try {
         return invariantGenerationFuture.get().getSecond();
       } catch (ExecutionException e) {
-        Throwables.propagateIfPossible(
-            e.getCause(), CPAException.class, InterruptedException.class);
+        Throwables.throwIfInstanceOf(e.getCause(), CPAException.class);
+        Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
+        Throwables.throwIfUnchecked(e.getCause());
         throw new UnexpectedCheckedException("invariant generation", e.getCause());
       } catch (CancellationException e) {
         shutdownManager.getNotifier().shutdownIfNecessary();

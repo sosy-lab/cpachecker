@@ -11,11 +11,9 @@ package org.sosy_lab.cpachecker.cpa.slab;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSortedSet;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,6 +24,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
+import org.sosy_lab.cpachecker.util.StringUtil;
 
 public class SLARGToDotWriter {
 
@@ -88,11 +87,10 @@ public class SLARGToDotWriter {
     }
     builder.append("label=\"").append(determineLabel(pState));
 
-    Iterable<CFANode> locations = pState.getLocationNodes();
-    Collection<Integer> locationNumbers =
-        from(locations).transform(CFANode::getNodeNumber).toList();
+    Iterable<Integer> locationNumbers =
+        from(pState.getLocationNodes()).transform(CFANode::getNodeNumber);
     builder.append("@N");
-    builder.append(generateLocationString(locationNumbers));
+    builder.append(StringUtil.convertIntegerRangesToStringCollapsed(locationNumbers));
     builder.append("\" ");
     builder.append("id=\"").append(pState.getStateId());
     builder.append("\"]").append(System.lineSeparator());
@@ -128,7 +126,8 @@ public class SLARGToDotWriter {
    * @param label A text to be show in the top left of the graph
    * @throws IOException Writing to sb failed
    */
-  public static void writeRankedAbstractions(
+  @SuppressWarnings("unused")
+  private static void writeRankedAbstractions(
       Appendable sb, final Collection<SLARGState> states, String label) throws IOException {
     ARGState root = FluentIterable.from(states).filter(SLARGState::isInit).toList().get(0);
     int maxrank = 0;
@@ -185,52 +184,5 @@ public class SLARGToDotWriter {
     return String.format(
         "invisiblenode_%d[style=invis label = \"\"];%n{rank=same;invisiblenode_%d;%d};%n",
         pInteger, pInteger, state.getStateId());
-  }
-
-  /*
-   * This method can be used to generate a compact String describing a set of integers.
-   * Continous ranges will be abbreviated by a dash, e.g. 1-5, non-continous integers will be separated by commas.
-   * Example: The integers {1,3,4,5,7} will be written as "1,3-5,7"
-   */
-  public static StringBuilder generateLocationString(Collection<Integer> pLocationNumbers) {
-    ImmutableSortedSet<Integer> locationNumbers =
-        from(pLocationNumbers).toSortedSet(Comparator.naturalOrder());
-    StringBuilder builder = new StringBuilder();
-    int state = 0;
-    int lastNumber = -1;
-    String separator = ",";
-    for (Integer currentLocation : locationNumbers) {
-      switch (state) {
-        case 0:
-          builder.append(currentLocation);
-          state = 1;
-          break;
-        case 1:
-          if (currentLocation != lastNumber + 1 || currentLocation.equals(locationNumbers.last())) {
-            builder.append(",").append(currentLocation);
-            // stay in state 1
-          } else {
-            state = 2;
-          }
-          break;
-        case 2:
-          if (currentLocation != lastNumber + 1) {
-            builder.append(separator).append(lastNumber).append(",").append(currentLocation);
-            separator = ",";
-            state = 1;
-          } else if (currentLocation.equals(locationNumbers.last())) {
-            builder.append(separator).append(currentLocation);
-            state = -1; // we should be finished, next transition would lead to exception
-          } else {
-            separator = "-";
-            // stay in state 2
-          }
-          break;
-        default:
-          throw new RuntimeException("Unexpected state in location string generation automaton");
-      }
-      lastNumber = currentLocation;
-    }
-    return builder;
   }
 }

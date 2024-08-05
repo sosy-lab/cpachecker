@@ -28,6 +28,7 @@ import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serial;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -2244,7 +2245,7 @@ public class AutomatonGraphmlParser {
 
     private static final String PARSE_EXCEPTION_MESSAGE_PREFIX = "Cannot parse witness: ";
 
-    private static final long serialVersionUID = -6357416712866877118L;
+    @Serial private static final long serialVersionUID = -6357416712866877118L;
 
     public WitnessParseException(String pMessage) {
       super(PARSE_EXCEPTION_MESSAGE_PREFIX + pMessage);

@@ -2,8 +2,8 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: CPAchecker
 Source: https://cpachecker.sosy-lab.org
 
-Files: test/*/blasting_linux/*.c
- test/*/blasting_linux/*.h
+Files: test/programs/blasting_linux/*.c
+ test/programs/blasting_linux/*.h
  test/*/linux-kernel/*.c
  test/*/linux-kernel/*.i.bz2
 Copyright: The Linux kernel authors
@@ -14,8 +14,8 @@ Files: test/programs/parser/*.c
  test/programs/parser/*.i
  test/programs/parser/*.desc
 Copyright: 2001-2013, Daniel Kroening, Edmund Clarke
-Copyright: Computer Science Department, Carnegie Mellon University
-Copyright: Computer Science Department, University of Oxford
+           Computer Science Department, Carnegie Mellon University
+           Computer Science Department, University of Oxford
 License: LicenseRef-BSD-4-Clause-CBMC
 
 Files: src/org/sosy_lab/cpachecker/core/counterexample/build/main.*
@@ -26,3 +26,13 @@ License: Apache-2.0
 Files: src/org/sosy_lab/cpachecker/core/counterexample/build/vendors.*
 Copyright: various authors (full list is bundled and shown on Info tab)
 License: 0BSD AND Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND CC0-1.0 AND CC-BY-3.0 AND CC-BY-4.0 AND ISC AND MIT AND OFL-1.1
+
+Files: build/debian/README.Debian
+ build/debian/changelog
+ build/debian/control
+ build/debian/copyright
+ build/debian/install
+ build/debian/links
+ build/debian/source/format
+Copyright: 2007-2024 Dirk Beyer <https://www.sosy-lab.org>
+License: Apache-2.0

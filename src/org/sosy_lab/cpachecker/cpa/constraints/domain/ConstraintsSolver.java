@@ -72,6 +72,14 @@ public class ConstraintsSolver {
       SAT,
       UNSAT
     }
+
+    public boolean isSAT() {
+      return satisfiability.equals(Satisfiability.SAT);
+    }
+
+    public boolean isUNSAT() {
+      return satisfiability.equals(Satisfiability.UNSAT);
+    }
   }
 
   @Option(secure = true, description = "Whether to use subset caching", name = "cacheSubsets")

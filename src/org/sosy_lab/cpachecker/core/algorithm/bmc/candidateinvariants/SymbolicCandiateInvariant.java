@@ -156,7 +156,8 @@ public class SymbolicCandiateInvariant implements CandidateInvariant {
     } catch (ExecutionException e) {
       Throwable cause = e.getCause();
       if (cause != null) {
-        Throwables.propagateIfPossible(cause, InterruptedException.class);
+        Throwables.throwIfInstanceOf(cause, InterruptedException.class);
+        Throwables.throwIfUnchecked(cause);
         throw new UncheckedExecutionException(cause);
       }
       throw new UncheckedExecutionException(e);

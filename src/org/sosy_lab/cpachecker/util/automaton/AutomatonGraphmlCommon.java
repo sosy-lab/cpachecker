@@ -672,6 +672,8 @@ public final class AutomatonGraphmlCommon {
                 pMainEntry.getFunctionDefinition().toString().length(),
                 location.getStartingLineNumber(),
                 location.getStartingLineNumber(),
+                location.getStartColumnInLine(),
+                location.getEndColumnInLine(),
                 location.getStartingLineInOrigin(),
                 location.getStartingLineInOrigin(),
                 location.isOffsetRelatedToOrigin());

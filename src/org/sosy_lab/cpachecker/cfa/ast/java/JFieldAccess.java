@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -21,7 +22,7 @@ public final class JFieldAccess extends JIdExpression {
 
   // TODO Investigate if this should be refactored.
 
-  private static final long serialVersionUID = 2729676155903102814L;
+  @Serial private static final long serialVersionUID = 2729676155903102814L;
   private final JIdExpression qualifier;
 
   public JFieldAccess(
@@ -44,11 +45,11 @@ public final class JFieldAccess extends JIdExpression {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     // TODO Change to something simpler.
     // It seems some CPAs depend on this method for
     // getting variable names, investigate and change
-    return super.toASTString(pQualified);
+    return super.toASTString(pAAstNodeRepresentation);
   }
 
   @Override
