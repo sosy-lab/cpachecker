@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Collection;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -105,5 +106,21 @@ public final class MPORUtil {
     PredicateAbstractState baState = getNextPredicateAbstractState(pPtr, bState, pEdgeA);
 
     return abState.getPathFormula().equals(baState.getPathFormula());
+  }
+
+  /**
+   * Tries to add pNewElem to pVisitedElem. If pVisitedElem contained pNewElem before, this returns
+   * false and true otherwise.
+   *
+   * <p>The function is very short and could be replaced with pVisitedElem.add(pNewElem), but the
+   * name improves readability.
+   *
+   * @param pVisitedElem the set of already visited elements
+   * @param pNewElem the element we are trying to visit
+   * @return true if pVisitedElem did not contain pNewElem before
+   * @param <E> the Type of elements
+   */
+  public static <E> boolean shouldVisit(Set<E> pVisitedElem, E pNewElem) {
+    return pVisitedElem.add(pNewElem);
   }
 }

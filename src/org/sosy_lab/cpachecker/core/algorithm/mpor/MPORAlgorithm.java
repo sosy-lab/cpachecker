@@ -106,7 +106,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     Map<MPORThread, CFANode> initFunctionReturnNodes = getInitialFunctionReturnNodes(initState);
 
     handleState(initState, initFunctionReturnNodes);
-
     // TODO
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
@@ -122,8 +121,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       throws CPATransferException, InterruptedException {
 
     // make sure the MPORState was not yet visited to prevent infinite loops
-    if (!existingStates.contains(pCurrentState)) {
-      existingStates.add(pCurrentState);
+    if (MPORUtil.shouldVisit(existingStates, pCurrentState)) {
 
       // TODO handle preferenceOrders of MPORState here (execute all preceding edges first)
       //  (and think about interleaving preferenceOrders)
@@ -206,10 +204,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       final MPORThread pThread)
       throws CPATransferException, InterruptedException {
 
-    // TODO create a generic method that checks if the set contains an element, adds it if not
-    //  present and returns true if the set was modified (we use this pattern a lot here)
-    if (!pVisitedNodes.contains(pCurrentNode)) {
-      pVisitedNodes.add(pCurrentNode);
+    if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
       // TODO add seq node
       // if the thread has terminated, stop recursion
       if (!pCurrentNode.equals(pThread.exitNode)) {
@@ -480,8 +475,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       CFANode pCurrentNode,
       CFANode pFunctionReturnNode) {
 
-    if (!pThreadNodes.contains(pCurrentNode)) {
-      pThreadNodes.add(pCurrentNode);
+    if (MPORUtil.shouldVisit(pThreadNodes, pCurrentNode)) {
       if (!pCurrentNode.equals(pExitNode)) {
         for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
           pThreadEdges.add(cfaEdge);
@@ -516,25 +510,25 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       CFANode pCurrentNode,
       CFANode pFunctionReturnNode) {
 
-    if (pVisitedNodes.contains(pCurrentNode) || pCurrentNode.equals(pThreadExitNode)) {
-      return;
-    }
-    pVisitedNodes.add(pCurrentNode);
-    for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
-      if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_CREATE)) {
-        pEdgesTrace.add(cfaEdge);
-        CExpression pthreadT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
-        pCreates.add(new MPORCreate(pthreadT, ImmutableSet.copyOf(pEdgesTrace)));
+    if (!pCurrentNode.equals(pThreadExitNode)) {
+      if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
+        for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
+          if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_CREATE)) {
+            pEdgesTrace.add(cfaEdge);
+            CExpression pthreadT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
+            pCreates.add(new MPORCreate(pthreadT, ImmutableSet.copyOf(pEdgesTrace)));
+          }
+          pEdgesTrace.add(cfaEdge);
+          searchThreadForCreates(
+              pCreates,
+              pThreadExitNode,
+              pVisitedNodes,
+              // copying set so that it does not contain edges from a "parallel" trace (i.e. nondet)
+              new HashSet<>(pEdgesTrace),
+              cfaEdge.getSuccessor(),
+              updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
+        }
       }
-      pEdgesTrace.add(cfaEdge);
-      searchThreadForCreates(
-          pCreates,
-          pThreadExitNode,
-          pVisitedNodes,
-          // copying set so that it does not contain edges from a "parallel" trace (i.e. nondet)
-          new HashSet<>(pEdgesTrace),
-          cfaEdge.getSuccessor(),
-          updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
     }
   }
 
@@ -556,35 +550,35 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       CFANode pCurrentNode,
       CFANode pFunctionReturnNode) {
 
-    if (pVisitedNodes.contains(pCurrentNode) || pCurrentNode.equals(pThreadExitNode)) {
-      return;
-    }
-    pVisitedNodes.add(pCurrentNode);
-    for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
-      if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_MUTEX_LOCK)) {
-        CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
-        // the successor node of mutex_lock is the first inside the lock
-        CFANode initialNode = cfaEdge.getSuccessor();
-        Set<CFANode> mutexNodes = new HashSet<>(); // using a set so that we can use .contains
-        ImmutableSet.Builder<CFAEdge> mutexEdges = ImmutableSet.builder();
-        ImmutableSet.Builder<CFANode> mutexExitNodes = ImmutableSet.builder();
-        initMutexVariables(
-            pthreadMutexT, mutexNodes, mutexEdges, mutexExitNodes, initialNode, null);
-        MPORMutex mutex =
-            new MPORMutex(
-                pthreadMutexT,
-                initialNode,
-                ImmutableSet.copyOf(mutexNodes),
-                mutexEdges.build(),
-                mutexExitNodes.build());
-        pMutexes.add(mutex);
+    if (!pCurrentNode.equals(pThreadExitNode)) {
+      if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
+        for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
+          if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_MUTEX_LOCK)) {
+            CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
+            // the successor node of mutex_lock is the first inside the lock
+            CFANode initialNode = cfaEdge.getSuccessor();
+            Set<CFANode> mutexNodes = new HashSet<>(); // using a set so that we can use .contains
+            ImmutableSet.Builder<CFAEdge> mutexEdges = ImmutableSet.builder();
+            ImmutableSet.Builder<CFANode> mutexExitNodes = ImmutableSet.builder();
+            initMutexVariables(
+                pthreadMutexT, mutexNodes, mutexEdges, mutexExitNodes, initialNode, null);
+            MPORMutex mutex =
+                new MPORMutex(
+                    pthreadMutexT,
+                    initialNode,
+                    ImmutableSet.copyOf(mutexNodes),
+                    mutexEdges.build(),
+                    mutexExitNodes.build());
+            pMutexes.add(mutex);
+          }
+          searchThreadForMutexes(
+              pMutexes,
+              pThreadExitNode,
+              pVisitedNodes,
+              cfaEdge.getSuccessor(),
+              updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
+        }
       }
-      searchThreadForMutexes(
-          pMutexes,
-          pThreadExitNode,
-          pVisitedNodes,
-          cfaEdge.getSuccessor(),
-          updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
     }
   }
 
@@ -609,8 +603,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       CFANode pFunctionReturnNode) {
 
     // visit CFANodes only once to prevent infinite loops in case of loop structures
-    if (!pMutexNodes.contains(pCurrentNode)) {
-      pMutexNodes.add(pCurrentNode);
+    if (MPORUtil.shouldVisit(pMutexNodes, pCurrentNode)) {
       for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
         pMutexEdges.add(cfaEdge);
         if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_MUTEX_UNLOCK)) {
@@ -649,22 +642,22 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       CFANode pCurrentNode,
       CFANode pFunctionReturnNode) {
 
-    if (pVisitedNodes.contains(pCurrentNode) || pCurrentNode.equals(pThreadExitNode)) {
-      return;
-    }
-    pVisitedNodes.add(pCurrentNode);
-    for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
-      if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_JOIN)) {
-        CExpression pthreadT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
-        MPORJoin join = new MPORJoin(pthreadT, pCurrentNode, cfaEdge);
-        pJoins.add(join);
+    if (!pCurrentNode.equals(pThreadExitNode)) {
+      if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
+        for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
+          if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_JOIN)) {
+            CExpression pthreadT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
+            MPORJoin join = new MPORJoin(pthreadT, pCurrentNode, cfaEdge);
+            pJoins.add(join);
+          }
+          searchThreadForJoins(
+              pJoins,
+              pThreadExitNode,
+              pVisitedNodes,
+              cfaEdge.getSuccessor(),
+              updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
+        }
       }
-      searchThreadForJoins(
-          pJoins,
-          pThreadExitNode,
-          pVisitedNodes,
-          cfaEdge.getSuccessor(),
-          updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
     }
   }
 
@@ -683,22 +676,22 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       CFANode pFunctionReturnNode) {
 
     // TODO see pthread-divine for example barrier programs
-    if (pVisitedNodes.contains(pCurrentNode) || pCurrentNode.equals(pThread.exitNode)) {
-      return;
-    }
-    pVisitedNodes.add(pCurrentNode);
-    for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
-      if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.BARRIER_INIT)) {
-        // TODO unsure how to handle this, SV benchmarks use their custom barrier objects and
-        //  functions, e.g. pthread-divine/barrier_2t.i
-        //  but the general approach is identifying MPORBarriers from barrier_init calls
-        //  and then identify the corresponding MPORBarrierWaits
+    if (!pCurrentNode.equals(pThread.exitNode)) {
+      if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
+        for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
+          if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.BARRIER_INIT)) {
+            // TODO unsure how to handle this, SV benchmarks use their custom barrier objects and
+            //  functions, e.g. pthread-divine/barrier_2t.i
+            //  but the general approach is identifying MPORBarriers from barrier_init calls
+            //  and then identify the corresponding MPORBarrierWaits
+          }
+          searchThreadForBarriers(
+              pThread,
+              pVisitedNodes,
+              cfaEdge.getSuccessor(),
+              updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
+        }
       }
-      searchThreadForBarriers(
-          pThread,
-          pVisitedNodes,
-          cfaEdge.getSuccessor(),
-          updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode));
     }
   }
 
