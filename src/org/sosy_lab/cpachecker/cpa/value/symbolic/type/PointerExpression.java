@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -20,7 +19,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public final class PointerExpression extends UnarySymbolicExpression {
 
-  @Serial private static final long serialVersionUID = -7348176261979912313L;
+  private static final long serialVersionUID = -7348176261979912313L;
 
   PointerExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);

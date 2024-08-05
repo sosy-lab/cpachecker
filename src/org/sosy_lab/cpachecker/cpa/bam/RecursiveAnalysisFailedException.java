@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 class RecursiveAnalysisFailedException extends CPATransferException {
 
-  @Serial private static final long serialVersionUID = 3822584071233172171L;
+  private static final long serialVersionUID = 3822584071233172171L;
 
   private final int depth;
 

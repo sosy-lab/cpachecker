@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -254,7 +253,7 @@ public final class ExpressionSubstitution {
 
   public static class SubstitutionException extends Exception {
 
-    @Serial private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
     public SubstitutionException(String pMessage) {
       super(pMessage);

@@ -14,8 +14,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.io.MoreFiles;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,11 +34,14 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
@@ -54,19 +55,16 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInvariantsUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParser;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.Invariant;
 
 /**
  * This class extracts invariants from the correctness witness automaton. Calling {@link
@@ -126,13 +124,9 @@ public class WitnessInvariantsExtractor {
     logger = pLogger;
     cfa = pCFA;
     shutdownNotifier = pShutdownNotifier;
-    isYAMLWitness = AutomatonWitnessV2ParserUtils.isYAMLWitness(pPathToWitnessFile);
+    isYAMLWitness = AutomatonYAMLParser.isYAMLWitness(pPathToWitnessFile);
     if (isYAMLWitness) {
-      try {
-        potentialCandidatesYAMLWitness = analyzeYAMLWitness(pPathToWitnessFile);
-      } catch (IOException e) {
-        throw new WitnessParseException("Could not parse YAML Witness", e);
-      }
+      potentialCandidatesYAMLWitness = analyzeYAMLWitness(pPathToWitnessFile);
     } else {
       automatonAsSpec = buildSpecification(pPathToWitnessFile);
       analyzeWitness();
@@ -215,14 +209,16 @@ public class WitnessInvariantsExtractor {
   }
 
   private Optional<Set<ExpressionTreeLocationInvariant>> analyzeYAMLWitness(Path pPathToWitnessFile)
-      throws InvalidConfigurationException, InterruptedException, IOException {
+      throws InvalidConfigurationException, InterruptedException {
+    Scope scope =
+        switch (cfa.getLanguage()) {
+          case C -> new CProgramScope(cfa, logger);
+          default -> DummyScope.getInstance();
+        };
+    AutomatonYAMLParser automatonYAMLParser =
+        new AutomatonYAMLParser(config, logger, shutdownNotifier, cfa, scope);
 
-    List<AbstractEntry> entries =
-        AutomatonWitnessV2ParserUtils.parseYAML(
-            MoreFiles.asByteSource(pPathToWitnessFile).openStream());
-    InvariantExchangeFormatTransformer transformer =
-        new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
-    Set<Invariant> invariants = transformer.generateInvariantsFromEntries(entries);
+    Set<Invariant> invariants = automatonYAMLParser.generateInvariants(pPathToWitnessFile);
     Set<ExpressionTreeLocationInvariant> candidateInvariants = new HashSet<>();
     ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
 
@@ -252,19 +248,22 @@ public class WitnessInvariantsExtractor {
         }
 
         for (CFAEdge e : edges) {
-          if (e.getFileLocation().getEndingLineInOrigin() == invariant.getLine()
-              && e.getFileLocation().getStartingLineInOrigin() == invariant.getLine()
-              && e.getFileLocation().getStartColumnInLine() <= invariant.getColumn()
-              && e.getFileLocation().getEndColumnInLine() >= invariant.getColumn()) {
+          if (e.getFileLocation().getEndingLineInOrigin()
+                  == invariant.getLocation().getEndingLineInOrigin()
+              && e.getFileLocation().getStartingLineInOrigin()
+                  == invariant.getLocation().getStartingLineInOrigin()
+              && (e.getFileLocation().isOffsetRelatedToOrigin()
+                  ? e.getFileLocation().getNodeOffset() == invariant.getLocation().getNodeOffset()
+                  : true)) {
             if (e instanceof FunctionCallEdge) {
               node = e.getPredecessor();
             }
             candidateInvariants.add(
                 new ExpressionTreeLocationInvariant(
                     "Invariant matched at line "
-                        + invariant.getLine()
-                        + " with column "
-                        + invariant.getColumn(),
+                        + invariant.getLocation().getStartingLineInOrigin()
+                        + " with Offset "
+                        + invariant.getLocation().getNodeOffset(),
                     node,
                     invariant.getFormula(),
                     toCodeVisitorCache));
@@ -286,10 +285,6 @@ public class WitnessInvariantsExtractor {
    */
   public Set<ExpressionTreeLocationInvariant> extractInvariantsFromReachedSet()
       throws InterruptedException {
-    if (isYAMLWitness && potentialCandidatesYAMLWitness.isPresent()) {
-      return potentialCandidatesYAMLWitness.orElseThrow();
-    }
-
     Set<ExpressionTreeLocationInvariant> invariants = new LinkedHashSet<>();
     ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
     for (AbstractState abstractState : reachedSet) {

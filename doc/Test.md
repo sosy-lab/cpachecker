@@ -17,7 +17,7 @@ You can also execute these tests directly with BenchExec.
 All major projects and configurations within CPAchecker should be part of this test suite.
 To add tests for your project or configuration,
 please contact the maintainers on the developer mailing list.
-Be aware that the integration tests expect that the directory `c`
+Be aware that the integration tests expect that the folder `c`
 of the [sv-benchmarks repository](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks)
 is linked/copied to `../test/programs/benchmarks`.
 
@@ -34,7 +34,7 @@ and by [GitLab](https://gitlab.com/sosy-lab/software/cpachecker/pipelines) (for 
 Structure of Tests
 ------------------
 
-- The directory `test` in the main directory should be used to store (external) regression tests.
+- The folder `test` in the main directory should be used to store (external) regression tests.
   (In old terminology, these would be called integration/system tests.)
   The regression testing script in that directory should execute all system and all unit tests.
 

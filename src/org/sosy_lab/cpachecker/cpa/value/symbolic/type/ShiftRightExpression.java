@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -20,7 +19,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public final class ShiftRightExpression extends BinarySymbolicExpression {
 
-  @Serial private static final long serialVersionUID = -9068365554036095329L;
+  private static final long serialVersionUID = -9068365554036095329L;
 
   public enum ShiftType {
     SIGNED,

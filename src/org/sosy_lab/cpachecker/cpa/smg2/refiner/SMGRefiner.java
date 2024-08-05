@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
-import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecision;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -154,17 +153,11 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
         new SMGStrongestPostOperator(smgCpa.getSolver(), logger, config, cfa);
 
     final SMGFeasibilityChecker checker =
-        new SMGFeasibilityChecker(
-            strongestPostOp, logger, cfa, config, smgCpa.getEvaluator(), smgCpa.getStatistics());
+        new SMGFeasibilityChecker(strongestPostOp, logger, cfa, config, smgCpa.getEvaluator());
 
     final GenericPrefixProvider<SMGState> prefixProvider =
         new SMGPrefixProvider(
-            smgCpa.getSolver(),
-            logger,
-            cfa,
-            config,
-            smgCpa.getShutdownNotifier(),
-            smgCpa.getStatistics());
+            smgCpa.getSolver(), logger, cfa, config, smgCpa.getShutdownNotifier());
 
     return new SMGRefiner(
         checker,
@@ -175,8 +168,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
         logger,
         smgCpa.getShutdownNotifier(),
         cfa,
-        smgCpa.getEvaluator(),
-        smgCpa.getStatistics());
+        smgCpa.getEvaluator());
   }
 
   SMGRefiner(
@@ -188,8 +180,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
       final LogManagerWithoutDuplicates pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa,
-      SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics)
+      SMGCPAExpressionEvaluator pEvaluator)
       throws InvalidConfigurationException {
 
     super(
@@ -202,16 +193,14 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
             pLogger,
             pShutdownNotifier,
             pCfa,
-            pEvaluator,
-            pStatistics),
+            pEvaluator),
         SMGInterpolantManager.getInstance(
             new SMGOptions(pConfig),
             pCfa.getMachineModel(),
             pLogger,
             pCfa,
             pFeasibilityChecker.isRefineMemorySafety(),
-            pEvaluator,
-            pStatistics),
+            pEvaluator),
         pPathExtractor,
         pConfig,
         pLogger);

@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.modificationsprop;
 
-import java.io.Serial;
-
 class PointerAccessException extends Exception {
 
-  @Serial private static final long serialVersionUID = -7096689392690986961L;
+  private static final long serialVersionUID = -7096689392690986961L;
 }

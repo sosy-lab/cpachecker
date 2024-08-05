@@ -10,68 +10,25 @@ package org.sosy_lab.cpachecker.util.smg.graph;
 
 import com.google.common.base.Preconditions;
 import java.math.BigInteger;
-import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
 
   private final BigInteger prevOffset;
-  private final BigInteger prevPointerTargetOffset;
 
   public SMGDoublyLinkedListSegment(
       int pNestingLevel,
-      Value pSize,
+      BigInteger pSize,
       BigInteger pOffset,
       BigInteger pHeadOffset,
       BigInteger pNextOffset,
-      BigInteger pNextPointerTargetOffset,
       BigInteger pPrevOffset,
-      BigInteger pPrevPointerTargetOffset,
       int pMinLength) {
-    super(
-        pNestingLevel,
-        pSize,
-        pOffset,
-        pHeadOffset,
-        pNextOffset,
-        pNextPointerTargetOffset,
-        pMinLength);
-    Preconditions.checkNotNull(pPrevOffset);
-    Preconditions.checkNotNull(pPrevPointerTargetOffset);
+    super(pNestingLevel, pSize, pOffset, pHeadOffset, pNextOffset, pMinLength);
     prevOffset = pPrevOffset;
-    prevPointerTargetOffset = pPrevPointerTargetOffset;
-  }
-
-  public SMGDoublyLinkedListSegment(
-      int pNestingLevel,
-      Value pSize,
-      BigInteger pOffset,
-      BigInteger pHeadOffset,
-      BigInteger pNextOffset,
-      BigInteger pNextPointerTargetOffset,
-      BigInteger pPrevOffset,
-      BigInteger pPrevPointerTargetOffset,
-      int pMinLength,
-      EqualityCache<Value> pRelevantEqualities) {
-    super(
-        pNestingLevel,
-        pSize,
-        pOffset,
-        pHeadOffset,
-        pNextOffset,
-        pNextPointerTargetOffset,
-        pMinLength,
-        pRelevantEqualities);
-    prevOffset = pPrevOffset;
-    prevPointerTargetOffset = pPrevPointerTargetOffset;
   }
 
   public BigInteger getPrevOffset() {
     return prevOffset;
-  }
-
-  public BigInteger getPrevPointerTargetOffset() {
-    return prevPointerTargetOffset;
   }
 
   @Override
@@ -93,11 +50,8 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
         getOffset(),
         getHeadOffset(),
         getNextOffset(),
-        getNextPointerTargetOffset(),
         prevOffset,
-        prevPointerTargetOffset,
-        getMinLength(),
-        getRelevantEqualities());
+        getMinLength());
   }
 
   @Override
@@ -108,11 +62,8 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
         getOffset(),
         getHeadOffset(),
         getNextOffset(),
-        getNextPointerTargetOffset(),
         prevOffset,
-        prevPointerTargetOffset,
-        getMinLength(),
-        getRelevantEqualities());
+        getMinLength());
   }
 
   @Override
@@ -123,11 +74,8 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
         getOffset(),
         getHeadOffset(),
         getNextOffset(),
-        getNextPointerTargetOffset(),
         prevOffset,
-        prevPointerTargetOffset,
-        Integer.max(getMinLength() - 1, 0),
-        getRelevantEqualities());
+        Integer.max(getMinLength() - 1, 0));
   }
 
   @Override
@@ -138,57 +86,5 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
   @Override
   public boolean isSLL() {
     return false;
-  }
-
-  @Override
-  public SMGDoublyLinkedListSegment copyWithNewMinimumLength(int newMinimumLength) {
-    Preconditions.checkArgument(newMinimumLength >= 0);
-    return new SMGDoublyLinkedListSegment(
-        getNestingLevel(),
-        getSize(),
-        getOffset(),
-        getHeadOffset(),
-        getNextOffset(),
-        getNextPointerTargetOffset(),
-        prevOffset,
-        prevPointerTargetOffset,
-        newMinimumLength,
-        getRelevantEqualities());
-  }
-
-  @Override
-  public SMGDoublyLinkedListSegment copyWithNewRelevantEqualities(
-      EqualityCache<Value> pRelevantEqualities) {
-    return new SMGDoublyLinkedListSegment(
-        getNestingLevel(),
-        getSize(),
-        getOffset(),
-        getHeadOffset(),
-        getNextOffset(),
-        getNextPointerTargetOffset(),
-        prevOffset,
-        prevPointerTargetOffset,
-        getMinLength(),
-        pRelevantEqualities);
-  }
-
-  /**
-   * Copies the object, but the new object has a new id. So size etc. will match, but never the ID!
-   *
-   * @param objectToCopy obj to copy.
-   * @return a new object with the same size etc. as the old.
-   */
-  public static SMGObject of(SMGDoublyLinkedListSegment objectToCopy) {
-    return new SMGDoublyLinkedListSegment(
-        objectToCopy.getNestingLevel(),
-        objectToCopy.getSize(),
-        objectToCopy.getOffset(),
-        objectToCopy.getHeadOffset(),
-        objectToCopy.getNextOffset(),
-        objectToCopy.getNextPointerTargetOffset(),
-        objectToCopy.prevOffset,
-        objectToCopy.prevPointerTargetOffset,
-        objectToCopy.getMinLength(),
-        objectToCopy.getRelevantEqualities());
   }
 }

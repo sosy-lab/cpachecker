@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -16,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CUnaryExpression extends AUnaryExpression implements CExpression {
 
-  @Serial private static final long serialVersionUID = -7701970127701577207L;
+  private static final long serialVersionUID = -7701970127701577207L;
 
   public CUnaryExpression(
       final FileLocation pFileLocation,
@@ -44,15 +43,11 @@ public final class CUnaryExpression extends AUnaryExpression implements CExpress
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString(boolean pQualified) {
     if (getOperator() == UnaryOperator.SIZEOF || getOperator() == UnaryOperator.ALIGNOF) {
-      return getOperator().getOperator()
-          + "("
-          + getOperand().toASTString(pAAstNodeRepresentation)
-          + ")";
+      return getOperator().getOperator() + "(" + getOperand().toASTString(pQualified) + ")";
     } else {
-      return getOperator().getOperator()
-          + getOperand().toParenthesizedASTString(pAAstNodeRepresentation);
+      return getOperator().getOperator() + getOperand().toParenthesizedASTString(pQualified);
     }
   }
 

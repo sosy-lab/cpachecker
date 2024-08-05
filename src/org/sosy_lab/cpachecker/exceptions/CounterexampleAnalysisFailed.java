@@ -8,12 +8,10 @@
 
 package org.sosy_lab.cpachecker.exceptions;
 
-import java.io.Serial;
-
 /** Exception for cases when a counterexample could not be analyzed for its feasibility. */
 public class CounterexampleAnalysisFailed extends CPAException {
 
-  @Serial private static final long serialVersionUID = 1739510661568141393L;
+  private static final long serialVersionUID = 1739510661568141393L;
 
   public CounterexampleAnalysisFailed(String msg) {
     super("Counterexample could not be analyzed: " + msg);

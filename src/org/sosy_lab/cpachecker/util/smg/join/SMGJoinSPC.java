@@ -20,11 +20,11 @@ import java.util.Set;
 import java.util.TreeMap;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.StackFrame;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.util.smg.SMG;
-import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
-import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 /** Class implementing joinSPC algorithm10 from FIT-TR-2013-4 (Appendix C.7) */

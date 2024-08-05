@@ -204,9 +204,8 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
       } catch (ExecutionException e) {
         Throwable cause = e.getCause();
         if (cause != null) {
-          Throwables.throwIfInstanceOf(cause, CPATransferException.class);
-          Throwables.throwIfInstanceOf(cause, InterruptedException.class);
-          Throwables.throwIfUnchecked(cause);
+          Throwables.propagateIfPossible(
+              cause, CPATransferException.class, InterruptedException.class);
           throw new UncheckedExecutionException(cause);
         }
         throw new UncheckedExecutionException(e);

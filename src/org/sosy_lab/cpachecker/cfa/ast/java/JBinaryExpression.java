@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -29,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public final class JBinaryExpression extends ABinaryExpression implements JExpression {
 
-  @Serial private static final long serialVersionUID = 7830135105992595598L;
+  private static final long serialVersionUID = 7830135105992595598L;
 
   public JBinaryExpression(
       FileLocation pFileLocation,

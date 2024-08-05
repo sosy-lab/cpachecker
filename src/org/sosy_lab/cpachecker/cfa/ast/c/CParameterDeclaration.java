@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -22,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CParameterDeclaration extends AParameterDeclaration
     implements CSimpleDeclaration {
 
-  @Serial private static final long serialVersionUID = -6856088248264928629L;
+  private static final long serialVersionUID = -6856088248264928629L;
   private String qualifiedName;
 
   public CParameterDeclaration(FileLocation pFileLocation, CType pType, String pName) {

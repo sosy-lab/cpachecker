@@ -8,12 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.io.Serial;
 import java.util.Objects;
 
 public abstract class AExpressionStatement extends AbstractStatement {
 
-  @Serial private static final long serialVersionUID = 315680811122305698L;
+  private static final long serialVersionUID = 315680811122305698L;
   private final AExpression expression;
 
   protected AExpressionStatement(FileLocation pFileLocation, final AExpression pExpression) {
@@ -22,8 +21,8 @@ public abstract class AExpressionStatement extends AbstractStatement {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return expression.toASTString(pAAstNodeRepresentation) + ";";
+  public String toASTString(boolean pQualified) {
+    return expression.toASTString(pQualified) + ";";
   }
 
   public AExpression getExpression() {

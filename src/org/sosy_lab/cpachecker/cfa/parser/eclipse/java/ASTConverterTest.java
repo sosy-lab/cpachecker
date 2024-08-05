@@ -69,7 +69,7 @@ public class ASTConverterTest {
         true,
         false,
         false,
-        JClassType.createObjectType(),
+        JClassType.getTypeOfObject(),
         ImmutableSet.of());
   }
 

@@ -10,11 +10,9 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.Serial;
-
 public abstract class AbstractAstNode implements AAstNode {
 
-  @Serial private static final long serialVersionUID = -696796854111906290L;
+  private static final long serialVersionUID = -696796854111906290L;
   private final FileLocation fileLocation;
 
   protected AbstractAstNode(final FileLocation pFileLocation) {
@@ -27,8 +25,8 @@ public abstract class AbstractAstNode implements AAstNode {
   }
 
   @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(" + toASTString(pAAstNodeRepresentation) + ")";
+  public String toParenthesizedASTString(boolean pQualified) {
+    return "(" + toASTString(pQualified) + ")";
   }
 
   @Override

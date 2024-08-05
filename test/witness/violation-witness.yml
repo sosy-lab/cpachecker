@@ -37,7 +37,7 @@
             function: main
           constraint:
             string: (x >= 1024U)
-            format: c_expression
+            format: C
     - segment:
       - waypoint:
           action: follow
@@ -56,7 +56,7 @@
             line: 24
           constraint:
             string: x > 2
-            format: c_expression
+            format: C
       - waypoint:
           action: follow
           type: function_return
@@ -66,7 +66,7 @@
             function: main
           constraint:
             string: \return == 4
-            format: c_expression
+            format: C
     - segment:
       - waypoint:
           action: follow

@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 
 /** Handles problems during CFA generation */
 class CFAGenerationRuntimeException extends RuntimeException {
 
-  @Serial private static final long serialVersionUID = 6850681425709171716L;
+  private static final long serialVersionUID = 6850681425709171716L;
 
   public CFAGenerationRuntimeException(String msg) {
     super(msg);

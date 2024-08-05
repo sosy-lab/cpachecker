@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -31,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public final class JReferencedMethodInvocationExpression extends JMethodInvocationExpression {
 
-  @Serial private static final long serialVersionUID = -3779312927011479073L;
+  private static final long serialVersionUID = -3779312927011479073L;
   private final JIdExpression qualifier;
 
   public JReferencedMethodInvocationExpression(
@@ -50,10 +49,8 @@ public final class JReferencedMethodInvocationExpression extends JMethodInvocati
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return qualifier.toASTString(pAAstNodeRepresentation)
-        + "_"
-        + super.toASTString(pAAstNodeRepresentation);
+  public String toASTString(boolean pQualifier) {
+    return qualifier.toASTString(pQualifier) + "_" + super.toASTString(pQualifier);
   }
 
   @Override

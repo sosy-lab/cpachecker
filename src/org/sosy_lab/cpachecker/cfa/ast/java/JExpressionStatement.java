@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -30,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  */
 public final class JExpressionStatement extends AExpressionStatement implements JStatement {
 
-  @Serial private static final long serialVersionUID = -6963392437624456487L;
+  private static final long serialVersionUID = -6963392437624456487L;
 
   public JExpressionStatement(FileLocation pFileLocation, JExpression pExpression) {
     super(pFileLocation, pExpression);

@@ -31,25 +31,23 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
   @Option(
       secure = true,
       description =
-          "Bound for the number of complete loop unrollings\n"
-              + "of the program (0 is used for no bound).\n"
-              + "Works only if assumption storage CPA is enabled, because otherwise it would\n"
-              + "be unsound.")
+          "threshold for unrolling loops of the program (0 is infinite)\n"
+              + "works only if assumption storage CPA is enabled, because otherwise it would be"
+              + " unsound")
   private int maxLoopIterations = 0;
 
   @Option(
       secure = true,
       description =
-          "Maximum for adjusting the bound for the number of complete loop unrollings of the\n"
-              + " program (0 is used for no maximum).\n"
-              + "Only relevant in combination with a non-static adjuster for the bound for"
-              + " loop-head visits.")
+          "threshold for adjusting the threshold for unrolling loops of the program (0 is"
+              + " infinite).\n"
+              + "only relevant in combination with a non-static maximum loop iteration adjuster.")
   private int maxLoopIterationsUpperBound = 0;
 
   @Option(
       secure = true,
       description =
-          "This option controls how the maxLoopIterations condition is adjusted when a condition"
+          "this option controls how the maxLoopIterations condition is adjusted when a condition"
               + " adjustment is invoked.")
   private MaxLoopIterationAdjusters maxLoopIterationAdjusterFactory =
       MaxLoopIterationAdjusters.STATIC;

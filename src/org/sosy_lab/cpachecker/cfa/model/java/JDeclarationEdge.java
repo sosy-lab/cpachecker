@@ -15,6 +15,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public final class JDeclarationEdge extends ADeclarationEdge {
 
+  private static final long serialVersionUID = -3744160417799490039L;
+
   public JDeclarationEdge(
       final String pRawSignature,
       final FileLocation pFileLocation,

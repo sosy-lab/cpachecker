@@ -20,7 +20,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.graph.Traverser;
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,7 +42,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 /** This is a utility class for common operations on {@link ExpressionTree}s */
 public final class ExpressionTrees {
 
-  public static final String FUNCTION_DELIMITER = "::";
+  private static final String FUNCTION_DELIMITER = "::";
 
   @SuppressWarnings("unchecked")
   public static <LeafType> ExpressionTree<LeafType> getTrue() {
@@ -499,50 +498,26 @@ public final class ExpressionTrees {
    * representing true is returned.
    *
    * <p>Hint: This method can be used to get a C-like assumptions from a boolean formula, obtained
-   * using the toString() method of the expression tree
+   * using the toStrng() method of the expression tree
    *
    * @param formula the formula to transform
    * @param fMgr the formula manger having the formula "in scope"
+   * @param location to determine the current method for checking the scope.
    * @return the expression tree representing the formula.
    */
   public static ExpressionTree<Object> fromFormula(
       BooleanFormula formula, FormulaManagerView fMgr, CFANode location)
       throws InterruptedException {
-    return fromFormula(
-        formula,
-        fMgr,
-        name ->
-            !name.contains(FUNCTION_DELIMITER)
-                || name.startsWith(location.getFunctionName() + FUNCTION_DELIMITER));
-  }
-
-  /**
-   * Builds an expression tree for the given {@link BooleanFormula}. If the formula contains
-   * variables which do not match the filter pIncludeVariablesFilter the expression tree
-   * representing true is returned.
-   *
-   * <p>Hint: This method can be used to get a C-like assumptions from a boolean formula, obtained
-   * using the toString() method of the expression tree
-   *
-   * @param formula the formula to transform
-   * @param fMgr the formula manger having the formula "in scope"
-   * @param pIncludeVariablesFilter a filter for variable names, which should be considered.
-   * @return the expression tree representing the formula.
-   */
-  public static ExpressionTree<Object> fromFormula(
-      BooleanFormula formula,
-      FormulaManagerView fMgr,
-      Function<String, Boolean> pIncludeVariablesFilter)
-      throws InterruptedException {
 
     BooleanFormula inv = formula;
+    String prefix = location.getFunctionName() + FUNCTION_DELIMITER;
 
     inv =
         fMgr.filterLiterals(
             inv,
             e -> {
               for (String name : fMgr.extractVariableNames(e)) {
-                if (!pIncludeVariablesFilter.apply(name)) {
+                if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
                   return false;
                 }
               }
@@ -583,7 +558,7 @@ public final class ExpressionTrees {
   private static class ExpressionTreeComparator<LeafType>
       implements Comparator<ExpressionTree<LeafType>>, Serializable {
 
-    @Serial private static final long serialVersionUID = -8004131077972723263L;
+    private static final long serialVersionUID = -8004131077972723263L;
 
     private final Comparator<Iterable<ExpressionTree<LeafType>>> lexicographicalOrdering =
         Comparators.lexicographical(this);

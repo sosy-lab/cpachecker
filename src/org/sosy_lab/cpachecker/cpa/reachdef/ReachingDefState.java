@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,7 +32,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class ReachingDefState
     implements AbstractState, Serializable, LatticeAbstractState<ReachingDefState>, Graphable {
 
-  @Serial private static final long serialVersionUID = -7715698130795640052L;
+  private static final long serialVersionUID = -7715698130795640052L;
 
   private static final SerialProxyReach proxy = new SerialProxyReach();
 
@@ -50,7 +49,7 @@ public class ReachingDefState
   public ReachingDefState(Set<MemoryLocation> globalVariableNames) {
     localReachDefs = new HashMap<>();
     globalReachDefs = new HashMap<>();
-    addVariables(globalReachDefs, globalVariableNames, UninitializedDefinitionPoint.INSTANCE);
+    addVariables(globalReachDefs, globalVariableNames, UninitializedDefinitionPoint.getInstance());
   }
 
   public ReachingDefState(
@@ -102,7 +101,7 @@ public class ReachingDefState
       CFANode pExit) {
     ProgramDefinitionPoint definition = new ProgramDefinitionPoint(pEntry, pExit);
     Map<MemoryLocation, Set<DefinitionPoint>> localVarsDef = new HashMap<>(localReachDefs);
-    addVariables(localVarsDef, uninitVariableNames, UninitializedDefinitionPoint.INSTANCE);
+    addVariables(localVarsDef, uninitVariableNames, UninitializedDefinitionPoint.getInstance());
     addVariables(localVarsDef, parameters, definition);
     return new ReachingDefState(localVarsDef, globalReachDefs);
   }
@@ -261,7 +260,6 @@ public class ReachingDefState
     return result;
   }
 
-  @Serial
   private Object writeReplace() {
     if (this == topElement) {
       return proxy;
@@ -270,7 +268,6 @@ public class ReachingDefState
     }
   }
 
-  @Serial
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
 
@@ -288,7 +285,6 @@ public class ReachingDefState
   }
 
   @SuppressWarnings("unchecked")
-  @Serial
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
 
@@ -310,11 +306,10 @@ public class ReachingDefState
 
   private static class SerialProxyReach implements Serializable {
 
-    @Serial private static final long serialVersionUID = 2843708585446089623L;
+    private static final long serialVersionUID = 2843708585446089623L;
 
     public SerialProxyReach() {}
 
-    @Serial
     private Object readResolve() {
       return topElement;
     }
@@ -322,18 +317,52 @@ public class ReachingDefState
 
   public interface DefinitionPoint {}
 
-  public enum UninitializedDefinitionPoint implements DefinitionPoint, Serializable {
-    INSTANCE;
+  public static class UninitializedDefinitionPoint implements DefinitionPoint, Serializable {
+
+    private static final long serialVersionUID = 6987753908487106524L;
+    private static UninitializedDefinitionPoint instance = new UninitializedDefinitionPoint();
+    private static final SerialProxy writeReplace = new SerialProxy();
+
+    private UninitializedDefinitionPoint() {}
+
+    public static UninitializedDefinitionPoint getInstance() {
+      return instance;
+    }
 
     @Override
     public String toString() {
       return "?";
     }
+
+    private Object writeReplace() {
+      return writeReplace;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      return pO instanceof UninitializedDefinitionPoint;
+    }
+
+    private static class SerialProxy implements Serializable {
+
+      private static final long serialVersionUID = 2843708585446089623L;
+
+      public SerialProxy() {}
+
+      private Object readResolve() {
+        return instance;
+      }
+    }
   }
 
   public static class ProgramDefinitionPoint implements DefinitionPoint, Serializable {
 
-    @Serial private static final long serialVersionUID = -7601382286840053882L;
+    private static final long serialVersionUID = -7601382286840053882L;
     private transient CFANode entry;
     private transient CFANode exit;
 
@@ -370,13 +399,11 @@ public class ReachingDefState
           && Objects.equals(exit, other.exit);
     }
 
-    @Serial
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
       out.writeInt(entry.getNodeNumber());
       out.writeInt(exit.getNodeNumber());
     }
 
-    @Serial
     private void readObject(java.io.ObjectInputStream in) throws IOException {
       int nodeNumber = in.readInt();
       CFAInfo cfaInfo = SerializationInfoStorage.getInstance().getCFAInfo().orElseThrow();

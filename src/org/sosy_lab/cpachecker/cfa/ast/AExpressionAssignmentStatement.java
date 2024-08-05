@@ -10,13 +10,12 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.Serial;
 import java.util.Objects;
 
 public abstract class AExpressionAssignmentStatement extends AbstractStatement
     implements AAssignment {
 
-  @Serial private static final long serialVersionUID = -6099960243945488221L;
+  private static final long serialVersionUID = -6099960243945488221L;
   private final ALeftHandSide leftHandSide;
   private final AExpression rightHandSide;
 
@@ -28,10 +27,10 @@ public abstract class AExpressionAssignmentStatement extends AbstractStatement
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return leftHandSide.toASTString(pAAstNodeRepresentation)
+  public String toASTString(boolean pQualified) {
+    return leftHandSide.toASTString(pQualified)
         + " = "
-        + rightHandSide.toASTString(pAAstNodeRepresentation)
+        + rightHandSide.toASTString(pQualified)
         + ";";
   }
 

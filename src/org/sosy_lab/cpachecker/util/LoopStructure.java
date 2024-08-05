@@ -25,6 +25,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,7 +66,9 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /** Class collecting and containing information about all loops in a CFA. */
-public final class LoopStructure {
+public final class LoopStructure implements Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   /**
    * Class representing one loop in a CFA. A loop is a subset of CFA nodes which are strongly
@@ -92,7 +95,9 @@ public final class LoopStructure {
    * the inner loop directly leaving both loops). In such cases, both loops are considered only one
    * loop (which is legal according to the definition above).
    */
-  public static class Loop implements Comparable<Loop> {
+  public static class Loop implements Serializable, Comparable<Loop> {
+
+    private static final long serialVersionUID = 1L;
 
     private static final Comparator<Iterable<CFANode>> NODES_COMPARATOR =
         Comparators.lexicographical(Comparator.<CFANode>naturalOrder());
@@ -282,14 +287,14 @@ public final class LoopStructure {
 
   private final ImmutableListMultimap<String, Loop> loops;
 
-  private @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
+  private transient @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
 
   // computed lazily
-  private @Nullable ImmutableSet<String> loopExitConditionVariables;
-  private @Nullable ImmutableSet<String> loopIncDecVariables;
+  private transient @Nullable ImmutableSet<String> loopExitConditionVariables;
+  private transient @Nullable ImmutableSet<String> loopIncDecVariables;
 
   // computed lazily
-  private @Nullable Multimap<CFANode, Loop> nodeToLoops = null;
+  private transient @Nullable Multimap<CFANode, Loop> nodeToLoops = null;
 
   // computed lazily on demand per edge
   private Map<CFAEdge, List<Loop>> loopsContainingEdge = new HashMap<>();

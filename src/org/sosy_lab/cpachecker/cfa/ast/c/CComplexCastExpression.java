@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -16,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CComplexCastExpression extends AbstractExpression implements CLeftHandSide {
 
-  @Serial private static final long serialVersionUID = -3131719369492162894L;
+  private static final long serialVersionUID = -3131719369492162894L;
   private final CExpression operand;
   private final CType type;
 
@@ -78,11 +77,11 @@ public final class CComplexCastExpression extends AbstractExpression implements 
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString(boolean pQualified) {
     if (isReal) {
-      return "__real__ " + operand.toASTString(pAAstNodeRepresentation);
+      return "__real__ " + operand.toASTString(pQualified);
     } else {
-      return "__imag__ " + operand.toASTString(pAAstNodeRepresentation);
+      return "__imag__ " + operand.toASTString(pQualified);
     }
   }
 

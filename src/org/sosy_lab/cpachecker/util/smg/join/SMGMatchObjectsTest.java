@@ -162,7 +162,7 @@ public class SMGMatchObjectsTest extends SMGJoinTest0 {
     assertThat(mo.isDefined()).isFalse();
 
     smg2 = smg2.copyAndAddObject(srcObj2);
-    smg2 = smg2.copyAndInvalidateObject(srcObj2, true);
+    smg2 = smg2.copyAndInvalidateObject(srcObj2);
     mo =
         new SMGMatchObjects(
             SMGJoinStatus.EQUAL,
@@ -209,16 +209,16 @@ public class SMGMatchObjectsTest extends SMGJoinTest0 {
     SMGHasValueEdge hvMatching1 = createHasValueEdge(2, 4, createValue());
     SMGHasValueEdge hvMatching2 = createHasValueEdge(2, 4, createValue());
 
-    smg1 = smg1.copyAndAddValueWithNestingLevelZero(hv1.hasValue());
+    smg1 = smg1.copyAndAddValue(hv1.hasValue());
     smg1 = smg1.copyAndAddHVEdge(hv1, srcObj1);
 
-    smg2 = smg2.copyAndAddValueWithNestingLevelZero(hv2.hasValue());
+    smg2 = smg2.copyAndAddValue(hv2.hasValue());
     smg2 = smg2.copyAndAddHVEdge(hv2, srcObj2);
 
-    smg1 = smg1.copyAndAddValueWithNestingLevelZero(hvMatching1.hasValue());
+    smg1 = smg1.copyAndAddValue(hvMatching1.hasValue());
     smg1 = smg1.copyAndAddHVEdge(hvMatching1, srcObj1);
 
-    smg2 = smg2.copyAndAddValueWithNestingLevelZero(hvMatching2.hasValue());
+    smg2 = smg2.copyAndAddValue(hvMatching2.hasValue());
     smg2 = smg2.copyAndAddHVEdge(hvMatching2, srcObj2);
 
     SMGMatchObjects mo =

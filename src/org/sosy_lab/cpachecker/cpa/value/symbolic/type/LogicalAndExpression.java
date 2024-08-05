@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -16,7 +15,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /** {@link BinarySymbolicExpression} representing the 'logical and' operation. */
 public final class LogicalAndExpression extends BinarySymbolicExpression {
 
-  @Serial private static final long serialVersionUID = 8274694737043926521L;
+  private static final long serialVersionUID = 8274694737043926521L;
 
   LogicalAndExpression(
       SymbolicExpression pOperand1,

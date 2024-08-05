@@ -13,4 +13,3 @@ input_files: 'enum-large-llu.c'
 
 properties:
   - property_file: ../../config/properties/unreach-label.prp
-    expected_verdict: true

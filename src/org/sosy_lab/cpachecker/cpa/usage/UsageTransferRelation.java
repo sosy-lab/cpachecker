@@ -217,7 +217,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
           break;
         }
 
-      // if edge is a statement edge, e.g. a = b + c
+        // if edge is a statement edge, e.g. a = b + c
       case StatementEdge:
         {
           CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;

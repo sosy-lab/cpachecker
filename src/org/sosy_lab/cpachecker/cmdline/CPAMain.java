@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.core.specification.Property.CoverFunctionCallProp
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser;
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParser;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -87,7 +87,7 @@ public class CPAMain {
 
     if (args.length == 0) {
       // be nice to user
-      args = new String[] {"--help"};
+      args = new String[] {"-help"};
     }
 
     // initialize various components
@@ -673,19 +673,14 @@ public class CPAMain {
     } else {
       WitnessType witnessType;
       try {
-        // If a GraphML witness is parse first, then the parsing produces the error message "[Fatal
-        // Error] :1:1: Content is not allowed in prolog." which is printed directly to
-        // stdout/stderr. This is not desired in CPAchecker. For the meaning of the error see:
-        // https://stackoverflow.com/questions/11577420/fatal-error-11-content-is-not-allowed-in-prolog
-        Optional<WitnessType> optionalWitnessTypeYAML =
-            AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(options.witness);
-        if (optionalWitnessTypeYAML.isPresent()) {
-          witnessType = optionalWitnessTypeYAML.orElseThrow();
+        Optional<WitnessType> optionalWitnessType =
+            AutomatonGraphmlParser.getWitnessTypeIfXML(options.witness);
+        if (optionalWitnessType.isPresent()) {
+          witnessType = optionalWitnessType.orElseThrow();
         } else {
-          Optional<WitnessType> optionalWitnessTypeGraphML =
-              AutomatonGraphmlParser.getWitnessTypeIfXML(options.witness);
-          if (optionalWitnessTypeGraphML.isPresent()) {
-            witnessType = optionalWitnessTypeGraphML.orElseThrow();
+          optionalWitnessType = AutomatonYAMLParser.getWitnessTypeIfYAML(options.witness);
+          if (optionalWitnessType.isPresent()) {
+            witnessType = optionalWitnessType.orElseThrow();
           } else {
             throw new InvalidConfigurationException(
                 "The Witness format found for " + options.witness + " is currently not supported.");
@@ -694,6 +689,7 @@ public class CPAMain {
       } catch (NoSuchFileException e) {
         throw new InvalidConfigurationException(
             "Cannot parse witness: " + e.getFile() + " does not exist.", e);
+
       } catch (IOException e) {
         throw new InvalidConfigurationException("Cannot parse witness: " + e.getMessage(), e);
       }

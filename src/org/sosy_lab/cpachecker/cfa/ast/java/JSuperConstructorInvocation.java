@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
@@ -25,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
  */
 public final class JSuperConstructorInvocation extends JClassInstanceCreation {
 
-  @Serial private static final long serialVersionUID = 1241406733020430434L;
+  private static final long serialVersionUID = 1241406733020430434L;
 
   public JSuperConstructorInvocation(
       FileLocation pFileLocation,
@@ -37,7 +36,7 @@ public final class JSuperConstructorInvocation extends JClassInstanceCreation {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString(boolean pQualified) {
     return toASTString();
   }
 

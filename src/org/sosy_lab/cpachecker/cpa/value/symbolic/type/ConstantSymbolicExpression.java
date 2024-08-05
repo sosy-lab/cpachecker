@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
-import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -18,7 +17,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /** {@link SymbolicExpression} that represents a single constant value of a specific type. */
 public final class ConstantSymbolicExpression extends SymbolicExpression {
 
-  @Serial private static final long serialVersionUID = 8720056661933193765L;
+  private static final long serialVersionUID = 8720056661933193765L;
 
   private final Value value;
   private final Type type;

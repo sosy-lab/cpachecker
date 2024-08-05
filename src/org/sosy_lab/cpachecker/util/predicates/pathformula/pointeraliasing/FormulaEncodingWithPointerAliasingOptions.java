@@ -112,6 +112,7 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   private boolean handleStringLiteralInitializers = false;
 
   @Option(
+      deprecatedName = "maxPreciseStrlenSize",
       secure = true,
       description =
           "When builtin functions like memcmp/strlen/etc. are called, unroll them up to this bound."

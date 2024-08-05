@@ -244,9 +244,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator
     try {
       return invariantGenerationFuture.get();
     } catch (ExecutionException e) {
-      Throwables.throwIfInstanceOf(e.getCause(), CPAException.class);
-      Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
-      Throwables.throwIfUnchecked(e.getCause());
+      Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
       throw new UnexpectedCheckedException("invariant generation", e.getCause());
     } catch (CancellationException e) {
       shutdownManager.getNotifier().shutdownIfNecessary();

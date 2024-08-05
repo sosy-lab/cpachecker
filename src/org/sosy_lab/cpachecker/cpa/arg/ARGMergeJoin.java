@@ -144,7 +144,7 @@ public class ARGMergeJoin implements MergeOperator {
                   + " The merge will be performed as usual and no further cases will be logged. Cf."
                   + " issue #991 for more information about late merges.");
           options.lateMerge = LateMergeHandling.ALLOW;
-        // $FALL-THROUGH$
+          // $FALL-THROUGH$
         case ALLOW:
           break;
         case PREVENT_WARN:
@@ -155,7 +155,7 @@ public class ARGMergeJoin implements MergeOperator {
                   + " This merge and all other late merges will be prevented, but no further cases"
                   + " will be logged. Cf. issue #991 for more information about late merges.");
           options.lateMerge = LateMergeHandling.PREVENT;
-        // $FALL-THROUGH$
+          // $FALL-THROUGH$
         case PREVENT:
           return pElement2;
         case CRASH:

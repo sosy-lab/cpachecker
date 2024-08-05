@@ -66,11 +66,11 @@ public class SMGMapTargetAddressTest extends SMGJoinTest0 {
   @Test
   public void mapTargetAddressExisting() {
     SMGPointsToEdge destEdge = createPTRegionEdge(0, destObj);
-    smg1 = smg1.copyAndAddValueWithNestingLevelZero(value1);
+    smg1 = smg1.copyAndAddValue(value1);
     smg1 = smg1.copyAndAddObject(obj1);
     smg1 = smg1.copyAndAddPTEdge(edge1, value1);
 
-    destSMG = destSMG.copyAndAddValueWithNestingLevelZero(destValue);
+    destSMG = destSMG.copyAndAddValue(destValue);
     destSMG = destSMG.copyAndAddObject(destObj);
     destSMG = destSMG.copyAndAddPTEdge(destEdge, destValue);
 
@@ -88,7 +88,7 @@ public class SMGMapTargetAddressTest extends SMGJoinTest0 {
 
   @Test
   public void mapTargetAddressNew() {
-    smg1 = smg1.copyAndAddValueWithNestingLevelZero(value1);
+    smg1 = smg1.copyAndAddValue(value1);
     smg1 = smg1.copyAndAddObject(obj1);
     smg1 = smg1.copyAndAddPTEdge(edge1, value1);
 
@@ -106,7 +106,7 @@ public class SMGMapTargetAddressTest extends SMGJoinTest0 {
     assertThat(mta.mapping1).isNotEqualTo(origMapping1);
     assertThat(mta.mapping2).isNotEqualTo(origMapping2);
 
-    assertThat(destSMG.getValues().containsKey(mta.getValue())).isFalse();
+    assertThat(destSMG.getValues().contains(mta.getValue())).isFalse();
 
     SMG newDestSmg = mta.getDestinationSMG();
     SMGPointsToEdge newEdge = newDestSmg.getPTEdge(mta.getValue()).orElseThrow();
@@ -115,7 +115,6 @@ public class SMGMapTargetAddressTest extends SMGJoinTest0 {
     assertThat(mta.mapping2.getMappedValue(value2)).isSameInstanceAs(mta.getValue());
 
     assertThat(newEdge.pointsTo()).isSameInstanceAs(destObj);
-    assertThat(newEdge.getOffset().isNumericValue()).isTrue();
-    assertThat(newEdge.getOffset().asNumericValue().bigIntegerValue()).isEqualTo(BigInteger.ZERO);
+    assertThat(newEdge.getOffset()).isEqualTo(BigInteger.ZERO);
   }
 }

@@ -46,12 +46,10 @@ class TypeHierachyConverter {
 
   public final LogManager logger;
   public final THTypeConverter typeConverter;
-  private final THTypeTable typeTable;
 
   public TypeHierachyConverter(LogManager pLogger, THTypeTable pTypeTable) {
     logger = pLogger;
     typeConverter = new THTypeConverter(pTypeTable);
-    typeTable = pTypeTable;
   }
 
   /**
@@ -67,7 +65,7 @@ class TypeHierachyConverter {
 
     if (methodBinding == null) {
       logger.log(Level.WARNING, md.getName(), "can't be resolved.");
-      return typeTable.getUnresolvableMethodDeclaration();
+      return JMethodDeclaration.createUnresolvedMethodDeclaration();
     }
 
     String methodName = NameConverter.convertName(methodBinding);
@@ -194,13 +192,13 @@ class TypeHierachyConverter {
     IMethodBinding methodBinding = md.resolveBinding();
 
     if (methodBinding == null) {
-      return typeTable.getUnresolvableClassType();
+      return JClassType.createUnresolvableType();
     }
 
     ITypeBinding typeBinding = methodBinding.getDeclaringClass();
 
     if (typeBinding == null) {
-      return typeTable.getUnresolvableClassType();
+      return JClassType.createUnresolvableType();
     }
 
     return typeConverter.convertClassOrInterfaceType(typeBinding);
@@ -212,7 +210,7 @@ class TypeHierachyConverter {
     if (type instanceof JClassType) {
       return (JClassType) type;
     } else {
-      return typeTable.getUnresolvableClassType();
+      return JClassType.createUnresolvableType();
     }
   }
 
@@ -264,9 +262,7 @@ class TypeHierachyConverter {
         l.getStartPosition(),
         l.getLength(),
         co.getLineNumber(l.getStartPosition()),
-        co.getLineNumber(l.getLength() + l.getStartPosition()),
-        co.getColumnNumber(l.getStartPosition()),
-        co.getColumnNumber(l.getLength() + l.getStartPosition()));
+        co.getLineNumber(l.getLength() + l.getStartPosition()));
   }
 
   public JClassOrInterfaceType convertClassOrInterfaceType(ITypeBinding pTypeBinding) {

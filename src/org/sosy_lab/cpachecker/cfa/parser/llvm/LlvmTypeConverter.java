@@ -34,11 +34,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.llvm_j.TypeRef;
 import org.sosy_lab.llvm_j.TypeRef.TypeKind;
-import org.sosy_lab.llvm_j.Value;
 
 /** Converts LLVM types to {@link CType CTypes}. */
 public class LlvmTypeConverter {
@@ -59,12 +57,12 @@ public class LlvmTypeConverter {
     logger = pLogger;
   }
 
-  public @Nullable CType getCType(final Value pLlvmValue) {
-    return getCType(pLlvmValue.typeOf(), /* isUnsigned= */ false, pLlvmValue.isConstant());
+  public @Nullable CType getCType(final TypeRef pLlvmType) {
+    return getCType(pLlvmType, /* isUnsigned= */ false);
   }
 
-  public @Nullable CType getCType(
-      final TypeRef pLlvmType, final boolean isUnsigned, final boolean isConst) {
+  public @Nullable CType getCType(final TypeRef pLlvmType, final boolean isUnsigned) {
+    final boolean isConst = false;
     final boolean isVolatile = false;
     TypeKind typeKind = pLlvmType.getTypeKind();
     switch (typeKind) {
@@ -80,14 +78,13 @@ public class LlvmTypeConverter {
         return getFloatType(typeKind, isUnsigned);
       case Integer:
         int integerWidth = pLlvmType.getIntTypeWidth();
-        return getIntegerType(integerWidth, isUnsigned, isConst);
+        return getIntegerType(integerWidth, isUnsigned);
 
       case Function:
-        assert !isConst : "We don't support function types that are const";
         return getFunctionType(pLlvmType);
 
       case Struct:
-        return createStructType(pLlvmType, isConst);
+        return createStructType(pLlvmType);
 
       case Array:
         CIntegerLiteralExpression arrayLength =
@@ -97,17 +94,14 @@ public class LlvmTypeConverter {
                 BigInteger.valueOf(pLlvmType.getArrayLength()));
 
         return new CArrayType(
-            isConst,
-            isVolatile,
-            getCType(pLlvmType.getElementType(), isUnsigned, isConst),
-            arrayLength);
+            isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned), arrayLength);
 
       case Pointer:
         if (pLlvmType.getPointerAddressSpace() != 0) {
           logger.log(Level.WARNING, "Pointer address space not considered.");
         }
         return new CPointerType(
-            isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned, isConst));
+            isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned));
 
       case Vector:
         CIntegerLiteralExpression vectorLength =
@@ -117,10 +111,7 @@ public class LlvmTypeConverter {
                 BigInteger.valueOf(pLlvmType.getVectorSize()));
 
         return new CArrayType(
-            isConst,
-            isVolatile,
-            getCType(pLlvmType.getElementType(), isUnsigned, isConst),
-            vectorLength);
+            isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned), vectorLength);
       case Label:
       case Metadata:
       case X86_MMX:
@@ -133,7 +124,8 @@ public class LlvmTypeConverter {
     }
   }
 
-  private CType createStructType(final TypeRef pStructType, boolean isConst) {
+  private CType createStructType(final TypeRef pStructType) {
+    final boolean isConst = false;
     final boolean isVolatile = false;
 
     if (pStructType.isOpaqueStruct()) {
@@ -163,7 +155,7 @@ public class LlvmTypeConverter {
     for (int i = 0; i < memberTypes.size(); i++) {
       String memberName = getMemberName(i);
       TypeRef memType = memberTypes.get(i);
-      CType cMemType = getCType(memType, /* isUnsigned= */ false, /* isConst= */ false);
+      CType cMemType = getCType(memType);
       CCompositeTypeMemberDeclaration memDecl =
           new CCompositeTypeMemberDeclaration(cMemType, memberName);
       members.add(memDecl);
@@ -194,15 +186,14 @@ public class LlvmTypeConverter {
   }
 
   private CType getFunctionType(TypeRef pFuncType) {
-    CType returnType =
-        getCType(pFuncType.getReturnType(), /* isUnsigned= */ false, /* isConst= */ false);
+    CType returnType = getCType(pFuncType.getReturnType());
 
     int paramNumber = pFuncType.countParamTypes();
     List<CType> parameterTypes = new ArrayList<>(paramNumber);
 
     List<TypeRef> paramTypes = pFuncType.getParamTypes();
     for (TypeRef type : paramTypes) {
-      CType cParamType = getCType(type, /* isUnsigned= */ false, /* isConst= */ false);
+      CType cParamType = getCType(type);
       parameterTypes.add(cParamType);
     }
 
@@ -212,49 +203,32 @@ public class LlvmTypeConverter {
     return new CFunctionType(returnType, parameterTypes, takesVarArgs);
   }
 
-  private CType getIntegerType(
-      final int pIntegerWidth, final boolean isUnsigned, final boolean isConst) {
+  private CType getIntegerType(final int pIntegerWidth, final boolean isUnsigned) {
     final int sizeOfChar = machineModel.getSizeofCharInBits();
-    // baseType is final so that we can make sure we didn't forget to assign it
-    final CType baseType;
     if (machineModel.getSizeofInt() * sizeOfChar == pIntegerWidth) {
       if (isUnsigned) {
-        baseType = CNumericTypes.UNSIGNED_INT;
+        return CNumericTypes.UNSIGNED_INT;
       } else {
-        baseType = CNumericTypes.SIGNED_INT;
+        return CNumericTypes.SIGNED_INT;
       }
 
     } else if (machineModel.getSizeofLongInt() * sizeOfChar == pIntegerWidth) {
       if (isUnsigned) {
-        baseType = CNumericTypes.UNSIGNED_LONG_INT;
+        return CNumericTypes.UNSIGNED_LONG_INT;
       } else {
-        baseType = CNumericTypes.SIGNED_LONG_INT;
+        return CNumericTypes.SIGNED_LONG_INT;
       }
 
     } else if (machineModel.getSizeofLongLongInt() * sizeOfChar == pIntegerWidth) {
       if (isUnsigned) {
-        baseType = CNumericTypes.UNSIGNED_LONG_LONG_INT;
+        return CNumericTypes.UNSIGNED_LONG_LONG_INT;
       } else {
-        baseType = CNumericTypes.SIGNED_LONG_LONG_INT;
-      }
-
-    } else if (machineModel.getSizeofChar() * sizeOfChar == pIntegerWidth) {
-      if (isUnsigned) {
-        baseType = CNumericTypes.UNSIGNED_CHAR;
-      } else {
-        baseType = CNumericTypes.SIGNED_CHAR;
+        return CNumericTypes.SIGNED_LONG_LONG_INT;
       }
 
     } else {
-      baseType =
-          new CBitFieldType(
-              isUnsigned ? CNumericTypes.UNSIGNED_INT : CNumericTypes.SIGNED_INT, pIntegerWidth);
-    }
-
-    if (isConst) {
-      return CTypes.withConst(baseType);
-    } else {
-      return baseType;
+      return new CBitFieldType(
+          isUnsigned ? CNumericTypes.UNSIGNED_INT : CNumericTypes.SIGNED_INT, pIntegerWidth);
     }
   }
 

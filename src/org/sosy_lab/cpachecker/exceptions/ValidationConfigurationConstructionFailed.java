@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.exceptions;
 
-import java.io.Serial;
-
 public class ValidationConfigurationConstructionFailed extends Exception {
 
-  @Serial private static final long serialVersionUID = -381269425082457805L;
+  private static final long serialVersionUID = -381269425082457805L;
 
   public ValidationConfigurationConstructionFailed() {}
 

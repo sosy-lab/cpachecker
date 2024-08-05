@@ -8,14 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract sealed class CDesignator extends AbstractAstNode implements CAstNode
     permits CArrayDesignator, CArrayRangeDesignator, CFieldDesignator {
 
-  @Serial private static final long serialVersionUID = 6870178640888782994L;
+  private static final long serialVersionUID = 6870178640888782994L;
 
   protected CDesignator(FileLocation pFileLoc) {
     super(pFileLoc);

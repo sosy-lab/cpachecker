@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -25,7 +24,7 @@ public sealed class JIdExpression extends AIdExpression implements JLeftHandSide
 
   // TODO refactor to be either abstract or final
 
-  @Serial private static final long serialVersionUID = -8692379352848856024L;
+  private static final long serialVersionUID = -8692379352848856024L;
 
   public JIdExpression(
       FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {

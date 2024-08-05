@@ -9,14 +9,13 @@
 package org.sosy_lab.cpachecker.util.error;
 
 import com.google.common.collect.ImmutableSet;
-import java.io.Serial;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class DummyErrorState extends ARGState {
 
-  @Serial private static final long serialVersionUID = 1338393013733003150L;
+  private static final long serialVersionUID = 1338393013733003150L;
 
   public DummyErrorState(final AbstractState pWrapped) {
     super(pWrapped, null);

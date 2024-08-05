@@ -26,9 +26,7 @@ def _strip_xml_extension(path):
     return path
 
 
-def _get_validation_path(testdef_path, yaml_witness=False):
-    if yaml_witness:
-        return _strip_xml_extension(testdef_path) + "-yaml-witness-validation.xml"
+def _get_validation_path(testdef_path):
     return _strip_xml_extension(testdef_path) + "-validation.xml"
 
 
@@ -45,7 +43,7 @@ def _remove(tag):
 
 # if needed, add a new option for the machinemodel.
 def _addMachineModelOption(option, mmText, mmValue):
-    if mmText is not None and option.attrib["name"] in ["--32", "-32", "--64", "-64"]:
+    if mmText is not None and option.attrib["name"] in ["-32", "-64"]:
         machinemodel = option.attrib["name"][1:]  # CPAchecker-specific!
         option.getparent().append(_option(mmText, mmValue.format(machinemodel)))
 
@@ -60,7 +58,7 @@ def _fixOptions(benchmark, rundef, mmText=None, mmValue=None):
             _remove(option)
 
 
-def _generate_validation_file(testdef_path, tool, yaml_witness=False):
+def _generate_validation_file(testdef_path, tool):
     testdef = etree.parse(testdef_path)
     benchmark = testdef.getroot()
     rundef = benchmark.find("rundefinition")
@@ -75,10 +73,7 @@ def _generate_validation_file(testdef_path, tool, yaml_witness=False):
     witness_file = _strip_xml_extension(os.path.basename(testdef_path)) + ".files/"
     if input_rundef_name:
         witness_file += input_rundef_name + "."
-    if yaml_witness:
-        witness_file += "${taskdef_name}/output/witness.yml"
-    else:
-        witness_file += "${taskdef_name}/output/witness.graphml.gz"
+    witness_file += "${taskdef_name}/output/witness.graphml.gz"
     witness_path = "test/results/" + witness_file
     test_dir = _get_test_directory()
     rundef.set("name", "witnessValidation")
@@ -87,8 +82,8 @@ def _generate_validation_file(testdef_path, tool, yaml_witness=False):
     assert benchmark.attrib["tool"] == "cpachecker"
     if tool == "CPAchecker":
         benchmark.attrib["tool"] = "cpachecker"
-        rundef.append(_option("--witnessValidation"))
-        rundef.append(_option("--witness", witness_path))
+        rundef.append(_option("-witnessValidation"))
+        rundef.append(_option("-witness", witness_path))
 
     elif tool == "UAutomizer":
         _fixOptions(benchmark, rundef, "--architecture", "{}bit")
@@ -112,7 +107,7 @@ def _generate_validation_file(testdef_path, tool, yaml_witness=False):
     _remove(benchmark.find("resultfiles"))
 
     # Write the validation file
-    with open(_get_validation_path(testdef_path, yaml_witness), "wb") as output_file:
+    with open(_get_validation_path(testdef_path), "wb") as output_file:
         testdef.write(output_file, pretty_print=True)
 
 
@@ -155,4 +150,3 @@ if __name__ == "__main__":
     for path in args:
         _check(path)
         _generate_validation_file(path, tool)
-        _generate_validation_file(path, tool, yaml_witness=True)

@@ -8,11 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
+import java.io.Serializable;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public interface CFAEdge {
+public interface CFAEdge extends Serializable {
 
   CFAEdgeType getEdgeType();
 

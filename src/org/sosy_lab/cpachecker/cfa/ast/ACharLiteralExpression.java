@@ -9,13 +9,12 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import com.google.errorprone.annotations.InlineMe;
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /** This is the abstract Class for Character Literals. */
 public abstract class ACharLiteralExpression extends ALiteralExpression {
 
-  @Serial private static final long serialVersionUID = 6806494425621157804L;
+  private static final long serialVersionUID = 6806494425621157804L;
   private final char character;
 
   protected ACharLiteralExpression(FileLocation pFileLocation, Type pType, char pCharacter) {

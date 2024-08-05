@@ -806,7 +806,7 @@ class WebInterface:
         opened_files = []
         config = None
 
-        # TODO use code from CPAchecker module, it add --stats and sets --timelimit,
+        # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
         # instead of doing it here manually, too
         if self._tool_name == "CPAchecker":
             params.append(("option", "statistics.print=true"))
@@ -843,39 +843,36 @@ class WebInterface:
                     if len(option) == 0:
                         continue
 
-                    if option in ["--heap", "-heap"]:
+                    if option == "-heap":
                         params.append(("heap", next(i)))
-                    elif option in ["--stack", "-stack"]:
+                    elif option == "-stack":
                         params.append(("stack", next(i)))
 
-                    elif option in ["--no-output-files", "-noout"]:
+                    elif option == "-noout":
                         params.append(("option", "output.disable=true"))
-                    elif option in ["--output-path", "-outputpath"]:
+                    elif option == "-outputpath":
                         params.append(("option", "output.path=" + next(i)))
                     elif option == "-logfile":
                         params.append(("option", "log.file=" + next(i)))
                     elif option == "-nolog":
                         params.append(("option", "log.level=OFF"))
                         params.append(("option", "log.consoleLevel=OFF"))
-                    elif option in ["--stats", "-stats"]:
+                    elif option == "-stats":
                         # ignore, is always set by this script
                         pass
-                    elif option in [
-                        "--disable-java-assertions",
-                        "-disable-java-assertions",
-                    ]:
+                    elif option == "-disable-java-assertions":
                         disableAssertions = True
-                    elif option in ["--java", "-java"]:
+                    elif option == "-java":
                         params.append(("option", "language=JAVA"))
-                    elif option in ["--32", "-32"]:
+                    elif option == "-32":
                         params.append(("option", "analysis.machineModel=Linux32"))
-                    elif option in ["--64", "-64"]:
+                    elif option == "-64":
                         params.append(("option", "analysis.machineModel=Linux64"))
-                    elif option in ["--entry-function", "-entryfunction"]:
+                    elif option == "-entryfunction":
                         params.append(("option", "analysis.entryFunction=" + next(i)))
-                    elif option in ["--timelimit", "-timelimit"]:
+                    elif option == "-timelimit":
                         params.append(("option", "limits.time.cpu=" + next(i)))
-                    elif option in ["--skip-recursion", "-skipRecursion"]:
+                    elif option == "-skipRecursion":
                         params.append(("option", "cpa.callstack.skipRecursion=true"))
                         params.append(("option", "analysis.summaryEdges=true"))
                     elif option == "-cbmc":
@@ -883,23 +880,23 @@ class WebInterface:
                         params.append(("option", "counterexample.checker=CBMC"))
                     elif option == "-clang":
                         params.append(("option", "parser.useClang=true"))
-                    elif option in ["--preprocess", "-preprocess"]:
+                    elif option == "-preprocess":
                         params.append(("option", "parser.usePreprocessor=true"))
                     elif option == "-generateReport":
                         params.append(("generateReport", "true"))
-                    elif option in ["--source-path", "-sourcepath"]:
+                    elif option == "-sourcepath":
                         params.append(("option", "java.sourcepath=" + next(i)))
-                    elif option in ["--class-path", "-cp", "-classpath"]:
+                    elif option in ["-cp", "-classpath"]:
                         params.append(("option", "java.classpath=" + next(i)))
 
-                    elif option in ["--spec", "-spec"]:
+                    elif option == "-spec":
                         spec_path = next(i)
                         spec_file = self._add_file_to_params(
                             params, "specificationText", spec_path
                         )
                         opened_files.append(spec_file)
 
-                    elif option in ["--config", "-c", "-config"]:
+                    elif option == "-config":
                         configPath = next(i)
                         tokens = configPath.split("/")
                         if tokens[0] == "config" and len(tokens) == 2:
@@ -910,11 +907,11 @@ class WebInterface:
                                 ("option", "configuration.file=" + configPath)
                             )
 
-                    elif option in ["--option", "-setprop"]:
+                    elif option == "-setprop":
                         params.append(("option", next(i)))
 
-                    elif option in ["--benchmark", "-benchmark"]:
-                        params.append(("option", "coverage.enabled=false"))
+                    elif option == "-benchmark":
+                        params.append(("option", "coverage.enabled=true"))
                         params.append(("option", "output.disable=true"))
                         params.append(("option", "statistics.memory=false"))
                         disableAssertions = True
@@ -926,11 +923,8 @@ class WebInterface:
                                 )
                             )
                         else:
-                            if option[1] == "-":
-                                config = option[2:]
-                            else:
-                                config = option[1:]
-                            params.append(("configuration", config))
+                            params.append(("configuration", option[1:]))
+                            config = option[1:]
                     else:
                         return (option, opened_files)
 

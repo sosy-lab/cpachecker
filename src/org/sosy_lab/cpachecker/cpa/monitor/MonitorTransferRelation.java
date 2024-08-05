@@ -135,9 +135,7 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
         successors = Collections.singleton(TimeoutState.INSTANCE);
 
       } catch (ExecutionException e) {
-        Throwables.throwIfInstanceOf(e.getCause(), CPATransferException.class);
-        Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
-        Throwables.throwIfUnchecked(e.getCause());
+        Throwables.propagateIfPossible(e.getCause(), CPATransferException.class);
         // TransferRelation.getAbstractSuccessors() threw unexpected checked exception!
         throw new UnexpectedCheckedException("transfer relation", e.getCause());
       }
@@ -221,9 +219,7 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
         successors = Collections.singleton(TimeoutState.INSTANCE);
 
       } catch (ExecutionException e) {
-        Throwables.throwIfInstanceOf(e.getCause(), CPATransferException.class);
-        Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
-        Throwables.throwIfUnchecked(e.getCause());
+        Throwables.propagateIfPossible(e.getCause(), CPATransferException.class);
         // TransferRelation.strengthen() threw unexpected checked exception!
         throw new UnexpectedCheckedException("strengthen", e.getCause());
       }

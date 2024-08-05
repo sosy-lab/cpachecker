@@ -12,15 +12,14 @@ import static com.google.common.collect.Iterables.transform;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class CInitializerList extends AbstractInitializer implements CInitializer {
+public final class CInitializerList extends AbstractInitializer implements CInitializer, CAstNode {
 
-  @Serial private static final long serialVersionUID = 6601820489208683306L;
+  private static final long serialVersionUID = 6601820489208683306L;
   private final List<CInitializer> initializerList;
 
   public CInitializerList(
@@ -34,14 +33,12 @@ public final class CInitializerList extends AbstractInitializer implements CInit
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString(boolean pQualified) {
     StringBuilder lASTString = new StringBuilder();
 
     lASTString.append("{ ");
     Joiner.on(", ")
-        .appendTo(
-            lASTString,
-            transform(initializerList, cinit -> cinit.toASTString(pAAstNodeRepresentation)));
+        .appendTo(lASTString, transform(initializerList, cinit -> cinit.toASTString(pQualified)));
     lASTString.append(" }");
 
     return lASTString.toString();

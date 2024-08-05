@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -341,10 +340,9 @@ public class FaultLocalizationByImport implements Algorithm {
     }
   }
 
-  @SuppressWarnings("serial") // class is never serialized
-  @SuppressFBWarnings("SE_BAD_FIELD")
   private static class FaultsDeserializer extends StdDeserializer<IntermediateFaults> {
 
+    private static final long serialVersionUID = -9027432550465230262L;
     private final Set<CFAEdge> edges;
 
     public FaultsDeserializer(CFA pCFA) {

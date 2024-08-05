@@ -43,8 +43,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonACSLParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2Parser;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
@@ -156,7 +155,7 @@ public final class Specification {
               String.format(
                   "Entry function %s specified in %s is not consistent with configured entry"
                       + " function %s. Please set 'analysis.entryFunction=%s' or pass property file"
-                      + " on command line with '--spec %s'.",
+                      + " on command line with '-spec %s'.",
                   parser.getEntryFunction(),
                   specFile,
                   configuredEntryFunction,
@@ -234,9 +233,9 @@ public final class Specification {
           : "CFAs of task program and annotated progra m differ, "
               + "annotated program is probably unrelated to this task";
       automata = ImmutableList.of(acslParser.parseAsAutomaton());
-    } else if (AutomatonWitnessV2ParserUtils.isYAMLWitness(specFile)) {
-      AutomatonWitnessV2Parser yamlParser =
-          new AutomatonWitnessV2Parser(config, logger, pShutdownNotifier, cfa);
+    } else if (AutomatonYAMLParser.isYAMLWitness(specFile)) {
+      AutomatonYAMLParser yamlParser =
+          new AutomatonYAMLParser(config, logger, pShutdownNotifier, cfa, scope);
       automata = ImmutableList.of(yamlParser.parseAutomatonFile(specFile));
     } else {
       automata =

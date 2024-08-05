@@ -38,9 +38,8 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.ParseResultWithCommentLocations;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -342,10 +341,6 @@ class CFABuilder extends ASTVisitor {
       ((CDeclaration) decl.declaration()).getType().accept(fillInAllBindingsVisitor);
     }
 
-    ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope =
-        ImmutableMap.builder();
-    ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope =
-        ImmutableMap.builder();
     for (FunctionsOfTranslationUnit functionDeclaration : functionDeclarations) {
       GlobalScope actScope = functionDeclaration.scope();
 
@@ -364,9 +359,7 @@ class CFABuilder extends ASTVisitor {
             actFunctions,
             actTypes,
             actTypeDefs,
-            actVars,
-            cfaNodeToAstLocalVariablesInScope,
-            cfaNodeToAstParametersInScope);
+            actVars);
       }
     }
 
@@ -379,23 +372,12 @@ class CFABuilder extends ASTVisitor {
           "Invalid C code because of undefined identifiers mentioned above.");
     }
 
-    ParseResult result;
-
-    if (!acslCommentPositions.isEmpty()) {
-      result =
-          new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, blocks);
-    } else {
-      result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
+    if (acslCommentPositions.isEmpty()) {
+      return new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
     }
 
-    result =
-        result.withInScopeInformation(
-            // We want to explicitly throw an error if a
-            // key was added more than once, since this would be a bug
-            cfaNodeToAstLocalVariablesInScope.buildOrThrow(),
-            cfaNodeToAstParametersInScope.buildOrThrow());
-
-    return result;
+    return new ParseResultWithCommentLocations(
+        cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, blocks);
   }
 
   private void handleFunctionDefinition(
@@ -405,9 +387,7 @@ class CFABuilder extends ASTVisitor {
       ImmutableMap<String, CFunctionDeclaration> functions,
       ImmutableMap<String, CComplexTypeDeclaration> types,
       ImmutableMap<String, CTypeDefDeclaration> typedefs,
-      ImmutableMap<String, CSimpleDeclaration> globalVars,
-      ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope,
-      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope)
+      ImmutableMap<String, CSimpleDeclaration> globalVars)
       throws InterruptedException {
 
     FunctionScope localScope =
@@ -422,9 +402,7 @@ class CFABuilder extends ASTVisitor {
             machine,
             fileName,
             sideAssignmentStack,
-            checkBinding,
-            cfaNodeToAstLocalVariablesInScope,
-            cfaNodeToAstParametersInScope);
+            checkBinding);
 
     declaration.accept(functionBuilder);
 

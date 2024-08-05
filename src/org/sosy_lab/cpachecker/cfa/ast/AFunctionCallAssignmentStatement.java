@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.io.Serial;
 import java.util.Objects;
 
 public abstract class AFunctionCallAssignmentStatement extends AbstractStatement
     implements AAssignment, AFunctionCall {
 
-  @Serial private static final long serialVersionUID = 715848925972223832L;
+  private static final long serialVersionUID = 715848925972223832L;
   private final ALeftHandSide leftHandSide;
   private final AFunctionCallExpression rightHandSide;
 
@@ -44,10 +43,10 @@ public abstract class AFunctionCallAssignmentStatement extends AbstractStatement
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return leftHandSide.toASTString(pAAstNodeRepresentation)
+  public String toASTString(boolean pQualified) {
+    return leftHandSide.toASTString(pQualified)
         + " = "
-        + rightHandSide.toASTString(pAAstNodeRepresentation)
+        + rightHandSide.toASTString(pQualified)
         + ";";
   }
 

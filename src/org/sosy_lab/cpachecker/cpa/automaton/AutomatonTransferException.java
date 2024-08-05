@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public final class AutomatonTransferException extends CPATransferException {
 
-  @Serial private static final long serialVersionUID = 3470772694494993317L;
+  private static final long serialVersionUID = 3470772694494993317L;
 
   AutomatonTransferException(String pMsg) {
     super(pMsg);

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -22,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 public final class CArraySubscriptExpression extends AArraySubscriptExpression
     implements CLeftHandSide {
 
-  @Serial private static final long serialVersionUID = 129923340158722862L;
+  private static final long serialVersionUID = 129923340158722862L;
 
   public CArraySubscriptExpression(
       final FileLocation pFileLocation,

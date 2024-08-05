@@ -15,7 +15,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
-import java.io.Serial;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -437,7 +436,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       throws CPATransferException, InterruptedException {
 
     final class WrappingException extends RuntimeException {
-      @Serial private static final long serialVersionUID = 7106377117314217226L;
+      private static final long serialVersionUID = 7106377117314217226L;
 
       WrappingException(Throwable cause) {
         super(cause);

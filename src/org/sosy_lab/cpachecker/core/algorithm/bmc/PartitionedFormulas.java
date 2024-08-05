@@ -52,11 +52,10 @@ class PartitionedFormulas {
   private boolean isInitialized;
   private BooleanFormula prefixFormula;
   private SSAMap prefixSsaMap;
-  private ImmutableList<SSAMap> loopFormulaSsaMaps;
   private ImmutableList<BooleanFormula> loopFormulas;
   private BooleanFormula targetAssertion;
 
-  private PartitionedFormulas(
+  PartitionedFormulas(
       BooleanFormulaManagerView bfmgr,
       LogManager logger,
       boolean assertAllTargets,
@@ -67,21 +66,11 @@ class PartitionedFormulas {
     this.assertAllTargets = assertAllTargets;
     this.swapPrefixAndTarget = swapPrefixAndTarget;
 
+    isInitialized = false;
     prefixFormula = bfmgr.makeFalse();
     prefixSsaMap = SSAMap.emptySSAMap();
-    loopFormulaSsaMaps = ImmutableList.of();
     loopFormulas = ImmutableList.of();
     targetAssertion = bfmgr.makeFalse();
-  }
-
-  static PartitionedFormulas createForwardPartitionedFormulas(
-      BooleanFormulaManagerView bfmgr, LogManager logger, boolean assertAllTargets) {
-    return new PartitionedFormulas(bfmgr, logger, assertAllTargets, false);
-  }
-
-  static PartitionedFormulas createBackwardPartitionedFormulas(
-      BooleanFormulaManagerView bfmgr, LogManager logger) {
-    return new PartitionedFormulas(bfmgr, logger, false, true);
   }
 
   /** Return the number of stored loop formulas. */
@@ -106,12 +95,6 @@ class PartitionedFormulas {
   List<BooleanFormula> getLoopFormulas() {
     Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
     return loopFormulas;
-  }
-
-  /** Return the SSA maps of collected loop formulas (T1, T2, ..., Tn). */
-  List<SSAMap> getLoopFormulaSsaMaps() {
-    Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
-    return loopFormulaSsaMaps;
   }
 
   /** Return the target assertion formula (&not;P). */
@@ -139,8 +122,7 @@ class PartitionedFormulas {
       // no target is reachable, which means the program is safe
       prefixFormula = bfmgr.makeFalse();
       prefixSsaMap = SSAMap.emptySSAMap();
-      loopFormulas = ImmutableList.of(bfmgr.makeFalse());
-      loopFormulaSsaMaps = ImmutableList.of(SSAMap.emptySSAMap());
+      loopFormulas = ImmutableList.of();
       targetAssertion = bfmgr.makeFalse();
       return;
     }
@@ -163,10 +145,6 @@ class PartitionedFormulas {
             abstractionStates.subList(2, abstractionStates.size() - 1),
             absState ->
                 InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getFormula());
-    loopFormulaSsaMaps =
-        transformedImmutableListCopy(
-            abstractionStates.subList(2, abstractionStates.size() - 1),
-            absState -> InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
 
     // collect target assertion formula
     BooleanFormula currentAssertion =
@@ -185,7 +163,6 @@ class PartitionedFormulas {
       prefixFormula = targetAssertion;
       targetAssertion = tmp;
       loopFormulas = loopFormulas.reverse();
-      loopFormulaSsaMaps = loopFormulaSsaMaps.reverse();
       prefixSsaMap =
           InterpolationHelper.getPredicateAbstractionBlockFormula(
                   abstractionStates.get(abstractionStates.size() - 2))

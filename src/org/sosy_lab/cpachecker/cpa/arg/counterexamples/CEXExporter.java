@@ -38,12 +38,10 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -62,8 +60,8 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfoExporter;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
 public class CEXExporter {
@@ -87,6 +85,11 @@ public class CEXExporter {
 
   @Option(
       secure = true,
+      description = "export the yaml Violation Witnesses directly from the Counterexample.")
+  private boolean exportYamlWitnessesDirectlyFromCex = false;
+
+  @Option(
+      secure = true,
       name = "codeStyle",
       description = "exports either CMBC format or a concrete path program")
   private CounterexampleExportType codeStyle = CounterexampleExportType.CBMC;
@@ -104,13 +107,12 @@ public class CEXExporter {
       ImmutableList.of(PathEqualityCounterexampleFilter::new);
 
   private final CounterexampleFilter cexFilter;
-  private final CFA cfa;
 
   private final CEXExportOptions options;
   private final LogManager logger;
   private final WitnessExporter witnessExporter;
-  private final CounterexampleToWitness cexToWitness;
   private final ExtendedWitnessExporter extendedWitnessExporter;
+  private final InvariantWitnessWriter invariantWitnessWriter;
   private final HarnessExporter harnessExporter;
   private final FaultLocalizationInfoExporter faultExporter;
   private TestCaseExporter testExporter;
@@ -119,36 +121,30 @@ public class CEXExporter {
       Configuration config,
       CEXExportOptions pOptions,
       LogManager pLogger,
-      Specification pSpecification,
-      CFA pCFA,
+      CFA cfa,
       ConfigurableProgramAnalysis cpa,
       WitnessExporter pWitnessExporter,
-      ExtendedWitnessExporter pExtendedWitnessExporter)
+      ExtendedWitnessExporter pExtendedWitnessExporter,
+      @Nullable InvariantWitnessWriter pInvariantWitnessWriter)
       throws InvalidConfigurationException {
     config.inject(this);
     options = pOptions;
     logger = pLogger;
     witnessExporter = checkNotNull(pWitnessExporter);
     extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
-    cfa = pCFA;
+    invariantWitnessWriter = pInvariantWitnessWriter;
 
     if (!options.disabledCompletely()) {
       cexFilter =
           CounterexampleFilter.createCounterexampleFilter(config, pLogger, cpa, cexFilterClasses);
-      harnessExporter = new HarnessExporter(config, pLogger, pCFA);
-      testExporter = new TestCaseExporter(pCFA, logger, config);
+      harnessExporter = new HarnessExporter(config, pLogger, cfa);
+      testExporter = new TestCaseExporter(cfa, logger, config);
       faultExporter = new FaultLocalizationInfoExporter(config);
-      if (options.getYamlWitnessPathTemplate() != null) {
-        cexToWitness = new CounterexampleToWitness(config, pCFA, pSpecification, pLogger);
-      } else {
-        cexToWitness = null;
-      }
     } else {
       cexFilter = null;
       harnessExporter = null;
       testExporter = null;
       faultExporter = null;
-      cexToWitness = null;
     }
   }
 
@@ -317,7 +313,7 @@ public class CEXExporter {
 
     if (options.getWitnessFile() != null
         || options.getWitnessDotFile() != null
-        || options.getYamlWitnessPathTemplate() != null) {
+        || options.getYamlWitnessFile() != null) {
       try {
         final Witness witness =
             witnessExporter.generateErrorWitness(
@@ -334,21 +330,33 @@ public class CEXExporter {
             uniqueId,
             (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
             compressWitness);
-        if (cfa.getMetadata().getInputLanguage() == Language.C) {
-          if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
-            try {
-              cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
-            } catch (IOException e) {
-              logger.logUserException(
-                  Level.WARNING, e, "Could not generate YAML violation witness.");
-            }
-          }
-        } else {
-          logger.log(
-              Level.WARNING,
-              "Cannot export violation witness to YAML format for languages other than C.");
-        }
 
+        if (invariantWitnessWriter != null) {
+          if (exportYamlWitnessesDirectlyFromCex && counterexample.isPreciseCounterExample()) {
+            writeErrorPathFile(
+                options.getYamlWitnessFile(),
+                uniqueId,
+                (Appender)
+                    pApp -> {
+                      invariantWitnessWriter.exportErrorWitnessAsYamlWitness(counterexample, pApp);
+                    },
+                compressWitness);
+          } else if (exportYamlWitnessesDirectlyFromCex) {
+            logger.log(
+                Level.WARNING,
+                "Could not expor the YAML violation witness directly from the ARG, since the"
+                    + " counterexample is not precise. Therefore no YAML witness was produced.");
+          } else {
+            writeErrorPathFile(
+                options.getYamlWitnessFile(),
+                uniqueId,
+                (Appender)
+                    pApp -> {
+                      invariantWitnessWriter.exportErrorWitnessAsYamlWitness(witness, pApp);
+                    },
+                compressWitness);
+          }
+        }
       } catch (InterruptedException e) {
         logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
       }

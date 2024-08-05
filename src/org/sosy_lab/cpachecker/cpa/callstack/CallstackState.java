@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Lists;
 import java.io.IOException;
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +38,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 public class CallstackState
     implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
 
-  @Serial private static final long serialVersionUID = 3629687385150064994L;
+  private static final long serialVersionUID = 3629687385150064994L;
 
   protected final @Nullable CallstackState previousState;
   protected final String currentFunction;
@@ -138,13 +137,11 @@ public class CallstackState
             "Evaluating %s not supported by %s", pProperty, getClass().getCanonicalName()));
   }
 
-  @Serial
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
     out.writeInt(callerNode.getNodeNumber());
   }
 
-  @Serial
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     int nodeNumber = in.readInt();

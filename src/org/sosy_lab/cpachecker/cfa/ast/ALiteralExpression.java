@@ -8,12 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class ALiteralExpression extends AbstractExpression {
 
-  @Serial private static final long serialVersionUID = -457755136896976625L;
+  private static final long serialVersionUID = -457755136896976625L;
 
   protected ALiteralExpression(FileLocation pFileLocation, Type pType) {
     super(pFileLocation, pType);
@@ -22,7 +21,7 @@ public abstract class ALiteralExpression extends AbstractExpression {
   public abstract Object getValue();
 
   @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toParenthesizedASTString(boolean pQualified) {
     // literal expression never need parentheses, are not qualified
     return toParenthesizedASTString();
   }
@@ -34,7 +33,7 @@ public abstract class ALiteralExpression extends AbstractExpression {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString(boolean pQualified) {
     // literal expression are never qualified
     return toASTString();
   }

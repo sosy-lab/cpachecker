@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.expressions;
 
-import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -118,7 +117,7 @@ public class ToFormulaVisitor
    */
   public static class ToFormulaException extends Exception {
 
-    @Serial private static final long serialVersionUID = -3849941975554955994L;
+    private static final long serialVersionUID = -3849941975554955994L;
 
     private ToFormulaException(Exception pCause) {
       super(pCause);

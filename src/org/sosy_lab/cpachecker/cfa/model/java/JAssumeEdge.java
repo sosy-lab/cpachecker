@@ -16,6 +16,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public final class JAssumeEdge extends AssumeEdge {
 
+  private static final long serialVersionUID = -2456773904604276548L;
+
   public JAssumeEdge(
       String pRawStatement,
       FileLocation pFileLocation,

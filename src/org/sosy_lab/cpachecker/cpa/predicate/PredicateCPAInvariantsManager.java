@@ -139,7 +139,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
           "Which strategy should be used for generating invariants, a comma separated"
               + " list can be specified. Usually later specified strategies serve as"
               + " fallback for earlier ones. (default is no invariant generation at all)")
-  private ImmutableList<InvariantGenerationStrategy> generationStrategy = ImmutableList.of();
+  private List<InvariantGenerationStrategy> generationStrategy = new ArrayList<>();
 
   @Option(
       secure = true,
@@ -664,7 +664,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
           "invGen",
           pLoopsInPath);
 
-      // may be null when --no-output-files is specified
+      // may be null when -noout is specified
       if (dumpInvariantGenerationAutomata && dumpInvariantGenerationAutomataFile != null) {
         Path logPath = dumpInvariantGenerationAutomataFile.getFreshPath();
         IO.writeFile(logPath, Charset.defaultCharset(), spc);

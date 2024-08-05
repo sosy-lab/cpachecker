@@ -35,11 +35,6 @@ public class FloatExtendedTest extends AbstractCFloatTestBase {
     return new ReferenceImpl[] {ReferenceImpl.MPFR, ReferenceImpl.NATIVE};
   }
 
-  @Override
-  int getNumberOfTests() {
-    return 15000;
-  }
-
   @Parameter(0)
   public ReferenceImpl refImpl;
 

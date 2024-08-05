@@ -190,8 +190,8 @@ class EclipseJavaParser implements Parser {
         throw new JParserException(
             "Path '"
                 + firstSourceFile
-                + "' does not exist. If this is the name of the main class, then either class path"
-                + " or source path need to be given with --class-path/--source-path.");
+                + "' does not exist. If this is the name of the main class, then "
+                + "either class path or source path need to be given with -classpath/-sourcepath.");
       } else {
         // seems like B) was attempted
         throw new JParserException(

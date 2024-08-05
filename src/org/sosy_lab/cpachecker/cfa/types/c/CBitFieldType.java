@@ -9,13 +9,12 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 import com.google.common.base.Preconditions;
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 
 /** Instances of this class represent C bit-field types. */
 public final class CBitFieldType implements CType {
 
-  @Serial private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 1L;
 
   private final CType type;
 

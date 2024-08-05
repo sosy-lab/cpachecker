@@ -49,7 +49,7 @@ build-dependencies:
   interruptible: true
   artifacts:
     paths:
-      - "classes/"
+      - "bin/"
       - "*.jar"
 
 build:jdk-11:
@@ -63,10 +63,6 @@ build:jdk-17:
 build:jdk-21:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
-
-build:jdk-22:
-  <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-22
 
 
 # For checks that need the binaries
@@ -99,10 +95,6 @@ build-project-ecj:jdk-17:
 build-project-ecj:jdk-21:
   <<: *build-project-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
-
-build-project-ecj:jdk-22:
-  <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-22
 
 
 check-format:
@@ -190,16 +182,6 @@ unit-tests:jdk-21:
     - build:jdk-21
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-unit-tests:jdk-22:
-  <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-22
-  needs:
-    - build-dependencies
-    - build:jdk-22
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-22
-
 
 refaster:
   <<: *source_check
@@ -236,7 +218,7 @@ reuse:
   dependencies: []
   needs: []
   image:
-    name: fsfe/reuse:3
+    name: fsfe/reuse:1
     entrypoint: [""]
   script:
     - reuse lint
@@ -294,9 +276,3 @@ build-docker:test:jdk-21:
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-21
     IMAGE: /test:jdk-21
-
-build-docker:test:jdk-22:
-  extends: .build-docker
-  variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-22
-    IMAGE: /test:jdk-22

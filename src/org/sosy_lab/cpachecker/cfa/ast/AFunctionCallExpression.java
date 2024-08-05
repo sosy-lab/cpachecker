@@ -12,14 +12,13 @@ import static com.google.common.collect.Iterables.transform;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AFunctionCallExpression extends AbstractRightHandSide {
 
-  @Serial private static final long serialVersionUID = -6120400526327639887L;
+  private static final long serialVersionUID = -6120400526327639887L;
   private final AExpression functionName;
   private final List<? extends AExpression> parameters;
   private final AFunctionDeclaration declaration;
@@ -57,14 +56,13 @@ public abstract class AFunctionCallExpression extends AbstractRightHandSide {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString(final boolean pQualified) {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(functionName.toParenthesizedASTString(pAAstNodeRepresentation));
+    lASTString.append(functionName.toParenthesizedASTString(pQualified));
     lASTString.append("(");
     Joiner.on(", ")
-        .appendTo(
-            lASTString, transform(parameters, aexpr -> aexpr.toASTString(pAAstNodeRepresentation)));
+        .appendTo(lASTString, transform(parameters, aexpr -> aexpr.toASTString(pQualified)));
     lASTString.append(")");
 
     return lASTString.toString();

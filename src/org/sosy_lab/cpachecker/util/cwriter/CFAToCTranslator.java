@@ -32,7 +32,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -58,6 +57,9 @@ import org.sosy_lab.cpachecker.util.cwriter.Statement.Label;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.SimpleStatement;
 
 public class CFAToCTranslator {
+
+  // Use original, unqualified names for variables
+  private static final boolean NAMES_QUALIFIED = false;
 
   private static class NodeAndBlock {
     private final CFANode node;
@@ -294,10 +296,7 @@ public class CFAToCTranslator {
 
   private FunctionDefinition startFunction(CFunctionEntryNode pFunctionStartNode) {
     String lFunctionHeader =
-        pFunctionStartNode
-            .getFunctionDefinition()
-            .toASTString(AAstNodeRepresentation.DEFAULT)
-            .replace(";", "");
+        pFunctionStartNode.getFunctionDefinition().toASTString(NAMES_QUALIFIED).replace(";", "");
     return new FunctionDefinition(
         lFunctionHeader, createCompoundStatement(pFunctionStartNode, null));
   }
@@ -353,15 +352,9 @@ public class CFAToCTranslator {
           // must be if-branch, first in list
           assert ifAndElseEdge.get(0) == currentEdge;
           if (assumeEdge.getTruthAssumption()) {
-            cond =
-                "if ("
-                    + assumeEdge.getExpression().toASTString(AAstNodeRepresentation.DEFAULT)
-                    + ")";
+            cond = "if (" + assumeEdge.getExpression().toASTString(NAMES_QUALIFIED) + ")";
           } else {
-            cond =
-                "if (!("
-                    + assumeEdge.getExpression().toASTString(AAstNodeRepresentation.DEFAULT)
-                    + "))";
+            cond = "if (!(" + assumeEdge.getExpression().toASTString(NAMES_QUALIFIED) + "))";
           }
         } else {
           // must be else-branch, second in list
@@ -483,14 +476,12 @@ public class CFAToCTranslator {
           // org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
           if (lDeclarationEdge
               .getDeclaration()
-              .toASTString(AAstNodeRepresentation.DEFAULT)
+              .toASTString(NAMES_QUALIFIED)
               .contains("__CPAchecker_TMP_")) {
-            declaration =
-                lDeclarationEdge.getDeclaration().toASTString(AAstNodeRepresentation.DEFAULT);
+            declaration = lDeclarationEdge.getDeclaration().toASTString(NAMES_QUALIFIED);
           } else {
             // TODO check if works without lDeclarationEdge.getRawStatement();
-            declaration =
-                lDeclarationEdge.getDeclaration().toASTString(AAstNodeRepresentation.DEFAULT);
+            declaration = lDeclarationEdge.getDeclaration().toASTString(NAMES_QUALIFIED);
 
             if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
               CVariableDeclaration varDecl =

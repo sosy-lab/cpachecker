@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.graph.Traverser;
-import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,7 +42,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class ARGState extends AbstractSerializableSingleWrapperState
     implements Comparable<ARGState>, Graphable, Splitable {
 
-  @Serial private static final long serialVersionUID = 2608287648397165040L;
+  private static final long serialVersionUID = 2608287648397165040L;
 
   // We use a List here although we would like to have a Set
   // because ArrayList is much more memory efficient than e.g. LinkedHashSet.

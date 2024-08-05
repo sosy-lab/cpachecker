@@ -16,7 +16,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.Serial;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +36,7 @@ public class PredicatePersistenceUtils {
   public static final Joiner LINE_JOINER = Joiner.on('\n');
 
   public static class PredicateParsingFailedException extends CPAException {
-    @Serial private static final long serialVersionUID = 5034288100943314517L;
+    private static final long serialVersionUID = 5034288100943314517L;
 
     public PredicateParsingFailedException(String msg, String source, int lineNo) {
       super("Parsing failed in line " + lineNo + " of " + source + ": " + msg);

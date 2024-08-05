@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.exceptions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 /**
@@ -19,7 +18,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
  */
 public class InvalidComponentException extends CPAException {
 
-  @Serial private static final long serialVersionUID = 3018467878727210858L;
+  private static final long serialVersionUID = 3018467878727210858L;
 
   public InvalidComponentException(Class<?> cls, String componentType, String msg) {
     super(

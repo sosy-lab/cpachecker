@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Splitter;
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
@@ -17,7 +16,7 @@ import java.util.Set;
 /** Represents a local variable of the automaton. So far only integer variables are supported. */
 @SuppressWarnings("checkstyle:NoClone") // should be refactored
 public abstract class AutomatonVariable implements Cloneable, Serializable {
-  @Serial private static final long serialVersionUID = -6765794863680244559L;
+  private static final long serialVersionUID = -6765794863680244559L;
   protected final String name;
 
   private AutomatonVariable(String pName) {
@@ -86,7 +85,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
   public static final class AutomatonIntVariable extends AutomatonVariable {
 
-    @Serial private static final long serialVersionUID = -5599402008148488971L;
+    private static final long serialVersionUID = -5599402008148488971L;
     private int value;
 
     private AutomatonIntVariable(String pName) {
@@ -142,7 +141,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
   public static final class AutomatonSetVariable<T> extends AutomatonVariable {
 
-    @Serial private static final long serialVersionUID = 4293998838719160247L;
+    private static final long serialVersionUID = 4293998838719160247L;
     private Set<T> set;
 
     private AutomatonSetVariable(String pName) {

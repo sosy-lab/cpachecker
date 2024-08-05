@@ -12,11 +12,11 @@ SPDX-License-Identifier: Apache-2.0
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="100 s" hardtimelimit="110 s" memlimit="5 GB" cpuCores="2">
-  <option name="--heap">4000M</option>
-  <option name="--option">counterexample.export.exportFaults=true</option>
+  <option name="-heap">4000M</option>
+  <option name="-setprop">counterexample.export.exportFaults=true</option>
 
   <rundefinition name="errinv">
-    <option name="--predicateAnalysis-faultlocalization-errinv"/>
+    <option name="-predicateAnalysis-faultlocalization-errinv"/>
     <tasks name="fault_loc">
       <includesfile>../programs/fault_localization/fl.set</includesfile>
       <propertyfile>../config/properties/unreach-label.prp</propertyfile>

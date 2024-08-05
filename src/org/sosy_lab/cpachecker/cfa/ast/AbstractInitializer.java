@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.io.Serial;
-
 public abstract class AbstractInitializer extends AbstractAstNode implements AInitializer {
 
-  @Serial private static final long serialVersionUID = 8957078095931687599L;
+  private static final long serialVersionUID = 8957078095931687599L;
 
   protected AbstractInitializer(final FileLocation pFileLocation) {
     super(pFileLocation);

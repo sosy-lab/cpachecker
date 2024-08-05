@@ -17,11 +17,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-class SLABStopOperator implements StopOperator {
+public class SLABStopOperator implements StopOperator {
 
   private final AbstractDomain domain;
 
-  SLABStopOperator(AbstractDomain pDomain) {
+  public SLABStopOperator(AbstractDomain pDomain) {
     domain = pDomain;
   }
 

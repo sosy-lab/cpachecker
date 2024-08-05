@@ -93,7 +93,7 @@ public class SequentialInterpolation extends ITPStrategy {
           // Rebuild solver env as it might be tainted after an exception
           interpolator.destroyAndRebuildSolverEnvironment();
         }
-      // $FALL-THROUGH$
+        // $FALL-THROUGH$
       case BWD:
         return getBwdInterpolants(interpolator, formulas);
 
@@ -105,7 +105,7 @@ public class SequentialInterpolation extends ITPStrategy {
           // Rebuild solver env as it might be tainted after an exception
           interpolator.destroyAndRebuildSolverEnvironment();
         }
-      // $FALL-THROUGH$
+        // $FALL-THROUGH$
       case FWD:
         return getFwdInterpolants(interpolator, formulas);
 

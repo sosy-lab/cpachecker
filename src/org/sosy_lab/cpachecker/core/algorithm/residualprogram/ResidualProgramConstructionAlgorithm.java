@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.residualprogram;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -395,7 +395,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
                   .build(),
               logger,
               shutdown);
-      cfaCreator.parseFileAndCreateCFA(ImmutableList.of(residualProgram.toString()));
+      cfaCreator.parseFileAndCreateCFA(Lists.newArrayList(residualProgram.toString()));
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Default configuration unsuitable for parsing residual program.", e);
       return false;
@@ -548,7 +548,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
                 shutdown);
 
         CFA residProg =
-            cfaCreator.parseFileAndCreateCFA(ImmutableList.of(residualProgram.toString()));
+            cfaCreator.parseFileAndCreateCFA(Lists.newArrayList(residualProgram.toString()));
 
         return residProg;
 

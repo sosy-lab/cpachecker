@@ -57,7 +57,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.smg.SMGStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
@@ -121,6 +123,7 @@ public class SMGCPA
   private VariableTrackingPrecision precision;
   private boolean refineablePrecisionSet = false;
 
+  private final SMGStatistics stats = new SMGStatistics();
   private final PredicateToValuePrecisionConverter predToValPrec;
   private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
 
@@ -128,6 +131,8 @@ public class SMGCPA
 
   private final ConstraintsSolver constraintsSolver;
   private final Solver solver;
+
+  private final ConstraintsStatistics contraintsStats = new ConstraintsStatistics();
 
   private final SMGCPAExpressionEvaluator evaluator;
 
@@ -146,7 +151,7 @@ public class SMGCPA
     predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
     constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config, logger);
 
-    statistics = new SMGCPAStatistics();
+    statistics = new SMGCPAStatistics(this, config);
     precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
 
@@ -163,7 +168,8 @@ public class SMGCPA
         initializeCToFormulaConverter(
             formulaManager, logger, pConfig, pShutdownNotifier, pCfa.getMachineModel());
     constraintsSolver =
-        new ConstraintsSolver(pConfig, machineModel, solver, formulaManager, converter, statistics);
+        new ConstraintsSolver(
+            pConfig, machineModel, solver, formulaManager, converter, contraintsStats);
     evaluator =
         new SMGCPAExpressionEvaluator(
             machineModel, logger, exportOptions, options, constraintsSolver);
@@ -175,7 +181,7 @@ public class SMGCPA
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(statistics);
+    pStatsCollection.add(stats);
   }
 
   @Override
@@ -208,7 +214,6 @@ public class SMGCPA
     return new SMGTransferRelation(
         logger,
         options,
-        precisionAdjustmentOptions,
         exportOptions,
         cfa,
         constraintsStrengthenOperator,
@@ -242,7 +247,7 @@ public class SMGCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    SMGState initState = SMGState.of(machineModel, logger, options, cfa, evaluator, statistics);
+    SMGState initState = SMGState.of(machineModel, logger, options, cfa, evaluator);
     return initState;
   }
 
@@ -379,9 +384,5 @@ public class SMGCPA
 
   public SMGCPAExpressionEvaluator getEvaluator() {
     return evaluator;
-  }
-
-  public SMGCPAStatistics getStatistics() {
-    return statistics;
   }
 }

@@ -8,15 +8,13 @@
 
 package org.sosy_lab.cpachecker.exceptions;
 
-import java.io.Serial;
-
 /**
  * This exception will never be thrown. It can be used as type when visitors required an exception
  * type to be declared, but the respective visitor will never throw.
  */
 public final class NoException extends RuntimeException {
 
-  @Serial private static final long serialVersionUID = -249581932019736058L;
+  private static final long serialVersionUID = -249581932019736058L;
 
   /** Nope. */
   private NoException() {}

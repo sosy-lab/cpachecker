@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class CInitializerExpression extends AInitializerExpression implements CInitializer {
 
-  @Serial private static final long serialVersionUID = 2706992437396660354L;
+  private static final long serialVersionUID = 2706992437396660354L;
 
   public CInitializerExpression(final FileLocation pFileLocation, final CExpression pExpression) {
     super(pFileLocation, pExpression);

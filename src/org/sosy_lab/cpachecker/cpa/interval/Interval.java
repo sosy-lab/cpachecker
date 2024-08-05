@@ -13,12 +13,11 @@ import static com.google.common.math.LongMath.saturatedAdd;
 import static com.google.common.math.LongMath.saturatedMultiply;
 
 import com.google.common.primitives.Longs;
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 
 public final class Interval implements Serializable {
-  @Serial private static final long serialVersionUID = 4223098080993616295L;
+  private static final long serialVersionUID = 4223098080993616295L;
 
   /** the lower bound of the interval */
   private final Long low;

@@ -15,7 +15,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
 import com.google.errorprone.annotations.Immutable;
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
@@ -26,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 @Immutable
 public final class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
 
-  @Serial private static final long serialVersionUID = -8910967707373729034L;
+  private static final long serialVersionUID = -8910967707373729034L;
   private final @Nullable String functionName;
   private final String identifier;
   private final @Nullable Long offset;

@@ -12,11 +12,11 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.formatter.WitnessToDotFormatter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.formatter.WitnessToGraphMLFormatter;
+import org.sosy_lab.cpachecker.cpa.slab.SLARGToDotWriter;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
-import org.sosy_lab.cpachecker.util.StringUtil;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -111,8 +111,10 @@ public final class WitnessToOutputFormatsUtils {
         sourceNode = new HashMap<>();
 
         List<Integer> nodeIds =
-            Lists.transform(witness.getARGStatesFor(source), ARGState::getStateId);
-        StringBuilder nodeString = StringUtil.convertIntegerRangesToStringCollapsed(nodeIds);
+            witness.getARGStatesFor(source).stream()
+                .map(ARGState::getStateId)
+                .collect(ImmutableList.toImmutableList());
+        String nodeString = SLARGToDotWriter.generateLocationString(nodeIds).toString();
         StringBuilder labelBuilder = new StringBuilder(source);
         if (!nodeString.isEmpty()) {
           labelBuilder.append(String.format("%nARG node%s: ", nodeIds.size() == 1 ? "" : "s"));
@@ -161,7 +163,7 @@ public final class WitnessToOutputFormatsUtils {
   }
 
   private static String determineNodeType(Witness witness, String source) {
-    ImmutableList<ARGState> states = witness.getARGStatesFor(source);
+    Collection<ARGState> states = witness.getARGStatesFor(source);
     if (!witness.getViolatedProperties().get(source).isEmpty()
         || states.stream().anyMatch(ARGState::isTarget)) {
       return "target";

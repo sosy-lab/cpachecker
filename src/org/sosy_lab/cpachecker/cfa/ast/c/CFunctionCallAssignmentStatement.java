@@ -8,14 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignmentStatement
     implements CStatement, CAssignment, CFunctionCall {
 
-  @Serial private static final long serialVersionUID = 8744203402170708743L;
+  private static final long serialVersionUID = 8744203402170708743L;
 
   public CFunctionCallAssignmentStatement(
       FileLocation pFileLocation,
@@ -50,10 +49,10 @@ public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignm
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return getLeftHandSide().toASTString(pAAstNodeRepresentation)
+  public String toASTString(boolean pQualified) {
+    return getLeftHandSide().toASTString(pQualified)
         + " = "
-        + getRightHandSide().toASTString(pAAstNodeRepresentation)
+        + getRightHandSide().toASTString(pQualified)
         + ";";
   }
 

@@ -1105,7 +1105,7 @@ public class AssumptionToEdgeAllocator {
                     && rVarInBinaryExp instanceof ALiteralExpression) {
                   break;
                 }
-              // $FALL-THROUGH$
+                // $FALL-THROUGH$
               case BINARY_AND:
               case BINARY_OR:
               case BINARY_XOR:
@@ -1560,7 +1560,7 @@ public class AssumptionToEdgeAllocator {
               // if it had neither specifier it is a plain (unsigned) int
               return CNumericTypes.SIGNED_LONG_INT;
             }
-          // $FALL-THROUGH$
+            // $FALL-THROUGH$
           default:
             // just log and do not throw an exception in order to not break things
             logger.logf(Level.WARNING, "Cannot find next larger type for %s", pType);

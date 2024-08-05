@@ -587,7 +587,7 @@ class CExpressionVisitorWithPointerAliasing
         }
         break;
       case MINUS:
-      // TODO addEqualBaseAddressConstraints here, too?
+        // TODO addEqualBaseAddressConstraints here, too?
       default:
         // Does not occur for pointers
         break;

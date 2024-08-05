@@ -8,11 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class SMGInconsistentException extends CPATransferException {
-  @Serial private static final long serialVersionUID = -1677699207895867889L;
+  private static final long serialVersionUID = -1677699207895867889L;
 
   public SMGInconsistentException(String msg) {
     super(msg);

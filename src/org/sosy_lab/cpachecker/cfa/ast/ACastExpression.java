@@ -8,14 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /** This is the abstract Class for Casted Expressions. */
 public abstract class ACastExpression extends AbstractLeftHandSide {
 
-  @Serial private static final long serialVersionUID = 7047818239785351507L;
+  private static final long serialVersionUID = 7047818239785351507L;
   private final AExpression operand;
   private final Type castType;
 
@@ -32,11 +31,11 @@ public abstract class ACastExpression extends AbstractLeftHandSide {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString(boolean pQualified) {
     return "("
         + getExpressionType().toASTString("")
         + ")"
-        + operand.toParenthesizedASTString(pAAstNodeRepresentation);
+        + operand.toParenthesizedASTString(pQualified);
   }
 
   public Type getCastType() {

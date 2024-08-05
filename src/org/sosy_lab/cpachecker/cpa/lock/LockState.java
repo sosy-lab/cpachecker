@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
-import java.io.Serial;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
@@ -37,7 +36,7 @@ public final class LockState extends AbstractLockState {
   @SuppressWarnings("checkstyle:IllegalType") // TODO: use composition instead of inheritance
   public static class LockTreeNode extends TreeSet<LockIdentifier> implements CompatibleNode {
 
-    @Serial private static final long serialVersionUID = 5757759799394605077L;
+    private static final long serialVersionUID = 5757759799394605077L;
 
     public LockTreeNode(Set<LockIdentifier> locks) {
       super(locks);

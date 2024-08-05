@@ -52,7 +52,9 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
         statusObserver.updateStatus(pMessage);
         break;
       case ERROR_CONDITION_UNREACHABLE:
+        // fall-through
       case ERROR_CONDITION:
+        // fall-through
       case BLOCK_POSTCONDITION:
         statusObserver.updateStatus(pMessage);
         break;

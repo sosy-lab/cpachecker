@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
-import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -35,7 +34,7 @@ public abstract sealed class BinarySymbolicExpression extends SymbolicExpression
         ShiftRightExpression,
         SubtractionExpression {
 
-  @Serial private static final long serialVersionUID = -5708374107141557273L;
+  private static final long serialVersionUID = -5708374107141557273L;
 
   private final SymbolicExpression operand1;
   private final SymbolicExpression operand2;

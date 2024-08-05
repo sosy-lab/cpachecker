@@ -14,6 +14,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Table;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Map;
@@ -28,9 +30,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  * A Partition is a Wrapper for a Collection of vars, values and edges. The Partitions are disjunct,
  * so no variable and no edge is in 2 Partitions.
  */
-public class Partition implements Comparable<Partition> {
+public class Partition implements Comparable<Partition>, Serializable {
 
-  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+  private static final long serialVersionUID = 1L;
+
+  private static final transient UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
   /** we use an index to track the "age" of a partition. */
   private final int index;
@@ -38,10 +42,12 @@ public class Partition implements Comparable<Partition> {
   private final NavigableSet<String> vars = new TreeSet<>();
   private final NavigableSet<BigInteger> values = new TreeSet<>();
 
+  @SuppressFBWarnings("SE_BAD_FIELD")
   private final Multimap<CFAEdge, Integer> edges = HashMultimap.create();
 
   private final Map<String, Partition> varToPartition;
 
+  @SuppressFBWarnings("SE_BAD_FIELD")
   private final Table<CFAEdge, Integer, Partition> edgeToPartition;
 
   Partition(

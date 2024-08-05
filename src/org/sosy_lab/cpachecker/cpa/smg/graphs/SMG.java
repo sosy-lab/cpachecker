@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
-import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentMultimap;
-import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 /**
  * A graph-based representation of memory-structures. The most important part is the bipartite

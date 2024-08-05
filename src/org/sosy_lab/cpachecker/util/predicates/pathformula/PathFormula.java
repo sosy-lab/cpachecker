@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
-import java.io.Serial;
 import java.io.Serializable;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
@@ -34,7 +33,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability
 public final class PathFormula implements Serializable {
 
-  @Serial private static final long serialVersionUID = -7716850731790578620L;
+  private static final long serialVersionUID = -7716850731790578620L;
   private final BooleanFormula formula;
   private final SSAMap ssa;
   private final int length;
@@ -134,7 +133,6 @@ public final class PathFormula implements Serializable {
     return result;
   }
 
-  @Serial
   private Object writeReplace() {
     return new SerializationProxy(this);
   }
@@ -145,7 +143,6 @@ public final class PathFormula implements Serializable {
    * @param in the input stream
    */
   @SuppressWarnings("UnusedVariable") // parameter is required by API
-  @Serial
   private void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");
   }
@@ -153,7 +150,7 @@ public final class PathFormula implements Serializable {
   private static class SerializationProxy implements Serializable {
     // (de)serialization only works properly for formulae which were built with the same
     // formula manager as used by PredicateCPA
-    @Serial private static final long serialVersionUID = 309890892L;
+    private static final long serialVersionUID = 309890892L;
 
     private final String formulaDump;
     private final SSAMap ssa;
@@ -169,7 +166,6 @@ public final class PathFormula implements Serializable {
       pts = pPathFormula.pts;
     }
 
-    @Serial
     private Object readResolve() {
       FormulaManagerView mgr =
           SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();

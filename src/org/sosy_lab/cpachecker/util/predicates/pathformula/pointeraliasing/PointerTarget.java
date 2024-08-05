@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -88,5 +87,5 @@ public final class PointerTarget implements Serializable {
   final long properOffset;
   final long containerOffset;
 
-  @Serial private static final long serialVersionUID = -1258065871533686442L;
+  private static final long serialVersionUID = -1258065871533686442L;
 }

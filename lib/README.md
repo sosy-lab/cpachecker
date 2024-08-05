@@ -48,6 +48,11 @@ as supported by the `reuse` tool.
   BDD package for multi-core CPUs  
   Manual for building in `native/source/libsylvan.md`
 
+- `jpl.jar` and `libjpl.so`: [SWI-PL](http://www.swi-prolog.org/)
+
+- `chc_lib`: CHC/CLP Generalization Operators Library  
+  It requires a working SWI-Prolog installation.
+
 - `ltl3ba`: [LTL3BA](https://sourceforge.net/projects/ltl3ba/)  
   Translator of LTL formulae to Büchi automata based on LTL2BA
   (command-line binary, includes [BuDDy](https://sourceforge.net/projects/buddy/))

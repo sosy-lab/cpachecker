@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -30,7 +31,9 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 
-public class VariableClassification {
+public class VariableClassification implements Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   private final boolean hasRelevantNonIntAddVars;
 
@@ -360,5 +363,25 @@ public class VariableClassification {
     str.append("\nIntAdd  " + intAddVars.size() + "\n    " + intAddVars);
     str.append("\nIntOverflow  " + intOverflowVars.size() + "\n    " + intOverflowVars);
     return str.toString();
+  }
+
+  private Object readResolve() {
+    return new VariableClassification(
+        hasRelevantNonIntAddVars,
+        intBoolVars,
+        intEqualVars,
+        intAddVars,
+        intOverflowVars,
+        relevantVariables,
+        addressedVariables,
+        relevantFields,
+        addressedFields,
+        partitions,
+        intBoolPartitions,
+        intEqualPartitions,
+        intAddPartitions,
+        edgeToPartitions,
+        assumedVariables,
+        assignedVariables);
   }
 }

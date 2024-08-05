@@ -213,9 +213,8 @@ public class ConfigurationFileChecks {
     private TimeSpan cpuTimeRequired = TimeSpan.ofNanos(-1);
   }
 
-  private static final String SPECIFICATION_OPTION = "specification";
   private static final Path CONFIG_DIR = Path.of("config");
-  private static final Path SPEC_DIR = CONFIG_DIR.resolve(SPECIFICATION_OPTION);
+  private static final Path SPEC_DIR = CONFIG_DIR.resolve("specification");
   private static final Path OUTPUT_DIR = Path.of("output");
 
   @Parameters(name = "{0}")
@@ -386,7 +385,7 @@ public class ConfigurationFileChecks {
     config.inject(options);
 
     @SuppressWarnings("deprecation")
-    final String spec = config.getProperty(SPECIFICATION_OPTION);
+    final String spec = config.getProperty("specification");
     @SuppressWarnings("deprecation")
     final String cpas = Objects.requireNonNullElse(config.getProperty("CompositeCPA.cpas"), "");
     @SuppressWarnings("deprecation")
@@ -469,7 +468,6 @@ public class ConfigurationFileChecks {
     }
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void instantiate_and_run() throws IOException, InvalidConfigurationException {
     // exclude files not meant to be instantiated
@@ -495,17 +493,7 @@ public class ConfigurationFileChecks {
       configBuilder.copyOptionFromIfPresent(config, "limits.time.cpu");
       config = configBuilder.build();
     }
-    if (Strings.isNullOrEmpty(config.getProperty(SPECIFICATION_OPTION))
-        && configFile instanceof Path configFilePath
-        && (Iterables.contains(configFilePath, Path.of("components"))
-            || configFilePath.endsWith("ltl.properties"))) {
-      // Some configs require a specification due to the use of $specification.
-      // For config/components/ we do not want to hard-code a specification in the config file,
-      // but we still want to instantiate the config for testing here. So provide a dummy spec.
-      ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(config);
-      configBuilder.setOption(SPECIFICATION_OPTION, "config/specification/Assertion.spc");
-      config = configBuilder.build();
-    }
+    final boolean isJava = options.language == Language.JAVA;
 
     final TestLogHandler logHandler = new TestLogHandler();
     logHandler.setLevel(Level.ALL);
@@ -523,7 +511,12 @@ public class ConfigurationFileChecks {
 
     CPAcheckerResult result;
     try {
-      result = cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)));
+      result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)));
+    } catch (IllegalArgumentException e) {
+      if (isJava) {
+        assume().withMessage("Java frontend has a bug and cannot be run twice").fail();
+      }
+      throw e;
     } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
       assumeNoException(e);
       throw new AssertionError(e);
@@ -582,7 +575,7 @@ public class ConfigurationFileChecks {
       return parse(configFile)
           .addConverter(FileOption.class, fileTypeConverter)
           .setOption("java.sourcepath", tempFolder.getRoot().toString())
-          .setOption("differential.program", createEmptyProgram(Language.C))
+          .setOption("differential.program", createEmptyProgram(false))
           .setOption("statistics.memory", "false")
           .build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
@@ -591,8 +584,8 @@ public class ConfigurationFileChecks {
     }
   }
 
-  private String createEmptyProgram(Language pLanguage) throws IOException {
-    return TestDataTools.getEmptyProgram(tempFolder, pLanguage);
+  private String createEmptyProgram(boolean pIsJava) throws IOException {
+    return TestDataTools.getEmptyProgram(tempFolder, pIsJava);
   }
 
   private Stream<String> getSevereMessages(

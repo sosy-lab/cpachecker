@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.exceptions;
 
-import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -19,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  */
 public class UnsupportedCodeException extends UnrecognizedCodeException {
 
-  @Serial private static final long serialVersionUID = -7693635256672813804L;
+  private static final long serialVersionUID = -7693635256672813804L;
 
   public UnsupportedCodeException(String msg, @Nullable CFAEdge edge, @Nullable AAstNode astNode) {
     super("Unsupported feature", msg, edge, astNode);

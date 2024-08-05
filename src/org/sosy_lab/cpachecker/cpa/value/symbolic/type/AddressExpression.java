@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import com.google.common.base.Preconditions;
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -21,11 +20,11 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * Represents the inner part of a pointer i.e. ptr + 3. The idea is that this class models the
  * address always as + offset. This does not make use of the MemoryLocation (so it is null!). The
  * idea is that the addressValue maps somehow to a memory location (representing the address
- * essentially). The type helps to evaluate/use the address.
+ * essentially). The type helps evaluating/using the address.
  */
 public final class AddressExpression extends SymbolicExpression {
 
-  @Serial private static final long serialVersionUID = -1498889385306613159L;
+  private static final long serialVersionUID = -1498889385306613159L;
 
   // The address Value should map to memory
   private final Value addressValue;

@@ -16,7 +16,6 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
-import java.io.Serial;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,7 +30,7 @@ public final class DeadLockState extends AbstractLockState {
   @SuppressWarnings("checkstyle:IllegalType") // TODO: use composition instead of inheritance
   public static class DeadLockTreeNode extends ArrayList<LockIdentifier> implements CompatibleNode {
 
-    @Serial private static final long serialVersionUID = 5757759799394605077L;
+    private static final long serialVersionUID = 5757759799394605077L;
 
     public DeadLockTreeNode(List<LockIdentifier> locks) {
       super(locks);

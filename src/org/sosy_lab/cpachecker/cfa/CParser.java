@@ -68,9 +68,7 @@ public interface CParser extends Parser {
   @Override
   default ParseResult parseString(Path filename, String code)
       throws CParserException, InterruptedException {
-    CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
-    sourceOriginMapping.addFileInformation(filename, code);
-    return parseString(filename, code, sourceOriginMapping, CProgramScope.empty());
+    return parseString(filename, code, new CSourceOriginMapping(), CProgramScope.empty());
   }
 
   /**

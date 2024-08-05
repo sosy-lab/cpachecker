@@ -261,7 +261,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       printStats(result);
     }
 
-    if (dumpfile != null) { // option --no-output-files
+    if (dumpfile != null) { // option -noout
       try (Writer w = IO.openOutputFile(dumpfile, Charset.defaultCharset())) {
         w.append("IntBool\n\n");
         w.append(intBoolVars.toString());

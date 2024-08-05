@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -21,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public abstract sealed class CTypeDeclaration extends AbstractDeclaration implements CDeclaration
     permits CComplexTypeDeclaration, CTypeDefDeclaration {
 
-  @Serial private static final long serialVersionUID = -607383651501118425L;
+  private static final long serialVersionUID = -607383651501118425L;
   private final String qualifiedName;
 
   protected CTypeDeclaration(

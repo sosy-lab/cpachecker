@@ -98,7 +98,7 @@ final class BDDStatistics implements Statistics {
       }
     }
 
-    if (dumpfile != null) { // option --no-output-files
+    if (dumpfile != null) { // option -noout
       try (Writer w = IO.openOutputFile(dumpfile, Charset.defaultCharset())) {
         w.append("Boolean\n\n");
         w.append(trackedIntBool.toString());

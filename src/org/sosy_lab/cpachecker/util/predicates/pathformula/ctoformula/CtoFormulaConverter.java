@@ -563,8 +563,7 @@ public class CtoFormulaConverter {
     Formula newVariable =
         fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromCType(type), name + "!" + index);
 
-    if (options.addRangeConstraintsForNondet() || CTypes.isBoolType(type)) {
-      // For bool we always need the constraint that it is 0 or 1 and not 8 nondet bits
+    if (options.addRangeConstraintsForNondet()) {
       addRangeConstraint(newVariable, type, constraints);
     }
     return newVariable;

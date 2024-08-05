@@ -26,10 +26,6 @@ java.lang.Math#random()
 java.util.Collections#shuffle(java.util.List)
 java.util.Random#<init>()
 
-@defaultMessage String.split() has surprising behavior, use Guava's Splitter instead
-java.lang.String#split(java.lang.String)
-java.lang.String#split(java.lang.String, int)
-
 @defaultMessage useless utility method, use constructor directly (can be applied automatically with Refaster)
 com.google.common.collect.Lists#newArrayList()
 com.google.common.collect.Lists#newArrayListWithCapacity(int)

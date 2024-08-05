@@ -8,12 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.ci;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class AppliedCustomInstructionParsingFailedException extends CPAException {
 
-  @Serial private static final long serialVersionUID = -1974068616247550237L;
+  private static final long serialVersionUID = -1974068616247550237L;
 
   public AppliedCustomInstructionParsingFailedException(final String pMsg) {
     super(pMsg);

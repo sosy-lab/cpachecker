@@ -225,7 +225,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
                       pCfaEdge.getSuccessor());
           break;
         }
-      // $FALL-THROUGH$
+        // $FALL-THROUGH$
       case CallToReturnEdge:
         logger.log(
             Level.FINE,

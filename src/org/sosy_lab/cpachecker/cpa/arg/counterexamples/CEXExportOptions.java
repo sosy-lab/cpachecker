@@ -85,6 +85,12 @@ public final class CEXExportOptions {
 
   @Option(
       secure = true,
+      name = "exportYamlWitness",
+      description = "export counterexample as witness/yaml file")
+  private boolean exportYamlWitness = false;
+
+  @Option(
+      secure = true,
       name = "graphml",
       description = "export counterexample witness as GraphML automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -94,15 +100,10 @@ public final class CEXExportOptions {
   @Option(
       secure = true,
       name = "yaml",
-      description =
-          "The template from which the different "
-              + "versions of the violation witnesses will be exported. "
-              + "Each version replaces the string '%s' "
-              + "with its version number. "
-              + "The string %d is replace with the number of the counterexample.")
+      description = "export counterexample witness as GraphML automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate yamlWitnessOutputFileTemplate =
-      PathTemplate.ofFormatString("Counterexample.%d.witness-%s.yml");
+  private PathTemplate errorPathYamlWitnessFile =
+      PathTemplate.ofFormatString("Counterexample.%d.yaml");
 
   @Option(
       secure = true,
@@ -166,7 +167,6 @@ public final class CEXExportOptions {
         && getTestHarnessFile() == null
         && getWitnessFile() == null
         && getExtendedWitnessFile() == null
-        && getYamlWitnessPathTemplate() == null
         && !exportTest;
   }
 
@@ -226,11 +226,11 @@ public final class CEXExportOptions {
     return exportWitness ? errorPathWitnessFile : null;
   }
 
-  @Nullable PathTemplate getYamlWitnessPathTemplate() {
+  @Nullable PathTemplate getYamlWitnessFile() {
     if (!exportErrorPath) {
       return null;
     }
-    return yamlWitnessOutputFileTemplate;
+    return exportYamlWitness ? errorPathYamlWitnessFile : null;
   }
 
   @Nullable PathTemplate getWitnessDotFile() {

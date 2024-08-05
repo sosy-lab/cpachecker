@@ -16,6 +16,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 
 public final class JMethodReturnEdge extends FunctionReturnEdge {
 
+  private static final long serialVersionUID = -8946598759920862594L;
+
   public JMethodReturnEdge(
       FileLocation pFileLocation,
       FunctionExitNode pPredecessor,

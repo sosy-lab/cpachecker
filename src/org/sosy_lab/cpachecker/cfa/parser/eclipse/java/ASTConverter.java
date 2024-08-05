@@ -335,7 +335,7 @@ class ASTConverter {
     if (methodBinding == null) {
       logger.log(Level.WARNING, "Could not resolve Binding for Method Declaration ");
       logger.log(Level.WARNING, md.getName());
-      return scope.getTypeHierarchy().getUnresolvableMethodDeclaration();
+      return JMethodDeclaration.createUnresolvedMethodDeclaration();
     }
 
     String methodName = NameConverter.convertName(methodBinding);
@@ -359,7 +359,7 @@ class ASTConverter {
       declaringClass = (JClassOrInterfaceType) declaringClassType;
     } else {
       // Create a dummy if type is Unspecified
-      declaringClass = scope.getTypeHierarchy().getUnresolvableClassType();
+      declaringClass = JClassType.createUnresolvableType();
     }
 
     return declaringClass;
@@ -388,9 +388,7 @@ class ASTConverter {
         l.getStartPosition(),
         l.getLength(),
         co.getLineNumber(l.getStartPosition()),
-        co.getLineNumber(l.getLength() + l.getStartPosition()),
-        co.getColumnNumber(l.getStartPosition()),
-        co.getColumnNumber(l.getLength() + l.getStartPosition()));
+        co.getLineNumber(l.getLength() + l.getStartPosition()));
   }
 
   /**
@@ -742,7 +740,7 @@ class ASTConverter {
                 (JClassType) getDeclaringClassType(binding));
 
       } else {
-        declaration = scope.getTypeHierarchy().getUnresolvableConstructorDeclaration();
+        declaration = JConstructorDeclaration.createUnresolvedConstructorDeclaration();
       }
     }
 
@@ -756,10 +754,7 @@ class ASTConverter {
 
       functionName =
           new JIdExpression(
-              getFileLocation(sCI),
-              scope.getTypeHierarchy().getUnresolvableClassType(),
-              name,
-              declaration);
+              getFileLocation(sCI), JClassType.createUnresolvableType(), name, declaration);
     }
 
     JIdExpression idExpression = (JIdExpression) functionName;
@@ -964,7 +959,7 @@ class ASTConverter {
                 declaringClassType);
 
       } else {
-        declaration = scope.getTypeHierarchy().getUnresolvableMethodDeclaration();
+        declaration = JMethodDeclaration.createUnresolvedMethodDeclaration();
       }
     }
 
@@ -1455,13 +1450,13 @@ class ASTConverter {
     // If nothing found
     return new JConstructorDeclaration(
         getFileLocation(pCIC),
-        scope.getTypeHierarchy().getUnresolvableConstructorType(),
+        JConstructorType.createUnresolvableConstructorType(),
         fullName,
         simpleName,
         createJParameterDeclarationsForArguments(pCIC.arguments()),
         VisibilityModifier.NONE,
         false,
-        scope.getTypeHierarchy().getUnresolvableClassType());
+        JClassType.createUnresolvableType());
   }
 
   private JClassType createOrFindJClassTypeFromConstructor(final Constructor<?> pConstructor) {
@@ -1481,7 +1476,7 @@ class ASTConverter {
     return jClassTypeFromClass;
   }
 
-  public JClassType createJClassTypeFromClass(
+  public static JClassType createJClassTypeFromClass(
       final Class<?> pClazz,
       VisibilityModifier pVisibilityModifier,
       final TypeHierarchy pTypeHierarchy) {
@@ -1494,7 +1489,7 @@ class ASTConverter {
     final Class<?> superclass = pClazz.getSuperclass();
 
     JClassType jTypeOfSuperClass;
-    final JClassType typeOfObject = scope.getTypeHierarchy().getClassTypeOfObject();
+    final JClassType typeOfObject = JClassType.getTypeOfObject();
     if ("java.lang.Object".equals(superclass.getName())) {
       jTypeOfSuperClass = typeOfObject;
     } else {
@@ -2257,7 +2252,7 @@ class ASTConverter {
                 declaringClassType);
 
       } else {
-        declaration = scope.getTypeHierarchy().getUnresolvableMethodDeclaration();
+        declaration = JMethodDeclaration.createUnresolvedMethodDeclaration();
       }
     }
 

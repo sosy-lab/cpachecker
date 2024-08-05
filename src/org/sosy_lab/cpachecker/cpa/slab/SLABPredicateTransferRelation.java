@@ -17,11 +17,11 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.SymbolicLocationsUtility;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-class SLABPredicateTransferRelation implements TransferRelation {
+public class SLABPredicateTransferRelation implements TransferRelation {
 
   private final SymbolicLocationsUtility symbolicLocationsUtility;
 
-  SLABPredicateTransferRelation(SymbolicLocationsUtility pSymbolicLocationsUtility) {
+  public SLABPredicateTransferRelation(SymbolicLocationsUtility pSymbolicLocationsUtility) {
     symbolicLocationsUtility = pSymbolicLocationsUtility;
   }
 

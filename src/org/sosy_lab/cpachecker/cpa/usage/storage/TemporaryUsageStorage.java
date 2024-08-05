@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 import static com.google.common.collect.FluentIterable.from;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableSet;
@@ -23,7 +22,7 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
     justification = "Serialization of container is useless and not supported",
     value = "SE_BAD_FIELD")
 public class TemporaryUsageStorage extends AbstractUsageStorage {
-  @Serial private static final long serialVersionUID = -8932709343923545136L;
+  private static final long serialVersionUID = -8932709343923545136L;
 
   // Not set! There was a bug, when two similar usages of different ids are overlapped.
   private final List<UsageInfo> withoutARGState;

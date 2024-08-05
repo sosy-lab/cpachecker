@@ -14,7 +14,6 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map;
@@ -41,7 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeH
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability because of CType
 public final class SSAMap implements Serializable {
 
-  @Serial private static final long serialVersionUID = 7618801653203679876L;
+  private static final long serialVersionUID = 7618801653203679876L;
 
   // Default value for the default value
   private static final int DEFAULT_DEFAULT_IDX = -1;

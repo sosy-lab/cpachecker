@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.defaults;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -32,7 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 public abstract class AbstractSerializableSingleWrapperState
     implements AbstractWrapperState, Targetable, Partitionable, PseudoPartitionable, Serializable {
 
-  @Serial private static final long serialVersionUID = 627183978717358384L;
+  private static final long serialVersionUID = 627183978717358384L;
 
   private final @Nullable AbstractState wrappedState;
 

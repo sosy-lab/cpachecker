@@ -90,13 +90,13 @@ public class LlvmParserWithClangTest {
     ParseResult stringResult = stringParser.parseString(fileName, code);
 
     assertThat(stringResult.isEmpty()).isEqualTo(fileResult.isEmpty());
-    assertThat(stringResult.cfaNodes()).hasSize(fileResult.cfaNodes().size());
-    assertThat(stringResult.functions().keySet())
-        .containsExactlyElementsIn(fileResult.functions().keySet());
-    for (String function : stringResult.functions().keySet()) {
-      assertThat(stringResult.cfaNodes().get(function))
-          .hasSize(fileResult.cfaNodes().get(function).size());
+    assertThat(stringResult.getCFANodes()).hasSize(fileResult.getCFANodes().size());
+    assertThat(stringResult.getFunctions().keySet())
+        .containsExactlyElementsIn(fileResult.getFunctions().keySet());
+    for (String function : stringResult.getFunctions().keySet()) {
+      assertThat(stringResult.getCFANodes().get(function))
+          .hasSize(fileResult.getCFANodes().get(function).size());
     }
-    assertThat(stringResult.globalDeclarations()).isEqualTo(fileResult.globalDeclarations());
+    assertThat(stringResult.getGlobalDeclarations()).isEqualTo(fileResult.getGlobalDeclarations());
   }
 }

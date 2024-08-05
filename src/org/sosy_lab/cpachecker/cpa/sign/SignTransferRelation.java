@@ -195,7 +195,7 @@ public class SignTransferRelation
     switch (pOp) {
       case GREATER_EQUAL:
         equalZero = pResultSign.covers(SIGN.ZERO);
-      // $FALL-THROUGH$
+        // $FALL-THROUGH$
       case GREATER_THAN:
         if (pIdentIsLeft) {
           if (SIGN.PLUS0.covers(pResultSign)) { // x > (0)+
@@ -210,7 +210,7 @@ public class SignTransferRelation
         break;
       case LESS_EQUAL:
         equalZero = pResultSign.covers(SIGN.ZERO);
-      // $FALL-THROUGH$
+        // $FALL-THROUGH$
       case LESS_THAN:
         if (pIdentIsLeft) { // x < (0)-
           if (SIGN.MINUS0.covers(pResultSign)) {

@@ -14,7 +14,7 @@ int main() {
   if (x) {
     x = x * x;
   } else {
-    return 0;
+    return;
   }
   int i = 0;
   while (i < x) {

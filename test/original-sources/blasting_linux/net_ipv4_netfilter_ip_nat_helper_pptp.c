@@ -1,7 +1,3 @@
-// Copyright (C) 2000-2005 by Harald Welte <laforge@gnumonks.org>
-//
-// SPDX-License-Identifier: GPL-2.0-only
-
 /*
  * ip_nat_pptp.c	- Version 3.0
  *
@@ -12,6 +8,8 @@
  * version of the Internet Generic Routing Encapsulation Protocol.
  * GRE is defined in RFC 1701 and RFC 1702.  Documentation of
  * PPTP can be found in RFC 2637
+ *
+ * (C) 2000-2005 by Harald Welte <laforge@gnumonks.org>
  *
  * Development of this code funded by Astaro AG (http://www.astaro.com/)
  *

@@ -219,7 +219,7 @@ public class CTypeToStringTest {
         (CType)
             parser
                 .parseString(Path.of("dummy"), stringRepr + ";")
-                .globalDeclarations()
+                .getGlobalDeclarations()
                 .get(0)
                 .getFirst()
                 .getType();

@@ -70,7 +70,7 @@ def init(config, benchmark):
     )
 
     benchmark.tool_version = _webclient.tool_revision()
-    benchmark.executable = "bin/cpachecker"
+    benchmark.executable = "scripts/cpa.sh"
 
 
 def get_system_info():

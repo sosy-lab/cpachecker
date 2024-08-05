@@ -336,9 +336,7 @@ public final class InterpolationManager {
       try {
         return callable.call();
       } catch (Exception e) {
-        Throwables.throwIfInstanceOf(e, CPAException.class);
-        Throwables.throwIfInstanceOf(e, InterruptedException.class);
-        Throwables.throwIfUnchecked(e);
+        Throwables.propagateIfPossible(e, CPAException.class, InterruptedException.class);
         throw new UnexpectedCheckedException("refinement", e);
       }
     }
@@ -358,9 +356,8 @@ public final class InterpolationManager {
 
     } catch (ExecutionException e) {
       Throwable t = e.getCause();
-      Throwables.throwIfInstanceOf(t, CPAException.class);
-      Throwables.throwIfInstanceOf(t, InterruptedException.class);
-      Throwables.throwIfUnchecked(t);
+      Throwables.propagateIfPossible(t, CPAException.class, InterruptedException.class);
+
       throw new UnexpectedCheckedException("interpolation", t);
     }
   }

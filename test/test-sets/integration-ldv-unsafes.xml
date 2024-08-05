@@ -16,12 +16,12 @@ SPDX-License-Identifier: Apache-2.0
        It expects the git repository https://gitlab.com/sosy-lab/software/ldv-benchmarks
        to be checked out at test/programs/ldv-benchmarks. -->
 
-  <option name="--no-output-files"/>
-  <option name="--heap">3000M</option>
-  <option name="--option">statistics.memory=true</option>
+  <option name="-noout"/>
+  <option name="-heap">3000M</option>
+  <option name="-setprop">statistics.memory=true</option>
 
   <rundefinition>
-    <option name="--ldv-bam"/>
+    <option name="-ldv-bam"/>
   </rundefinition>
 
   <tasks>

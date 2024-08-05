@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -49,7 +48,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  */
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability
 class DeferredAllocation implements Serializable {
-  @Serial private static final long serialVersionUID = -6882598785306470437L;
+  private static final long serialVersionUID = -6882598785306470437L;
 
   DeferredAllocation(
       final String base, final Optional<CIntegerLiteralExpression> size, final boolean isZeroed) {
@@ -101,7 +100,6 @@ class DeferredAllocation implements Serializable {
   private final Optional<CIntegerLiteralExpression> size;
   private final String base;
 
-  @Serial
   private Object writeReplace() {
     return new SerializationProxy(this);
   }
@@ -112,14 +110,13 @@ class DeferredAllocation implements Serializable {
    * @param in the input stream
    */
   @SuppressWarnings("UnusedVariable") // parameter is required by API
-  @Serial
   private void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");
   }
 
   private static class SerializationProxy implements Serializable {
 
-    @Serial private static final long serialVersionUID = 4850967154964188729L;
+    private static final long serialVersionUID = 4850967154964188729L;
     private final boolean isZeroed;
     private final String base;
     private final long size;
@@ -137,7 +134,6 @@ class DeferredAllocation implements Serializable {
       }
     }
 
-    @Serial
     private Object readResolve() {
       return new DeferredAllocation(
           base,

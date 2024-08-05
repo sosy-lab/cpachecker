@@ -14,25 +14,20 @@ import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.util.ValueAndObjectSet;
 
 public class SMGProveNequality {
 
-  private final SMGState state;
+  private final SMG smg;
 
-  public SMGProveNequality(SMGState pState) {
-    state = pState;
+  public SMGProveNequality(SMG pSMG) {
+    smg = pSMG;
   }
 
   /**
@@ -44,10 +39,12 @@ public class SMGProveNequality {
    * @param value2 the second address
    * @return true if the prove of not equality succeeded, false if both are potentially equal.
    */
-  public boolean proveInequality(SMGValue value1, SMGValue value2)
-      throws SMGException, SMGSolverException {
-    SMG smg = state.getMemoryModel().getSmg();
-    // The nesting level should always be 0, as we only compare materialized SMGs
+  public boolean proveInequality(SMGValue value1, SMGValue value2) {
+    checkArgument(
+        value1.getNestingLevel() == 0 && value2.getNestingLevel() == 0,
+        "%s or %s is not on level 0",
+        value1,
+        value2);
     if (value1.equals(value2)) {
       return false;
     }
@@ -88,27 +85,9 @@ public class SMGProveNequality {
     return smg.isValid(targetEdge1.pointsTo()) && smg.isValid(targetEdge2.pointsTo());
   }
 
-  private boolean checkIfEdgePointsOutOfBounds(SMGPointsToEdge pToEdge)
-      throws SMGException, SMGSolverException {
-    SMGObject targetObj = pToEdge.pointsTo();
-    if (pToEdge.pointsTo().getSize().isUnknown() || pToEdge.getOffset().isUnknown()) {
-      // Unknown -> Overapproximate
-      return true;
-    } else if (targetObj.getSize().isNumericValue() && pToEdge.getOffset().isNumericValue()) {
-      return pToEdge
-                  .getOffset()
-                  .asNumericValue()
-                  .bigIntegerValue()
-                  .compareTo(pToEdge.pointsTo().getSize().asNumericValue().bigIntegerValue())
-              > 0
-          || pToEdge.getOffset().asNumericValue().bigIntegerValue().signum() < 0;
-    } else {
-      // Use SMT solver
-      return state
-          .checkBoundariesOfMemoryAccessWithSolver(
-              targetObj, pToEdge.getOffset(), new NumericValue(BigInteger.ZERO), null)
-          .isSAT();
-    }
+  private boolean checkIfEdgePointsOutOfBounds(SMGPointsToEdge pToEdge) {
+    return pToEdge.getOffset().compareTo(pToEdge.pointsTo().getSize()) > 0
+        || pToEdge.getOffset().signum() < 0;
   }
 
   private boolean checkEdgeLabelsForEqualTargets(
@@ -134,7 +113,6 @@ public class SMGProveNequality {
    * @return the finally reached value and the set of all visited objects.
    */
   public ValueAndObjectSet lookThrough(SMGValue value) {
-    SMG smg = state.getMemoryModel().getSmg();
     Set<SMGObject> reachedSet = new HashSet<>();
     SMGValue retValue = value;
     Optional<SMGPointsToEdge> ptoOptional = smg.getPTEdge(value);
@@ -144,19 +122,19 @@ public class SMGProveNequality {
       if (pointerEdge.targetSpecifier() == SMGTargetSpecifier.IS_REGION) {
         break;
       }
-      checkArgument(nextObject instanceof SMGSinglyLinkedListSegment);
+      checkArgument(nextObject instanceof SMGDoublyLinkedListSegment);
 
-      SMGSinglyLinkedListSegment lls = (SMGSinglyLinkedListSegment) nextObject;
-      if (lls.getMinLength() != 0) {
+      SMGDoublyLinkedListSegment dlls = (SMGDoublyLinkedListSegment) nextObject;
+      if (dlls.getMinLength() != 0) {
         // not a 0+DLLS
         break;
       }
 
       reachedSet.add(nextObject);
       if (pointerEdge.targetSpecifier().equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
-        retValue = findHVETargetValue(lls, lls.getNextOffset(), smg.getSizeOfPointer());
+        retValue = findHVETargetValue(dlls, dlls.getNextOffset(), smg.getSizeOfPointer());
 
-      } else if (nextObject instanceof SMGDoublyLinkedListSegment dlls) {
+      } else {
         checkArgument(
             pointerEdge.targetSpecifier().equals(SMGTargetSpecifier.IS_LAST_POINTER),
             "Inconsisntent SMG found: DLLS pointer with SMGTargetSpecifier: %s",
@@ -169,16 +147,15 @@ public class SMGProveNequality {
   }
 
   /**
-   * Utility function to find the edge for a given lls at a given offset with a given size.
+   * Utility function to find the edge for a given dlls at a given offset with a given size.
    *
-   * @param dlls the LLS
+   * @param dlls the DLLS
    * @param pOffset the offset
    * @param pSize the size
    * @return the value address (pointer) at a given offset of a dlls.
    */
   private SMGValue findHVETargetValue(
-      SMGSinglyLinkedListSegment dlls, BigInteger pOffset, BigInteger pSize) {
-    SMG smg = state.getMemoryModel().getSmg();
+      SMGDoublyLinkedListSegment dlls, BigInteger pOffset, BigInteger pSize) {
     Optional<SMGHasValueEdge> hveOptional =
         smg.getHasValueEdgeByPredicate(
             dlls, edge -> edge.getOffset().equals(pOffset) && edge.getSizeInBits().equals(pSize));

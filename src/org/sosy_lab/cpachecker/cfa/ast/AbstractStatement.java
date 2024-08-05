@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.io.Serial;
-
 public abstract class AbstractStatement extends AbstractAstNode implements AStatement {
 
-  @Serial private static final long serialVersionUID = -596325723181327583L;
+  private static final long serialVersionUID = -596325723181327583L;
 
   protected AbstractStatement(FileLocation pFileLocation) {
     super(pFileLocation);

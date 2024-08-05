@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -65,7 +64,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
@@ -84,10 +83,9 @@ import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * This visitor visits values mostly on the right hand side to get values (SMG or not) (but also on
@@ -151,97 +149,6 @@ public class SMGCPAValueVisitor
       result.add(ValueAndSMGState.of(castedValue, uncastedValueAndState.getState()));
     }
     return result.build();
-  }
-
-  /**
-   * Only use if this is the right hand side of an assignment. This matters because of abstracted
-   * lists, in that if the value is a pointer from an abstracted list next field to outside an
-   * abstracted list, we need special handling to getting the correct pointer. This method returns
-   * the value of an expression, reduced to match the type. This method handles overflows and casts.
-   * If necessary warnings for the user are printed. This method does not touch {@link
-   * AddressExpression}s or {@link SymbolicIdentifier}s with {@link MemoryLocation}s, as they carry
-   * location information for further evaluation.
-   *
-   * @param pExp expression to evaluate
-   * @param pTargetType the type of the left side of an assignment
-   * @return if evaluation successful, then value, else null
-   * @throws CPATransferException in case of critical visitor or SMG error
-   */
-  public List<ValueAndSMGState> evaluateAssignmentValue(
-      final CRightHandSide pExp, final CType pTargetType) throws CPATransferException {
-
-    // Look up the structure of the access, if we find something that might be ptr->next for
-    // abstracted lists with ptr being the last pointer, we might not want to materialize yet
-    if (pExp instanceof CFieldReference fieldRef
-        && fieldRef.getFieldOwner() instanceof CIdExpression ptrExpr) {
-      for (ValueAndSMGState pointerValuesAndState :
-          ptrExpr.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options))) {
-        SMGState currentState = pointerValuesAndState.getState();
-        Value pointerValue = pointerValuesAndState.getValue();
-        Value ptrTargetOffset = new NumericValue(BigInteger.ZERO);
-        if (pointerValue instanceof AddressExpression addrValue) {
-          pointerValue = addrValue.getMemoryAddress();
-          ptrTargetOffset = addrValue.getOffset();
-        }
-        if (!currentState.getMemoryModel().isPointer(pointerValue)) {
-          break;
-        }
-
-        Optional<SMGStateAndOptionalSMGObjectAndOffset> maybePtrTarget =
-            currentState.dereferencePointerWithoutMaterilization(pointerValue);
-        if (maybePtrTarget.isEmpty() || !maybePtrTarget.orElseThrow().hasSMGObjectAndOffset()) {
-          break;
-        }
-        SMGObject ptrTarget = maybePtrTarget.orElseThrow().getSMGObject();
-        ptrTargetOffset =
-            SMGCPAExpressionEvaluator.addOffsetValues(
-                ptrTargetOffset, maybePtrTarget.orElseThrow().getOffsetForObject());
-        currentState = maybePtrTarget.orElseThrow().getSMGState();
-
-        // Nesting level 0 means either no abstraction or the very end of the list
-        // TODO: use last indicator
-        int nestingLvl = currentState.getMemoryModel().getNestingLevel(pointerValue);
-
-        if (ptrTarget instanceof SMGSinglyLinkedListSegment linkedListObj && nestingLvl == 0) {
-          CFieldReference explicitFieldRef = fieldRef.withExplicitPointerDereference();
-          CType returnType =
-              SMGCPAExpressionEvaluator.getCanonicalType(explicitFieldRef.getExpressionType());
-          BigInteger readSize = evaluator.getBitSizeof(currentState, returnType);
-          BigInteger fieldOffset =
-              evaluator.getFieldOffsetInBits(
-                  SMGCPAExpressionEvaluator.getCanonicalType(explicitFieldRef),
-                  explicitFieldRef.getFieldName());
-          Value finalReadOffset =
-              SMGCPAExpressionEvaluator.addOffsetValues(ptrTargetOffset, fieldOffset);
-
-          if (finalReadOffset.isExplicitlyKnown()
-              && finalReadOffset
-                  .asNumericValue()
-                  .bigIntegerValue()
-                  .equals(linkedListObj.getNextOffset())
-              && finalReadOffset.isExplicitlyKnown()) {
-
-            ValueAndSMGState fieldReadAndState =
-                currentState.readValueWithoutMaterialization(
-                    linkedListObj,
-                    finalReadOffset.asNumericValue().bigIntegerValue(),
-                    readSize,
-                    returnType);
-            // This is now the next pointer from the last element of the list (this is the ptr->next
-            // part)
-            currentState = fieldReadAndState.getState();
-            Value readFieldValue = fieldReadAndState.getValue();
-            Value fieldTargetOffset = new NumericValue(BigInteger.ZERO);
-            if (!(readFieldValue instanceof AddressExpression)) {
-              readFieldValue = AddressExpression.of(readFieldValue, returnType, fieldTargetOffset);
-            }
-            return ImmutableList.of(ValueAndSMGState.of(readFieldValue, currentState));
-          }
-        }
-      }
-    }
-
-    return evaluate(pExp, pTargetType);
   }
 
   @Override
@@ -320,8 +227,7 @@ public class SMGCPAValueVisitor
         // Calculate the offset out of the subscript value and the type
         BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
         Value subscriptOffset =
-            SMGCPAExpressionEvaluator.multiplyValues(
-                subscriptValue, typeSizeInBits, returnType, state.getMachineModel());
+            SMGCPAExpressionEvaluator.multiplyOffsetValues(subscriptValue, typeSizeInBits);
 
         if (arrayExpr.getExpressionType() instanceof CPointerType) {
           Preconditions.checkArgument(arrayValue instanceof AddressExpression);
@@ -376,7 +282,12 @@ public class SMGCPAValueVisitor
         ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
         for (ValueAndSMGState readPointerAndState :
             evaluator.readValueWithPointerDereference(
-                newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits, returnType)) {
+                newState,
+                arrayAddr.getMemoryAddress(),
+                finalOffset,
+                typeSizeInBits,
+                returnType,
+                CNumericTypes.INT)) {
 
           newState = readPointerAndState.getState();
           if (readPointerAndState.getValue().isUnknown()) {
@@ -392,7 +303,12 @@ public class SMGCPAValueVisitor
 
       } else {
         return evaluator.readValueWithPointerDereference(
-            newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits, returnType);
+            newState,
+            arrayAddr.getMemoryAddress(),
+            finalOffset,
+            typeSizeInBits,
+            returnType,
+            CNumericTypes.INT);
       }
     } else if (arrayValue instanceof SymbolicIdentifier
         && ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent()) {
@@ -733,9 +649,6 @@ public class SMGCPAValueVisitor
       } else if (value.isNumericValue() && options.isCastMemoryAddressesToNumeric()) {
         logger.logf(Level.FINE, "Numeric Value '%s' interpreted as memory address.", value);
         return evaluator.getPointerFromNumeric(value, currentState);
-
-      } else if (options.trackPredicates() && value instanceof SymbolicValue) {
-        return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
 
       } else {
         return ValueAndSMGState.of(UnknownValue.getInstance(), currentState);
@@ -1164,7 +1077,12 @@ public class SMGCPAValueVisitor
         readValueAndState =
             evaluator
                 .readValueWithPointerDereference(
-                    currentState, pointerValue.getMemoryAddress(), offset, sizeInBits, returnType)
+                    currentState,
+                    pointerValue.getMemoryAddress(),
+                    offset,
+                    sizeInBits,
+                    returnType,
+                    CNumericTypes.INT)
                 .get(0);
 
         if (returnType instanceof CPointerType) {
@@ -2148,9 +2066,12 @@ public class SMGCPAValueVisitor
 
       // This checks and uses builtins and also unknown functions based on the options
       SMGCPABuiltins smgBuiltins = evaluator.getBuiltinFunctionHandler();
-
-      return smgBuiltins.handleFunctionCall(
-          pIastFunctionCallExpression, calledFunctionName, state, cfaEdge);
+      try {
+        return smgBuiltins.handleFunctionCall(
+            pIastFunctionCallExpression, calledFunctionName, state, cfaEdge);
+      } catch (InterruptedException | SolverException e) {
+        throw new SMGSolverException(e, state);
+      }
     }
     return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
   }
@@ -2211,8 +2132,8 @@ public class SMGCPAValueVisitor
     if (leftValue instanceof AddressExpression addressValue
         && !(rightValue instanceof AddressExpression)) {
       Value addressOffset = addressValue.getOffset();
-      if (!options.trackPredicates()
-          && (!rightValue.isNumericValue() || !addressOffset.isNumericValue())) {
+      if (!rightValue.isNumericValue() || !addressOffset.isNumericValue()) {
+        // TODO: symbolic values if possible
         return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
       }
 
@@ -2222,40 +2143,29 @@ public class SMGCPAValueVisitor
         // We need the correct types here; the types of the returned value after the pointer
         // expression!
         correctlyTypedOffset =
-            calculateArithmeticOperationWithBitPromotion(
+            arithmeticOperation(
                 new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
-                leftValueType,
-                rightValue,
-                rightValueType,
+                (NumericValue) rightValue,
                 BinaryOperator.MULTIPLY,
-                expressionType,
-                calculationType,
-                currentState);
+                // TODO This is just some random int type with same size, check if this is correct.
+                evaluator.getMachineModel().getPointerSizedIntType());
       } else {
         // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
         // then this is just the numeric value * 8 and then the operation.
         correctlyTypedOffset =
-            calculateArithmeticOperationWithBitPromotion(
+            arithmeticOperation(
                 new NumericValue(BigInteger.valueOf(8)),
-                leftValueType,
-                rightValue,
-                rightValueType,
+                (NumericValue) rightValue,
                 BinaryOperator.MULTIPLY,
-                expressionType,
-                calculationType,
-                currentState);
+                calculationType);
       }
 
       Value finalOffset =
-          calculateArithmeticOperationWithBitPromotion(
-              addressOffset,
-              leftValueType,
-              correctlyTypedOffset,
-              rightValueType,
+          arithmeticOperation(
+              (NumericValue) addressOffset,
+              (NumericValue) correctlyTypedOffset,
               binaryOperator,
-              expressionType,
-              calculationType,
-              currentState);
+              calculationType);
 
       return ImmutableList.of(
           ValueAndSMGState.of(addressValue.copyWithNewOffset(finalOffset), currentState));
@@ -2365,37 +2275,6 @@ public class SMGCPAValueVisitor
         continue;
       }
       return returnBuilder.build();
-    }
-  }
-
-  private Value calculateArithmeticOperationWithBitPromotion(
-      Value leftValue,
-      CType leftValueType,
-      Value rightValue,
-      CType rightValueType,
-      BinaryOperator binOp,
-      CType expressionType,
-      CType calculationType,
-      SMGState currentState)
-      throws CPATransferException {
-    if (rightValue instanceof NumericValue numValueRight
-        && leftValue instanceof NumericValue numValueLeft) {
-      return arithmeticOperation(
-          numValueLeft,
-          numValueRight,
-          binOp,
-          // TODO This is just some random int type with same size, check if this is correct.
-          evaluator.getMachineModel().getPointerSizedIntType());
-    } else {
-      // Symbolic offset
-      return createSymbolicExpression(
-          leftValue,
-          leftValueType,
-          rightValue,
-          rightValueType,
-          binOp,
-          expressionType,
-          promoteMemorySizeTypeForBitCalculation(calculationType, currentState.getMachineModel()));
     }
   }
 
@@ -2974,15 +2853,6 @@ public class SMGCPAValueVisitor
    */
   protected SMGState getInitialVisitorState() {
     return state;
-  }
-
-  /**
-   * Only accessible for subclasses.
-   *
-   * @return the {@link SMGOptions} given to this visitor when it was created.
-   */
-  protected SMGOptions getInitialVisitorOptions() {
-    return options;
   }
 
   /**

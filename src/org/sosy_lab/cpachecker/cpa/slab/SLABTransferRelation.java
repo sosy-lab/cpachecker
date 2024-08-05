@@ -21,13 +21,13 @@ import org.sosy_lab.cpachecker.cpa.predicate.SymbolicLocationsUtility;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.java_smt.api.SolverException;
 
-class SLABTransferRelation implements TransferRelation {
+public class SLABTransferRelation implements TransferRelation {
 
   private final TransferRelation transferRelation;
   private final ImmutableSet<CFAEdge> allTransitions;
   private final SymbolicLocationsUtility symbolicLocationsUtility;
 
-  SLABTransferRelation(
+  public SLABTransferRelation(
       TransferRelation pTransferRelation,
       CFA pCfa,
       SymbolicLocationsUtility pSymbolicLocationseUtility) {

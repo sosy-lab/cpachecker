@@ -41,11 +41,11 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcr
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
@@ -257,19 +257,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       if (lhs != null) {
         variableAddressMap.put(lhs, nextAlloc);
       }
-      BigInteger objectSize;
-      if (!pObject.getSize().isNumericValue()) {
-        // List<ValueAssignment> valuesAss = pSMGState.getModel();
-        // TODO: fix with solver assignments
-        objectSize = BigInteger.TEN;
-        /*    for (ValueAssignment assignment : valuesAss) {
-        if (assignment.getKey().equals(pObject.getSize())) {
-          objectSize = (BigInteger) assignment.getValue();
-        }
-                    }*/
-      } else {
-        objectSize = pObject.getSize().asNumericValue().bigIntegerValue();
-      }
+      BigInteger objectSize = pObject.getSize();
 
       BigInteger nextAllocOffset = nextAlloc.getAddressValue().add(objectSize).add(BigInteger.TEN);
 

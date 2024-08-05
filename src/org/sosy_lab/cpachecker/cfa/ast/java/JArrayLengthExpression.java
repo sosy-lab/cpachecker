@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -26,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 public abstract sealed class JArrayLengthExpression extends AbstractExpression
     implements JExpression {
 
-  @Serial private static final long serialVersionUID = 7278006181009822118L;
+  private static final long serialVersionUID = 7278006181009822118L;
 
   private JArrayLengthExpression(FileLocation pFileLocation) {
     super(pFileLocation, JSimpleType.getInt());
@@ -57,7 +56,7 @@ public abstract sealed class JArrayLengthExpression extends AbstractExpression
   }
 
   private static final class JSubArrayLengthExpression extends JArrayLengthExpression {
-    @Serial private static final long serialVersionUID = 7488687702133599086L;
+    private static final long serialVersionUID = 7488687702133599086L;
     private final JArraySubscriptExpression qualifier;
 
     public JSubArrayLengthExpression(
@@ -67,7 +66,7 @@ public abstract sealed class JArrayLengthExpression extends AbstractExpression
     }
 
     @Override
-    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    public String toASTString(boolean pQualified) {
       return toASTString();
     }
 
@@ -84,7 +83,7 @@ public abstract sealed class JArrayLengthExpression extends AbstractExpression
 
   private static final class JTopArrayLengthExpression extends JArrayLengthExpression {
 
-    @Serial private static final long serialVersionUID = -2662310110400103416L;
+    private static final long serialVersionUID = -2662310110400103416L;
     private final JIdExpression qualifier;
 
     private JTopArrayLengthExpression(FileLocation pFileLocation, JIdExpression pQualifier) {
@@ -93,7 +92,7 @@ public abstract sealed class JArrayLengthExpression extends AbstractExpression
     }
 
     @Override
-    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    public String toASTString(boolean pQualified) {
       return toASTString();
     }
 

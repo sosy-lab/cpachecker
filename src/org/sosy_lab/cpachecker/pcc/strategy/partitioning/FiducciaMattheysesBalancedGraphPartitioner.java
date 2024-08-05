@@ -49,7 +49,7 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
 
     partitioner =
         switch (initialPartitioningStrategy) {
-          // TODO support better strategies for initial partitioning
+            // TODO support better strategies for initial partitioning
           default -> new RandomBalancedGraphPartitioner(); // RANDOM
         };
   }

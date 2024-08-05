@@ -9,14 +9,13 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import com.google.common.collect.ImmutableList;
-import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
 public abstract class AFunctionDeclaration extends AbstractDeclaration {
 
-  @Serial private static final long serialVersionUID = -4385134795747669972L;
+  private static final long serialVersionUID = -4385134795747669972L;
   private final List<AParameterDeclaration> parameters;
 
   protected AFunctionDeclaration(

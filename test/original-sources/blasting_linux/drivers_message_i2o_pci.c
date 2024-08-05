@@ -1,10 +1,14 @@
-// Copyright (C) 1999-2002	Red Hat Software
-//
-// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  *	PCI handling of I2O controller
  *
+ * 	Copyright (C) 1999-2002	Red Hat Software
+ *
  *	Written by Alan Cox, Building Number Three Ltd
+ *
+ *	This program is free software; you can redistribute it and/or modify it
+ *	under the terms of the GNU General Public License as published by the
+ *	Free Software Foundation; either version 2 of the License, or (at your
+ *	option) any later version.
  *
  *	A lot of the I2O message side code from this is taken from the Red
  *	Creek RCPCI45 adapter driver by Red Creek Communications

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -19,7 +18,7 @@ public final class JEnumConstantExpression extends AbstractExpression implements
 
   // TODO Change the representation of the constantName from String to JIdExpression
 
-  @Serial private static final long serialVersionUID = 253114542568695975L;
+  private static final long serialVersionUID = 253114542568695975L;
   private final String constantName;
 
   public JEnumConstantExpression(
@@ -39,7 +38,7 @@ public final class JEnumConstantExpression extends AbstractExpression implements
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString(boolean pQualified) {
     return toASTString();
   }
 

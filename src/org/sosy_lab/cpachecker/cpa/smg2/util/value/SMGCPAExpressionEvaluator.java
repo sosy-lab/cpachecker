@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -64,10 +63,10 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAValueVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.BooleanAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.SatisfiabilityAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
@@ -82,7 +81,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -134,15 +132,20 @@ public class SMGCPAExpressionEvaluator {
   public ValueAndSMGState transformAddressExpressionIntoPointerValue(
       AddressExpression addressExpression, SMGState currentState) throws SMGException {
     Value offset = addressExpression.getOffset();
+    if (!offset.isNumericValue()) {
+      return ValueAndSMGState.ofUnknownValue(currentState);
+    }
 
-    if (offset.isNumericValue()
-        && offset.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+    if (offset.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
       // offset == 0 -> known pointer
       return ValueAndSMGState.of(addressExpression.getMemoryAddress(), currentState);
     } else {
       // Offset known but not 0, search for/create the correct address
       List<ValueAndSMGState> pointers =
-          findOrcreateNewPointer(addressExpression.getMemoryAddress(), offset, currentState);
+          findOrcreateNewPointer(
+              addressExpression.getMemoryAddress(),
+              offset.asNumericValue().bigIntegerValue(),
+              currentState);
       Preconditions.checkArgument(pointers.size() == 1);
       // It is impossible for 0+ list abstractions to happen in this context -> only 1 return value
       return pointers.get(0);
@@ -161,7 +164,7 @@ public class SMGCPAExpressionEvaluator {
    * @throws SMGException in case of critical errors
    */
   public Value checkEqualityForAddresses(Value leftValue, Value rightValue, SMGState state)
-      throws SMGException, SMGSolverException {
+      throws SMGException {
     Value isNotEqual = checkNonEqualityForAddresses(leftValue, rightValue, state);
     if (isNotEqual.isUnknown()) {
       return isNotEqual;
@@ -184,7 +187,7 @@ public class SMGCPAExpressionEvaluator {
    * @throws SMGException in case of critical errors
    */
   public Value checkNonEqualityForAddresses(Value leftValue, Value rightValue, SMGState state)
-      throws SMGException, SMGSolverException {
+      throws SMGException {
     ValueAndSMGState leftValueAndState = unpackAddressExpression(leftValue, state);
     leftValue = leftValueAndState.getValue();
     ValueAndSMGState rightValueAndState =
@@ -223,12 +226,12 @@ public class SMGCPAExpressionEvaluator {
       return ValueAndSMGState.of(address1.getMemoryAddress(), state);
     } else {
       // Get the correct address with its offset in the SMGPointsToEdge
-      Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTargetAndOffset =
+      Optional<SMGObjectAndOffset> maybeTargetAndOffset =
           state.getPointsToTarget(address1.getMemoryAddress());
       if (maybeTargetAndOffset.isEmpty()) {
         return ValueAndSMGState.ofUnknownValue(state);
       }
-      SMGObjectAndOffsetMaybeNestingLvl targetAndOffset = maybeTargetAndOffset.orElseThrow();
+      SMGObjectAndOffset targetAndOffset = maybeTargetAndOffset.orElseThrow();
       SMGObject target = targetAndOffset.getSMGObject();
       if (!offsetValue.isNumericValue()) {
         throw new SMGException(
@@ -238,7 +241,11 @@ public class SMGCPAExpressionEvaluator {
       if (!additionalOffset.isNumericValue()) {
         return ValueAndSMGState.ofUnknownValue(state);
       }
-      Value offset = addOffsetValues(offsetValue, additionalOffset);
+      BigInteger offset =
+          offsetValue
+              .asNumericValue()
+              .bigIntegerValue()
+              .add(additionalOffset.asNumericValue().bigIntegerValue());
 
       return searchOrCreatePointer(target, offset, state);
     }
@@ -292,15 +299,15 @@ public class SMGCPAExpressionEvaluator {
    * @return the {@link Value} that is the address for the new heap memory region created with the
    *     size and the {@link SMGState} with the region (SMGObject) pointer and address Value added.
    */
-  public ValueAndSMGState createHeapMemoryAndPointer(SMGState pInitialSmgState, Value sizeInBits) {
-    SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddNewHeapObject(sizeInBits);
+  public ValueAndSMGState createHeapMemoryAndPointer(
+      SMGState pInitialSmgState, BigInteger sizeInBits) {
+    SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddHeapObject(sizeInBits);
     SMGObject newObject = newObjectAndState.getSMGObject();
     SMGState newState = newObjectAndState.getState();
 
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     // New regions always have offset 0
-    SMGState finalState =
-        newState.createAndAddPointer(addressValue, newObject, new NumericValue(BigInteger.ZERO));
+    SMGState finalState = newState.createAndAddPointer(addressValue, newObject, BigInteger.ZERO);
     return ValueAndSMGState.of(addressValue, finalState);
   }
 
@@ -313,18 +320,17 @@ public class SMGCPAExpressionEvaluator {
    * @return {@link ValueAndSMGState} of the pointer to the memory and its state.
    */
   public ValueAndSMGState createMallocZeroMemoryAndPointer(
-      SMGState pInitialSmgState, Value sizeInBits) {
-    SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddNewHeapObject(sizeInBits);
+      SMGState pInitialSmgState, BigInteger sizeInBits) {
+    SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddHeapObject(sizeInBits);
     SMGObject newObject = newObjectAndState.getSMGObject();
     SMGState newState = newObjectAndState.getState();
 
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     // New regions always have offset 0
-    SMGState finalState =
-        newState.createAndAddPointer(addressValue, newObject, new NumericValue(BigInteger.ZERO));
+    SMGState finalState = newState.createAndAddPointer(addressValue, newObject, BigInteger.ZERO);
     SymbolicProgramConfiguration newSPC =
         finalState.getMemoryModel().setMemoryAsResultOfMallocZero(newObject);
-    newSPC = newSPC.invalidateSMGObject(newObject, false);
+    newSPC = newSPC.invalidateSMGObject(newObject);
     finalState = newState.copyAndReplaceMemoryModel(newSPC);
     return ValueAndSMGState.of(addressValue, finalState);
   }
@@ -339,15 +345,15 @@ public class SMGCPAExpressionEvaluator {
    * @return the {@link Value} that is the address for the new stack memory region created with the
    *     size and the {@link SMGState} with the region (SMGObject) pointer and address Value added.
    */
-  public ValueAndSMGState createStackMemoryAndPointer(SMGState pInitialSmgState, Value sizeInBits) {
+  public ValueAndSMGState createStackMemoryAndPointer(
+      SMGState pInitialSmgState, BigInteger sizeInBits) {
     SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddStackObject(sizeInBits);
     SMGObject newObject = newObjectAndState.getSMGObject();
     SMGState newState = newObjectAndState.getState();
 
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     // New regions always have offset 0
-    SMGState finalState =
-        newState.createAndAddPointer(addressValue, newObject, new NumericValue(BigInteger.ZERO));
+    SMGState finalState = newState.createAndAddPointer(addressValue, newObject, BigInteger.ZERO);
     return ValueAndSMGState.of(addressValue, finalState);
   }
 
@@ -413,7 +419,8 @@ public class SMGCPAExpressionEvaluator {
         // continue;
       }
       // search for existing pointer first and return if found; else make a new one
-      ValueAndSMGState addressAndState = searchOrCreatePointer(target, offset, currentState);
+      ValueAndSMGState addressAndState =
+          searchOrCreatePointer(target, offset.asNumericValue().bigIntegerValue(), currentState);
       resultBuilder.add(
           ValueAndSMGState.of(
               AddressExpression.withZeroOffset(
@@ -445,25 +452,6 @@ public class SMGCPAExpressionEvaluator {
    */
   public List<ValueAndSMGState> findOrcreateNewPointer(
       Value targetAddress, BigInteger offsetInBits, SMGState pState) throws SMGException {
-    return findOrcreateNewPointer(targetAddress, new NumericValue(offsetInBits), pState);
-  }
-
-  /**
-   * Creates a new pointer (address) pointing to the result of *(targetAddress + offset). First
-   * searches for an existing pointer and only creates one if none is found. May return an unknown
-   * value with an error state if something goes wrong. Note: the address may have already an
-   * offset, this is respected and the new offset is the address offset + the entered offset.
-   *
-   * @param targetAddress the targets address {@link Value} (Not AddressExpression!) that should be
-   *     a valid address leading to a point-to-edge.
-   * @param offsetInBits the offset that is added to the address in bits.
-   * @param pState current {@link SMGState}.
-   * @return either an unknown {@link Value} and an error state, or a valid new {@link Value}
-   *     representing an address to the target.
-   * @throws SMGException in case of critical abstract memory materilization errors.
-   */
-  public List<ValueAndSMGState> findOrcreateNewPointer(
-      Value targetAddress, Value offsetInBits, SMGState pState) throws SMGException {
     Preconditions.checkArgument(!(targetAddress instanceof AddressExpression));
 
     ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
@@ -486,7 +474,8 @@ public class SMGCPAExpressionEvaluator {
         returnBuilder.add(ValueAndSMGState.ofUnknownValue(maybeTargetAndOffset.getSMGState()));
         continue;
       }
-      Value finalOffsetInBits = addOffsetValues(baseOffset, offsetInBits);
+      BigInteger finalOffsetInBits =
+          baseOffset.asNumericValue().bigIntegerValue().add(offsetInBits);
 
       // search for existing pointer first and return if found; else make a new one for the offset
       returnBuilder.add(
@@ -496,7 +485,7 @@ public class SMGCPAExpressionEvaluator {
   }
 
   public ValueAndSMGState searchOrCreatePointer(
-      SMGObject targetObject, Value offsetInBits, SMGState pState) {
+      SMGObject targetObject, BigInteger offsetInBits, SMGState pState) {
     return pState.searchOrCreateAddress(targetObject, offsetInBits);
   }
 
@@ -542,12 +531,7 @@ public class SMGCPAExpressionEvaluator {
       // Search for the closest entry
       BigInteger memoryRegionStart = entry.getValue();
       SMGObject object = entry.getKey();
-      Value objSize = object.getSize();
-      if (!objSize.isNumericValue()) {
-        continue;
-      }
-      BigInteger memoryRegionEnd =
-          memoryRegionStart.add(object.getSize().asNumericValue().bigIntegerValue());
+      BigInteger memoryRegionEnd = memoryRegionStart.add(object.getSize());
       BigInteger difToZero = memoryRegionStart.subtract(numericPointer);
       BigInteger difToEnd = memoryRegionEnd.subtract(numericPointer);
       if (bestObj == null) {
@@ -586,7 +570,7 @@ public class SMGCPAExpressionEvaluator {
         break;
       }
     }
-    return searchOrCreatePointer(bestObj, new NumericValue(bestDifToMemBeginning), state);
+    return searchOrCreatePointer(bestObj, bestDifToMemBeginning, state);
   }
 
   /**
@@ -601,7 +585,7 @@ public class SMGCPAExpressionEvaluator {
   public ValueAndSMGState createAddressForLocalOrGlobalVariable(
       String variableName, SMGState pState) {
     // Get the variable SMGObject
-    Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeObjectAndOffset =
+    Optional<SMGObjectAndOffset> maybeObjectAndOffset =
         getTargetObjectAndOffset(pState, variableName, new NumericValue(BigInteger.ZERO));
     if (maybeObjectAndOffset.isEmpty()) {
       // TODO: improve error handling and add more specific exceptions to the visitor!
@@ -609,13 +593,16 @@ public class SMGCPAExpressionEvaluator {
       return ValueAndSMGState.ofUnknownValue(pState);
       // throw new SMG2Exception("No address could be created for the variable: " + variableName);
     }
-    SMGObjectAndOffsetMaybeNestingLvl targetAndOffset = maybeObjectAndOffset.orElseThrow();
+    SMGObjectAndOffset targetAndOffset = maybeObjectAndOffset.orElseThrow();
     SMGObject target = targetAndOffset.getSMGObject();
     Value offset = targetAndOffset.getOffsetForObject();
-
+    if (!offset.isNumericValue()) {
+      return ValueAndSMGState.ofUnknownValue(pState);
+    }
+    BigInteger numericOffset = offset.asNumericValue().bigIntegerValue();
     // search for existing pointer first and return if found
     Optional<SMGValue> maybeAddressValue =
-        pState.getMemoryModel().getAddressValueForPointsToTarget(target, offset);
+        pState.getMemoryModel().getAddressValueForPointsToTarget(target, numericOffset);
 
     if (maybeAddressValue.isPresent()) {
       Optional<Value> valueForSMGValue =
@@ -628,7 +615,7 @@ public class SMGCPAExpressionEvaluator {
     // If none is found, we need a new Value -> SMGValue mapping for the address + a new
     // PointsToEdge with the correct offset
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
-    SMGState newState = pState.createAndAddPointer(addressValue, target, offset);
+    SMGState newState = pState.createAndAddPointer(addressValue, target, numericOffset);
     return ValueAndSMGState.of(addressValue, newState);
   }
 
@@ -646,7 +633,7 @@ public class SMGCPAExpressionEvaluator {
    *     not found (should never be possible).
    */
   public ValueAndSMGState createStackAllocation(
-      String internalName, Value sizeInBits, CType type, SMGState pState)
+      String internalName, BigInteger sizeInBits, CType type, SMGState pState)
       throws CPATransferException {
     Preconditions.checkArgument(
         !pState.getMemoryModel().getStackFrames().peek().containsVariable(internalName));
@@ -678,36 +665,6 @@ public class SMGCPAExpressionEvaluator {
       BigInteger sizeInBits,
       CType readType)
       throws CPATransferException {
-    return readStackOrGlobalVariable(
-        initialState, varName, offsetInBits, sizeInBits, readType, true);
-  }
-
-  /**
-   * Read the global or stack variable whoes name is given as a {@link String} from the given {@link
-   * SMGState} with the given size in bits as a {@link BigInteger}. The Value might be unknown
-   * either because it was read as unknown or because the variable was not initialized. Note: this
-   * expects that the given {@link CIdExpression} has a not null declaration.
-   *
-   * @param initialState the {@link SMGState} holding the {@link SymbolicProgramConfiguration} where
-   *     the variable should be read from.
-   * @param varName name of the global or stack variable to be read.
-   * @param sizeInBits size of the type to be read.
-   * @param readType the type of the read value before casts etc. Used to determine union float
-   *     conversion.
-   * @param materialize if false, will not materialize abstracted lists.
-   * @return {@link ValueAndSMGState} with the updated {@link SMGState} and the read {@link Value}.
-   *     The Value might be unknown either because it was read as unknown or because the variable
-   *     was not initialized.
-   * @throws CPATransferException if the variable is not known in the memory model (SPC)
-   */
-  public List<ValueAndSMGState> readStackOrGlobalVariable(
-      SMGState initialState,
-      String varName,
-      Value offsetInBits,
-      BigInteger sizeInBits,
-      CType readType,
-      boolean materialize)
-      throws CPATransferException {
 
     Optional<SMGObject> maybeObject =
         initialState.getMemoryModel().getObjectForVisibleVariable(varName);
@@ -719,7 +676,12 @@ public class SMGCPAExpressionEvaluator {
       return ImmutableList.of(ValueAndSMGState.ofUnknownValue(errorState));
     }
     return readValue(
-        initialState, maybeObject.orElseThrow(), offsetInBits, sizeInBits, readType, materialize);
+        initialState,
+        maybeObject.orElseThrow(),
+        offsetInBits,
+        sizeInBits,
+        readType,
+        CNumericTypes.INT);
   }
 
   /**
@@ -741,6 +703,32 @@ public class SMGCPAExpressionEvaluator {
       Value pOffset,
       BigInteger pSizeInBits,
       CType readType)
+      throws SMGException, SMGSolverException {
+    return readValueWithPointerDereference(
+        pState, pointerValueToDeref, pOffset, pSizeInBits, readType, CNumericTypes.INT);
+  }
+
+  /**
+   * Read the value at the address of the supplied {@link Value} at the offset with the size (type
+   * size) given.
+   *
+   * @param pState current {@link SMGState}.
+   * @param pointerValueToDeref the {@link Value} for the address of the memory to be read. This
+   *     should map to a known {@link SMGObject} or a {@link SMGPointsToEdge}.
+   * @param pOffset the offset as {@link BigInteger} in bits where to start reading in the object.
+   * @param pSizeInBits the size of the type to read in bits as {@link BigInteger}.
+   * @param readType the type of the read value before casts etc. Used to determine union float
+   *     conversion.
+   * @param pOffsetType type of the offset. Typically, CNumericTypes.INT in C.
+   * @return {@link ValueAndSMGState} tuple for the read {@link Value} and the new {@link SMGState}.
+   */
+  public List<ValueAndSMGState> readValueWithPointerDereference(
+      SMGState pState,
+      Value pointerValueToDeref,
+      Value pOffset,
+      BigInteger pSizeInBits,
+      CType readType,
+      CType pOffsetType)
       throws SMGException, SMGSolverException {
 
     // Offsets are always interpreted as int in C
@@ -773,15 +761,15 @@ public class SMGCPAExpressionEvaluator {
       // offset  needs to the added to that!)
       Value finalOffset = addOffsetValues(pOffset, maybeTargetAndOffset.getOffsetForObject());
 
-      returnBuilder.addAll(readValue(pState, object, finalOffset, pSizeInBits, readType, true));
+      returnBuilder.addAll(
+          readValue(pState, object, finalOffset, pSizeInBits, readType, pOffsetType));
     }
     return returnBuilder.build();
   }
 
   /**
-   * Returns the {@link SMGObjectAndOffsetMaybeNestingLvl} pair for the entered address {@link
-   * Value} and additional offset on the entered state. This does dereference the address {@link
-   * Value}.
+   * Returns the {@link SMGObjectAndOffset} pair for the entered address {@link Value} and
+   * additional offset on the entered state. This does dereference the address {@link Value}.
    *
    * @param pState current {@link SMGState}.
    * @param value {@link Value} pointer to be dereferenced leading to the {@link SMGObject} desired.
@@ -793,27 +781,6 @@ public class SMGCPAExpressionEvaluator {
 
     ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> returnBuilder =
         ImmutableList.builder();
-
-    // Check for writes to the next pointer of the last abstracted list element
-    Optional<SMGStateAndOptionalSMGObjectAndOffset> maybeTargetObjWOMat =
-        pState.dereferencePointerWithoutMaterilization(value);
-    if (maybeTargetObjWOMat.isPresent()) {
-      SMGObject targetObjWOMat = maybeTargetObjWOMat.orElseThrow().getSMGObject();
-      SMGState innerState = maybeTargetObjWOMat.orElseThrow().getSMGState();
-      if (targetObjWOMat instanceof SMGSinglyLinkedListSegment targetAbstrList) {
-        // int concreteListSize = targetAbstrList.getMinLength();
-        int pointerToDerefNestingLvl = innerState.getMemoryModel().getNestingLevel(value);
-        if (0 == pointerToDerefNestingLvl
-            && pOffsetInBits.isNumericValue()
-            && targetAbstrList
-                .getNextOffset()
-                .equals(pOffsetInBits.asNumericValue().bigIntegerValue())) {
-          // Access to the last list elements next pointer
-          return ImmutableList.of(
-              SMGStateAndOptionalSMGObjectAndOffset.of(targetObjWOMat, pOffsetInBits, innerState));
-        }
-      }
-    }
     for (SMGStateAndOptionalSMGObjectAndOffset targetAndOffset : pState.dereferencePointer(value)) {
       if (!targetAndOffset.hasSMGObjectAndOffset()) {
         // The value is unknown and therefore does not point to a valid memory location
@@ -841,7 +808,7 @@ public class SMGCPAExpressionEvaluator {
    * @return Either an empty {@link Optional} if no object was found, or a filled one with the
    *     {@link SMGObject} and its offset.
    */
-  public Optional<SMGObjectAndOffsetMaybeNestingLvl> getTargetObjectAndOffset(
+  public Optional<SMGObjectAndOffset> getTargetObjectAndOffset(
       SMGState state, String variableName) {
     return getTargetObjectAndOffset(state, variableName, new NumericValue(BigInteger.ZERO));
   }
@@ -856,7 +823,7 @@ public class SMGCPAExpressionEvaluator {
    * @return Either an empty {@link Optional} if no object was found, or a filled one with the
    *     {@link SMGObject} and its offset.
    */
-  public Optional<SMGObjectAndOffsetMaybeNestingLvl> getTargetObjectAndOffset(
+  public Optional<SMGObjectAndOffset> getTargetObjectAndOffset(
       SMGState state, String variableName, Value offsetInBits) {
     // TODO: maybe use this in getStackOrGlobalVar?
     Optional<SMGObject> maybeObject =
@@ -864,8 +831,7 @@ public class SMGCPAExpressionEvaluator {
     if (maybeObject.isEmpty()) {
       return Optional.empty();
     }
-    return Optional.of(
-        SMGObjectAndOffsetMaybeNestingLvl.of(maybeObject.orElseThrow(), offsetInBits));
+    return Optional.of(SMGObjectAndOffset.of(maybeObject.orElseThrow(), offsetInBits));
   }
 
   /**
@@ -945,8 +911,6 @@ public class SMGCPAExpressionEvaluator {
    * @param sizeInBits size of the read value in bits as {@link BigInteger}.
    * @param readType the uncasted type of the read (right hand side innermost type). Null only if
    *     its certain that implicit union casts are not possible.
-   * @param materialize if false, prevents materialization. Examples: we want the last pointer to an
-   *     abstracted list.
    * @return {@link ValueAndSMGState} bundeling the most up-to-date state and the read value.
    * @throws SMGException for critical errors when materializing lists.
    */
@@ -956,21 +920,15 @@ public class SMGCPAExpressionEvaluator {
       Value offsetValueInBits,
       BigInteger sizeInBits,
       @Nullable CType readType,
-      boolean materialize)
+      CType pOffsetType)
       throws SMGException, SMGSolverException {
     // Check that the offset and offset + size actually fit into the SMGObject
-    Value objectSize = object.getSize();
-    BigInteger offsetInBits;
-    if (offsetValueInBits.isNumericValue() && objectSize.isNumericValue()) {
+    if (offsetValueInBits.isNumericValue()) {
       // Typical read with known offset
-      offsetInBits = offsetValueInBits.asNumericValue().bigIntegerValue();
-
+      BigInteger offsetInBits = offsetValueInBits.asNumericValue().bigIntegerValue();
       boolean doesNotFitIntoObject =
           offsetInBits.compareTo(BigInteger.ZERO) < 0
-              || offsetInBits
-                      .add(sizeInBits)
-                      .compareTo(objectSize.asNumericValue().bigIntegerValue())
-                  > 0;
+              || offsetInBits.add(sizeInBits).compareTo(object.getSize()) > 0;
 
       if (doesNotFitIntoObject) {
         // Field read does not fit size of declared Memory
@@ -979,67 +937,44 @@ public class SMGCPAExpressionEvaluator {
         return ImmutableList.of(ValueAndSMGState.ofUnknownValue(errorState));
       }
 
+      // The read in SMGState checks for validity and external allocation
+      return currentState.readValue(object, offsetInBits, sizeInBits, readType);
+
     } else if (options.trackErrorPredicates()) {
       // Use an SMT solver to argue about the offset/size validity
-      CType calcTypeForMemAccess =
-          calculateSymbolicMemoryBoundaryCheckType(
-              object.getSize(), offsetValueInBits, machineModel);
       final ConstraintFactory constraintFactory =
           ConstraintFactory.getInstance(currentState, machineModel, logger, options, this, null);
       final Collection<Constraint> newConstraints =
           constraintFactory.checkValidMemoryAccess(
               offsetValueInBits,
               new NumericValue(sizeInBits),
-              object.getSize(),
-              calcTypeForMemAccess,
+              new NumericValue(object.getSize()),
+              pOffsetType,
               currentState);
 
       String stackFrameFunctionName = currentState.getStackFrameTopFunctionName();
 
       // Iff SAT -> memory-safety is violated
-      SatisfiabilityAndSMGState satisfiabilityAndSMGState =
+      BooleanAndSMGState isUnsatAndState =
           checkMemoryConstraintsAreUnsatIndividually(
               newConstraints, stackFrameFunctionName, currentState);
-      currentState = satisfiabilityAndSMGState.getState();
+      boolean isUnsat = isUnsatAndState.getBoolean();
+      currentState = isUnsatAndState.getState();
 
-      if (satisfiabilityAndSMGState.isSAT()) {
+      if (!isUnsat) {
         // Unknown value that should not be used with an error state that should stop the analysis
         return ImmutableList.of(
             ValueAndSMGState.ofUnknownValue(
                 currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits)));
       }
-
-      if (!offsetValueInBits.isNumericValue()) {
-        // We can't discern the read value, but the read itself was safe
-        // TODO: Idea: find all possible values for this access and create states with them
-        logger.log(
-            Level.INFO, "Safe read with symbolic read offset returned UNKNOWN symbolic value.");
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
-      }
-      // Symbolic size, but concrete offset, we can actually read
-      offsetInBits = offsetValueInBits.asNumericValue().bigIntegerValue();
+      // We can't discern the read value, but the read itself was safe
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
 
     } else {
-      if (!offsetValueInBits.isNumericValue()) {
-        // Unknown offset -> invalid read due to over approximation
-        SMGState errorState = currentState.withUnknownOffsetMemoryAccess();
-        // Unknown value that should not be used with an error state that should stop the analysis
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(errorState));
-      } else {
-        // Unknown size -> invalid read due to over approximation
-        // Unknown value that should not be used with an error state that should stop the analysis
-        return ImmutableList.of(
-            ValueAndSMGState.ofUnknownValue(
-                currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits)));
-      }
-    }
-
-    // The read in SMGState checks for validity and external allocation
-    if (materialize) {
-      return currentState.readValue(object, offsetInBits, sizeInBits, readType);
-    } else {
-      return ImmutableList.of(
-          currentState.readValueWithoutMaterialization(object, offsetInBits, sizeInBits, readType));
+      // Unknown offset -> invalid read due to over approximation
+      SMGState errorState = currentState.withUnknownOffsetMemoryAccess();
+      // Unknown value that should not be used with an error state that should stop the analysis
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(errorState));
     }
   }
 
@@ -1052,16 +987,13 @@ public class SMGCPAExpressionEvaluator {
       SMGState currentState, SMGObject object, Value offsetValueInBits, BigInteger sizeInBits)
       throws SMGSolverException, SMGException {
     // TODO: this can be refacored with readValue, so that the checks are 1 method
-    Value objectSize = object.getSize();
-    if (offsetValueInBits.isNumericValue() && objectSize.isNumericValue()) {
+
+    if (offsetValueInBits.isNumericValue()) {
       // Typical read with known offset
       BigInteger offsetInBits = offsetValueInBits.asNumericValue().bigIntegerValue();
       boolean doesNotFitIntoObject =
           offsetInBits.compareTo(BigInteger.ZERO) < 0
-              || offsetInBits
-                      .add(sizeInBits)
-                      .compareTo(objectSize.asNumericValue().bigIntegerValue())
-                  > 0;
+              || offsetInBits.add(sizeInBits).compareTo(object.getSize()) > 0;
 
       if (doesNotFitIntoObject) {
         // Field read does not fit size of declared Memory
@@ -1082,19 +1014,20 @@ public class SMGCPAExpressionEvaluator {
           constraintFactory.checkValidMemoryAccess(
               offsetValueInBits,
               new NumericValue(sizeInBits),
-              object.getSize(),
+              new NumericValue(object.getSize()),
               CNumericTypes.INT,
               currentState);
 
       String stackFrameFunctionName = currentState.getStackFrameTopFunctionName();
 
       // Iff SAT -> memory-safety is violated
-      SatisfiabilityAndSMGState satisfiabilityAndSMGState =
+      BooleanAndSMGState isUnsatAndState =
           checkMemoryConstraintsAreUnsatIndividually(
               newConstraints, stackFrameFunctionName, currentState);
-      currentState = satisfiabilityAndSMGState.getState();
+      boolean isUnsat = isUnsatAndState.getBoolean();
+      currentState = isUnsatAndState.getState();
 
-      if (satisfiabilityAndSMGState.isSAT()) {
+      if (!isUnsat) {
         // Unknown value that should not be used with an error state that should stop the analysis
         return ValueAndSMGState.ofUnknownValue(
             currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits));
@@ -1104,16 +1037,10 @@ public class SMGCPAExpressionEvaluator {
       return ValueAndSMGState.ofUnknownValue(currentState);
 
     } else {
-      if (!offsetValueInBits.isNumericValue()) {
-        // Unknown offset -> invalid read due to over approximation
-        SMGState errorState = currentState.withUnknownOffsetMemoryAccess();
-        // Unknown value that should not be used with an error state that should stop the analysis
-        return ValueAndSMGState.ofUnknownValue(errorState);
-      } else {
-        // Unknown size
-        return ValueAndSMGState.ofUnknownValue(
-            currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits));
-      }
+      // Unknown offset -> invalid read due to over approximation
+      SMGState errorState = currentState.withUnknownOffsetMemoryAccess();
+      // Unknown value that should not be used with an error state that should stop the analysis
+      return ValueAndSMGState.ofUnknownValue(errorState);
     }
   }
 
@@ -1130,7 +1057,7 @@ public class SMGCPAExpressionEvaluator {
    * @throws SMGSolverException for {@link InterruptedException}, {@link SolverException} or {@link
    *     UnrecognizedCodeException} wrapped.
    */
-  public SatisfiabilityAndSMGState checkMemoryConstraintsAreUnsatIndividually(
+  public BooleanAndSMGState checkMemoryConstraintsAreUnsatIndividually(
       Collection<Constraint> newConstraints, String stackFrameFunctionName, SMGState currentState)
       throws SMGSolverException {
     // Iff SAT -> memory-safety is violated
@@ -1141,13 +1068,15 @@ public class SMGCPAExpressionEvaluator {
       try {
         // If a constraint is trivial, its satisfiability is not influenced by other constraints.
         // So to evade more expensive SAT checks, we just check the constraint on its own.
+        // TODO: add triviality check
         currentState = currentState.updateLastCheckedMemoryBounds(constraint);
         SolverResult satResAndModel =
             solver.checkUnsat(
                 currentState.getConstraints().copyWithNew(constraint), stackFrameFunctionName);
-        if (satResAndModel.isSAT()) {
-          return SatisfiabilityAndSMGState.of(
-              satResAndModel.satisfiability(),
+        if (satResAndModel.satisfiability().equals(Satisfiability.SAT)) {
+          // TODO: replace the bool by satisfiablity
+          return BooleanAndSMGState.of(
+              false,
               currentState.replaceModelAndDefAssignmentAndCopy(
                   satResAndModel.definiteAssignments(), satResAndModel.model()));
         }
@@ -1156,132 +1085,8 @@ public class SMGCPAExpressionEvaluator {
         throw new SMGSolverException(e, currentState);
       }
     }
-    // trivial fallthrough and all UNSAT
-    return SatisfiabilityAndSMGState.of(Satisfiability.UNSAT, currentState);
-  }
-
-  /**
-   * The type given should be the type of the size argument of a memory allocation function (e.g.
-   * malloc(pExpressionType)). It is then promoted to a type that can handle the bit size
-   * calculation from the byte size given. Allocation functions usually use size_t type (uint), if
-   * we multiply by 8 this might overflow, so we use a larger type).
-   *
-   * @param pExpressionType size type of argument of a memory allocation function (e.g.
-   *     malloc(pExpressionType))
-   * @return promoted calculation and return type for the * 8 calculation.
-   * @throws SMGException for unhandled types that make no sense but are technically legal. Handle
-   *     once it happens.
-   */
-  public static CType promoteMemorySizeTypeForBitCalculation(
-      CType pExpressionType, MachineModel pMachineModel) throws SMGException {
-    CType canonicalType = getCanonicalType(pExpressionType);
-    // TODO: this fails for larger types and types that are non numeric (e.g. structs)
-    if (!((canonicalType instanceof CPointerType) || (canonicalType instanceof CSimpleType))
-        || ((canonicalType instanceof CSimpleType cst)
-            && cst.getType().equals(CBasicType.UNSPECIFIED)
-            && cst.getType().isFloatingPointType())) {
-      throw new SMGException(
-          "Unhandled type: " + canonicalType + "; in symbolic memory size calculation.");
-    }
-
-    if (canonicalType instanceof CSimpleType simpleType && simpleType.hasLongLongSpecifier()) {
-      // This might happen due to a cast.
-      // We would need to handle this with casting the source of this type to size_t
-      //   and then wrapping that with the long long type.
-      throw new SMGException(
-          "Unhandled type: " + canonicalType + "; in symbolic memory size calculation.");
-    }
-
-    if (pMachineModel.getSizeof(canonicalType).intValueExact()
-        >= pMachineModel.getSizeof(CNumericTypes.LONG_LONG_INT)) {
-      return new CSimpleType(
-          false, false, CBasicType.INT128, false, false, true, false, false, false, false);
-    }
-
-    return CNumericTypes.LONG_LONG_INT;
-  }
-
-  public static CType calculateSymbolicMemoryBoundaryCheckType(
-      Value objSizeInBits, Value writeOffsetInBits, MachineModel pMachineModel)
-      throws SMGException {
-    CType calcTypeForMemAccess = null;
-    if (objSizeInBits instanceof SymbolicExpression symSize) {
-      calcTypeForMemAccess = (CType) symSize.getType();
-    }
-    if (writeOffsetInBits instanceof SymbolicExpression symOffset) {
-      if (calcTypeForMemAccess != null) {
-        int sizeOfSizeType = pMachineModel.getSizeof(calcTypeForMemAccess).intValueExact();
-        int sizeOfOffsetType = pMachineModel.getSizeof((CType) symOffset.getType()).intValueExact();
-        boolean signedSizeType = ((CSimpleType) calcTypeForMemAccess).hasSignedSpecifier();
-        boolean signedOffsetType;
-        if (symOffset.getType() instanceof CSimpleType symOffsetSimpleType) {
-          signedOffsetType = symOffsetSimpleType.hasSignedSpecifier();
-        } else if (symOffset.getType() instanceof CPointerType) {
-          signedOffsetType = false;
-        } else {
-          throw new SMGException("Unknown type for symbolic memory boundary access check.");
-        }
-        if (sizeOfSizeType < sizeOfOffsetType) {
-          calcTypeForMemAccess = (CType) symOffset.getType();
-        } else if (sizeOfSizeType == sizeOfOffsetType) {
-          // If one is signed and the other isn't, we need a larger type that's signed
-          if (signedSizeType != signedOffsetType) {
-            if (pMachineModel.getSizeof(CNumericTypes.LONG_LONG_INT) > sizeOfSizeType) {
-              calcTypeForMemAccess = CNumericTypes.LONG_LONG_INT;
-            } else {
-              throw new SMGException(
-                  "Error in type size calculation for symbolic offset/size comparison when writing"
-                      + " a value.");
-            }
-          }
-        }
-      } else {
-        calcTypeForMemAccess = (CType) symOffset.getType();
-      }
-    }
-    Preconditions.checkNotNull(calcTypeForMemAccess);
-    return calcTypeForMemAccess;
-  }
-
-  /**
-   * Returns false for SAT. True for UNSAT. Checks each given constraint individually as a memory
-   * access constraint (error constraint). The constraint will be added to the constraints of the
-   * state for SAT cases except for trivial SAT cases.
-   *
-   * @param newConstraint new {@link Constraint} to be checked/added to the {@link SMGState}.
-   * @param stackFrameFunctionName {@link String} name of current Stackframe
-   * @param currentState current {@link SMGState}.
-   * @return BooleanAndSMGState with the bool as isUnsat and the State possibly with new constraints
-   *     added to the error predicates (not regular constraints) if they were not trivial, or
-   *     possibly a model added for SAT.
-   * @throws SMGSolverException for {@link InterruptedException}, {@link SolverException} or {@link
-   *     UnrecognizedCodeException} wrapped.
-   */
-  public SatisfiabilityAndSMGState checkIsUnsatAndAddConstraint(
-      Constraint newConstraint, String stackFrameFunctionName, SMGState currentState)
-      throws SMGSolverException {
-    try {
-      // If a constraint is trivial, its satisfiability is not influenced by other constraints.
-      // So to evade more expensive SAT checks, we just check the constraint on its own.
-      SolverResult satResAndModel =
-          solver.checkUnsat(
-              currentState.getConstraints().copyWithNew(newConstraint), stackFrameFunctionName);
-      if (satResAndModel.satisfiability().equals(Satisfiability.SAT)) {
-        if (!newConstraint.isTrivial()) {
-          currentState = currentState.addConstraint(newConstraint);
-        }
-        return SatisfiabilityAndSMGState.of(
-            satResAndModel.satisfiability(),
-            currentState.replaceModelAndDefAssignmentAndCopy(
-                satResAndModel.definiteAssignments(), satResAndModel.model()));
-      }
-
-    } catch (InterruptedException | SolverException | UnrecognizedCodeException e) {
-      throw new SMGSolverException(e, currentState);
-    }
-
-    // trivial fallthrough and UNSAT
-    return SatisfiabilityAndSMGState.of(Satisfiability.UNSAT, currentState);
+    // trivial fallthrough
+    return BooleanAndSMGState.of(true, currentState);
   }
 
   /**
@@ -1299,7 +1104,7 @@ public class SMGCPAExpressionEvaluator {
   public List<SMGState> writeValueToExpression(
       CFAEdge edge, CExpression leftHandSideValue, Value valueToWrite, SMGState currentState)
       throws CPATransferException {
-    Value sizeInBits = new NumericValue(getBitSizeof(currentState, leftHandSideValue));
+    BigInteger sizeInBits = getBitSizeof(currentState, leftHandSideValue);
     ImmutableList.Builder<SMGState> successorsBuilder = ImmutableList.builder();
     // Get the memory for the left hand side variable
     // Write the return value into the left hand side variable
@@ -1356,7 +1161,6 @@ public class SMGCPAExpressionEvaluator {
     // TODO check why old implementation did not use machineModel
     // Because in abstracted SMGs we might need the current SMG to get the correct type info.
     // TODO: rework because of that.
-    // TODO: return VALUE instead of BigInt in all of these methods
     return machineModel.getSizeofInBits(
         pType, new SMG2SizeofVisitor(machineModel, this, pInitialSmgState, logger, options));
   }
@@ -1783,7 +1587,7 @@ public class SMGCPAExpressionEvaluator {
       // If its declared as array[] we use the size of the old array
       parameterType = valueType;
     }
-    Value paramSizeInBits = new NumericValue(getBitSizeof(currentState, parameterType));
+    BigInteger paramSizeInBits = getBitSizeof(currentState, parameterType);
 
     // Create the new local variable
     currentState =
@@ -1815,14 +1619,13 @@ public class SMGCPAExpressionEvaluator {
             transformAddressExpressionIntoPointerValue(paramAddrExpr, currentState);
         currentState = properPointerAndState.getState();
 
-        Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeParamMemoryAndOffset =
+        Optional<SMGObjectAndOffset> maybeParamMemoryAndOffset =
             currentState.getPointsToTarget(properPointerAndState.getValue());
 
         if (maybeParamMemoryAndOffset.isEmpty()) {
           return currentState;
         }
-        SMGObjectAndOffsetMaybeNestingLvl paramMemoryAndOffset =
-            maybeParamMemoryAndOffset.orElseThrow();
+        SMGObjectAndOffset paramMemoryAndOffset = maybeParamMemoryAndOffset.orElseThrow();
 
         // copySMGObjectContentToSMGObject checks for sizes etc.
         return currentState.copySMGObjectContentToSMGObject(
@@ -1830,7 +1633,7 @@ public class SMGCPAExpressionEvaluator {
             paramMemoryAndOffset.getOffsetForObject(),
             newVariableMemory,
             ZeroOffsetInBits,
-            newVariableMemory.getSize());
+            new NumericValue(newVariableMemory.getSize()));
       } else if (parameterType instanceof CPointerType || parameterType instanceof CSimpleType) {
         // Sometimes a pointer is cast to a long or something
         if (!paramAddrOffsetValue.isNumericValue()) {
@@ -1925,20 +1728,10 @@ public class SMGCPAExpressionEvaluator {
     if (!leftHandSideOffset.isNumericValue()) {
       // If this triggers, handle the rest symbolic as well
       throw new SMGException("Symbolic offset in copy of complete memory structure.");
-    } else if (!leftHandSideMemory.getSize().isNumericValue()
-        || !paramMemory.getSize().isNumericValue()) {
-      // If this triggers, handle the rest symbolic as well
-      throw new SMGException("Symbolic size in copy of complete memory structure.");
     }
     BigInteger concreteLeftHandSideOffset = leftHandSideOffset.asNumericValue().bigIntegerValue();
-    BigInteger copySizeInBits =
-        leftHandSideMemory
-            .getSize()
-            .asNumericValue()
-            .bigIntegerValue()
-            .subtract(concreteLeftHandSideOffset);
-    BigInteger sourceCopySize =
-        paramMemory.getSize().asNumericValue().bigIntegerValue().subtract(paramBaseOffset);
+    BigInteger copySizeInBits = leftHandSideMemory.getSize().subtract(concreteLeftHandSideOffset);
+    BigInteger sourceCopySize = paramMemory.getSize().subtract(paramBaseOffset);
     if (copySizeInBits.compareTo(sourceCopySize) > 0) {
       copySizeInBits = sourceCopySize;
     }
@@ -2077,11 +1870,10 @@ public class SMGCPAExpressionEvaluator {
         && isExtern) {
       typeSizeInBits = BigInteger.valueOf(options.getExternalAllocationSize());
     }
-    Value vtypeSizeInBits = new NumericValue(typeSizeInBits);
     if (pVarDecl.isGlobal()) {
-      return newState.copyAndAddGlobalVariable(vtypeSizeInBits, varName, cType);
+      return newState.copyAndAddGlobalVariable(typeSizeInBits, varName, cType);
     } else {
-      return newState.copyAndAddLocalVariable(vtypeSizeInBits, varName, cType);
+      return newState.copyAndAddLocalVariable(typeSizeInBits, varName, cType);
     }
   }
 
@@ -2404,7 +2196,7 @@ public class SMGCPAExpressionEvaluator {
       CArrayType stringArrayType = pExpression.getExpressionType();
       String stringVarName = getCStringLiteralExpressionVairableName(pExpression);
 
-      Value sizeOfString = new NumericValue(getBitSizeof(pState, stringArrayType));
+      BigInteger sizeOfString = getBitSizeof(pState, stringArrayType);
       SMGState currentState =
           pState.copyAndAddGlobalVariable(sizeOfString, stringVarName, stringArrayType);
       List<SMGState> initedStates =
@@ -2427,7 +2219,7 @@ public class SMGCPAExpressionEvaluator {
             addressState.writeToStackOrGlobalVariable(
                 variableName,
                 pOffset,
-                new NumericValue(getBitSizeof(addressState, pCurrentExpressionType)),
+                getBitSizeof(addressState, pCurrentExpressionType),
                 addressAndState.getValue(),
                 pCurrentExpressionType,
                 pEdge));
@@ -2497,7 +2289,7 @@ public class SMGCPAExpressionEvaluator {
         Preconditions.checkArgument(
             pOffsetInBits.asNumericValue().bigIntegerValue().intValueExact() == 0);
 
-        Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeLeftHandSideVariableObject =
+        Optional<SMGObjectAndOffset> maybeLeftHandSideVariableObject =
             getTargetObjectAndOffset(currentState, variableName);
         if (maybeLeftHandSideVariableObject.isEmpty()) {
           throw new SMGException("Usage of undeclared variable: " + variableName + ".");
@@ -2525,7 +2317,7 @@ public class SMGCPAExpressionEvaluator {
             currentState.writeToStackOrGlobalVariable(
                 variableName,
                 pOffsetInBits,
-                new NumericValue(sizeOfTypeLeft),
+                sizeOfTypeLeft,
                 addressToAssign,
                 typeOfWrite,
                 cfaEdge));
@@ -2548,12 +2340,7 @@ public class SMGCPAExpressionEvaluator {
 
         resultStatesBuilder.add(
             currentState.writeToStackOrGlobalVariable(
-                variableName,
-                pOffsetInBits,
-                new NumericValue(sizeOfTypeLeft),
-                valueToAssign,
-                typeOfWrite,
-                cfaEdge));
+                variableName, pOffsetInBits, sizeOfTypeLeft, valueToAssign, typeOfWrite, cfaEdge));
       }
     }
     return resultStatesBuilder.build();
@@ -2604,16 +2391,10 @@ public class SMGCPAExpressionEvaluator {
       // Not numeric and not unknown -> symbolic
       final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
-      SymbolicExpression leftOperand =
-          factory.asConstant(leftValue, CNumericTypes.UNSIGNED_LONG_INT);
-      SymbolicExpression rightOperand =
-          factory.asConstant(rightValue, CNumericTypes.UNSIGNED_LONG_INT);
+      SymbolicExpression leftOperand = factory.asConstant(leftValue, CNumericTypes.INT);
+      SymbolicExpression rightOperand = factory.asConstant(rightValue, CNumericTypes.INT);
 
-      return factory.add(
-          leftOperand,
-          rightOperand,
-          CNumericTypes.UNSIGNED_LONG_INT,
-          CNumericTypes.UNSIGNED_LONG_INT);
+      return factory.add(leftOperand, rightOperand, CNumericTypes.INT, CNumericTypes.INT);
     } else {
       // At some point this triggers with unknowns. And i want to know from where ;D
       throw new SMGException("Error assuming the offset of a memory access operation.");
@@ -2634,21 +2415,6 @@ public class SMGCPAExpressionEvaluator {
   public static Value subtractOffsetValues(BigInteger leftValue, Value rightValue)
       throws SMGException {
     return subtractOffsetValues(new NumericValue(leftValue), rightValue);
-  }
-
-  /**
-   * Subtracts the two given offsets as good as possible with left - right. Might return a concrete
-   * {@link NumericValue} or a {@link
-   * org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue}.
-   *
-   * @param leftValue {@link BigInteger}
-   * @param rightValue {@link Value} that might be a {@link NumericValue}
-   * @return either a concrete {@link NumericValue} or any other form of subtraction of the two
-   *     {@link Value}s.
-   * @throws SMGException in case of unknowns.
-   */
-  public static Value subtractValues(Value leftValue, BigInteger rightValue) throws SMGException {
-    return subtractOffsetValues(leftValue, new NumericValue(rightValue));
   }
 
   /**
@@ -2687,8 +2453,7 @@ public class SMGCPAExpressionEvaluator {
     }
   }
 
-  public static Value multiplyValues(
-      Value leftValue, BigInteger rightValue, CType leftValueType, MachineModel pMachineModel)
+  public static Value multiplyOffsetValues(Value leftValue, BigInteger rightValue)
       throws SMGException {
     if (rightValue.equals(BigInteger.ONE)) {
       return leftValue;
@@ -2696,17 +2461,10 @@ public class SMGCPAExpressionEvaluator {
       return new NumericValue(rightValue);
     }
 
-    return multiplyValues(leftValue, new NumericValue(rightValue), leftValueType, pMachineModel);
+    return multiplyOffsetValues(leftValue, new NumericValue(rightValue));
   }
 
-  public static Value multiplyValues(Value leftValue, Value rightValue, MachineModel pMachineModel)
-      throws SMGException {
-    return multiplyValues(leftValue, rightValue, CNumericTypes.INT, pMachineModel);
-  }
-
-  public static Value multiplyValues(
-      Value leftValue, Value rightValue, CType symbolicValueType, MachineModel pMachineModel)
-      throws SMGException {
+  public static Value multiplyOffsetValues(Value leftValue, Value rightValue) throws SMGException {
     if (leftValue.isNumericValue() && rightValue.isNumericValue()) {
       BigInteger concreteOffset =
           leftValue
@@ -2723,19 +2481,11 @@ public class SMGCPAExpressionEvaluator {
     } else if (!leftValue.isUnknown() && !rightValue.isUnknown()) {
       // Not numeric and not unknown -> symbolic
       final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-      // TODO: This is not really sound, we need to choose a type that does not overflow
-      //    for both values here as this is an internal calculation
-      CType calculationAndReturnType = CNumericTypes.LONG_LONG_INT;
-      if (rightValue.isNumericValue()
-          && rightValue.asNumericValue().bigIntegerValue().equals(BigInteger.valueOf(8))) {
-        calculationAndReturnType =
-            promoteMemorySizeTypeForBitCalculation(symbolicValueType, pMachineModel);
-      }
-      SymbolicExpression leftOperand = factory.asConstant(leftValue, calculationAndReturnType);
-      SymbolicExpression rightOperand = factory.asConstant(rightValue, calculationAndReturnType);
 
-      return factory.multiply(
-          leftOperand, rightOperand, calculationAndReturnType, calculationAndReturnType);
+      SymbolicExpression leftOperand = factory.asConstant(leftValue, CNumericTypes.INT);
+      SymbolicExpression rightOperand = factory.asConstant(rightValue, CNumericTypes.INT);
+
+      return factory.multiply(leftOperand, rightOperand, CNumericTypes.INT, CNumericTypes.INT);
     } else {
       // At some point this triggers with unknowns. And i want to know from where ;D
       throw new SMGException("Error assuming the offset of a memory access operation.");

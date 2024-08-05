@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpv.property;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import java.nio.file.Path;
 import java.util.Set;
 import org.sosy_lab.common.time.TimeSpan;
@@ -61,7 +62,7 @@ public final class MultipleProperties {
           for (Automaton automaton : specification.get(path)) {
             String propertyName = automaton.getName();
             propertyBuilder.add(
-                new AutomataSingleProperty(propertyName, ImmutableList.of(automaton)));
+                new AutomataSingleProperty(propertyName, Lists.newArrayList(automaton)));
           }
         }
         default -> throw new AssertionError();

@@ -19,6 +19,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 
 public final class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
 
+  private static final long serialVersionUID = -3203684033841624723L;
+
   public CFunctionCallEdge(
       String pRawStatement,
       FileLocation pFileLocation,

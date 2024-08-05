@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -24,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public final class JRunTimeTypeEqualsType extends AbstractExpression implements JExpression {
 
-  @Serial private static final long serialVersionUID = -2513620435920744071L;
+  private static final long serialVersionUID = -2513620435920744071L;
   private final JRunTimeTypeExpression runTimeTypeExpression;
   private final JReferenceType typeDef;
 
@@ -52,7 +51,7 @@ public final class JRunTimeTypeEqualsType extends AbstractExpression implements 
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString(boolean pQualified) {
     return toASTString();
   }
 

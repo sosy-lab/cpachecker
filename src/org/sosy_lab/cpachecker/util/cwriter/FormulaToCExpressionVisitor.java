@@ -77,13 +77,11 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
       case BV_NEG:
       case FP_NEG:
       case BV_NOT:
-        result =
-            operatorFromFunctionDeclaration(functionDeclaration, f) + cache.get(newArgs.get(0));
+        result = operatorFromFunctionDeclaration(functionDeclaration) + cache.get(newArgs.get(0));
         break;
       case EQ_ZERO:
       case GTE_ZERO:
-        result =
-            cache.get(newArgs.get(0)) + operatorFromFunctionDeclaration(functionDeclaration, f);
+        result = cache.get(newArgs.get(0)) + operatorFromFunctionDeclaration(functionDeclaration);
         break;
       case FP_ROUND_EVEN:
       case FP_ROUND_AWAY:
@@ -105,8 +103,7 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
                   .skip(1)
                   .transform(arg -> Preconditions.checkNotNull(cache.get(arg)))
                   .toList();
-          result =
-              String.join(operatorFromFunctionDeclaration(functionDeclaration, f), expressions);
+          result = String.join(operatorFromFunctionDeclaration(functionDeclaration), expressions);
           break;
         }
       case ITE:
@@ -130,8 +127,7 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
             // randomly. Let's force some determinism over distinct solvers, by alphabetical order.
             Collections.sort(expressions);
           }
-          result =
-              String.join(operatorFromFunctionDeclaration(functionDeclaration, f), expressions);
+          result = String.join(operatorFromFunctionDeclaration(functionDeclaration), expressions);
         }
     }
     if (result != null) {
@@ -140,7 +136,7 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
     return f;
   }
 
-  private String operatorFromFunctionDeclaration(FunctionDeclaration<?> pDeclaration, Formula f) {
+  private String operatorFromFunctionDeclaration(FunctionDeclaration<?> pDeclaration) {
     switch (pDeclaration.getKind()) {
       case NOT:
         return "!";
@@ -232,12 +228,10 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
           default:
             // $FALL-THROUGH$
         }
-      // $FALL-THROUGH$
+        // $FALL-THROUGH$
       default:
         throw new UnsupportedOperationException(
-            String.format(
-                "Unexpected operand %s (%s) in formula '%s'",
-                pDeclaration.getKind(), pDeclaration.getName(), f));
+            "Unexpected operand " + pDeclaration.getKind() + "(" + pDeclaration.getName() + ")");
     }
   }
 

@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
  * <p>This implementation calls a native code library via JNI to perform its operations directly in
  * C.
  */
-@SuppressWarnings("EnumOrdinal")
 @Deprecated
 class CFloatNative extends CFloat {
   private final CFloatWrapper wrapper;

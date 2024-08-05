@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.smg.test;
 
-import com.google.common.base.Preconditions;
 import java.math.BigInteger;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -43,45 +41,20 @@ public class SMGTest0 {
   }
 
   protected SMGDoublyLinkedListSegment createDLLS(
-      int withSize,
-      int headOffset,
-      int prevOffset,
-      int prevPointerTargetOffset,
-      int next,
-      int nextPointerTargetOffset) {
-    return createDLLS(
-        0,
-        withSize,
-        headOffset,
-        prevOffset,
-        prevPointerTargetOffset,
-        next,
-        nextPointerTargetOffset,
-        0);
+      int withSize, int offset, int prevOffset, int next) {
+    return createDLLS(0, withSize, offset, prevOffset, next, 0);
   }
 
   protected SMGDoublyLinkedListSegment createDLLS(
-      int pLevel,
-      int withSize,
-      int headOffset,
-      int prevOffset,
-      int prevPointerTargetOffset,
-      int next,
-      int nextPointerTargetOffset,
-      int minListLength) {
-    Preconditions.checkArgument(prevOffset != next);
-    Preconditions.checkArgument(prevOffset < withSize);
-    Preconditions.checkArgument(next < withSize);
+      int pLevel, int withSize, int offset, int prevOffset, int next, int mLength) {
     return new SMGDoublyLinkedListSegment(
         pLevel,
-        new NumericValue(BigInteger.valueOf(withSize)),
-        BigInteger.ZERO,
-        BigInteger.valueOf(headOffset),
+        BigInteger.valueOf(withSize),
+        BigInteger.valueOf(offset),
+        BigInteger.valueOf(offset),
         BigInteger.valueOf(next),
-        BigInteger.valueOf(nextPointerTargetOffset),
         BigInteger.valueOf(prevOffset),
-        BigInteger.valueOf(prevPointerTargetOffset),
-        minListLength);
+        mLength);
   }
 
   protected SMGHasValueEdge createHasValueEdgeToZero(BigInteger withSize) {
@@ -108,6 +81,10 @@ public class SMGTest0 {
     return createHasValueEdge(withSize, andOffset, SMGValue.zeroValue());
   }
 
+  protected SMGHasValueEdge createHasValueEdge(int withSize, SMGValue andValue) {
+    return createHasValueEdge(withSize, 0, andValue);
+  }
+
   protected SMGHasValueEdge createHasValueEdge(int withSize, int offset, SMGValue andValue) {
     return new SMGHasValueEdge(andValue, BigInteger.valueOf(offset), BigInteger.valueOf(withSize));
   }
@@ -116,13 +93,58 @@ public class SMGTest0 {
     return createPTEdge(withOffset, SMGTargetSpecifier.IS_REGION, andObject);
   }
 
+  protected SMGPointsToEdge createPTDLLsEdge(int withOffset, SMGObject andObject) {
+    return createPTEdge(withOffset, SMGTargetSpecifier.IS_ALL_POINTER, andObject);
+  }
+
   protected SMGPointsToEdge createPTEdge(
-      int withPointerTargetOffset, SMGTargetSpecifier targetSpecifier, SMGObject targetObject) {
-    return new SMGPointsToEdge(
-        targetObject, BigInteger.valueOf(withPointerTargetOffset), targetSpecifier);
+      int withOffset, SMGTargetSpecifier targetSpecifier, SMGObject andObject) {
+    return new SMGPointsToEdge(andObject, BigInteger.valueOf(withOffset), targetSpecifier);
+  }
+
+  protected SMGValue createValue(int withLevel) {
+    return SMGValue.of(withLevel);
   }
 
   protected SMGValue createValue() {
-    return SMGValue.of();
+    return SMGValue.of(0);
+  }
+
+  protected SMGObject createRegion(BigInteger withSize, int withOffset, String label) {
+    return new LabeledObject(0, withSize, BigInteger.valueOf(withOffset), label);
+  }
+
+  protected SMGObject createRegion(BigInteger withSize, String label) {
+    return createRegion(withSize, 0, label);
+  }
+
+  protected SMGObject createRegion(int withSize, String label) {
+    return createRegion(BigInteger.valueOf(withSize), label);
+  }
+
+  protected SMGDoublyLinkedListSegment createDLLS(
+      int withSize, int offset, int prevOffset, int next, String label) {
+    return createDLLS(0, withSize, offset, prevOffset, next, 0, label);
+  }
+
+  protected SMGDoublyLinkedListSegment createDLLS(
+      int pLevel, int withSize, int offset, int prevOffset, int next, int mLength, String label) {
+    return new LabeledDLLS(
+        pLevel,
+        BigInteger.valueOf(withSize),
+        BigInteger.valueOf(offset),
+        BigInteger.valueOf(prevOffset),
+        BigInteger.valueOf(next),
+        mLength,
+        BigInteger.valueOf(offset),
+        label);
+  }
+
+  protected SMGValue createValue(int withLevel, String label) {
+    return new LabeledValue(withLevel, label);
+  }
+
+  protected SMGValue createValue(String label) {
+    return new LabeledValue(0, label);
   }
 }

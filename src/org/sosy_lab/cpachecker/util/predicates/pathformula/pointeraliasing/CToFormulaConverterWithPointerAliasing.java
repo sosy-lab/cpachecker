@@ -1030,7 +1030,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       CExpression rhs = initializerExpression.getExpression();
       forceArrayAttachment =
           rhs instanceof CStringLiteralExpression
-              && lhsType instanceof CArrayType
+              && lhsType instanceof CArrayType lhsArrayType
               && !options.handleStringLiteralInitializers();
     } else {
       forceArrayAttachment = false;

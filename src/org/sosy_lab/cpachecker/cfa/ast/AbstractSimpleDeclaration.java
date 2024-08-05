@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import com.google.common.base.Strings;
-import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
@@ -23,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 public abstract class AbstractSimpleDeclaration extends AbstractAstNode
     implements ASimpleDeclaration {
 
-  @Serial private static final long serialVersionUID = 1078153969461542233L;
+  private static final long serialVersionUID = 1078153969461542233L;
 
   /**
    * The name of the declared item as it should be used by analyses in CPAchecker. This is a
@@ -64,13 +63,13 @@ public abstract class AbstractSimpleDeclaration extends AbstractAstNode
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    String nameAsString =
-        switch (pAAstNodeRepresentation) {
-          case DEFAULT -> Strings.nullToEmpty(getName());
-          case QUALIFIED -> Strings.nullToEmpty(getQualifiedName()).replace("::", "__");
-          case ORIGINAL_NAMES -> Strings.nullToEmpty(getOrigName());
-        };
+  public String toASTString(boolean pQualified) {
+    String nameAsString;
+    if (pQualified) {
+      nameAsString = Strings.nullToEmpty(getQualifiedName()).replace("::", "__");
+    } else {
+      nameAsString = Strings.nullToEmpty(getName());
+    }
     return getType().toASTString(nameAsString) + ";";
   }
 

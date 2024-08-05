@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
@@ -47,13 +46,13 @@ public class AutomatonState
         AbstractStateWithAssumptions,
         Graphable {
 
-  @Serial private static final long serialVersionUID = -4665039439114057346L;
+  private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
 
   static final String INTERNAL_STATE_IS_TARGET_PROPERTY = "internalStateIsTarget";
 
   static class TOP extends AutomatonState {
-    @Serial private static final long serialVersionUID = -7848577870312049023L;
+    private static final long serialVersionUID = -7848577870312049023L;
 
     public TOP(Automaton pAutomaton, boolean pTreatErrorsAsTarget) {
       super(
@@ -81,7 +80,7 @@ public class AutomatonState
   }
 
   static class BOTTOM extends AutomatonState {
-    @Serial private static final long serialVersionUID = -401794748742705212L;
+    private static final long serialVersionUID = -401794748742705212L;
 
     public BOTTOM(Automaton pAutomaton, boolean pTreatErrorsAsTarget) {
       super(
@@ -303,7 +302,7 @@ public class AutomatonState
    * AutomatonState as following State.
    */
   static final class AutomatonUnknownState extends AutomatonState {
-    @Serial private static final long serialVersionUID = -2010032222354565037L;
+    private static final long serialVersionUID = -2010032222354565037L;
     private final AutomatonState previousState;
 
     AutomatonUnknownState(AutomatonState pPreviousState) {
@@ -464,14 +463,12 @@ public class AutomatonState
     return vars;
   }
 
-  @Serial
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
     out.writeInt(internalState.getStateId());
     out.writeObject(automaton.getName());
   }
 
-  @Serial
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     int stateId = in.readInt();

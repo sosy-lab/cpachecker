@@ -174,21 +174,20 @@ public class SMGJoinValues extends SMGAbstractJoin {
       return;
     }
     // compute new level step 3-2
-    int newLevel =
-        Integer.max(inputSMG1.getNestingLevel(pValue1), inputSMG2.getNestingLevel(pValue2));
+    int newLevel = Integer.max(pValue1.getNestingLevel(), pValue2.getNestingLevel());
     // Step 3-6 return pValue1 - this is considered as typo
-    value = SMGValue.of();
+    value = SMGValue.of(newLevel);
     // add mappings step 3-3
     mapping1.addMapping(pValue1, value);
     mapping2.addMapping(pValue2, value);
     // update status step 3-4 and 3-5
-    int levelDiffV1AndV2 = inputSMG1.getNestingLevel(pValue1) - inputSMG2.getNestingLevel(pValue2);
+    int levelDiffV1AndV2 = pValue1.getNestingLevel() - pValue2.getNestingLevel();
     if (levelDiffV1AndV2 < pNestingLevelDiff) {
       status = status.updateWith(SMGJoinStatus.LEFT_ENTAIL);
     } else if (levelDiffV1AndV2 > pNestingLevelDiff) {
       status = status.updateWith(SMGJoinStatus.RIGHT_ENTAIL);
     }
-    destSMG = destSMG.copyAndAddValue(value, newLevel);
+    destSMG = destSMG.copyAndAddValue(value);
   }
 
   private boolean isBottom(SMGValue... values) {

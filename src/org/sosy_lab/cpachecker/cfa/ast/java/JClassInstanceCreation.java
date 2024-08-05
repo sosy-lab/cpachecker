@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -37,7 +36,7 @@ public sealed class JClassInstanceCreation extends JMethodInvocationExpression
 
   // TODO Type Variables , AnonymousClassDeclaration
 
-  @Serial private static final long serialVersionUID = -8480398251628288918L;
+  private static final long serialVersionUID = -8480398251628288918L;
 
   public JClassInstanceCreation(
       FileLocation pFileLocation,
@@ -66,10 +65,9 @@ public sealed class JClassInstanceCreation extends JMethodInvocationExpression
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString(boolean pQualified) {
     return "new "
-        + getExpressionType()
-            .toASTString(getFunctionNameExpression().toASTString(pAAstNodeRepresentation));
+        + getExpressionType().toASTString(getFunctionNameExpression().toASTString(pQualified));
   }
 
   @Override

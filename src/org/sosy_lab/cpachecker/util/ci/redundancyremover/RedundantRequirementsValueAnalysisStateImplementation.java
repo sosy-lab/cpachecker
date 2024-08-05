@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
@@ -24,7 +23,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class RedundantRequirementsValueAnalysisStateImplementation
     extends RedundantRequirementsRemoverImplementation<ValueAnalysisState, Value> {
 
-  @Serial private static final long serialVersionUID = 2875464105471673418L;
+  private static final long serialVersionUID = 2875464105471673418L;
 
   @Override
   public int compare(Value pO1, Value pO2) {

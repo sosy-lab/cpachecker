@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.block;
 
 import com.google.common.collect.ImmutableSet;
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -21,7 +22,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 // cannot be an AbstractStateWithLocation as initialization corrupts analysis
-public class BlockState implements AbstractQueryableState, Partitionable, Targetable {
+public class BlockState implements AbstractQueryableState, Partitionable, Serializable, Targetable {
+
+  private static final long serialVersionUID = 3805801L;
 
   public enum BlockStateType {
     INITIAL,

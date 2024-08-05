@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  * <p>The files "CTypes.dia"/"CTypes.pdf" in this package document the C type system and the
  * CPAchecker-specific classes.
  */
+@SuppressWarnings("serial")
 public sealed interface CType extends Type
     permits CArrayType,
         CBitFieldType,

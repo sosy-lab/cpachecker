@@ -12,14 +12,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
-import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.regex.Pattern;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -29,6 +27,7 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
@@ -42,7 +41,7 @@ public class IntervalAnalysisState
         FormulaReportingState,
         PseudoPartitionable {
 
-  @Serial private static final long serialVersionUID = -2030700797958100666L;
+  private static final long serialVersionUID = -2030700797958100666L;
 
   private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
 
@@ -327,23 +326,19 @@ public class IntervalAnalysisState
     return "IntervalAnalysis";
   }
 
-  private static boolean isLong(String s) {
-    return Pattern.matches("-?\\d+", s);
-  }
-
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     List<String> parts = propertySplitter.splitToList(pProperty);
 
     if (parts.size() == 2) {
 
-      if (isLong(parts.get(0))) {
+      if (CheckTypesOfStringsUtil.isLong(parts.get(0))) {
         // pProperty = value <= varName
         long value = Long.parseLong(parts.get(0));
         Interval iv = getInterval(parts.get(1));
         return (value <= iv.getLow());
 
-      } else if (isLong(parts.get(1))) {
+      } else if (CheckTypesOfStringsUtil.isLong(parts.get(1))) {
         // pProperty = varName <= value
         long value = Long.parseLong(parts.get(1));
         Interval iv = getInterval(parts.get(0));
@@ -358,7 +353,8 @@ public class IntervalAnalysisState
 
       // pProperty = value1 <= varName <= value2
     } else if (parts.size() == 3) {
-      if (isLong(parts.get(0)) && isLong(parts.get(2))) {
+      if (CheckTypesOfStringsUtil.isLong(parts.get(0))
+          && CheckTypesOfStringsUtil.isLong(parts.get(2))) {
         long value1 = Long.parseLong(parts.get(0));
         long value2 = Long.parseLong(parts.get(2));
         Interval iv = getInterval(parts.get(1));

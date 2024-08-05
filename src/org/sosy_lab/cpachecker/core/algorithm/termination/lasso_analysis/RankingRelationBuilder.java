@@ -34,7 +34,6 @@ import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.I
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
-import java.io.Serial;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -473,7 +472,7 @@ public class RankingRelationBuilder {
 
   public static class RankingRelationException extends Exception {
 
-    @Serial private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
     public RankingRelationException(String message) {
       super(message);

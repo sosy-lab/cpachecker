@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Joiner;
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -26,7 +25,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public class FunctionPointerState
     implements LatticeAbstractState<FunctionPointerState>, Serializable, Graphable {
 
-  @Serial private static final long serialVersionUID = -1951853216031911649L;
+  private static final long serialVersionUID = -1951853216031911649L;
 
   interface FunctionPointerTarget {}
 
@@ -56,7 +55,7 @@ public class FunctionPointerState
   }
 
   public static final class InvalidTarget implements FunctionPointerTarget, Serializable {
-    @Serial private static final long serialVersionUID = 7067934518471075538L;
+    private static final long serialVersionUID = 7067934518471075538L;
     private static final InvalidTarget instance = new InvalidTarget();
 
     private InvalidTarget() {}
@@ -83,7 +82,7 @@ public class FunctionPointerState
 
   public static final class NamedFunctionTarget implements FunctionPointerTarget, Serializable {
 
-    @Serial private static final long serialVersionUID = 9001748459212617220L;
+    private static final long serialVersionUID = 9001748459212617220L;
     private final String functionName;
 
     public NamedFunctionTarget(String pFunctionName) {

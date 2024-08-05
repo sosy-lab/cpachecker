@@ -11,13 +11,11 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public abstract class AVariableDeclaration extends AbstractDeclaration
-    implements Comparable<AVariableDeclaration> {
+public abstract class AVariableDeclaration extends AbstractDeclaration {
 
-  @Serial private static final long serialVersionUID = -8792173769663524307L;
+  private static final long serialVersionUID = -8792173769663524307L;
   private final String qualifiedName;
   private AInitializer initializer;
 
@@ -45,19 +43,18 @@ public abstract class AVariableDeclaration extends AbstractDeclaration
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString(boolean pQualified) {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(
-        switch (pAAstNodeRepresentation) {
-          case DEFAULT -> getType().toASTString(getName());
-          case QUALIFIED -> getType().toASTString(getQualifiedName().replace("::", "__"));
-          case ORIGINAL_NAMES -> getType().toASTString(getOrigName());
-        });
+    if (pQualified) {
+      lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));
+    } else {
+      lASTString.append(getType().toASTString(getName()));
+    }
 
     if (initializer != null) {
       lASTString.append(" = ");
-      lASTString.append(initializer.toASTString(pAAstNodeRepresentation));
+      lASTString.append(initializer.toASTString(pQualified));
     }
 
     lASTString.append(";");
@@ -88,10 +85,5 @@ public abstract class AVariableDeclaration extends AbstractDeclaration
     return obj instanceof AVariableDeclaration other
         && super.equals(obj)
         && qualifiedName.equals(other.qualifiedName);
-  }
-
-  @Override
-  public int compareTo(AVariableDeclaration pOther) {
-    return getQualifiedName().compareTo(pOther.getQualifiedName());
   }
 }

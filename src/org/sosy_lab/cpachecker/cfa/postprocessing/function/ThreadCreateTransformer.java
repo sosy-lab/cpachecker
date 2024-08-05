@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -150,7 +150,7 @@ public class ThreadCreateTransformer {
       CIdExpression varName = getThreadVariableName(fCall);
       CExpression calledFunction = args.get(2);
       CIdExpression functionNameExpression = getFunctionName(calledFunction);
-      List<CExpression> functionParameters = ImmutableList.of(args.get(3));
+      List<CExpression> functionParameters = Lists.newArrayList(args.get(3));
       String newThreadName = functionNameExpression.getName();
       CFunctionEntryNode entryNode = (CFunctionEntryNode) cfa.getFunctionHead(newThreadName);
       if (entryNode == null) {

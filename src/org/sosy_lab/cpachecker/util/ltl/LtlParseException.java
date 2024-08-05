@@ -10,13 +10,12 @@ package org.sosy_lab.cpachecker.util.ltl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.Serial;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 /** Super-class for all thrown exceptions that occur while parsing ltl-properties */
 public class LtlParseException extends InvalidConfigurationException {
 
-  @Serial private static final long serialVersionUID = -8907490649042996735L;
+  private static final long serialVersionUID = -8907490649042996735L;
 
   public LtlParseException(String pMsg) {
     super(checkNotNull(pMsg));

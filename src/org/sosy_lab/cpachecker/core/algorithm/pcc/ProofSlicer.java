@@ -328,7 +328,7 @@ public class ProofSlicer {
             break;
           }
         }
-      // $FALL-THROUGH$
+        // $FALL-THROUGH$
       case BlankEdge:
         updatedVars.addAll(succVars);
         return;

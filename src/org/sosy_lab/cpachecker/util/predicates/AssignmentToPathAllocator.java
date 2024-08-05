@@ -213,9 +213,9 @@ public class AssignmentToPathAllocator {
 
         switch (binExp.getOperator()) {
           case MULTIPLY:
-          // $FALL-THROUGH$
+            // $FALL-THROUGH$
           case MODULO:
-          // $FALL-THROUGH$
+            // $FALL-THROUGH$
           case DIVIDE:
             opString = "_" + opString;
             break;

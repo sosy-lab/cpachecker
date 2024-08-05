@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
@@ -21,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 public abstract class AbstractDeclaration extends AbstractSimpleDeclaration
     implements ADeclaration {
 
-  @Serial private static final long serialVersionUID = 3218969369130423033L;
+  private static final long serialVersionUID = 3218969369130423033L;
   private final boolean isGlobal;
   private final Type type;
 

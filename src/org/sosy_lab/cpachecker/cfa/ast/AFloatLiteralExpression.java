@@ -8,14 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 public abstract class AFloatLiteralExpression extends ALiteralExpression {
 
-  @Serial private static final long serialVersionUID = 8161363025296340648L;
+  private static final long serialVersionUID = 8161363025296340648L;
   private final FloatValue value;
 
   protected AFloatLiteralExpression(FileLocation pFileLocation, Type pType, FloatValue pValue) {

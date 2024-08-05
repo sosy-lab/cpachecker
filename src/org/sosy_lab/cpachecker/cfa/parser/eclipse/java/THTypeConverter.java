@@ -72,10 +72,10 @@ class THTypeConverter extends TypeConverter {
       if (cls != null && cls.getSuperclass() != null) {
         superClassType = createJClassTypeFromClass(cls.getSuperclass());
       } else {
-        superClassType = typeTable.getUnresolvableClassType();
+        superClassType = JClassType.createUnresolvableType();
       }
     } else {
-      superClassType = typeTable.getUnresolvableClassType();
+      superClassType = JClassType.createUnresolvableType();
     }
 
     ITypeBinding[] interfaceBindings = t.getInterfaces();
@@ -110,7 +110,7 @@ class THTypeConverter extends TypeConverter {
 
     JClassType jTypeOfSuperClass;
     if ("java.lang.Object".equals(superclass.getName())) {
-      jTypeOfSuperClass = typeTable.getTypeOfObject();
+      jTypeOfSuperClass = JClassType.getTypeOfObject();
     } else {
       jTypeOfSuperClass = createJClassTypeFromClass(superclass);
     }
@@ -182,7 +182,7 @@ class THTypeConverter extends TypeConverter {
     ITypeBinding enclosingTypeBinding = pT.getDeclaringClass();
 
     if (enclosingTypeBinding == null) {
-      return typeTable.getUnresolvableClassType();
+      return JClassType.createUnresolvableType();
     } else {
       return convertClassOrInterfaceType(enclosingTypeBinding);
     }

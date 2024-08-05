@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import com.google.common.collect.ImmutableList;
-import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -36,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
  */
 public final class JArrayCreationExpression extends AbstractExpression implements JExpression {
 
-  @Serial private static final long serialVersionUID = 8794036217601570272L;
+  private static final long serialVersionUID = 8794036217601570272L;
   private final ImmutableList<JExpression> length;
   private final @Nullable JArrayInitializer initializer;
 
@@ -58,9 +57,9 @@ public final class JArrayCreationExpression extends AbstractExpression implement
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString(boolean pQualified) {
     if (initializer != null) {
-      return initializer.toASTString(pAAstNodeRepresentation);
+      return initializer.toASTString();
     } else {
 
       StringBuilder astString =
@@ -68,7 +67,7 @@ public final class JArrayCreationExpression extends AbstractExpression implement
 
       for (JExpression exp : length) {
         astString.append("[");
-        astString.append(exp.toASTString(pAAstNodeRepresentation));
+        astString.append(exp.toASTString(pQualified));
         astString.append("]");
       }
 

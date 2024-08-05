@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.exceptions;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /** Exception if states in predicated analysis are created which violate property to be checked */
 public class CPAEnabledAnalysisPropertyViolationException extends CPAException {
 
-  @Serial private static final long serialVersionUID = 6723698516455641373L;
+  private static final long serialVersionUID = 6723698516455641373L;
 
   private final AbstractState failureElem;
   private final boolean inMerge;

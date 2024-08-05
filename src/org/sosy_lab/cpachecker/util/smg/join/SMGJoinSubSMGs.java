@@ -132,7 +132,7 @@ public class SMGJoinSubSMGs extends SMGAbstractJoin {
   }
 
   /**
-   * Checks if the edges offset and size matches with a given DLLS's size and not with prev/next
+   * Checks if a edges offset and size matches with a given DLLS's size and not with prev/next
    * offset.
    *
    * @param dlls - the DLLS
@@ -140,8 +140,7 @@ public class SMGJoinSubSMGs extends SMGAbstractJoin {
    * @return true if sizes are equal and prev/head offset not equal to edge offset.
    */
   private boolean matchesOffsetAndSize(SMGDoublyLinkedListSegment dlls, SMGHasValueEdge edge) {
-    if (dlls.getSize().isNumericValue()
-        && dlls.getSize().asNumericValue().bigIntegerValue().equals(edge.getSizeInBits())) {
+    if (dlls.getSize().equals(edge.getSizeInBits())) {
       return !dlls.getNextOffset().equals(edge.getOffset())
           && !dlls.getPrevOffset().equals(edge.getOffset());
     }

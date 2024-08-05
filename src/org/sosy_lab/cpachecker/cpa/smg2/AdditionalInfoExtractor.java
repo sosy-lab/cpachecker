@@ -129,7 +129,7 @@ public class AdditionalInfoExtractor {
     } else if (elem instanceof SMGPointsToEdge pointsToEdge) {
       return pSMGState.getMemoryModel().getSmg().getPTEdges().contains(pointsToEdge);
     } else if (elem instanceof SMGValue smgValue) {
-      return pSMGState.getMemoryModel().getSmg().getValues().containsKey(smgValue);
+      return pSMGState.getMemoryModel().getSmg().getValues().contains(smgValue);
     } else if (elem instanceof Value value) {
       return pSMGState.getMemoryModel().getSMGValueFromValue(value).isPresent()
           && containsInvalidElement(

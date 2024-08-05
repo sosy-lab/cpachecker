@@ -175,10 +175,8 @@ public class AutomaticCPAFactory implements CPAFactory {
       return type.cast(cons.newInstance(actualParameters));
     } catch (InvocationTargetException e) {
       Throwable t = e.getCause();
-      Throwables.throwIfInstanceOf(t, CPAException.class);
-      Throwables.throwIfInstanceOf(t, InvalidConfigurationException.class);
-      Throwables.throwIfInstanceOf(t, InterruptedException.class);
-      Throwables.throwIfUnchecked(t);
+      Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
+      Throwables.propagateIfPossible(t, InterruptedException.class);
       throw new UnexpectedCheckedException("instantiation of CPA " + type.getSimpleName(), t);
 
     } catch (InstantiationException e) {
@@ -316,9 +314,7 @@ public class AutomaticCPAFactory implements CPAFactory {
 
       } catch (InvocationTargetException e) {
         Throwable t = e.getCause();
-        Throwables.throwIfInstanceOf(t, CPAException.class);
-        Throwables.throwIfInstanceOf(t, InvalidConfigurationException.class);
-        Throwables.throwIfUnchecked(t);
+        Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
         throw new UnexpectedCheckedException(
             "instantiation of CPA options holder class " + optionsClass.getCanonicalName(), t);
 

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -19,7 +18,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 public final class JFloatLiteralExpression extends AFloatLiteralExpression
     implements JLiteralExpression {
 
-  @Serial private static final long serialVersionUID = -8344145326316408368L;
+  private static final long serialVersionUID = -8344145326316408368L;
 
   public JFloatLiteralExpression(FileLocation pFileLocation, FloatValue pValue) {
     super(pFileLocation, getJType(pValue), pValue);

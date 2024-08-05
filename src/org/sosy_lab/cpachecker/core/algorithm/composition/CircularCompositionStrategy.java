@@ -61,11 +61,13 @@ public class CircularCompositionStrategy extends AlgorithmCompositionStrategy
   }
 
   private boolean setUpCyclingIteration() {
-    int newLength = Iterables.size(Iterables.filter(algorithmContexts, this::considerContext));
+    int newLength =
+        Iterables.size(Iterables.filter(algorithmContexts, algCtxt -> considerContext(algCtxt)));
     if (algorithmContextCycle == null || newLength != cycleLength) {
       cycleLength = newLength;
       algorithmContextCycle =
-          Iterables.cycle(Iterables.filter(algorithmContexts, this::considerContext)).iterator();
+          Iterables.cycle(Iterables.filter(algorithmContexts, algCtxt -> considerContext(algCtxt)))
+              .iterator();
       return true;
     }
     return false;

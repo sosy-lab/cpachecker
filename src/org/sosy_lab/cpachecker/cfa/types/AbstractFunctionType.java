@@ -12,13 +12,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 
 public abstract class AbstractFunctionType implements AFunctionType {
 
-  @Serial private static final long serialVersionUID = 5378375954515193938L;
+  private static final long serialVersionUID = 5378375954515193938L;
   private final Type returnType;
   private final List<? extends Type> parameters;
   private final boolean takesVarArgs;

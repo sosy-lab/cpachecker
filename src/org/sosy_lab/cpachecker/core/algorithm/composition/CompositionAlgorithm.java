@@ -14,8 +14,8 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -757,7 +757,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     if (predPrec != null && pPreviousReachedSets.get(0) != null) {
       Iterable<Precision> allPrecisions =
-          FluentIterable.of(resultPrec).append(pPreviousReachedSets.get(0).getPrecisions());
+          from(ImmutableList.of(resultPrec)).append(pPreviousReachedSets.get(0).getPrecisions());
 
       resultPrec =
           Precisions.replaceByType(

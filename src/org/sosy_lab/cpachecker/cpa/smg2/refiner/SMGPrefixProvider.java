@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAExportOptions;
-import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
@@ -40,8 +39,7 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
       LogManagerWithoutDuplicates pLogger,
       CFA pCfa,
       Configuration config,
-      ShutdownNotifier pShutdownNotifier,
-      SMGCPAStatistics pStatistics)
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
     super(
@@ -56,8 +54,7 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
                 pLogger,
                 SMGCPAExportOptions.getNoExportInstance(),
                 new SMGOptions(config),
-                null),
-            pStatistics),
+                null)),
         pLogger,
         pCfa,
         config,
@@ -75,7 +72,6 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
         smgCpa.getLogger(),
         smgCpa.getCFA(),
         smgCpa.getConfiguration(),
-        smgCpa.getShutdownNotifier(),
-        smgCpa.getStatistics());
+        smgCpa.getShutdownNotifier());
   }
 }

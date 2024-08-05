@@ -9,7 +9,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 #Starexec solver configuration filenames need to start with "starexec_run_"
-#Call cpachecker script to run CPAchecker and add configurations according to
-#your requirements. Only make a single cpachecker call per file. Use "$1" 
+#Call cpa.sh script to run CPAchecker and add configurations according to
+#your requirements. Only make a single cpa.sh call per file. Use "$1" 
 #instead of a specific filename as those will be passed by the starexec job.
-./cpachecker --predicateAnalysis "$1"
+./cpa.sh -predicateAnalysis "$1"

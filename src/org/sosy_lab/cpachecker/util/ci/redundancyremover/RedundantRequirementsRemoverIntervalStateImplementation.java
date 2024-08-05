@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
@@ -18,7 +17,7 @@ import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRe
 public class RedundantRequirementsRemoverIntervalStateImplementation
     extends RedundantRequirementsRemoverImplementation<IntervalAnalysisState, Interval> {
 
-  @Serial private static final long serialVersionUID = 1323131138350817689L;
+  private static final long serialVersionUID = 1323131138350817689L;
 
   @Override
   public int compare(Interval pO1, Interval pO2) {

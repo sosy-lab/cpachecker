@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class FunctionCallEdge extends AbstractCFAEdge {
 
+  private static final long serialVersionUID = -7848426105619928428L;
   private final AFunctionCall functionCall;
   private final FunctionSummaryEdge summaryEdge;
 

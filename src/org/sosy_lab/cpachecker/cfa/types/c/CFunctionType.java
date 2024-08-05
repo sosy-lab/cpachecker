@@ -14,7 +14,6 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.AbstractFunctionType;
@@ -22,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.types.AbstractFunctionType;
 public sealed class CFunctionType extends AbstractFunctionType implements CType
     permits CFunctionTypeWithNames {
 
-  @Serial private static final long serialVersionUID = 4154771254170820716L;
+  private static final long serialVersionUID = 4154771254170820716L;
 
   public static CFunctionType functionTypeWithReturnType(CType pReturnType) {
     return new CFunctionType(checkNotNull(pReturnType), ImmutableList.of(), false);

@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGNodeMapping;
-import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentBiMap;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 
 public final class SMGIntersectStates {
 

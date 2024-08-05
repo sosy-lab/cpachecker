@@ -12,13 +12,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.Serial;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class CElaboratedType implements CComplexType {
 
-  @Serial private static final long serialVersionUID = -3566628634889842927L;
+  private static final long serialVersionUID = -3566628634889842927L;
   private final ComplexTypeKind kind;
   private String name;
   private final String origName;

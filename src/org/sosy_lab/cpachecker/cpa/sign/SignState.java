@@ -12,7 +12,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
@@ -23,11 +22,12 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 
 public class SignState
     implements Serializable, LatticeAbstractState<SignState>, AbstractQueryableState, Graphable {
 
-  @Serial private static final long serialVersionUID = -2507059869178203119L;
+  private static final long serialVersionUID = -2507059869178203119L;
 
   private static final boolean DEBUG = false;
 
@@ -169,7 +169,6 @@ public class SignState
     return signMap.hashCode();
   }
 
-  @Serial
   private Object writeReplace() {
     if (equals(TOP)) {
       return proxy;
@@ -178,23 +177,20 @@ public class SignState
     }
   }
 
-  @Serial
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
   }
 
-  @Serial
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
   }
 
   private static class SerialProxySign implements Serializable {
 
-    @Serial private static final long serialVersionUID = 2843708585446089623L;
+    private static final long serialVersionUID = 2843708585446089623L;
 
     public SerialProxySign() {}
 
-    @Serial
     private Object readResolve() {
       return TOP;
     }
@@ -205,28 +201,19 @@ public class SignState
     return "SignAnalysis";
   }
 
-  private static boolean isSIGN(String s) {
-    try {
-      SIGN.valueOf(s);
-    } catch (IllegalArgumentException ex) {
-      return false;
-    }
-    return true;
-  }
-
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     List<String> parts = propertySplitter.splitToList(pProperty);
 
     if (parts.size() == 2) {
 
-      if (isSIGN(parts.get(0))) {
+      if (CheckTypesOfStringsUtil.isSIGN(parts.get(0))) {
         // pProperty = value <= varName
         SIGN value = SIGN.valueOf(parts.get(0));
         SIGN varName = getSignForVariable(parts.get(1));
         return varName.covers(value);
 
-      } else if (isSIGN(parts.get(1))) {
+      } else if (CheckTypesOfStringsUtil.isSIGN(parts.get(1))) {
         // pProperty = varName <= value
         SIGN varName = getSignForVariable(parts.get(0));
         SIGN value = SIGN.valueOf(parts.get(1));

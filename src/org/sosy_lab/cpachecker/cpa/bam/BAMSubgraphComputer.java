@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
-import java.io.Serial;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -320,7 +319,7 @@ public class BAMSubgraphComputer {
    */
   static class BackwardARGState extends ARGState {
 
-    @Serial private static final long serialVersionUID = -3279533907385516993L;
+    private static final long serialVersionUID = -3279533907385516993L;
 
     public BackwardARGState(ARGState originalState) {
       super(originalState, null);
@@ -343,7 +342,7 @@ public class BAMSubgraphComputer {
   /** A class to signal a deleted block for re-computation. */
   static class MissingBlockException extends CPAException {
 
-    @Serial private static final long serialVersionUID = 123L;
+    private static final long serialVersionUID = 123L;
 
     private final AbstractState initialState;
     private final AbstractState exitState;

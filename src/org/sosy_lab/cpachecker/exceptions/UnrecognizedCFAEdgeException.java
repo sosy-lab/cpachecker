@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.exceptions;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /** Exception thrown if a CPA cannot handle a specific CFAEdge. */
@@ -23,5 +22,5 @@ public class UnrecognizedCFAEdgeException extends CPATransferException {
   }
 
   /** auto-generated UID */
-  @Serial private static final long serialVersionUID = -5106215499745787051L;
+  private static final long serialVersionUID = -5106215499745787051L;
 }

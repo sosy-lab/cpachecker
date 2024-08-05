@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
-import java.io.Serial;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -24,7 +23,7 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
         ConstantSymbolicExpression,
         UnarySymbolicExpression {
 
-  @Serial private static final long serialVersionUID = 2228733300503173691L;
+  private static final long serialVersionUID = 2228733300503173691L;
 
   private final Optional<MemoryLocation> representedLocation;
 

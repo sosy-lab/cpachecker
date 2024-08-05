@@ -1,7 +1,0 @@
-cpachecker for Debian
----------------------
-
-This package installs CPAchecker into /opt/cpachecker.
-The documentation is also available in that directory.
-
- -- Philipp Wendler <debian@philippwendler.de>  Fri, 21 Jun 2024 09:12:25 +0200

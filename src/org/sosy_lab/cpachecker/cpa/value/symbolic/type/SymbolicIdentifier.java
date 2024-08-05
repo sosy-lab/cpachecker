@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.io.Serial;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -43,7 +42,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIdentifier> {
 
-  @Serial private static final long serialVersionUID = -3773425414056328601L;
+  private static final long serialVersionUID = -3773425414056328601L;
 
   // this objects unique id for identifying it
   private final long id;

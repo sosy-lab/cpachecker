@@ -13,7 +13,6 @@ import com.google.errorprone.annotations.FormatString;
 import java.io.PrintStream;
 import org.checkerframework.dataflow.qual.TerminatesExecution;
 import org.sosy_lab.common.annotations.SuppressForbidden;
-import org.sosy_lab.common.io.IO;
 
 /** Utilities for output while we do not yet have a logger */
 @SuppressForbidden("System.out in this class is ok")
@@ -23,7 +22,8 @@ final class Output {
 
   private static final PrintStream ERROR_OUTPUT = System.err;
 
-  private static final boolean USE_COLORS = IO.mayUseColorForOutput();
+  private static final boolean USE_COLORS =
+      (System.console() != null) && !System.getProperty("os.name", "").startsWith("Windows");
   private static final String ERROR_COLOR = "\033[31;1m"; // bold red
   private static final String WARNING_COLOR = "\033[1m"; // bold
   private static final String REGULAR_COLOR = "\033[m";

@@ -14,6 +14,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdgeVisitor;
 
 public class BlankEdge extends AbstractCFAEdge implements CCfaEdge {
 
+  private static final long serialVersionUID = 6394933292868202442L;
+
   private final String description;
 
   public BlankEdge(
