@@ -107,6 +107,8 @@ class MpfrFloat extends CFloat {
   private BigFloat parseBigFloat(String repr) {
     if ("nan".equals(repr)) {
       return BigFloat.NaN(format.precision);
+    } else if ("-nan".equals(repr)) {
+      return BigFloat.NaN(format.precision).negate();
     } else if ("-inf".equals(repr)) {
       return BigFloat.negativeInfinity(format.precision);
     } else if ("inf".equals(repr)) {

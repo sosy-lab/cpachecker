@@ -199,6 +199,7 @@ abstract class AbstractCFloatTestBase {
     int precision = format.sigBits() + 1;
     BinaryMathContext context = new BinaryMathContext(precision, format.expBits());
     return ImmutableList.of(
+        BigFloat.NaN(precision).negate(),
         BigFloat.negativeInfinity(precision),
         BigFloat.maxValue(precision, format.maxExp()).negate(),
         new BigFloat(-17.0f, context),
@@ -207,8 +208,6 @@ abstract class AbstractCFloatTestBase {
         BigFloat.minNormal(precision, format.minExp()).negate(),
         BigFloat.minValue(precision, format.minExp()).negate(),
         BigFloat.negativeZero(precision),
-        BigFloat.NaN(precision).negate(),
-        BigFloat.NaN(precision),
         BigFloat.zero(precision),
         BigFloat.minValue(precision, format.minExp()),
         BigFloat.minNormal(precision, format.minExp()),
@@ -216,7 +215,8 @@ abstract class AbstractCFloatTestBase {
         new BigFloat(1.0f, context),
         new BigFloat(17.0f, context),
         BigFloat.maxValue(precision, format.maxExp()),
-        BigFloat.positiveInfinity(precision));
+        BigFloat.positiveInfinity(precision),
+        BigFloat.NaN(precision));
   }
 
   /**
@@ -653,11 +653,25 @@ abstract class AbstractCFloatTestBase {
     };
   }
 
+  private BigFloat parseBigFloat(BinaryMathContext context, String repr) {
+    if ("nan".equals(repr)) {
+      return BigFloat.NaN(context.precision);
+    } else if ("-nan".equals(repr)) {
+      return BigFloat.NaN(context.precision).negate();
+    } else if ("-inf".equals(repr)) {
+      return BigFloat.negativeInfinity(context.precision);
+    } else if ("inf".equals(repr)) {
+      return BigFloat.positiveInfinity(context.precision);
+    } else {
+      return new BigFloat(repr, context);
+    }
+  }
+
   /** Create a test value for the reference implementation by parsing a String. */
   CFloat toReferenceImpl(String repr) {
     BinaryMathContext context =
         new BinaryMathContext(getFloatType().sigBits() + 1, getFloatType().expBits());
-    return toReferenceImpl(new BigFloat(repr, context));
+    return toReferenceImpl(parseBigFloat(context, repr));
   }
 
   @Test
