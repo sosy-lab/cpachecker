@@ -204,10 +204,13 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       if (aAstNodeOp.isPresent() && aAstNodeOp.get() instanceof CComplexTypeDeclaration) {
         String cComplexTypeDeclaration = ((CComplexTypeDeclaration) aAstNodeOp.get()).toString();
 
-        if (cComplexTypeDeclaration.startsWith("struct ")) {
+        if (cComplexTypeDeclaration.startsWith(
+            "struct ")) { // A C complex type can also be an enum.
           String structName;
           Map<String, String> members = new HashMap<>();
 
+          // Every string representation of an AST node for a struct declaration has the same
+          // format, which the following modification is based on.
           cComplexTypeDeclaration =
               cComplexTypeDeclaration
                   .substring(0, cComplexTypeDeclaration.length() - 4)
