@@ -244,4 +244,10 @@ record RecursionInfo(
     ImmutableSet<Integer> locationOfRecursiveCalls,
     ImmutableList<String> parameters) {}
 
+/**
+ * Represents a container for struct information.
+ *
+ * @param structName the name of the struct
+ * @param members a map of member names to their types
+ */
 record StructInfo(String structName, ImmutableMap<String, String> members) {}
