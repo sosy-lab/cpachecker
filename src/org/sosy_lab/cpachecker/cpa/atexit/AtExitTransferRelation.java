@@ -80,8 +80,8 @@ public class AtExitTransferRelation extends SingleEdgeTransferRelation {
           CExpression argExpr =
               callStmt.getFunctionCallExpression().getParameterExpressions().get(0);
           // Note: The default value here needs to be UnknownTarget, and not IllegalTarget, to make
-          // AtExitState.peek() to make sure that AtExitState.peek() only returns IllegalTarget when
-          // the stack is actually empty
+          // sure that AtExitState.peek() only returns IllegalTarget when the stack is actually
+          // empty
           ExpressionValueVisitor evaluator =
               new ExpressionValueVisitor(fnState.createBuilder(), UnknownTarget.getInstance());
           FunctionPointerTarget target = argExpr.accept(evaluator);
