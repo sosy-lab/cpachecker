@@ -81,9 +81,9 @@ public class AtExitTransformer {
    */
   private Optional<CExpression> tryReturnEdge(CFAEdge pEdge) {
     if (pEdge instanceof CReturnStatementEdge returnEdge) {
-      // The default value for "return" is actually undefined. Since this method is only called for
-      // the main() function the actual value does not matter, and we simply return 0 as a
-      // placeholder.
+      // The default value for "return" is actually undefined.
+      // Since this method is only called for the main() function the actual value does not matter,
+      // and we simply return 0 as a placeholder.
       return Optional.of(returnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO));
     } else if (pEdge instanceof BlankEdge && pEdge.getDescription().equals("default return")) {
       return Optional.of(CIntegerLiteralExpression.ZERO);
@@ -214,7 +214,7 @@ public class AtExitTransformer {
         CFAEdge e3 = new CStatementEdge("", stmtNext, loc, n2, n3);
         CFACreationUtils.addEdgeUnconditionallyToCFA(e3);
 
-        // Add two assumption edge to branch on the result of __VERIFIER_atexit_hasNext():
+        // Add two assumption edge to branch on the result of __VERIFIER_atexit_next():
         CType intType =
             new CSimpleType(
                 false, false, CBasicType.INT, false, false, false, false, false, false, false);
@@ -235,7 +235,8 @@ public class AtExitTransformer {
         CAssumeEdge e5 = new CAssumeEdge("", loc, n3, n5, isEmpty, false);
         CFACreationUtils.addEdgeUnconditionallyToCFA(e5);
 
-        // Exit the loop if __VERIFIER_atexit_hasNext() has returned "false"
+        // Exit the loop if __VERIFIER_atexit_next() has returned a null pointer and the stack is
+        // empty
         // Add an edge that calls exit and returns to the rest of the graph
         CFunctionCallStatement stmtExit =
             new CFunctionCallStatement(loc, callStmt.getFunctionCallExpression());

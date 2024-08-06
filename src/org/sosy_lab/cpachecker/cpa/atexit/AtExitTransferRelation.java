@@ -76,9 +76,9 @@ public class AtExitTransferRelation extends SingleEdgeTransferRelation {
                 instanceof CIdExpression fnExpr
             && fnExpr.getName().equals("atexit")) {
           // We've found a statement of the form "int r = atexit(argExpr)" or "atexit(argExpr)"
+          // Evaluate argExpr to get a target for the function pointer and store it on the stack
           CExpression argExpr =
               callStmt.getFunctionCallExpression().getParameterExpressions().get(0);
-          // Evaluate argExpr to get a target for the function pointer and store it on the stack
           ExpressionValueVisitor evaluator =
               new ExpressionValueVisitor(fnState.createBuilder(), UnknownTarget.getInstance());
           FunctionPointerTarget target = argExpr.accept(evaluator);
