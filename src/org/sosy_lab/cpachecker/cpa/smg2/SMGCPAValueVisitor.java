@@ -498,7 +498,7 @@ public class SMGCPAValueVisitor
     final CType calculationType = e.getCalculationType();
     final CExpression lVarInBinaryExp = e.getOperand1();
     final CExpression rVarInBinaryExp = e.getOperand2();
-    final CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
+    final CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getCalculationType());
     Preconditions.checkArgument(!leftValue.isUnknown());
     Preconditions.checkArgument(!rightValue.isUnknown());
 
