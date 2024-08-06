@@ -3518,31 +3518,6 @@ cpa.value.interpolation.applyUnsatSuffixOptimization = true
 # whether or not to manage the callstack, which is needed for BAM
 cpa.value.interpolation.manageCallstack = true
 
-# Enable invariants that use  an arithmetic operator(linear invariants are
-# enabled separately)
-cpa.value.invExport.exportArithmetic = no default value
-
-# Enable to export invariants that include two variables
-cpa.value.invExport.exportBinary = no default value
-
-# Enable invariants that use a bit operator
-cpa.value.invExport.exportBitops = no default value
-
-# Enable to export linear equalities or inequalities over variables, e.g., ax
-# + by + c = 0, ax + bx + c <= 0, ax + bx + c >= 0, or ax + by + cy + d = 0
-cpa.value.invExport.exportLinear = no default value
-
-# Enable invariants that use a shift operator, note that additionally
-# exportBitops must be enabled
-cpa.value.invExport.exportShiftops = no default value
-
-# Enable to export invariants that include three variables, currently only
-# effective if exportLinear is enabled, too
-cpa.value.invExport.exportTernary = no default value
-
-# enable if loop invariant export should consider context
-cpa.value.invExport.invariantsContextSensitive = no default value
-
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
   allowed values: [SEP, JOIN]
