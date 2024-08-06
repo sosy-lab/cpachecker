@@ -60,8 +60,9 @@ public final class MPORUtil {
     checkNotNull(pCurrentState);
     checkNotNull(pCfaEdge);
 
+    // using no precision (null) is fine in the context of MPOR
     Collection<? extends AbstractState> abstractStates =
-        pPtr.getAbstractSuccessorsForEdge(pCurrentState, null, pCfaEdge); // TODO precision?
+        pPtr.getAbstractSuccessorsForEdge(pCurrentState, null, pCfaEdge);
     checkState(abstractStates.size() == 1); // should always hold
 
     PredicateAbstractState rAbstractSuccessor =
