@@ -202,15 +202,18 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     for (CFAEdge cfaEdge : cfa.edges()) {
       Optional<AAstNode> aAstNodeOp = cfaEdge.getRawAST();
       if (aAstNodeOp.isPresent() && aAstNodeOp.get() instanceof CComplexTypeDeclaration) {
-        String struct = ((CComplexTypeDeclaration) aAstNodeOp.get()).toString();
+        String cComplexTypeDeclaration = ((CComplexTypeDeclaration) aAstNodeOp.get()).toString();
 
-        if (struct.startsWith("struct ")) {
+        if (cComplexTypeDeclaration.startsWith("struct ")) {
           String name;
           Map<String, String> members = new HashMap<>();
 
-          struct =
-              struct.substring(0, struct.length() - 4).replaceAll(";", "").replaceAll("  ", "");
-          List<String> structParts = Splitter.on('\n').splitToList(struct);
+          cComplexTypeDeclaration =
+              cComplexTypeDeclaration
+                  .substring(0, cComplexTypeDeclaration.length() - 4)
+                  .replaceAll(";", "")
+                  .replaceAll("  ", "");
+          List<String> structParts = Splitter.on('\n').splitToList(cComplexTypeDeclaration);
           name = Iterables.get(Splitter.on(' ').split(structParts.get(0)), 1);
           for (int i = 1; i < structParts.size(); i++) {
             members.put(
