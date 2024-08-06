@@ -70,11 +70,11 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       ImmutableSet<NormalLoopInfo> allNormalLoopInfos =
           LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope);
       ImmutableSet<RecursionInfo> allRecursionInfos = getAllRecursionInfos();
-      ImmutableSet<StructInfo> allStructInfos =
-          getAllStructInfos(allNormalLoopInfos, allRecursionInfos);
+      ImmutableSet<StructInfo> allLiveStructInfos =
+          getAllLiveStructInfos(allNormalLoopInfos, allRecursionInfos);
 
       StringBuilder allLoopInfos = new StringBuilder();
-      for (StructInfo structInfo : allStructInfos) {
+      for (StructInfo structInfo : allLiveStructInfos) {
         allLoopInfos.append(
             String.format("Struct    %s    %s%n", structInfo.structName(), structInfo.members()));
       }
@@ -198,47 +198,64 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     }
   }
 
-  private ImmutableSet<StructInfo> getAllStructInfos(
-      ImmutableSet<NormalLoopInfo> allNormalLoopInfos,
-      ImmutableSet<RecursionInfo> allRecursionInfos) {
-    Set<String> structNamesInLoops = new HashSet<>();
-    Set<StructInfo> allStructInfos = new HashSet<>();
+  private ImmutableSet<StructInfo> getAllLiveStructInfos(
+      ImmutableSet<NormalLoopInfo> pAllNormalLoopInfos,
+      ImmutableSet<RecursionInfo> pAllRecursionInfos) {
+    Set<StructInfo> allLiveStructInfos = new HashSet<>();
+    ImmutableSet<StructInfo> allStructInfos = getAllStructInfos();
+    ImmutableSet<String> allLiveStructNames =
+        getAllLiveStructNames(pAllNormalLoopInfos, pAllRecursionInfos);
 
-    for (NormalLoopInfo normalLoopInfo : allNormalLoopInfos) {
+    for (StructInfo structInfo : allStructInfos) {
+      if (allLiveStructNames.contains(structInfo.structName())) {
+        allLiveStructInfos.add(structInfo);
+      }
+    }
+
+    return ImmutableSet.copyOf(allLiveStructInfos);
+  }
+
+  private ImmutableSet<String> getAllLiveStructNames(
+      ImmutableSet<NormalLoopInfo> pAllNormalLoopInfos,
+      ImmutableSet<RecursionInfo> pAllRecursionInfos) {
+    Set<String> allLivestructNames = new HashSet<>();
+
+    for (NormalLoopInfo normalLoopInfo : pAllNormalLoopInfos) {
       normalLoopInfo.liveVariablesAndTypes().entrySet().stream()
           .filter(e -> e.getValue().startsWith("struct "))
-          .forEach(e -> structNamesInLoops.add(e.getValue()));
+          .forEach(e -> allLivestructNames.add(e.getValue()));
     }
 
-    for (RecursionInfo recursionInfo : allRecursionInfos) {
+    for (RecursionInfo recursionInfo : pAllRecursionInfos) {
       recursionInfo.parameters().stream()
           .filter(e -> e.startsWith("struct "))
-          .forEach(
-              e ->
-                  structNamesInLoops.add(
-                      Iterables.get(Splitter.on(' ').split(e), 0)
-                          + " "
-                          + Iterables.get(Splitter.on(' ').split(e), 1)));
+          .forEach(e -> allLivestructNames.add(Iterables.get(Splitter.on(' ').split(e), 1)));
     }
+
+    return ImmutableSet.copyOf(allLivestructNames);
+  }
+
+  private ImmutableSet<StructInfo> getAllStructInfos() {
+    Set<StructInfo> allStructInfos = new HashSet<>();
 
     for (CFAEdge cfaEdge : cfa.edges()) {
       Optional<AAstNode> aAstNodeOp = cfaEdge.getRawAST();
       if (aAstNodeOp.isPresent() && aAstNodeOp.get() instanceof CComplexTypeDeclaration) {
         String cComplexTypeDeclaration = ((CComplexTypeDeclaration) aAstNodeOp.get()).toString();
 
-        if (structNamesInLoops.stream().anyMatch(e -> cComplexTypeDeclaration.startsWith(e))) {
-          String structDeclaration = cComplexTypeDeclaration;
+        if (cComplexTypeDeclaration.startsWith(
+            "struct ")) { // A C complex type can also be an enum by definition in CPAchecker
           String structName;
           Map<String, String> members = new HashMap<>();
 
           // Every string representation of an AST node for a struct declaration has the same
           // format, which the following modification is based on.
-          structDeclaration =
-              structDeclaration
-                  .substring(0, structDeclaration.length() - 4)
+          cComplexTypeDeclaration =
+              cComplexTypeDeclaration
+                  .substring(0, cComplexTypeDeclaration.length() - 4)
                   .replaceAll(";", "")
                   .replaceAll("  ", "");
-          List<String> structParts = Splitter.on('\n').splitToList(structDeclaration);
+          List<String> structParts = Splitter.on('\n').splitToList(cComplexTypeDeclaration);
           structName = Iterables.get(Splitter.on(' ').split(structParts.get(0)), 1);
           for (int i = 1; i < structParts.size(); i++) {
             if (structParts.get(i).startsWith("struct ")) {
