@@ -228,7 +228,8 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     for (NormalLoopInfo normalLoopInfo : pAllNormalLoopInfos) {
       normalLoopInfo.liveVariablesAndTypes().entrySet().stream()
           .filter(e -> e.getValue().startsWith("struct "))
-          .forEach(e -> allLivestructNames.add(Iterables.get(Splitter.on(' ').split(e.getValue()), 1)));
+          .forEach(
+              e -> allLivestructNames.add(Iterables.get(Splitter.on(' ').split(e.getValue()), 1)));
     }
 
     for (RecursionInfo recursionInfo : pAllRecursionInfos) {
