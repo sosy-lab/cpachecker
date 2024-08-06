@@ -116,7 +116,7 @@ public class InstrumentationAutomaton {
           new InstrumentationTransition(
               q1,
               "true",
-              "int saved = 0; " +
+              "int saved_" + pIndex + " = 0; " +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) ->
                           entry.getValue() + " " + entry.getKey() + "_instr_" + pIndex +
@@ -131,7 +131,7 @@ public class InstrumentationAutomaton {
           new InstrumentationTransition(
               q2,
               "[cond]",
-              "if(__VERIFIER_nondet_int() && saved == 0) { saved=1; " +
+              "if(__VERIFIER_nondet_int() && saved_" + pIndex + " == 0) { saved_" + pIndex + " =1; " +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) ->
                           getDereferencesForPointer(entry.getValue()) + entry.getKey()
@@ -139,7 +139,7 @@ public class InstrumentationAutomaton {
                           getDereferencesForPointer(entry.getValue()) + entry.getKey())
                       .collect(Collectors.joining("; ")) +
                   (!liveVariablesAndTypes.isEmpty() ? "; " : "") +
-                  "} else { __VERIFIER_assert((saved == 0)" +
+                  "} else { __VERIFIER_assert((saved_" + pIndex + " == 0)" +
                   (!liveVariablesAndTypes.isEmpty() ? " || " : "") +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) ->
