@@ -19,13 +19,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 public class MPORCreate {
 
   /** The first parameter of pthread_create, i.e. the pthread_t object. */
-  public final CExpression pthreadT;
+  public final CExpression createdPthreadT;
 
   /** All edges executed by the thread calling pthread_create before calling pthread_create. */
   public final ImmutableSet<CFAEdge> precedingEdges;
 
-  public MPORCreate(CExpression pPthreadT, ImmutableSet<CFAEdge> pPrecedingEdges) {
-    pthreadT = pPthreadT;
+  public MPORCreate(CExpression pCreatedPthreadT, ImmutableSet<CFAEdge> pPrecedingEdges) {
+    createdPthreadT = pCreatedPthreadT;
     precedingEdges = pPrecedingEdges;
   }
 }

@@ -165,9 +165,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
       // TODO include commutativity here (double loop)
       //  for all pairs of globalAccesses, find out if they ALL commute
-      //  if any pair does not commute, create all possible combinations of globalAccesses and
-      //  create if (...) { combination... } else if (...) { combination... } ... else
-      //  { combination... } in the sequentialization
+      //  if any pair does not commute, create nondet loop which covers all execution combinations
       // for all global accesses executed by the threads, create new states to explore
       for (var entry : globalAccesses.entrySet()) {
         // TODO add seq edge here
@@ -515,7 +513,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
           if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_CREATE)) {
             pEdgesTrace.add(cfaEdge);
-            CExpression pthreadT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
+            CExpression pthreadT =
+                CFAUtils.getValueFromPointer(CFAUtils.getParameterAtIndex(cfaEdge, 0));
             pCreates.add(new MPORCreate(pthreadT, ImmutableSet.copyOf(pEdgesTrace)));
           }
           pEdgesTrace.add(cfaEdge);
@@ -709,8 +708,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     for (var entry : pThreadNodes.entrySet()) {
       MPORThread currentThread = entry.getKey();
       CFANode currentNode = entry.getValue();
-      // TODO getCreatePreferenceOrders (e.g. main thread: all edges before the first pthread
-      //  creation are precedingEdges to the subsequentEdge pthread_create
+      rPreferenceOrders.addAll(getCreatePreferenceOrder(pThreadNodes, currentThread, currentNode));
       rPreferenceOrders.addAll(getMutexPreferenceOrders(pThreadNodes, currentThread, currentNode));
       rPreferenceOrders.addAll(getJoinPreferenceOrders(pThreadNodes, currentThread, currentNode));
       // TODO getBarrierPreferenceOrders
@@ -720,30 +718,35 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /**
    * @param pThreadNodes the threads and their current CFANodes
-   * @param pCurrentThread the thread where we check if it is calling pthread_create
-   * @param pCurrentNode the current CFANode of pCurrentThread
+   * @param pCreatingThread the thread where we check if it is calling pthread_create
+   * @param pCreatingNode the current CFANode of pCreatingThread
    * @return the set of PreferenceOrders induced by pthread_create calls
    */
   private ImmutableSet<PreferenceOrder> getCreatePreferenceOrder(
       ImmutableMap<MPORThread, CFANode> pThreadNodes,
-      MPORThread pCurrentThread,
-      CFANode pCurrentNode) {
+      MPORThread pCreatingThread,
+      CFANode pCreatingNode) {
 
     ImmutableSet.Builder<PreferenceOrder> rCreatePreferenceOrders = ImmutableSet.builder();
 
     // if any thread is at their entryNode
     for (var entry : pThreadNodes.entrySet()) {
-      MPORThread thread = entry.getKey();
-      if (!thread.equals(pCurrentThread)) {
-        if (entry.getValue().equals(thread.entryNode)) {
-          // check if pCurrentThread creates the thread which is at its entry
-          for (MPORCreate create : pCurrentThread.creates) {
-            if (create.pthreadT.equals(thread.threadObject.orElseThrow())) {
+      MPORThread createdThread = entry.getKey();
+      if (!createdThread.equals(pCreatingThread)) {
+        if (entry.getValue().equals(createdThread.entryNode)) {
+          // check if pCreatingThread creates the thread which is at its entry
+          for (MPORCreate create : pCreatingThread.creates) {
+            if (create.createdPthreadT.equals(createdThread.threadObject.orElseThrow())) {
               // TODO refactor PreferenceOrder to contain a set of precedingEdges
-              FluentIterable<CFAEdge> subsequentEdges = CFAUtils.leavingEdges(thread.entryNode);
+              FluentIterable<CFAEdge> subsequentEdges =
+                  CFAUtils.leavingEdges(createdThread.entryNode);
               assert subsequentEdges.size() == 1; // assume the entry of a thread is deterministic
               rCreatePreferenceOrders.add(
-                  new PreferenceOrder(create.precedingEdges, subsequentEdges.get(0)));
+                  new PreferenceOrder(
+                      pCreatingThread,
+                      createdThread,
+                      create.precedingEdges,
+                      subsequentEdges.get(0)));
             }
           }
         }
@@ -756,24 +759,25 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * Computes and returns the PreferenceOrders induced by mutex locks in the program.
    *
    * @param pThreadNodes the threads and their current CFANodes
-   * @param pCurrentThread the thread where we check if it is inside a mutex lock
-   * @param pCurrentNode the current CFANode of pCurrentThread
+   * @param pThreadInMutex the thread where we check if it is inside a mutex lock
+   * @param pNodeInMutex the current CFANode of pThreadInMutex
    * @return the set of PreferenceOrders induced by mutex locks
    */
   private ImmutableSet<PreferenceOrder> getMutexPreferenceOrders(
       ImmutableMap<MPORThread, CFANode> pThreadNodes,
-      MPORThread pCurrentThread,
-      CFANode pCurrentNode) {
+      MPORThread pThreadInMutex,
+      CFANode pNodeInMutex) {
 
     ImmutableSet.Builder<PreferenceOrder> rMutexPreferenceOrders = ImmutableSet.builder();
 
-    // if pCurrentThread is in a mutex lock
-    for (MPORMutex mutex : pCurrentThread.mutexes) {
-      if (mutex.nodes.contains(pCurrentNode)) {
+    // if pThreadInMutex is in a mutex lock
+    for (MPORMutex mutex : pThreadInMutex.mutexes) {
+      if (mutex.nodes.contains(pNodeInMutex)) {
 
         // search all other threads for pthread_mutex_lock calls to the same pthread_mutex_t object
         for (var entry : pThreadNodes.entrySet()) {
-          if (!entry.getKey().equals(pCurrentThread)) {
+          MPORThread lockingThread = entry.getKey();
+          if (!lockingThread.equals(pThreadInMutex)) {
             CFANode otherNode = entry.getValue();
             for (CFAEdge cfaEdge : CFAUtils.leavingEdges(otherNode)) {
               if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_MUTEX_LOCK)) {
@@ -783,7 +787,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                   // extract all CFAEdges inside mutex excluding the leaving edges of exitNodes
                   ImmutableSet.Builder<CFAEdge> precedingEdges = ImmutableSet.builder();
                   precedingEdges.addAll(mutex.edges);
-                  rMutexPreferenceOrders.add(new PreferenceOrder(precedingEdges.build(), cfaEdge));
+                  rMutexPreferenceOrders.add(
+                      new PreferenceOrder(
+                          pThreadInMutex, lockingThread, precedingEdges.build(), cfaEdge));
                 }
               }
             }
@@ -798,19 +804,19 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * Computes and returns the PreferenceOrders induced by joins in the program.
    *
    * @param pThreadNodes the map of all threads to their current CFANode in the program
-   * @param pCurrentThread the thread where we check if it is calling pthread_join
-   * @param pCurrentNode the current CFANode of pCurrentThread
+   * @param pJoiningThread the thread where we check if it is calling pthread_join
+   * @param pJoiningNode the current CFANode of pJoiningThread
    * @return the set of PreferenceOrders induced by joins
    */
   private ImmutableSet<PreferenceOrder> getJoinPreferenceOrders(
       ImmutableMap<MPORThread, CFANode> pThreadNodes,
-      MPORThread pCurrentThread,
-      CFANode pCurrentNode) {
+      MPORThread pJoiningThread,
+      CFANode pJoiningNode) {
 
     ImmutableSet.Builder<PreferenceOrder> rJoinPreferenceOrders = ImmutableSet.builder();
-    // if pCurrentThread is right before a pthread_join call
-    for (MPORJoin join : pCurrentThread.joins) {
-      if (pCurrentNode.equals(join.preJoinNode)) {
+    // if pJoiningThread is right before a pthread_join call
+    for (MPORJoin join : pJoiningThread.joins) {
+      if (pJoiningNode.equals(join.preJoinNode)) {
         CExpression pthreadT = CFAUtils.getParameterAtIndex(join.joinEdge, 0);
         MPORThread targetThread = getThreadByPthreadT(pThreadNodes, pthreadT);
         // if the thread specified as pthread_t in the pthread_join call has not yet terminated
@@ -819,7 +825,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         if (!targetThreadNode.equals(targetThread.exitNode)) {
           // add all CFAEdges executed by pthread_t as preceding edges
           ImmutableSet<CFAEdge> precedingEdges = targetThread.edges;
-          rJoinPreferenceOrders.add(new PreferenceOrder(precedingEdges, join.joinEdge));
+          rJoinPreferenceOrders.add(
+              new PreferenceOrder(targetThread, pJoiningThread, precedingEdges, join.joinEdge));
         }
       }
     }

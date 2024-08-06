@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order;
 
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORThread;
 
 /**
  * A program contains a PreferenceOrder e.g. when one thread t0 calls pthread_join(t1) while t1 has
@@ -31,14 +32,26 @@ public class PreferenceOrder {
   //  atomic blocks
   //  sequential blocks
 
+  /** The thread executing {@link PreferenceOrder#precedingEdges}. */
+  public final MPORThread precedingThread;
+
+  /** The thread executing {@link PreferenceOrder#subsequentEdge}. */
+  public final MPORThread subsequentThread;
+
   /** The set of CFAEdges that must be executed before {@link PreferenceOrder#subsequentEdge}. */
   public final ImmutableSet<CFAEdge> precedingEdges;
 
   /** The CFAEdge that is executed once all {@link PreferenceOrder#precedingEdges} are executed. */
   public final CFAEdge subsequentEdge;
 
-  public PreferenceOrder(ImmutableSet<CFAEdge> pPrecedingEdges, CFAEdge pSubsequentEdge) {
+  public PreferenceOrder(
+      MPORThread pPrecedingThread,
+      MPORThread pSubsequentThread,
+      ImmutableSet<CFAEdge> pPrecedingEdges,
+      CFAEdge pSubsequentEdge) {
+    precedingThread = pPrecedingThread;
     precedingEdges = pPrecedingEdges;
+    subsequentThread = pSubsequentThread;
     subsequentEdge = pSubsequentEdge;
   }
 }
