@@ -541,9 +541,9 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
             && callAssignStmt.getLeftHandSide() instanceof CIdExpression leftSide
             && callAssignStmt.getRightHandSide().getFunctionNameExpression()
                 instanceof CIdExpression fnExpr
-            && fnExpr.getName().equals("__VERIFIER_atexit_next")) {
-          // Edge "x = __VERIFIER_atexit_next()"
-          // Get the target for the function pointer returned by __VERIFIER_atexti_next() from the
+            && fnExpr.getName().equals("__CPACHECKER_atexit_next")) {
+          // Edge "x = __CPACHECKER_atexit_next()"
+          // Get the target for the function pointer returned by __CPACHECKER_atexti_next() from the
           // atexit CPA and store it in "x"
           FunctionPointerState.Builder newState = fnState.createBuilder();
           String varName = getLeftHandSide(leftSide, cfaEdge);

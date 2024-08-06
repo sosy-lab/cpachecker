@@ -179,7 +179,7 @@ public class AtExitTransformer {
         // Mark the node as a loop head
         n1.setLoopStart();
 
-        // Add an edge to declare a tmp variable for the __VERIFIER_atexit_next() call
+        // Add an edge to declare a tmp variable for the __CPACHECKER_atexit_next() call
         CFANode n2 = mkNode(scope);
         CType functionType = new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
         CType fpointerType = new CPointerType(false, false, functionType);
@@ -197,13 +197,13 @@ public class AtExitTransformer {
         CFAEdge e2 = new CDeclarationEdge("", loc, n1, n2, declVar2);
         CFACreationUtils.addEdgeUnconditionallyToCFA(e2);
 
-        // Add an edge for the function call to __VERIFIER_atexit_next()
+        // Add an edge for the function call to __CPACHECKER_atexit_next()
         CFANode n3 = mkNode(scope);
         CFunctionDeclaration declNext =
             new CFunctionDeclaration(
                 loc,
                 new CFunctionType(fpointerType, ImmutableList.of(), false),
-                "__VERIFIER_atexit_next",
+                "__CPACHECKER_atexit_next",
                 ImmutableList.of(),
                 ImmutableSet.of());
         CFunctionCallExpression callNext =
@@ -214,7 +214,7 @@ public class AtExitTransformer {
         CFAEdge e3 = new CStatementEdge("", stmtNext, loc, n2, n3);
         CFACreationUtils.addEdgeUnconditionallyToCFA(e3);
 
-        // Add two assumption edge to branch on the result of __VERIFIER_atexit_next():
+        // Add two assumption edge to branch on the result of __CPACHECKER_atexit_next():
         CType intType =
             new CSimpleType(
                 false, false, CBasicType.INT, false, false, false, false, false, false, false);
@@ -235,7 +235,7 @@ public class AtExitTransformer {
         CAssumeEdge e5 = new CAssumeEdge("", loc, n3, n5, isEmpty, false);
         CFACreationUtils.addEdgeUnconditionallyToCFA(e5);
 
-        // Exit the loop if __VERIFIER_atexit_next() has returned a null pointer and the stack is
+        // Exit the loop if __CPACHECKER_atexit_next() has returned a null pointer and the stack is
         // empty
         // Add an edge that calls exit and returns to the rest of the graph
         CFunctionCallStatement stmtExit =

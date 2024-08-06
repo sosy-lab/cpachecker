@@ -90,7 +90,7 @@ public class AtExitTransferRelation extends SingleEdgeTransferRelation {
             && callAssignStmt.getLeftHandSide() instanceof CIdExpression
             && callAssignStmt.getRightHandSide().getFunctionNameExpression()
                 instanceof CIdExpression fnExpr
-            && fnExpr.getName().equals("__VERIFIER_atexit_next")) {
+            && fnExpr.getName().equals("__CPACHECKER_atexit_next")) {
           // Remove the last element from the stack. We have to do this here (and not when
           // calculating the successor) to make sure that the function pointer CPA can still access
           // the element.
