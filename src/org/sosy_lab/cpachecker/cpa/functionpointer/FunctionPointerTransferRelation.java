@@ -170,7 +170,8 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
           FunctionPointerTarget v2 = getValue(e.getOperand2(), newState);
           logger.log(Level.ALL, "Operand1 value is", v1);
           logger.log(Level.ALL, "Operand2 value is", v2);
-          if (v1 instanceof NamedFunctionTarget && v2 instanceof NamedFunctionTarget) {
+          if ((v1 instanceof NamedFunctionTarget && v2 instanceof NamedFunctionTarget)
+              || (v1 instanceof InvalidTarget && v2 instanceof InvalidTarget)) {
             boolean eq = v1.equals(v2);
             if (eq != a.getTruthAssumption()) {
               logger.log(Level.FINE, "Should not go by the edge", a);

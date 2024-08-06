@@ -12,6 +12,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.FunctionPointerTarget;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.InvalidTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
@@ -38,11 +39,11 @@ public class AtExitState implements LatticeAbstractState<AtExitState>, Graphable
   }
 
   public FunctionPointerTarget peek() {
-    return stack.peek();
+    return stack.isEmpty() ? InvalidTarget.getInstance() : stack.peek();
   }
 
   public AtExitState pop() {
-    return new AtExitState(stack.popAndCopy());
+    return stack.isEmpty() ? this : new AtExitState(stack.popAndCopy());
   }
 
   public boolean isEmpty() {

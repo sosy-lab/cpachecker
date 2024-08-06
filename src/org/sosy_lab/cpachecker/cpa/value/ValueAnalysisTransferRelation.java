@@ -86,7 +86,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -105,7 +104,6 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.atexit.AtExitState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
@@ -1312,34 +1310,7 @@ public class ValueAnalysisTransferRelation
     result.add((ValueAnalysisState) pElement);
 
     for (AbstractState ae : pElements) {
-      if (ae instanceof AtExitState atExitState) {
-        result.clear();
-        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
-          if (pCfaEdge instanceof CStatementEdge stmtEdge
-              && stmtEdge.getStatement() instanceof CFunctionCallAssignmentStatement callAssignStmt
-              && callAssignStmt.getLeftHandSide() instanceof CIdExpression leftSide
-              && callAssignStmt.getRightHandSide().getFunctionNameExpression()
-                  instanceof CIdExpression fnExpr
-              && fnExpr.getName().equals("__VERIFIER_atexit_hasNext")) {
-            super.setInfo(pElement, pPrecision, pCfaEdge);
-
-            // For the return value of hasNext() we check if the stack in the atexit state is empty
-            Value value = new NumericValue(atExitState.isEmpty() ? 0 : 1);
-            CType lType = leftSide.getExpressionType();
-            MemoryLocation assignedVar = getMemoryLocation(leftSide);
-
-            ValueAnalysisState newState = ValueAnalysisState.copyOf(stateToStrengthen);
-            newState.assignConstant(assignedVar, value, lType);
-
-            result.add(newState);
-
-          } else {
-            result.add(stateToStrengthen);
-          }
-        }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
-      } else if (ae instanceof RTTState) {
+      if (ae instanceof RTTState) {
         result.clear();
         for (ValueAnalysisState stateToStrengthen : toStrengthen) {
           super.setInfo(pElement, pPrecision, pCfaEdge);

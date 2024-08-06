@@ -179,69 +179,8 @@ public class AtExitTransformer {
         // Mark the node as a loop head
         n1.setLoopStart();
 
-        // Add an edge to declare the tmp variable for __VERIFIER_atexit_hasNext()
+        // Add an edge to declare a tmp variable for the __VERIFIER_atexit_next() call
         CFANode n2 = mkNode(scope);
-        CType intType =
-            new CSimpleType(
-                false, false, CBasicType.INT, false, false, false, false, false, false, false);
-        String var1 = mkTmpVariable();
-        CVariableDeclaration declVar1 =
-            new CVariableDeclaration(
-                loc,
-                false,
-                CStorageClass.AUTO,
-                intType,
-                var1,
-                var1,
-                scope.getQualifiedName() + "::" + var1,
-                null);
-        CFAEdge e2 = new CDeclarationEdge("", loc, n1, n2, declVar1);
-        CFACreationUtils.addEdgeUnconditionallyToCFA(e2);
-
-        // Add an edge for the function call to __VERIFIER_atexit_hasNext()
-        CFANode n3 = mkNode(scope);
-        CFunctionDeclaration declHasNext =
-            new CFunctionDeclaration(
-                loc,
-                new CFunctionType(intType, ImmutableList.of(), false),
-                "__VERIFIER_atexit_hasNext",
-                ImmutableList.of(),
-                ImmutableSet.of());
-        CFunctionCallExpression callHasNext =
-            new CFunctionCallExpression(
-                loc, intType, new CIdExpression(loc, declHasNext), ImmutableList.of(), declHasNext);
-        CFunctionCallAssignmentStatement stmtHasNext =
-            new CFunctionCallAssignmentStatement(
-                loc, new CIdExpression(loc, declVar1), callHasNext);
-        CFAEdge e3 = new CStatementEdge("", stmtHasNext, loc, n2, n3);
-        CFACreationUtils.addEdgeUnconditionallyToCFA(e3);
-
-        // Add two assumption edge to branch on the result of __VERIFIER_atexit_hasNext():
-        CFANode n4 = mkNode(scope);
-        CFANode n5 = mkNode(scope);
-        CBinaryExpression isEmpty =
-            new CBinaryExpression(
-                loc,
-                intType,
-                intType,
-                new CIdExpression(loc, intType, var1, declVar1),
-                CIntegerLiteralExpression.ZERO,
-                BinaryOperator.EQUALS);
-        CAssumeEdge e4 = new CAssumeEdge("", loc, n3, n4, isEmpty, true);
-        CFACreationUtils.addEdgeUnconditionallyToCFA(e4);
-        CAssumeEdge e5 = new CAssumeEdge("", loc, n3, n5, isEmpty, false);
-        CFACreationUtils.addEdgeUnconditionallyToCFA(e5);
-
-        // Exit the loop if __VERIFIER_atexit_hasNext() has returned "false"
-        // Add an edge that calls exit and returns to the rest of the graph
-        CFunctionCallStatement stmtExit =
-            new CFunctionCallStatement(loc, callStmt.getFunctionCallExpression());
-        CFAEdge e0 = new CStatementEdge("", stmtExit, loc, n4, edge.getSuccessor());
-        CFACreationUtils.addEdgeUnconditionallyToCFA(e0);
-
-        // Otherwise continue with the body of the loop:
-        // Add an edge to declare the tmp variable for __VERIFIER_atexit_next()
-        CFANode n6 = mkNode(scope);
         CType functionType = new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
         CType fpointerType = new CPointerType(false, false, functionType);
         String var2 = mkTmpVariable();
@@ -255,11 +194,11 @@ public class AtExitTransformer {
                 var2,
                 scope.getQualifiedName() + "::" + var2,
                 null);
-        CFAEdge e6 = new CDeclarationEdge("", loc, n5, n6, declVar2);
-        CFACreationUtils.addEdgeUnconditionallyToCFA(e6);
+        CFAEdge e2 = new CDeclarationEdge("", loc, n1, n2, declVar2);
+        CFACreationUtils.addEdgeUnconditionallyToCFA(e2);
 
         // Add an edge for the function call to __VERIFIER_atexit_next()
-        CFANode n7 = mkNode(scope);
+        CFANode n3 = mkNode(scope);
         CFunctionDeclaration declNext =
             new CFunctionDeclaration(
                 loc,
@@ -272,9 +211,38 @@ public class AtExitTransformer {
                 loc, fpointerType, new CIdExpression(loc, declNext), ImmutableList.of(), declNext);
         CFunctionCallAssignmentStatement stmtNext =
             new CFunctionCallAssignmentStatement(loc, new CIdExpression(loc, declVar2), callNext);
-        CFAEdge e7 = new CStatementEdge("", stmtNext, loc, n6, n7);
-        CFACreationUtils.addEdgeUnconditionallyToCFA(e7);
+        CFAEdge e3 = new CStatementEdge("", stmtNext, loc, n2, n3);
+        CFACreationUtils.addEdgeUnconditionallyToCFA(e3);
 
+        // Add two assumption edge to branch on the result of __VERIFIER_atexit_hasNext():
+        CType intType =
+            new CSimpleType(
+                false, false, CBasicType.INT, false, false, false, false, false, false, false);
+        CBinaryExpression isEmpty =
+            new CBinaryExpression(
+                loc,
+                fpointerType,
+                intType,
+                new CIdExpression(loc, fpointerType, var2, declVar2),
+                CIntegerLiteralExpression.ZERO,
+                BinaryOperator.EQUALS);
+        // "then"
+        CFANode n4 = mkNode(scope);
+        CAssumeEdge e4 = new CAssumeEdge("", loc, n3, n4, isEmpty, true);
+        CFACreationUtils.addEdgeUnconditionallyToCFA(e4);
+        // "else"
+        CFANode n5 = mkNode(scope);
+        CAssumeEdge e5 = new CAssumeEdge("", loc, n3, n5, isEmpty, false);
+        CFACreationUtils.addEdgeUnconditionallyToCFA(e5);
+
+        // Exit the loop if __VERIFIER_atexit_hasNext() has returned "false"
+        // Add an edge that calls exit and returns to the rest of the graph
+        CFunctionCallStatement stmtExit =
+            new CFunctionCallStatement(loc, callStmt.getFunctionCallExpression());
+        CFAEdge e0 = new CStatementEdge("", stmtExit, loc, n4, edge.getSuccessor());
+        CFACreationUtils.addEdgeUnconditionallyToCFA(e0);
+
+        // Otherwise continue with the body of the loop:
         // Add an edge for the call to the function pointer
         CPointerExpression expFPointer =
             new CPointerExpression(loc, functionType, new CIdExpression(loc, declVar2));
@@ -283,8 +251,8 @@ public class AtExitTransformer {
                 loc,
                 new CFunctionCallExpression(
                     loc, CVoidType.VOID, expFPointer, ImmutableList.of(), null));
-        CFAEdge e8 = new CStatementEdge("", callFPointer, loc, n7, n1);
-        CFACreationUtils.addEdgeUnconditionallyToCFA(e8);
+        CFAEdge e6 = new CStatementEdge("", callFPointer, loc, n5, n1);
+        CFACreationUtils.addEdgeUnconditionallyToCFA(e6);
       }
     }
   }
