@@ -219,9 +219,17 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
           List<String> structParts = Splitter.on('\n').splitToList(cComplexTypeDeclaration);
           structName = Iterables.get(Splitter.on(' ').split(structParts.get(0)), 1);
           for (int i = 1; i < structParts.size(); i++) {
-            members.put(
-                Iterables.get(Splitter.on(' ').split(structParts.get(i)), 1),
-                Iterables.get(Splitter.on(' ').split(structParts.get(i)), 0));
+            if (structParts.get(i).startsWith("struct ")) {
+              members.put(
+                  Iterables.get(Splitter.on(' ').split(structParts.get(i)), 2),
+                  Iterables.get(Splitter.on(' ').split(structParts.get(i)), 0)
+                      + " "
+                      + Iterables.get(Splitter.on(' ').split(structParts.get(i)), 1));
+            } else {
+              members.put(
+                  Iterables.get(Splitter.on(' ').split(structParts.get(i)), 1),
+                  Iterables.get(Splitter.on(' ').split(structParts.get(i)), 0));
+            }
           }
 
           allStructInfos.add(new StructInfo(structName, ImmutableMap.copyOf(members)));
