@@ -171,31 +171,31 @@ public class AtExitTransformer {
         // Remove the old edge from the predecessor
         CFACreationUtils.removeEdgeFromNodes(edge);
 
-        // Add a blank edge for the while loop
+        // Add an edge to declare a tmp variable for the __CPACHECKER_atexit_next() call later
         CFANode n1 = mkNode(scope);
-        CFAEdge e1 = new BlankEdge("", loc, n0, n1, "while");
-        CFACreationUtils.addEdgeUnconditionallyToCFA(e1);
-
-        // Mark the node as a loop head
-        n1.setLoopStart();
-
-        // Add an edge to declare a tmp variable for the __CPACHECKER_atexit_next() call
-        CFANode n2 = mkNode(scope);
         CType functionType = new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
         CType fpointerType = new CPointerType(false, false, functionType);
-        String var2 = mkTmpVariable();
-        CVariableDeclaration declVar2 =
+        String var = mkTmpVariable();
+        CVariableDeclaration declVar =
             new CVariableDeclaration(
                 loc,
                 false,
                 CStorageClass.AUTO,
                 fpointerType,
-                var2,
-                var2,
-                scope.getQualifiedName() + "::" + var2,
+                var,
+                var,
+                scope.getQualifiedName() + "::" + var,
                 null);
-        CFAEdge e2 = new CDeclarationEdge("", loc, n1, n2, declVar2);
+        CFAEdge e1 = new CDeclarationEdge("", loc, n0, n1, declVar);
+        CFACreationUtils.addEdgeUnconditionallyToCFA(e1);
+
+        // Add a blank edge for the while loop
+        CFANode n2 = mkNode(scope);
+        CFAEdge e2 = new BlankEdge("", loc, n1, n2, "while");
         CFACreationUtils.addEdgeUnconditionallyToCFA(e2);
+
+        // Mark the node as a loop head
+        n1.setLoopStart();
 
         // Add an edge for the function call to __CPACHECKER_atexit_next()
         CFANode n3 = mkNode(scope);
@@ -210,7 +210,7 @@ public class AtExitTransformer {
             new CFunctionCallExpression(
                 loc, fpointerType, new CIdExpression(loc, declNext), ImmutableList.of(), declNext);
         CFunctionCallAssignmentStatement stmtNext =
-            new CFunctionCallAssignmentStatement(loc, new CIdExpression(loc, declVar2), callNext);
+            new CFunctionCallAssignmentStatement(loc, new CIdExpression(loc, declVar), callNext);
         CFAEdge e3 = new CStatementEdge("", stmtNext, loc, n2, n3);
         CFACreationUtils.addEdgeUnconditionallyToCFA(e3);
 
@@ -223,7 +223,7 @@ public class AtExitTransformer {
                 loc,
                 fpointerType,
                 intType,
-                new CIdExpression(loc, fpointerType, var2, declVar2),
+                new CIdExpression(loc, fpointerType, var, declVar),
                 CIntegerLiteralExpression.ZERO,
                 BinaryOperator.EQUALS);
         // "then"
@@ -246,13 +246,13 @@ public class AtExitTransformer {
         // Otherwise continue with the body of the loop:
         // Add an edge for the call to the function pointer
         CPointerExpression expFPointer =
-            new CPointerExpression(loc, functionType, new CIdExpression(loc, declVar2));
+            new CPointerExpression(loc, functionType, new CIdExpression(loc, declVar));
         CFunctionCallStatement callFPointer =
             new CFunctionCallStatement(
                 loc,
                 new CFunctionCallExpression(
                     loc, CVoidType.VOID, expFPointer, ImmutableList.of(), null));
-        CFAEdge e6 = new CStatementEdge("", callFPointer, loc, n5, n1);
+        CFAEdge e6 = new CStatementEdge("", callFPointer, loc, n5, n2);
         CFACreationUtils.addEdgeUnconditionallyToCFA(e6);
       }
     }
