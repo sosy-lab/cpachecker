@@ -90,12 +90,12 @@ public class AtExitState implements LatticeAbstractState<AtExitState>, Graphable
   @Override
   public boolean isLessOrEqual(AtExitState other) throws CPAException, InterruptedException {
     // We use "unknown target" as a top element for function pointers and then assume that there is
-    // a trivial function in the program that with an empty body. This allows us to compare function
+    // a trivial function in the program with an empty body. This allows us to compare function
     // pointer stacks of different sizes if the last elements are all unknown.
     // FIXME: Make sure that this works with the heuristic that the function pointer CPA uses to
     //   pick its possible targets.
 
-    // s1 <= s2
+    // We need to check if s1 < s2 holds
     PersistentStack<FunctionPointerTarget> s1 = stack;
     PersistentStack<FunctionPointerTarget> s2 = other.stack;
 
