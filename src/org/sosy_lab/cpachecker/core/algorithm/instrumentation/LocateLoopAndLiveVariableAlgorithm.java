@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -201,6 +202,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
   private ImmutableSet<StructInfo> getAllLiveStructInfos(
       ImmutableSet<NormalLoopInfo> pAllNormalLoopInfos,
       ImmutableSet<RecursionInfo> pAllRecursionInfos) {
+
     Set<StructInfo> allLiveStructInfos = new HashSet<>();
     ImmutableSet<StructInfo> allStructInfos = getAllStructInfos();
     ImmutableSet<String> allLiveStructNames =
@@ -208,7 +210,9 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
 
     for (StructInfo structInfo : allStructInfos) {
       if (allLiveStructNames.contains(structInfo.structName())) {
-        allLiveStructInfos.add(structInfo);
+        allLiveStructInfos.add(
+            new StructInfo(
+                structInfo.structName(), resolveStructsIn(structInfo.members(), allStructInfos)));
       }
     }
 
@@ -218,6 +222,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
   private ImmutableSet<String> getAllLiveStructNames(
       ImmutableSet<NormalLoopInfo> pAllNormalLoopInfos,
       ImmutableSet<RecursionInfo> pAllRecursionInfos) {
+
     Set<String> allLivestructNames = new HashSet<>();
 
     for (NormalLoopInfo normalLoopInfo : pAllNormalLoopInfos) {
@@ -277,6 +282,39 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
     }
 
     return ImmutableSet.copyOf(allStructInfos);
+  }
+
+  private ImmutableMap<String, String> resolveStructsIn(
+      ImmutableMap<String, String> pMembers, ImmutableSet<StructInfo> allStructInfos) {
+    Map<String, String> ans = new HashMap<>();
+
+    pMembers.entrySet().stream().forEach(e -> ans.put(e.getKey(), e.getValue()));
+
+    for (Entry<String, String> member : pMembers.entrySet()) {
+      String name = member.getKey();
+      String type = member.getValue();
+      if (type.startsWith("struct ")) {
+        ans.remove(name);
+
+        ImmutableMap<String, String> originalMembersUnderOneLevel =
+            allStructInfos.stream()
+                .filter(e -> type.endsWith(e.structName()))
+                .findFirst()
+                .get()
+                .members();
+        Map<String, String> modifiedMembersUnderOneLevel = new HashMap<>();
+
+        for (Entry<String, String> memberUnderOneLevel : originalMembersUnderOneLevel.entrySet()) {
+          modifiedMembersUnderOneLevel.put(
+              name + "." + memberUnderOneLevel.getKey(), memberUnderOneLevel.getValue());
+        }
+
+        ans.putAll(
+            resolveStructsIn(ImmutableMap.copyOf(modifiedMembersUnderOneLevel), allStructInfos));
+      }
+    }
+
+    return ImmutableMap.copyOf(ans);
   }
 }
 
