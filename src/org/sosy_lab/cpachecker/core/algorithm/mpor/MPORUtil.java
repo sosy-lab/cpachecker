@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -106,6 +107,19 @@ public final class MPORUtil {
     PredicateAbstractState baState = getNextPredicateAbstractState(pPtr, bState, pEdgeA);
 
     return abState.getPathFormula().equals(baState.getPathFormula());
+  }
+
+  /**
+   * Creates and returns an ImmutableSet containing the elements of pIterable.
+   *
+   * @param pIterable the Iterable with the sets to be included in the ImmutableSet
+   * @return the ImmutableSet containing the elements of pIterable
+   * @param <E> the Type of elements
+   */
+  public static <E> ImmutableSet<E> immutableSetFromIterable(Iterable<E> pIterable) {
+    ImmutableSet.Builder<E> rImmutableSet = ImmutableSet.builder();
+    rImmutableSet.addAll(pIterable);
+    return rImmutableSet.build();
   }
 
   /**

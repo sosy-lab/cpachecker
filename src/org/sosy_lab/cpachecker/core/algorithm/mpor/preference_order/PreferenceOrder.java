@@ -35,23 +35,27 @@ public class PreferenceOrder {
   /** The thread executing {@link PreferenceOrder#precedingEdges}. */
   public final MPORThread precedingThread;
 
-  /** The thread executing {@link PreferenceOrder#subsequentEdge}. */
+  /** The thread executing {@link PreferenceOrder#subsequentEdges}. */
   public final MPORThread subsequentThread;
 
-  /** The set of CFAEdges that must be executed before {@link PreferenceOrder#subsequentEdge}. */
+  /** The set of CFAEdges that must be executed before {@link PreferenceOrder#subsequentEdges}. */
   public final ImmutableSet<CFAEdge> precedingEdges;
 
-  /** The CFAEdge that is executed once all {@link PreferenceOrder#precedingEdges} are executed. */
-  public final CFAEdge subsequentEdge;
+  /**
+   * The CFAEdges that can be executed only once all {@link PreferenceOrder#precedingEdges} are
+   * executed. Usually, there is only one subsequent edge, but they can also be nondeterministic.
+   * The predecessor CFANode of all subsequentEdges is always the same.
+   */
+  public final ImmutableSet<CFAEdge> subsequentEdges;
 
   public PreferenceOrder(
       MPORThread pPrecedingThread,
       MPORThread pSubsequentThread,
       ImmutableSet<CFAEdge> pPrecedingEdges,
-      CFAEdge pSubsequentEdge) {
+      ImmutableSet<CFAEdge> pSubsequentEdges) {
     precedingThread = pPrecedingThread;
     precedingEdges = pPrecedingEdges;
     subsequentThread = pSubsequentThread;
-    subsequentEdge = pSubsequentEdge;
+    subsequentEdges = pSubsequentEdges;
   }
 }

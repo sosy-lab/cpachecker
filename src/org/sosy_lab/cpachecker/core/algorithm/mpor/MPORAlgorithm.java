@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -737,16 +736,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           // check if pCreatingThread creates the thread which is at its entry
           for (MPORCreate create : pCreatingThread.creates) {
             if (create.createdPthreadT.equals(createdThread.threadObject.orElseThrow())) {
-              // TODO refactor PreferenceOrder to contain a set of precedingEdges
-              FluentIterable<CFAEdge> subsequentEdges =
-                  CFAUtils.leavingEdges(createdThread.entryNode);
-              assert subsequentEdges.size() == 1; // assume the entry of a thread is deterministic
+              ImmutableSet<CFAEdge> subsequentEdges =
+                  MPORUtil.immutableSetFromIterable(CFAUtils.leavingEdges(createdThread.entryNode));
               rCreatePreferenceOrders.add(
                   new PreferenceOrder(
-                      pCreatingThread,
-                      createdThread,
-                      create.precedingEdges,
-                      subsequentEdges.get(0)));
+                      pCreatingThread, createdThread, create.precedingEdges, subsequentEdges));
             }
           }
         }
@@ -789,7 +783,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                   precedingEdges.addAll(mutex.edges);
                   rMutexPreferenceOrders.add(
                       new PreferenceOrder(
-                          pThreadInMutex, lockingThread, precedingEdges.build(), cfaEdge));
+                          pThreadInMutex,
+                          lockingThread,
+                          precedingEdges.build(),
+                          MPORUtil.immutableSetFromIterable(CFAUtils.leavingEdges(otherNode))));
                 }
               }
             }
@@ -825,8 +822,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         if (!targetThreadNode.equals(targetThread.exitNode)) {
           // add all CFAEdges executed by pthread_t as preceding edges
           ImmutableSet<CFAEdge> precedingEdges = targetThread.edges;
+          ImmutableSet<CFAEdge> subsequentEdges =
+              MPORUtil.immutableSetFromIterable(CFAUtils.leavingEdges(join.preJoinNode));
           rJoinPreferenceOrders.add(
-              new PreferenceOrder(targetThread, pJoiningThread, precedingEdges, join.joinEdge));
+              new PreferenceOrder(targetThread, pJoiningThread, precedingEdges, subsequentEdges));
         }
       }
     }
