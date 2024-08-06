@@ -71,7 +71,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
 
       for (StructInfo structInfo : getAllStructInfos()) {
         allLoopInfos.append(
-            String.format("Struct    %s    %s%n", structInfo.name(), structInfo.members()));
+            String.format("Struct    %s    %s%n", structInfo.structName(), structInfo.members()));
       }
 
       for (NormalLoopInfo loopInfo : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
@@ -205,7 +205,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
         String cComplexTypeDeclaration = ((CComplexTypeDeclaration) aAstNodeOp.get()).toString();
 
         if (cComplexTypeDeclaration.startsWith("struct ")) {
-          String name;
+          String structName;
           Map<String, String> members = new HashMap<>();
 
           cComplexTypeDeclaration =
@@ -214,14 +214,14 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
                   .replaceAll(";", "")
                   .replaceAll("  ", "");
           List<String> structParts = Splitter.on('\n').splitToList(cComplexTypeDeclaration);
-          name = Iterables.get(Splitter.on(' ').split(structParts.get(0)), 1);
+          structName = Iterables.get(Splitter.on(' ').split(structParts.get(0)), 1);
           for (int i = 1; i < structParts.size(); i++) {
             members.put(
                 Iterables.get(Splitter.on(' ').split(structParts.get(i)), 1),
                 Iterables.get(Splitter.on(' ').split(structParts.get(i)), 0));
           }
 
-          allStructInfos.add(new StructInfo(name, ImmutableMap.copyOf(members)));
+          allStructInfos.add(new StructInfo(structName, ImmutableMap.copyOf(members)));
         }
       }
     }
@@ -244,4 +244,4 @@ record RecursionInfo(
     ImmutableSet<Integer> locationOfRecursiveCalls,
     ImmutableList<String> parameters) {}
 
-record StructInfo(String name, ImmutableMap<String, String> members) {}
+record StructInfo(String structName, ImmutableMap<String, String> members) {}
