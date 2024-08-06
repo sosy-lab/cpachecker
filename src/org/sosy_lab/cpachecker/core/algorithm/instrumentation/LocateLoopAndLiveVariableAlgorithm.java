@@ -69,6 +69,11 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
             new File("output/AllLoopInfos.txt").toPath(), StandardCharsets.UTF_8)) {
       StringBuilder allLoopInfos = new StringBuilder();
 
+      for (StructInfo structInfo : getAllStructInfos()) {
+        allLoopInfos.append(
+            String.format("Struct    %s    %s%n", structInfo.name(), structInfo.members()));
+      }
+
       for (NormalLoopInfo loopInfo : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
         allLoopInfos.append(
             String.format(
@@ -84,11 +89,6 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
                 recursionInfo.locationOfDefinition(),
                 recursionInfo.locationOfRecursiveCalls(),
                 recursionInfo.parameters()));
-      }
-
-      for (StructInfo structInfo : getAllStructInfos()) {
-        allLoopInfos.append(
-            String.format("Struct    %s    %s%n", structInfo.name(), structInfo.members()));
       }
 
       writer.write(allLoopInfos.toString());
@@ -213,7 +213,9 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
           List<String> structParts = Splitter.on('\n').splitToList(struct);
           name = Iterables.get(Splitter.on(' ').split(structParts.get(0)), 1);
           for (int i = 1; i < structParts.size(); i++) {
-            members.put(Iterables.get(Splitter.on(' ').split(structParts.get(i)), 1), Iterables.get(Splitter.on(' ').split(structParts.get(i)), 0));
+            members.put(
+                Iterables.get(Splitter.on(' ').split(structParts.get(i)), 1),
+                Iterables.get(Splitter.on(' ').split(structParts.get(i)), 0));
           }
 
           allStructInfos.add(new StructInfo(name, ImmutableMap.copyOf(members)));
