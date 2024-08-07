@@ -31,12 +31,51 @@ IFS=$'\n\t'
 # Get the directory of the script
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
+echo -e "Preparing build environment..."
+
+# Install a locale
+apt-get update
+apt-get install -y \
+        locales \
+        locales-all
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export LANGUAGE=en_US.UTF-8
+
+# Set timezone and use noninteractive frontend to install tzdata later
+export DEBIAN_FRONTEND=noninteractive
+export TZ=Etc/UTC
+
+# Install build dependencies
+apt-get update
+apt-get install --yes \
+        ant                      \
+        autogen                  \
+        automake1.11             \
+        autoconf                 \
+        autotools-dev            \
+        build-essential          \
+        curl                     \
+        gcc                      \
+        git                      \
+        libtool                  \
+        shtool                   \
+        patchelf                 \
+        openjdk-17-jdk           \
+        python3                  \
+        curl                     \
+        maven
+
+# Set JAVA_HOME for the JNI header
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64/
+
 # Create a temporary volume for the build
 mkdir /build
 cd /build
 
-echo -e "Downloading source..."
+echo -e "\n\n"
 
+echo "Downloading source..."
 # Download GMP source
 curl -O https://gmplib.org/download/gmp/gmp-$VERSION_GMP.tar.xz
 tar xf gmp-$VERSION_GMP.tar.xz
@@ -56,6 +95,8 @@ PATH_MPFRJAVA="/build/mpfr-java"
 # Get the installation path for the libraries
 PATH_INSTALL=$( cd $SCRIPT_DIR && cd ../../x86_64-linux && pwd )
 PATH_INSTALL_JAVA=$( cd $PATH_INSTALL && cd ../.. && pwd )
+
+echo -s "\n\n"
 
 echo "Compiling GMP..."
 cd $PATH_GMP

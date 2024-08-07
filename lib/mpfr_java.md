@@ -20,8 +20,11 @@ the mpfr-java library itself.
 We provide a script to fully automate the build with Podman. In the CPAchecker main directory type:
 
 ```
-podman build -t mpfrjava-focal - < lib/native/source/mpfr-java/ubuntu2004.Dockerfile
-podman run --rm -v $(pwd):/cpachecker:rw -w /cpachecker mpfrjava-focal:latest
+podman run --rm \
+    -v $(pwd):/cpachecker:rw \
+    -w /cpachecker \
+    ubuntu:focal \
+    ./lib/native/source/mpfr-java/compile.sh
 ```
 
 Once the build is complete the needed *.so files are copied to the cpachecker/lib
