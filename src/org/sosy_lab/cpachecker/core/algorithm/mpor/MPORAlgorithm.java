@@ -405,16 +405,17 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     Set<CFANode> threadNodes = new HashSet<>(); // using set so that we can use .contains()
     ImmutableSet.Builder<CFAEdge> threadEdges = ImmutableSet.builder();
-    initThreadVariables(pExitNode, threadNodes, threadEdges, pEntryNode, null);
+    initThreadVariables(pExitNode, threadNodes, threadEdges, pEntryNode, Optional.empty());
 
     ImmutableSet.Builder<MPORCreate> creates = ImmutableSet.builder();
-    searchThreadForCreates(creates, pExitNode, new HashSet<>(), new HashSet<>(), pEntryNode, null);
+    searchThreadForCreates(
+        creates, pExitNode, new HashSet<>(), new HashSet<>(), pEntryNode, Optional.empty());
 
     ImmutableSet.Builder<MPORMutex> mutexes = ImmutableSet.builder();
-    searchThreadForMutexes(mutexes, pExitNode, new HashSet<>(), pEntryNode, null);
+    searchThreadForMutexes(mutexes, pExitNode, new HashSet<>(), pEntryNode, Optional.empty());
 
     ImmutableSet.Builder<MPORJoin> joins = ImmutableSet.builder();
-    searchThreadForJoins(joins, pExitNode, new HashSet<>(), pEntryNode, null);
+    searchThreadForJoins(joins, pExitNode, new HashSet<>(), pEntryNode, Optional.empty());
 
     // TODO searchThreadForBarriers
 
@@ -437,9 +438,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pThreadNodes the set of already visited CFANodes that are inside the thread
    * @param pThreadEdges the set of CFAEdges executed by the thread
    * @param pCurrentNode the current CFANode whose leaving CFAEdges are analyzed
-   * @param pFuncReturnNode pFuncReturnNode used to track the original context when entering
-   *     the CFA of another function. see {@link MPORAlgorithm#getFunctionCallMap(CFA)} for more
-   *     info.
+   * @param pFuncReturnNode pFuncReturnNode used to track the original context when entering the CFA
+   *     of another function. see {@link MPORAlgorithm#getFunctionCallMap(CFA)} for more info.
    */
   private void initThreadVariables(
       final FunctionExitNode pExitNode,
@@ -535,7 +535,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             ImmutableSet.Builder<CFAEdge> mutexEdges = ImmutableSet.builder();
             ImmutableSet.Builder<CFANode> mutexExitNodes = ImmutableSet.builder();
             initMutexVariables(
-                pthreadMutexT, mutexNodes, mutexEdges, mutexExitNodes, initialNode, null);
+                pthreadMutexT,
+                mutexNodes,
+                mutexEdges,
+                mutexExitNodes,
+                initialNode,
+                Optional.empty());
             MPORMutex mutex =
                 new MPORMutex(
                     pthreadMutexT,
@@ -918,16 +923,17 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /**
    * Searches pFunctionCallMap for pCurrentNode. If the key is present, the FunctionReturnNode is
-   * returned. If not, we take the previous pPrevFuncReturnNode or reset it to null if
-   * pCurrentNode is a FunctionExitNode, i.e. the previous pPrevFuncReturnNode is not relevant
-   * anymore in the next iteration.
+   * returned. If not, we take the previous pPrevFuncReturnNode or reset it to null if pCurrentNode
+   * is a FunctionExitNode, i.e. the previous pPrevFuncReturnNode is not relevant anymore in the
+   * next iteration.
    *
    * @param pCurrentNode in recursive functions that search the leaving CFAEdges of the current
    *     node, the previous node of the analyzed node should be used here
    * @param pPrevFuncReturnNode the previous FunctionReturnNode
    * @return the previous or new FunctionReturnNode or null if pCurrentNode exits a function
    */
-  private Optional<CFANode> updateFuncReturnNode(CFANode pCurrentNode, Optional<CFANode> pPrevFuncReturnNode) {
+  private Optional<CFANode> updateFuncReturnNode(
+      CFANode pCurrentNode, Optional<CFANode> pPrevFuncReturnNode) {
     if (functionCallMap.containsKey(pCurrentNode)) {
       return Optional.ofNullable(functionCallMap.get(pCurrentNode));
     } else {
