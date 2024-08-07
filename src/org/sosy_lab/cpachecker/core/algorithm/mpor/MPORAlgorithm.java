@@ -870,7 +870,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       CFANode currentNode = entry.getValue();
       rFunctionReturnNodes.put(currentThread, updateFunctionReturnNode(currentNode, null));
     }
-    return rFunctionReturnNodes.build();
+    return rFunctionReturnNodes.buildOrThrow();
   }
 
   /**
@@ -893,7 +893,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       rFunctionReturnNodes.put(
           thread, updateFunctionReturnNode(currentNode, pPrevFunctionReturnNodes.get(thread)));
     }
-    return rFunctionReturnNodes.build();
+    return rFunctionReturnNodes.buildOrThrow();
   }
 
   /**
