@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.state;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
@@ -24,7 +25,7 @@ public class MPORState {
    * The function return nodes of each thread, i.e. their original context if their threadNode is in
    * another function.
    */
-  public final ImmutableMap<MPORThread, CFANode> functionReturnNodes;
+  public final ImmutableMap<MPORThread, Optional<CFANode>> funcReturnNodes;
 
   /** The set of PreferenceOrders in this state, i.e. positional preference orders. */
   public final ImmutableSet<PreferenceOrder> preferenceOrders;
@@ -38,12 +39,12 @@ public class MPORState {
 
   public MPORState(
       ImmutableMap<MPORThread, CFANode> pThreadNodes,
-      ImmutableMap<MPORThread, CFANode> pFunctionReturnNodes,
+      ImmutableMap<MPORThread, Optional<CFANode>> pFunctionReturnNodes,
       ImmutableSet<PreferenceOrder> pPreferenceOrders,
       ExecutionTrace pExecutionTrace,
       PredicateAbstractState pAbstractState) {
     threadNodes = pThreadNodes;
-    functionReturnNodes = pFunctionReturnNodes;
+    funcReturnNodes = pFunctionReturnNodes;
     preferenceOrders = pPreferenceOrders;
     executionTrace = pExecutionTrace;
     abstractState = pAbstractState;
