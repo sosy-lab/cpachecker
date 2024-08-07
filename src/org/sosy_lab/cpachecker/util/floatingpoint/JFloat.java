@@ -281,6 +281,7 @@ class JFloat extends CFloat {
 
   @Override
   public int compareTo(CFloat other) {
+    // Fix behavior for -NaN
     if (other instanceof JFloat otherFloat) {
       if (isNan()) {
         if (isNegative()) {

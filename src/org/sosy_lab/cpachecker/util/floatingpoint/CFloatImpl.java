@@ -384,6 +384,7 @@ class CFloatImpl extends CFloat {
 
   @Override
   public int compareTo(CFloat other) {
+    // Delegate to FloatValue
     if (other instanceof CFloatImpl that) {
       return delegate.compareTo(that.delegate);
     }

@@ -789,6 +789,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
    */
   @Override
   public int compareTo(FloatValue pNumber) {
+    // Convert both values to the same format before comparing them
     Format precision = format.matchWith(pNumber.format);
     FloatValue arg1 = this.withPrecision(precision);
     FloatValue arg2 = pNumber.withPrecision(precision);

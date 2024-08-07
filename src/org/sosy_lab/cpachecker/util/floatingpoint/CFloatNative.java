@@ -347,6 +347,7 @@ class CFloatNative extends CFloat {
 
   @Override
   public int compareTo(CFloat other) {
+    // Call native code
     return CFloatNativeAPI.totalOrderFp(
         wrapper, type.ordinal(), other.copyWrapper(), other.getType().ordinal());
   }
