@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.tests;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.GAPNode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -33,14 +32,12 @@ public class MPORTests {
       LogManager pLogManager,
       PredicateTransferRelation pPtr,
       PredicateAbstractState pAbstractState,
-      ImmutableMap<CFAEdge, GAPNode> pGlobalAccesses)
+      ImmutableSet<CFAEdge> pGlobalAccesses)
       throws CPATransferException, InterruptedException {
 
-    for (var entryA : pGlobalAccesses.entrySet()) {
-      for (var entryB : pGlobalAccesses.entrySet()) {
-        if (!entryA.equals(entryB)) {
-          CFAEdge edgeA = entryA.getKey();
-          CFAEdge edgeB = entryB.getKey();
+    for (CFAEdge edgeA : pGlobalAccesses) {
+      for (CFAEdge edgeB : pGlobalAccesses) {
+        if (!edgeA.equals(edgeB)) {
           if (MPORUtil.doEdgesCommute(pPtr, pAbstractState, edgeA, edgeB)) {
             // pLogManager.log(
             // Level.INFO, "TRUE commute - " + edgeA.getCode() + " - " + edgeB.getCode());

@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
@@ -40,7 +41,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORCreate;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.GAPNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.ExecutionTrace;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.MPORState;
@@ -89,6 +89,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // TODO (not sure if important for our algorithm) PredicateAbstractState.abstractLocations
   //  contains all CFANodes visited so far
 
+  // TODO shorten all functionReturnNodes to funcReturnNodes
+
   /**
    * The number of {@link CFAEdge}s to be considered at the end of two {@link ExecutionTrace}s to be
    * approximated as equivalent. Increasing this value is a major source of inefficiency.
@@ -117,106 +119,80 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
-   * Recursively searches all possible transitions between MPORStates, i.e. interleavings.
+   * Recursively searches all possible transitions between MPORStates, i.e. interleavings, factoring
+   * in (positional) preference orders and local vs. global accesses.
    *
-   * @param pCurrentState the current MPORState we analyze
+   * @param pState the current MPORState we analyze
    */
-  private void handleState(MPORState pCurrentState)
-      throws CPATransferException, InterruptedException {
+  private void handleState(MPORState pState) throws CPATransferException, InterruptedException {
 
     // make sure the MPORState was not yet visited to prevent infinite loops
-    if (MPORUtil.shouldVisit(existingStates, pCurrentState)) {
+    if (MPORUtil.shouldVisit(existingStates, pState)) {
 
-      // TODO create handlePreferenceOrders function that returns the new MPORState
-      PredicateAbstractState currentAbstractState = pCurrentState.abstractState;
+      // TODO create handlePreferenceOrders function that returns an updated MPORState
 
-      // for all threads, find the next global access preceding (= GAP) node(s)
-      ImmutableSet.Builder<GAPNode> gapNodeBuilder = ImmutableSet.builder();
-      for (var threadNode : pCurrentState.threadNodes.entrySet()) {
-        MPORThread currentThread = threadNode.getKey();
-        // TODO return MPORState here and use funcreturnnodes later on
-        currentAbstractState =
-            findGapNodes(
-                gapNodeBuilder,
-                new HashSet<>(),
-                threadNode.getValue(),
-                pCurrentState.functionReturnNodes.get(currentThread),
-                currentAbstractState,
-                currentThread);
+      // execute all threads up to a global access preceding (GAP) node
+      Map<MPORThread, Set<CFANode>> visitedNodes = new HashMap<>();
+      for (var entry : pState.threadNodes.entrySet()) {
+        visitedNodes.put(entry.getKey(), new HashSet<>());
       }
-      ImmutableSet<GAPNode> gapNodes = gapNodeBuilder.build();
-
-      // TODO using an immutable map builder here stops the recursion after a few runs?
-      // for all global accesses found, map them to their respective GAPNode
-      Map<CFAEdge, GAPNode> globalAccessesMap = new HashMap<>();
-      for (GAPNode gapNode : gapNodes) {
-        // TODO use funcreturnnode of newly created mporstate here
-        CFANode functionReturnNode = gapNode.functionReturnNode;
-        // create and visit a new state for each global variable access edge
-        for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(gapNode.node, functionReturnNode)) {
-          checkState(GAC.hasGlobalAccess(cfaEdge)); // always held in tests
-          globalAccessesMap.put(cfaEdge, gapNode);
-        }
-      }
-      ImmutableMap<CFAEdge, GAPNode> globalAccesses = ImmutableMap.copyOf(globalAccessesMap);
+      MPORState nextState = findGapState(visitedNodes, pState);
 
       // TODO include commutativity here (double loop)
       //  for all pairs of globalAccesses, find out if they ALL commute
-      //  if any pair does not commute, create nondet loop which covers all execution combinations
       // for all global accesses executed by the threads, create new states to explore
-      for (var entry : globalAccesses.entrySet()) {
-        // TODO replace pCurrentState with the state created after preferenceOrders and gapNodes
-        handleState(createUpdatedState(pCurrentState, entry.getValue().thread, entry.getKey()));
+      for (var entry : nextState.threadNodes.entrySet()) {
+        MPORThread thread = entry.getKey();
+        CFANode threadNode = entry.getValue();
+        CFANode funcReturnNode = nextState.functionReturnNodes.get(thread);
+        for (CFAEdge globalEdge : contextSensitiveLeavingEdges(threadNode, funcReturnNode)) {
+          handleState(createUpdatedState(nextState, thread, globalEdge));
+        }
       }
     }
   }
 
   /**
-   * Recursively finds all global access preceding (GAP) nodes (i.e. CFANodes whose leaving edges
-   * read / write a global variable) reachable from the initial value of pCurrentNode. Successors of
-   * nodes before global accesses are not considered, i.e. we consider all paths from pCurrentNode
-   * containing exactly one global variable access.
+   * Recursively executes the threads in pState up to a global access preceding (GAP) node (i.e.
+   * CFANodes whose leaving edge(s) read / write a global variable) reachable from the initial
+   * threadNodes of pState.
    *
-   * @param pGapNodeBuilder the ImmutableSet builder we put the found GAPNodes in
-   * @param pVisitedNodes the set of already visited CFANodes to prevent infinite loops
-   * @param pCurrentNode the current CFANode whose leaving edges successor nodes we analyze
-   * @param pFunctionReturnNode the current FunctionReturnNode of the thread
-   * @param pAbstractState the current PredicateAbstractState of the program (i.e. of all threads)
-   * @param pThread the executing thread
+   * @param pVisitedNodes the set of already visited CFANodes for each thread to prevent infinite
+   *     loops
+   * @param pState the global state of the program (all threads)
    */
-  private PredicateAbstractState findGapNodes(
-      ImmutableSet.Builder<GAPNode> pGapNodeBuilder,
-      Set<CFANode> pVisitedNodes,
-      CFANode pCurrentNode,
-      // TODO rename all functionReturnNodes to funcReturnNodes
-      CFANode pFunctionReturnNode,
-      PredicateAbstractState pAbstractState,
-      final MPORThread pThread)
+  private MPORState findGapState(Map<MPORThread, Set<CFANode>> pVisitedNodes, MPORState pState)
       throws CPATransferException, InterruptedException {
 
-    if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
-      // TODO add seq node
-      // if the thread has terminated, stop recursion
-      if (!pCurrentNode.equals(pThread.exitNode)) {
-        for (CFAEdge cfaEdge : contextSensitiveLeavingEdges(pCurrentNode, pFunctionReturnNode)) {
-          if (GAC.hasGlobalAccess(cfaEdge)) {
-            pGapNodeBuilder.add(new GAPNode(pCurrentNode, pFunctionReturnNode, pThread));
-            // not using break if for any reason the other leaving edge(s) don't access global vars
-          } else {
-            // TODO add seq edge
-            findGapNodes(
-                pGapNodeBuilder,
-                pVisitedNodes,
-                // this method runs on inputCfa, clonedNodes are only used in the sequentialization
-                cfaEdge.getSuccessor(),
-                updateFunctionReturnNode(pCurrentNode, pFunctionReturnNode),
-                MPORUtil.getNextPredicateAbstractState(PTR, pAbstractState, cfaEdge),
-                pThread);
+    // for each thread and its current node
+    for (var entry : pState.threadNodes.entrySet()) {
+      MPORThread currentThread = entry.getKey();
+      CFANode currentNode = entry.getValue();
+      if (MPORUtil.shouldVisit(pVisitedNodes.get(currentThread), currentNode)) {
+        // if the thread has terminated, stop
+        if (!currentNode.equals(currentThread.exitNode)) {
+          CFANode funcReturnNode = pState.functionReturnNodes.get(currentThread);
+          ImmutableSet<CFAEdge> contextEdges =
+              contextSensitiveLeavingEdges(currentNode, funcReturnNode);
+          for (CFAEdge cfaEdge : contextEdges) {
+            // if the next edge(s) is a global access, stop
+            if (GAC.hasGlobalAccess(cfaEdge)) {
+              // TODO this is currently a restriction because it makes the algorithm a lot simpler
+              //  however, assuming that a local edge is a global edge should still make the
+              //  algorithm sound, just less efficient because we cover more interleavings
+              checkState(
+                  GAC.allGlobalAccesses(contextEdges),
+                  "all leaving edges must be global access if one is a global access");
+              break;
+              // otherwise, continue executing thread until a global access
+            } else {
+              findGapState(pVisitedNodes, createUpdatedState(pState, currentThread, cfaEdge));
+            }
           }
         }
       }
     }
-    return pAbstractState;
+    return pState;
   }
 
   private final ConfigurableProgramAnalysis CPA;
@@ -360,7 +336,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    *     continues (values, i.e. the ReturnNode) after going through the CFA of the function called.
    */
   private ImmutableMap<CFANode, CFANode> getFunctionCallMap(CFA pCfa) {
-    ImmutableMap.Builder<CFANode, CFANode> rFunctionCallMap = ImmutableMap.builder();
+    Builder<CFANode, CFANode> rFunctionCallMap = ImmutableMap.builder();
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
       if (cfaEdge instanceof FunctionCallEdge functionCallEdge) {
         rFunctionCallMap.put(functionCallEdge.getPredecessor(), functionCallEdge.getReturnNode());
@@ -369,6 +345,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     return rFunctionCallMap.buildOrThrow();
   }
 
+  // TODO create MPORThreadBuilder that initializes all these variables?
   // TODO pthread_create calls in loops can be considered by loop unrolling
   /**
    * Extracts all threads (main and pthreads) and the FunctionEntry / ExitNodes of their start
@@ -975,8 +952,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     return rContextSensitiveEdges.build();
   }
 
-  // TODO make static and move to MPORState and create a private constructor
-  //  also, include the sequentialization nodes edges in this function
+  // TODO create MPORStateBuilder class with static methods and a protected MPORState constructor
+  //  also, include the sequentialization nodes and edges in this function
   /**
    * Returns a new state with the same threadNodes map except that the key pThread is assigned the
    * successor CFANode of pExecutedEdge.
@@ -1036,6 +1013,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       ImmutableMap<MPORThread, CFANode> pFunctionReturnNodesB,
       ExecutionTrace pExecutionTraceB) {
 
+    // TODO we should optimize this function by creating orders for the conditions
+    //  e.g. if we have 2 threads but the tail is 3 elements, we should check the threads and
+    //  funcreturnnodes first. if it is the other way around, checking the tail first is more
+    //  performant
     return pStateA.threadNodes.equals(pThreadNodesB)
         && pStateA.functionReturnNodes.equals(pFunctionReturnNodesB)
         && pStateA.executionTrace.tail().equals(pExecutionTraceB.tail());
