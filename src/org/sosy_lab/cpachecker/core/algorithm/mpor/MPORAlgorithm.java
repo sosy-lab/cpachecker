@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -132,21 +131,24 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       // TODO create handlePreferenceOrders function that returns an updated MPORState
 
       // execute all threads up to a global access preceding (GAP) node
+      ImmutableSet.Builder<MPORState> stateBuilder = ImmutableSet.builder();
       Map<MPORThread, Set<CFANode>> visitedNodes = new HashMap<>();
-      for (var entry : pState.threadNodes.entrySet()) {
-        visitedNodes.put(entry.getKey(), new HashSet<>());
+      for (MPORThread thread : pState.threadNodes.keySet()) {
+        visitedNodes.put(thread, new HashSet<>());
       }
-      MPORState nextState = findGapState(visitedNodes, pState);
+      ImmutableSet<MPORState> gapStates = findGapStates(stateBuilder, visitedNodes, pState);
 
       // TODO include commutativity here (double loop)
       //  for all pairs of globalAccesses, find out if they ALL commute
       // for all global accesses executed by the threads, create new states to explore
-      for (var entry : nextState.threadNodes.entrySet()) {
-        MPORThread thread = entry.getKey();
-        CFANode threadNode = entry.getValue();
-        CFANode funcReturnNode = nextState.functionReturnNodes.get(thread);
-        for (CFAEdge globalEdge : contextSensitiveLeavingEdges(threadNode, funcReturnNode)) {
-          handleState(createUpdatedState(nextState, thread, globalEdge));
+      for (MPORState gapState : gapStates) {
+        for (var entry : gapState.threadNodes.entrySet()) {
+          MPORThread thread = entry.getKey();
+          CFANode threadNode = entry.getValue();
+          CFANode funcReturnNode = gapState.functionReturnNodes.get(thread);
+          for (CFAEdge globalEdge : contextSensitiveLeavingEdges(threadNode, funcReturnNode)) {
+            handleState(createUpdatedState(gapState, thread, globalEdge));
+          }
         }
       }
     }
@@ -157,13 +159,28 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * CFANodes whose leaving edge(s) read / write a global variable) reachable from the initial
    * threadNodes of pState.
    *
+   * <p>The threads are executed in a round-robin fashion, allowing us to add states to
+   * pGapStatesBuilder if all threads reached a GAP node in every iteration. If a GAPNode features
+   * local / global mixed leaving edges, the algorithm can continue from the found GAP state, and
+   * possibly create a new GAP state, covering all paths.
+   *
+   * <p>GAP states can be reached non-deterministically, so we return a set of GAP states.
+   *
+   * @param pGapStatesBuilder the builder where we store the found GAP states
    * @param pVisitedNodes the set of already visited CFANodes for each thread to prevent infinite
    *     loops
    * @param pState the global state of the program (all threads)
+   * @return the set of found GAP states
    */
-  private MPORState findGapState(Map<MPORThread, Set<CFANode>> pVisitedNodes, MPORState pState)
+  private ImmutableSet<MPORState> findGapStates(
+      ImmutableSet.Builder<MPORState> pGapStatesBuilder,
+      Map<MPORThread, Set<CFANode>> pVisitedNodes,
+      MPORState pState)
       throws CPATransferException, InterruptedException {
 
+    if (allThreadsAtGapNode(pState)) {
+      pGapStatesBuilder.add(pState);
+    }
     // for each thread and its current node
     for (var entry : pState.threadNodes.entrySet()) {
       MPORThread currentThread = entry.getKey();
@@ -176,23 +193,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               contextSensitiveLeavingEdges(currentNode, funcReturnNode);
           for (CFAEdge cfaEdge : contextEdges) {
             // if the next edge(s) is a global access, stop
-            if (GAC.hasGlobalAccess(cfaEdge)) {
-              // TODO this is currently a restriction because it makes the algorithm a lot simpler
-              //  however, assuming that a local edge is a global edge should still make the
-              //  algorithm sound, just less efficient because we cover more interleavings
-              checkState(
-                  GAC.allGlobalAccesses(contextEdges),
-                  "all leaving edges must be global access if one is a global access");
-              break;
+            if (!GAC.hasGlobalAccess(cfaEdge)) {
               // otherwise, continue executing thread until a global access
-            } else {
-              findGapState(pVisitedNodes, createUpdatedState(pState, currentThread, cfaEdge));
+              MPORState nextState = createUpdatedState(pState, currentThread, cfaEdge);
+              findGapStates(pGapStatesBuilder, pVisitedNodes, nextState);
             }
           }
         }
       }
     }
-    return pState;
+    return pGapStatesBuilder.build();
   }
 
   private final ConfigurableProgramAnalysis CPA;
@@ -816,7 +826,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private MPORState getInitialState(
       ImmutableSet<MPORThread> pThreads, AbstractState initAbstractState) {
 
-    ImmutableMap.Builder<MPORThread, CFANode> threadNodesBuilder = ImmutableMap.builder();
+    Builder<MPORThread, CFANode> threadNodesBuilder = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
       threadNodesBuilder.put(thread, thread.entryNode);
     }
@@ -841,7 +851,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    */
   private ImmutableMap<MPORThread, CFANode> getInitialFunctionReturnNodes(
       ImmutableMap<MPORThread, CFANode> pInitThreadNodes) {
-    ImmutableMap.Builder<MPORThread, CFANode> rFunctionReturnNodes = ImmutableMap.builder();
+    Builder<MPORThread, CFANode> rFunctionReturnNodes = ImmutableMap.builder();
     for (var entry : pInitThreadNodes.entrySet()) {
       MPORThread currentThread = entry.getKey();
       CFANode currentNode = entry.getValue();
@@ -860,7 +870,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       ImmutableMap<MPORThread, CFANode> pCurrentThreadNodes,
       ImmutableMap<MPORThread, CFANode> pPrevFunctionReturnNodes) {
 
-    ImmutableMap.Builder<MPORThread, CFANode> rFunctionReturnNodes = ImmutableMap.builder();
+    Builder<MPORThread, CFANode> rFunctionReturnNodes = ImmutableMap.builder();
     for (var entry : pCurrentThreadNodes.entrySet()) {
       MPORThread thread = entry.getKey();
       checkArgument(
@@ -1020,5 +1030,26 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     return pStateA.threadNodes.equals(pThreadNodesB)
         && pStateA.functionReturnNodes.equals(pFunctionReturnNodesB)
         && pStateA.executionTrace.tail().equals(pExecutionTraceB.tail());
+  }
+
+  /**
+   * Checks if all threads in pState are at a CFANode whose leaving edges contains at least one
+   * global access.
+   *
+   * @param pState the global program state to be analyzed
+   * @return true if all threadNodes have at least one leaving edge with global access
+   */
+  private boolean allThreadsAtGapNode(MPORState pState) {
+    for (var entry : pState.threadNodes.entrySet()) {
+      MPORThread currentThread = entry.getKey();
+      CFANode currentNode = entry.getValue();
+      CFANode funcReturnNode = pState.functionReturnNodes.get(currentThread);
+      ImmutableSet<CFAEdge> contextEdges =
+          contextSensitiveLeavingEdges(currentNode, funcReturnNode);
+      if (!GAC.anyGlobalAccess(contextEdges)) {
+        return false;
+      }
+    }
+    return true;
   }
 }

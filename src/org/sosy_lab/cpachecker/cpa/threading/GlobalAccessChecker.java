@@ -88,18 +88,18 @@ public class GlobalAccessChecker {
   }
 
   /**
-   * Checks if all edges inside pEdges access global variables.
+   * Checks if any edge inside pEdges accesses a global variable.
    *
    * @param pEdges the set of edges to be checked
-   * @return true if all edges in pEdges are global access
+   * @return true if any edge in pEdges is a global access
    */
-  public boolean allGlobalAccesses(ImmutableSet<CFAEdge> pEdges) {
+  public boolean anyGlobalAccess(ImmutableSet<CFAEdge> pEdges) {
     for (CFAEdge edge : pEdges) {
-      if (!hasGlobalAccess(edge)) {
-        return false;
+      if (hasGlobalAccess(edge)) {
+        return true;
       }
     }
-    return true;
+    return false;
   }
 
   private <T extends AAstNode> boolean hasGlobalAccess(final T ast) {
