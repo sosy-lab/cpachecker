@@ -548,11 +548,17 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     if (this == pOther) {
       return true;
     }
-    return pOther instanceof FloatValue other
-        && format.equals(other.format)
-        && sign == other.sign
-        && exponent == other.exponent
-        && significand.equals(other.significand);
+    if (pOther instanceof FloatValue other) {
+      // Match format of the arguments
+      Format precision = format.matchWith(other.format);
+      FloatValue arg1 = this.withPrecision(precision);
+      FloatValue arg2 = other.withPrecision(precision);
+
+      return arg1.sign == arg2.sign
+          && arg1.exponent == arg2.exponent
+          && arg1.significand.equals(arg2.significand);
+    }
+    return false;
   }
 
   @Override
