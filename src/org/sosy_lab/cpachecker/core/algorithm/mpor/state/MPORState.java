@@ -12,8 +12,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 
 public class MPORState {
@@ -37,7 +37,7 @@ public class MPORState {
 
   // TODO set of ConflictRelations should be here
 
-  public MPORState(
+  protected MPORState(
       ImmutableMap<MPORThread, CFANode> pThreadNodes,
       ImmutableMap<MPORThread, Optional<CFANode>> pFunctionReturnNodes,
       ImmutableSet<PreferenceOrder> pPreferenceOrders,

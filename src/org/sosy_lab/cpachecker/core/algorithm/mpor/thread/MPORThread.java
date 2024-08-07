@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -47,7 +47,7 @@ public class MPORThread {
 
   public final ImmutableSet<MPORJoin> joins;
 
-  public MPORThread(
+  protected MPORThread(
       Optional<CExpression> pThreadObject,
       FunctionEntryNode pEntryNode,
       FunctionExitNode pExitNode,

@@ -12,10 +12,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -23,6 +27,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Contains static methods that can perfectly be reused outside the MPOR context. */
 public final class MPORUtil {
@@ -39,6 +44,56 @@ public final class MPORUtil {
         pFunctionEntryNode.getExitNode().isPresent(),
         "pFunctionEntryNode must contain a FunctionExitNode");
     return pFunctionEntryNode.getExitNode().orElseThrow();
+  }
+
+  /**
+   * Searches pFunctionCallMap for pCurrentNode. If the key is present, the FunctionReturnNode is
+   * returned. If not, we take the previous pPrevFuncReturnNode or reset it to null if pCurrentNode
+   * is a FunctionExitNode, i.e. the previous pPrevFuncReturnNode is not relevant anymore in the
+   * next iteration.
+   *
+   * @param pCurrentNode in recursive functions that search the leaving CFAEdges of the current
+   *     node, the previous node of the analyzed node should be used here
+   * @param pPrevFuncReturnNode the previous FunctionReturnNode
+   * @return the previous or new FunctionReturnNode or null if pCurrentNode exits a function
+   */
+  public static Optional<CFANode> updateFuncReturnNode(
+      ImmutableMap<CFANode, CFANode> pFunctionCallMap,
+      CFANode pCurrentNode,
+      Optional<CFANode> pPrevFuncReturnNode) {
+    if (pFunctionCallMap.containsKey(pCurrentNode)) {
+      return Optional.ofNullable(pFunctionCallMap.get(pCurrentNode));
+    } else {
+      if (pCurrentNode instanceof FunctionExitNode) {
+        return Optional.empty();
+      } else {
+        return pPrevFuncReturnNode;
+      }
+    }
+  }
+
+  /**
+   * Background: a FunctionExitNode may have several leaving Edges, one for each time the function
+   * is called. With this function, if pCurrentNode is a FunctionExitNode, we extract only the
+   * leaving edges of the original calling context, i.e. the edges whose successor is
+   * pFuncReturnNode.
+   *
+   * @param pCurrentNode the CFANode whose leaving Edges we analyze
+   * @param pFuncReturnNode the return node (extracted from the original functionCallEdge)
+   * @return a FluentIterable of context-sensitive return leaving CFAEdges of pCurrentNode
+   */
+  public static ImmutableSet<CFAEdge> returnLeavingEdges(
+      CFANode pCurrentNode, Optional<CFANode> pFuncReturnNode) {
+
+    ImmutableSet.Builder<CFAEdge> rReturnEdges = ImmutableSet.builder();
+    if (pCurrentNode instanceof FunctionExitNode && pFuncReturnNode.isPresent()) {
+      rReturnEdges.addAll(
+          CFAUtils.leavingEdges(pCurrentNode)
+              .filter(cfaEdge -> cfaEdge.getSuccessor().equals(pFuncReturnNode.orElseThrow())));
+    } else {
+      rReturnEdges.addAll(CFAUtils.leavingEdges(pCurrentNode));
+    }
+    return rReturnEdges.build();
   }
 
   /**

@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order;
 
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 /**
  * A program contains a PreferenceOrder e.g. when one thread t0 calls pthread_join(t1) while t1 has
