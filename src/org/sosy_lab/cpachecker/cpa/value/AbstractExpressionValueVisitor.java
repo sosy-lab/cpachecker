@@ -127,6 +127,9 @@ public abstract class AbstractExpressionValueVisitor
         JRightHandSideVisitor<Value, NoException>,
         JExpressionVisitor<Value, NoException> {
 
+  /** length of type INT in Java (in bit). */
+  private static final int SIZE_OF_JAVA_INT = 32;
+
   /** length of type LONG in Java (in bit). */
   private static final int SIZE_OF_JAVA_LONG = 64;
 
@@ -805,8 +808,8 @@ public abstract class AbstractExpressionValueVisitor
   /** Round a float value to an integer with the given C type */
   private Number roundFloatToInteger(MachineModel pMachineModel, CType pType, FloatValue pValue) {
     return switch (pMachineModel.getSizeof(pType).intValue() * pMachineModel.getSizeofChar()) {
-      case 32 -> pValue.integerValue();
-      case 64 -> pValue.longValue();
+      case SIZE_OF_JAVA_INT -> pValue.integerValue();
+      case SIZE_OF_JAVA_LONG -> pValue.longValue();
       default -> throw new IllegalArgumentException();
     };
   }
