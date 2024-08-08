@@ -1278,8 +1278,9 @@ public class CFABuilder {
       CExpression zeroExpression;
       if (canonicalType instanceof CSimpleType) {
         CBasicType basicType = ((CSimpleType) canonicalType).getType();
-        if (basicType == CBasicType.FLOAT || basicType == CBasicType.DOUBLE) {
+        if (basicType.isFloatingPointType()) {
           FloatValue.Format format = Format.fromCType(machineModel, pExpectedType);
+          // use expected type for float, not canonical
           zeroExpression =
               new CFloatLiteralExpression(
                   loc, machineModel, pExpectedType, FloatValue.zero(format));

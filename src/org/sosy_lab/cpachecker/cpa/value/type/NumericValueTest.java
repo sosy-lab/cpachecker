@@ -86,7 +86,6 @@ public class NumericValueTest {
   public void bigDecimalValue_conversionFromRationalWithDecimals() {
     Rational input = Rational.of(BigInteger.ONE, BigInteger.TWO);
     NumericValue val = new NumericValue(input);
-
     FloatValue result = val.floatingPointValue();
     assertThat(result).isEqualTo(FloatValue.fromString(FloatValue.Format.Float64, "0.5"));
   }

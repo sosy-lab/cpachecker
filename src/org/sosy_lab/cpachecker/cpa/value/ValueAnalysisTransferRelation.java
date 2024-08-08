@@ -1450,7 +1450,7 @@ public class ValueAnalysisTransferRelation
               NumericValue numericValue = value.asNumericValue();
               CSimpleType paramType =
                   BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(nameOfCalledFunc);
-              if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE)
+              if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE, CBasicType.FLOAT128)
                   .contains(paramType.getType())) {
                 FloatValue integralPartValue =
                     numericValue.floatingPointValue().round(RoundingMode.TRUNCATE);

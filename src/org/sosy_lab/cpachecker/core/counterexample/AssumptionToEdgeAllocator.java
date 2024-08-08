@@ -1393,6 +1393,7 @@ public class AssumptionToEdgeAllocator {
           return handleIntegerNumbers(pValue, simpleType);
         case FLOAT:
         case DOUBLE:
+        case FLOAT128:
           if (assumeLinearArithmetics) {
             break;
           }
@@ -1420,6 +1421,8 @@ public class AssumptionToEdgeAllocator {
             FloatValue.fromDouble(doubleValue), machineModel, pType);
       } else if (pValue instanceof Float floatValue) {
         return ExplicitValueLiteral.valueOf(FloatValue.fromFloat(floatValue), machineModel, pType);
+      } else if (pValue instanceof FloatValue floatValue) {
+        return ExplicitValueLiteral.valueOf(floatValue, machineModel, pType);
       }
 
       FloatValue val;

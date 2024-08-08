@@ -100,7 +100,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -2094,16 +2093,15 @@ public abstract class AbstractExpressionValueVisitor
       case INT:
       case CHAR:
         {
-          if (isNan(numericValue)) {
-            // result of conversion of NaN to integer is undefined
-            return UnknownValue.getInstance();
-
-          } else if ((numericValue.getNumber() instanceof Float
-                  || numericValue.getNumber() instanceof Double)
-              && Math.abs(numericValue.doubleValue() - numericValue.longValue()) >= 1) {
-            // if number is a float and float can not be exactly represented as integer, the
-            // result of the conversion of float to integer is undefined
-            return UnknownValue.getInstance();
+          if (numericValue.getNumber() instanceof Float
+              || numericValue.getNumber() instanceof Double
+              || numericValue.getNumber() instanceof FloatValue) {
+            if (numericValue.floatingPointValue().toLong().isEmpty()) {
+              // If the number is a float and its value can not be represented as integer, the
+              // result of the conversion of float to integer is undefined.
+              // FIXME: Handle unsigned target types
+              return UnknownValue.getInstance();
+            }
           }
 
           final BigInteger valueToCastAsInt = numericValue.bigIntegerValue();
@@ -2155,9 +2153,7 @@ public abstract class AbstractExpressionValueVisitor
 
           final int bitPerByte = machineModel.getSizeofCharInBits();
 
-          if (isNan(numericValue) || isInfinity(numericValue)) {
-            result = numericValue;
-          } else if (size == SIZE_OF_JAVA_FLOAT) {
+          if (size == SIZE_OF_JAVA_FLOAT) {
             // 32 bit means Java float
             result = new NumericValue(numericValue.floatValue());
           } else if (size == SIZE_OF_JAVA_DOUBLE) {
@@ -2196,19 +2192,6 @@ public abstract class AbstractExpressionValueVisitor
         || (n instanceof BigInteger && BigInteger.ZERO.equals(n))
         || (n instanceof FloatValue && ((FloatValue) n).isZero())
         || 0 == n.longValue();
-  }
-
-  private static boolean isNan(NumericValue pValue) {
-    Number n = pValue.getNumber();
-    return n.equals(Float.NaN) || n.equals(Double.NaN) || NegativeNaN.VALUE.equals(n);
-  }
-
-  private static boolean isInfinity(NumericValue pValue) {
-    Number n = pValue.getNumber();
-    return n.equals(Double.POSITIVE_INFINITY)
-        || n.equals(Double.NEGATIVE_INFINITY)
-        || n.equals(Float.POSITIVE_INFINITY)
-        || n.equals(Float.NEGATIVE_INFINITY);
   }
 
   /** Returns whether first integer is greater than second integer */

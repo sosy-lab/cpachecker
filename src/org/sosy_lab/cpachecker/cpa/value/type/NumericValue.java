@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.rationals.Rational;
@@ -67,13 +66,6 @@ public record NumericValue(Number number) implements Value {
     if (number instanceof FloatValue floatValue) {
       return floatValue;
     } else if (number instanceof Double doubleValue) {
-      // if we use number.toString() for float values, the toString() method
-      // will not print the full double but only the number of digits
-      // necessary to distinguish it from the surrounding double-values.
-      // This will result in an incorrect value of the BigDecimal.
-      // Instead, use the floats themselves to get the precise value.
-      //
-      // cf. https://docs.oracle.com/javase/8/docs/api/java/lang/Double.html#toString-double-
       return FloatValue.fromDouble(doubleValue);
     } else if (number instanceof Float floatValue) {
       return FloatValue.fromFloat(floatValue);
@@ -87,8 +79,6 @@ public record NumericValue(Number number) implements Value {
       FloatValue n = FloatValue.fromInteger(format, rat.getNum());
       FloatValue d = FloatValue.fromInteger(format, rat.getDen());
       return n.divide(d);
-    } else if (number instanceof NegativeNaN) {
-      return FloatValue.nan(format).negate();
     } else {
       throw new IllegalArgumentException();
     }
@@ -102,14 +92,18 @@ public record NumericValue(Number number) implements Value {
   public BigInteger bigIntegerValue() {
     if (number instanceof BigInteger bigInt) {
       return bigInt;
+    } else if (number instanceof Long
+        || number instanceof Integer
+        || number instanceof Short
+        || number instanceof Byte) {
+      return BigInteger.valueOf(number.longValue());
     } else if (number instanceof Double
         || number instanceof Float
-        || number instanceof BigDecimal
         || number instanceof Rational
         || number instanceof FloatValue) {
       return floatingPointValue().integerValue();
     } else {
-      return new BigInteger(number.toString());
+      throw new IllegalArgumentException();
     }
   }
 
@@ -130,29 +124,19 @@ public record NumericValue(Number number) implements Value {
    */
   public NumericValue negate() {
     if (number instanceof Float numberToNegate) {
-      // check if number is infinite or NaN
-      if (numberToNegate.equals(Float.POSITIVE_INFINITY)) {
-        return new NumericValue(Float.NEGATIVE_INFINITY);
-      } else if (numberToNegate.equals(Float.NEGATIVE_INFINITY)) {
-        return new NumericValue(Float.POSITIVE_INFINITY);
-      } else if (numberToNegate.equals(Float.NaN)) {
-        return new NumericValue(NegativeNaN.VALUE);
+      if (Float.isNaN(numberToNegate)) {
+        // If the number is NaN we need to convert to FloatValue to handle the sign
+        return new NumericValue(floatingPointValue().negate().floatValue());
       } else {
         return new NumericValue(-numberToNegate);
       }
     } else if (number instanceof Double numberToNegate) {
-      // check if number is infinite or NaN
-      if (numberToNegate.equals(Double.POSITIVE_INFINITY)) {
-        return new NumericValue(Double.NEGATIVE_INFINITY);
-      } else if (numberToNegate.equals(Double.NEGATIVE_INFINITY)) {
-        return new NumericValue(Double.POSITIVE_INFINITY);
-      } else if (numberToNegate.equals(Double.NaN)) {
-        return new NumericValue(NegativeNaN.VALUE);
+      if (Double.isNaN(numberToNegate)) {
+        // If the number is NaN we need to convert to FloatValue to handle the sign
+        return new NumericValue(floatingPointValue().negate().floatValue());
       } else {
         return new NumericValue(-numberToNegate);
       }
-    } else if (NegativeNaN.VALUE.equals(number)) {
-      return new NumericValue(Double.NaN);
     } else if (number instanceof BigInteger
         || number instanceof Long
         || number instanceof Integer
@@ -212,49 +196,5 @@ public record NumericValue(Number number) implements Value {
   @Override
   public boolean isExplicitlyKnown() {
     return true;
-  }
-
-  public static class NegativeNaN extends Number {
-
-    @Serial private static final long serialVersionUID = 1L;
-
-    public static final Number VALUE = new NegativeNaN();
-
-    private NegativeNaN() {}
-
-    @Override
-    public double doubleValue() {
-      return Double.NaN;
-    }
-
-    @Override
-    public float floatValue() {
-      return Float.NaN;
-    }
-
-    @Override
-    public int intValue() {
-      return (int) Double.NaN;
-    }
-
-    @Override
-    public long longValue() {
-      return (long) Double.NaN;
-    }
-
-    @Override
-    public String toString() {
-      return "-NaN";
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      return pObj == this || pObj instanceof NegativeNaN;
-    }
-
-    @Override
-    public int hashCode() {
-      return -1;
-    }
   }
 }

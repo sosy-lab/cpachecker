@@ -93,19 +93,8 @@ public class ExpressionSimplificationVisitor
         return new CIntegerLiteralExpression(
             expr.getFileLocation(), type, numericResult.bigIntegerValue());
       } else if (basicType.isFloatingPointType()) {
-        try {
-          return new CFloatLiteralExpression(
-              expr.getFileLocation(), machineModel, type, numericResult.floatingPointValue());
-        } catch (NumberFormatException nfe) {
-          // catch NumberFormatException here, which is caused by, e.g., value being <infinity>
-          logger.logf(
-              Level.FINE,
-              "Cannot simplify expression to numeric value %s, keeping original expression %s"
-                  + " instead",
-              numericResult,
-              expr.toASTString());
-          return expr;
-        }
+        return new CFloatLiteralExpression(
+            expr.getFileLocation(), machineModel, type, numericResult.floatingPointValue());
       }
     }
     if (numericResult != null) {
@@ -283,6 +272,7 @@ public class ExpressionSimplificationVisitor
             return new CIntegerLiteralExpression(loc, exprType, negatedValue.bigIntegerValue());
           case FLOAT:
           case DOUBLE:
+          case FLOAT128:
             return new CFloatLiteralExpression(
                 loc, machineModel, exprType, negatedValue.floatingPointValue());
           default:
@@ -352,6 +342,7 @@ public class ExpressionSimplificationVisitor
                   expr.getFileLocation(), type, v.bigIntegerValue());
             case FLOAT:
             case DOUBLE:
+            case FLOAT128:
               // Cast the literal to the target type before assigning the value
               // This is necessary to handle initializer like `float x = 1.0` where the type of the
               // literal on the right is different from the type of the variable.
