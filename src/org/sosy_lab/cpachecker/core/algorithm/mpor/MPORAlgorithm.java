@@ -13,8 +13,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -120,7 +122,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     // make sure the MPORState was not yet visited to prevent infinite loops
     if (MPORUtil.shouldVisit(stateBuilder.getExistingStates(), pState)) {
-      // TODO create handlePreferenceOrders function that returns an updated MPORState
+      // TODO create handlePreferenceOrders function that returns a set of updated MPORStates
 
       // execute all threads up to a global access preceding (GAP) node
       ImmutableSet.Builder<MPORState> gapStateBuilder = ImmutableSet.builder();
@@ -130,17 +132,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
       ImmutableSet<MPORState> gapStates = findGapStates(gapStateBuilder, visitedNodes, pState);
 
-      // TODO include commutativity here (double loop)
-      //  for all pairs of globalAccesses, find out if they ALL commute
-      // for all global accesses executed by the threads, create new states to explore
       for (MPORState gapState : gapStates) {
-        for (var entry : gapState.threadNodes.entrySet()) {
-          MPORThread thread = entry.getKey();
-          CFANode threadNode = entry.getValue();
-          Optional<CFANode> funcReturnNode = gapState.funcReturnNodes.get(thread);
-          for (CFAEdge globalEdge : MPORUtil.returnLeavingEdges(threadNode, funcReturnNode)) {
-            handleState(stateBuilder.createNewState(gapState, thread, globalEdge));
+        // if all global accesses commute, execute them sequentially, otherwise create interleaving
+        if (allLeavingEdgesCommute(gapState)) {
+          for (MPORState nextState : executeGlobalAccessesSequentially(gapState)) {
+            handleState(nextState);
           }
+        } else {
+          // TODO create seq interleaving
         }
       }
     }
@@ -181,9 +180,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         // if the thread has terminated, stop
         if (!currentNode.equals(currentThread.exitNode)) {
           Optional<CFANode> funcReturnNode = pState.funcReturnNodes.get(currentThread);
-          ImmutableSet<CFAEdge> returnEdges =
-              MPORUtil.returnLeavingEdges(currentNode, funcReturnNode);
-          for (CFAEdge cfaEdge : returnEdges) {
+          for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(currentNode, funcReturnNode)) {
             // if the next edge(s) is a global access, stop
             if (!GAC.hasGlobalAccess(cfaEdge)) {
               // otherwise, continue executing thread until a global access
@@ -195,6 +192,76 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     return pGapStatesBuilder.build();
+  }
+
+  /**
+   * Executes all possible combinations of leaving edges sequentially, i.e. thread order does not
+   * matter.
+   *
+   * @param pGapState the current GAP state where all threads execute at least one global access
+   *     next
+   * @return the set of reached MPORStates
+   */
+  private ImmutableSet<MPORState> executeGlobalAccessesSequentially(MPORState pGapState)
+      throws CPATransferException, InterruptedException {
+
+    ImmutableSet.Builder<MPORState> nextStates = ImmutableSet.builder();
+
+    // create list of maps of edges to be executed to their threads
+    Map<MPORThread, List<CFAEdge>> threadEdges = new HashMap<>();
+    for (var entry : pGapState.threadNodes.entrySet()) {
+      MPORThread thread = entry.getKey();
+      CFANode node = entry.getValue();
+      Optional<CFANode> funcReturnNode = pGapState.funcReturnNodes.get(thread);
+      threadEdges.put(thread, new ArrayList<>(MPORUtil.returnLeavingEdges(node, funcReturnNode)));
+    }
+
+    // TODO make immutable?
+    // create all combinations of edges to execute in all threads
+    List<Map<MPORThread, CFAEdge>> edgeCombinations = new ArrayList<>();
+    cartesianProduct(
+        threadEdges, new ArrayList<>(threadEdges.keySet()), 0, new HashMap<>(), edgeCombinations);
+
+    for (Map<MPORThread, CFAEdge> combination : edgeCombinations) {
+      MPORState newState = pGapState;
+      for (var entry : combination.entrySet()) {
+        newState = stateBuilder.createNewState(newState, entry.getKey(), entry.getValue());
+      }
+      nextStates.add(newState);
+    }
+    return nextStates.build();
+  }
+
+  /**
+   * Recursively creates the cartesian product of edge tuples with the number of threads as its
+   * size.
+   *
+   * @param pEdgesByThread the map of threads to their sets of current nodes leaving edges
+   * @param pThreads the list of threads we pIndex
+   * @param pIndex the current pIndex
+   * @param pCurrentCombination the current combination which is created
+   * @param pEdgeCombinations the list of combinations (maps form threads to executed edges)
+   */
+  private void cartesianProduct(
+      Map<MPORThread, List<CFAEdge>> pEdgesByThread,
+      List<MPORThread> pThreads,
+      int pIndex,
+      Map<MPORThread, CFAEdge> pCurrentCombination,
+      List<Map<MPORThread, CFAEdge>> pEdgeCombinations) {
+
+    if (pIndex == pThreads.size()) {
+      pEdgeCombinations.add(new HashMap<>(pCurrentCombination));
+      return;
+    }
+    MPORThread thread = pThreads.get(pIndex);
+    List<CFAEdge> edges = pEdgesByThread.get(thread);
+    assert edges != null;
+    for (CFAEdge edge : edges) {
+      pCurrentCombination.put(thread, edge);
+      cartesianProduct(
+          pEdgesByThread, pThreads, pIndex + 1, pCurrentCombination, pEdgeCombinations);
+      pCurrentCombination.remove(thread); // backtrack
+    }
   }
 
   private final ConfigurableProgramAnalysis CPA;
@@ -259,10 +326,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             CONFIG, LOG_MANAGER, INPUT_CFA, INPUT_CFA.getMainFunction().getFunction());
 
     functionCallMap = getFunctionCallMap(INPUT_CFA);
-    threads = getThreads(INPUT_CFA, functionCallMap);
-
     threadBuilder = new ThreadBuilder(functionCallMap);
     stateBuilder = new StateBuilder(PTR, functionCallMap);
+
+    threads = getThreads(INPUT_CFA, functionCallMap);
   }
 
   // Preconditions ===============================================================================
@@ -422,6 +489,37 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       ImmutableSet<CFAEdge> returnEdges = MPORUtil.returnLeavingEdges(currentNode, funcReturnNode);
       if (!GAC.anyGlobalAccess(returnEdges)) {
         return false;
+      }
+    }
+    return true;
+  }
+
+  private boolean allLeavingEdgesCommute(MPORState pGapState)
+      throws CPATransferException, InterruptedException {
+
+    // go through all thread-node pairings
+    for (var entryA : pGapState.threadNodes.entrySet()) {
+      MPORThread threadA = entryA.getKey();
+      for (var entryB : pGapState.threadNodes.entrySet()) {
+        MPORThread threadB = entryB.getKey();
+        if (threadA != threadB) {
+          CFANode nodeA = entryA.getValue();
+          CFANode nodeB = entryB.getValue();
+          Optional<CFANode> funcReturnNodeA = pGapState.funcReturnNodes.get(threadA);
+          Optional<CFANode> funcReturnNodeB = pGapState.funcReturnNodes.get(threadA);
+          // go through all pairings of global access leaving edges
+          for (CFAEdge edgeA : MPORUtil.returnLeavingEdges(nodeA, funcReturnNodeA)) {
+            if (GAC.hasGlobalAccess(edgeA)) {
+              for (CFAEdge edgeB : MPORUtil.returnLeavingEdges(nodeB, funcReturnNodeB)) {
+                if (GAC.hasGlobalAccess(edgeB)) {
+                  if (!MPORUtil.doEdgesCommute(PTR, pGapState.abstractState, edgeA, edgeB)) {
+                    return false;
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
     return true;
