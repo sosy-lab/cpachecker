@@ -809,7 +809,9 @@ public abstract class AbstractExpressionValueVisitor
 
   /** Round a float value to an integer with the given C type */
   private Number roundFloatToInteger(MachineModel pMachineModel, CType pType, FloatValue pValue) {
-    return switch (pMachineModel.getSizeof(pType).intValue() * pMachineModel.getSizeofChar()) {
+    int sizeOfType =
+        pMachineModel.getSizeof(pType).intValue() * pMachineModel.getSizeofCharInBits();
+    return switch (sizeOfType) {
       case SIZE_OF_JAVA_INT -> pValue.integerValue();
       case SIZE_OF_JAVA_LONG -> pValue.longValue();
       default -> throw new IllegalArgumentException();
@@ -1511,9 +1513,9 @@ public abstract class AbstractExpressionValueVisitor
               numResult = lVal % rVal;
               break;
 
-            // shift operations' behaviour is determined by whether the left hand side value is of
-            // type
-            // int or long, so we have to cast if the actual type is int.
+              // shift operations' behaviour is determined by whether the left hand side value is of
+              // type
+              // int or long, so we have to cast if the actual type is int.
             case SHIFT_LEFT:
               if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
                 final int intResult = ((int) lVal) << rVal;
