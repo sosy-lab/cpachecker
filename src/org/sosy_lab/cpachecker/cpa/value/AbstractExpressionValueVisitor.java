@@ -551,13 +551,20 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  /** Check that the arguments can be cast to the result type without losing precision */
-  private static void checkFloatTypesCompatible(
-      FloatValue.Format pResult, FloatValue.Format pArg1, FloatValue.Format pArg2) {
-    // TODO: Maybe just show a warning message?
+  /**
+   * Cast the argument to the result type of a builtin float function.
+   *
+   * <p>Will throw an {@link IllegalArgumentException} if the cast can't be done without losing
+   * precision
+   */
+  private static FloatValue castToResultType(
+      MachineModel pMachineModel, CType pType, FloatValue pValue) {
+    FloatValue.Format target = FloatValue.Format.fromCType(pMachineModel, pType);
+    // TODO: Maybe just print a warning?
     checkArgument(
-        pResult.equals(pArg1.matchWith(pArg2).matchWith(pResult)),
-        "Result type has too low precision for the arguments");
+        target.equals(target.matchWith(pValue.getFormat())),
+        "Can't cast to the result type without loss of precision");
+    return pValue.withPrecision(target);
   }
 
   /**
@@ -577,19 +584,17 @@ public abstract class AbstractExpressionValueVisitor
       final FloatValue pArg1,
       final FloatValue pArg2) {
 
-    checkFloatTypesCompatible(
-        FloatValue.Format.fromCType(pMachineModel, pResultType),
-        pArg1.getFormat(),
-        pArg2.getFormat());
+    FloatValue arg1 = castToResultType(pMachineModel, pResultType, pArg1);
+    FloatValue arg2 = castToResultType(pMachineModel, pResultType, pArg2);
 
     return switch (pOperation) {
-      case PLUS -> pArg1.add(pArg2);
-      case MINUS -> pArg1.subtract(pArg2);
-      case DIVIDE -> pArg1.divide(pArg2);
+      case PLUS -> arg1.add(arg2);
+      case MINUS -> arg1.subtract(arg2);
+      case DIVIDE -> arg1.divide(arg2);
       case MODULO ->
           // FIXME: Add support in FloatValue
           throw new UnsupportedOperationException();
-      case MULTIPLY -> pArg1.multiply(pArg2);
+      case MULTIPLY -> arg1.multiply(arg2);
       case SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
           throw new UnsupportedOperationException(
               "Trying to perform " + pOperation + " on floating point operands");
@@ -767,18 +772,16 @@ public abstract class AbstractExpressionValueVisitor
       final FloatValue pArg1,
       final FloatValue pArg2) {
 
-    checkFloatTypesCompatible(
-        FloatValue.Format.fromCType(pMachineModel, pResultType),
-        pArg1.getFormat(),
-        pArg2.getFormat());
+    FloatValue arg1 = castToResultType(pMachineModel, pResultType, pArg1);
+    FloatValue arg2 = castToResultType(pMachineModel, pResultType, pArg2);
 
     return switch (pOperation) {
-      case GREATER_THAN -> pArg1.greaterThan(pArg2);
-      case GREATER_EQUAL -> pArg1.greaterOrEqual(pArg2);
-      case LESS_THAN -> pArg1.lessThan(pArg2);
-      case LESS_EQUAL -> pArg1.lessOrEqual(pArg2);
-      case EQUALS -> pArg1.equalTo(pArg2);
-      case NOT_EQUALS -> pArg1.notEqualTo(pArg2);
+      case GREATER_THAN -> arg1.greaterThan(arg2);
+      case GREATER_EQUAL -> arg1.greaterOrEqual(arg2);
+      case LESS_THAN -> arg1.lessThan(arg2);
+      case LESS_EQUAL -> arg1.lessOrEqual(arg2);
+      case EQUALS -> arg1.equalTo(arg2);
+      case NOT_EQUALS -> arg1.notEqualTo(arg2);
       default -> throw new AssertionError("unknown binary operation: " + pOperation);
     };
   }
@@ -797,16 +800,6 @@ public abstract class AbstractExpressionValueVisitor
   public Value visit(CComplexCastExpression pE) throws UnrecognizedCodeException {
     // evaluation of complex numbers is not supported by now
     return Value.UnknownValue.getInstance();
-  }
-
-  private static FloatValue castToResultType(
-      MachineModel pMachineModel, CType pType, FloatValue pValue) {
-    FloatValue.Format target = FloatValue.Format.fromCType(pMachineModel, pType);
-    // TODO: Maybe just print a warning?
-    checkArgument(
-        target.equals(target.matchWith(pValue.getFormat())),
-        "Can't cast to the result type without loss of precision");
-    return pValue.withPrecision(target);
   }
 
   /** Round a float value to an integer with the given C type */
