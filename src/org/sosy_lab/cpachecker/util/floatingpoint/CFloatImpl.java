@@ -276,7 +276,7 @@ class CFloatImpl extends CFloat {
   @Override
   public CFloat copySignFrom(CFloat source) {
     if (source instanceof CFloatImpl mySource) {
-      return new CFloatImpl(mySource.isNegative() ? delegate.abs().negate() : delegate.abs());
+      return new CFloatImpl(delegate.copySign(mySource.delegate));
     }
     throw new UnsupportedOperationException();
   }

@@ -612,7 +612,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     };
   }
 
-  /** Clone the value with a new exponent. */
+  /** Copy the value with a new exponent. */
   private FloatValue withExponent(long pExponent) {
     Format precision = format.withUnlimitedExponent();
     FloatValue expPart =
@@ -621,9 +621,14 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     return this.withPrecision(precision).multiply(expPart).withPrecision(format);
   }
 
-  /** Clone the value with a new sign. */
+  /** Copy the value with a new sign. */
   private FloatValue withSign(boolean pSign) {
     return new FloatValue(format, pSign, exponent, significand);
+  }
+
+  /** Copy the value with the sign from the argument */
+  public FloatValue copySign(FloatValue pSign) {
+    return withSign(pSign.sign);
   }
 
   /**
