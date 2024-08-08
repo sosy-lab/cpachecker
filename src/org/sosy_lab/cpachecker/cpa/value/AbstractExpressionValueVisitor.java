@@ -1100,7 +1100,7 @@ public abstract class AbstractExpressionValueVisitor
                       BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName),
                       ((NumericValue) operand2).floatingPointValue());
 
-              return new NumericValue(arg2.isNegative() ? arg1.abs().negate() : arg1.abs());
+              return new NumericValue(arg1.copySign(arg2));
             }
           }
 
@@ -1132,29 +1132,22 @@ public abstract class AbstractExpressionValueVisitor
           }
 
         } else if (BuiltinFloatFunctions.matchesModf(calledFunctionName)) {
-          // FIXME: Rewrite for FloatValue
+          // We ignore the integer part that needs to be written to the pointer in the 2nd argument
           if (parameterValues.size() == 2) {
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
-              NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType =
-                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
-              switch (paramType.getType()) {
-                case FLOAT:
-                  {
-                    long integralPart = (long) numericValue.floatValue();
-                    float fractionalPart = numericValue.floatValue() - integralPart;
-                    return new NumericValue(fractionalPart);
-                  }
-                case DOUBLE:
-                  {
-                    long integralPart = (long) numericValue.doubleValue();
-                    double fractionalPart = numericValue.doubleValue() - integralPart;
-                    return new NumericValue(fractionalPart);
-                  }
-                default:
-                  break;
-              }
+              FloatValue arg =
+                  castToResultType(
+                      machineModel,
+                      BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName),
+                      ((NumericValue) value).floatingPointValue());
+
+              FloatValue integer = arg.round(RoundingMode.TRUNCATE);
+              FloatValue fraction = arg.subtract(integer);
+
+              // Fix the sign if the result is zero
+              return new NumericValue(
+                  (arg.isInfinite() ? FloatValue.zero(arg.getFormat()) : fraction).copySign(arg));
             }
           }
 
