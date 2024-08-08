@@ -1347,6 +1347,13 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     return r.withSign(arg1.sign ^ arg2.sign);
   }
 
+  /**
+   * Calculate x modulo y
+   *
+   * <p>We define the modulo as <code>m = x - y*q</code> where <code>q</code> is the quotient
+   * <code>x/y</code> rounded to the next integer with rounding mode {@link
+   * RoundingMode#TRUNCATE RoundingMode.TRUNCATE}.
+   */
   public FloatValue modulo(FloatValue pNumber) {
     Format precision = format.matchWith(pNumber.format);
     Format extendedPrecision = precision.withUnlimitedExponent();
