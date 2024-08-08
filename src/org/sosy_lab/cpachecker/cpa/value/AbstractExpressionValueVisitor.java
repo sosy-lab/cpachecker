@@ -909,7 +909,8 @@ public abstract class AbstractExpressionValueVisitor
           return new NumericValue(FloatValue.infinity(precision));
 
         } else if (BuiltinFloatFunctions.matchesNaN(calledFunctionName)) {
-          checkArgument(parameterValues.isEmpty(), "NaN payloads are not supported");
+          // FIXME: Make sure nan is not called with a payload other than zero
+          // checkArgument(parameterValues.isEmpty(), "NaN payloads are not supported");
           FloatValue.Format precision =
               FloatValue.Format.fromCType(
                   machineModel,
