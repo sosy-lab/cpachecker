@@ -8,15 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+public enum SeqElement {
+  ASSUME("assume"),
+  NEXT_THREAD("nextThread"),
+  NON_DET("nondet()"),
+  NUM_THREADS("numThreads"),
+  WHILE("while");
 
-@SuppressWarnings("unused")
-@SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
-public class Sequentialization {
+  /** The String representation for the sequentialization element type. */
+  public final String string;
 
-  protected final int numThreads;
-
-  public Sequentialization(int pNumThreads) {
-    numThreads = pNumThreads;
+  SeqElement(String pString) {
+    string = pString;
   }
 }

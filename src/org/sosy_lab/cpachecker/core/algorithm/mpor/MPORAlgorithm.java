@@ -321,15 +321,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     PredicateCPA predicateCpa =
         CPAs.retrieveCPAOrFail(CPA, PredicateCPA.class, PredicateRefiner.class);
     PTR = predicateCpa.getTransferRelation();
-    SEQ =
-        new Sequentialization(
-            CONFIG, LOG_MANAGER, INPUT_CFA, INPUT_CFA.getMainFunction().getFunction());
 
     functionCallMap = getFunctionCallMap(INPUT_CFA);
     threadBuilder = new ThreadBuilder(functionCallMap);
     stateBuilder = new StateBuilder(PTR, functionCallMap);
 
     threads = getThreads(INPUT_CFA, functionCallMap);
+
+    SEQ = new Sequentialization(threads.size());
   }
 
   // Preconditions ===============================================================================
