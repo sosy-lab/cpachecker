@@ -1099,10 +1099,6 @@ public abstract class AbstractExpressionValueVisitor
               calledFunctionName,
               parameterValues,
               (FloatValue arg1, FloatValue arg2) -> (arg1.isNan() || arg2.isNan()) ? 1 : 0);
-
-        } else {
-          // Should be unreachable
-          throw new UnsupportedOperationException();
         }
       }
     }
