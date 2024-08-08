@@ -1350,42 +1350,21 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
   /**
    * Calculate x modulo y
    *
-   * <p>We define the modulo as <code>m = x - y*q</code> where <code>q</code> is the quotient
-   * <code>x/y</code> rounded to the next integer with rounding mode {@link
-   * RoundingMode#TRUNCATE RoundingMode.TRUNCATE}.
+   * <p>We define the modulo as <code>m = x - y*q</code> where <code>q</code> is the quotient <code>
+   * x/y</code> rounded to the next integer with rounding mode {@link RoundingMode#TRUNCATE
+   * RoundingMode.TRUNCATE}.
    */
   public FloatValue modulo(FloatValue pNumber) {
-    Format precision = format.matchWith(pNumber.format);
-    Format extendedPrecision = precision.withUnlimitedExponent();
+    FloatValue arg1 = this.abs();
+    FloatValue arg2 = pNumber.abs();
 
-    FloatValue arg1 = this.abs().withPrecision(extendedPrecision);
-    FloatValue arg2 = pNumber.abs().withPrecision(extendedPrecision);
+    FloatValue r = arg1.remainder(arg2);
 
-    // Handle special cases
-    if (arg1.isNan() || arg2.isNan()) {
-      return nan(precision);
-    } else if (arg1.isInfinite() || arg2.isZero()) {
-      return nan(precision);
-    } else if (arg1.isZero() || arg2.isInfinite()) {
-      return this;
+    // Fix the rounding and truncate the result
+    if (r.isNegative()) {
+      r = r.add(arg2);
     }
-
-    // Shift arg2 to the left to match arg1
-    FloatValue d = arg2.withExponent(arg1.exponent);
-    if (arg1.lessThan(d)) {
-      d = arg2.withExponent(arg1.exponent - 1);
-    }
-
-    // Divide arg1 by arg2
-    while (arg2.lessOrEqual(d)) {
-      if (arg1.greaterOrEqual(d)) {
-        arg1 = arg1.subtract(d);
-      }
-      d = d.withExponent(d.exponent - 1);
-    }
-
-    // Fix the sign and return
-    return arg1.copySign(this).withPrecision(precision);
+    return r.copySign(this);
   }
 
   /**
