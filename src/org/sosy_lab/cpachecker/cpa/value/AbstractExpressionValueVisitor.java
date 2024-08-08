@@ -283,7 +283,7 @@ public abstract class AbstractExpressionValueVisitor
       case LESS_EQUAL:
         {
           result =
-              booleanOperation(
+              comparisonOperation(
                   (NumericValue) lVal,
                   (NumericValue) rVal,
                   binaryOperator,
@@ -673,7 +673,7 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private static Value booleanOperation(
+  private static Value comparisonOperation(
       final NumericValue l,
       final NumericValue r,
       final BinaryOperator op,
@@ -689,7 +689,6 @@ public abstract class AbstractExpressionValueVisitor
       return Value.UnknownValue.getInstance();
     }
 
-    final int cmp;
     switch (type.getType()) {
       case INT128:
       case CHAR:
@@ -698,29 +697,45 @@ public abstract class AbstractExpressionValueVisitor
           CSimpleType canonicalType = type.getCanonicalType();
           int sizeInBits =
               machineModel.getSizeof(canonicalType) * machineModel.getSizeofCharInBits();
+
+          // Compare the two numbers
+          final int cmp;
           if ((!machineModel.isSigned(canonicalType) && sizeInBits == SIZE_OF_JAVA_LONG)
               || sizeInBits > SIZE_OF_JAVA_LONG) {
             BigInteger leftBigInt = l.bigIntegerValue();
             BigInteger rightBigInt = r.bigIntegerValue();
             cmp = leftBigInt.compareTo(rightBigInt);
-            break;
+          } else {
+            cmp = Long.compare(l.longValue(), r.longValue());
           }
-          cmp = Long.compare(l.longValue(), r.longValue());
-          break;
+
+          // returns True, iff cmp fulfills the boolean operation.
+          boolean result =
+              switch (op) {
+                case GREATER_THAN -> cmp > 0;
+                case GREATER_EQUAL -> cmp >= 0;
+                case LESS_THAN -> cmp < 0;
+                case LESS_EQUAL -> cmp <= 0;
+                case EQUALS -> cmp == 0;
+                case NOT_EQUALS -> cmp != 0;
+                default -> throw new AssertionError("unknown binary operation: " + op);
+              };
+
+          // return 1 if expression holds, 0 otherwise
+          return new NumericValue(result ? 1L : 0L);
         }
       case FLOAT:
       case DOUBLE:
       case FLOAT128:
         {
-          return new NumericValue(
-              booleanOperation(
-                      machineModel,
-                      calculationType,
-                      op,
-                      l.floatingPointValue(),
-                      r.floatingPointValue())
-                  ? 1
-                  : 0);
+          boolean result =
+              comparisonOperation(
+                  machineModel,
+                  calculationType,
+                  op,
+                  l.floatingPointValue(),
+                  r.floatingPointValue());
+          return new NumericValue(result ? 1 : 0);
         }
       default:
         {
@@ -732,22 +747,6 @@ public abstract class AbstractExpressionValueVisitor
           return Value.UnknownValue.getInstance();
         }
     }
-
-    // return 1 if expression holds, 0 otherwise
-    return new NumericValue(matchBooleanOperation(op, cmp) ? 1L : 0L);
-  }
-
-  /** returns True, iff cmp fulfills the boolean operation. */
-  private static boolean matchBooleanOperation(final BinaryOperator op, final int cmp) {
-    return switch (op) {
-      case GREATER_THAN -> cmp > 0;
-      case GREATER_EQUAL -> cmp >= 0;
-      case LESS_THAN -> cmp < 0;
-      case LESS_EQUAL -> cmp <= 0;
-      case EQUALS -> cmp == 0;
-      case NOT_EQUALS -> cmp != 0;
-      default -> throw new AssertionError("unknown binary operation: " + op);
-    };
   }
 
   /**
@@ -760,7 +759,7 @@ public abstract class AbstractExpressionValueVisitor
    * @param pArg2 right hand side value
    * @return the resulting value
    */
-  private static boolean booleanOperation(
+  private static boolean comparisonOperation(
       final MachineModel pMachineModel,
       final CType pResultType,
       final BinaryOperator pOperation,
