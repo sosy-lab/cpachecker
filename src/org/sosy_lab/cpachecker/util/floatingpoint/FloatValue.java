@@ -326,14 +326,14 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     }
 
     /** The largest exponent supported by this format */
-    public long minExp() {
-      long rawExp = 1;
+    public long maxExp() {
+      long rawExp = (1L << expBits) - 2;
       return rawExp - bias();
     }
 
     /** The smallest (= largest negative) exponent supported by this format */
-    public long maxExp() {
-      long rawExp = (1L << expBits) - 2;
+    public long minExp() {
+      long rawExp = 1;
       return rawExp - bias();
     }
 
