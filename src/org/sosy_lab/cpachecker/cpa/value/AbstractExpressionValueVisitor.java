@@ -493,35 +493,6 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   /**
-   * Calculate an arithmetic operation on two double types.
-   *
-   * @param l left hand side value
-   * @param r right hand side value
-   * @param op the binary operator
-   * @param calculationType The type the result of the calculation should have
-   * @return the resulting value
-   */
-  private static double arithmeticOperation(
-      final double l, final double r, final BinaryOperator op, final CType calculationType) {
-
-    checkArgument(
-        calculationType.getCanonicalType() instanceof CSimpleType
-            && !((CSimpleType) calculationType.getCanonicalType()).hasLongSpecifier(),
-        "Value analysis can't compute long double values in a precise manner");
-
-    return switch (op) {
-      case PLUS -> l + r;
-      case MINUS -> l - r;
-      case DIVIDE -> l / r;
-      case MODULO -> l % r;
-      case MULTIPLY -> l * r;
-      case SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
-          throw new AssertionError("trying to perform " + op + " on floating point operands");
-      default -> throw new AssertionError("unknown binary operation: " + op);
-    };
-  }
-
-  /**
    * Calculate an arithmetic operation on two int128 types.
    *
    * @param l left hand side value
@@ -579,24 +550,49 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
+  /** Check that the arguments can be cast to the result type without losing precision */
+  private static void checkFloatTypesCompatible(
+      FloatValue.Format pResult, FloatValue.Format pArg1, FloatValue.Format pArg2) {
+    // TODO: Maybe just show a warning message?
+    checkArgument(
+        pResult.equals(pArg1.matchWith(pArg2).matchWith(pResult)),
+        "Result type has too low precision for the arguments");
+  }
+
   /**
-   * Calculate an arithmetic operation on two float types.
+   * Calculate an arithmetic operation on two floating point values.
    *
-   * @param l left hand side value
-   * @param r right hand side value
+   * @param pMachineModel The machine model that defines the sizes for C types
+   * @param pResultType The type the result of the calculation should have
+   * @param pOperation the binary operator
+   * @param pArg1 left hand side value
+   * @param pArg2 right hand side value
    * @return the resulting value
    */
-  private static float arithmeticOperation(final float l, final float r, final BinaryOperator op) {
+  private static FloatValue arithmeticOperation(
+      final MachineModel pMachineModel,
+      final CType pResultType,
+      final BinaryOperator pOperation,
+      final FloatValue pArg1,
+      final FloatValue pArg2) {
 
-    return switch (op) {
-      case PLUS -> l + r;
-      case MINUS -> l - r;
-      case DIVIDE -> l / r;
-      case MODULO -> l % r;
-      case MULTIPLY -> l * r;
+    checkFloatTypesCompatible(
+        FloatValue.Format.fromCType(pMachineModel, pResultType),
+        pArg1.getFormat(),
+        pArg2.getFormat());
+
+    return switch (pOperation) {
+      case PLUS -> pArg1.add(pArg2);
+      case MINUS -> pArg1.subtract(pArg2);
+      case DIVIDE -> pArg1.divide(pArg2);
+      case MODULO ->
+          // FIXME: Add support in FloatValue
+          throw new UnsupportedOperationException();
+      case MULTIPLY -> pArg1.multiply(pArg2);
       case SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
-          throw new AssertionError("trying to perform " + op + " on floating point operands");
-      default -> throw new AssertionError("unknown binary operation: " + op);
+          throw new UnsupportedOperationException(
+              "Trying to perform " + pOperation + " on floating point operands");
+      default -> throw new IllegalArgumentException("Unknown binary operation: " + pOperation);
     };
   }
 
@@ -646,31 +642,17 @@ public abstract class AbstractExpressionValueVisitor
             BigInteger result = arithmeticOperation(lVal, rVal, op, logger);
             return new NumericValue(result);
           }
-        case DOUBLE:
-          {
-            if (type.hasLongSpecifier()) {
-              return arithmeticOperationForLongDouble(
-                  lNum, rNum, op, calculationType, machineModel, logger);
-            } else {
-              double lVal = lNum.doubleValue();
-              double rVal = rNum.doubleValue();
-              double result = arithmeticOperation(lVal, rVal, op, calculationType);
-              if (Double.isNaN(result)) {
-                // Make sure that the sign bit is not set if the result is NaN
-                // Dividing 0.0 by 0.0 seems to return -NaN, at least on my JVM and this is not what
-                // we want here.
-                // FIXME: Rewrite this entire class to operate on FloatValues
-                result = Double.NaN;
-              }
-              return new NumericValue(result);
-            }
-          }
         case FLOAT:
+        case DOUBLE:
+        case FLOAT128:
           {
-            float lVal = lNum.floatValue();
-            float rVal = rNum.floatValue();
-            float result = arithmeticOperation(lVal, rVal, op);
-            return new NumericValue(result);
+            return new NumericValue(
+                arithmeticOperation(
+                    machineModel,
+                    calculationType,
+                    op,
+                    lNum.floatingPointValue(),
+                    rNum.floatingPointValue()));
           }
         default:
           {
@@ -689,18 +671,6 @@ public abstract class AbstractExpressionValueVisitor
           rNum.floatingPointValue());
       return Value.UnknownValue.getInstance();
     }
-  }
-
-  @SuppressWarnings("unused")
-  private static Value arithmeticOperationForLongDouble(
-      NumericValue pLNum,
-      NumericValue pRNum,
-      BinaryOperator pOp,
-      CType pCalculationType,
-      MachineModel pMachineModel,
-      LogManager pLogger) {
-    // TODO: cf. https://gitlab.com/sosy-lab/software/cpachecker/issues/507
-    return Value.UnknownValue.getInstance();
   }
 
   private static Value booleanOperation(
