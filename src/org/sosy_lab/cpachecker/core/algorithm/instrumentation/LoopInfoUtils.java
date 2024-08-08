@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -56,6 +57,7 @@ public class LoopInfoUtils {
                 .getFileLocation()
                 .getStartingLineInOrigin());
       }
+      Integer maxLoopLocation = Collections.max(loopLocations);
 
       // Determine the names of all variables used except those declared inside the loop
       Set<String> liveVariables = new HashSet<>();
@@ -68,7 +70,8 @@ public class LoopInfoUtils {
         checked.add(cfaEdge);
         if (cfaEdge.getRawAST().isPresent()) {
           AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
-          if (aAstNode instanceof CSimpleDeclaration) {
+          if (aAstNode instanceof CSimpleDeclaration
+              && cfaEdge.getFileLocation().getStartingLineInOrigin() > maxLoopLocation) {
             variablesDeclaredInsideLoop.add(((CSimpleDeclaration) aAstNode).getQualifiedName());
           } else {
             if (aAstNode instanceof CFunctionCallStatement) {
