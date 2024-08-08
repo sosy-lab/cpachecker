@@ -1412,7 +1412,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Correct by one to find the closest multiple
     FloatValue nextValue = arg1.subtract(arg2).abs();
-    if (nextValue.lessThan(arg1) || nextValue.equalTo(arg1) && isOdd) {
+    if (nextValue.lessThan(arg1) || (nextValue.equalTo(arg1) && isOdd)) {
       // This implements "round to nearest ties to even"
       arg1 = arg1.subtract(arg2);
     }
