@@ -1381,6 +1381,63 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     return arg1.copySign(this).withPrecision(precision);
   }
 
+  /**
+   * Calculate the remainder of the division x/y
+   *
+   * <p>The remainder is defined as <code>r = x - y*q</code> where <code>q</code> is the quotient
+   * <code>x/y</code> rounded to the next integer with rounding mode {@link
+   * RoundingMode#NEAREST_EVEN RoundingMode.NEAREST_EVEN}.
+   */
+  public FloatValue remainder(FloatValue pNumber) {
+    // Match the format of the arguments and allow larger exponents to avoid overflows
+    Format precision = format.matchWith(pNumber.format);
+    Format extendedPrecision = precision.withUnlimitedExponent();
+
+    // Use the absolute values of x and y for the calculation. The sign will be fixed later.
+    FloatValue arg1 = this.abs().withPrecision(extendedPrecision);
+    FloatValue arg2 = pNumber.abs().withPrecision(extendedPrecision);
+
+    // Handle special cases
+    if (arg1.isNan() || arg2.isNan()) {
+      return nan(precision);
+    } else if (arg1.isInfinite() || arg2.isZero()) {
+      return nan(precision);
+    } else if (arg1.isZero() || arg2.isInfinite()) {
+      return this;
+    }
+
+    // Shift arg2 to the left to match arg1
+    FloatValue divisor = arg2.withExponent(arg1.exponent);
+    if (arg1.lessThan(divisor)) {
+      divisor = arg2.withExponent(arg1.exponent - 1);
+    }
+
+    boolean isOdd = false; // Will be set after the division if the (truncated) quotient is odd
+
+    // Divide arg1 by arg2
+    while (divisor.greaterOrEqual(arg2)) {
+      isOdd = false;
+      if (arg1.greaterOrEqual(divisor)) {
+        arg1 = arg1.subtract(divisor);
+        isOdd = true;
+      }
+      divisor = divisor.withExponent(divisor.exponent - 1);
+    }
+
+    // Correct by one to find the closest multiple
+    FloatValue nextValue = arg1.subtract(arg2).abs();
+    if (nextValue.lessThan(arg1) || nextValue.equalTo(arg1) && isOdd) {
+      // This implements "round to nearest ties to even"
+      arg1 = arg1.subtract(arg2);
+    }
+
+    // Fix the sign if x was negative
+    if (this.isNegative()) {
+      arg1 = arg1.negate();
+    }
+    return arg1.withPrecision(precision);
+  }
+
   /** Square root */
   public FloatValue sqrt() {
     // The calculation will be done in a higher precision and the result is then rounded down.

@@ -322,6 +322,30 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 	return transformWrapperToJava(env, result, maxType);
 }
 
+JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_remainderFp(JNIEnv* env, jclass cl, jobject wrapper1, jint type1, jobject wrapper2, jint type2) {
+	t_ld fp_1 = transformWrapperFromJava(env, wrapper1, type1);
+	t_ld fp_2 = transformWrapperFromJava(env, wrapper2, type2);
+
+	t_ld result = { .ld_value = 0.0L };
+
+	jint maxType = max(type1, type2);
+	switch(maxType) {
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
+			result.f_value = remainderf(fp_1.f_value, fp_2.f_value);
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
+			result.d_value = remainder(chooseOf2(type1, fp_1), chooseOf2(type2, fp_2));
+			break;
+		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
+			result.ld_value = remainderl(chooseOf3(type1, fp_1), chooseOf3(type2, fp_2));
+			break;
+		default:
+			throwException(env, EX_TEXT);
+	}
+
+	return transformWrapperToJava(env, result, maxType);
+}
+
 JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_addManyFp(JNIEnv* env, jclass cl, jobject wrapper, jintArray type, jobjectArray summands) {
 	jint* types = (*env)->GetIntArrayElements(env, type, 0);
 	t_ld fp = transformWrapperFromJava(env, wrapper, types[0]);

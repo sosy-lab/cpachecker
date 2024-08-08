@@ -179,6 +179,14 @@ class MpfrFloat extends CFloat {
   }
 
   @Override
+  public CFloat remainder(CFloat pDivisor) {
+    if (pDivisor instanceof MpfrFloat otherMpfr) {
+      return new MpfrFloat(value.remainder(otherMpfr.value, format), format);
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public CFloat ln() {
     return new MpfrFloat(value.log(format), format);
   }

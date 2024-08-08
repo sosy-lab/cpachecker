@@ -119,6 +119,11 @@ class JDouble extends CFloat {
   }
 
   @Override
+  public CFloat remainder(CFloat pDivisor) {
+    return new JDouble(Math.IEEEremainder(value, toDouble(pDivisor.getWrapper())));
+  }
+
+  @Override
   public CFloat ln() {
     return new JDouble(Math.log(toDouble()));
   }

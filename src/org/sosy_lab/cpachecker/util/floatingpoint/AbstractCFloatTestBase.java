@@ -744,6 +744,11 @@ abstract class AbstractCFloatTestBase {
     testOperator("modulo", 0, (CFloat a, CFloat b) -> a.modulo(b));
   }
 
+  @Test
+  public void remainderTest() {
+    testOperator("remainder", 0, (CFloat a, CFloat b) -> a.remainder(b));
+  }
+
   private static int findClosest(Map<Integer, Float> accum, float p) {
     for (Integer k : accum.keySet().stream().sorted().toList()) {
       if (accum.get(k) >= p) {

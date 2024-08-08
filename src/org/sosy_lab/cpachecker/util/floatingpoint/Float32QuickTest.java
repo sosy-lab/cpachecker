@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import static com.google.common.truth.Truth.assertThat;
+
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
@@ -24,7 +27,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 public class Float32QuickTest extends AbstractCFloatTestBase {
   @Override
   Format getFloatType() {
-    return Format.Float32;
+    return Format.Float64;
   }
 
   @Parameters(name = "{0}")
@@ -43,5 +46,18 @@ public class Float32QuickTest extends AbstractCFloatTestBase {
   @Override
   int getNumberOfTests() {
     return 100;
+  }
+
+  @Test
+  public void remTest() {
+    double d0 = 1.9989e-02; // -1.7976931e+4f;
+    double d1 = 6.1035e-05; // 1.8371173f;
+
+    FloatValue r0 = FloatValue.fromString(Format.Float16, String.valueOf(d0));
+    FloatValue r1 = FloatValue.fromString(Format.Float16, String.valueOf(d1));
+
+    FloatValue r = FloatValue.fromString(Format.Float16, String.valueOf(-3.0518e-05));
+
+    assertThat(r0.remainder(r1)).isEqualTo(r);
   }
 }

@@ -96,6 +96,9 @@ class CFloatNativeAPI {
   public static native CFloatWrapper moduloFp(
       CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
 
+  public static native CFloatWrapper remainderFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+
   public static native CFloatWrapper add3Fp(
       CFloatWrapper fp1,
       int fp_type1,

@@ -98,6 +98,8 @@ abstract class CFloat implements Comparable<CFloat> {
 
   public abstract CFloat modulo(final CFloat pDivisor);
 
+  public abstract CFloat remainder(final CFloat pDivisor);
+
   /** The natural logorithm ln(x) */
   public abstract CFloat ln();
 
