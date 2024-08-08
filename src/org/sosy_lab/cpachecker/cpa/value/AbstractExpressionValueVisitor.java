@@ -709,35 +709,18 @@ public abstract class AbstractExpressionValueVisitor
           break;
         }
       case FLOAT:
-        {
-          float lVal = l.floatValue();
-          float rVal = r.floatValue();
-
-          if (Float.isNaN(lVal) || Float.isNaN(rVal)) {
-            return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
-          }
-          if (lVal == 0 && rVal == 0) {
-            cmp = 0;
-          } else {
-            cmp = Float.compare(lVal, rVal);
-          }
-          break;
-        }
       case DOUBLE:
+      case FLOAT128:
         {
-          double lVal = l.doubleValue();
-          double rVal = r.doubleValue();
-
-          if (Double.isNaN(lVal) || Double.isNaN(rVal)) {
-            return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
-          }
-
-          if (lVal == 0 && rVal == 0) {
-            cmp = 0;
-          } else {
-            cmp = Double.compare(lVal, rVal);
-          }
-          break;
+          return new NumericValue(
+              booleanOperation(
+                      machineModel,
+                      calculationType,
+                      op,
+                      l.floatingPointValue(),
+                      r.floatingPointValue())
+                  ? 1
+                  : 0);
         }
       default:
         {
@@ -764,6 +747,39 @@ public abstract class AbstractExpressionValueVisitor
       case EQUALS -> cmp == 0;
       case NOT_EQUALS -> cmp != 0;
       default -> throw new AssertionError("unknown binary operation: " + op);
+    };
+  }
+
+  /**
+   * Calculate a comparison operation on two floating point values.
+   *
+   * @param pMachineModel The machine model that defines the sizes for C types
+   * @param pResultType The type the result of the calculation should have
+   * @param pOperation the binary operator
+   * @param pArg1 left hand side value
+   * @param pArg2 right hand side value
+   * @return the resulting value
+   */
+  private static boolean booleanOperation(
+      final MachineModel pMachineModel,
+      final CType pResultType,
+      final BinaryOperator pOperation,
+      final FloatValue pArg1,
+      final FloatValue pArg2) {
+
+    checkFloatTypesCompatible(
+        FloatValue.Format.fromCType(pMachineModel, pResultType),
+        pArg1.getFormat(),
+        pArg2.getFormat());
+
+    return switch (pOperation) {
+      case GREATER_THAN -> pArg1.greaterThan(pArg2);
+      case GREATER_EQUAL -> pArg1.greaterOrEqual(pArg2);
+      case LESS_THAN -> pArg1.lessThan(pArg2);
+      case LESS_EQUAL -> pArg1.lessOrEqual(pArg2);
+      case EQUALS -> pArg1.equalTo(pArg2);
+      case NOT_EQUALS -> pArg1.notEqualTo(pArg2);
+      default -> throw new AssertionError("unknown binary operation: " + pOperation);
     };
   }
 
@@ -1766,9 +1782,9 @@ public abstract class AbstractExpressionValueVisitor
               numResult = lVal % rVal;
               break;
 
-            // shift operations' behaviour is determined by whether the left hand side value is of
-            // type
-            // int or long, so we have to cast if the actual type is int.
+              // shift operations' behaviour is determined by whether the left hand side value is of
+              // type
+              // int or long, so we have to cast if the actual type is int.
             case SHIFT_LEFT:
               if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
                 final int intResult = ((int) lVal) << rVal;
