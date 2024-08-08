@@ -1132,7 +1132,8 @@ public abstract class AbstractExpressionValueVisitor
           }
 
         } else if (BuiltinFloatFunctions.matchesModf(calledFunctionName)) {
-          // We ignore the integer part that needs to be written to the pointer in the 2nd argument
+          // We only need the return value and can ignore the integer part that needs to be written
+          // to the pointer in the 2nd argument
           if (parameterValues.size() == 2) {
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
@@ -1152,86 +1153,42 @@ public abstract class AbstractExpressionValueVisitor
           }
 
         } else if (BuiltinFloatFunctions.matchesFremainder(calledFunctionName)) {
-          // FIXME: Rewrite for FloatValue
           if (parameterValues.size() == 2) {
-            Value numer = parameterValues.get(0);
-            Value denom = parameterValues.get(1);
-            if (numer.isExplicitlyKnown() && denom.isExplicitlyKnown()) {
-              NumericValue numerValue = numer.asNumericValue();
-              NumericValue denomValue = denom.asNumericValue();
-              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName)
-                  .getType()) {
-                case FLOAT:
-                  {
-                    float num = numerValue.floatValue();
-                    float den = denomValue.floatValue();
-                    if (Float.isNaN(num) || Float.isNaN(den) || Float.isInfinite(num) || den == 0) {
-                      return new NumericValue(Float.NaN);
-                    }
-                    return new NumericValue((float) Math.IEEEremainder(num, den));
-                  }
-                case DOUBLE:
-                  {
-                    double num = numerValue.doubleValue();
-                    double den = denomValue.doubleValue();
-                    if (Double.isNaN(num)
-                        || Double.isNaN(den)
-                        || Double.isInfinite(num)
-                        || den == 0) {
-                      return new NumericValue(Double.NaN);
-                    }
-                    return new NumericValue(Math.IEEEremainder(num, den));
-                  }
-                default:
-                  break;
-              }
+            Value operand1 = parameterValues.get(0);
+            Value operand2 = parameterValues.get(1);
+            if (operand1.isExplicitlyKnown() && operand2.isExplicitlyKnown()) {
+              FloatValue arg1 =
+                  castToResultType(
+                      machineModel,
+                      BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName),
+                      ((NumericValue) operand1).floatingPointValue());
+              FloatValue arg2 =
+                  castToResultType(
+                      machineModel,
+                      BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName),
+                      ((NumericValue) operand2).floatingPointValue());
+
+              return new NumericValue(arg1.remainder(arg2));
             }
           }
 
         } else if (BuiltinFloatFunctions.matchesFmod(calledFunctionName)) {
-          // FIXME: Rewrite for FloatValue
           if (parameterValues.size() == 2) {
-            Value numer = parameterValues.get(0);
-            Value denom = parameterValues.get(1);
-            if (numer.isExplicitlyKnown() && denom.isExplicitlyKnown()) {
-              NumericValue numerValue = numer.asNumericValue();
-              NumericValue denomValue = denom.asNumericValue();
-              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName)
-                  .getType()) {
-                case FLOAT:
-                  {
-                    float num = numerValue.floatValue();
-                    float den = denomValue.floatValue();
-                    if (Float.isNaN(num) || Float.isNaN(den) || Float.isInfinite(num) || den == 0) {
-                      return new NumericValue(Float.NaN);
-                    }
-                    if (num == 0 && den != 0) {
-                      // keep the sign on +0 and -0
-                      return numer;
-                    }
-                    // TODO computations on float/double are imprecise! Use epsilon environment?
-                    return new NumericValue(num % den);
-                  }
-                case DOUBLE:
-                  {
-                    double num = numerValue.doubleValue();
-                    double den = denomValue.doubleValue();
-                    if (Double.isNaN(num)
-                        || Double.isNaN(den)
-                        || Double.isInfinite(num)
-                        || den == 0) {
-                      return new NumericValue(Double.NaN);
-                    }
-                    if (num == 0 && den != 0) {
-                      // keep the sign on +0 and -0
-                      return numer;
-                    }
-                    // TODO computations on float/double are imprecise! Use epsilon environment?
-                    return new NumericValue(num % den);
-                  }
-                default:
-                  break;
-              }
+            Value operand1 = parameterValues.get(0);
+            Value operand2 = parameterValues.get(1);
+            if (operand1.isExplicitlyKnown() && operand2.isExplicitlyKnown()) {
+              FloatValue arg1 =
+                  castToResultType(
+                      machineModel,
+                      BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName),
+                      ((NumericValue) operand1).floatingPointValue());
+              FloatValue arg2 =
+                  castToResultType(
+                      machineModel,
+                      BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName),
+                      ((NumericValue) operand2).floatingPointValue());
+
+              return new NumericValue(arg1.modulo(arg2));
             }
           }
 
