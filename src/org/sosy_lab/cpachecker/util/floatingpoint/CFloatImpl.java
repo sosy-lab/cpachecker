@@ -178,6 +178,14 @@ class CFloatImpl extends CFloat {
   }
 
   @Override
+  public CFloat modulo(CFloat pDivisor) {
+    if (pDivisor instanceof CFloatImpl myDivisor) {
+      return new CFloatImpl(delegate.modulo(myDivisor.delegate));
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public CFloat ln() {
     return new CFloatImpl(delegate.ln());
   }

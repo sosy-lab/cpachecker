@@ -1347,6 +1347,40 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     return r.withSign(arg1.sign ^ arg2.sign);
   }
 
+  public FloatValue modulo(FloatValue pNumber) {
+    Format precision = format.matchWith(pNumber.format);
+    Format extendedPrecision = precision.withUnlimitedExponent();
+
+    FloatValue arg1 = this.abs().withPrecision(extendedPrecision);
+    FloatValue arg2 = pNumber.abs().withPrecision(extendedPrecision);
+
+    // Handle special cases
+    if (arg1.isNan() || arg2.isNan()) {
+      return nan(precision);
+    } else if (arg1.isInfinite() || arg2.isZero()) {
+      return nan(precision);
+    } else if (arg1.isZero() || arg2.isInfinite()) {
+      return this;
+    }
+
+    // Shift arg2 to the left to match arg1
+    FloatValue d = arg2.withExponent(arg1.exponent);
+    if (arg1.lessThan(d)) {
+      d = arg2.withExponent(arg1.exponent - 1);
+    }
+
+    // Divide arg1 by arg2
+    while (arg2.lessOrEqual(d)) {
+      if (arg1.greaterOrEqual(d)) {
+        arg1 = arg1.subtract(d);
+      }
+      d = d.withExponent(d.exponent - 1);
+    }
+
+    // Fix the sign and return
+    return arg1.copySign(this).withPrecision(precision);
+  }
+
   /** Square root */
   public FloatValue sqrt() {
     // The calculation will be done in a higher precision and the result is then rounded down.

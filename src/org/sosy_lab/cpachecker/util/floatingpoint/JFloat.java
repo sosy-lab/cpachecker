@@ -114,6 +114,11 @@ class JFloat extends CFloat {
   }
 
   @Override
+  public CFloat modulo(CFloat pDivisor) {
+    return new JFloat(value % toFloat(pDivisor.getWrapper()));
+  }
+
+  @Override
   public CFloat ln() {
     return new JFloat((float) Math.log(toFloat()));
   }

@@ -739,6 +739,11 @@ abstract class AbstractCFloatTestBase {
     testOperator("divideBy", 0, (CFloat a, CFloat b) -> a.divideBy(b));
   }
 
+  @Test
+  public void moduloTest() {
+    testOperator("modulo", 0, (CFloat a, CFloat b) -> a.modulo(b));
+  }
+
   private static int findClosest(Map<Integer, Float> accum, float p) {
     for (Integer k : accum.keySet().stream().sorted().toList()) {
       if (accum.get(k) >= p) {

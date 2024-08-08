@@ -168,6 +168,17 @@ class MpfrFloat extends CFloat {
   }
 
   @Override
+  public CFloat modulo(CFloat pDivisor) {
+    BigFloat arg1 = value.abs();
+    BigFloat arg2 = toBigFloat(pDivisor.getWrapper()).abs();
+    BigFloat remainder = arg1.remainder(arg2, format);
+    if (remainder.sign()) {
+      remainder = remainder.add(arg2, format);
+    }
+    return new MpfrFloat(value.sign() ? remainder.negate() : remainder, format);
+  }
+
+  @Override
   public CFloat ln() {
     return new MpfrFloat(value.log(format), format);
   }

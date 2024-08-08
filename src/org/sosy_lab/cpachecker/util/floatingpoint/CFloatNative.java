@@ -135,6 +135,16 @@ class CFloatNative extends CFloat {
   }
 
   @Override
+  public CFloatNative modulo(CFloat divisor) {
+    CFloatWrapper newFloat =
+        CFloatNativeAPI.moduloFp(
+            wrapper, type.ordinal(), divisor.copyWrapper(), divisor.getType().ordinal());
+
+    return new CFloatNative(
+        newFloat, toFloatType(max(type.ordinal(), divisor.getType().ordinal())));
+  }
+
+  @Override
   public CFloat ln() {
     return new CFloatNative(CFloatNativeAPI.logFp(wrapper, type.ordinal()), type);
   }
