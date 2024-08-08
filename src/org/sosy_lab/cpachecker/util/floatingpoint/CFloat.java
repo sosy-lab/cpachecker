@@ -324,7 +324,7 @@ abstract class CFloat implements Comparable<CFloat> {
    * <pre>
    * -Nan < -Inf < ... < -0 < +0 < .. < +Inf < +Nan</pre>
    */
-  @SuppressWarnings("MissingImplementsComparable")
+  @Override
   public abstract int compareTo(final CFloat other);
 
   public final long getExponent() {
