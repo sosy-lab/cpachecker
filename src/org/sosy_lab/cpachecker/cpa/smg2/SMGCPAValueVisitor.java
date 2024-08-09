@@ -1334,10 +1334,8 @@ public class SMGCPAValueVisitor
           final int bitPerByte = machineModel.getSizeofCharInBits();
           if (size == machineModel.getSizeofFloat() * bitPerByte) {
             target = FloatValue.Format.Float32;
-            ;
           } else if (size == machineModel.getSizeofDouble() * bitPerByte) {
             target = FloatValue.Format.Float64;
-            ;
           } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
             // Must be Linux32 or Linux64, otherwise the second clause would have matched
             target = FloatValue.Format.Extended;
@@ -1454,7 +1452,6 @@ public class SMGCPAValueVisitor
     final Value parameter = Iterables.getOnlyElement(pArguments);
     if (parameter.isExplicitlyKnown()) {
       // Cast the argument to match the function type
-      CType targetType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName);
       FloatValue value =
           castToFloat(
               machineModel,
