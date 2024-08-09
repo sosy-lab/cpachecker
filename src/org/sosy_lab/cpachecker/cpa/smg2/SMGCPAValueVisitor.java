@@ -2358,8 +2358,6 @@ public class SMGCPAValueVisitor
   /**
    * Calculate an arithmetic operation on two floating point values.
    *
-   * @param pMachineModel The machine model that defines the sizes for C types
-   * @param pResultType The type the result of the calculation should have
    * @param pOperation the binary operator
    * @param pArg1 left hand side value
    * @param pArg2 right hand side value
@@ -2444,8 +2442,6 @@ public class SMGCPAValueVisitor
   /**
    * Calculate a comparison operation on two floating point values.
    *
-   * @param pMachineModel The machine model that defines the sizes for C types
-   * @param pResultType The type the result of the calculation should have
    * @param pOperation the binary operator
    * @param pArg1 left hand side value
    * @param pArg2 right hand side value
