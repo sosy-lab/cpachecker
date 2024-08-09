@@ -100,8 +100,8 @@ public record NumericValue(Number number) implements Value {
    * Return value as a {@link BigInteger}
    *
    * <p>Throws an exception if the value does not have an integer type already. Use {@link
-   * NumericValue#hasIntegerType()} to check first, and {@link NumericValue#bigIntegerValue(Format)}
-   * for conversion.
+   * NumericValue#hasIntegerType()} to check first, and {@link NumericValue#bigIntegerValue()} for
+   * conversion.
    */
   public BigInteger getIntegerValue() {
     if (number instanceof BigInteger bigInt) {
