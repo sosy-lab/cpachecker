@@ -44,7 +44,6 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
         BlockSummaryMessagePayload.builder()
             .addEntry(ValueAnalysisCPA.class.getName(), serializedValueString);
 
-
     return payload.buildPayload();
   }
 }

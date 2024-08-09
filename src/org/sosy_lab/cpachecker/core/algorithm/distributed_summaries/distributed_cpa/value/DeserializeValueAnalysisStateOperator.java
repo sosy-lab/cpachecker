@@ -16,14 +16,11 @@ import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
@@ -33,16 +30,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class DeserializeValueAnalysisStateOperator implements DeserializeOperator {
 
   private CFA cfa;
-  private ValueAnalysisCPA valueAnalysisCPA;
-  private BlockNode blockNode;
 
-  public DeserializeValueAnalysisStateOperator(
-      CFA pCFA,
-      ValueAnalysisCPA pValueAnalysisCPA,
-      BlockNode pBlockNode) {
+  public DeserializeValueAnalysisStateOperator(CFA pCFA) {
     cfa = pCFA;
-    valueAnalysisCPA = pValueAnalysisCPA;
-    blockNode = pBlockNode;
   }
 
   @Override
@@ -70,8 +60,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
       }
 
       return new ValueAnalysisState(
-          Optional.of(cfa.getMachineModel()),
-          PathCopyingPersistentTreeMap.copyOf(constantsMap));
+          Optional.of(cfa.getMachineModel()), PathCopyingPersistentTreeMap.copyOf(constantsMap));
     }
   }
 
