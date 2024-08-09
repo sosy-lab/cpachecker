@@ -25,6 +25,7 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -1254,6 +1255,10 @@ public class SMGCPAValueVisitor
       case INT:
       case CHAR:
         {
+          // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
+          // TODO: check for overflow(source larger than the highest number we can store in target
+          // etc.)
+
           if (numericValue.getNumber() instanceof Float
               || numericValue.getNumber() instanceof Double
               || numericValue.getNumber() instanceof FloatValue) {
@@ -1298,35 +1303,55 @@ public class SMGCPAValueVisitor
       case DOUBLE:
       case FLOAT128:
         {
-          // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
-          // TODO: check for overflow(source larger than the highest number we can store in target
-          // etc.)
+          FloatValue.Format target;
 
-          // casting to DOUBLE, if value is INT or FLOAT. This is sound, if we would also do this
-          // cast in C.
-          Value result;
-
+          // Find the target format
           final int bitPerByte = machineModel.getSizeofCharInBits();
-
           if (size == machineModel.getSizeofFloat() * bitPerByte) {
-            // 32 bit means Java float
-            result = new NumericValue(numericValue.floatValue());
+            target = FloatValue.Format.Float32;
+            ;
           } else if (size == machineModel.getSizeofDouble() * bitPerByte) {
-            // 64 bit means Java double
-            result = new NumericValue(numericValue.doubleValue());
+            target = FloatValue.Format.Float64;
+            ;
           } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
-            result =
-                new NumericValue(
-                    numericValue.floatingPointValue().withPrecision(FloatValue.Format.Extended));
+            // Must be Linux32 or Linux64, otherwise the second clause would have matched
+            target = FloatValue.Format.Extended;
           } else if (size == machineModel.getSizeofFloat128() * bitPerByte) {
-            result =
-                new NumericValue(
-                    numericValue.floatingPointValue().withPrecision(FloatValue.Format.Float128));
+            target = FloatValue.Format.Float128;
           } else {
-            // TODO: Think of floating point types!
-            throw new AssertionError("Unhandled floating point type: " + type);
+            // Unsupported target format
+            throw new IllegalArgumentException();
           }
-          return result;
+
+          Number result;
+
+          // Convert to target format
+          // TODO: Add warnings for lossy conversions?
+          if (numericValue.hasFloatType()) {
+            // Casting from a floating point value
+            if (numericValue.getNumber() instanceof FloatValue floatValue) {
+              // Already a FloatValue
+              // We just need to adjust the precision
+              result = floatValue.withPrecision(target);
+            } else {
+              // Either Double or Float
+              // Cast to double and then convert
+              result = FloatValue.fromDouble(numericValue.doubleValue());
+            }
+          } else if (numericValue.hasIntegerType()) {
+            // Casting from an integer
+            result = FloatValue.fromInteger(target, numericValue.bigIntegerValue());
+          } else if (numericValue.getNumber() instanceof Rational rationalValue) {
+            // Casting from a rational
+            FloatValue num = FloatValue.fromInteger(target, rationalValue.getNum());
+            FloatValue den = FloatValue.fromInteger(target, rationalValue.getDen());
+            result = num.divide(den);
+          } else {
+            // Unsupported value type
+            throw new IllegalArgumentException();
+          }
+
+          return new NumericValue(result);
         }
 
       default:

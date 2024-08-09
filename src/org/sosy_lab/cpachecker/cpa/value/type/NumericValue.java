@@ -118,6 +118,35 @@ public record NumericValue(Number number) implements Value {
   }
 
   /**
+   * Check if the value has an integer type.
+   *
+   * <p>Note that this will not check if the actual value is integer. For types like Double or
+   * Rational this method always returns <code>false</code>.
+   */
+  public boolean hasIntegerType() {
+    return number instanceof BigInteger
+        || number instanceof Long
+        || number instanceof Integer
+        || number instanceof Short
+        || number instanceof Byte;
+  }
+
+  /** Check if the value has a floating point type. */
+  public boolean hasFloatType() {
+    return number instanceof FloatValue || number instanceof Double || number instanceof Float;
+  }
+
+  /**
+   * Check if the type has a fixed size.
+   *
+   * <p>Returns <code>false</code> for Rational and BigInteger as they can represent arbitrary sized
+   * values.
+   */
+  public boolean hasFixedSize() {
+    return !(number instanceof BigInteger || number instanceof Rational);
+  }
+
+  /**
    * Returns a <code>NumericValue</code> object that holds the negation of this object's value.
    *
    * @return the negation of this objects value
