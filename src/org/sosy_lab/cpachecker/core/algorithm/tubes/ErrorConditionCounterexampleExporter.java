@@ -24,13 +24,17 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
+import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -50,24 +54,31 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "tubes")
-public class CounterexampleToC implements Algorithm {
+public class ErrorConditionCounterexampleExporter implements Algorithm {
 
   enum Action {
     EXPORT_CEX_TO_C,
-    EXPORT_CEX_INPUTS
+    EXPORT_CEX_INPUTS,
+    ELIMINATE_QUANTIFIERS
   }
 
   private final Algorithm algorithm;
@@ -82,6 +93,13 @@ public class CounterexampleToC implements Algorithm {
       description = "export counterexample to file, if one is found")
   @FileOption(Type.OUTPUT_FILE)
   private Path exportErrorInputs = Path.of("nondets.txt");
+
+  @Option(
+      secure = true,
+      name = "quantifierEliminationResult",
+      description = "export counterexample as QE form")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path quantifierEliminationResult = Path.of("quantifier.json");
 
   @Option(
       secure = true,
@@ -113,7 +131,11 @@ public class CounterexampleToC implements Algorithm {
   private int exportedCounterexamples = 0;
   private int exportedPreciseCounterexamples = 0;
 
-  public CounterexampleToC(
+  record FormulaAndName(Formula formula, String name) {}
+
+  record PathAndVariables(PathFormula path, ImmutableMap<FormulaAndName, CFAEdge> variables) {}
+
+  public ErrorConditionCounterexampleExporter(
       Algorithm pAlgorithm,
       Configuration pConfig,
       LogManager pLogger,
@@ -178,6 +200,128 @@ public class CounterexampleToC implements Algorithm {
     return allIterations.build();
   }
 
+  private int findLastNondetInCounterexample(CounterexampleInfo pInfo) {
+    int lastLineWithNondet = -1;
+    for (CFAEdge cfaEdge : pInfo.getTargetPath().getFullPath()) {
+      if (cfaEdge.getRawStatement().contains("__VERIFIER_nondet")) {
+        lastLineWithNondet = Integer.max(lastLineWithNondet, cfaEdge.getLineNumber());
+      }
+    }
+    return lastLineWithNondet;
+  }
+
+  private String sanitizeUnfinishedFormulaString(String condition) {
+    ArrayDeque<Integer> openBrackets = new ArrayDeque<>();
+    Pair<Integer, Integer> max = null;
+    for (int i = 0; i < condition.length(); i++) {
+      if (condition.charAt(i) == '(') {
+        openBrackets.add(i);
+      } else if (condition.charAt(i) == ')') {
+        max = Pair.of(openBrackets.pop(), i);
+      }
+    }
+    if (max == null) {
+      return "1";
+    }
+    return condition.substring(max.getFirstNotNull(), max.getSecondNotNull() + 1);
+  }
+
+  private void exportEliminatedErrorCondition(Collection<CounterexampleInfo> counterExamples)
+      throws InvalidConfigurationException,
+          InterruptedException,
+          SolverException,
+          CPATransferException,
+          IOException {
+    Solver z3 =
+        Solver.create(
+            Configuration.builder().setOption("solver.solver", Solvers.Z3.name()).build(),
+            logger,
+            notifier);
+    FormulaManagerView fmgr = z3.getFormulaManager();
+    BooleanFormulaManagerView bmgr = fmgr.getBooleanFormulaManager();
+    PathFormulaManager manager =
+        new PathFormulaManagerImpl(fmgr, config, logger, notifier, cfa, AnalysisDirection.FORWARD);
+    Map<Integer, BooleanFormula> conditions = new HashMap<>();
+    for (CounterexampleInfo counterExample : counterExamples) {
+      int lastNondet = findLastNondetInCounterexample(counterExample);
+      if (lastNondet == -1) {
+        continue;
+      }
+      PathAndVariables cexPathAndVariables = computeVariablesToEdgeMap(z3, manager, counterExample);
+      BooleanFormula eliminated =
+          QuantifierElimination.eliminateAllVariablesExceptNondets(
+              cexPathAndVariables.path().getFormula(), z3);
+      eliminated =
+          getFormulaWithoutNondetVariables(eliminated, cexPathAndVariables.variables(), fmgr);
+      conditions.merge(lastNondet, eliminated, bmgr::or);
+    }
+    ImmutableMap.Builder<Integer, String> errorConditionBuilder = ImmutableMap.builder();
+    for (Entry<Integer, BooleanFormula> lineToFormula : conditions.entrySet()) {
+      FormulaToCVisitor visitor = new FormulaToCVisitor(fmgr);
+      fmgr.visit(lineToFormula.getValue(), visitor);
+      String condition = visitor.getString();
+      if (!condition.contains("||")) {
+        condition =
+            Joiner.on("&&")
+                .join(
+                    Splitter.on("&&")
+                        .splitToStream(condition)
+                        .map(this::sanitizeUnfinishedFormulaString)
+                        .filter(s -> !s.equals("1"))
+                        .toList());
+      }
+      errorConditionBuilder.put(lineToFormula.getKey(), condition);
+    }
+    ImmutableMap<Integer, String> ecMap = errorConditionBuilder.buildOrThrow();
+    logger.logf(Level.INFO, "Export following conditions: %s", ecMap);
+    JSON.writeJSONString(ecMap, quantifierEliminationResult);
+  }
+
+  private BooleanFormula getFormulaWithoutNondetVariables(
+      BooleanFormula eliminated,
+      Map<FormulaAndName, CFAEdge> formulaToEdge,
+      FormulaManagerView fmgr) {
+    for (Entry<String, Formula> remainingVariableEntry :
+        fmgr.extractVariables(eliminated).entrySet()) {
+      FormulaAndName nondetEntry =
+          new FormulaAndName(remainingVariableEntry.getValue(), remainingVariableEntry.getKey());
+      CFAEdge nondetEdge = formulaToEdge.get(nondetEntry);
+      ImmutableMap.Builder<Formula, Formula> replacements = ImmutableMap.builder();
+      for (Entry<FormulaAndName, CFAEdge> pathVariable : formulaToEdge.entrySet()) {
+        CFAEdge pathEdge = pathVariable.getValue();
+        if (pathEdge.getFileLocation().getStartingLineInOrigin()
+                == nondetEdge.getFileLocation().getStartingLineInOrigin()
+            && !pathVariable.getKey().equals(nondetEntry.name())
+            && !pathVariable.getKey().name().contains("_TMP")) {
+          replacements.put(
+              nondetEntry.formula(), fmgr.uninstantiate(pathVariable.getKey().formula()));
+        }
+      }
+      eliminated = fmgr.substitute(eliminated, replacements.buildKeepingLast());
+    }
+    return eliminated;
+  }
+
+  private PathAndVariables computeVariablesToEdgeMap(
+      Solver solver, PathFormulaManager pmgr, CounterexampleInfo counterExample)
+      throws CPATransferException, InterruptedException {
+    PathFormula cexPath = pmgr.makeEmptyPathFormula();
+    Set<FormulaAndName> before = ImmutableSet.of();
+    ImmutableMap.Builder<FormulaAndName, CFAEdge> variableToLineNumber = ImmutableMap.builder();
+    for (CFAEdge cfaEdge : counterExample.getTargetPath().getFullPath()) {
+      cexPath = pmgr.makeAnd(cexPath, cfaEdge);
+      Set<FormulaAndName> after =
+          solver.getFormulaManager().extractVariables(cexPath.getFormula()).entrySet().stream()
+              .map(entry -> new FormulaAndName(entry.getValue(), entry.getKey()))
+              .collect(Collectors.toSet());
+      for (FormulaAndName variable : Sets.difference(after, before)) {
+        variableToLineNumber.put(variable, cfaEdge);
+      }
+      before = after;
+    }
+    return new PathAndVariables(cexPath, variableToLineNumber.buildOrThrow());
+  }
+
   private void exportErrorInducingInputs(Collection<CounterexampleInfo> counterExamples)
       throws CPAException,
           InterruptedException,
@@ -190,25 +334,21 @@ public class CounterexampleToC implements Algorithm {
             solver.getFormulaManager(), config, logger, notifier, cfa, AnalysisDirection.FORWARD);
     ImmutableList.Builder<String> cexLinesBuilder = ImmutableList.builder();
     for (CounterexampleInfo counterExample : counterExamples) {
-      PathFormula cexPath = pmgr.makeEmptyPathFormula();
-      Set<String> before = ImmutableSet.of();
-      ImmutableMap.Builder<String, CFAEdge> variableToLineNumber = ImmutableMap.builder();
-      for (CFAEdge cfaEdge : counterExample.getTargetPath().getFullPath()) {
-        cexPath = pmgr.makeAnd(cexPath, cfaEdge);
-        Set<String> after =
-            solver.getFormulaManager().extractVariables(cexPath.getFormula()).keySet();
-        for (String variable : Sets.difference(after, before)) {
-          variableToLineNumber.put(variable, cfaEdge);
-        }
-        before = after;
-      }
+      PathAndVariables cexPathAndVariables =
+          computeVariablesToEdgeMap(solver, pmgr, counterExample);
       List<Map<String, Object>> assignments =
-          assignments(solver, cexPath.getFormula(), exportAllAssignments);
+          assignments(solver, cexPathAndVariables.path().getFormula(), exportAllAssignments);
       Multimap<String, String> variableToValues = ArrayListMultimap.create();
       for (Map<String, Object> assignment : assignments) {
         assignment.forEach((variable, value) -> variableToValues.put(variable, value.toString()));
       }
-      ImmutableMap<String, CFAEdge> lines = variableToLineNumber.buildOrThrow();
+      ImmutableMap.Builder<String, CFAEdge> linesBuilder = ImmutableMap.builder();
+      for (Entry<FormulaAndName, CFAEdge> formulaAndNameCFAEdgeEntry :
+          cexPathAndVariables.variables().entrySet()) {
+        linesBuilder.put(
+            formulaAndNameCFAEdgeEntry.getKey().name(), formulaAndNameCFAEdgeEntry.getValue());
+      }
+      ImmutableMap<String, CFAEdge> lines = linesBuilder.buildOrThrow();
       for (Map<String, Object> assignment : assignments) {
         StringBuilder preciseCexExport = new StringBuilder();
         for (Entry<String, Object> variableValue : assignment.entrySet()) {
@@ -277,6 +417,13 @@ public class CounterexampleToC implements Algorithm {
             exportErrorInducingInputs(counterExamples.toList());
           } catch (IOException | InvalidConfigurationException | SolverException e) {
             logger.logUserException(Level.WARNING, e, "Could not export counterexample inputs");
+          }
+          break;
+        case ELIMINATE_QUANTIFIERS:
+          try {
+            exportEliminatedErrorCondition(counterExamples.toList());
+          } catch (InvalidConfigurationException | SolverException | IOException e) {
+            logger.logUserException(Level.WARNING, e, "Could not eliminate quantifiers");
           }
           break;
       }

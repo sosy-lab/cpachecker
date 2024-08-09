@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditio
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
-import org.sosy_lab.cpachecker.core.algorithm.tubes.CounterexampleToC;
+import org.sosy_lab.cpachecker.core.algorithm.tubes.ErrorConditionCounterexampleExporter;
 import org.sosy_lab.cpachecker.core.algorithm.tubes.ExportAssumeEdges;
 import org.sosy_lab.cpachecker.core.algorithm.tubes.TubeInterpolationAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -752,7 +752,9 @@ public class CoreComponentsFactory {
       }
 
       if (exportCounterexamplesAsC) {
-        algorithm = new CounterexampleToC(algorithm, config, logger, shutdownNotifier, cfa);
+        algorithm =
+            new ErrorConditionCounterexampleExporter(
+                algorithm, config, logger, shutdownNotifier, cfa);
       }
     }
 
