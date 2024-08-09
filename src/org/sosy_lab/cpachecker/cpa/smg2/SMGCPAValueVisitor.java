@@ -1292,6 +1292,8 @@ public class SMGCPAValueVisitor
             signedLowerBound = BigInteger.ZERO;
           }
 
+          BigInteger result;
+
           // Check for overflows
           if (numericValue.hasFloatType()) {
             // Casting from a floating point value
@@ -1299,10 +1301,12 @@ public class SMGCPAValueVisitor
                 || isLessThan(integerValue, signedLowerBound)) {
               // If the number does not fit into the target type the result is undefined
               return UnknownValue.getInstance();
+            } else {
+              result = integerValue;
             }
           } else {
             // Casting from Rational or an integer type
-            BigInteger result = integerValue.remainder(maxValue); // shrink to number of bits
+            result = integerValue.remainder(maxValue); // shrink to number of bits
 
             if (isGreaterThan(result, signedUpperBound)) {
               // if result overflows, let it 'roll around' and add overflow to lower bound
@@ -1310,13 +1314,13 @@ public class SMGCPAValueVisitor
             } else if (isLessThan(result, signedLowerBound)) {
               result = result.add(maxValue);
             }
+          }
 
-            // transform result to a long and fail if it doesn't fit
-            if (size < SIZE_OF_JAVA_LONG || (size == SIZE_OF_JAVA_LONG && targetIsSigned)) {
-              return new NumericValue(result.longValueExact());
-            } else {
-              return new NumericValue(result);
-            }
+          // transform result to a long and fail if it doesn't fit
+          if (size < SIZE_OF_JAVA_LONG || (size == SIZE_OF_JAVA_LONG && targetIsSigned)) {
+            return new NumericValue(result.longValueExact());
+          } else {
+            return new NumericValue(result);
           }
         }
 
