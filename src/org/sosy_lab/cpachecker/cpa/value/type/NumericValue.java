@@ -78,7 +78,7 @@ public record NumericValue(Number number) implements Value {
   }
 
   /**
-   * Convert to {@link FloatValue]
+   * Convert to {@link FloatValue}
    *
    * @param format The target format for the conversion
    */
