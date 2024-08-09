@@ -94,7 +94,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.llvm_j.BasicBlock;
 import org.sosy_lab.llvm_j.Function;
 import org.sosy_lab.llvm_j.LLVMException;
@@ -1279,7 +1278,7 @@ public class CFABuilder {
       if (canonicalType instanceof CSimpleType) {
         CBasicType basicType = ((CSimpleType) canonicalType).getType();
         if (basicType.isFloatingPointType()) {
-          FloatValue.Format format = Format.fromCType(machineModel, pExpectedType);
+          FloatValue.Format format = FloatValue.Format.fromCType(machineModel, pExpectedType);
           // use expected type for float, not canonical
           zeroExpression =
               new CFloatLiteralExpression(

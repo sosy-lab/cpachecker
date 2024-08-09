@@ -1265,7 +1265,7 @@ public class SMGCPAValueVisitor
           // Convert the value to integer
           if (numericValue.hasFloatType()) {
             // Casting from a floating point value to BigInteger
-            Optional<BigInteger> maybeInteger = numericValue.floatingPointValue().toInteger();
+            Optional<BigInteger> maybeInteger = numericValue.getFloatValue().toInteger();
             if (maybeInteger.isEmpty()) {
               // If the value was NaN or Infinity the result of the conversion is undefined
               return UnknownValue.getInstance();
@@ -1419,20 +1419,12 @@ public class SMGCPAValueVisitor
         && ((CSimpleType) pType).getType() == CBasicType.UNSPECIFIED;
   }
 
-  /**
-   * Cast the argument to the result type of a builtin float function.
-   *
-   * <p>Will throw an {@link IllegalArgumentException} if the cast can't be done without losing
-   * precision
-   */
-  private static FloatValue castToResultType(
-      MachineModel pMachineModel, CType pType, FloatValue pValue) {
-    FloatValue.Format target = FloatValue.Format.fromCType(pMachineModel, pType);
-    // TODO: Maybe just print a warning?
-    checkArgument(
-        target.equals(target.matchWith(pValue.getFormat())),
-        "Can't cast to the result type without loss of precision");
-    return pValue.withPrecision(target);
+  /** Cast the argument to a floating point type */
+  private static FloatValue castToFloat(
+      MachineModel pMachineModel, CSimpleType pTargetType, NumericValue pValue) {
+    checkArgument(!pTargetType.getType().isFloatingPointType());
+    FloatValue.Format precision = FloatValue.Format.fromCType(pMachineModel, pTargetType);
+    return pValue.floatingPointValue(precision);
   }
 
   /** Round a float value to an integer with the given C type */
@@ -1458,11 +1450,12 @@ public class SMGCPAValueVisitor
     final Value parameter = Iterables.getOnlyElement(pArguments);
     if (parameter.isExplicitlyKnown()) {
       // Cast the argument to match the function type
+      CType targetType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName);
       FloatValue value =
-          castToResultType(
+          castToFloat(
               machineModel,
               BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName),
-              ((NumericValue) parameter).floatingPointValue());
+              (NumericValue) parameter);
 
       return ImmutableList.of(
           ValueAndSMGState.of(new NumericValue(pOperation.apply(value)), pState));
@@ -1486,16 +1479,9 @@ public class SMGCPAValueVisitor
 
     if (parameter1.isExplicitlyKnown() && parameter2.isExplicitlyKnown()) {
       // Cast both arguments to match the function type
-      FloatValue value1 =
-          castToResultType(
-              machineModel,
-              BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName),
-              ((NumericValue) parameter1).floatingPointValue());
-      FloatValue value2 =
-          castToResultType(
-              machineModel,
-              BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName),
-              ((NumericValue) parameter2).floatingPointValue());
+      CSimpleType targetType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName);
+      FloatValue value1 = castToFloat(machineModel, targetType, (NumericValue) parameter1);
+      FloatValue value2 = castToFloat(machineModel, targetType, (NumericValue) parameter2);
 
       return ImmutableList.of(
           ValueAndSMGState.of(new NumericValue(pOperation.apply(value1, value2)), pState));
@@ -1724,10 +1710,10 @@ public class SMGCPAValueVisitor
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               FloatValue arg =
-                  castToResultType(
+                  castToFloat(
                       machineModel,
                       BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName),
-                      ((NumericValue) value).floatingPointValue());
+                      (NumericValue) value);
 
               FloatValue integer = arg.round(FloatValue.RoundingMode.TRUNCATE);
               FloatValue fraction = arg.subtract(integer);
@@ -2202,11 +2188,9 @@ public class SMGCPAValueVisitor
           {
             return new NumericValue(
                 arithmeticOperation(
-                    machineModel,
-                    calculationType,
                     op,
-                    lNum.floatingPointValue(),
-                    rNum.floatingPointValue()));
+                    castToFloat(machineModel, type, lNum),
+                    castToFloat(machineModel, type, rNum)));
           }
         default:
           {
@@ -2220,9 +2204,9 @@ public class SMGCPAValueVisitor
           Level.WARNING,
           "expression causes arithmetic exception (%s): %s %s %s",
           e.getMessage(),
-          lNum.floatingPointValue(),
+          lNum,
           op.getOperator(),
-          rNum.floatingPointValue());
+          rNum);
       return Value.UnknownValue.getInstance();
     }
   }
@@ -2378,23 +2362,16 @@ public class SMGCPAValueVisitor
    * @return the resulting value
    */
   private FloatValue arithmeticOperation(
-      final MachineModel pMachineModel,
-      final CType pResultType,
-      final BinaryOperator pOperation,
-      final FloatValue pArg1,
-      final FloatValue pArg2) {
-
-    FloatValue arg1 = castToResultType(pMachineModel, pResultType, pArg1);
-    FloatValue arg2 = castToResultType(pMachineModel, pResultType, pArg2);
+      final BinaryOperator pOperation, final FloatValue pArg1, final FloatValue pArg2) {
 
     return switch (pOperation) {
-      case PLUS -> arg1.add(arg2);
-      case MINUS -> arg1.subtract(arg2);
-      case DIVIDE -> arg1.divide(arg2);
+      case PLUS -> pArg1.add(pArg2);
+      case MINUS -> pArg1.subtract(pArg2);
+      case DIVIDE -> pArg1.divide(pArg2);
       case MODULO ->
           // FIXME: Add support in FloatValue
           throw new UnsupportedOperationException();
-      case MULTIPLY -> arg1.multiply(arg2);
+      case MULTIPLY -> pArg1.multiply(pArg2);
       case SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
           throw new UnsupportedOperationException(
               "Trying to perform " + pOperation + " on floating point operands");
@@ -2447,11 +2424,7 @@ public class SMGCPAValueVisitor
         {
           boolean result =
               comparisonOperation(
-                  machineModel,
-                  calculationType,
-                  op,
-                  l.floatingPointValue(),
-                  r.floatingPointValue());
+                  op, castToFloat(machineModel, type, l), castToFloat(machineModel, type, r));
           return new NumericValue(result ? 1 : 0);
         }
       default:
@@ -2477,22 +2450,15 @@ public class SMGCPAValueVisitor
    * @return the resulting value
    */
   private boolean comparisonOperation(
-      final MachineModel pMachineModel,
-      final CType pResultType,
-      final BinaryOperator pOperation,
-      final FloatValue pArg1,
-      final FloatValue pArg2) {
-
-    FloatValue arg1 = castToResultType(pMachineModel, pResultType, pArg1);
-    FloatValue arg2 = castToResultType(pMachineModel, pResultType, pArg2);
+      final BinaryOperator pOperation, final FloatValue pArg1, final FloatValue pArg2) {
 
     return switch (pOperation) {
-      case GREATER_THAN -> arg1.greaterThan(arg2);
-      case GREATER_EQUAL -> arg1.greaterOrEqual(arg2);
-      case LESS_THAN -> arg1.lessThan(arg2);
-      case LESS_EQUAL -> arg1.lessOrEqual(arg2);
-      case EQUALS -> arg1.equalTo(arg2);
-      case NOT_EQUALS -> arg1.notEqualTo(arg2);
+      case GREATER_THAN -> pArg1.greaterThan(pArg2);
+      case GREATER_EQUAL -> pArg1.greaterOrEqual(pArg2);
+      case LESS_THAN -> pArg1.lessThan(pArg2);
+      case LESS_EQUAL -> pArg1.lessOrEqual(pArg2);
+      case EQUALS -> pArg1.equalTo(pArg2);
+      case NOT_EQUALS -> pArg1.notEqualTo(pArg2);
       default -> throw new AssertionError("unknown binary operation: " + pOperation);
     };
   }

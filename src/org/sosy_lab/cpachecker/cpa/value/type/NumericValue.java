@@ -18,20 +18,20 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /** Stores a numeric value that can be tracked by the ValueAnalysisCPA. */
 public record NumericValue(Number number) implements Value {
 
   @Serial private static final long serialVersionUID = -3829943575180448170L;
 
-  /** Returns the number stored in the container. Same as {@link #number()} for consistency. */
+  /** Returns the number stored in the container. */
   public Number getNumber() {
     return number;
   }
 
   /**
-   * Returns the integer stored in the container as long. Before calling this function, it must be
-   * ensured using `getType()` that this container contains an integer.
+   * Convert to long
    *
    * <p>Warning: This silently truncates and rounds the value to fit into a long. Use {@link
    * #bigIntegerValue()} instead.
@@ -41,39 +41,51 @@ public record NumericValue(Number number) implements Value {
   }
 
   /**
-   * Returns the floating point stored in the container as float.
+   * Convert to float
    *
-   * <p>Warning: This silently truncates and rounds the value to fit into a float. Use {@link
-   * #bigIntegerValue()} instead.
+   * <p>Warning: This silently truncates and rounds the value to fit into a float.
    */
   public float floatValue() {
     return number.floatValue();
   }
 
   /**
-   * Returns the floating point stored in the container as double. *
+   * Convert to double
    *
-   * <p>Warning: This silently truncates and rounds the value to fit into a double. Use {@link
-   * #floatingPointValue() or #bigIntegerValue()} instead.
+   * <p>Warning: This silently truncates and rounds the value to fit into a double.
    */
   public double doubleValue() {
     return number.doubleValue();
   }
 
-  public FloatValue floatingPointValue() {
-    // TODO: Add a parameter for the target precision
-    FloatValue.Format format = FloatValue.Format.Float64;
+  /**
+   * Return value as a {@link FloatValue}
+   *
+   * <p>Throws an exception if the value does not have a floating point type already. Use {@link
+   * NumericValue#hasFloatType()} to check first, and {@link
+   * NumericValue#floatingPointValue(Format)} for conversion.
+   */
+  public FloatValue getFloatValue() {
     if (number instanceof FloatValue floatValue) {
       return floatValue;
     } else if (number instanceof Double doubleValue) {
       return FloatValue.fromDouble(doubleValue);
     } else if (number instanceof Float floatValue) {
       return FloatValue.fromFloat(floatValue);
-    } else if (number instanceof BigInteger
-        || number instanceof Long
-        || number instanceof Integer
-        || number instanceof Short
-        || number instanceof Byte) {
+    } else {
+      throw new IllegalArgumentException();
+    }
+  }
+
+  /**
+   * Convert to {@link FloatValue]
+   *
+   * @param format The target format for the conversion
+   */
+  public FloatValue floatingPointValue(FloatValue.Format format) {
+    if (hasFloatType()) {
+      return getFloatValue().withPrecision(format);
+    } else if (hasIntegerType()) {
       return FloatValue.fromInteger(format, bigIntegerValue());
     } else if (number instanceof Rational rat) {
       FloatValue n = FloatValue.fromInteger(format, rat.getNum());
@@ -85,11 +97,13 @@ public record NumericValue(Number number) implements Value {
   }
 
   /**
-   * Returns a {@link BigInteger} value representing the stored number.
+   * Return value as a {@link BigInteger}
    *
-   * <p>WARNING: This silently rounds decimal numbers.
+   * <p>Throws an exception if the value does not have an integer type already. Use {@link
+   * NumericValue#hasIntegerType()} to check first, and {@link NumericValue#bigIntegerValue(Format)}
+   * for conversion.
    */
-  public BigInteger bigIntegerValue() {
+  public BigInteger getIntegerValue() {
     if (number instanceof BigInteger bigInt) {
       return bigInt;
     } else if (number instanceof Long
@@ -97,21 +111,32 @@ public record NumericValue(Number number) implements Value {
         || number instanceof Short
         || number instanceof Byte) {
       return BigInteger.valueOf(number.longValue());
-    } else if (number instanceof Double
-        || number instanceof Float
-        || number instanceof Rational
-        || number instanceof FloatValue) {
-      return floatingPointValue().integerValue();
     } else {
       throw new IllegalArgumentException();
     }
   }
 
   /**
-   * Always returns <code>true</code>.
+   * Convert to {@link BigInteger}
    *
-   * @return always <code>true</code>
+   * <p>WARNING: This silently rounds decimal numbers.
    */
+  public BigInteger bigIntegerValue() {
+    if (hasIntegerType()) {
+      return getIntegerValue();
+    } else if (number instanceof Rational rationalValue) {
+      BigInteger num = rationalValue.getNum();
+      BigInteger den = rationalValue.getDen();
+      return num.divide(den);
+    } else if (number instanceof Double || number instanceof Float) {
+      return FloatValue.fromDouble(number.doubleValue()).integerValue();
+    } else if (number instanceof FloatValue floatValue) {
+      return floatValue.integerValue();
+    } else {
+      throw new IllegalArgumentException();
+    }
+  }
+
   @Override
   public boolean isNumericValue() {
     return true;
@@ -155,29 +180,25 @@ public record NumericValue(Number number) implements Value {
     if (number instanceof Float numberToNegate) {
       if (Float.isNaN(numberToNegate)) {
         // If the number is NaN we need to convert to FloatValue to handle the sign
-        return new NumericValue(floatingPointValue().negate().floatValue());
+        return new NumericValue(FloatValue.nan(FloatValue.Format.Float32).negate().floatValue());
       } else {
         return new NumericValue(-numberToNegate);
       }
     } else if (number instanceof Double numberToNegate) {
       if (Double.isNaN(numberToNegate)) {
         // If the number is NaN we need to convert to FloatValue to handle the sign
-        return new NumericValue(floatingPointValue().negate().floatValue());
+        return new NumericValue(FloatValue.nan(FloatValue.Format.Float64).negate().floatValue());
       } else {
         return new NumericValue(-numberToNegate);
       }
-    } else if (number instanceof BigInteger
-        || number instanceof Long
-        || number instanceof Integer
-        || number instanceof Short
-        || number instanceof Byte) {
+    } else if (number instanceof FloatValue floatValue) {
+      return new NumericValue(floatValue.negate());
+    } else if (hasIntegerType()) {
+      // FIXME: This might be broken for -MAX_VALUE if the type is not BigInteger
       return new NumericValue(bigIntegerValue().negate());
     } else if (number instanceof Rational rat) {
       return new NumericValue(rat.negate());
-    } else if (number instanceof FloatValue floatValue) {
-      return new NumericValue(floatValue.negate());
     } else {
-      // TODO explicitfloat: handle the remaining different implementations of Number properly
       throw new IllegalArgumentException();
     }
   }

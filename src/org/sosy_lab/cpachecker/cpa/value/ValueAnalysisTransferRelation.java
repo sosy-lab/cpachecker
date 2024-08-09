@@ -1452,8 +1452,9 @@ public class ValueAnalysisTransferRelation
                   BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(nameOfCalledFunc);
               if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE, CBasicType.FLOAT128)
                   .contains(paramType.getType())) {
+                FloatValue.Format format = FloatValue.Format.fromCType(machineModel, paramType);
                 FloatValue integralPartValue =
-                    numericValue.floatingPointValue().round(RoundingMode.TRUNCATE);
+                    numericValue.floatingPointValue(format).round(RoundingMode.TRUNCATE);
                 CFloatLiteralExpression integralPart =
                     new CFloatLiteralExpression(
                         functionCallExpression.getFileLocation(),

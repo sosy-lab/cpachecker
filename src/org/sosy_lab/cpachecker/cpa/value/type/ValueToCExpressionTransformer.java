@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionToCExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> {
 
@@ -88,8 +89,9 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
   }
 
   private CExpression visitFloatingValue(NumericValue pValue, CSimpleType pType) {
+    FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, pType);
     return new CFloatLiteralExpression(
-        FileLocation.DUMMY, machineModel, pType, pValue.floatingPointValue());
+        FileLocation.DUMMY, machineModel, pType, pValue.floatingPointValue(precision));
   }
 
   @Override

@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -789,7 +790,10 @@ public final class ValueAnalysisState
         BigInteger value = getBigIntFromIntegerNumber(pNum.getNumber());
         val = new CIntegerLiteralExpression(loc, simpleType, value);
       } else if (simpleType.getType().isFloatingPointType()) {
-        val = new CFloatLiteralExpression(loc, machineModel, simpleType, pNum.floatingPointValue());
+        FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, simpleType);
+        val =
+            new CFloatLiteralExpression(
+                loc, machineModel, simpleType, pNum.floatingPointValue(precision));
       } else {
         throw new AssertionError("Unexpected type: " + simpleType);
       }

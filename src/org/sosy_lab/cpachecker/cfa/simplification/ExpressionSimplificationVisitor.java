@@ -93,8 +93,12 @@ public class ExpressionSimplificationVisitor
         return new CIntegerLiteralExpression(
             expr.getFileLocation(), type, numericResult.bigIntegerValue());
       } else if (basicType.isFloatingPointType()) {
+        FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, type);
         return new CFloatLiteralExpression(
-            expr.getFileLocation(), machineModel, type, numericResult.floatingPointValue());
+            expr.getFileLocation(),
+            machineModel,
+            type,
+            numericResult.floatingPointValue(precision));
       }
     }
     if (numericResult != null) {
@@ -273,8 +277,9 @@ public class ExpressionSimplificationVisitor
           case FLOAT:
           case DOUBLE:
           case FLOAT128:
+            FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, exprType);
             return new CFloatLiteralExpression(
-                loc, machineModel, exprType, negatedValue.floatingPointValue());
+                loc, machineModel, exprType, negatedValue.floatingPointValue(precision));
           default:
             // return the original expression below
         }
@@ -346,11 +351,10 @@ public class ExpressionSimplificationVisitor
               // Cast the literal to the target type before assigning the value
               // This is necessary to handle initializer like `float x = 1.0` where the type of the
               // literal on the right is different from the type of the variable.
-              FloatValue litValue = v.floatingPointValue();
-              FloatValue castValue =
-                  litValue.withPrecision(FloatValue.Format.fromCType(machineModel, type));
+              FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, type);
+              FloatValue litValue = v.floatingPointValue(precision);
               return new CFloatLiteralExpression(
-                  expr.getFileLocation(), machineModel, type, castValue);
+                  expr.getFileLocation(), machineModel, type, litValue);
             default:
               // return the original expression below
           }

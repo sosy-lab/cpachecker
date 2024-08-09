@@ -62,56 +62,62 @@ public class NumericValueTest {
   }
 
   @Test
-  public void bigDecimalValue_conversionFromPositiveLong() {
+  public void floatingPointValue_conversionFromPositiveLong() {
     NumericValue val = new NumericValue(5L);
-    FloatValue result = val.floatingPointValue();
-    assertThat(result).isEqualTo(FloatValue.fromString(FloatValue.Format.Float64, "5"));
+    FloatValue.Format precision = FloatValue.Format.Float64;
+    FloatValue result = val.floatingPointValue(precision);
+    assertThat(result).isEqualTo(FloatValue.fromString(precision, "5"));
   }
 
   @Test
-  public void bigDecimalValue_conversionFromDouble() {
+  public void floatingPointValue_conversionFromDouble() {
     NumericValue val = new NumericValue(5.3d);
-    FloatValue result = val.floatingPointValue();
-    assertThat(result).isEqualTo(FloatValue.fromString(FloatValue.Format.Float64, "5.3"));
+    FloatValue.Format precision = FloatValue.Format.Float64;
+    FloatValue result = val.floatingPointValue(precision);
+    assertThat(result).isEqualTo(FloatValue.fromString(precision, "5.3"));
   }
 
   @Test
-  public void bigDecimalValue_conversionFromFloat() {
+  public void floatingPointValue_conversionFromFloat() {
     NumericValue val = new NumericValue(5.3f);
-    FloatValue result = val.floatingPointValue();
-    assertThat(result).isEqualTo(FloatValue.fromString(FloatValue.Format.Float32, "5.3"));
+    FloatValue.Format precision = FloatValue.Format.Float32;
+    FloatValue result = val.floatingPointValue(precision);
+    assertThat(result).isEqualTo(FloatValue.fromString(precision, "5.3"));
   }
 
   @Test
-  public void bigDecimalValue_conversionFromRationalWithDecimals() {
+  public void floatingPointValue_conversionFromRationalWithDecimals() {
     Rational input = Rational.of(BigInteger.ONE, BigInteger.TWO);
     NumericValue val = new NumericValue(input);
-    FloatValue result = val.floatingPointValue();
-    assertThat(result).isEqualTo(FloatValue.fromString(FloatValue.Format.Float64, "0.5"));
+    FloatValue.Format precision = FloatValue.Format.Float64;
+    FloatValue result = val.floatingPointValue(precision);
+    assertThat(result).isEqualTo(FloatValue.fromString(precision, "0.5"));
   }
 
   @Test
-  public void bigDecimalValue_conversionFromRationalWithInfiniteDecimals() {
+  public void floatingPointValue_conversionFromRationalWithInfiniteDecimals() {
     Rational input = Rational.of(BigInteger.ONE, BigInteger.valueOf(3));
     NumericValue val = new NumericValue(input);
-    FloatValue result = val.floatingPointValue();
-    assertThat(result)
-        .isEqualTo(FloatValue.fromString(FloatValue.Format.Float64, "0.3333333333333333"));
+    FloatValue.Format precision = FloatValue.Format.Float64;
+    FloatValue result = val.floatingPointValue(precision);
+    assertThat(result).isEqualTo(FloatValue.fromString(precision, "0.3333333333333333"));
   }
 
   @Test
-  public void bigDecimalValue_conversionFromRationalWithoutDecimals() {
+  public void floatingPointValue_conversionFromRationalWithoutDecimals() {
     Rational input = Rational.of(BigInteger.TEN, BigInteger.TWO);
     NumericValue val = new NumericValue(input);
-    FloatValue result = val.floatingPointValue();
-    assertThat(result).isEqualTo(FloatValue.fromString(FloatValue.Format.Float64, "5"));
+    FloatValue.Format precision = FloatValue.Format.Float64;
+    FloatValue result = val.floatingPointValue(precision);
+    assertThat(result).isEqualTo(FloatValue.fromString(precision, "5"));
   }
 
   @Test
-  public void bigDecimalValue_conversionFromInteger() {
+  public void floatingPointValue_conversionFromInteger() {
     NumericValue val = new NumericValue(10);
-    FloatValue result = val.floatingPointValue();
-    assertThat(result).isEqualTo(FloatValue.fromString(FloatValue.Format.Float64, "10"));
+    FloatValue.Format precision = FloatValue.Format.Float64;
+    FloatValue result = val.floatingPointValue(precision);
+    assertThat(result).isEqualTo(FloatValue.fromString(precision, "10"));
   }
 
   @Test

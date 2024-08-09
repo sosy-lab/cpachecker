@@ -928,7 +928,16 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
       if ((num1 instanceof FloatValue || isBigInt1 || isIntegral1 || isFloat1)
           && (num2 instanceof FloatValue || isBigInt2 || isIntegral2 || isFloat2)) {
-        return pVal1.floatingPointValue().compareTo(pVal2.floatingPointValue());
+        // Get the format of the floating point variable
+        FloatValue.Format precision;
+        if (num1 instanceof FloatValue floatValue) {
+          precision = floatValue.getFormat();
+        } else if (num2 instanceof FloatValue floatValue) {
+          precision = floatValue.getFormat();
+        } else {
+          precision = FloatValue.Format.Float64;
+        }
+        return pVal1.floatingPointValue(precision).compareTo(pVal2.floatingPointValue(precision));
       }
 
       if (num1 instanceof Rational) {
@@ -1180,8 +1189,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         return num.doubleValue() == 0;
       } else if (num instanceof BigInteger) {
         return pVal.bigIntegerValue().equals(BigInteger.ZERO);
-      } else if (num instanceof FloatValue) {
-        return pVal.floatingPointValue().isZero();
+      } else if (num instanceof FloatValue floatValue) {
+        return floatValue.isZero();
       } else {
         return false;
       }
