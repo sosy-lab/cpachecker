@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DSSMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -25,7 +25,7 @@ public class IdentityDeserializeOperator implements DeserializeOperator {
   }
 
   @Override
-  public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
+  public AbstractState deserialize(DSSMessage pMessage) throws InterruptedException {
     return (AbstractState)
         pMessage
             .getAbstractState(parentCPA.getClass())

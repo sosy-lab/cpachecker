@@ -16,7 +16,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DSSMessage;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -42,7 +42,7 @@ public class DeserializeCompositePrecisionOperator implements DeserializePrecisi
   }
 
   @Override
-  public Precision deserializePrecision(BlockSummaryMessage pMessage) {
+  public Precision deserializePrecision(DSSMessage pMessage) {
     try {
       List<Precision> precisions = new ArrayList<>();
       for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {

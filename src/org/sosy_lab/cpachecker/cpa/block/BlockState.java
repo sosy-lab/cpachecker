@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.cpa.block;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -41,21 +41,21 @@ public class BlockState
   private final CFANode node;
   private final BlockStateType type;
   private final BlockNode blockNode;
-  private Optional<AbstractState> errorCondition;
+  private Collection<AbstractState> errorCondition;
 
   public BlockState(
       CFANode pNode,
       BlockNode pTargetNode,
       BlockStateType pType,
-      Optional<AbstractState> pErrorCondition) {
+      Collection<AbstractState> pErrorCondition) {
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
-    errorCondition = pErrorCondition;
+    errorCondition = ImmutableSet.copyOf(pErrorCondition);
   }
 
-  public void setErrorCondition(AbstractState pErrorCondition) {
-    errorCondition = Optional.of(pErrorCondition);
+  public void setErrorCondition(Collection<AbstractState> pErrorConditions) {
+    errorCondition = pErrorConditions;
   }
 
   public BlockNode getBlockNode() {
@@ -89,23 +89,27 @@ public class BlockState
   public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
     return isTarget()
         ? ImmutableSet.of(
-            new BlockEntryReachedTargetInformation(
-                blockNode.getAbstractionLocation(), type == BlockStateType.ABSTRACTION))
+            new ExtendedSpecificationViolationTargetInformation(
+                node, !errorCondition.isEmpty() && isLocatedAtAbstractionLocation()))
         : ImmutableSet.of();
   }
 
-  public Optional<AbstractState> getErrorCondition() {
+  public Collection<AbstractState> getErrorConditions() {
     return errorCondition;
   }
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
-    if (isTarget() && errorCondition.isPresent()) {
-      FluentIterable<BooleanFormula> approximations =
-          AbstractStates.asIterable(errorCondition.orElseThrow())
-              .filter(VerificationConditionReportingState.class)
-              .transform(s -> s.getVerificationCondition(manager));
-      return manager.getBooleanFormulaManager().and(approximations.toList());
+    if (isTarget() && !errorCondition.isEmpty()) {
+      ImmutableSet.Builder<BooleanFormula> disjunction = ImmutableSet.builder();
+      for (AbstractState abstractState : errorCondition) {
+        FluentIterable<BooleanFormula> approximations =
+            AbstractStates.asIterable(abstractState)
+                .filter(VerificationConditionReportingState.class)
+                .transform(s -> s.getVerificationCondition(manager));
+        disjunction.add(manager.getBooleanFormulaManager().and(approximations.toList()));
+      }
+      return manager.getBooleanFormulaManager().or(disjunction.build());
     }
     return manager.getBooleanFormulaManager().makeTrue();
   }
@@ -121,10 +125,18 @@ public class BlockState
     return Objects.hash(node, type);
   }
 
+  private boolean isLocatedAtAbstractionLocation() {
+    boolean atActualAbstractionNode =
+        blockNode.getAbstractionLocation().equals(node) && blockNode.isAbstractionPossible();
+    boolean atFakeAbstractionNode =
+        !blockNode.isAbstractionPossible() && blockNode.getLast().equals(node);
+    return atActualAbstractionNode || atFakeAbstractionNode;
+  }
+
   @Override
   public boolean isTarget() {
-    return (errorCondition.isEmpty() && node.equals(blockNode.getLast()))
-        || (blockNode.getAbstractionLocation().equals(node) && blockNode.isAbstractionPossible())
-        || (!blockNode.isAbstractionPossible() && blockNode.getLast().equals(node));
+    boolean atBlockEnd = blockNode.getLast().equals(node);
+    return (!errorCondition.isEmpty() && isLocatedAtAbstractionLocation())
+        || (errorCondition.isEmpty() && atBlockEnd);
   }
 }

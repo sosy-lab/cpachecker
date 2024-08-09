@@ -14,25 +14,22 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockAnalysisStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DSSStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.fixpoint.CoverageCheck;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.widen.WidenOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.violation_condition.ViolationConditionSynthesizer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class DistributedCompositeCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -41,10 +38,13 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   private final DeserializeOperator deserialize;
   private final ProceedCompositeStateOperator proceed;
 
-  private final BlockAnalysisStatistics statistics;
+  private final DSSStatistics statistics;
 
   private final DeserializeCompositePrecisionOperator deserializePrecisionOperator;
   private final SerializeCompositePrecisionOperator serializePrecisionOperator;
+  private final WidenOperator widenOperator;
+  private final ViolationConditionSynthesizer synthesizer;
+  private final CoverageCheck coverageCheck;
 
   private final ImmutableMap<
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
@@ -57,7 +57,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
       ImmutableMap<
               Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
           registered) {
-    statistics = new BlockAnalysisStatistics("DCPA-" + pNode.getId());
+    statistics = new DSSStatistics("DCPA-" + pNode.getId());
     compositeCPA = pCompositeCPA;
     serialize = new SerializeCompositeStateOperator(registered, statistics);
     deserialize =
@@ -68,6 +68,9 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
     deserializePrecisionOperator =
         new DeserializeCompositePrecisionOperator(registered, compositeCPA, pIntegerCFANodeMap);
     analyses = registered;
+    widenOperator = new WidenCompositeStateOperator(compositeCPA, analyses);
+    synthesizer = new CompositeStateViolationConditionSynthesizer(compositeCPA, analyses);
+    coverageCheck = new CompositeStateCoverageCheck(analyses);
   }
 
   @Override
@@ -83,6 +86,16 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   @Override
   public ProceedOperator getProceedOperator() {
     return proceed;
+  }
+
+  @Override
+  public WidenOperator getCombineOperator() {
+    return widenOperator;
+  }
+
+  @Override
+  public ViolationConditionSynthesizer getViolationConditionSynthesizer() {
+    return synthesizer;
   }
 
   @Override
@@ -112,28 +125,6 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException,
-          InterruptedException,
-          VerificationConditionException,
-          SolverException {
-    ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
-    for (ConfigurableProgramAnalysis cpa : compositeCPA.getWrappedCPAs()) {
-      if (!analyses.containsKey(cpa.getClass())) {
-        states.add(
-            cpa.getInitialState(
-                Objects.requireNonNull(AbstractStates.extractLocation(pARGPath.getFirstState())),
-                StateSpacePartition.getDefaultPartition()));
-      } else {
-        states.add(
-            Objects.requireNonNull(analyses.get(cpa.getClass()))
-                .computeVerificationCondition(pARGPath, pPreviousCondition));
-      }
-    }
-    return new CompositeState(states.build());
-  }
-
-  @Override
   public SerializePrecisionOperator getSerializePrecisionOperator() {
     return serializePrecisionOperator;
   }
@@ -141,6 +132,11 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   @Override
   public DeserializePrecisionOperator getDeserializePrecisionOperator() {
     return deserializePrecisionOperator;
+  }
+
+  @Override
+  public CoverageCheck getCoverageCheck() {
+    return coverageCheck;
   }
 
   @Override
@@ -159,7 +155,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
     return new CompositeState(initialStates.build());
   }
 
-  public BlockAnalysisStatistics getStatistics() {
+  public DSSStatistics getStatistics() {
     return statistics;
   }
 }

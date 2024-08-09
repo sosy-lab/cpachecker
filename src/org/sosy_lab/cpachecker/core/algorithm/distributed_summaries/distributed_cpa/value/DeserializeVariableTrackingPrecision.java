@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummarySerializeUtil;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DSSSerializeUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DSSMessage;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -27,14 +27,14 @@ public class DeserializeVariableTrackingPrecision implements DeserializePrecisio
   }
 
   @Override
-  public Precision deserializePrecision(BlockSummaryMessage pMessage) {
+  public Precision deserializePrecision(DSSMessage pMessage) {
     Optional<Object> precision = pMessage.getPrecision(VariableTrackingPrecision.class);
     if (precision.isEmpty()) {
       // location node is ignored anyway
       return valueAnalysisCPA.getInitialPrecision(
           CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
     }
-    return BlockSummarySerializeUtil.deserialize(
+    return DSSSerializeUtil.deserialize(
         (String) precision.orElseThrow(), VariableTrackingPrecision.class);
   }
 }

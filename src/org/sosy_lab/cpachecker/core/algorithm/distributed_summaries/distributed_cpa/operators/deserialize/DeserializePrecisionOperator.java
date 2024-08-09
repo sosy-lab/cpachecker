@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DSSMessage;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public interface DeserializePrecisionOperator {
 
-  Precision deserializePrecision(BlockSummaryMessage pMessage);
+  Precision deserializePrecision(DSSMessage pMessage);
 }

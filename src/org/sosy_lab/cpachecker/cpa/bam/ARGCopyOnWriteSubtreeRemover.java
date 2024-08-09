@@ -250,7 +250,7 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
   private static Set<ARGState> getStatesToRemove(final ARGState cutState) {
     // get subgraph
     List<ARGState> toRemove = cutState.getSubgraph().toList();
-    // and combine with covered states (there are no transitively covered states)
+    // and widen with covered states (there are no transitively covered states)
     return from(toRemove).transformAndConcat(ARGState::getCoveredByThis).append(toRemove).toSet();
   }
 

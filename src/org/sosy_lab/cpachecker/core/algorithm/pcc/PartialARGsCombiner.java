@@ -115,7 +115,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
         Collection<ReachedSet> usedReachedSets = reached.getAllReachedSetsUsedAsDelegates();
 
         if (usedReachedSets.size() <= 1) {
-          logger.log(Level.INFO, "Only a single ARG is considered. Do not need to combine ARGs");
+          logger.log(Level.INFO, "Only a single ARG is considered. Do not need to widen ARGs");
           if (usedReachedSets.size() == 1) {
             ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
           }
@@ -123,7 +123,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
         }
 
         if (reached.wasTargetReached()) {
-          logger.log(Level.INFO, "Error found, do not combine ARGs.");
+          logger.log(Level.INFO, "Error found, do not widen ARGs.");
           ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
           return status;
         }
@@ -455,7 +455,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
         }
       }
 
-      // combine ARG states to get one cartesian product element, assume top state if no explicit
+      // widen ARG states to get one cartesian product element, assume top state if no explicit
       // state information available
       result.add(
           Pair.of(combineARGStates(argSuccessors, pStateToPos, pInitialStates), argSuccessors));
@@ -561,7 +561,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     @Override
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       out.println("Time for program analyis: " + analysisTime);
-      out.println("Time to combine ARGs:     " + argCombineTime);
+      out.println("Time to widen ARGs:     " + argCombineTime);
     }
 
     @Override

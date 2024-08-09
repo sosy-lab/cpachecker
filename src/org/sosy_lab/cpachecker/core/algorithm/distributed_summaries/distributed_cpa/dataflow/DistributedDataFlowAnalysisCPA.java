@@ -11,19 +11,17 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.widen.JoinWidenOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.widen.WidenOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.violation_condition.AlwaysViolationConditionSynthesizer;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.violation_condition.ViolationConditionSynthesizer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class DistributedDataFlowAnalysisCPA
     implements ForwardingDistributedConfigurableProgramAnalysis {
@@ -31,6 +29,7 @@ public class DistributedDataFlowAnalysisCPA
   private final InvariantsCPA invariantsCPA;
   private final SerializeOperator serializeOperator;
   private final DeserializeOperator deserializeOperator;
+  private final WidenOperator widenOperator;
   private final BlockNode blockNode;
 
   public DistributedDataFlowAnalysisCPA(InvariantsCPA pInvariantsCPA, BlockNode pNode, CFA pCFA) {
@@ -38,6 +37,7 @@ public class DistributedDataFlowAnalysisCPA
     blockNode = pNode;
     serializeOperator = new SerializeDataflowAnalysisStateOperator();
     deserializeOperator = new DeserializeDataflowAnalysisStateOperator(invariantsCPA, pCFA);
+    widenOperator = new JoinWidenOperator(invariantsCPA, blockNode, false);
   }
 
   @Override
@@ -56,6 +56,16 @@ public class DistributedDataFlowAnalysisCPA
   }
 
   @Override
+  public WidenOperator getCombineOperator() {
+    return widenOperator;
+  }
+
+  @Override
+  public ViolationConditionSynthesizer getViolationConditionSynthesizer() {
+    return new AlwaysViolationConditionSynthesizer(invariantsCPA, blockNode.getFirst());
+  }
+
+  @Override
   public Class<? extends AbstractState> getAbstractStateClass() {
     return InvariantsState.class;
   }
@@ -68,15 +78,5 @@ public class DistributedDataFlowAnalysisCPA
   @Override
   public boolean isTop(AbstractState pAbstractState) {
     return false;
-  }
-
-  @Override
-  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException,
-          InterruptedException,
-          VerificationConditionException,
-          SolverException {
-    return invariantsCPA.getInitialState(
-        blockNode.getFirst(), StateSpacePartition.getDefaultPartition());
   }
 }

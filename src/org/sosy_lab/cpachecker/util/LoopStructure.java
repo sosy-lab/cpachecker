@@ -813,7 +813,7 @@ public final class LoopStructure {
 
     for (int j = 0; j < edges.length; j++) {
       if (edges[j][from] != null) {
-        // combine three edges (j,current) (current,successor) and (j,successor)
+        // widen three edges (j,current) (current,successor) and (j,successor)
         // into a single edge (j,successor)
         Edge targetEdge = getEdge(j, to, edges);
         targetEdge.add(edges[j][from]);
@@ -833,7 +833,7 @@ public final class LoopStructure {
 
     for (int j = 0; j < edges.length; j++) {
       if (edges[from][j] != null) {
-        // combine three edges (predecessor,current) (current,j) and (predecessor,j)
+        // widen three edges (predecessor,current) (current,j) and (predecessor,j)
         // into a single edge (predecessor,j)
         Edge targetEdge = getEdge(to, j, edges);
         targetEdge.add(edges[from][j]);
@@ -1204,9 +1204,9 @@ public final class LoopStructure {
    * approach.
    *
    * <p>This approach also works for nested branchings as long as all branchings have a clear
-   * correspondence between a branching point and a merging point. This approach also tries to
-   * combine as many nodes as possible, so the outermost branching that can be combined into a
-   * loop-free section is considered.
+   * correspondence between a branching point and a merging point. This approach also tries to widen
+   * as many nodes as possible, so the outermost branching that can be combined into a loop-free
+   * section is considered.
    */
   private static final class BranchingLoopFreeSectionFinder implements LoopFreeSectionFinder {
 

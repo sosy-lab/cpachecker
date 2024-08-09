@@ -12,7 +12,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DSSMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -31,8 +31,8 @@ public class SerializeCompositePrecisionOperator implements SerializePrecisionOp
   }
 
   @Override
-  public BlockSummaryMessagePayload serializePrecision(Precision pPrecision) {
-    BlockSummaryMessagePayload.Builder payload = BlockSummaryMessagePayload.builder();
+  public DSSMessagePayload serializePrecision(Precision pPrecision) {
+    DSSMessagePayload.Builder payload = DSSMessagePayload.builder();
     try {
       CompositePrecision wrapped = (CompositePrecision) pPrecision;
       for (Precision wrappedPrecision : wrapped.getWrappedPrecisions()) {

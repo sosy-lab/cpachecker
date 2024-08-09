@@ -9,9 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import java.util.Map;
-import java.util.Objects;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -19,30 +17,22 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.widen.WidenOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.violation_condition.ViolationConditionSynthesizer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "distributedSummaries.predicate")
 public class DistributedPredicateCPA implements ForwardingDistributedConfigurableProgramAnalysis {
@@ -55,9 +45,9 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final DeserializePredicateStateOperator deserialize;
 
   private final DeserializePrecisionOperator deserializePrecisionOperator;
-  private final PathFormulaManager backwardManager;
-  private final boolean hasRootAsPredecessor;
   private final ProceedPredicateStateOperator proceedOperator;
+  private final ViolationConditionSynthesizer synthesizer;
+  private final WidenOperator widenOperator;
 
   @Option(secure = true, description = "Write readable formulas to log file.")
   private boolean writeReadableFormulas = false;
@@ -73,7 +63,6 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     predicateCPA = pPredicateCPA;
-    hasRootAsPredecessor = pNode.getPredecessorIds().stream().anyMatch(id -> id.equals("root"));
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
     serializePrecisionOperator =
@@ -82,8 +71,8 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
             predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), threadSafeCopy::get);
-    proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver(), pNode);
-    backwardManager =
+    proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver());
+    PathFormulaManagerImpl backwardManager =
         new PathFormulaManagerImpl(
             pPredicateCPA.getSolver().getFormulaManager(),
             pConfiguration,
@@ -91,6 +80,8 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
             pShutdownNotifier,
             pCFA,
             AnalysisDirection.BACKWARD);
+    widenOperator = new WidenPredicateStateOperator(predicateCPA);
+    synthesizer = new PredicateStateViolationConditionSynthesizer(backwardManager, pPredicateCPA);
   }
 
   @Override
@@ -119,6 +110,16 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
+  public WidenOperator getCombineOperator() {
+    return widenOperator;
+  }
+
+  @Override
+  public ViolationConditionSynthesizer getViolationConditionSynthesizer() {
+    return synthesizer;
+  }
+
+  @Override
   public Class<? extends AbstractState> getAbstractStateClass() {
     return PredicateAbstractState.class;
   }
@@ -139,40 +140,5 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
         .getFormulaManager()
         .getBooleanFormulaManager()
         .isTrue(predicateAbstractState.getPathFormula().getFormula());
-  }
-
-  @Override
-  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException,
-          InterruptedException,
-          SolverException,
-          VerificationConditionException {
-    PathFormula result;
-    if (pPreviousCondition == null) {
-      result = backwardManager.makeEmptyPathFormula();
-    } else {
-      PredicateAbstractState counterexampleState =
-          Objects.requireNonNull(
-              AbstractStates.extractStateByType(pPreviousCondition, PredicateAbstractState.class));
-      if (counterexampleState.isAbstractionState()) {
-        result = counterexampleState.getAbstractionFormula().getBlockFormula();
-      } else {
-        result = counterexampleState.getPathFormula();
-      }
-    }
-    for (CFAEdge cfaEdge : Lists.reverse(pARGPath.getFullPath())) {
-      result = backwardManager.makeAnd(result, cfaEdge);
-    }
-    if (hasRootAsPredecessor) {
-      if (predicateCPA.getSolver().isUnsat(result.getFormula())) {
-        throw new VerificationConditionException("Formula is unsat at root.");
-      }
-    }
-    return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-        result,
-        (PredicateAbstractState)
-            getInitialState(
-                Objects.requireNonNull(AbstractStates.extractLocation(pARGPath.getFirstState())),
-                StateSpacePartition.getDefaultPartition()));
   }
 }

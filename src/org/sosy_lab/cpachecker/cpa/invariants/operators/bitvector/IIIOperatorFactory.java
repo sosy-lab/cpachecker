@@ -487,7 +487,7 @@ enum IIIOperatorFactory {
                       .extendToMaxValue());
           /*
            * Shift this interval by the lower bound, then by the upper bound of
-           * the positive part and combine the results.
+           * the positive part and widen the results.
            */
           BitVectorInterval posPartResult =
               ISIOperatorFactory.INSTANCE

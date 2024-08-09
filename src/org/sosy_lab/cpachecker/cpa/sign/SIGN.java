@@ -49,7 +49,7 @@ public enum SIGN implements Serializable {
   }
 
   public SIGN combineWith(SIGN sign) {
-    // combine bit values
+    // widen bit values
     return VALUE_MAP.get(sign.numVal | numVal);
   }
 

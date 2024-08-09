@@ -1,0 +1,133 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
+
+import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.FileHandler;
+import org.sosy_lab.common.ShutdownManager;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DSSConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DSSConnectionProvider;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+public class DSSWorkerBuilder {
+
+  public record Components(
+      ImmutableList<DSSActor> actors, ImmutableList<? extends DSSConnection> connections) {}
+
+  private final CFA cfa;
+  private final Specification specification;
+  private final List<WorkerGenerator> workerGenerators;
+  private final DSSConnectionProvider<?> connectionProvider;
+  private int additionalConnections;
+
+  public DSSWorkerBuilder(
+      CFA pCFA, DSSConnectionProvider<?> pConnectionProvider, Specification pSpecification) {
+    cfa = pCFA;
+    specification = pSpecification;
+    // only one available for now
+    connectionProvider = pConnectionProvider;
+    workerGenerators = new ArrayList<>();
+  }
+
+  public Components build()
+      throws IOException, CPAException, InterruptedException, InvalidConfigurationException {
+    List<? extends DSSConnection> connections =
+        connectionProvider.createConnections(workerGenerators.size() + additionalConnections);
+    List<DSSWorker> worker = new ArrayList<>();
+    for (int i = 0; i < workerGenerators.size(); i++) {
+      worker.add(workerGenerators.get(i).apply(connections.get(i)));
+    }
+    List<? extends DSSConnection> excessConnections =
+        connections.subList(
+            workerGenerators.size(), workerGenerators.size() + additionalConnections);
+    return new Components(ImmutableList.copyOf(worker), ImmutableList.copyOf(excessConnections));
+  }
+
+  @CanIgnoreReturnValue
+  public DSSWorkerBuilder createAdditionalConnections(int numberConnections) {
+    additionalConnections = numberConnections;
+    return this;
+  }
+
+  @CanIgnoreReturnValue
+  public DSSWorkerBuilder addAnalysisWorker(BlockNode pNode, DSSOptions pOptions) {
+    String workerId = nextId(pNode.getId());
+    final LogManager logger = getLogger(pOptions, workerId);
+    workerGenerators.add(
+        connection ->
+            new DSSAnalysisWorker(
+                nextId(pNode.getId()),
+                pOptions,
+                connection,
+                pNode,
+                cfa,
+                specification,
+                ShutdownManager.create(),
+                logger));
+    return this;
+  }
+
+  private LogManager getLogger(DSSOptions pOptions, String workerId) {
+    try {
+      Path logDirectory = pOptions.getLogDirectory();
+      if (logDirectory != null) {
+        boolean logDirectoryExists = logDirectory.toFile().mkdirs();
+        if (!logDirectoryExists) {
+          throw new IOException("Could not create log directory: " + logDirectory);
+        }
+        return BasicLogManager.createWithHandler(
+            new FileHandler(logDirectory + "/" + workerId + ".log"));
+      }
+    } catch (IOException e) {
+      // fall-through to return null-log manager
+    }
+    return LogManager.createNullLogManager();
+  }
+
+  @CanIgnoreReturnValue
+  public DSSWorkerBuilder addVisualizationWorker(BlockGraph pBlockTree, DSSOptions pOptions) {
+    String workerId = "visualization-worker";
+    final LogManager logger = getLogger(pOptions, workerId);
+    workerGenerators.add(
+        connection ->
+            new DSSVisualizationWorker(workerId, pBlockTree, connection, pOptions, logger));
+    return this;
+  }
+
+  @CanIgnoreReturnValue
+  public DSSWorkerBuilder addRootWorker(BlockNode pNode, DSSOptions pOptions) {
+    String workerId = "root-worker-" + nextId(pNode.getId());
+    final LogManager logger = getLogger(pOptions, workerId);
+    workerGenerators.add(connection -> new DSSRootWorker(workerId, connection, pNode, logger));
+    return this;
+  }
+
+  private String nextId(String pAdditionalIdentifier) {
+    return "W" + workerGenerators.size() + pAdditionalIdentifier;
+  }
+
+  // Needed to forward exception handling to actual method and not the add* functions.
+  @FunctionalInterface
+  private interface WorkerGenerator {
+    DSSWorker apply(DSSConnection connection)
+        throws CPAException, InterruptedException, InvalidConfigurationException, IOException;
+  }
+}

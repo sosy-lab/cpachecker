@@ -588,7 +588,7 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
                 SimpleInterval.singleton(BigInteger.ONE).extendToPositiveInfinity());
         /*
          * Shift this interval by the lower bound, then by the upper bound of
-         * the positive part and combine the results.
+         * the positive part and widen the results.
          */
         SimpleInterval posPartResult =
             ISIOperator.SHIFT_RIGHT.apply(pFirstOperand, posPart.getLowerBound());

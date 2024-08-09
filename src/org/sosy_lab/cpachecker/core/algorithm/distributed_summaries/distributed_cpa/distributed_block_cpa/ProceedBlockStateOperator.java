@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DSSMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
 
 public class ProceedBlockStateOperator implements ProceedOperator {
 
@@ -25,21 +24,23 @@ public class ProceedBlockStateOperator implements ProceedOperator {
   }
 
   @Override
-  public BlockSummaryMessageProcessing processForward(AbstractState pState) {
-    if (Objects.equals(AbstractStates.extractLocation(pState), block.getFirst())) {
-      return BlockSummaryMessageProcessing.proceed();
-    } else {
-      return BlockSummaryMessageProcessing.stop();
+  public DSSMessageProcessing processForward(AbstractState pState) {
+    CFANode location = ((BlockState) pState).getLocationNode();
+    if (location.equals(block.getFirst())) {
+      return DSSMessageProcessing.proceed();
     }
+    return DSSMessageProcessing.stop();
   }
 
   @Override
-  public BlockSummaryMessageProcessing processBackward(AbstractState pState) {
-    CFANode node = Objects.requireNonNull(AbstractStates.extractLocation(pState));
-    if (!(node.equals(block.getLast())
-        || (!node.equals(block.getFirst()) && block.getNodes().contains(node)))) {
-      return BlockSummaryMessageProcessing.stop();
+  public DSSMessageProcessing processBackward(AbstractState pState) {
+    CFANode location = ((BlockState) pState).getLocationNode();
+    if (location.equals(block.getLast())) {
+      return DSSMessageProcessing.proceed();
     }
-    return BlockSummaryMessageProcessing.proceed();
+    if (!location.equals(block.getFirst()) && block.getNodes().contains(location)) {
+      return DSSMessageProcessing.proceed();
+    }
+    return DSSMessageProcessing.stop();
   }
 }

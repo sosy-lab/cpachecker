@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import java.io.IOException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummarySerializeUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DSSMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DSSSerializeUtil;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -35,7 +35,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
   }
 
   @Override
-  public BlockSummaryMessagePayload serialize(AbstractState pState) {
+  public DSSMessagePayload serialize(AbstractState pState) {
     PredicateAbstractState state = (PredicateAbstractState) pState;
     FormulaManagerView formulaManagerView = predicateCPA.getSolver().getFormulaManager();
     BooleanFormula booleanFormula;
@@ -57,18 +57,18 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     String serializedSSAMap;
     String pts;
     try {
-      serializedSSAMap = BlockSummarySerializeUtil.serialize(ssaMap);
-      pts = BlockSummarySerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
+      serializedSSAMap = DSSSerializeUtil.serialize(ssaMap);
+      pts = DSSSerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
     } catch (IOException e) {
       throw new AssertionError("Unable to serialize SSAMap " + state.getPathFormula().getSsa());
     } finally {
       SerializationInfoStorage.clear();
     }
-    BlockSummaryMessagePayload.Builder payload =
-        BlockSummaryMessagePayload.builder()
+    DSSMessagePayload.Builder payload =
+        DSSMessagePayload.builder()
             .addEntry(PredicateCPA.class.getName(), serializedFormula)
-            .addEntry(BlockSummaryMessagePayload.SSA, serializedSSAMap)
-            .addEntry(BlockSummaryMessagePayload.PTS, pts);
+            .addEntry(DSSMessagePayload.SSA, serializedSSAMap)
+            .addEntry(DSSMessagePayload.PTS, pts);
     if (writeReadableFormulas) {
       payload.addEntry("readable", booleanFormula.toString());
     }

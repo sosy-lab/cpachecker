@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class SingleBlockDecomposition implements BlockSummaryCFADecomposer {
+public class SingleBlockDecomposition implements DSSCFADecomposer {
 
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {

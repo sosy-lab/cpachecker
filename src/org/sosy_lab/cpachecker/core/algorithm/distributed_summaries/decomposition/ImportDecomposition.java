@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.ImportedBlock;
 
-public class ImportDecomposition implements BlockSummaryCFADecomposer {
+public class ImportDecomposition implements DSSCFADecomposer {
 
   private final Map<String, ImportedBlock> blocks;
 

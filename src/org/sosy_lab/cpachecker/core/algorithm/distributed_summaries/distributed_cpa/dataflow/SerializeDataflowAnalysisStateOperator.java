@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow;
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DSSMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
@@ -21,17 +21,17 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.SerializeNumeralFormulaVis
 public class SerializeDataflowAnalysisStateOperator implements SerializeOperator {
 
   @Override
-  public BlockSummaryMessagePayload serialize(AbstractState pState) {
+  public DSSMessagePayload serialize(AbstractState pState) {
     InvariantsState state = (InvariantsState) pState;
     BooleanFormula<CompoundInterval> booleanFormula = state.asFormula();
     SerializeNumeralFormulaVisitor numeralFormulaVisitor = new SerializeNumeralFormulaVisitor();
     SerializeBooleanFormulaVisitor booleanFormulaVisitor =
         new SerializeBooleanFormulaVisitor(numeralFormulaVisitor);
     String abstractionStrategy = state.getAbstractionState().getAbstractionStrategyName();
-    BlockSummaryMessagePayload.Builder payload =
-        BlockSummaryMessagePayload.builder()
+    DSSMessagePayload.Builder payload =
+        DSSMessagePayload.builder()
             .addEntry(InvariantsCPA.class.getName(), booleanFormula.accept(booleanFormulaVisitor))
-            .addEntry(BlockSummaryMessagePayload.STRATEGY, abstractionStrategy);
+            .addEntry(DSSMessagePayload.STRATEGY, abstractionStrategy);
 
     return payload.buildPayload();
   }

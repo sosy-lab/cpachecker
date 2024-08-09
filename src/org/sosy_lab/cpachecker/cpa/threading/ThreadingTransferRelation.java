@@ -351,7 +351,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
             .getAbstractSuccessorsForEdge(
                 threadingState.getThreadCallstack(activeThread), precision, cfaEdge);
 
-    // combine them pairwise, all combinations needed
+    // widen them pairwise, all combinations needed
     final Collection<ThreadingState> results = new ArrayList<>();
     for (AbstractState loc : newLocs) {
       for (AbstractState stack : newStacks) {

@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DSSMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -29,14 +29,14 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class DeserializeValueAnalysisStateOperator implements DeserializeOperator {
 
-  CFA cfa;
+  private final CFA cfa;
 
   public DeserializeValueAnalysisStateOperator(CFA pCFA) {
     cfa = pCFA;
   }
 
   @Override
-  public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
+  public AbstractState deserialize(DSSMessage pMessage) throws InterruptedException {
     String valueAnalysisString =
         (String) pMessage.getAbstractState(ValueAnalysisCPA.class).orElseThrow();
     ValueAnalysisState valueState = null;

@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DSSMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
@@ -32,7 +32,7 @@ public class DeserializeFunctionPointerStateOperator implements DeserializeOpera
   }
 
   @Override
-  public AbstractState deserialize(BlockSummaryMessage pMessage) {
+  public AbstractState deserialize(DSSMessage pMessage) {
     String serialized =
         pMessage.getAbstractState(functionPointerCPA.getClass()).map(Object::toString).orElse("");
     if (serialized.isBlank()) {

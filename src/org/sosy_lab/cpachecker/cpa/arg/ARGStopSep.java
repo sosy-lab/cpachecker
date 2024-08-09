@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.cpa.block.BlockEntryReachedTargetInformation;
+import org.sosy_lab.cpachecker.cpa.block.ExtendedSpecificationViolationTargetInformation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
@@ -99,7 +99,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       if (!argElement.getTargetInformation().isEmpty()) {
         onlyBlockTargetStates =
             argElement.getTargetInformation().stream()
-                .filter(i -> !(i instanceof BlockEntryReachedTargetInformation))
+                .filter(i -> !(i instanceof ExtendedSpecificationViolationTargetInformation))
                 .findFirst()
                 .isEmpty();
       }

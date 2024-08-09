@@ -12,9 +12,9 @@ import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DSSErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DSSMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DSSPostConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.invariants.AbstractionStrategyFactories;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
@@ -37,7 +37,7 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
   }
 
   @Override
-  public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
+  public AbstractState deserialize(DSSMessage pMessage) throws InterruptedException {
     String booleanFormulaString =
         (String) pMessage.getAbstractState(InvariantsCPA.class).orElseThrow();
 
@@ -54,10 +54,10 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
     }
     String abstractionStrategy = "";
 
-    if (pMessage instanceof BlockSummaryPostConditionMessage) {
-      abstractionStrategy = ((BlockSummaryPostConditionMessage) pMessage).getAbstractionStrategy();
-    } else if (pMessage instanceof BlockSummaryErrorConditionMessage) {
-      abstractionStrategy = ((BlockSummaryErrorConditionMessage) pMessage).getAbstractionStrategy();
+    if (pMessage instanceof DSSPostConditionMessage) {
+      abstractionStrategy = ((DSSPostConditionMessage) pMessage).getAbstractionStrategy();
+    } else if (pMessage instanceof DSSErrorConditionMessage) {
+      abstractionStrategy = ((DSSErrorConditionMessage) pMessage).getAbstractionStrategy();
     }
 
     InvariantsState deserializedInvariantsState =

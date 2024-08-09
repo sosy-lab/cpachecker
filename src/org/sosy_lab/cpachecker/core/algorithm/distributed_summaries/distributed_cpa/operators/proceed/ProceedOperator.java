@@ -8,37 +8,37 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DSSMessageProcessing;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public interface ProceedOperator {
 
   /**
-   * Processes the given state for a forward-analysis. The returned {@link
-   * BlockSummaryMessageProcessing} contains information about whether to start a forward analysis
-   * based on the given {@link AbstractState}.
+   * Processes the given state for a forward-analysis. The returned {@link DSSMessageProcessing}
+   * contains information about whether to start a forward analysis based on the given {@link
+   * AbstractState}.
    *
    * @param pState Incoming state
-   * @return a {@link BlockSummaryMessageProcessing} that contains a decision whether to proceed and
+   * @return a {@link DSSMessageProcessing} that contains a decision whether to proceed and
    *     potential messages that were generated during processing
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    */
-  BlockSummaryMessageProcessing processForward(AbstractState pState)
+  DSSMessageProcessing processForward(AbstractState pState)
       throws InterruptedException, SolverException;
 
   /**
-   * Processes the given state for a backward-analysis. The returned {@link
-   * BlockSummaryMessageProcessing} contains information about whether to start a backward analysis
-   * based on the given {@link AbstractState}.
+   * Processes the given state for a backward-analysis. The returned {@link DSSMessageProcessing}
+   * contains information about whether to start a backward analysis based on the given {@link
+   * AbstractState}.
    *
    * @param pState Incoming state
-   * @return a {@link BlockSummaryMessageProcessing} that contains a decision whether to proceed and
+   * @return a {@link DSSMessageProcessing} that contains a decision whether to proceed and
    *     potential messages that were generated during processing
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    * @throws SolverException thrown if backwards analysis is infeasible
    */
-  BlockSummaryMessageProcessing processBackward(AbstractState pState)
+  DSSMessageProcessing processBackward(AbstractState pState)
       throws InterruptedException, SolverException;
 
   static ProceedOperator always() {

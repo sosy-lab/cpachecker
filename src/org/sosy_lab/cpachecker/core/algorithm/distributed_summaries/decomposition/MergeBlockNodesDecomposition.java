@@ -15,9 +15,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 
-public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
+public class MergeBlockNodesDecomposition implements DSSCFADecomposer {
 
-  private final BlockSummaryCFADecomposer decomposer;
+  private final DSSCFADecomposer decomposer;
   private final long targetNumber;
   private final Comparator<BlockNodeWithoutGraphInformation> sort;
   private final HorizontalMergeDecomposition horizontalMerger;
@@ -26,7 +26,7 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
   private final boolean allowSingleBlockDecomposition;
 
   public MergeBlockNodesDecomposition(
-      BlockSummaryCFADecomposer pDecomposition,
+      DSSCFADecomposer pDecomposition,
       long pTargetNumber,
       Comparator<BlockNodeWithoutGraphInformation> pSort,
       boolean pAllowSingleBlockDecomposition) {

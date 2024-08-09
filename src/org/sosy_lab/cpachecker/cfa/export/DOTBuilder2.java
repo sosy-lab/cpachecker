@@ -209,7 +209,7 @@ public final class DOTBuilder2 {
             // If we have not added this node yet,
             // add it and extend the label
             if (combinedNodes.add(predNumber)) {
-              // If this is not the first element we combine,
+              // If this is not the first element we widen,
               // we should continue the description in a new line
               if (combinedNodes.size() > 1) {
                 label.append("\n");

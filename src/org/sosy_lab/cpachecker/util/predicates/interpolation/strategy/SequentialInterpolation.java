@@ -57,7 +57,7 @@ public class SequentialInterpolation extends ITPStrategy {
           "In case we apply sequential interpolation, "
               + "forward and backward directions return valid interpolants. "
               + "We can either choose one of the directions, fallback to the other "
-              + "if one does not succeed, or even combine the interpolants.")
+              + "if one does not succeed, or even widen the interpolants.")
   private SeqInterpolationStrategy sequentialStrategy = SeqInterpolationStrategy.FWD;
 
   private final Random rnd = new Random(0);

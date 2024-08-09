@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DSSMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
@@ -23,7 +23,7 @@ public class SerializeARGStateOperator implements SerializeOperator {
   }
 
   @Override
-  public BlockSummaryMessagePayload serialize(AbstractState pState) {
+  public DSSMessagePayload serialize(AbstractState pState) {
     return wrapped.getSerializeOperator().serialize(((ARGState) pState).getWrappedState());
   }
 }

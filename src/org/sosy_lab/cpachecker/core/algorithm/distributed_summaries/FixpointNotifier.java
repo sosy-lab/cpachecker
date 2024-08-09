@@ -12,23 +12,23 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DSSConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DSSMessage;
 
 public class FixpointNotifier {
 
-  private final BlockSummaryConnection connection;
+  private final DSSConnection connection;
   private final int connections;
   private final ConcurrentHashMap<String, String> waiting;
   private static FixpointNotifier instance;
 
-  private FixpointNotifier(BlockSummaryConnection pConnection, int pConnections) {
+  private FixpointNotifier(DSSConnection pConnection, int pConnections) {
     connection = pConnection;
     connections = pConnections;
     waiting = new ConcurrentHashMap<>();
   }
 
-  public static void init(BlockSummaryConnection connection, int connections) {
+  public static void init(DSSConnection connection, int connections) {
     // checkState(instance == null, "FixPointNotifier already initialized");
     instance = new FixpointNotifier(connection, connections);
   }
@@ -41,7 +41,7 @@ public class FixpointNotifier {
   public void waiting(String id) throws InterruptedException {
     waiting.put(id, id);
     if (waiting.size() == connections) {
-      connection.write(BlockSummaryMessage.newResultMessage("root", 0, Result.TRUE));
+      connection.write(DSSMessage.newResultMessage("root", 0, Result.TRUE));
     }
   }
 

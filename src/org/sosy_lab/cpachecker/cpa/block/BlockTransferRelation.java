@@ -36,21 +36,21 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableSet.of();
     }
 
+    if (blockState.getType() == BlockStateType.FINAL
+        && !cfaEdge.getSuccessor().equals(blockState.getBlockNode().getAbstractionLocation())) {
+      return ImmutableList.of();
+    }
+
     final BlockState successor =
         new BlockState(
             cfaEdge.getSuccessor(),
             blockState.getBlockNode(),
             getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
-            blockState.getErrorCondition());
+            blockState.getErrorConditions());
 
     Set<CFAEdge> intersection =
         Sets.intersection(
             CFAUtils.leavingEdges(node).toSet(), blockState.getBlockNode().getEdges());
-
-    if (blockState.getType() == BlockStateType.FINAL
-        && !cfaEdge.getSuccessor().equals(blockState.getBlockNode().getAbstractionLocation())) {
-      return ImmutableList.of();
-    }
 
     if (intersection.contains(cfaEdge)) {
       return ImmutableList.of(successor);

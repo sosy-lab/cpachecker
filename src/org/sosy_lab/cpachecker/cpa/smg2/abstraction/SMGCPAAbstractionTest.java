@@ -353,7 +353,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         buildConcreteListWithEqualValues(
             false, sllSize, 1, 111, BigInteger.ZERO, Optional.empty(), true);
     Value[] pointersSecondHalf = buildConcreteList(false, sllSize, listLength);
-    // Now combine to 1 list
+    // Now widen to 1 list
     assertThat(pointersConcrete).hasLength(1);
     SMGStateAndOptionalSMGObjectAndOffset lstFirstHalf =
         currentState
@@ -471,7 +471,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         buildConcreteListWithEqualValues(
             true, dllSize, 1, 111, BigInteger.ZERO, Optional.of(BigInteger.ZERO), true);
     Value[] pointersSecondHalf = buildConcreteList(true, dllSize, listLength);
-    // Now combine to 1 list
+    // Now widen to 1 list
     assertThat(pointersConcrete).hasLength(1);
     SMGStateAndOptionalSMGObjectAndOffset lstFirstHalf =
         currentState

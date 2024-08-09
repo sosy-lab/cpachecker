@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DSSMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
@@ -21,9 +21,7 @@ public class IdentitySerializeOperator implements SerializeOperator {
   }
 
   @Override
-  public BlockSummaryMessagePayload serialize(AbstractState pState) {
-    return BlockSummaryMessagePayload.builder()
-        .addEntry(parentCPA.getName(), pState)
-        .buildPayload();
+  public DSSMessagePayload serialize(AbstractState pState) {
+    return DSSMessagePayload.builder().addEntry(parentCPA.getName(), pState).buildPayload();
   }
 }

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.fixpoint.AbstractDomainCoverageCheck;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.fixpoint.CoverageCheck;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
@@ -15,7 +17,10 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.NoPrecisionSerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.widen.WidenOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.violation_condition.ViolationCondition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.violation_condition.ViolationConditionSynthesizer;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DSSMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -57,6 +62,10 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   ProceedOperator getProceedOperator();
 
+  WidenOperator getCombineOperator();
+
+  ViolationConditionSynthesizer getViolationConditionSynthesizer();
+
   /**
    * The abstract state this distributed analysis works n.
    *
@@ -90,14 +99,19 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    * @param pARGPath arg path to collapse
    * @return verification condition
    */
-  AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException,
-          InterruptedException,
-          VerificationConditionException,
-          SolverException;
+  default ViolationCondition computeViolationCondition(
+      ARGPath pARGPath, ARGState pPreviousCondition)
+      throws CPATransferException, InterruptedException, SolverException {
+    return getViolationConditionSynthesizer()
+        .computeViolationCondition(pARGPath, pPreviousCondition);
+  }
 
-  default BlockSummaryMessagePayload serialize(AbstractState pAbstractState, Precision pPrecision) {
-    return BlockSummaryMessagePayload.builder()
+  default CoverageCheck getCoverageCheck() {
+    return new AbstractDomainCoverageCheck(getCPA().getAbstractDomain());
+  }
+
+  default DSSMessagePayload serialize(AbstractState pAbstractState, Precision pPrecision) {
+    return DSSMessagePayload.builder()
         .addAllEntries(getSerializeOperator().serialize(pAbstractState))
         .addAllEntries(getSerializePrecisionOperator().serializePrecision(pPrecision))
         .buildPayload();

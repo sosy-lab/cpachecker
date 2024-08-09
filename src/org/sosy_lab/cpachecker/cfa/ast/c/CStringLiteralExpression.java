@@ -132,7 +132,7 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
           new CCharLiteralExpression(getFileLocation(), CNumericTypes.SIGNED_CHAR, s.charAt(i)));
     }
 
-    // http://stackoverflow.com/questions/10828294/c-and-c-partial-initialization-of-automatic-structure
+    // http://stackoverflow.com/questions/10828294/c-and-c-partial-initialization-of-automaticstructure
     // C99 Standard 6.7.8.21
     // If there are ... fewer characters in a string literal
     // used to initialize an array of known size than there are elements in the array,

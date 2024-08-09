@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DSSMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
@@ -32,7 +32,7 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
   }
 
   @Override
-  public AbstractState deserialize(BlockSummaryMessage pMessage) {
+  public AbstractState deserialize(DSSMessage pMessage) {
     Optional<String> state = pMessage.getAbstractState(parentCPA.getClass()).map(Object::toString);
     if (state.isEmpty()) {
       return parentCPA.getInitialState(

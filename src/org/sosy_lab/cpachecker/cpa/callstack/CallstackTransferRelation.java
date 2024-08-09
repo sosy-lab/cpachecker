@@ -67,8 +67,8 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     logger = new LogManagerWithoutDuplicates(pLogger);
   }
 
-  public CallstackTransferRelationBackwards copyBackwards() {
-    return new CallstackTransferRelationBackwards(options, logger);
+  public CallstackOptions getOptions() {
+    return options;
   }
 
   @Override

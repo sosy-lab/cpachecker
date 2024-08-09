@@ -11,12 +11,15 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.fixpoint.CoverageCheck;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.widen.WidenOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.violation_condition.ViolationCondition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.violation_condition.ViolationConditionSynthesizer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -35,6 +38,9 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
   private final SerializeARGStateOperator serializeARGStateOperator;
   private final SerializePrecisionOperator serializePrecisionOperator;
   private final DeserializePrecisionOperator deserializePrecisionOperator;
+  private final WidenOperator widenOperator;
+  private final ViolationConditionSynthesizer synthesizer;
+  private final CoverageCheck coverageCheck;
 
   public DistributedARGCPA(ARGCPA pARGCPA, DistributedConfigurableProgramAnalysis pWrapped) {
     argcpa = pARGCPA;
@@ -44,6 +50,9 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
     deserializeARGStateOperator = new DeserializeARGStateOperator(wrappedCPA);
     serializePrecisionOperator = new SerializeARGPrecisionOperator(wrappedCPA);
     deserializePrecisionOperator = new DeserializeARGPrecisionOperator(wrappedCPA);
+    synthesizer = new ARGStateViolationConditionSynthesizer(wrappedCPA);
+    widenOperator = new WidenARGStateOperator(wrappedCPA);
+    coverageCheck = new ARGStateCoverageCheck(wrappedCPA);
   }
 
   @Override
@@ -59,6 +68,16 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
   @Override
   public ProceedOperator getProceedOperator() {
     return proceedOperator;
+  }
+
+  @Override
+  public WidenOperator getCombineOperator() {
+    return widenOperator;
+  }
+
+  @Override
+  public ViolationConditionSynthesizer getViolationConditionSynthesizer() {
+    return synthesizer;
   }
 
   @Override
@@ -97,13 +116,20 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
   }
 
   @Override
-  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException,
-          InterruptedException,
-          VerificationConditionException,
-          SolverException {
-    return new ARGState(
-        wrappedCPA.computeVerificationCondition(pARGPath, pPreviousCondition), null);
+  public CoverageCheck getCoverageCheck() {
+    return coverageCheck;
+  }
+
+  @Override
+  public ViolationCondition computeViolationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
+      throws CPATransferException, InterruptedException, SolverException {
+    ViolationCondition violationCondition =
+        wrappedCPA.computeViolationCondition(pARGPath, pPreviousCondition);
+    if (!violationCondition.isFeasible()) {
+      return violationCondition;
+    }
+    return ViolationCondition.feasibleCondition(
+        new ARGState(violationCondition.getViolation(), null));
   }
 
   public DistributedConfigurableProgramAnalysis getWrappedCPA() {

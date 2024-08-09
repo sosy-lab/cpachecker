@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DSSMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class SerializeARGPrecisionOperator implements SerializePrecisionOperator {
@@ -21,7 +21,7 @@ public class SerializeARGPrecisionOperator implements SerializePrecisionOperator
   }
 
   @Override
-  public BlockSummaryMessagePayload serializePrecision(Precision pPrecision) {
+  public DSSMessagePayload serializePrecision(Precision pPrecision) {
     return wrapped.getSerializePrecisionOperator().serializePrecision(pPrecision);
   }
 }

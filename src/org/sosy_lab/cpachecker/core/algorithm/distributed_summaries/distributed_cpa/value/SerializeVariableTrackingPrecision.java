@@ -10,20 +10,19 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import java.io.IOException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummarySerializeUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DSSMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DSSSerializeUtil;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class SerializeVariableTrackingPrecision implements SerializePrecisionOperator {
 
   @Override
-  public BlockSummaryMessagePayload serializePrecision(Precision pPrecision) {
+  public DSSMessagePayload serializePrecision(Precision pPrecision) {
     try {
       if (pPrecision instanceof VariableTrackingPrecision vtp) {
-        return BlockSummaryMessagePayload.builder()
-            .addEntry(
-                VariableTrackingPrecision.class.getName(), BlockSummarySerializeUtil.serialize(vtp))
+        return DSSMessagePayload.builder()
+            .addEntry(VariableTrackingPrecision.class.getName(), DSSSerializeUtil.serialize(vtp))
             .buildPayload();
       }
     } catch (IOException e) {

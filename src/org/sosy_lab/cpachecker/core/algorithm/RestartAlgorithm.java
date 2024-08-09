@@ -139,7 +139,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       secure = true,
       name = "combineARGsAfterRestart",
       description =
-          "combine (partial) ARGs obtained by restarts of the analysis after an unknown result with"
+          "widen (partial) ARGs obtained by restarts of the analysis after an unknown result with"
               + " a different configuration")
   private boolean useARGCombiningAlgorithm = false;
 
@@ -164,7 +164,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
    * TODO It might be better to have two lists of algorithms given to the RestartAlgorithm.
    * One list for analysis with no result expected except information about the program
    * and a second list for the real analyses to be restarted if necessary.
-   * This would allow to combine the pre-computation of information and
+   * This would allow to widen the pre-computation of information and
    * the normal sequential composition of algorithms in a more flexible way.
    */
   @Option(

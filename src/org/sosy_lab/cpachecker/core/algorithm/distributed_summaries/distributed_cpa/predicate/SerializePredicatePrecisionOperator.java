@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DSSMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -33,7 +33,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
   }
 
   @Override
-  public BlockSummaryMessagePayload serializePrecision(Precision pPrecision) {
+  public DSSMessagePayload serializePrecision(Precision pPrecision) {
     if (pPrecision instanceof PredicatePrecision predicatePrecision) {
       ImmutableSetMultimap.Builder<String, String> locationInstances =
           ImmutableSetMultimap.builder();
@@ -66,7 +66,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
               .put("functionPredicates", functionPredicates.build().asMap())
               .put("global", globalPredicates)
               .buildOrThrow();
-      return BlockSummaryMessagePayload.builder()
+      return DSSMessagePayload.builder()
           .addEntry(PredicatePrecision.class.getName(), serialized)
           .buildPayload();
     }
