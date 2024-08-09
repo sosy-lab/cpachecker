@@ -33,11 +33,11 @@ public class JoinWidenOperator implements WidenOperator {
       throws CPAException, InterruptedException {
     try {
       return cpa.getAbstractDomain().join(state1, state2);
-    } catch (UnsupportedCodeException | UnsupportedOperationException pE) {
+    } catch (UnsupportedCodeException | UnsupportedOperationException exception) {
       if (defaultToTop) {
         return cpa.getInitialState(block.getFirst(), StateSpacePartition.getDefaultPartition());
       }
-      throw pE;
+      throw exception;
     }
   }
 }

@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Check whether a worker has reached a fixpoint.
- */
+/** Check whether a worker has reached a fixpoint. */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.fixpoint;

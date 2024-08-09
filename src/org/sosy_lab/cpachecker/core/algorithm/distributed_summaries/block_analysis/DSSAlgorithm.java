@@ -217,6 +217,16 @@ public class DSSAlgorithm {
     return messages.build();
   }
 
+  public DSSMessageProcessing updatePrecondition(DSSPostConditionMessage pDSSPostConditionMessage)
+      throws CPAException, SolverException, InterruptedException {
+    return preconditions.updatePrecondition(pDSSPostConditionMessage);
+  }
+
+  public DSSMessageProcessing updateErrorCondition(DSSErrorConditionMessage pErrorConditionMessage)
+      throws SolverException, InterruptedException {
+    return errorConditions.updateErrorCondition(pErrorConditionMessage);
+  }
+
   public DistributedConfigurableProgramAnalysis getDcpa() {
     return dcpa;
   }

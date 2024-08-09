@@ -33,7 +33,6 @@ public class DistributedValueAnalysisCPA
   private final DeserializeOperator deserializeOperator;
   private final SerializePrecisionOperator serializePrecisionOperator;
   private final DeserializePrecisionOperator deserializePrecisionOperator;
-  private final BlockNode blockNode;
   private final WidenOperator widenOperator;
   private final ViolationConditionSynthesizer synthesizer;
 
@@ -44,7 +43,6 @@ public class DistributedValueAnalysisCPA
     deserializeOperator = new DeserializeValueAnalysisStateOperator(pCFA);
     serializePrecisionOperator = new SerializeVariableTrackingPrecision();
     deserializePrecisionOperator = new DeserializeVariableTrackingPrecision(pValueAnalysisCPA);
-    blockNode = pNode;
     widenOperator = new JoinWidenOperator(pValueAnalysisCPA, pNode, true);
     synthesizer = new AlwaysViolationConditionSynthesizer(pValueAnalysisCPA, pNode.getFirst());
   }

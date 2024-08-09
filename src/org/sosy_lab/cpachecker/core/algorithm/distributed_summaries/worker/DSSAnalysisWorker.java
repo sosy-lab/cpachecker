@@ -119,17 +119,17 @@ public class DSSAnalysisWorker extends DSSWorker {
     }
   }
 
-  public void storeMessage(DSSMessage message) throws SolverException, InterruptedException {
+  public void storeMessage(DSSMessage message)
+      throws SolverException, InterruptedException, CPAException {
     switch (message.getType()) {
       case STATISTICS, FOUND_RESULT, ERROR, ERROR_CONDITION_UNREACHABLE -> {}
       case ERROR_CONDITION -> {
-        DSSErrorConditionMessage errorCond = (DSSErrorConditionMessage) message;
-        // dcpaAlgorithm.updateErrorCondition(errorCond);
-        // dcpaAlgorithm.updateSeenPrefixes(errorCond);
+        //noinspection ResultOfMethodCallIgnored
+        dcpaAlgorithm.updateErrorCondition((DSSErrorConditionMessage) message);
       }
       case BLOCK_POSTCONDITION -> {
         //noinspection ResultOfMethodCallIgnored
-        // dcpaAlgorithm.shouldRepeatAnalysis((DSSPostConditionMessage) message);
+        dcpaAlgorithm.updatePrecondition((DSSPostConditionMessage) message);
       }
       default -> throw new AssertionError("MessageType " + message.getType() + " does not exist");
     }
