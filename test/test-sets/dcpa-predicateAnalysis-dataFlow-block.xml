@@ -19,10 +19,9 @@ SPDX-License-Identifier: Apache-2.0
 		<option name="-noout"/>
 		<option name="-benchmark"/>
 	  <option name="-disable-java-assertions"/>
-<option name="--predicateAnalysis-block"/>
-    <option name="--option">distributedSummaries.worker.forwardConfiguration=config/distributed-block-summaries/predicateAnalysis-dataFlow-block-forward.properties</option>
-    <option name="--option">distributedSummaries.decompositionType=MERGE_DECOMPOSITION</option>
-    <option name="-stats"/>
+		<option name="-predicateAnalysis-block"/>
+		<option name="-stats"/>
+	  <option name="-setprop">distributedSummaries.decompositionType=MERGE_DECOMPOSITION</option>
 
 	  <tasks name="ReachSafety-BitVectors">
 		  <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>

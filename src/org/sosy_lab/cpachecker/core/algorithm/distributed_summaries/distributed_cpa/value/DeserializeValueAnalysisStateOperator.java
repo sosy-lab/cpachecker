@@ -16,11 +16,14 @@ import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
@@ -29,44 +32,50 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class DeserializeValueAnalysisStateOperator implements DeserializeOperator {
 
-  CFA cfa;
+  private CFA cfa;
+  private ValueAnalysisCPA valueAnalysisCPA;
+  private BlockNode blockNode;
 
-  public DeserializeValueAnalysisStateOperator(CFA pCFA) {
+  public DeserializeValueAnalysisStateOperator(
+      CFA pCFA,
+      ValueAnalysisCPA pValueAnalysisCPA,
+      BlockNode pBlockNode) {
     cfa = pCFA;
+    valueAnalysisCPA = pValueAnalysisCPA;
+    blockNode = pBlockNode;
   }
 
   @Override
   public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
-    String valueAnalysisString =
-        (String) pMessage.getAbstractState(ValueAnalysisCPA.class).orElseThrow();
-    ValueAnalysisState valueState = null;
+    Optional<Object> abstractStateOptional = pMessage.getAbstractState(ValueAnalysisCPA.class);
+    if (!abstractStateOptional.isPresent()) {
+      return new ValueAnalysisState(cfa.getMachineModel());
+    }
+    String valueAnalysisString = (String) abstractStateOptional.get();
 
     if (valueAnalysisString.equals("No constants")) {
-      valueState = new ValueAnalysisState(cfa.getMachineModel());
+      return new ValueAnalysisState(cfa.getMachineModel());
     } else {
       Map<MemoryLocation, ValueAndType> constantsMap = new HashMap<>();
 
       for (String constant : Splitter.on(" && ").split(valueAnalysisString)) {
-        List<String> parts = Splitter.on(":").splitToList(constant);
+        List<String> parts = Splitter.on("->").splitToList(constant);
         List<String> valueParts = Splitter.on('=').splitToList(parts.get(1));
-        List<String> typeParts = Splitter.on(" ").splitToList(valueParts.get(0));
 
         constantsMap.put(
             MemoryLocation.forIdentifier(parts.get(0)),
             new ValueAndType(
                 new NumericValue(BigInteger.valueOf(Integer.parseInt(valueParts.get(1)))),
-                getSimpleTypeFromString(typeParts)));
+                getSimpleTypeFromString(valueParts.get(0))));
       }
 
-      valueState =
-          new ValueAnalysisState(
-              Optional.of(cfa.getMachineModel()),
-              PathCopyingPersistentTreeMap.copyOf(constantsMap));
+      return new ValueAnalysisState(
+          Optional.of(cfa.getMachineModel()),
+          PathCopyingPersistentTreeMap.copyOf(constantsMap));
     }
-    return valueState;
   }
 
-  private CSimpleType getSimpleTypeFromString(List<String> typeStrParts) {
+  private CSimpleType getSimpleTypeFromString(String typeStr) {
     boolean isConst = false;
     boolean isVolatile = false;
     boolean isLong = false;
@@ -78,7 +87,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     boolean isLongLong = false;
     CBasicType basicType = CBasicType.UNSPECIFIED;
 
-    for (String typePart : typeStrParts) {
+    for (String typePart : Splitter.on(' ').split(typeStr)) {
       switch (typePart) {
         case "const":
           isConst = true;

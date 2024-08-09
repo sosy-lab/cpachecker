@@ -25,8 +25,8 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
     StringBuilder stringBuilder = new StringBuilder();
     for (Entry<MemoryLocation, ValueAndType> entry : valueState.getConstants()) {
       stringBuilder
-          .append(entry.getKey().getIdentifier())
-          .append(":")
+          .append(entry.getKey().getExtendedQualifiedName())
+          .append("->")
           .append(entry.getValue().getType())
           .append("=")
           .append(entry.getValue().getValue().asNumericValue().number().intValue())
@@ -44,21 +44,7 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
         BlockSummaryMessagePayload.builder()
             .addEntry(ValueAnalysisCPA.class.getName(), serializedValueString);
 
-    // Memory Location mitschicken
 
-    // try {
-    //   if (pState instanceof ValueAnalysisState valueAnalysisState) {
-    //     return BlockSummaryMessagePayload.builder()
-    //         .addEntry(
-    //             ValueAnalysisCPA.class.getName(),
-    // BlockSummarySerializeUtil.serialize(valueState))
-    //         .addEntry("readable", pState.toString())
-    //         .buildPayload();
-    //   }
-    // } catch (IOException e) {
-    //   throw new AssertionError("Value state must be serializable " + e);
-    // }
-    // throw new AssertionError("Cannot serialize a non value-state: " + pState.getClass());
     return payload.buildPayload();
   }
 }
