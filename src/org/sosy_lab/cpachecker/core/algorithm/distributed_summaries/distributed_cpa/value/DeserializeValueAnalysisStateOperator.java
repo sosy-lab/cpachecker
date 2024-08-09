@@ -41,7 +41,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     if (!abstractStateOptional.isPresent()) {
       return new ValueAnalysisState(cfa.getMachineModel());
     }
-    String valueAnalysisString = (String) abstractStateOptional.get();
+    String valueAnalysisString = (String) abstractStateOptional.orElseThrow();
 
     if (valueAnalysisString.equals("No constants")) {
       return new ValueAnalysisState(cfa.getMachineModel());
