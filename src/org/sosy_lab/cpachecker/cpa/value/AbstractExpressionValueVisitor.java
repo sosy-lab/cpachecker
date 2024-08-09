@@ -561,7 +561,8 @@ public abstract class AbstractExpressionValueVisitor
       MachineModel pMachineModel, CSimpleType pTargetType, NumericValue pValue) {
     checkArgument(
         pTargetType.getType().isFloatingPointType(),
-        String.format("Target type `%s` is not a floating point type", pTargetType));
+        "Target type `%s` is not a floating point type",
+        pTargetType);
     FloatValue.Format precision = FloatValue.Format.fromCType(pMachineModel, pTargetType);
     return pValue.floatingPointValue(precision);
   }
