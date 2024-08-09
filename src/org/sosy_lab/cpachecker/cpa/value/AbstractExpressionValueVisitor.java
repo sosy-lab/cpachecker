@@ -135,12 +135,6 @@ public abstract class AbstractExpressionValueVisitor
   /** length of type LONG in Java (in bit). */
   private static final int SIZE_OF_JAVA_LONG = 64;
 
-  /** Length of type FLOAT in Java (in bit). */
-  private static final int SIZE_OF_JAVA_FLOAT = 32;
-
-  /** Length of type DOUBLE in Java (in bit). */
-  private static final int SIZE_OF_JAVA_DOUBLE = 64;
-
   // private final ValueAnalysisState state;
   private final String functionName;
   private final MachineModel machineModel;
