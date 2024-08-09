@@ -13,6 +13,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Writer;
 import java.util.Objects;
 import java.util.Optional;
@@ -31,6 +32,9 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 
 @Options(prefix = "precision")
 public class ConfigurablePrecision extends VariableTrackingPrecision {
+
+  @Serial
+  private static final long serialVersionUID = -7214782838688818781L;
 
   @Option(
       secure = true,
