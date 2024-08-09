@@ -1259,23 +1259,26 @@ public class SMGCPAValueVisitor
           // TODO: check for overflow(source larger than the highest number we can store in target
           // etc.)
 
-          if (numericValue.getNumber() instanceof Float
-              || numericValue.getNumber() instanceof Double
-              || numericValue.getNumber() instanceof FloatValue) {
-            if (numericValue.floatingPointValue().toLong().isEmpty()) {
-              // If the number is a float and its value can not be represented as integer, the
-              // result of the conversion of float to integer is undefined.
-              // FIXME: Handle unsigned target types
+          boolean targetIsSigned = machineModel.isSigned(st);
+          BigInteger integerValue;
+
+          // Convert the value to integer
+          if (numericValue.hasFloatType()) {
+            // Casting from a floating point value to BigInteger
+            Optional<BigInteger> maybeInteger = numericValue.floatingPointValue().toInteger();
+            if (maybeInteger.isEmpty()) {
+              // If the value was NaN or Infinity the result of the conversion is undefined
               return UnknownValue.getInstance();
+            } else {
+              integerValue = maybeInteger.orElseThrow();
             }
+          } else {
+            // Casting from Rational or one of the integer types
+            integerValue = numericValue.bigIntegerValue();
           }
 
-          final BigInteger valueToCastAsInt = numericValue.bigIntegerValue();
-          final boolean targetIsSigned = machineModel.isSigned(st);
-
+          // Calculate bounds for overflow
           final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
-          BigInteger result = valueToCastAsInt.remainder(maxValue); // shrink to number of bits
-
           BigInteger signedUpperBound;
           BigInteger signedLowerBound;
           if (targetIsSigned) {
@@ -1289,14 +1292,32 @@ public class SMGCPAValueVisitor
             signedLowerBound = BigInteger.ZERO;
           }
 
-          if (isGreaterThan(result, signedUpperBound)) {
-            // if result overflows, let it 'roll around' and add overflow to lower bound
-            result = result.subtract(maxValue);
-          } else if (isLessThan(result, signedLowerBound)) {
-            result = result.add(maxValue);
-          }
+          // Check for overflows
+          if (numericValue.hasFloatType()) {
+            // Casting from a floating point value
+            if (isGreaterThan(integerValue, signedUpperBound)
+                || isLessThan(integerValue, signedLowerBound)) {
+              // If the number does not fit into the target type the result is undefined
+              return UnknownValue.getInstance();
+            }
+          } else {
+            // Casting from Rational or an integer type
+            BigInteger result = integerValue.remainder(maxValue); // shrink to number of bits
 
-          return new NumericValue(result);
+            if (isGreaterThan(result, signedUpperBound)) {
+              // if result overflows, let it 'roll around' and add overflow to lower bound
+              result = result.subtract(maxValue);
+            } else if (isLessThan(result, signedLowerBound)) {
+              result = result.add(maxValue);
+            }
+
+            // transform result to a long and fail if it doesn't fit
+            if (size < SIZE_OF_JAVA_LONG || (size == SIZE_OF_JAVA_LONG && targetIsSigned)) {
+              return new NumericValue(result.longValueExact());
+            } else {
+              return new NumericValue(result);
+            }
+          }
         }
 
       case FLOAT:
