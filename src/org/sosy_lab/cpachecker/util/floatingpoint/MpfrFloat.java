@@ -309,7 +309,7 @@ class MpfrFloat extends CFloat {
         };
 
     CFloat v = new MpfrFloat(new BigFloat(r.toString(), format), format);
-    if (!v.equalTo(trunc())) {
+    if (!v.equalTo(trunc()) || v.isInfinity()) {
       // Return Optional.empty() if the value was too large for the target type
       return Optional.empty();
     }
