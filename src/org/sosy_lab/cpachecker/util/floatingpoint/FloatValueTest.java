@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -29,6 +30,10 @@ import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
@@ -50,45 +55,95 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
  * </ul>
  *
  * <p>Subclasses are expected to overload the abstract method {@link
- * AbstractCFloatTestBase#getRefImpl()} to select which implementations is supposed to be used in
- * the comparison. The test class will then automatically generate test inputs for all methods of
+ * FloatValueTest#configuration.pReference} to select which implementations is supposed to be used
+ * in the comparison. The test class will then automatically generate test inputs for all methods of
  * the CFloat interface and compare the results of the tested implementation with those of the
  * reference implementation on all of those inputs.
  *
- * <p>The methods {@link AbstractCFloatTestBase#unaryTestValues()} and {@link
- * AbstractCFloatTestBase#binaryTestValues()} can be overwritten to change the set of test inputs
- * that will be generated. The following classes of test values are supported by the implementation:
+ * <p>The methods {@link FloatValueTest#unaryTestValues()} and {@link
+ * FloatValueTest#binaryTestValues()} can be overwritten to change the set of test inputs that will
+ * be generated. The following classes of test values are supported by the implementation:
  *
  * <ul>
- *   <li>{@link AbstractCFloatTestBase#floatConstants(Format)}
- *   <li>{@link AbstractCFloatTestBase#floatPowers(Format, int, BigFloat, int, BigFloat)}
- *   <li>{@link AbstractCFloatTestBase#floatRandom(Format, int)}
- *   <li>{@link AbstractCFloatTestBase#allFloats(Format)}
+ *   <li>{@link FloatValueTest#floatConstants(Format)}
+ *   <li>{@link FloatValueTest#floatPowers(Format, int, BigFloat, int, BigFloat)}
+ *   <li>{@link FloatValueTest#floatRandom(Format, int)}
+ *   <li>{@link FloatValueTest#allFloats(Format)}
  * </ul>
  *
- * <p>The default behaviour for both {@link AbstractCFloatTestBase#unaryTestValues()} and {@link
- * AbstractCFloatTestBase#binaryTestValues()} is to use a combination of the first 3 test value
- * classes.
+ * <p>The default behaviour for both {@link FloatValueTest#unaryTestValues()} and {@link
+ * FloatValueTest#binaryTestValues()} is to use a combination of the first 3 test value classes.
  *
- * <p>The abstract method {@link AbstractCFloatTestBase#getFloatType()} also needs to be overridden
+ * <p>The abstract method {@link FloatValueTest#configuration.pFormat} also needs to be overridden
  * by the subclass to select the bit width of the floating point values that will be generated.
  */
 @SuppressWarnings("deprecation")
-abstract class AbstractCFloatTestBase {
-  @Rule public final Expect expect = Expect.create();
-
-  /** Override to set a floating point width. */
-  abstract Format getFloatType();
-
-  /** List of all supported reference implementations. */
+@RunWith(Parameterized.class)
+public class FloatValueTest {
+  /** Supported reference implementations */
   public enum ReferenceImpl {
     MPFR,
     JAVA,
     NATIVE
   }
 
-  /** Return the reference implementation used by the test. */
-  abstract ReferenceImpl getRefImpl();
+  /** Supported floating point formats and the number of test values to generate for each of them */
+  public static ImmutableMap<Format, Integer> supportedFormats =
+      ImmutableMap.of(
+          Format.Float8,
+          50000,
+          Format.Float16,
+          50000,
+          Format.Float32,
+          50000,
+          Format.Float64,
+          25000,
+          Format.Extended,
+          15000);
+
+  /**
+   * Test configuration
+   *
+   * @param pFormat Precision of the values
+   * @param pReference Reference implementation to compare the results to
+   * @param pNumber Number of test values to generate
+   */
+  public record Configuration(Format pFormat, ReferenceImpl pReference, Integer pNumber) {
+    @Override
+    public String toString() {
+      String floatFormat =
+          pFormat.equals(Format.Extended)
+              ? "Extended"
+              : String.format("Float%s", 1 + pFormat.expBits() + pFormat.sigBits());
+      return pReference + ", " + floatFormat;
+    }
+  }
+
+  @Parameters(name = "{0}")
+  public static Configuration[] getConfigurations() {
+    ImmutableList.Builder<Configuration> builder = ImmutableList.builder();
+    for (Format precision : supportedFormats.keySet()) {
+      for (ReferenceImpl reference : ReferenceImpl.values()) {
+        if (reference.equals(ReferenceImpl.MPFR)
+            || precision.equals(Format.Float32)
+            || precision.equals(Format.Float64)
+            || (reference.equals(ReferenceImpl.NATIVE) && precision.equals(Format.Extended))) {
+          boolean enableExpensiveTests = true;
+          // System.getProperty("enableExpensiveTests", "off").equals("on");
+          if (precision.equals(Format.Float32) || enableExpensiveTests) {
+            builder.add(
+                new Configuration(
+                    precision, reference,
+                    100)); // enableExpensiveTests ? supportedFormats.get(precision) : 100));
+          }
+        }
+      }
+    }
+    return builder.build().toArray(Configuration[]::new);
+  }
+
+  @Parameter(0)
+  public Configuration configuration;
 
   /**
    * Convert a CFloat value to BigFloat.
@@ -285,20 +340,19 @@ abstract class AbstractCFloatTestBase {
     return builder.build();
   }
 
-  /* The number of test values that should be generated for each tests */
-  int getNumberOfTests() {
-    return 50000;
-  }
-
   /** The set of test inputs that should be used for unary operations in the CFloat interface. */
   Iterable<BigFloat> unaryTestValues() {
-    Format format = getFloatType();
-    BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
-    BigFloat constant = new BigFloat(0.5f, context);
-    return FluentIterable.concat(
-        floatConstants(format),
-        floatPowers(format, 14, constant, 20, constant),
-        floatRandom(format, getNumberOfTests()));
+    Format format = configuration.pFormat;
+    if (format.equals(Format.Float8) || format.equals(Format.Float16)) {
+      return allFloats(format);
+    } else {
+      BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
+      BigFloat constant = new BigFloat(0.5f, context);
+      return FluentIterable.concat(
+          floatConstants(format),
+          floatPowers(format, 14, constant, 20, constant),
+          floatRandom(format, configuration.pNumber));
+    }
   }
 
   /**
@@ -307,13 +361,17 @@ abstract class AbstractCFloatTestBase {
    * the number of test runs for a binary operation will be k^2.
    */
   Iterable<BigFloat> binaryTestValues() {
-    Format format = getFloatType();
-    BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
-    BigFloat constant = new BigFloat(0.5f, context);
-    return FluentIterable.concat(
-        floatConstants(format),
-        floatPowers(format, 3, constant, 3, constant),
-        floatRandom(format, (int) Math.sqrt(getNumberOfTests())));
+    Format format = configuration.pFormat;
+    if (format.equals(Format.Float8)) {
+      return allFloats(format);
+    } else {
+      BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
+      BigFloat constant = new BigFloat(0.5f, context);
+      return FluentIterable.concat(
+          floatConstants(format),
+          floatPowers(format, 3, constant, 3, constant),
+          floatRandom(format, (int) Math.sqrt(configuration.pNumber)));
+    }
   }
 
   /** Generate a list of special case integer values. */
@@ -348,9 +406,9 @@ abstract class AbstractCFloatTestBase {
 
   /** Generate integer test inputs that include both special cases and random values. */
   Iterable<BigFloat> integerTestValues() {
-    Format format = getFloatType();
+    Format format = configuration.pFormat;
     return FluentIterable.concat(
-        integerConstants(format), integerRandom(format, (int) Math.sqrt(getNumberOfTests())));
+        integerConstants(format), integerRandom(format, (int) Math.sqrt(configuration.pNumber)));
   }
 
   private static int calculateExpWidth(Format pFormat) {
@@ -394,7 +452,7 @@ abstract class AbstractCFloatTestBase {
   }
 
   String printValue(BigFloat value) {
-    return String.format("%s [%s]", toBits(getFloatType(), value), printBigFloat(value));
+    return String.format("%s [%s]", toBits(configuration.pFormat, value), printBigFloat(value));
   }
 
   String printTestHeader(String name, BigFloat arg) {
@@ -417,7 +475,7 @@ abstract class AbstractCFloatTestBase {
    *     "Known Maximum Errors in Math Functions" (from the glibc documentation)</a>
    */
   private int ulpError() {
-    return getRefImpl() == ReferenceImpl.MPFR ? 0 : 1;
+    return configuration.pReference == ReferenceImpl.MPFR ? 0 : 1;
   }
 
   /** Returns a list of all float values in the error range. */
@@ -426,13 +484,17 @@ abstract class AbstractCFloatTestBase {
       return ImmutableList.of(printValue(pValue));
     }
     if (pDistance == 1) {
-      BigFloat minus1Ulp = pValue.nextDown(getFloatType().minExp(), getFloatType().maxExp());
-      BigFloat plus1Ulp = pValue.nextUp(getFloatType().minExp(), getFloatType().maxExp());
+      BigFloat minus1Ulp =
+          pValue.nextDown(configuration.pFormat.minExp(), configuration.pFormat.maxExp());
+      BigFloat plus1Ulp =
+          pValue.nextUp(configuration.pFormat.minExp(), configuration.pFormat.maxExp());
 
       return ImmutableList.of(printValue(minus1Ulp), printValue(pValue), printValue(plus1Ulp));
     }
     throw new IllegalArgumentException();
   }
+
+  @Rule public final Expect expect = Expect.create();
 
   private void testOperator(String name, int ulps, UnaryOperator<CFloat> operator) {
     for (BigFloat arg : unaryTestValues()) {
@@ -608,12 +670,12 @@ abstract class AbstractCFloatTestBase {
 
   /** Create a test value for the tested implementation. */
   CFloat toTestedImpl(BigFloat value) {
-    return testValueToCFloatImpl(value, getFloatType());
+    return testValueToCFloatImpl(value, configuration.pFormat);
   }
 
   /** Create a test value for the tested implementation by parsing a String. */
   CFloat toTestedImpl(String repr) {
-    return new CFloatImpl(repr, getFloatType());
+    return new CFloatImpl(repr, configuration.pFormat);
   }
 
   /** Convert Format to a matching native floating point type */
@@ -632,16 +694,17 @@ abstract class AbstractCFloatTestBase {
   /** Create a test value for the reference implementation. */
   CFloat toReferenceImpl(BigFloat value) {
     checkState(
-        getFloatType().equals(Format.Float32)
-            || getFloatType().equals(Format.Float64)
-            || (getRefImpl() == ReferenceImpl.NATIVE && getFloatType().equals(Format.Extended))
-            || getRefImpl() == ReferenceImpl.MPFR,
+        configuration.pFormat.equals(Format.Float32)
+            || configuration.pFormat.equals(Format.Float64)
+            || (configuration.pReference == ReferenceImpl.NATIVE
+                && configuration.pFormat.equals(Format.Extended))
+            || configuration.pReference == ReferenceImpl.MPFR,
         "Backend %s only support float32 and float64 as format",
-        getRefImpl());
-    return switch (getRefImpl()) {
-      case MPFR -> new MpfrFloat(value, getFloatType());
+        configuration.pReference);
+    return switch (configuration.pReference) {
+      case MPFR -> new MpfrFloat(value, configuration.pFormat);
       case JAVA ->
-          getFloatType().equals(Format.Float32)
+          configuration.pFormat.equals(Format.Float32)
               ? (value.isNaN()
                   ? new JFloat(value.sign() ? Float.intBitsToFloat(0xFFC00000) : Float.NaN)
                   : new JFloat(value.floatValue()))
@@ -649,7 +712,7 @@ abstract class AbstractCFloatTestBase {
                   ? new JDouble(
                       value.sign() ? Double.longBitsToDouble(0xFFF8000000000000L) : Float.NaN)
                   : new JDouble(value.doubleValue()));
-      case NATIVE -> new CFloatNative(toPlainString(value), toNativeType(getFloatType()));
+      case NATIVE -> new CFloatNative(toPlainString(value), toNativeType(configuration.pFormat));
     };
   }
 
@@ -670,7 +733,7 @@ abstract class AbstractCFloatTestBase {
   /** Create a test value for the reference implementation by parsing a String. */
   CFloat toReferenceImpl(String repr) {
     BinaryMathContext context =
-        new BinaryMathContext(getFloatType().sigBits() + 1, getFloatType().expBits());
+        new BinaryMathContext(configuration.pFormat.sigBits() + 1, configuration.pFormat.expBits());
     return toReferenceImpl(parseBigFloat(context, repr));
   }
 
@@ -826,7 +889,7 @@ abstract class AbstractCFloatTestBase {
 
     // Native implementation does not support negative exponents
     Iterable<BigFloat> expValues =
-        getRefImpl().equals(ReferenceImpl.NATIVE) ? positiveIntegers : integers;
+        configuration.pReference.equals(ReferenceImpl.NATIVE) ? positiveIntegers : integers;
 
     testOperator(
         "powToInteger",
@@ -943,20 +1006,23 @@ abstract class AbstractCFloatTestBase {
 
   @Test
   public void castToTest() {
-    Format other = getFloatType().equals(Format.Float32) ? Format.Float64 : Format.Float32;
+    assume().that(configuration.pFormat).isNoneOf(Format.Float8, Format.Float16);
+    Format other = configuration.pFormat.equals(Format.Float32) ? Format.Float64 : Format.Float32;
     testOperator(
         "castToTest",
         0,
-        (CFloat a) -> a.castTo(toNativeType(other)).castTo(toNativeType(getFloatType())));
+        (CFloat a) -> a.castTo(toNativeType(other)).castTo(toNativeType(configuration.pFormat)));
   }
 
   @Test
   public void castToRoundingTest() {
-    Format other = getFloatType().equals(Format.Float32) ? Format.Float64 : Format.Float32;
+    assume().that(configuration.pFormat).isNoneOf(Format.Float8, Format.Float16);
+    Format other = configuration.pFormat.equals(Format.Float32) ? Format.Float64 : Format.Float32;
     testOperator(
         "castToRoundingTest",
         0,
-        (CFloat a) -> a.castTo(toNativeType(other)).sqrt().castTo(toNativeType(getFloatType())));
+        (CFloat a) ->
+            a.castTo(toNativeType(other)).sqrt().castTo(toNativeType(configuration.pFormat)));
   }
 
   @Test
@@ -978,5 +1044,204 @@ abstract class AbstractCFloatTestBase {
   @Test
   public void castToLongTest() {
     testIntegerFunction("castToLongTest", (CFloat a) -> a.castToOther(CIntegerType.LONG).orElse(0));
+  }
+
+  @Test
+  public void hardestExpTest() {
+    assume().that(configuration.pFormat).isEqualTo(Format.Float16);
+    /* Hardest instance for exp(...) in float16
+       {1=23042,
+        2=1541,
+        3=262,
+        4=140,
+        5=121,
+        6=2684,
+        7=3916,
+        8=4224,
+        9=4456,
+        10=4728,
+        11=5193,
+        12=5207,
+        13=2160,
+        14=2113,
+        15=1715,
+        16=1033,
+        17=457,
+        18=231,
+        19=133,
+        20=71,
+        21=36,
+        22=11,
+        23=9,
+        24=4,
+        25=2,
+        26=1 <- here
+    }*/
+    String val = "1.0969e+01";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested.exp();
+    CFloat r2 = reference.exp();
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void overflowTest() {
+    assume().that(configuration.pFormat).isEqualTo(Format.Float32);
+    // Should overflow as the exponents add up to 127 in binary and the product of th significands
+    // is greater than two. After normalization, this should give us infinity.
+    String val1 = "1.3835058e+19";
+    String val2 = "2.7670116e+19";
+
+    CFloat tested1 = toTestedImpl(val1);
+    CFloat tested2 = toTestedImpl(val2);
+
+    CFloat reference1 = toReferenceImpl(val1);
+    CFloat reference2 = toReferenceImpl(val2);
+
+    CFloat r1 = tested1.multiply(tested2);
+    CFloat r2 = reference1.multiply(reference2);
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void sqrt2Test() {
+    assume().that(configuration.pFormat).isEqualTo(Format.Float32);
+    String val = "2.0";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested.sqrt();
+    CFloat r2 = reference.sqrt();
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void ln_eTest() {
+    assume().that(configuration.pFormat).isEqualTo(Format.Float32);
+    String val = String.valueOf(Math.E);
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested.ln();
+    CFloat r2 = reference.ln();
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void ln_1Test() {
+    assume().that(configuration.pFormat).isEqualTo(Format.Float32);
+    // Calculate ln for the next closest value to 1
+    String val = "1.00000011920929";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested.ln();
+    CFloat r2 = reference.ln();
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void roundingBugLnTest() {
+    assume().that(configuration.pFormat).isEqualTo(Format.Float32);
+    // Example of a value that is not correctly rounded by logf
+    String val = "1.10175121e+00";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested.ln();
+    CFloat r2 = reference.ln();
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void fromStringBugTest() {
+    assume().that(configuration.pFormat).isEqualTo(Format.Float32);
+    // Taken from CFloatTest.createTest:
+    // 16777217 = 1000000000000000000000001
+    // The number is too large for a float and the last bit needs to be rounded off
+    // This causes the rounding test to fail as it keeps looking for another 1 before rounding
+    String val = "16777217";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    assertEqual1Ulp(tested, reference);
+  }
+
+  @Test
+  public void hardExpTest() {
+    assume().that(configuration.pFormat).isEqualTo(Format.Float64);
+    // Example of a "hard to round" input for the exponential function
+    // Taken from "Handbook of Floating-Point Arithmetic", chapter 12
+    String val = "7.5417527749959590085206221024712557043923055744016892276704E-10";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested.exp();
+    CFloat r2 = reference.exp();
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void roundingBugExpTest() {
+    assume().that(configuration.pFormat).isEqualTo(Format.Float64);
+    // Example of a value that is not correctly rounded by either Math.exp() or exp() from math.h
+    String val = "-2.920024588250959e-01";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    CFloat r1 = tested.exp();
+    CFloat r2 = reference.exp();
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void roundingBugPowTest() {
+    assume().that(configuration.pFormat).isEqualTo(Format.Float64);
+    // This value is not correctly rounded by C, but works in Java
+    String val1 = "3.5355339059327379e-01";
+    String val2 = "-2.2021710233624257e+00";
+
+    CFloat tested1 = toTestedImpl(val1);
+    CFloat tested2 = toTestedImpl(val2);
+
+    CFloat reference1 = toReferenceImpl(val1);
+    CFloat reference2 = toReferenceImpl(val2);
+
+    CFloat r1 = tested1.powTo(tested2);
+    CFloat r2 = reference1.powTo(reference2);
+
+    assertEqual1Ulp(r1, r2);
+  }
+
+  @Test
+  public void toStringBugTest() {
+    assume().that(configuration.pFormat).isEqualTo(Format.Float64);
+    String val = "1.000001";
+
+    CFloat tested = toTestedImpl(val);
+    CFloat reference = toReferenceImpl(val);
+
+    String r1 = tested.toString();
+    String r2 = reference.toString();
+
+    assertThat(r1).isEqualTo(r2);
   }
 }
