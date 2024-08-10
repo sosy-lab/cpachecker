@@ -139,7 +139,7 @@ public class FloatValueTest {
         }
       }
     }
-    return builder.build().toArray(Configuration[]::new);
+    return builder.build().toArray(new FloatValueTest.Configuration[0]);
   }
 
   @Parameter(0)
