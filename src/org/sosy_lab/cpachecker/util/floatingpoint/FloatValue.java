@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import java.io.Serial;
@@ -614,11 +615,28 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
 
   /** Copy the value with a new exponent. */
   private FloatValue withExponent(long pExponent) {
-    Format precision = format.withUnlimitedExponent();
-    FloatValue expPart =
-        new FloatValue(
-            precision, false, pExponent - exponent, BigInteger.ONE.shiftLeft(format.sigBits));
-    return this.withPrecision(precision).multiply(expPart).withPrecision(format);
+    if (pExponent > format.maxExp()) {
+      // Exponent too large for the format
+      // Return Infinity right away
+      return isNegative() ? negativeInfinity(format) : infinity(format);
+    } else if (pExponent < format.minExp()) {
+      // Exponent too small
+      int diff = (int) Math.abs(pExponent + format.sigBits);
+      if (diff > format.sigBits) {
+        // Return zero if the result is below the subnormal range
+        return zero(format);
+      } else {
+        // Otherwise shift the significand to the right and return the rounded number
+        Format precision = format.withUnlimitedExponent();
+        FloatValue expPart =
+            new FloatValue(
+                precision, false, pExponent - exponent, BigInteger.ONE.shiftLeft(format.sigBits));
+        return this.withPrecision(precision).multiply(expPart).withPrecision(format);
+      }
+    } else {
+      // Exponent within range
+      return new FloatValue(format, sign, pExponent, significand);
+    }
   }
 
   /** Copy the value with a new sign. */
@@ -753,18 +771,23 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
 
     if (arg1.isNan() || arg2.isNan()) {
       return false;
-    } else if (arg1.isInfinite() && !arg1.isNegative()) {
-      // inf > b, holds unless b=inf
-      return !(arg2.isInfinite() && !arg2.isNegative());
-    } else if (arg1.isInfinite() && arg1.isNegative() && arg2.isInfinite() && arg2.isNegative()) {
-      // -inf > b, holds unless b=-inf
+    } else if (arg1.isZero() && arg2.isZero()) {
       return false;
     } else {
-      FloatValue r = arg1.subtract(arg2);
-      if (r.isZero()) {
-        return false;
+      if (arg1.isNegative() && arg2.isNegative()) {
+        // If both values are negative, reverse the order
+        FloatValue tmp = arg1;
+        arg1 = arg2;
+        arg2 = tmp;
       }
-      return !r.isNegative();
+
+      // Comparison is now component wise
+      return ComparisonChain.start()
+              .compareTrueFirst(arg1.sign, arg2.sign)
+              .compare(arg1.exponent, arg2.exponent)
+              .compare(arg1.significand, arg2.significand)
+              .result()
+          > 0;
     }
   }
 
