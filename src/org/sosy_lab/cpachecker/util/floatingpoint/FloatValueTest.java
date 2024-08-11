@@ -119,6 +119,14 @@ public class FloatValueTest {
     }
   }
 
+  /**
+   * Enables running more exhaustive tests
+   *
+   * <p>Use <code>ant tests -DenableExpensiveTests</code> to set this flag. The test suite will then
+   * generate a much more exhaustive set of input values for the tested methods.
+   */
+  static boolean enableExpensiveTests = true;
+
   @Parameters(name = "{0}")
   public static Configuration[] getConfigurations() {
     ImmutableList.Builder<Configuration> builder = ImmutableList.builder();
@@ -128,13 +136,13 @@ public class FloatValueTest {
             || precision.equals(Format.Float32)
             || precision.equals(Format.Float64)
             || (reference.equals(ReferenceImpl.NATIVE) && precision.equals(Format.Extended))) {
-          boolean enableExpensiveTests = true;
-          // System.getProperty("enableExpensiveTests", "off").equals("on");
+          enableExpensiveTests = System.getProperty("enableExpensiveTests", "off").equals("on");
           if (precision.equals(Format.Float32) || enableExpensiveTests) {
             builder.add(
                 new Configuration(
-                    precision, reference,
-                    100)); // enableExpensiveTests ? supportedFormats.get(precision) : 100));
+                    precision,
+                    reference,
+                    enableExpensiveTests ? supportedFormats.get(precision) : 100));
           }
         }
       }
@@ -343,7 +351,7 @@ public class FloatValueTest {
   /** The set of test inputs that should be used for unary operations in the CFloat interface. */
   Iterable<BigFloat> unaryTestValues() {
     Format format = configuration.pFormat;
-    if (format.equals(Format.Float8) || format.equals(Format.Float16)) {
+    if (enableExpensiveTests && (format.equals(Format.Float8) || format.equals(Format.Float16))) {
       return allFloats(format);
     } else {
       BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
@@ -362,7 +370,7 @@ public class FloatValueTest {
    */
   Iterable<BigFloat> binaryTestValues() {
     Format format = configuration.pFormat;
-    if (format.equals(Format.Float8)) {
+    if (enableExpensiveTests && format.equals(Format.Float8)) {
       return allFloats(format);
     } else {
       BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
