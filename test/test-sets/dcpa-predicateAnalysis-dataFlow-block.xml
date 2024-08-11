@@ -15,13 +15,14 @@ SPDX-License-Identifier: Apache-2.0
 <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz"/>
 
   <rundefinition name="DCPA8">
-		<option name="-heap">13000M</option>
-		<option name="-noout"/>
-		<option name="-benchmark"/>
-	  <option name="-disable-java-assertions"/>
-		<option name="-predicateAnalysis-block"/>
-		<option name="-stats"/>
-	  <option name="-setprop">distributedSummaries.decompositionType=MERGE_DECOMPOSITION</option>
+		<option name="--heap">13000M</option>
+		<option name="--no-output-files"/>
+		<option name="--benchmark"/>
+	  <option name="--disable-java-assertions"/>
+		<option name="--predicateAnalysis-block"/>
+		<option name="--option">distributedSummaries.worker.forwardConfiguration=config/distributed-block-summaries/predicateAnalysis-dataFlow-block-forward.properties</option>
+		<option name="--option">distributedSummaries.decompositionType=MERGE_DECOMPOSITION</option>	
+
 
 	  <tasks name="ReachSafety-BitVectors">
 		  <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>

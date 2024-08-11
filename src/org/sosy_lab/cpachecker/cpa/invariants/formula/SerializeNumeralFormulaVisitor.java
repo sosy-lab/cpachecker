@@ -17,125 +17,142 @@ public class SerializeNumeralFormulaVisitor
 
   @Override
   public String visit(Add<CompoundInterval> pAdd) {
-    return "(" + pAdd.getSummand1().accept(this) + " + " + pAdd.getSummand2().accept(this) + ")";
+    return "(("
+        + pAdd.getSummand1().accept(this)
+        + ") + ("
+        + pAdd.getSummand2().accept(this)
+        + "))";
   }
 
   @Override
   public String visit(BinaryAnd<CompoundInterval> pAnd) {
-    return "(" + pAnd.getOperand1().accept(this) + " & " + pAnd.getOperand2().accept(this) + ")";
+    return "(("
+        + pAnd.getOperand1().accept(this)
+        + ") & ("
+        + pAnd.getOperand2().accept(this)
+        + "))";
   }
 
   @Override
   public String visit(BinaryNot<CompoundInterval> pNot) {
-    return "!(" + pNot.getFlipped().accept(this) + ")";
+    return "(~(" + pNot.getFlipped().accept(this) + "))";
   }
 
   @Override
   public String visit(BinaryOr<CompoundInterval> pOr) {
-    return "(" + pOr.getOperand1().accept(this) + " | " + pOr.getOperand2().accept(this) + ")";
+    return "((" + pOr.getOperand1().accept(this) + ") | (" + pOr.getOperand2().accept(this) + "))";
   }
 
   @Override
   public String visit(BinaryXor<CompoundInterval> pXor) {
-    return "(" + pXor.getOperand1().accept(this) + " ^ " + pXor.getOperand2().accept(this) + ")";
+    return "(("
+        + pXor.getOperand1().accept(this)
+        + ") ^ ("
+        + pXor.getOperand2().accept(this)
+        + "))";
   }
 
   @Override
   public String visit(Constant<CompoundInterval> pConstant) {
     List<SimpleInterval> intervals = pConstant.getValue().getIntervals();
-    String output = "";
+    StringBuilder output = new StringBuilder();
     for (int i = 0; i < intervals.size(); i++) {
-      output +=
-          "[" + intervals.get(i).getLowerBound() + "," + intervals.get(i).getUpperBound() + "]";
+      SimpleInterval interval = intervals.get(i);
+      String lowerBoundStr =
+          interval.hasLowerBound() ? interval.getLowerBound().toString() : "-inf";
+      String upperBoundStr = interval.hasUpperBound() ? interval.getUpperBound().toString() : "inf";
+
+      output.append("[").append(lowerBoundStr).append(",").append(upperBoundStr).append("]");
+
       if (i < intervals.size() - 1) {
-        output += ",";
+        output.append(",");
       }
     }
-    return output + "->" + pConstant.getTypeInfo();
+    return output.toString() + "-typeInfo>" + pConstant.getTypeInfo();
   }
 
   @Override
   public String visit(Divide<CompoundInterval> pDivide) {
-    return "("
+    return "(("
         + pDivide.getNumerator().accept(this)
-        + " / "
+        + ") / ("
         + pDivide.getDenominator().accept(this)
-        + ")";
+        + "))";
   }
 
   @Override
   public String visit(Exclusion<CompoundInterval> pExclusion) {
 
-    return "("
-        + pExclusion.getExcluded().accept(this)
-        + " \\ "
-        + pExclusion.getExcluded().accept(this)
-        + ")";
+    return "(" + " \\ (" + pExclusion.getExcluded().accept(this) + "))";
   }
 
   @Override
   public String visit(Modulo<CompoundInterval> pModulo) {
-    return "("
+    return "(("
         + pModulo.getNumerator().accept(this)
-        + " % "
+        + ") % ("
         + pModulo.getDenominator().accept(this)
-        + ")";
+        + "))";
   }
 
   @Override
   public String visit(Multiply<CompoundInterval> pMultiply) {
-    return "("
+    return "(("
         + pMultiply.getFactor1().accept(this)
-        + " * "
+        + ") * ("
         + pMultiply.getFactor2().accept(this)
-        + ")";
+        + "))";
   }
 
   @Override
   public String visit(ShiftLeft<CompoundInterval> pShiftLeft) {
-    return "("
+    return "(("
         + pShiftLeft.getShifted().accept(this)
-        + " << "
+        + ") << ("
         + pShiftLeft.getShiftDistance().accept(this)
-        + ")";
+        + "))";
   }
 
   @Override
   public String visit(ShiftRight<CompoundInterval> pShiftRight) {
-    return "("
+    return "(("
         + pShiftRight.getShifted().accept(this)
-        + " >> "
+        + ") >> ("
         + pShiftRight.getShiftDistance().accept(this)
-        + ")";
+        + "))";
   }
 
   @Override
   public String visit(Union<CompoundInterval> pUnion) {
-    return "("
+    return "(("
         + pUnion.getOperand1().accept(this)
-        + " U "
+        + ") UNION ("
         + pUnion.getOperand2().accept(this)
-        + ")";
+        + "))";
   }
 
   @Override
   public String visit(Variable<CompoundInterval> pVariable) {
-    return pVariable.getMemoryLocation().getQualifiedName() + "->" + pVariable.getTypeInfo();
-  }
-
-  @Override
-  public String visit(IfThenElse<CompoundInterval> pIfThenElse) {
     return "("
-        + pIfThenElse.getCondition()
-        + " ? "
-        + pIfThenElse.getPositiveCase().accept(this)
-        + " : "
-        + pIfThenElse.getNegativeCase().accept(this)
+        + pVariable.getMemoryLocation().getQualifiedName()
+        + "-typeInfo>"
+        + pVariable.getTypeInfo()
         + ")";
   }
 
   @Override
+  public String visit(IfThenElse<CompoundInterval> pIfThenElse) {
+    return "(("
+        + pIfThenElse.getCondition().accept(new SerializeBooleanFormulaVisitor(this))
+        + ") ? ("
+        + pIfThenElse.getPositiveCase().accept(this)
+        + ") : ("
+        + pIfThenElse.getNegativeCase().accept(this)
+        + "))";
+  }
+
+  @Override
   public String visit(Cast<CompoundInterval> pCast) {
-    return "(" + pCast.getCasted().accept(this) + ")";
+    return "(cast -typeInfo>" + pCast.getTypeInfo() + "(" + pCast.getCasted().accept(this) + "))";
   }
 }

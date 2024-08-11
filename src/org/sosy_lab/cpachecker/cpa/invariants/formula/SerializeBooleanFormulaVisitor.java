@@ -21,21 +21,25 @@ public class SerializeBooleanFormulaVisitor
 
   @Override
   public String visit(Equal<CompoundInterval> pEqual) {
-    return "("
+    return "(("
         + pEqual.getOperand1().accept(numeralVisitor)
-        + " = "
+        + ") = ("
         + pEqual.getOperand2().accept(numeralVisitor)
-        + ")";
+        + "))";
   }
 
   @Override
   public String visit(LessThan<CompoundInterval> pLessThan) {
-    return "(" + pLessThan.getOperand1() + " < " + pLessThan.getOperand2() + ")";
+    return "((" + pLessThan.getOperand1() + ") < (" + pLessThan.getOperand2() + "))";
   }
 
   @Override
   public String visit(LogicalAnd<CompoundInterval> pAnd) {
-    return "(" + pAnd.getOperand1().accept(this) + " && " + pAnd.getOperand2().accept(this) + ")";
+    return "(("
+        + pAnd.getOperand1().accept(this)
+        + ") && ("
+        + pAnd.getOperand2().accept(this)
+        + "))";
   }
 
   @Override
