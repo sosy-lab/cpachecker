@@ -126,7 +126,7 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
     boolean isLongLong = false;
     CBasicType basicType = CBasicType.UNSPECIFIED;
 
-    for (String typePart : typeStr.split(" ")) {
+    for (String typePart : Splitter.on(' ').split(typeStr)) {
       switch (typePart) {
         case "const":
           isConst = true;
