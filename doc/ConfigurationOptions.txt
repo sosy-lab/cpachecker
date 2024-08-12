@@ -1611,7 +1611,8 @@ cpa.callstack.unsupportedFunctions = {
           "_longjmp",
           "longjmp",
           "siglongjmp",
-          "__builtin_va_arg"}
+          "__builtin_va_arg",
+          "atexit"}
 
 # By enabling this option the CompositeTransferRelation will compute abstract
 # successors for as many edges as possible in one call. For any chain of
