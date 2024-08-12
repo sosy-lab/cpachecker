@@ -71,7 +71,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
  *
  * <p>The default behaviour for both {@link FloatValueTest#unaryTestValues()} and {@link
  * FloatValueTest#binaryTestValues()} is to use a combination of the first three test value classes.
- * For <code><Float8</code> it is possible to calculate all possible inputs for unary and binary
+ * For <code>Float8</code> it is possible to calculate all possible inputs for unary and binary
  * operations, and for <code>Float16</code> the same can still be done for unary operations with
  * reasonable runtimes for the tests.
  *
