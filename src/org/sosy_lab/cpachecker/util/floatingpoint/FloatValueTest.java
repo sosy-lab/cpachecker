@@ -54,13 +54,13 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
  *   <li>{@link JFloat} ({@link JDouble}), uses normal Java floats (doubles) for its calculations
  * </ul>
  *
- * The test suite will automatically generate test inputs for all methods of the CFloat interface
+ * <p>The test suite will automatically generate test inputs for all methods of the CFloat interface
  * and compare the results of the tested implementation with those of the chosen reference
  * implementation on all of those inputs.
  *
  * <p>The methods {@link FloatValueTest#unaryTestValues()}, {@link
  * FloatValueTest#binaryTestValues()} and {@link FloatValueTest#integerTestValues()} are used to
- * calcualte a set of tests inputs. There are four separate generator methods that can be used:
+ * calculate a set of tests inputs. There are four separate generator methods that can be used:
  *
  * <ul>
  *   <li>{@link FloatValueTest#floatConstants(Format)}
@@ -81,7 +81,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
  * precisions <code>Float8</code>, <code>Float16</code>, <code>Float32</code>, <code>Float64</code>
  * and <code>FloatExtended</code>. For <code>Float8</code> all possible inputs are tested for each
  * method, and for <code>Float16</code> the tests are exhaustive for unary methods. We use MPFR as a
- * refrence implmentation for all precisions. In addition we use the native implementation for
+ * reference implementation for all precisions. In addition we use the native implementation for
  * <code>Float32</code>, <code>Float64</code> and <code>FloatExtended</code>, and the Java
  * implementation on <code>Float32</code> and <code>Float64</code>.
  *
