@@ -45,8 +45,8 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
  *
  * <p>The idea behind this class is to compare two different implementations of the CFloat
  * interface. We always use {@link CFloatImpl} as the "tested" implementation and compare it to a
- * second "reference" implementation. There are currently 3 supported implementations that can be
- * used as a reference:
+ * second "reference" implementation. There are currently three supported implementations that can
+ * be used as a reference:
  *
  * <ul>
  *   <li>{@link CFloatNative}, uses native C code to calculate its results
@@ -54,15 +54,13 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
  *   <li>{@link JFloat} ({@link JDouble}), uses normal Java floats (doubles) for its calculations
  * </ul>
  *
- * <p>Subclasses are expected to overload the abstract method {@link
- * FloatValueTest#configuration.pReference} to select which implementations is supposed to be used
- * in the comparison. The test class will then automatically generate test inputs for all methods of
- * the CFloat interface and compare the results of the tested implementation with those of the
- * reference implementation on all of those inputs.
+ * The test suite will automatically generate test inputs for all methods of the CFloat interface
+ * and compare the results of the tested implementation with those of the chosen reference
+ * implementation on all of those inputs.
  *
- * <p>The methods {@link FloatValueTest#unaryTestValues()} and {@link
- * FloatValueTest#binaryTestValues()} can be overwritten to change the set of test inputs that will
- * be generated. The following classes of test values are supported by the implementation:
+ * <p>The methods {@link FloatValueTest#unaryTestValues()}, {@link
+ * FloatValueTest#binaryTestValues()} and {@link FloatValueTest#integerTestValues()} are used to
+ * calcualte a set of tests inputs. There are four separate generator methods that can be used:
  *
  * <ul>
  *   <li>{@link FloatValueTest#floatConstants(Format)}
@@ -72,10 +70,25 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
  * </ul>
  *
  * <p>The default behaviour for both {@link FloatValueTest#unaryTestValues()} and {@link
- * FloatValueTest#binaryTestValues()} is to use a combination of the first 3 test value classes.
+ * FloatValueTest#binaryTestValues()} is to use a combination of the first three test value classes.
+ * For <code><Float8</code> it is possible to calculate all possible inputs for unary and binary
+ * operations, and for <code>Float16</code> the same can still be done for unary operations with
+ * reasonable runtimes for the tests.
  *
- * <p>The abstract method {@link FloatValueTest#configuration.pFormat} also needs to be overridden
- * by the subclass to select the bit width of the floating point values that will be generated.
+ * <p>The test class is parametrized and can compare results for various floating point precisions
+ * and reference implementations. The behaviour depends on the system property <code>
+ * enableExpensiveTests</code>. When it is set an exhaustive set of tests will be run for the
+ * precisions <code>Float8</code>, <code>Float16</code>, <code>Float32</code>, <code>Float64</code>
+ * and <code>FloatExtended</code>. For <code>Float8</code> all possible inputs are tested for each
+ * method, and for <code>Float16</code> the tests are exhaustive for unary methods. We use MPFR as a
+ * refrence implmentation for all precisions. In addition we use the native implementation for
+ * <code>Float32</code>, <code>Float64</code> and <code>FloatExtended</code>, and the Java
+ * implementation on <code>Float32</code> and <code>Float64</code>.
+ *
+ * <p>When the system property <code>enableExpensiveTests</code> is not set to <code>on</code> a
+ * smaller subset of tests is run. In this case we will only consider the precision <code>Float32
+ * </code> and test all three implementations with a much smaller number of randomly generated
+ * tests.
  */
 @SuppressWarnings("deprecation")
 @RunWith(Parameterized.class)
