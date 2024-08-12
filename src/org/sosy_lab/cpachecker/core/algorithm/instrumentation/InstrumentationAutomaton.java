@@ -19,9 +19,7 @@ import java.util.stream.Collectors;
  * InstrumentationOperatorAlgorithm and injects new transitions into an original CFA.
  */
 public class InstrumentationAutomaton {
-  private InstrumentationProperty instrumentationProperty;
   private ImmutableMap<String, String> liveVariablesAndTypes;
-  private ImmutableList<InstrumentationState> instrumentationStates;
   private ImmutableList<InstrumentationTransition> instrumentationTransitions;
   private InstrumentationState initialState;
 
@@ -67,6 +65,10 @@ public class InstrumentationAutomaton {
     if (pInstrumentationProperty == InstrumentationProperty.TERMINATION) {
       constructTerminationAutomaton(pIndex);
     }
+
+    if (pInstrumentationProperty == InstrumentationProperty.NOOVERFLOW) {
+      constructOverflowAutomaton();
+    }
   }
 
   public InstrumentationState getInitialState() {
@@ -105,17 +107,40 @@ public class InstrumentationAutomaton {
     return originalType;
   }
 
+  private void constructOverflowAutomaton() {
+    InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.TRUE, this);
+    this.initialState = q1;
+
+    InstrumentationTransition t1 =
+        new InstrumentationTransition(
+            q1,
+            new InstrumentationPattern("true"),
+            "int saved_ = 0; " +
+                liveVariablesAndTypes.entrySet().stream()
+                    .map((entry) ->
+                        entry.getValue() + " " + entry.getKey() + "_instr_" +
+                            (entry.getValue().charAt(entry.getValue().length() - 1) == '*'
+                             ? " = alloca(sizeof(" + getAllocationForPointer(entry.getValue()) + "))"
+                             : ""))
+                    .collect(Collectors.joining("; ")) +
+                (!liveVariablesAndTypes.isEmpty() ? ";" : ""),
+            InstrumentationOrder.BEFORE,
+            q1);
+
+    this.instrumentationTransitions =
+        ImmutableList.of(t1);
+  }
+
   private void constructTerminationAutomaton(int pIndex) {
       InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
       InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
       InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
-      this.instrumentationStates = ImmutableList.of(q1, q2, q3);
       this.initialState = q1;
 
       InstrumentationTransition t1 =
           new InstrumentationTransition(
               q1,
-              "true",
+              new InstrumentationPattern("true"),
               "int saved_" + pIndex + " = 0; " +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) ->
@@ -130,7 +155,7 @@ public class InstrumentationAutomaton {
       InstrumentationTransition t2 =
           new InstrumentationTransition(
               q2,
-              "[cond]",
+              new InstrumentationPattern("[cond]"),
               "if(__VERIFIER_nondet_int() && saved_" + pIndex + " == 0) { saved_" + pIndex + " =1; " +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) ->
@@ -153,7 +178,7 @@ public class InstrumentationAutomaton {
     InstrumentationTransition t3 =
         new InstrumentationTransition(
             q3,
-            "true",
+            new InstrumentationPattern("true"),
             "",
             InstrumentationOrder.AFTER,
             q3);

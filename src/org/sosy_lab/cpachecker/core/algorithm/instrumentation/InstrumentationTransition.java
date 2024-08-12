@@ -18,12 +18,12 @@ public class InstrumentationTransition {
   /**
    * TODO: Implement pattern class and matching (look for possible regexes?)
    */
-  private String pattern;
+  private InstrumentationPattern pattern;
   private String operation;
   private InstrumentationOrder order;
 
   public InstrumentationTransition(InstrumentationState pSource,
-                                   String pPattern,
+                                   InstrumentationPattern pPattern,
                                    String pOperation,
                                    InstrumentationOrder pOrder,
                                    InstrumentationState pDestination) {
@@ -32,20 +32,6 @@ public class InstrumentationTransition {
     this.pattern = pPattern;
     this.order = pOrder;
     this.destination = pDestination;
-  }
-
-  public boolean transitionMatchesCfaEdge(CFAEdge pCFAEdge) {
-    // TODO: Once there is a pattern class for matching, move this there
-    switch (pattern) {
-      case "true" :
-        return true;
-      case "[cond]" :
-        return isOriginalCond(pCFAEdge);
-      case "[!cond]" :
-        return isNegatedCond(pCFAEdge);
-      default :
-        return false;
-    }
   }
 
   @Override
@@ -61,7 +47,7 @@ public class InstrumentationTransition {
     return order.name();
   }
 
-  public String getPattern() {
+  public InstrumentationPattern getPattern() {
     return pattern;
   }
 
@@ -75,22 +61,5 @@ public class InstrumentationTransition {
 
   public InstrumentationState getDestination() {
     return destination;
-  }
-
-  private boolean isOriginalCond(CFAEdge pCFAEdge) {
-    if (pCFAEdge.getPredecessor().getNumLeavingEdges() == 1) {
-      return true;
-    }
-    if (pCFAEdge instanceof CAssumeEdge) {
-      return ((CAssumeEdge) pCFAEdge).getTruthAssumption();
-    }
-    return false;
-  }
-
-  private boolean isNegatedCond(CFAEdge pCFAEdge) {
-    if (pCFAEdge instanceof CAssumeEdge) {
-      return !((CAssumeEdge) pCFAEdge).getTruthAssumption();
-    }
-    return false;
   }
 }

@@ -122,7 +122,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
           for (InstrumentationTransition transition : currentState
               .getAutomatonOfTheState()
               .getTransitions(currentState)) {
-            if (transition.transitionMatchesCfaEdge(edge)) {
+            if (transition.getPattern().MatchThePattern(edge) != null) {
               isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist);
               newEdges.add(
                   computeLineNumberBasedOnTransition(transition, edge) + "|||" +
