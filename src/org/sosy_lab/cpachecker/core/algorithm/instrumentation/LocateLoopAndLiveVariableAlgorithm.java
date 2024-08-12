@@ -259,8 +259,8 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
           cComplexTypeDeclaration =
               cComplexTypeDeclaration
                   .substring(0, cComplexTypeDeclaration.length() - 4)
-                  .replaceAll(";", "")
-                  .replaceAll("  ", "");
+                  .replace(";", "")
+                  .replace("  ", "");
           List<String> structParts = Splitter.on('\n').splitToList(cComplexTypeDeclaration);
           structName = Iterables.get(Splitter.on(' ').split(structParts.get(0)), 1);
           for (int i = 1; i < structParts.size(); i++) {
@@ -289,11 +289,11 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       ImmutableMap<String, String> pMembers, ImmutableSet<StructInfo> allStructInfos) {
     Map<String, String> ans = new HashMap<>();
 
-    pMembers.entrySet().stream().forEach(e -> ans.put(e.getKey(), e.getValue()));
-
     for (Entry<String, String> member : pMembers.entrySet()) {
       String name = member.getKey();
       String type = member.getValue();
+      ans.put(name, type);
+
       if (type.startsWith("struct ")) {
         ans.remove(name);
 
@@ -306,8 +306,14 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
         Map<String, String> modifiedMembersUnderOneLevel = new HashMap<>();
 
         for (Entry<String, String> memberUnderOneLevel : originalMembersUnderOneLevel.entrySet()) {
+          String nameUnderOneLevel = memberUnderOneLevel.getKey();
+          String typeUnderOneLevel = memberUnderOneLevel.getValue();
+
+          String nameUnderOneLevelWithoutAsterisk = nameUnderOneLevel.replace("*", "");
+          int countOfAsterisk = nameUnderOneLevel.length() - nameUnderOneLevelWithoutAsterisk.length();
+
           modifiedMembersUnderOneLevel.put(
-              name + "." + memberUnderOneLevel.getKey(), memberUnderOneLevel.getValue());
+              "*".repeat(countOfAsterisk) + name + "." + nameUnderOneLevelWithoutAsterisk, typeUnderOneLevel);
         }
 
         ans.putAll(
