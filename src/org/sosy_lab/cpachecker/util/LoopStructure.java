@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayDeque;
@@ -287,9 +286,6 @@ public final class LoopStructure {
   // computed lazily
   private @Nullable ImmutableSet<String> loopExitConditionVariables;
   private @Nullable ImmutableSet<String> loopIncDecVariables;
-
-  // computed lazily
-  private @Nullable Multimap<CFANode, Loop> nodeToLoops = null;
 
   // computed lazily on demand per edge
   private Map<CFAEdge, List<Loop>> loopsContainingEdge = new HashMap<>();
