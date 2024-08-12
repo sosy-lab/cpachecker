@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import java.util.Arrays;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -30,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public final class ArrayValue implements Value {
 
-  private static final long serialVersionUID = -3963825961335658001L;
+  @Serial private static final long serialVersionUID = -3963825961335658001L;
 
   // Array type and element type are only used for checking correctness of parameters
   private final JArrayType arrayType;

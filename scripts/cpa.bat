@@ -8,6 +8,8 @@ REM SPDX-FileCopyrightText: 2007-2024 Dirk Beyer <https://www.sosy-lab.org>
 REM
 REM SPDX-License-Identifier: Apache-2.0
 
+SETLOCAL
+
 SET SCRIPT=%~dp0
 IF "%PATH_TO_CPACHECKER%"=="" (
   REM normalize the PATH_TO_CPACHECKER

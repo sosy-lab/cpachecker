@@ -13,18 +13,18 @@ SPDX-License-Identifier: Apache-2.0
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="1">
 
-  <option name="-noout"/>
-  <option name="-heap">2000M</option>
+  <option name="--no-output-files"/>
+  <option name="--heap">2000M</option>
 
   <rundefinition>
-    <option name="-lassoRankerAnalysis"/>
+    <option name="--lassoRankerAnalysis"/>
   </rundefinition>
 
   <tasks>
     <includesfile>../programs/benchmarks/Termination-MainControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/termination-restricted-15/Swingers.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
 

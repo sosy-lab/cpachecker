@@ -6,13 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-extern unsigned __VERIFIER_nondet_uint();
-int main() {
-  int n = 1;
-  int z = __VERIFIER_nondet_uint();
-  while (n <= z) {
-    n = n + 1;
-    z = z - 1;
-  }
-  return 0;
-}
+/**
+ * This CPA allows analysis of weakly ordered concurrent programs using happens-before temporal
+ * orderings.
+ */
+package org.sosy_lab.cpachecker.cpa.hb;

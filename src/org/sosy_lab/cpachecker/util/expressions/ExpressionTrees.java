@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.graph.Traverser;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -582,7 +583,7 @@ public final class ExpressionTrees {
   private static class ExpressionTreeComparator<LeafType>
       implements Comparator<ExpressionTree<LeafType>>, Serializable {
 
-    private static final long serialVersionUID = -8004131077972723263L;
+    @Serial private static final long serialVersionUID = -8004131077972723263L;
 
     private final Comparator<Iterable<ExpressionTree<LeafType>>> lexicographicalOrdering =
         Comparators.lexicographical(this);

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Verify.verify;
 
+import java.io.Serial;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 public final class CStringLiteralExpression extends AStringLiteralExpression
     implements CLiteralExpression {
 
-  private static final long serialVersionUID = 2656216584704518185L;
+  @Serial private static final long serialVersionUID = 2656216584704518185L;
 
   public CStringLiteralExpression(FileLocation pFileLocation, String pValue) {
     super(pFileLocation, computeType(pValue, pFileLocation), pValue);

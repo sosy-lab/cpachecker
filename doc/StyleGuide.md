@@ -88,8 +88,8 @@ with considerably less effort!
 - Do not use negated predicates as option name
   (use `something.enable` instead `something.disable`,
   `something.foo` instead of `something.noFoo` etc.).
-- Do not forget to update the file `doc/ConfigurationOptions.txt`
-  (done automatically by ant) and commit it together with your changes.
+- Do not forget to update the file [`ConfigurationOptions.txt`](ConfigurationOptions.txt)
+  (done automatically by `ant`) and commit it together with your changes.
 
 ### Documentation / Comments
 
@@ -100,7 +100,7 @@ with considerably less effort!
   * non-public classes, methods and fields
 - Please add comments wherever sensible,
   but make sure to add comments for the top three items!
-- All command-line options need to be explained in [`doc/Configuration.txt`](Configuration.txt).
+- All command-line arguments need to be explained in [`Configuration.md`](Configuration.md).
 - All `@Option` fields need to have a non-empty description
   that explains (to a user) what the option does.
 - All top-level configuration files (`config/*.properties`) need to have a description
@@ -186,6 +186,10 @@ with considerably less effort!
 - Use `switch` expressions instead of `switch` statements as far as possible,
   this allows the compiler to check exhaustiveness.
 - Do not write `this.` were not necessary.
+- Be careful with serialization, it has lots of unexpected pitfalls
+  (read "Effective Java" before using it).
+  If you have serializable classes,
+  mark all serialization-related fields and methods with `@Serial`.
 
 ### Use Guava's immutable data structures
 

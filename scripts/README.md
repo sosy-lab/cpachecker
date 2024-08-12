@@ -24,7 +24,6 @@ cf. the [README](../README.md) in main directory.
 
 - `benchmark.py`: for benchmarking collections of runs
                 (c.f. [doc/Benchmark.md](../doc/Benchmark.md))
-- `runexecutor.py`: for benchmarking a single run
 - `table-generator.py`:
   Creates HTML and CSV tables that contain the output of several `benchmark.py` runs.
   Also creates tables with just those results differing between two or more runs.

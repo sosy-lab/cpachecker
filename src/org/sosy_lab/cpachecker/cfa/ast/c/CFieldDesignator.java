@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class CFieldDesignator extends CDesignator {
 
-  private static final long serialVersionUID = -1418942274162299596L;
+  @Serial private static final long serialVersionUID = -1418942274162299596L;
   private final String name;
 
   public CFieldDesignator(final FileLocation pFileLocation, final String pName) {

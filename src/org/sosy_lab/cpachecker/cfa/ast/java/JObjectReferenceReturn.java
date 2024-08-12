@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -23,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
  */
 public final class JObjectReferenceReturn extends JReturnStatement {
 
-  private static final long serialVersionUID = 8482771117891447280L;
+  @Serial private static final long serialVersionUID = 8482771117891447280L;
   private final JClassType classReference;
 
   public JObjectReferenceReturn(FileLocation pFileLocation, JClassType pClassReference) {

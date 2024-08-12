@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class SMGCPABuiltins {
 
@@ -185,7 +184,7 @@ public class SMGCPABuiltins {
       String functionName,
       SMGState pSmgState,
       CFAEdge pCfaEdge)
-      throws CPATransferException, SolverException, InterruptedException {
+      throws CPATransferException {
     if (isABuiltIn(functionName)) {
       if (isConfigurableAllocationFunction(functionName)) {
         return evaluateConfigurableAllocationFunction(
@@ -213,7 +212,7 @@ public class SMGCPABuiltins {
       CFunctionCallExpression cFCExpression,
       String calledFunctionName,
       SMGState pState)
-      throws CPATransferException, SolverException, InterruptedException {
+      throws CPATransferException {
 
     if (isExternalAllocationFunction(calledFunctionName)) {
       return evaluateExternalAllocation(cFCExpression, pState);
@@ -235,7 +234,7 @@ public class SMGCPABuiltins {
 
       case "__VERIFIER_BUILTIN_PLOT":
         evaluateVBPlot(cFCExpression, pState);
-        // $FALL-THROUGH$
+      // $FALL-THROUGH$
       case "printf":
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
@@ -303,7 +302,7 @@ public class SMGCPABuiltins {
   @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateVaCopy(
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
-      throws CPATransferException, SolverException, InterruptedException {
+      throws CPATransferException {
     Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
     // The first argument is the destination
     CExpression destArg = cFCExpression.getParameterExpressions().get(0);
@@ -561,8 +560,8 @@ public class SMGCPABuiltins {
                       + " cpa.smg2.SMGCPABuiltins.handleUnknownFunction()",
                   calledFunctionName));
         }
-        // fallthrough for safe functions
-        // $FALL-THROUGH$
+      // fallthrough for safe functions
+      // $FALL-THROUGH$
       case ASSUME_SAFE:
       case ASSUME_EXTERNAL_ALLOCATED:
         List<SMGState> checkedStates =
@@ -829,20 +828,18 @@ public class SMGCPABuiltins {
       CFAEdge edge)
       throws SMGException, SMGSolverException {
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
-    SMGState currentState = pState;
     String functionName = functionCall.getFunctionNameExpression().toASTString();
-    if (sizeInBits.isNumericValue()) {
 
+    if (sizeInBits.isNumericValue()) {
       BigInteger numericSizeInBits = sizeInBits.asNumericValue().bigIntegerValue();
       if (numericSizeInBits.compareTo(BigInteger.ZERO) == 0) {
-        resultBuilder.add(handleAllocZero(currentState));
+        resultBuilder.add(handleAllocZero(pState));
         return resultBuilder.build();
       }
 
       // Create a new memory region with the specified size and use the pointer to its beginning
       // from now on
-      ValueAndSMGState addressAndState =
-          evaluator.createHeapMemoryAndPointer(currentState, sizeInBits);
+      ValueAndSMGState addressAndState = evaluator.createHeapMemoryAndPointer(pState, sizeInBits);
       Value addressToNewRegion = addressAndState.getValue();
       SMGState stateWithNewHeap = addressAndState.getState();
 
@@ -862,14 +859,14 @@ public class SMGCPABuiltins {
       // Symbolic size allowed
       // sizeInBits is a symbolic expr with a multiplication times 8 inside
       resultBuilder.addAll(
-          handleSymbolicAllocation(sizeInBits, sizeType, currentState, edge, functionName));
+          handleSymbolicAllocation(sizeInBits, sizeType, pState, edge, functionName));
     }
 
     // If malloc can fail (and fails) it simply returns a pointer to 0 (C also sets errno)
     if (options.isEnableMallocFailure()) {
       // This mapping always exists
       Value addressToZero = new NumericValue(0);
-      resultBuilder.add(ValueAndSMGState.of(addressToZero, currentState));
+      resultBuilder.add(ValueAndSMGState.of(addressToZero, pState));
     }
     return resultBuilder.build();
   }
@@ -882,16 +879,14 @@ public class SMGCPABuiltins {
     // If it can be zero, we split into 2 states, one with 0, one without
     // Symbolic Execution for assumption edges, use previous state and values
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
-    SMGState currentState = pState;
     final ConstraintFactory constraintFactory =
-        ConstraintFactory.getInstance(currentState, machineModel, logger, options, evaluator, edge);
-    SMGState maybeZeroState = currentState;
+        ConstraintFactory.getInstance(pState, machineModel, logger, options, evaluator, edge);
+    SMGState maybeZeroState = pState;
 
     final Constraint sizeEqZeroConstraint =
-        constraintFactory.getMemorySizeInBitsEqualsZeroConstraint(
-            sizeInBits, sizeType, currentState);
+        constraintFactory.getMemorySizeInBitsEqualsZeroConstraint(sizeInBits, sizeType, pState);
 
-    String stackFrameFunctionName = currentState.getStackFrameTopFunctionName();
+    String stackFrameFunctionName = pState.getStackFrameTopFunctionName();
 
     // Iff SAT -> size can be zero
     SatisfiabilityAndSMGState satisfiabilityAndStateEqZero =
@@ -903,10 +898,9 @@ public class SMGCPABuiltins {
       // Create a state with the memory size == 0
       resultBuilder.add(handleAllocZero(maybeZeroState));
     }
-    SMGState stateWithNewNonZeroHeap = currentState;
+    SMGState stateWithNewNonZeroHeap = pState;
     final Constraint sizeNotEqZeroConstraint =
-        constraintFactory.getMemorySizeInBitsNotEqualsZeroConstraint(
-            sizeInBits, sizeType, currentState);
+        constraintFactory.getMemorySizeInBitsNotEqualsZeroConstraint(sizeInBits, sizeType, pState);
 
     // If SAT -> size can be non zero
     SatisfiabilityAndSMGState satisfiabilityAndStateNotEqZero =
@@ -1141,7 +1135,7 @@ public class SMGCPABuiltins {
     }
     // Since this returns the pointer of the buffer we check the offset of the AddressExpression, if
     // its 0 we can return the known pointer, else we create a new one.
-    if (bufferOffsetInBits.compareTo(BigInteger.ZERO) == 0) {
+    if (bufferOffsetInBits.equals(BigInteger.ZERO)) {
       return ValueAndSMGState.of(bufferMemoryAddress, currentState);
     } else {
       ValueAndSMGState newPointerAndState =
@@ -1211,7 +1205,7 @@ public class SMGCPABuiltins {
     for (ValueAndSMGState argumentAndState :
         getAllocateFunctionParameter(MALLOC_PARAMETER, functionCall, pState, cfaEdge)) {
 
-      if (!argumentAndState.getValue().isNumericValue()) {
+      if (!argumentAndState.getValue().isNumericValue() && !options.trackPredicates()) {
         String infoMsg =
             "Could not determine a concrete size for a memory allocation function: "
                 + functionCall.getFunctionNameExpression();
@@ -1620,7 +1614,8 @@ public class SMGCPABuiltins {
             new NumericValue(sizeToCopyInBits));
 
     ValueAndSMGState newPointersAndStates =
-        evaluator.searchOrCreatePointer(targetAddress, targetOffset, copyResultState);
+        evaluator.searchOrCreatePointer(
+            targetAddress, new NumericValue(targetOffset), copyResultState);
 
     return ValueAndSMGState.of(newPointersAndStates.getValue(), newPointersAndStates.getState());
   }

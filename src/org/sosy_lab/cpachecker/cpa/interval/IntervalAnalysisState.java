@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
+import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ public class IntervalAnalysisState
         FormulaReportingState,
         PseudoPartitionable {
 
-  private static final long serialVersionUID = -2030700797958100666L;
+  @Serial private static final long serialVersionUID = -2030700797958100666L;
 
   private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
 

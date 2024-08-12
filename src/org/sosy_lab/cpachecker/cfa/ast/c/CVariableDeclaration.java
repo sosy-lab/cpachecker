@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -25,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
  */
 public final class CVariableDeclaration extends AVariableDeclaration implements CDeclaration {
 
-  private static final long serialVersionUID = 8303959164064236061L;
+  @Serial private static final long serialVersionUID = 8303959164064236061L;
   private final CStorageClass cStorageClass;
 
   public CVariableDeclaration(

@@ -67,6 +67,21 @@ SPEC_MEM_DEREF = "valid-deref"
 SPEC_MEM_MEMTRACK = "valid-memtrack"
 
 
+class ArgumentStyle:
+    def __init__(self, use_single_dash_flags):
+        self.use_single_dash_flags = use_single_dash_flags
+
+    def flag(self, f: str):
+        if self.use_single_dash_flags:
+            return "-" + f
+        return "--" + f
+
+    def get_output_path_flag(self) -> str:
+        if self.use_single_dash_flags:
+            return "-outputpath"
+        return "--output-path"
+
+
 class ValidationResult(NamedTuple):
     verdict: str
     violated_property: Optional[str] = None
@@ -112,14 +127,17 @@ def get_cpachecker_version():
     """Return the CPAchecker version used."""
 
     executable = get_cpachecker_executable()
-    result = execute([executable, "-help"], quiet=True)
+    # We can hardcode '--help' here because we know that CPAchecker understands this.
+    # No need to care about the argument style used by the user
+    result = execute([executable, "--help"], quiet=True)
     for line in result.stdout.split(os.linesep):
         if line.startswith("CPAchecker"):
             return line.replace("CPAchecker", "").strip()
     return None
 
 
-def create_parser():
+def create_parser(args_style: ArgumentStyle):
+    flag = args_style.flag  # shorten function name for better readability
     descr = "Validate a given violation witness for an input file."
     if sys.version_info >= (3, 5):
         parser = argparse.ArgumentParser(
@@ -128,22 +146,22 @@ def create_parser():
     else:
         parser = argparse.ArgumentParser(description=descr, add_help=False)
 
-    parser.add_argument("-help", action="help")
+    parser.add_argument(flag("help"), "-h", action="help")
 
     parser.add_argument(
-        "-version", action="version", version="{}".format(get_cpachecker_version())
+        flag("version"), action="version", version="{}".format(get_cpachecker_version())
     )
 
     machine_model_args = parser.add_mutually_exclusive_group(required=False)
     machine_model_args.add_argument(
-        "-32",
+        flag("32"),
         dest="machine_model",
         action="store_const",
         const=MACHINE_MODEL_32,
         help="use 32 bit machine model",
     )
     machine_model_args.add_argument(
-        "-64",
+        flag("64"),
         dest="machine_model",
         action="store_const",
         const=MACHINE_MODEL_64,
@@ -152,7 +170,7 @@ def create_parser():
     machine_model_args.set_defaults(machine_model=MACHINE_MODEL_32)
 
     parser.add_argument(
-        "-outputpath",
+        args_style.get_output_path_flag(),
         dest="output_path",
         type=str,
         action="store",
@@ -160,10 +178,10 @@ def create_parser():
         help="path where output should be stored",
     )
 
-    parser.add_argument("-stats", action="store_true", help="show statistics")
+    parser.add_argument(flag("stats"), action="store_true", help="show statistics")
 
     parser.add_argument(
-        "-gcc-args",
+        flag("gcc-args"),
         dest="compile_args",
         type=str,
         action="store",
@@ -173,7 +191,7 @@ def create_parser():
     )
 
     parser.add_argument(
-        "-spec",
+        flag("spec"),
         dest="specification_file",
         type=str,
         action="store",
@@ -182,7 +200,8 @@ def create_parser():
     )
 
     parser.add_argument(
-        "-witness",
+        flag("witness"),
+        "-w",
         dest="witness_file",
         required=True,
         type=str,
@@ -209,16 +228,22 @@ def _determine_file_args(argv):
 
 
 def _parse_args(argv):
-    parser = create_parser()
+    if "-witness" in argv:
+        use_single_dash_flags = True
+    else:
+        use_single_dash_flags = False
+    args_style = ArgumentStyle(use_single_dash_flags)
+    parser = create_parser(args_style)
     args, remainder = parser.parse_known_args(argv)
     args.file = _determine_file_args(argv)
     if not args.file:
-        raise ValueError("The following argument is required: program file")
+        raise ValueError("The following arguments are required: program file")
     if len(args.file) > 1:
         raise ValueError(
             "Too many values for argument: Only one program file supported"
         )
     args.file = args.file[0]
+    args.style = args_style
 
     return args
 
@@ -285,18 +310,22 @@ def _create_cpachecker_args(args, harness_output_dir):
     # Slicing creates a copy in python, so no explicit copy necessary.
     cpachecker_args = sys.argv[1:]
 
-    for compile_arg in ["-gcc-args"] + args.compile_args:
+    for compile_arg in [args.style.flag("gcc-args")] + args.compile_args:
         if compile_arg in cpachecker_args:
             cpachecker_args.remove(compile_arg)
 
-    cpachecker_args.append("-witness2test")
+    cpachecker_args.append(args.style.flag("witness2test"))
+    outputpath_flag = args.style.get_output_path_flag()
     try:
-        index_of_outputpath_param = cpachecker_args.index("-outputpath")
+        index_of_outputpath_param = cpachecker_args.index(outputpath_flag)
     except ValueError:
-        cpachecker_args += ["-outputpath", harness_output_dir]
+        cpachecker_args += [outputpath_flag, harness_output_dir]
     else:
         assert (index_of_outputpath_param + 1) < len(cpachecker_args), (
-            "Parameter -outputpath is missing an argument: " + cpachecker_args
+            "Parameter "
+            + outputpath_flag
+            + " is missing an argument: "
+            + cpachecker_args
         )
         # Replace existing argument of outputpath with harness_output_dir,
         # so that the harness is written there for compilation.

@@ -300,7 +300,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
     switch (pCfaEdge.getEdgeType()) {
 
-        // declaration of a function pointer.
+      // declaration of a function pointer.
       case DeclarationEdge:
         {
           CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
@@ -308,7 +308,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
           break;
         }
 
-        // if edge is a statement edge, e.g. a = b + c
+      // if edge is a statement edge, e.g. a = b + c
       case StatementEdge:
         {
           CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
@@ -337,11 +337,11 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
           break;
         }
 
-        // maybe two function pointers are compared.
+      // maybe two function pointers are compared.
       case AssumeEdge:
         break;
 
-        // nothing to do.
+      // nothing to do.
       case BlankEdge:
       case CallToReturnEdge:
         break;

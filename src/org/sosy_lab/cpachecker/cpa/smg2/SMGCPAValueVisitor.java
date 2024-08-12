@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -64,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -87,7 +87,6 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * This visitor visits values mostly on the right hand side to get values (SMG or not) (but also on
@@ -733,6 +732,9 @@ public class SMGCPAValueVisitor
       } else if (value.isNumericValue() && options.isCastMemoryAddressesToNumeric()) {
         logger.logf(Level.FINE, "Numeric Value '%s' interpreted as memory address.", value);
         return evaluator.getPointerFromNumeric(value, currentState);
+
+      } else if (options.trackPredicates() && value instanceof SymbolicValue) {
+        return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
 
       } else {
         return ValueAndSMGState.of(UnknownValue.getInstance(), currentState);
@@ -2149,12 +2151,9 @@ public class SMGCPAValueVisitor
 
       // This checks and uses builtins and also unknown functions based on the options
       SMGCPABuiltins smgBuiltins = evaluator.getBuiltinFunctionHandler();
-      try {
-        return smgBuiltins.handleFunctionCall(
-            pIastFunctionCallExpression, calledFunctionName, state, cfaEdge);
-      } catch (InterruptedException | SolverException e) {
-        throw new SMGSolverException(e, state);
-      }
+
+      return smgBuiltins.handleFunctionCall(
+          pIastFunctionCallExpression, calledFunctionName, state, cfaEdge);
     }
     return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
   }
@@ -2215,8 +2214,8 @@ public class SMGCPAValueVisitor
     if (leftValue instanceof AddressExpression addressValue
         && !(rightValue instanceof AddressExpression)) {
       Value addressOffset = addressValue.getOffset();
-      if (!rightValue.isNumericValue() || !addressOffset.isNumericValue()) {
-        // TODO: symbolic values if possible
+      if (!options.trackPredicates()
+          && (!rightValue.isNumericValue() || !addressOffset.isNumericValue())) {
         return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
       }
 
@@ -2226,29 +2225,40 @@ public class SMGCPAValueVisitor
         // We need the correct types here; the types of the returned value after the pointer
         // expression!
         correctlyTypedOffset =
-            arithmeticOperation(
+            calculateArithmeticOperationWithBitPromotion(
                 new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
-                (NumericValue) rightValue,
+                leftValueType,
+                rightValue,
+                rightValueType,
                 BinaryOperator.MULTIPLY,
-                // TODO This is just some random int type with same size, check if this is correct.
-                evaluator.getMachineModel().getPointerSizedIntType());
+                expressionType,
+                calculationType,
+                currentState);
       } else {
         // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
         // then this is just the numeric value * 8 and then the operation.
         correctlyTypedOffset =
-            arithmeticOperation(
+            calculateArithmeticOperationWithBitPromotion(
                 new NumericValue(BigInteger.valueOf(8)),
-                (NumericValue) rightValue,
+                leftValueType,
+                rightValue,
+                rightValueType,
                 BinaryOperator.MULTIPLY,
-                calculationType);
+                expressionType,
+                calculationType,
+                currentState);
       }
 
       Value finalOffset =
-          arithmeticOperation(
-              (NumericValue) addressOffset,
-              (NumericValue) correctlyTypedOffset,
+          calculateArithmeticOperationWithBitPromotion(
+              addressOffset,
+              leftValueType,
+              correctlyTypedOffset,
+              rightValueType,
               binaryOperator,
-              calculationType);
+              expressionType,
+              calculationType,
+              currentState);
 
       return ImmutableList.of(
           ValueAndSMGState.of(addressValue.copyWithNewOffset(finalOffset), currentState));
@@ -2358,6 +2368,37 @@ public class SMGCPAValueVisitor
         continue;
       }
       return returnBuilder.build();
+    }
+  }
+
+  private Value calculateArithmeticOperationWithBitPromotion(
+      Value leftValue,
+      CType leftValueType,
+      Value rightValue,
+      CType rightValueType,
+      BinaryOperator binOp,
+      CType expressionType,
+      CType calculationType,
+      SMGState currentState)
+      throws CPATransferException {
+    if (rightValue instanceof NumericValue numValueRight
+        && leftValue instanceof NumericValue numValueLeft) {
+      return arithmeticOperation(
+          numValueLeft,
+          numValueRight,
+          binOp,
+          // TODO This is just some random int type with same size, check if this is correct.
+          evaluator.getMachineModel().getPointerSizedIntType());
+    } else {
+      // Symbolic offset
+      return createSymbolicExpression(
+          leftValue,
+          leftValueType,
+          rightValue,
+          rightValueType,
+          binOp,
+          expressionType,
+          promoteMemorySizeTypeForBitCalculation(calculationType, currentState.getMachineModel()));
     }
   }
 

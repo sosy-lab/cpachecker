@@ -272,7 +272,7 @@ class EclipseCParser implements CParser {
           if (include.isSystemInclude()) {
             throw new CFAGenerationRuntimeException(
                 "File includes system headers, either preprocess it manually or specify"
-                    + " -preprocess.");
+                    + " --preprocess.");
           } else {
             throw parseContext.parseError(
                 "Included file " + include.getName() + " is missing", include);

@@ -32,7 +32,7 @@ if [[ ! -f $ARCHIVE ]]; then
   exit 1
 fi
 TARGET="${3:-}"
-if [[ -z $ARCHIVE ]]; then
+if [[ -z $TARGET ]]; then
   echo "Please provide target directory as third parameter."
   exit 1
 fi
@@ -45,18 +45,16 @@ BUILD_DIR="$TEMP_DEB/build"
 mkdir "$BUILD_DIR"
 cp -a "$(dirname "$0")/debian" "$BUILD_DIR"
 
-podman run --rm -w "$BUILD_DIR" -v "$TEMP_DEB:$TEMP_DEB:rw" -v "$ARCHIVE:/$CPACHECKER.zip:ro" -e CPACHECKER -e "DEB*" -e VERSION ubuntu:20.04 bash -c '
+podman run --rm -w "$BUILD_DIR" -v "$TEMP_DEB:$TEMP_DEB:rw" -v "$(realpath "$ARCHIVE"):/$CPACHECKER.zip:ro" -e CPACHECKER -e "DEB*" -e VERSION ubuntu:20.04 bash -c '
   set -euo pipefail
 
   apt-get update
   apt-get install -y --no-install-recommends dpkg-dev devscripts unzip
   TZ=UTC DEBIAN_FRONTEND=noninteractive apt-get install -y $(dpkg-checkbuilddeps 2>&1 | grep -o "Unmet build dependencies:.*" | cut -d: -f2- | sed "s/([^)]*)//g")
 
-  unzip "/$CPACHECKER.zip"
+  unzip -q "/$CPACHECKER.zip"
   # clean up irrelevant stuff
   rm -rf "$CPACHECKER/lib/native/"{x86-*,*macosx,*windows}
-  # Only necessary before CPAchecker 2.4
-  rm -f "$CPACHECKER/lib/jpl"* "$CPACHECKER/lib/native/x86_64-linux/chc_lib"* "$CPACHECKER/lib/native/x86_64-linux/libjpl.so"*
 
   dch -v "$VERSION-1" "New upstream version."
   dch -r ""

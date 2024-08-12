@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,7 +35,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class Pair<A, B> implements Serializable {
 
-  private static final long serialVersionUID = -8410959888808077296L;
+  @Serial private static final long serialVersionUID = -8410959888808077296L;
 
   private final @Nullable A first;
   private final @Nullable B second;

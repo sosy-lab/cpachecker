@@ -14,6 +14,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.errorprone.annotations.Immutable;
 import com.google.errorprone.annotations.concurrent.LazyInit;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -23,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 @Immutable
 public final class CSimpleType implements CType {
 
-  private static final long serialVersionUID = -8279630814725098867L;
+  @Serial private static final long serialVersionUID = -8279630814725098867L;
   private final CBasicType type;
   private final boolean isLong;
   private final boolean isShort;

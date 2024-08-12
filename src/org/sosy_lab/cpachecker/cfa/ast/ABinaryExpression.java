@@ -8,13 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /** This is the abstract Class for all Expressions with two Operands and one Operator. */
 public abstract class ABinaryExpression extends AbstractExpression {
 
-  private static final long serialVersionUID = 516716556428189182L;
+  @Serial private static final long serialVersionUID = 516716556428189182L;
   private final AExpression operand1;
   private final AExpression operand2;
   private final ABinaryOperator operator;

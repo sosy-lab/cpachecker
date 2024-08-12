@@ -8,6 +8,8 @@ REM SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 REM
 REM SPDX-License-Identifier: Apache-2.0
 
+SETLOCAL
+
 IF "%JAVA%"=="" (
   IF NOT "%JAVA_HOME%"=="" (
     SET "JAVA=%JAVA_HOME%\bin\java"
@@ -45,20 +47,48 @@ SET JAVA_ASSERTIONS=-ea
 
 :loop
 IF NOT [%1]==[] (
-  IF [%1]==[-benchmark] (
+  IF [%1]==[--benchmark] (
     SET JAVA_ASSERTIONS=-da
     SET DEFAULT_HEAP_SIZE=xxxx
     SET "OPTIONS=%OPTIONS% %1"
-  ) ELSE IF [%1]==[-heap] (
+  ) ELSE IF [%1]==[-benchmark] (
+    SET JAVA_ASSERTIONS=-da
+    SET DEFAULT_HEAP_SIZE=xxxx
+    SET "OPTIONS=%OPTIONS% %1"
+  ) ELSE IF [%1]==[--heap] (
     SET JAVA_HEAP_SIZE=%2
     SHIFT
-  ) ELSE IF [%1]==[-stack] (
+  ) ELSE IF [%1]==[-heap] (
+    ECHO Argument '-heap' is deprecated, we recommend replacing with '--heap'.
+    SET JAVA_HEAP_SIZE=%2
+    SHIFT
+  ) ELSE IF [%1]==[--stack] (
     SET JAVA_STACK_SIZE=%2
     SHIFT
-  ) ELSE IF [%1]==[-debug] (
+  ) ELSE IF [%1]==[-stack] (
+    ECHO Argument '-stack' is deprecated, we recommend replacing with '--stack'.
+    SET JAVA_STACK_SIZE=%2
+    SHIFT
+  ) ELSE IF [%1]==[--jvm-debug] (
     SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
-  ) ELSE IF [%1]==[-disable-java-assertions] (
+  ) ELSE IF [%1]==[-debug] (
+    ECHO Argument '-debug' is deprecated, we recommend replacing with '--jvm-debug'.
+    SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
+  ) ELSE IF [%1]==[--disable-java-assertions] (
     SET JAVA_ASSERTIONS=-da
+  ) ELSE IF [%1]==[-disable-java-assertions] (
+    ECHO Argument '-disable-java-assertions' is deprecated, we recommend replacing with '--disable-java-assertions'.
+    SET JAVA_ASSERTIONS=-da
+  ) ELSE IF [%1]==[--option] (
+    IF ["%~2"]==[%2] (
+      REM if option is already quoted, we do not need to restore it
+      SET "OPTIONS=%OPTIONS% %1 %2"
+    ) ELSE (
+      REM equal sign is a separator in Batch commandline arguments, lets restore it
+      SET "OPTIONS=%OPTIONS% %1 %2^=%3"
+      SHIFT
+    )
+    SHIFT
   ) ELSE IF [%1]==[-setprop] (
     IF ["%~2"]==[%2] (
       REM if option is already quoted, we do not need to restore it
@@ -90,18 +120,18 @@ IF NOT "%JAVA_HEAP_SIZE%"=="" (
 ) ELSE (
   SET JAVA_HEAP_SIZE=%DEFAULT_HEAP_SIZE%
   IF "%DEFAULT_HEAP_SIZE%"=="xxxx" (
-    ECHO A heap size needs to be specified with -heap if -benchmark is given.
+    ECHO A heap size needs to be specified with --heap if --benchmark is given.
     ECHO Please see doc/Benchmark.md for further information.
     EXIT /B 1
   )
-  ECHO Running CPAchecker with default heap size %DEFAULT_HEAP_SIZE%. Specify a larger value with -heap if you have more RAM.
+  ECHO Running CPAchecker with default heap size %DEFAULT_HEAP_SIZE%. Specify a larger value with --heap if you have more RAM.
 )
 
 IF NOT "%JAVA_STACK_SIZE%"=="" (
   ECHO Running CPAchecker with Java stack of size %JAVA_STACK_SIZE%.
 ) ELSE (
   SET JAVA_STACK_SIZE=%DEFAULT_STACK_SIZE%
-  ECHO Running CPAchecker with default stack size %DEFAULT_STACK_SIZE%. Specify a larger value with -stack if needed.
+  ECHO Running CPAchecker with default stack size %DEFAULT_STACK_SIZE%. Specify a larger value with --stack if needed.
 )
 
 IF NOT "%JAVA_VM_ARGUMENTS%"=="" (
