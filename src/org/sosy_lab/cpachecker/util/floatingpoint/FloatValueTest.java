@@ -101,7 +101,7 @@ public class FloatValueTest {
   }
 
   /** Supported floating point formats and the number of test values to generate for each of them */
-  public static ImmutableMap<Format, Integer> supportedFormats =
+  private static final ImmutableMap<Format, Integer> SUPPORTED_FORMATS =
       ImmutableMap.of(
           Format.Float8,
           50000,
@@ -138,12 +138,12 @@ public class FloatValueTest {
    * <p>Use <code>ant tests -DenableExpensiveTests</code> to set this flag. The test suite will then
    * generate a much more exhaustive set of input values for the tested methods.
    */
-  static boolean enableExpensiveTests = true;
+  private static boolean enableExpensiveTests = true;
 
   @Parameters(name = "{0}")
   public static Configuration[] getConfigurations() {
     ImmutableList.Builder<Configuration> builder = ImmutableList.builder();
-    for (Map.Entry<Format, Integer> entry : supportedFormats.entrySet()) {
+    for (Map.Entry<Format, Integer> entry : SUPPORTED_FORMATS.entrySet()) {
       Format precision = entry.getKey();
       for (ReferenceImpl reference : ReferenceImpl.values()) {
         if (reference.equals(ReferenceImpl.MPFR)
@@ -170,7 +170,7 @@ public class FloatValueTest {
    *
    * <p>This is used in the tests to convert the result of the operation back to a BigFloat value.
    */
-  BigFloat toBigFloat(CFloat value) {
+  private BigFloat toBigFloat(CFloat value) {
     if (value instanceof MpfrFloat val) {
       return val.toBigFloat();
     } else if (value instanceof CFloatImpl val) {
@@ -224,12 +224,12 @@ public class FloatValueTest {
   }
 
   /** Convert a {@link CFloat} value to an Integer. */
-  Integer toInteger(CFloat value) {
+  private Integer toInteger(CFloat value) {
     return toBigFloat(value).intValue();
   }
 
   /** Construct a CFloatImpl from a BigFloat test value. */
-  CFloatImpl testValueToCFloatImpl(BigFloat value, Format format) {
+  private CFloatImpl testValueToCFloatImpl(BigFloat value, Format format) {
     if (value.isNaN()) {
       return new CFloatImpl(
           value.sign() ? FloatValue.nan(format).negate() : FloatValue.nan(format));
@@ -261,7 +261,7 @@ public class FloatValueTest {
   }
 
   /** Convert floating point value to its decimal representation. */
-  static String toPlainString(BigFloat value) {
+  private static String toPlainString(BigFloat value) {
     String r = printBigFloat(value);
     if (r.contains("e")) {
       r = new BigDecimal(r).toPlainString();
@@ -270,7 +270,7 @@ public class FloatValueTest {
   }
 
   /** Generate a list of floating point constants that cover all special case values. */
-  static Iterable<BigFloat> floatConstants(Format format) {
+  private static Iterable<BigFloat> floatConstants(Format format) {
     int precision = format.sigBits() + 1;
     BinaryMathContext context = new BinaryMathContext(precision, format.expBits());
     return ImmutableList.of(
@@ -298,7 +298,8 @@ public class FloatValueTest {
    * Generate a list of powers ca^px where c,p are incremented starting from 1 and a,x are
    * constants.
    */
-  static Iterable<BigFloat> floatPowers(Format format, int c, BigFloat a, int p, BigFloat x) {
+  private static Iterable<BigFloat> floatPowers(
+      Format format, int c, BigFloat a, int p, BigFloat x) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     for (int i = 1; i <= c; i++) {
@@ -315,7 +316,7 @@ public class FloatValueTest {
   }
 
   /** Generate n random floating point values. */
-  static Iterable<BigFloat> floatRandom(Format format, int n) {
+  private static Iterable<BigFloat> floatRandom(Format format, int n) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     Random random = new Random(0);
@@ -338,7 +339,7 @@ public class FloatValueTest {
   }
 
   /** Generate all possible floating point values for a given precision. */
-  static Iterable<BigFloat> allFloats(Format format) {
+  private static Iterable<BigFloat> allFloats(Format format) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     for (long exponent = format.minExp() - 1; exponent <= format.maxExp() + 1; exponent++) {
@@ -361,7 +362,7 @@ public class FloatValueTest {
   }
 
   /** The set of test inputs that should be used for unary operations in the CFloat interface. */
-  Iterable<BigFloat> unaryTestValues() {
+  private Iterable<BigFloat> unaryTestValues() {
     Format format = configuration.pFormat;
     if (enableExpensiveTests && (format.equals(Format.Float8) || format.equals(Format.Float16))) {
       return allFloats(format);
@@ -380,7 +381,7 @@ public class FloatValueTest {
    * values will be used for both arguments separately. So if there are k test values in this set,
    * the number of test runs for a binary operation will be k^2.
    */
-  Iterable<BigFloat> binaryTestValues() {
+  private Iterable<BigFloat> binaryTestValues() {
     Format format = configuration.pFormat;
     if (enableExpensiveTests && format.equals(Format.Float8)) {
       return allFloats(format);
@@ -395,7 +396,7 @@ public class FloatValueTest {
   }
 
   /** Generate a list of special case integer values. */
-  static Iterable<BigFloat> integerConstants(Format format) {
+  private static Iterable<BigFloat> integerConstants(Format format) {
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
     return ImmutableList.of(
         new BigFloat(Integer.MIN_VALUE, context),
@@ -408,7 +409,7 @@ public class FloatValueTest {
   }
 
   /** Generate n random integer values. */
-  static Iterable<BigFloat> integerRandom(Format format, int n) {
+  private static Iterable<BigFloat> integerRandom(Format format, int n) {
     ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
     BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
 
@@ -425,7 +426,7 @@ public class FloatValueTest {
   }
 
   /** Generate integer test inputs that include both special cases and random values. */
-  Iterable<BigFloat> integerTestValues() {
+  private Iterable<BigFloat> integerTestValues() {
     Format format = configuration.pFormat;
     return FluentIterable.concat(
         integerConstants(format), integerRandom(format, (int) Math.sqrt(configuration.pNumber)));
@@ -449,7 +450,7 @@ public class FloatValueTest {
    * the float value can be written as 1.0101111100 * 2^(10010 - 15 = 3) where 15 is the bias for
    * 16bit floats.
    */
-  static String toBits(Format format, BigFloat value) {
+  private static String toBits(Format format, BigFloat value) {
     String sign = value.sign() ? "1" : "0";
 
     // Print the exponent
@@ -471,15 +472,15 @@ public class FloatValueTest {
     return String.format("%s %s %s", sign, exponent, significand);
   }
 
-  String printValue(BigFloat value) {
+  private String printValue(BigFloat value) {
     return String.format("%s [%s]", toBits(configuration.pFormat, value), printBigFloat(value));
   }
 
-  String printTestHeader(String name, BigFloat arg) {
+  private String printTestHeader(String name, BigFloat arg) {
     return String.format("Testcase %s(%s): ", name, printValue(arg));
   }
 
-  String printTestHeader(String name, BigFloat arg1, BigFloat arg2) {
+  private String printTestHeader(String name, BigFloat arg1, BigFloat arg2) {
     return String.format("Testcase %s(%s, %s): ", name, printValue(arg1), printValue(arg2));
   }
 
@@ -684,17 +685,17 @@ public class FloatValueTest {
     }
   }
 
-  void assertEqual1Ulp(CFloat r1, CFloat r2) {
+  private void assertEqual1Ulp(CFloat r1, CFloat r2) {
     assertThat(printValue(toBigFloat(r1))).isIn(errorRange(ulpError(), toBigFloat(r2)));
   }
 
   /** Create a test value for the tested implementation. */
-  CFloat toTestedImpl(BigFloat value) {
+  private CFloat toTestedImpl(BigFloat value) {
     return testValueToCFloatImpl(value, configuration.pFormat);
   }
 
   /** Create a test value for the tested implementation by parsing a String. */
-  CFloat toTestedImpl(String repr) {
+  private CFloat toTestedImpl(String repr) {
     return new CFloatImpl(repr, configuration.pFormat);
   }
 
@@ -712,7 +713,7 @@ public class FloatValueTest {
   }
 
   /** Create a test value for the reference implementation. */
-  CFloat toReferenceImpl(BigFloat value) {
+  private CFloat toReferenceImpl(BigFloat value) {
     checkState(
         configuration.pFormat.equals(Format.Float32)
             || configuration.pFormat.equals(Format.Float64)
@@ -751,7 +752,7 @@ public class FloatValueTest {
   }
 
   /** Create a test value for the reference implementation by parsing a String. */
-  CFloat toReferenceImpl(String repr) {
+  private CFloat toReferenceImpl(String repr) {
     BinaryMathContext context =
         new BinaryMathContext(configuration.pFormat.sigBits() + 1, configuration.pFormat.expBits());
     return toReferenceImpl(parseBigFloat(context, repr));
