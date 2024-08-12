@@ -80,6 +80,9 @@ public class SymbolicProgramConfiguration {
   /** Mapping of all global variables to their SMGObjects. Use the value mapping to get values. */
   private final PersistentMap<String, SMGObject> globalVariableMapping;
 
+  /* Stack with atexit() handlers */
+  private final PersistentStack<Value> atExitStack;
+
   /* The stack of stackFrames.
    * (Each function call creates a new one that has to be popd once the function is returned/ends)
    */
@@ -126,6 +129,7 @@ public class SymbolicProgramConfiguration {
   private SymbolicProgramConfiguration(
       SMG pSmg,
       PersistentMap<String, SMGObject> pGlobalVariableMapping,
+      PersistentStack<Value> pAtExitStack,
       PersistentStack<StackFrame> pStackVariableMapping,
       PersistentSet<SMGObject> pHeapObjects,
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
@@ -135,6 +139,7 @@ public class SymbolicProgramConfiguration {
       PersistentMap<SMGObject, Boolean> pMallocZeroMemory) {
     globalVariableMapping = pGlobalVariableMapping;
     stackVariableMapping = pStackVariableMapping;
+    atExitStack = pAtExitStack;
     smg = pSmg;
     externalObjectAllocation = pExternalObjectAllocation;
     heapObjects = pHeapObjects;
@@ -148,6 +153,7 @@ public class SymbolicProgramConfiguration {
   private SymbolicProgramConfiguration(
       SMG pSmg,
       PersistentMap<String, SMGObject> pGlobalVariableMapping,
+      PersistentStack<Value> pAtExitStack,
       PersistentStack<StackFrame> pStackVariableMapping,
       PersistentSet<SMGObject> pHeapObjects,
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
@@ -158,6 +164,7 @@ public class SymbolicProgramConfiguration {
       Set<SMGObject> pReadBlacklist) {
     globalVariableMapping = pGlobalVariableMapping;
     stackVariableMapping = pStackVariableMapping;
+    atExitStack = pAtExitStack;
     smg = pSmg;
     externalObjectAllocation = pExternalObjectAllocation;
     heapObjects = pHeapObjects;
@@ -186,6 +193,7 @@ public class SymbolicProgramConfiguration {
   public static SymbolicProgramConfiguration of(
       SMG pSmg,
       PersistentMap<String, SMGObject> pGlobalVariableMapping,
+      PersistentStack<Value> pAtExitStack,
       PersistentStack<StackFrame> pStackVariableMapping,
       PersistentSet<SMGObject> pHeapObjects,
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
@@ -197,6 +205,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         pSmg,
         pGlobalVariableMapping,
+        pAtExitStack,
         pStackVariableMapping,
         pHeapObjects,
         pExternalObjectAllocation,
@@ -221,6 +230,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         new SMG(sizeOfPtr),
         PathCopyingPersistentTreeMap.of(),
+        PersistentStack.of(),
         PersistentStack.of(),
         PersistentSet.of(SMGObject.nullInstance()),
         PathCopyingPersistentTreeMap.of(),
@@ -251,6 +261,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg,
         globalVariableMapping,
+        atExitStack,
         pNewStackFrames,
         heapObjects,
         externalObjectAllocation,
@@ -266,6 +277,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         newSMG,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -407,6 +419,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg.copyAndAddObject(pNewObject),
         globalVariableMapping.putAndCopy(pVarName, pNewObject),
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -469,6 +482,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg.copyAndAddObject(pNewObject),
         globalVariableMapping,
+        atExitStack,
         tmpStack.pushAndCopy(currentFrame),
         heapObjects,
         externalObjectAllocation,
@@ -503,6 +517,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg.copyAndAddObject(pNewObject),
         globalVariableMapping,
+        atExitStack,
         tmpStack,
         heapObjects,
         externalObjectAllocation,
@@ -540,6 +555,7 @@ public class SymbolicProgramConfiguration {
       return of(
           smg,
           globalVariableMapping,
+          atExitStack,
           stackVariableMapping.pushAndCopy(newStackFrame),
           heapObjects,
           externalObjectAllocation,
@@ -552,6 +568,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg.copyAndAddObject(returnObj.orElseThrow()),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping.pushAndCopy(newStackFrame),
         heapObjects,
         externalObjectAllocation,
@@ -568,6 +585,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping.pushAndCopy(newStackFrame),
         heapObjects,
         externalObjectAllocation,
@@ -601,6 +619,7 @@ public class SymbolicProgramConfiguration {
       return of(
           newSmg,
           globalVariableMapping,
+          atExitStack,
           newStack,
           heapObjects,
           externalObjectAllocation,
@@ -626,6 +645,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg.copyAndAddObject(pObject),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects.addAndCopy(pObject),
         externalObjectAllocation,
@@ -642,6 +662,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg.copyHVEdgesFromTo(source, target),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -658,6 +679,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg.replaceAllPointersTowardsWith(pointerValue, newTarget),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -666,6 +688,24 @@ public class SymbolicProgramConfiguration {
         memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist);
+  }
+
+  public PersistentStack<Value> getAtExitStack() {
+    return atExitStack;
+  }
+
+  public SymbolicProgramConfiguration copyAndReplaceAtExitStack(PersistentStack<Value> pStack) {
+    return new SymbolicProgramConfiguration(
+        smg,
+        globalVariableMapping,
+        pStack,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
   }
 
   /**
@@ -714,6 +754,7 @@ public class SymbolicProgramConfiguration {
     return of(
         newSmg,
         globalVariableMapping,
+        atExitStack,
         newStack,
         heapObjects,
         externalObjectAllocation,
@@ -773,6 +814,7 @@ public class SymbolicProgramConfiguration {
         of(
             newSmg,
             globalVariableMapping,
+            atExitStack,
             stackVariableMapping,
             newHeapObjects,
             externalObjectAllocation,
@@ -816,6 +858,7 @@ public class SymbolicProgramConfiguration {
         of(
             newSMG,
             globalVariableMapping,
+            atExitStack,
             stackVariableMapping,
             newHeapObject,
             externalObjectAllocation,
@@ -857,6 +900,7 @@ public class SymbolicProgramConfiguration {
       return of(
           smg.copyAndAddValue(smgValue, nestingLevel),
           globalVariableMapping,
+          atExitStack,
           stackVariableMapping,
           heapObjects,
           externalObjectAllocation,
@@ -869,6 +913,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg.copyAndAddValue(smgValue, nestingLevel),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -891,6 +936,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation.putAndCopy(pObject, false),
@@ -911,6 +957,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation.putAndCopy(pObject, true),
@@ -996,6 +1043,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation.putAndCopy(pObject, true),
@@ -1017,6 +1065,7 @@ public class SymbolicProgramConfiguration {
     return of(
         pSMG,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1039,6 +1088,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1059,6 +1109,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1637,6 +1688,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndSetTargetSpecifierForPtrsTowards(target, nestingLvlToChange, specifierToSet),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1655,6 +1707,7 @@ public class SymbolicProgramConfiguration {
         smg.copyAndSetTargetSpecifierForPtrsTowards(
             target, nestingLvlToChange, specifierToSet, specifierToSwitch),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1669,6 +1722,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndSetTargetSpecifierForPointer(pPtrValue, specifierToSet),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1686,6 +1740,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndRemoveObjects(ImmutableSet.of(obj)),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects.removeAndCopy(obj),
         externalObjectAllocation,
@@ -1703,6 +1758,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndRemoveAbstractedObjectFromHeap(obj),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects.removeAndCopy(obj),
         externalObjectAllocation,
@@ -1726,6 +1782,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.replaceAllPointersTowardsWith(oldObj, newObject),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1749,6 +1806,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.replaceAllPointersTowardsWithAndDecrementNestingLevel(oldObj, newObject),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1774,6 +1832,7 @@ public class SymbolicProgramConfiguration {
         smg.replaceAllPointersTowardsWithAndIncrementNestingLevel(
             oldObj, newObject, incrementAmount),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1804,6 +1863,7 @@ public class SymbolicProgramConfiguration {
         smg.replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
             oldObj, newObject, replacementLevel, specifierToSwitch),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1833,6 +1893,7 @@ public class SymbolicProgramConfiguration {
         smg.replacePointersWithSMGValue(
             oldTargetObj, replacementValue, nestingLevelToSwitch, specifierToSwitch),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1847,6 +1908,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndReplaceHVEdgesAt(objectToReplace, newHVEdges),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1861,6 +1923,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndReplaceHVEdgeAt(object, offsetInBits, sizeInBits, newHVEdge),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1880,6 +1943,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndRemovePointsToEdge(value).copyAndRemoveValue(value),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1911,6 +1975,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1930,6 +1995,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
