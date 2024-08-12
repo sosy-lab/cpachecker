@@ -143,7 +143,8 @@ public class FloatValueTest {
   @Parameters(name = "{0}")
   public static Configuration[] getConfigurations() {
     ImmutableList.Builder<Configuration> builder = ImmutableList.builder();
-    for (Format precision : supportedFormats.keySet()) {
+    for (Map.Entry<Format, Integer> entry : supportedFormats.entrySet()) {
+      Format precision = entry.getKey();
       for (ReferenceImpl reference : ReferenceImpl.values()) {
         if (reference.equals(ReferenceImpl.MPFR)
             || precision.equals(Format.Float32)
@@ -153,9 +154,7 @@ public class FloatValueTest {
           if (precision.equals(Format.Float32) || enableExpensiveTests) {
             builder.add(
                 new Configuration(
-                    precision,
-                    reference,
-                    enableExpensiveTests ? supportedFormats.get(precision) : 100));
+                    precision, reference, enableExpensiveTests ? entry.getValue() : 100));
           }
         }
       }
