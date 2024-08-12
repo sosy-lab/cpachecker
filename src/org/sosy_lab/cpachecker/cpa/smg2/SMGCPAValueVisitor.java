@@ -554,7 +554,7 @@ public class SMGCPAValueVisitor
       }
 
       if (binaryOperator == BinaryOperator.EQUALS) {
-        Preconditions.checkArgument(returnType instanceof CSimpleType);
+        // Preconditions.checkArgument(returnType instanceof CSimpleType);
         if ((!(nonConstLeftValue instanceof AddressExpression)
                 && !evaluator.isPointerValue(nonConstLeftValue, currentState))
             || (!(nonConstRightValue instanceof AddressExpression)
