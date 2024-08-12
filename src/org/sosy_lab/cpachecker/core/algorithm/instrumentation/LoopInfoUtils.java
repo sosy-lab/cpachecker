@@ -13,14 +13,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -30,14 +28,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.parser.llvm.CFABuilder;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding;
 
 public class LoopInfoUtils {
 
@@ -57,39 +52,18 @@ public class LoopInfoUtils {
                 .getFileLocation()
                 .getStartingLineInOrigin());
       }
-      Integer maxLoopLocation = Collections.max(loopLocations);
 
       // Determine the names of all variables used except those declared inside the loop
       Set<String> liveVariables = new HashSet<>();
       Set<String> variablesDeclaredInsideLoop = new HashSet<>();
       Map<String, String> liveVariablesAndTypes = new HashMap<>();
-      List<CFAEdge> notChecked = new ArrayList<>(loop.getIncomingEdges());
-      Set<CFAEdge> checked = new HashSet<>();
-      while (!notChecked.isEmpty()) {
-        CFAEdge cfaEdge = notChecked.remove(notChecked.size() - 1);
-        checked.add(cfaEdge);
+      for (CFAEdge cfaEdge : loop.getInnerLoopEdges()) {
         if (cfaEdge.getRawAST().isPresent()) {
           AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
-          if (aAstNode instanceof CSimpleDeclaration
-              && cfaEdge.getFileLocation().getStartingLineInOrigin() > maxLoopLocation) {
+          if (aAstNode instanceof CSimpleDeclaration) {
             variablesDeclaredInsideLoop.add(((CSimpleDeclaration) aAstNode).getQualifiedName());
           } else {
-            if (aAstNode instanceof CFunctionCallStatement) {
-              for (CParameterDeclaration parameter :
-                  ((CFunctionCallStatement) aAstNode)
-                      .getFunctionCallExpression()
-                      .getDeclaration()
-                      .getParameters()) {
-                variablesDeclaredInsideLoop.add(parameter.getQualifiedName());
-              }
-            } else {
-              liveVariables.addAll(getVariablesFromAAstNode(cfaEdge.getRawAST().orElseThrow()));
-            }
-          }
-        }
-        for (int i = 0; i < cfaEdge.getSuccessor().getNumLeavingEdges(); i++) {
-          if (!checked.contains(cfaEdge.getSuccessor().getLeavingEdge(i))) {
-            notChecked.add(cfaEdge.getSuccessor().getLeavingEdge(i));
+            liveVariables.addAll(getVariablesFromAAstNode(cfaEdge.getRawAST().orElseThrow()));
           }
         }
       }
