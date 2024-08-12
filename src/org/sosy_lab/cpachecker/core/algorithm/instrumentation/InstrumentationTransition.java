@@ -19,12 +19,12 @@ public class InstrumentationTransition {
    * TODO: Implement pattern class and matching (look for possible regexes?)
    */
   private InstrumentationPattern pattern;
-  private String operation;
+  private InstrumentationOperation operation;
   private InstrumentationOrder order;
 
   public InstrumentationTransition(InstrumentationState pSource,
                                    InstrumentationPattern pPattern,
-                                   String pOperation,
+                                   InstrumentationOperation pOperation,
                                    InstrumentationOrder pOrder,
                                    InstrumentationState pDestination) {
     this.source = pSource;
@@ -51,7 +51,7 @@ public class InstrumentationTransition {
     return pattern;
   }
 
-  public String getOperation() {
+  public InstrumentationOperation getOperation() {
     return operation;
   }
 

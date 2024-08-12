@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
+import com.google.common.collect.ImmutableList;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -122,11 +123,12 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
           for (InstrumentationTransition transition : currentState
               .getAutomatonOfTheState()
               .getTransitions(currentState)) {
-            if (transition.getPattern().MatchThePattern(edge) != null) {
+            ImmutableList<String> matchedVariables = transition.getPattern().MatchThePattern(edge);
+            if (matchedVariables != null) {
               isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist);
               newEdges.add(
                   computeLineNumberBasedOnTransition(transition, edge) + "|||" +
-                  transition.getOperation());
+                  transition.getOperation().InsertVariablesInsideOperation(matchedVariables));
               matched = true;
             }
           }

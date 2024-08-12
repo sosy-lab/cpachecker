@@ -115,6 +115,7 @@ public class InstrumentationAutomaton {
         new InstrumentationTransition(
             q1,
             new InstrumentationPattern("true"),
+            new InstrumentationOperation(
             "int saved_ = 0; " +
                 liveVariablesAndTypes.entrySet().stream()
                     .map((entry) ->
@@ -123,7 +124,7 @@ public class InstrumentationAutomaton {
                              ? " = alloca(sizeof(" + getAllocationForPointer(entry.getValue()) + "))"
                              : ""))
                     .collect(Collectors.joining("; ")) +
-                (!liveVariablesAndTypes.isEmpty() ? ";" : ""),
+                (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
             InstrumentationOrder.BEFORE,
             q1);
 
@@ -141,6 +142,7 @@ public class InstrumentationAutomaton {
           new InstrumentationTransition(
               q1,
               new InstrumentationPattern("true"),
+              new InstrumentationOperation(
               "int saved_" + pIndex + " = 0; " +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) ->
@@ -149,14 +151,14 @@ public class InstrumentationAutomaton {
                                ? " = alloca(sizeof(" + getAllocationForPointer(entry.getValue()) + "))"
                                : ""))
                       .collect(Collectors.joining("; ")) +
-                      (!liveVariablesAndTypes.isEmpty() ? ";" : ""),
+                      (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
               InstrumentationOrder.BEFORE,
               q2);
       InstrumentationTransition t2 =
           new InstrumentationTransition(
               q2,
               new InstrumentationPattern("[cond]"),
-              "if(__VERIFIER_nondet_int() && saved_" + pIndex + " == 0) { saved_" + pIndex + " =1; " +
+              new InstrumentationOperation("if(__VERIFIER_nondet_int() && saved_" + pIndex + " == 0) { saved_" + pIndex + " =1; " +
                   liveVariablesAndTypes.entrySet().stream()
                       .map((entry) ->
                           getDereferencesForPointer(entry.getValue()) + entry.getKey()
@@ -172,14 +174,14 @@ public class InstrumentationAutomaton {
                               + " != " + getDereferencesForPointer(entry.getValue()) + entry.getKey()
                               + "_instr_" + pIndex + ")")
                       .collect(Collectors.joining("||")) +
-                  ");}",
+                  ");}"),
               InstrumentationOrder.AFTER,
               q3);
     InstrumentationTransition t3 =
         new InstrumentationTransition(
             q3,
             new InstrumentationPattern("true"),
-            "",
+            new InstrumentationOperation(""),
             InstrumentationOrder.AFTER,
             q3);
       this.instrumentationTransitions =
