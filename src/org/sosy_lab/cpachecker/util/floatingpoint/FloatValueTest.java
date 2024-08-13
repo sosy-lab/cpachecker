@@ -135,8 +135,8 @@ public class FloatValueTest {
   /**
    * Enables running more exhaustive tests
    *
-   * <p>Use <code>ant tests -DenableExpensiveTests=true</code> to set this flag. The test suite will then
-   * generate a much more exhaustive set of input values for the tested methods.
+   * <p>Use <code>ant tests -DenableExpensiveTests=true</code> to set this flag. The test suite will
+   * then generate a much more exhaustive set of input values for the tested methods.
    */
   private static boolean enableExpensiveTests;
 

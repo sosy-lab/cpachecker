@@ -25,7 +25,7 @@ SPDX-License-Identifier: Apache-2.0
     <property name="junit.dir" value="junit"/>
 
     <!-- Option to enable running more expensive tests. Turned off by default. -->
-    <property name="junit.enableExpensiveTests" value="true"/>
+    <property name="junit.enableExpensiveTests" value="false"/>
 
     <!-- Define property that contains the Ant version for getting the matching ant-junit version. -->
     <antversion property="ant.version.exact"/>
