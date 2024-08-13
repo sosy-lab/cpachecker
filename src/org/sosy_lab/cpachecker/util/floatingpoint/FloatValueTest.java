@@ -138,7 +138,8 @@ public class FloatValueTest {
    * <p>Use <code>ant tests -DenableExpensiveTests=true</code> to set this flag. The test suite will
    * then generate a much more exhaustive set of input values for the tested methods.
    */
-  private static boolean enableExpensiveTests;
+  private static final boolean enableExpensiveTests =
+      Boolean.parseBoolean(System.getProperty("enableExpensiveTests"));
 
   @Parameters(name = "{0}")
   public static Configuration[] getConfigurations() {
@@ -150,7 +151,6 @@ public class FloatValueTest {
             || precision.equals(Format.Float32)
             || precision.equals(Format.Float64)
             || (reference.equals(ReferenceImpl.NATIVE) && precision.equals(Format.Extended))) {
-          enableExpensiveTests = Boolean.valueOf(System.getProperty("enableExpensiveTests"));
           if (precision.equals(Format.Float32) || enableExpensiveTests) {
             builder.add(
                 new Configuration(
