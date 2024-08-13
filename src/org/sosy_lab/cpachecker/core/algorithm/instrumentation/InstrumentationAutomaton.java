@@ -108,7 +108,9 @@ public class InstrumentationAutomaton {
   }
 
   private void constructOverflowAutomaton() {
-    InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.TRUE, this);
+    InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.TRUE, this);
+    InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.INIT, this);
+
     this.initialState = q1;
 
     InstrumentationTransition t1 =
@@ -116,20 +118,32 @@ public class InstrumentationAutomaton {
             q1,
             new InstrumentationPattern("true"),
             new InstrumentationOperation(
-            "int saved_ = 0; " +
-                liveVariablesAndTypes.entrySet().stream()
-                    .map((entry) ->
-                        entry.getValue() + " " + entry.getKey() + "_instr_" +
-                            (entry.getValue().charAt(entry.getValue().length() - 1) == '*'
-                             ? " = alloca(sizeof(" + getAllocationForPointer(entry.getValue()) + "))"
-                             : ""))
-                    .collect(Collectors.joining("; ")) +
-                (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
+                "int INT_MAX = 2147483647; int INT_MIN = -2147483648;"
+            ),
             InstrumentationOrder.BEFORE,
-            q1);
+            q2);
+    InstrumentationTransition t2 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("ADD"),
+            new InstrumentationOperation(
+                "__VERIFIER_assert(((x2 > 0) && (x1 > (INT_MAX - x2))) "
+                    + "|| ((x2 < 0) && (x1 < (INT_MIN - x2))))"
+            ),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t3 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("SUB"),
+            new InstrumentationOperation(
+                "__VERIFIER_assert(((x2 > 0 && x1 < INT_MIN + x2) ||"
+                    + " (x2 < 0 && x1 > INT_MAX + x2)))"),
+            InstrumentationOrder.BEFORE,
+            q2);
 
     this.instrumentationTransitions =
-        ImmutableList.of(t1);
+        ImmutableList.of(t1, t2);
   }
 
   private void constructTerminationAutomaton(int pIndex) {
