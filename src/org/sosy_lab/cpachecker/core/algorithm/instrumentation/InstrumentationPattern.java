@@ -9,13 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
-import org.eclipse.jdt.core.dom.ASTNode;
-import org.mockito.internal.matchers.Null;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
@@ -89,6 +85,11 @@ public class InstrumentationPattern {
       case SUB -> getTheOperandsFromSub(pCFAEdge);
       default -> null;
     };
+  }
+
+  @Override
+  public String toString() {
+    return pattern;
   }
 
   @Nullable

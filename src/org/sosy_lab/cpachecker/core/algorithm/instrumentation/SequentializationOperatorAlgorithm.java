@@ -83,6 +83,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                                                                 index));
         index += 1;
       }
+    } else {
+      mapAutomataToLocations.put(0, new InstrumentationAutomaton(instrumentationProperty));
     }
     // MAIN INSTRUMENTATION OPERATOR ALGORITHM
     // Initialize the search
@@ -156,7 +158,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     try {
       int location;
       String fileLocation = pEdge.getFileLocation().toString();
-      if (pTransition.getPattern().equals("[!cond]")) {
+      if (pTransition.getPattern().toString().equals("[!cond]")) {
         fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation().toString();
       }
       fileLocation = fileLocation.replaceFirst("line ", "");

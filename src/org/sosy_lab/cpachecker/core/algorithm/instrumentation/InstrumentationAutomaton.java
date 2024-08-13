@@ -71,6 +71,16 @@ public class InstrumentationAutomaton {
     }
   }
 
+  /**
+   * @param pInstrumentationProperty temporary indication of which property is used in the
+   *     transformation
+   */
+  public InstrumentationAutomaton(InstrumentationProperty pInstrumentationProperty) {
+    if (pInstrumentationProperty == InstrumentationProperty.NOOVERFLOW) {
+      constructOverflowAutomaton();
+    }
+  }
+
   public InstrumentationState getInitialState() {
     return initialState;
   }
@@ -143,7 +153,7 @@ public class InstrumentationAutomaton {
             q2);
 
     this.instrumentationTransitions =
-        ImmutableList.of(t1, t2);
+        ImmutableList.of(t1, t2, t3);
   }
 
   private void constructTerminationAutomaton(int pIndex) {
