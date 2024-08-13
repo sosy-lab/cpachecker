@@ -255,7 +255,7 @@ public class SMGCPABuiltins {
       case "atexit":
         return evaluateAtExit(cFCExpression, pCfaEdge, pState);
       case "__CPACHECKER_atexit_next":
-        return evaluateAtExitNext(cFCExpression, pCfaEdge, pState);
+        return evaluateAtExitNext(pState);
 
       default:
         if (isNondetBuiltin(calledFunctionName)) {
@@ -484,8 +484,7 @@ public class SMGCPABuiltins {
    * It gets the next handler from the atexit stack or returns the null pointer if the stack is
    * empty.
    */
-  private List<ValueAndSMGState> evaluateAtExitNext(
-      CFunctionCallExpression cFCExpression, CFAEdge cfaEdge, SMGState pState) {
+  private List<ValueAndSMGState> evaluateAtExitNext(SMGState pState) {
     PersistentStack<Value> atExitStack = pState.getMemoryModel().getAtExitStack();
     if (atExitStack.isEmpty()) {
       // If the stack is empty return a null pointer
