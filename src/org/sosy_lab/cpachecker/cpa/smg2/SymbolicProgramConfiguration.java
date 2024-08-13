@@ -277,6 +277,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -793,6 +794,7 @@ public class SymbolicProgramConfiguration {
     return of(
         pSmg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1997,6 +1999,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndRemovePointsToEdgeWithoutSideEffects(value).copyAndRemoveValue(value),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
