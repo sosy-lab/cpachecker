@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.tubes;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -310,9 +311,9 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
     for (CFAEdge cfaEdge : counterExample.getTargetPath().getFullPath()) {
       cexPath = pmgr.makeAnd(cexPath, cfaEdge);
       Set<FormulaAndName> after =
-          solver.getFormulaManager().extractVariables(cexPath.getFormula()).entrySet().stream()
-              .map(entry -> new FormulaAndName(entry.getValue(), entry.getKey()))
-              .collect(ImmutableSet.toImmutableSet());
+          transformedImmutableSetCopy(
+              solver.getFormulaManager().extractVariables(cexPath.getFormula()).entrySet(),
+              entry -> new FormulaAndName(entry.getValue(), entry.getKey()));
       for (FormulaAndName variable : Sets.difference(after, before)) {
         variableToLineNumber.put(variable, cfaEdge);
       }
