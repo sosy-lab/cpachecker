@@ -162,7 +162,7 @@ public class SMGMatchObjectsTest extends SMGJoinTest0 {
     assertThat(mo.isDefined()).isFalse();
 
     smg2 = smg2.copyAndAddObject(srcObj2);
-    smg2 = smg2.copyAndInvalidateObject(srcObj2);
+    smg2 = smg2.copyAndInvalidateObject(srcObj2, true);
     mo =
         new SMGMatchObjects(
             SMGJoinStatus.EQUAL,

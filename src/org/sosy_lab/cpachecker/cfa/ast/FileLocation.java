@@ -17,6 +17,7 @@ import com.google.errorprone.annotations.Immutable;
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
+import java.io.Serial;
 import java.io.Serializable;
 import java.nio.file.Path;
 import java.util.List;
@@ -25,7 +26,7 @@ import java.util.Objects;
 @Immutable
 public class FileLocation implements Serializable, Comparable<FileLocation> {
 
-  private static final long serialVersionUID = 6652099907084949014L;
+  @Serial private static final long serialVersionUID = 6652099907084949014L;
 
   private final transient Path fileName;
   private final String niceFileName;
@@ -96,7 +97,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
 
   public static final FileLocation DUMMY =
       new FileLocation(Path.of("#none#"), 0, 0, 0, 0, 0, 0) {
-        private static final long serialVersionUID = -3012034075570811723L;
+        @Serial private static final long serialVersionUID = -3012034075570811723L;
 
         @Override
         public boolean isRealLocation() {
@@ -111,7 +112,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
 
   public static final FileLocation MULTIPLE_FILES =
       new FileLocation(Path.of("#multiple files#"), 0, 0, 0, 0, 0, 0) {
-        private static final long serialVersionUID = -1725179775900132985L;
+        @Serial private static final long serialVersionUID = -1725179775900132985L;
 
         @Override
         public boolean isRealLocation() {
@@ -288,17 +289,19 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
     }
   }
 
+  @Serial
   protected Object writeReplace() {
     return new SerializationProxy(this);
   }
 
   @SuppressWarnings({"UnusedVariable", "unused"}) // parameter is required by API
+  @Serial
   private void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");
   }
 
   private static class SerializationProxy implements Serializable {
-    private static final long serialVersionUID = -3730421630343690695L;
+    @Serial private static final long serialVersionUID = -3730421630343690695L;
 
     private final String fileName;
     private final String niceFileName;
@@ -326,6 +329,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       endColumnInLine = loc.endColumnInLine;
     }
 
+    @Serial
     private Object readResolve() {
       FileLocation result =
           new FileLocation(

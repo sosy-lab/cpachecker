@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.exceptions;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class LLVMParserException extends ParserException {
 
-  public static final long serialVersionUID = 0;
+  @Serial public static final long serialVersionUID = 0;
 
   public LLVMParserException(final String pMsg) {
     super(pMsg, Language.LLVM);

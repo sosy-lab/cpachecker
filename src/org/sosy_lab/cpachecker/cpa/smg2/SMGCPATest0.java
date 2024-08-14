@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Formu
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 
@@ -105,9 +106,10 @@ public class SMGCPATest0 {
             logger,
             SMGCPAExportOptions.getNoExportInstance(),
             smgOptions,
-            makeTestSolver());
+            makeTestSolver(machineModel, logger));
     currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
     numericPointerSizeInBits = new NumericValue(pointerSizeInBits);
+    currentState = currentState.copyAndAddDummyStackFrame();
   }
 
   // Resets state and visitor to an empty state
@@ -116,7 +118,9 @@ public class SMGCPATest0 {
     currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
   }
 
-  private ConstraintsSolver makeTestSolver() throws InvalidConfigurationException {
+  public static ConstraintsSolver makeTestSolver(
+      MachineModel machineModel, LogManagerWithoutDuplicates logger)
+      throws InvalidConfigurationException {
     Solver smtSolver =
         Solver.create(Configuration.defaultConfiguration(), logger, ShutdownNotifier.createDummy());
     FormulaManagerView formulaManager = smtSolver.getFormulaManager();
@@ -296,11 +300,12 @@ public class SMGCPATest0 {
         .build();
   }
 
-  /*
-   * Will fill the list with data such that the nfo (and pfo) are last. The data is int and the same every list segment.
-   * The data is numeric starting from 0, +1 each new value such that the space until nfo is filled.
-   * Valid sizes are divisible by 32. The nfo for the last and pfo for the first segment are 0.
-   * Returns the pointers to the first and last element in the array. Might be equal.
+  /**
+   * Will fill the list with data such that the nfo (and pfo) are last. The data is int and the same
+   * every list segment. The data is numeric starting from 0, +1 each new value such that the space
+   * until nfo is filled. Valid sizes are divisible by 32. The nfo for the last and pfo for the
+   * first segment are 0. Returns the pointers to the first and last element in the array. Might be
+   * equal.
    */
   protected Value[] buildConcreteListReturnFstAndLstPointer(
       boolean dll, BigInteger sizeOfSegment, int listLength)
@@ -431,6 +436,25 @@ public class SMGCPATest0 {
         BigInteger.ZERO,
         dll ? Optional.of(BigInteger.ZERO) : Optional.empty(),
         true);
+  }
+
+  /**
+   * Will fill the list with data such that the nfo (and pfo) are last. The data is int and the same
+   * every list segment. The data is numeric starting from 0, +1 each new value such that the space
+   * until nfo is filled. Valid sizes are divisible by 32. The nfo for the last and pfo for the
+   * first segment are 0. This always creates a stack obj and a pointer towards ALL created objects.
+   */
+  protected Value[] buildConcreteList(
+      boolean dll, BigInteger sizeOfSegment, int listLength, boolean createStackObjsForAllPointers)
+      throws SMGException, SMGSolverException {
+    return buildConcreteListWithEqualValues(
+        dll,
+        sizeOfSegment,
+        listLength,
+        0,
+        BigInteger.ZERO,
+        dll ? Optional.of(BigInteger.ZERO) : Optional.empty(),
+        createStackObjsForAllPointers);
   }
 
   /**
@@ -631,5 +655,22 @@ public class SMGCPATest0 {
     }
 
     return array;
+  }
+
+  public static SMGState stateFromSMG(SMG pSmg) throws InvalidConfigurationException {
+    MachineModel machineModel = MachineModel.LINUX32;
+    LogManagerWithoutDuplicates logger =
+        new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
+    SMGOptions smgOptions = new SMGOptions(Configuration.defaultConfiguration());
+    SMGCPAExpressionEvaluator evaluator =
+        new SMGCPAExpressionEvaluator(
+            machineModel,
+            logger,
+            SMGCPAExportOptions.getNoExportInstance(),
+            smgOptions,
+            SMGCPATest0.makeTestSolver(machineModel, logger));
+    SMGState state =
+        SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
+    return state.copyAndReplaceMemoryModel(state.getMemoryModel().copyWithNewSMG(pSmg));
   }
 }

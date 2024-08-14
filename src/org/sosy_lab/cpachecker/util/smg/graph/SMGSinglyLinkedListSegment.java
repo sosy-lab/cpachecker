@@ -186,6 +186,14 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
     return true;
   }
 
+  /**
+   * Returns relevant equalities of values (e.g. pointers) in an equalityCache. Can be used to argue
+   * about 2 values being equal or identical. Values that are identical are not mapped here and need
+   * to be copied (same value). Values in here need replication, so we need a new Value that behaves
+   * the same.
+   *
+   * @return a cache of relevant Values that need replication.
+   */
   public EqualityCache<Value> getRelevantEqualities() {
     return relevantEqualities;
   }

@@ -28,7 +28,7 @@ SPDX-License-Identifier: Apache-2.0
 - Kettl, Matthias (since 2019); LMU Munich, Germany
 - Lee, Nian-Ze (since 2020); LMU Munich, Germany
 - Lemberger, Thomas (since 2014); LMU Munich, Germany
-- Lingsch, Marian (since 2020): LMU Munich, Germany
+- Lingsch-Rosenfeld, Marian (since 2020): LMU Munich, Germany
 - Onderka, Jan (since 2023); CTU Prague, Czech Republic
 - Port, Valentin (since 2019); LMU Munich, Germany
 - Spießl, Martin (since 2017); LMU Munich, Germany

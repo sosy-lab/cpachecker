@@ -38,6 +38,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -103,6 +104,7 @@ public class CEXExporter {
       ImmutableList.of(PathEqualityCounterexampleFilter::new);
 
   private final CounterexampleFilter cexFilter;
+  private final CFA cfa;
 
   private final CEXExportOptions options;
   private final LogManager logger;
@@ -118,7 +120,7 @@ public class CEXExporter {
       CEXExportOptions pOptions,
       LogManager pLogger,
       Specification pSpecification,
-      CFA cfa,
+      CFA pCFA,
       ConfigurableProgramAnalysis cpa,
       WitnessExporter pWitnessExporter,
       ExtendedWitnessExporter pExtendedWitnessExporter)
@@ -128,15 +130,16 @@ public class CEXExporter {
     logger = pLogger;
     witnessExporter = checkNotNull(pWitnessExporter);
     extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
+    cfa = pCFA;
 
     if (!options.disabledCompletely()) {
       cexFilter =
           CounterexampleFilter.createCounterexampleFilter(config, pLogger, cpa, cexFilterClasses);
-      harnessExporter = new HarnessExporter(config, pLogger, cfa);
-      testExporter = new TestCaseExporter(cfa, logger, config);
+      harnessExporter = new HarnessExporter(config, pLogger, pCFA);
+      testExporter = new TestCaseExporter(pCFA, logger, config);
       faultExporter = new FaultLocalizationInfoExporter(config);
       if (options.getYamlWitnessPathTemplate() != null) {
-        cexToWitness = new CounterexampleToWitness(config, cfa, pSpecification, pLogger);
+        cexToWitness = new CounterexampleToWitness(config, pCFA, pSpecification, pLogger);
       } else {
         cexToWitness = null;
       }
@@ -331,14 +334,21 @@ public class CEXExporter {
             uniqueId,
             (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
             compressWitness);
-
-        if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
-          try {
-            cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not generate YAML violation witness.");
+        if (cfa.getMetadata().getInputLanguage() == Language.C) {
+          if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
+            try {
+              cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
+            } catch (IOException e) {
+              logger.logUserException(
+                  Level.WARNING, e, "Could not generate YAML violation witness.");
+            }
           }
+        } else {
+          logger.log(
+              Level.WARNING,
+              "Cannot export violation witness to YAML format for languages other than C.");
         }
+
       } catch (InterruptedException e) {
         logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
       }

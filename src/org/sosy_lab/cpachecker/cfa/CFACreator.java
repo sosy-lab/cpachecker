@@ -12,15 +12,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -31,7 +27,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPOutputStream;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -143,7 +138,12 @@ public class CFACreator {
   @Option(
       secure = true,
       name = "analysis.machineModel",
-      description = "the machine model, which determines the sizes of types like int")
+      description =
+          "the machine model, which determines the sizes of types like int:\n"
+              + "- LINUX32: ILP32 for Linux on 32-bit x86\n"
+              + "- LINUX64: LP64 for Linux on 64-bit x86\n"
+              + "- ARM: ILP32 for Linux on 32-bit ARM\n"
+              + "- ARM64: LP64 for Linux on 64-bit ARM")
   private MachineModel machineModel = MachineModel.LINUX32;
 
   @Option(
@@ -225,19 +225,6 @@ public class CFACreator {
 
   @Option(
       secure = true,
-      name = "cfa.serialize",
-      description = "export CFA as .ser file (dump Java objects)")
-  private boolean serializeCfa = false;
-
-  @Option(
-      secure = true,
-      name = "cfa.serializeFile",
-      description = "export CFA as .ser file (dump Java objects)")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path serializeCfaFile = Path.of("cfa.ser.gz");
-
-  @Option(
-      secure = true,
       name = "cfa.pixelGraphicFile",
       description =
           "Export CFA as pixel graphic to the given file name. The suffix is added"
@@ -312,6 +299,8 @@ public class CFACreator {
               + "auto-detection will occur")
   // keep option name in sync with {@link CPAMain#language}, value might differ
   private Language language = Language.C;
+
+  private Language inputLanguage = Language.C;
 
   // data structures for parsing ACSL annotations
   private final List<FileLocation> commentPositions = new ArrayList<>();
@@ -394,6 +383,7 @@ public class CFACreator {
 
     stats.parserInstantiationTime.start();
     String regExPattern;
+    inputLanguage = language;
     switch (language) {
       case JAVA:
         regExPattern = "^" + VALID_JAVA_FUNCTION_NAME_PATTERN + "$";
@@ -424,7 +414,8 @@ public class CFACreator {
 
         if (useClang) {
           if (usePreprocessor) {
-            logger.log(Level.WARNING, "Option -preprocess is ignored when used with option -clang");
+            logger.log(
+                Level.WARNING, "Option --preprocess is ignored when used with option -clang");
           }
           ClangPreprocessor clang = new ClangPreprocessor(config, logger);
           parser = LlvmParserWithClang.Factory.getParser(clang, logger, machineModel);
@@ -582,6 +573,7 @@ public class CFACreator {
         CfaMetadata.forMandatoryAttributes(
             machineModel,
             language,
+            inputLanguage,
             pParseResult.fileNames(),
             mainFunction,
             CfaConnectedness.UNCONNECTED_FUNCTIONS);
@@ -661,7 +653,7 @@ public class CFACreator {
     stats.processingTime.stop();
 
     if (pParseResult.astStructure().isPresent()) {
-      cfa.setASTStructure(pParseResult.astStructure().orElseThrow());
+      cfa.setAstCfaRelation(pParseResult.astStructure().orElseThrow());
     }
 
     final ImmutableCFA immutableCFA = cfa.immutableCopy();
@@ -679,7 +671,6 @@ public class CFACreator {
     if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
         || ((exportFunctionCallsFile != null) && exportFunctionCalls)
         || ((exportFunctionCallsUsedFile != null) && exportFunctionCalls)
-        || ((serializeCfaFile != null) && serializeCfa)
         || (exportCfaPixelFile != null)
         || (exportCfaToCFile != null && exportCfaToC)) {
       exportCFAAsync(immutableCFA);
@@ -1192,19 +1183,6 @@ public class CFACreator {
         new CFAToPixelsWriter(config).write(cfa.getMainFunction(), exportCfaPixelFile);
       } catch (IOException | InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not write CFA as pixel graphic.");
-      }
-    }
-
-    if (serializeCfa && serializeCfaFile != null) {
-      try {
-        MoreFiles.createParentDirectories(serializeCfaFile);
-        try (OutputStream outputStream = Files.newOutputStream(serializeCfaFile);
-            OutputStream gzipOutputStream = new GZIPOutputStream(outputStream);
-            ObjectOutputStream oos = new ObjectOutputStream(gzipOutputStream)) {
-          oos.writeObject(cfa);
-        }
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not serialize CFA to file.");
       }
     }
 

@@ -20,10 +20,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
@@ -48,7 +50,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
    * @throws InterruptedException if the execution is interrupted
    */
   private InvariantEntry createInvariant(Collection<ARGState> argStates, CFANode node, String type)
-      throws InterruptedException {
+      throws InterruptedException, ReportingMethodNotImplementedException {
 
     // We now conjunct all the overapproximations of the states and export them as loop invariants
     Optional<IterationElement> iterationStructure =
@@ -58,6 +60,8 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     }
 
     FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
+    // TODO: The original name of the variables should be used here. This requires a visitor to
+    // rename them
     ExpressionTree<Object> invariant =
         getOverapproximationOfStatesIgnoringReturnVariables(argStates, node);
     LocationRecord locationRecord =
@@ -67,13 +71,13 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
             node.getFunctionName());
 
     InvariantEntry invariantEntry =
-        new InvariantEntry(
-            invariant.toString(), type, YAMLWitnessExpressionType.C.toString(), locationRecord);
+        new InvariantEntry(invariant.toString(), type, YAMLWitnessExpressionType.C, locationRecord);
 
     return invariantEntry;
   }
 
-  void exportWitnesses(ARGState pRootState, Path pPath) throws InterruptedException, IOException {
+  void exportWitnesses(ARGState pRootState, Path pPath)
+      throws InterruptedException, IOException, ReportingMethodNotImplementedException {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 
@@ -81,7 +85,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
 
     // Use the collected states to generate invariants
-    ImmutableList.Builder<InvariantEntry> entries = new ImmutableList.Builder<>();
+    ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();
 
     // First handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {

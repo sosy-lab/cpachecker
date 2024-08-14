@@ -21,7 +21,7 @@ SPDX-License-Identifier: Apache-2.0
             outputProperty="version.revision"
             failifexecutionfails="false"
             logError="true">
-            <arg value="scripts/determine-revision.py"/>
+            <arg value="build/determine-revision.py"/>
             <arg value="${basedir}"/>
         </exec>
     </target>

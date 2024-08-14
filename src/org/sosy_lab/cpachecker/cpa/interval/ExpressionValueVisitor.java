@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -144,13 +145,15 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
 
   @Override
   public Interval visit(CIntegerLiteralExpression integerLiteral) {
-    return new Interval(integerLiteral.asLong());
+    BigInteger value = integerLiteral.getValue();
+    return getIntervalFor(value);
   }
 
   @Override
   public Interval visit(CIdExpression identifier) {
     if (identifier.getDeclaration() instanceof CEnumerator) {
-      return new Interval(((CEnumerator) identifier.getDeclaration()).getValue());
+      BigInteger enumConstant = ((CEnumerator) identifier.getDeclaration()).getValue();
+      return getIntervalFor(enumConstant);
     }
 
     final String variableName = identifier.getDeclaration().getQualifiedName();
@@ -170,5 +173,15 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
       default ->
           throw new UnrecognizedCodeException("unknown unary operator", cfaEdge, unaryExpression);
     };
+  }
+
+  private Interval getIntervalFor(BigInteger value) {
+    // TODO handle values that are bigger than MAX_LONG.
+    try {
+      long longValue = value.longValueExact();
+      return new Interval(longValue);
+    } catch (ArithmeticException e) {
+      return Interval.UNBOUND;
+    }
   }
 }

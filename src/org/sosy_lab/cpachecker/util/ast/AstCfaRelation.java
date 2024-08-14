@@ -9,12 +9,18 @@
 package org.sosy_lab.cpachecker.util.ast;
 
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.errorprone.annotations.concurrent.LazyInit;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -50,15 +56,27 @@ public final class AstCfaRelation {
   @LazyInit
   private ImmutableMap<Pair<Integer, Integer>, IfElement> lineAndStartColumnToIfStructure = null;
 
+  // Static variables are currently not being considered, since it is somewhat unclear how to handle
+  // them.
+  private final Map<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
+  private final Map<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
+  private final Set<AVariableDeclaration> globalVariables;
+
   public AstCfaRelation(
       ImmutableSet<IfElement> pIfElements,
       ImmutableSet<IterationElement> pIterationStructures,
       ImmutableSortedMap<Integer, FileLocation> pStatementOffsetsToLocations,
-      ImmutableSet<StatementElement> pStatementElements) {
+      ImmutableSet<StatementElement> pStatementElements,
+      Map<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
+      Map<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
+      Set<AVariableDeclaration> pGlobalVariables) {
     ifElements = pIfElements;
     iterationStructures = pIterationStructures;
     statementOffsetsToLocations = pStatementOffsetsToLocations;
     statementElements = pStatementElements;
+    cfaNodeToAstLocalVariablesInScope = pCfaNodeToAstLocalVariablesInScope;
+    cfaNodeToAstParametersInScope = pCfaNodeToAstParametersVariablesInScope;
+    globalVariables = pGlobalVariables;
   }
 
   /**
@@ -187,5 +205,12 @@ public final class AstCfaRelation {
     return Objects.requireNonNull(
             startingLocationToTightestStatement.floorEntry(new StartingLocation(pColumn, pLine)))
         .getValue();
+  }
+
+  public FluentIterable<AbstractSimpleDeclaration> getVariablesAndParametersInScope(CFANode pNode) {
+    return FluentIterable.concat(
+        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pNode)),
+        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pNode)),
+        globalVariables);
   }
 }

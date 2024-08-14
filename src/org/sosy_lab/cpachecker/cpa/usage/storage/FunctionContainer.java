@@ -12,6 +12,7 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.Serial;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -25,7 +26,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
     value = "SE_BAD_FIELD")
 public class FunctionContainer extends AbstractUsageStorage {
 
-  private static final long serialVersionUID = 1L;
+  @Serial private static final long serialVersionUID = 1L;
   // private final Set<FunctionContainer> internalFunctionContainers;
   private final Multiset<LockEffect> effects;
   private final StorageStatistics stats;

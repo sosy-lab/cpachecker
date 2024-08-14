@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AArraySubscriptExpression extends AbstractLeftHandSide {
 
-  private static final long serialVersionUID = 8359800949073538182L;
+  @Serial private static final long serialVersionUID = 8359800949073538182L;
   private final AExpression arrayExpression;
   private final AExpression subscriptExpression;
 
@@ -36,12 +37,12 @@ public abstract class AArraySubscriptExpression extends AbstractLeftHandSide {
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     String left =
         (arrayExpression instanceof AArraySubscriptExpression)
-            ? arrayExpression.toASTString(pQualified, pOriginalVariableNames)
-            : arrayExpression.toParenthesizedASTString(pQualified, pOriginalVariableNames);
-    return left + "[" + subscriptExpression.toASTString(pQualified, pOriginalVariableNames) + "]";
+            ? arrayExpression.toASTString(pAAstNodeRepresentation)
+            : arrayExpression.toParenthesizedASTString(pAAstNodeRepresentation);
+    return left + "[" + subscriptExpression.toASTString(pAAstNodeRepresentation) + "]";
   }
 
   @Override

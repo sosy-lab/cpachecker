@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -15,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CTypeIdExpression extends AbstractExpression implements CExpression {
 
-  private static final long serialVersionUID = -665995216646475799L;
+  @Serial private static final long serialVersionUID = -665995216646475799L;
   private final TypeIdOperator operator;
   private final CType type;
 
@@ -76,7 +77,7 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return toASTString();
   }
 
