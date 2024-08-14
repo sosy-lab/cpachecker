@@ -4981,6 +4981,7 @@ traceformula.makeFlowSensitive = false
 traceformula.reduceSelectors = false
 
 # Actions to perform
+tubes.actions = no default value
 tubes.actions = [Action.EXPORT_CEX_TO_C]
 
 # where to write assume edges
@@ -4994,20 +4995,26 @@ tubes.assumes.performAlgorithm = true
 tubes.boundedConfig = "config/boundedPredicateAnalysis.properties"
 
 # File name for analysis report in case a counterexample was found.
+tubes.counterExampleFiles = no default value
 tubes.counterExampleFiles = "Counterexample.variable.%d.txt"
 tubes.counterExampleFiles = "Counterexample.inline.%d.c"
 
 # export counterexample to file, if one is found
+tubes.errorInputs = no default value
 tubes.errorInputs = "nondets.txt"
 
 # Export all assignments, not just nondet ones
 tubes.exportAllAssignments = false
 
 # How many satisfying assignments to find per CEX; -1 for all
+tubes.maxAssignments = no default value
 tubes.maxAssignments = 10
 
 # where to write interpolation output
 tubes.outputPath = "interpolants.txt"
+
+# export counterexample as QE form
+tubes.quantifierEliminationResult = "quantifier.json"
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true
