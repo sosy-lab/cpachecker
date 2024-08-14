@@ -291,7 +291,7 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
         CFAEdge pathEdge = pathVariable.getValue();
         if (pathEdge.getFileLocation().getStartingLineInOrigin()
                 == nondetEdge.getFileLocation().getStartingLineInOrigin()
-            && !pathVariable.getKey().equals(nondetEntry.name())
+            && !pathVariable.getKey().name().equals(nondetEntry.name())
             && !pathVariable.getKey().name().contains("_TMP")) {
           replacements.put(
               nondetEntry.formula(), fmgr.uninstantiate(pathVariable.getKey().formula()));
