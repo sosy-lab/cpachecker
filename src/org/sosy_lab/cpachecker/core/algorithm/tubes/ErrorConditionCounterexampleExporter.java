@@ -313,7 +313,7 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
       Set<FormulaAndName> after =
           solver.getFormulaManager().extractVariables(cexPath.getFormula()).entrySet().stream()
               .map(entry -> new FormulaAndName(entry.getValue(), entry.getKey()))
-              .collect(Collectors.toSet());
+              .collect(ImmutableSet.toImmutableSet());
       for (FormulaAndName variable : Sets.difference(after, before)) {
         variableToLineNumber.put(variable, cfaEdge);
       }
