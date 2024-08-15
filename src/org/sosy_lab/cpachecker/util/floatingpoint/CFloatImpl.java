@@ -407,6 +407,11 @@ class CFloatImpl extends CFloat {
   }
 
   @Override
+  public int hashCode() {
+    return delegate.hashCode();
+  }
+
+  @Override
   public int compareTo(CFloat other) {
     // FIXME: We only allow comparisons with other CFloatImpl objects
     if (other instanceof CFloatImpl that) {
