@@ -40,7 +40,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  *
  * <p>Values are created with a fixed precision and an exponent range. The nested class {@link
  * Format} is used to provide these parameters and supports predefined formats for the most commonly
- * used bit sizes. Binary operations will upcast their arguments if the precisions don't match.
+ * used bit sizes. Binary operations expect the {@link Format} of their arguments to match and will
+ * throw an exception otherwise. Use {@link Format#matchWith(Format)} and {@link
+ * FloatValue#withPrecision(Format)} to upcast your arguments before the call.
  *
  * <p>We guarantee "correct rounding" for all operations, that is the result is always the same as
  * if the calculation had been performed with infinite precision before rounding down to the
@@ -544,6 +546,18 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     return equals(fromInteger(format, integerValue)) && integerValue.testBit(0);
   }
 
+  /**
+   * Check that the {@link Format} of two floating point numbers is the same
+   *
+   * <p>Throws an {@link IllegalArgumentException} if the formats don't match. Use {@link
+   * FloatValue#withPrecision(Format)} to convert arguments to a common format before calling the
+   * methods in this class.
+   */
+  private void checkMatchingPrecision(FloatValue pNumber) {
+    Preconditions.checkArgument(
+        format.equals(pNumber.format), "Format of the arguments is not the same");
+  }
+
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {
@@ -729,9 +743,9 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
    * FloatValue#equals(Object)} for a bitwise comparison of the values.
    */
   public boolean equalTo(FloatValue pNumber) {
-    Format precision = format.matchWith(pNumber.format);
-    FloatValue arg1 = this.withPrecision(precision);
-    FloatValue arg2 = pNumber.withPrecision(precision);
+    checkMatchingPrecision(pNumber);
+    FloatValue arg1 = this;
+    FloatValue arg2 = pNumber;
 
     if (arg1.isNan() || arg2.isNan()) {
       return false;
@@ -757,11 +771,9 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
 
   /** Strictly greater than */
   public boolean greaterThan(FloatValue pNumber) {
-    // Find a common precision and convert both arguments to this precision
-    Format precision = format.matchWith(pNumber.format);
-
-    FloatValue arg1 = this.withPrecision(precision);
-    FloatValue arg2 = pNumber.withPrecision(precision);
+    checkMatchingPrecision(pNumber);
+    FloatValue arg1 = this;
+    FloatValue arg2 = pNumber;
 
     if (arg1.isNan() || arg2.isNan()) {
       return false;
@@ -810,13 +822,10 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
    *
    * <pre>
    * -Nan < -Inf < ... < -0 < +0 < .. < +Inf < +Nan</pre>
-   *
-   * <p>Expects both arguments to have the same {@link Format} and throws an {@link
-   * IllegalArgumentException} if they don't match.
    */
   @Override
   public int compareTo(FloatValue pNumber) {
-    Preconditions.checkArgument(format.equals(pNumber.format));
+    checkMatchingPrecision(pNumber);
     FloatValue arg1 = this;
     FloatValue arg2 = pNumber;
 
@@ -840,32 +849,31 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
 
   /** Addition */
   public FloatValue add(FloatValue pNumber) {
-    // Find a common precision and convert both arguments to this precision
-    Format precision = format.matchWith(pNumber.format);
+    checkMatchingPrecision(pNumber);
 
     // Make sure the first argument has the larger (or equal) exponent
     FloatValue arg1;
     FloatValue arg2;
     if (exponent >= pNumber.exponent) {
-      arg1 = this.withPrecision(precision);
-      arg2 = pNumber.withPrecision(precision);
+      arg1 = this;
+      arg2 = pNumber;
     } else {
-      arg1 = pNumber.withPrecision(precision);
-      arg2 = this.withPrecision(precision);
+      arg1 = pNumber;
+      arg2 = this;
     }
 
     // Handle special cases:
     if (arg1.isNan() || arg2.isNan()) {
       // (1) Either argument is NaN
-      return nan(precision);
+      return nan(format);
     } else if (arg1.isInfinite() && arg2.isInfinite()) {
       // (2) Both arguments are infinite
       if (arg1.isNegative() && arg2.isNegative()) {
-        return negativeInfinity(precision);
+        return negativeInfinity(format);
       } else if (!arg1.isNegative() && !arg2.isNegative()) {
-        return infinity(precision);
+        return infinity(format);
       } else {
-        return nan(precision);
+        return nan(format);
       }
     } else if (arg1.isInfinite()) {
       // (3) Only one argument is infinite
@@ -873,7 +881,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
       return arg1;
     } else if (arg1.isZero() && arg2.isZero()) {
       // (4) Both arguments are zero (or negative zero)
-      return (arg1.isNegative() && arg2.isNegative()) ? negativeZero(precision) : zero(precision);
+      return (arg1.isNegative() && arg2.isNegative()) ? negativeZero(format) : zero(format);
     } else if (arg1.isZero() || arg2.isZero()) {
       // (5) Only one of the arguments is zero (or negative zero)
       return arg1.isZero() ? arg2 : arg1;
@@ -881,13 +889,13 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
-    long exponent1 = Math.max(arg1.exponent, precision.minExp());
-    long exponent2 = Math.max(arg2.exponent, precision.minExp());
+    long exponent1 = Math.max(arg1.exponent, format.minExp());
+    long exponent2 = Math.max(arg2.exponent, format.minExp());
 
     // Calculate the difference between the exponents. If it is larger than the mantissa size we can
     // skip the add and return immediately.
     int exp_diff = (int) (exponent1 - exponent2);
-    if (exp_diff >= precision.sigBits + 3) {
+    if (exp_diff >= format.sigBits + 3) {
       return arg1;
     }
 
@@ -917,7 +925,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     //     This can happen if two numbers with equal exponent are added:
     //     f.ex 1.0e3 + 1.0e3 = 10.0e3
     //     (here we normalize the result to 1.0e4)
-    if (resultSignificand.testBit(precision.sigBits + 4)) {
+    if (resultSignificand.testBit(format.sigBits + 4)) {
       resultSignificand = truncate(resultSignificand, 1);
       resultExponent += 1;
     }
@@ -926,13 +934,13 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     //     This can happen if digits have canceled out:
     //     f.ex 1.01001e2 + (-1.01e2) = 0.00001e2
     //     (here we normalize to 1.0e-3)
-    int leading = (precision.sigBits + 4) - resultSignificand.bitLength();
-    int maxValue = (int) (resultExponent - precision.minExp()); // p.minExp() <= exponent
+    int leading = (format.sigBits + 4) - resultSignificand.bitLength();
+    int maxValue = (int) (resultExponent - format.minExp()); // p.minExp() <= exponent
     if (leading > maxValue) {
       // If the exponent would get too small only shift to the left until the minimal exponent is
       // reached and return a subnormal number.
       resultSignificand = resultSignificand.shiftLeft(maxValue);
-      resultExponent = precision.minExp() - 1;
+      resultExponent = format.minExp() - 1;
     } else {
       resultSignificand = resultSignificand.shiftLeft(leading);
       resultExponent -= leading;
@@ -942,22 +950,22 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     resultSignificand = applyRounding(RoundingMode.NEAREST_EVEN, resultSign, resultSignificand);
 
     // Shift the significand to the right if rounding has caused an overflow
-    if (resultSignificand.bitLength() > precision.sigBits + 1) {
+    if (resultSignificand.bitLength() > format.sigBits + 1) {
       resultSignificand = resultSignificand.shiftRight(1); // The dropped bit is zero
       resultExponent += 1;
     }
 
     // Check if the result is zero
     if (resultSignificand.equals(BigInteger.ZERO)) {
-      return resultSign ? negativeZero(precision) : zero(precision);
+      return resultSign ? negativeZero(format) : zero(format);
     }
     // Return infinity if there is an overflow.
-    if (resultExponent > precision.maxExp()) {
-      return resultSign ? negativeInfinity(precision) : infinity(precision);
+    if (resultExponent > format.maxExp()) {
+      return resultSign ? negativeInfinity(format) : infinity(format);
     }
 
     // Otherwise return the number
-    return new FloatValue(precision, resultSign, resultExponent, resultSignificand);
+    return new FloatValue(format, resultSign, resultExponent, resultSignificand);
   }
 
   /** Subtraction */
@@ -967,38 +975,37 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
 
   /** Multiplication */
   public FloatValue multiply(FloatValue pNumber) {
-    // Find a common precision and convert both arguments to this precision
-    Format precision = format.matchWith(pNumber.format);
+    checkMatchingPrecision(pNumber);
 
     // Make sure the first argument has the larger (or equal) exponent
     FloatValue arg1;
     FloatValue arg2;
     if (exponent >= pNumber.exponent) {
-      arg1 = this.withPrecision(precision);
-      arg2 = pNumber.withPrecision(precision);
+      arg1 = this;
+      arg2 = pNumber;
     } else {
-      arg1 = pNumber.withPrecision(precision);
-      arg2 = this.withPrecision(precision);
+      arg1 = pNumber;
+      arg2 = this;
     }
 
     // Handle special cases:
     if (arg1.isNan() || arg2.isNan()) {
       // (1) Either argument is NaN
-      return nan(precision);
+      return nan(format);
     } else if (arg1.isInfinite()) {
       // (2) One of the argument is infinite
       // No need to check m as it can't be larger, and one of the args is finite
       if (arg2.isZero()) {
         // Return NaN if we're trying to multiply infinity by zero
-        return nan(precision);
+        return nan(format);
       } else {
         return (arg1.isNegative() ^ arg2.isNegative())
-            ? negativeInfinity(precision)
-            : infinity(precision);
+            ? negativeInfinity(format)
+            : infinity(format);
       }
     } else if (arg1.isZero() || arg2.isZero()) {
       // (3) One of the arguments is zero (or negative zero)
-      return (arg1.isNegative() ^ arg2.isNegative()) ? negativeZero(precision) : zero(precision);
+      return (arg1.isNegative() ^ arg2.isNegative()) ? negativeZero(format) : zero(format);
     }
 
     // Calculate the sign of the result
@@ -1006,17 +1013,17 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
-    long exponent1 = Math.max(arg1.exponent, precision.minExp());
-    long exponent2 = Math.max(arg2.exponent, precision.minExp());
+    long exponent1 = Math.max(arg1.exponent, format.minExp());
+    long exponent2 = Math.max(arg2.exponent, format.minExp());
 
     // Calculate the exponent of the result by adding the exponents of the two arguments.
     // If the calculated exponent is out of range we can return infinity (or zero) immediately.
     long resultExponent = exponent1 + exponent2;
-    if (resultExponent > precision.maxExp()) {
-      return resultSign ? negativeInfinity(precision) : infinity(precision);
+    if (resultExponent > format.maxExp()) {
+      return resultSign ? negativeInfinity(format) : infinity(format);
     }
-    if (resultExponent < precision.minExp() - precision.sigBits - 2) {
-      return resultSign ? negativeZero(precision) : zero(precision);
+    if (resultExponent < format.minExp() - format.sigBits - 2) {
+      return resultSign ? negativeZero(format) : zero(format);
     }
 
     // Multiply the significands
@@ -1033,7 +1040,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     //     This can happen if two numbers with significand greater 1 are multiplied:
     //     f.ex 1.1e3 x 1.1e1 = 10.01e4
     //     (here we normalize the result to 1.001e5)
-    if (resultSignificand.testBit(2 * precision.sigBits + 4)) {
+    if (resultSignificand.testBit(2 * format.sigBits + 4)) {
       resultSignificand = resultSignificand.shiftRight(1);
       resultExponent += 1;
     }
@@ -1042,7 +1049,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     //     This can happen if one of the numbers was subnormal:
     //     f.ex 1.0e3 x 0.1e-1 = 0.10e2
     //     (here we normalize to 1.0e1)
-    int shift = (2 * precision.sigBits + 4) - resultSignificand.bitLength();
+    int shift = (2 * format.sigBits + 4) - resultSignificand.bitLength();
     if (shift > 0) {
       resultSignificand = resultSignificand.shiftLeft(shift);
       resultExponent -= shift;
@@ -1051,9 +1058,9 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     // Otherwise use the lowest possible exponent and move the rest into the significand by shifting
     // it to the right. Here we calculate haw many digits we need to shift:
     int leading = 0;
-    if (resultExponent < precision.minExp()) {
-      leading = (int) Math.abs(precision.minExp() - resultExponent);
-      resultExponent = precision.minExp() - 1;
+    if (resultExponent < format.minExp()) {
+      leading = (int) Math.abs(format.minExp() - resultExponent);
+      resultExponent = format.minExp() - 1;
     }
 
     // Truncate the value:
@@ -1061,28 +1068,28 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     // at the end. We need to shift by at least |precision of the significand| bits.
     // If one of the factors was subnormal the results may have leading zeroes as well, and we need
     // to shift further by 'leading' bits.
-    resultSignificand = truncate(resultSignificand, precision.sigBits + leading);
+    resultSignificand = truncate(resultSignificand, format.sigBits + leading);
 
     // Round the result
     resultSignificand = applyRounding(RoundingMode.NEAREST_EVEN, resultSign, resultSignificand);
 
     // Shift the significand to the right if rounding has caused an overflow
-    if (resultSignificand.bitLength() > precision.sigBits + 1) {
+    if (resultSignificand.bitLength() > format.sigBits + 1) {
       resultSignificand = resultSignificand.shiftRight(1); // The dropped bit is zero
       resultExponent += 1;
     }
-    if (leading > 0 && resultSignificand.bitLength() > precision.sigBits) {
+    if (leading > 0 && resultSignificand.bitLength() > format.sigBits) {
       // Just fix the exponent if the value was subnormal before the overflow
       resultExponent += 1;
     }
 
     // Return infinity if there is an overflow.
-    if (resultExponent > precision.maxExp()) {
-      return resultSign ? negativeInfinity(precision) : infinity(precision);
+    if (resultExponent > format.maxExp()) {
+      return resultSign ? negativeInfinity(format) : infinity(format);
     }
 
     // Otherwise return the number
-    return new FloatValue(precision, resultSign, resultExponent, resultSignificand);
+    return new FloatValue(format, resultSign, resultExponent, resultSignificand);
   }
 
   /**
@@ -1092,43 +1099,42 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
    * directly. The result may have between p and 2p+1 bits.
    */
   private FloatValue multiplyExact(FloatValue pNumber) {
-    // Find a common precision and convert both arguments to this precision
-    Format precision = format.matchWith(pNumber.format);
+    checkMatchingPrecision(pNumber);
 
     // Make sure the first argument has the larger (or equal) exponent
     FloatValue arg1;
     FloatValue arg2;
     if (exponent >= pNumber.exponent) {
-      arg1 = this.withPrecision(precision);
-      arg2 = pNumber.withPrecision(precision);
+      arg1 = this;
+      arg2 = pNumber;
     } else {
-      arg1 = pNumber.withPrecision(precision);
-      arg2 = this.withPrecision(precision);
+      arg1 = pNumber;
+      arg2 = this;
     }
 
     // Handle special cases:
     if (arg1.isNan() || arg2.isNan()) {
       // (1) Either argument is NaN
-      return nan(precision);
+      return nan(format);
     } else if (arg1.isInfinite()) {
       // (2) One of the argument is infinite
       // No need to check m as it can't be larger, and one of the args is finite
       if (arg2.isZero()) {
         // Return NaN if we're trying to multiply infinity by zero
-        return nan(precision);
+        return nan(format);
       } else {
         return (arg1.isNegative() ^ arg2.isNegative())
-            ? negativeInfinity(precision)
-            : infinity(precision);
+            ? negativeInfinity(format)
+            : infinity(format);
       }
     } else if (arg1.isZero() || arg2.isZero()) {
       // (3) One of the arguments is zero (or negative zero)
-      return (arg1.isNegative() ^ arg2.isNegative()) ? negativeZero(precision) : zero(precision);
+      return (arg1.isNegative() ^ arg2.isNegative()) ? negativeZero(format) : zero(format);
     }
 
     // We assume both arguments are normal
     Preconditions.checkArgument(
-        arg1.exponent >= precision.minExp() && arg2.exponent >= precision.minExp());
+        arg1.exponent >= format.minExp() && arg2.exponent >= format.minExp());
 
     // Calculate the sign of the result
     boolean resultSign = sign ^ pNumber.sign;
@@ -1141,11 +1147,11 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     // Calculate the exponent of the result by adding the exponents of the two arguments.
     // If the calculated exponent is out of range we can return infinity (or zero) immediately.
     long resultExponent = exponent1 + exponent2;
-    if (resultExponent > precision.maxExp()) {
-      return resultSign ? negativeInfinity(precision) : infinity(precision);
+    if (resultExponent > format.maxExp()) {
+      return resultSign ? negativeInfinity(format) : infinity(format);
     }
-    if (resultExponent < precision.minExp() - precision.sigBits - 2) {
-      return resultSign ? negativeZero(precision) : zero(precision);
+    if (resultExponent < format.minExp() - format.sigBits - 2) {
+      return resultSign ? negativeZero(format) : zero(format);
     }
 
     // Multiply the significands
@@ -1155,18 +1161,18 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     BigInteger resultSignificand = significand1.multiply(significand2);
 
     // Normalize if the significand is too large:
-    if (resultSignificand.testBit(2 * precision.sigBits + 4)) {
+    if (resultSignificand.testBit(2 * format.sigBits + 4)) {
       resultExponent += 1;
     }
 
     // Return infinity if there is an overflow.
-    if (resultExponent > precision.maxExp()) {
-      return resultSign ? negativeInfinity(precision) : infinity(precision);
+    if (resultExponent > format.maxExp()) {
+      return resultSign ? negativeInfinity(format) : infinity(format);
     }
 
     // Otherwise return the number
     return new FloatValue(
-        new Format(precision.expBits, resultSignificand.bitLength() - 1),
+        new Format(format.expBits, resultSignificand.bitLength() - 1),
         resultSign,
         resultExponent,
         resultSignificand);
@@ -1200,12 +1206,11 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
 
   /** Division */
   public FloatValue divide(FloatValue pNumber) {
-    // Convert arguments to a common precision
-    Format precision = format.matchWith(pNumber.format);
+    checkMatchingPrecision(pNumber);
     // TODO: Replace with precision.intermediatePrecision()
     //   Currently this does not seem to work as we get incorrectly rounded results for Float8
-    precision = /*precision.intermediatePrecision();*/
-        new Format(Format.Float256.expBits, 2 * (1 + precision.sigBits) + 2);
+    Format precision = /*precision.intermediatePrecision();*/
+        new Format(Format.Float256.expBits, 2 * (1 + format.sigBits) + 2);
     FloatValue arg1 = this.withPrecision(precision);
     FloatValue arg2 = pNumber.withPrecision(precision);
 
@@ -1397,8 +1402,9 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
    */
   public FloatValue remainder(FloatValue pNumber) {
     // Match the format of the arguments and allow larger exponents to avoid overflows
-    Format precision = format.matchWith(pNumber.format);
-    Format extendedPrecision = precision.withUnlimitedExponent();
+    checkMatchingPrecision(pNumber);
+
+    Format extendedPrecision = format.withUnlimitedExponent();
 
     // Use the absolute values of x and y for the calculation. The sign will be fixed later.
     FloatValue arg1 = this.abs().withPrecision(extendedPrecision);
@@ -1406,9 +1412,9 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Handle special cases
     if (arg1.isNan() || arg2.isNan()) {
-      return nan(precision);
+      return nan(format);
     } else if (arg1.isInfinite() || arg2.isZero()) {
-      return nan(precision);
+      return nan(format);
     } else if (arg1.isZero() || arg2.isInfinite()) {
       return this;
     }
@@ -1442,7 +1448,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     if (this.isNegative()) {
       arg1 = arg1.negate();
     }
-    return arg1.withPrecision(precision);
+    return arg1.withPrecision(format);
   }
 
   /** Square root */
@@ -1872,70 +1878,68 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
    * @param pPowStats Histogram with the number of extra bits used in all calls to pow()
    */
   FloatValue powWithStats(FloatValue pExponent, @Nullable Map<Integer, Integer> pPowStats) {
-    // Find a common precision and convert both arguments to this precision
-    Format precision = format.matchWith(pExponent.format);
-
-    FloatValue arg1 = this.withPrecision(precision);
-    FloatValue arg2 = pExponent.withPrecision(precision);
+    checkMatchingPrecision(pExponent);
+    FloatValue arg1 = this;
+    FloatValue arg2 = pExponent;
 
     // Handle special cases
     // See https://en.cppreference.com/w/c/numeric/math/pow for the full definition
     if (arg1.isOne() || arg2.isZero()) {
       // pow(+1, exponent) returns 1 for any exponent, even when exponent is NaN
       // pow(base, ±0) returns 1 for any base, even when base is NaN
-      return one(precision);
+      return one(format);
     } else if (arg1.isNan() || arg2.isNan()) {
       // except where specified above, if any argument is NaN, NaN is returned
-      return nan(precision);
+      return nan(format);
     } else if (arg1.isZero() && arg2.isNegative() && arg2.isOddInteger()) {
       // pow(+0, exponent), where exponent is a negative odd integer
       // returns +∞ and raises FE_DIVBYZERO
       // pow(-0, exponent), where exponent is a negative odd integer
       // returns -∞ and raises FE_DIVBYZERO
-      return arg1.isNegative() ? negativeInfinity(precision) : infinity(precision);
+      return arg1.isNegative() ? negativeInfinity(format) : infinity(format);
     } else if (arg1.isZero() && arg2.isNegative()) {
       // pow(±0, -∞) returns +∞ and may raise FE_DIVBYZERO(until C23)
       // pow(±0, exponent), where exponent is negative, finite, and is an even integer or a
       // non-integer, returns +∞ and raises FE_DIVBYZERO
-      return infinity(precision);
+      return infinity(format);
     } else if (arg1.isZero() && !arg2.isNegative()) {
       // pow(+0, exponent), where exponent is a positive odd integer, returns +0
       // pow(-0, exponent), where exponent is a positive odd integer, returns -0
       // pow(±0, exponent), where exponent is positive non-integer or a positive even integer,
       // returns +0
-      return arg2.isOddInteger() ? arg1 : zero(precision);
+      return arg2.isOddInteger() ? arg1 : zero(format);
     } else if (arg1.isNegativeOne() && arg2.isInfinite()) {
       // pow(-1, ±∞) returns 1
-      return one(precision);
+      return one(format);
     } else if (arg1.isInfinite() && isNegative()) {
       // pow(-∞, exponent) returns -0 if exponent is a negative odd integer
       // pow(-∞, exponent) returns +0 if exponent is a negative non-integer or negative even integer
       // pow(-∞, exponent) returns -∞ if exponent is a positive odd integer
       // pow(-∞, exponent) returns +∞ if exponent is a positive non-integer or positive even integer
-      FloatValue power = arg2.isNegative() ? zero(precision) : infinity(precision);
+      FloatValue power = arg2.isNegative() ? zero(format) : infinity(format);
       return arg2.isOddInteger() ? power.negate() : power;
     } else if (arg1.isInfinite()) {
       // pow(+∞, exponent) returns +0 for any negative exponent
       // pow(+∞, exponent) returns +∞ for any positive exponent
-      return arg2.isNegative() ? zero(precision) : infinity(precision);
+      return arg2.isNegative() ? zero(format) : infinity(format);
     } else if (arg2.isInfinite() && arg2.isNegative()) {
       // pow(base, -∞) returns +∞ for any |base|<1
       // pow(base, -∞) returns +0 for any |base|>1
-      return arg1.abs().greaterThan(one(precision)) ? zero(precision) : infinity(precision);
+      return arg1.abs().greaterThan(one(format)) ? zero(format) : infinity(format);
     } else if (arg2.isInfinite()) {
       // pow(base, +∞) returns +0 for any |base|<1
       // pow(base, +∞) returns +∞ for any |base|>1
-      return arg1.abs().greaterThan(one(precision)) ? infinity(precision) : zero(precision);
+      return arg1.abs().greaterThan(one(format)) ? infinity(format) : zero(format);
     } else if (arg1.isNegative() && !arg2.isInteger()) {
       // pow(base, exponent)
       // returns NaN and raises FE_INVALID if base is finite and negative and exponent is finite and
       // non-integer.
-      return nan(precision);
+      return nan(format);
     } else if (arg2.isInteger()) {
       // pow(base, exponent) where exponent is integer: calculate with powInt
       return arg1.powInt(arg2.toInteger().orElseThrow());
     } else if (arg2.equals(
-        new FloatValue(precision, false, -1, BigInteger.ONE.shiftLeft(precision.sigBits)))) {
+        new FloatValue(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits)))) {
       // pow(base, exponent) where exponent=1/2: calculate sqrt(a) instead
       // TODO: Also include a^3/2 in this check?
       return arg1.sqrt();
