@@ -823,8 +823,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
    * <pre>
    * -Nan < -Inf < ... < -0 < +0 < .. < +Inf < +Nan</pre>
    */
-  @Override
-  public int compareTo(FloatValue pNumber) {
+  public int compareWithTotalOrder(FloatValue pNumber) {
     checkMatchingPrecision(pNumber);
     FloatValue arg1 = this;
     FloatValue arg2 = pNumber;
@@ -844,6 +843,35 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     } else {
       // Everything else is already ordered
       return arg1.lessThan(arg2) ? -1 : 1;
+    }
+  }
+
+  /**
+   * Compare two floating point numbers
+   *
+   * <p>Returns <code>-1</code> if the first number is larger, <code>0</code> if they are the same,
+   * and <code>1</code> if the second number is larger. We use the same order as {@link
+   * Float#compareTo}. Specifically, <code>-0</code> is considered smaller than <code>+0</code> and
+   * all NaN values are collapsed into a single canonical NaN value, that is considered larger than
+   * all other numbers (including <code>+Infinity</code>).
+   *
+   * <pre>
+   * -Inf < ... < -0 < +0 < .. < +Inf < Nan</pre>
+   *
+   * <p>WARNING: This method expects both arguments to have the same {@link Format} and throws an
+   * {@link IllegalArgumentException} if they don't match. Use {@link Format#matchWith(Format)} and
+   * {@link FloatValue#withPrecision(Format)} to upcast your arguments before calling this method.
+   */
+  @Override
+  public int compareTo(FloatValue pNumber) {
+    checkMatchingPrecision(pNumber);
+
+    if (isNan()) {
+      return pNumber.isNan() ? 0 : 1;
+    } else if (pNumber.isNan()) {
+      return -1;
+    } else {
+      return compareWithTotalOrder(pNumber);
     }
   }
 

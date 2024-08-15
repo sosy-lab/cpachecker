@@ -291,19 +291,8 @@ class JFloat extends CFloat {
 
   @Override
   public int compareTo(CFloat other) {
-    // Fix behavior for -NaN
     if (other instanceof JFloat otherFloat) {
-      if (isNan()) {
-        if (isNegative()) {
-          return (otherFloat.isNan() && otherFloat.isNegative()) ? 0 : -1;
-        } else {
-          return (otherFloat.isNan() && !otherFloat.isNegative()) ? 0 : 1;
-        }
-      } else if (otherFloat.isNan()) {
-        return otherFloat.isNegative() ? 1 : -1;
-      } else {
-        return Float.compare(value, otherFloat.value);
-      }
+      return Float.compare(value, otherFloat.value);
     }
     throw new UnsupportedOperationException();
   }

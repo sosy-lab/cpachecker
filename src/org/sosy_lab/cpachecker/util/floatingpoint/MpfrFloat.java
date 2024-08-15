@@ -384,20 +384,8 @@ class MpfrFloat extends CFloat {
 
   @Override
   public int compareTo(CFloat other) {
-    // BigFloat doesn't actually use mpfr_cmp or mpfr_total_order_p
-    // We need to fix the behavior for negative NaNs
     if (other instanceof MpfrFloat otherMpfr) {
-      if (isNan()) {
-        if (isNegative()) {
-          return (otherMpfr.isNan() && otherMpfr.isNegative()) ? 0 : -1;
-        } else {
-          return (otherMpfr.isNan() && !otherMpfr.isNegative()) ? 0 : 1;
-        }
-      } else if (otherMpfr.isNan()) {
-        return otherMpfr.isNegative() ? 1 : -1;
-      } else {
-        return value.compareTo(otherMpfr.value);
-      }
+      return value.compareTo(otherMpfr.value);
     }
     throw new UnsupportedOperationException();
   }

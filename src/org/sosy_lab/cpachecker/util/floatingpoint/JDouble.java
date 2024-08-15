@@ -290,19 +290,8 @@ class JDouble extends CFloat {
 
   @Override
   public int compareTo(CFloat other) {
-    // Fix behavior for -NaN
     if (other instanceof JDouble otherDouble) {
-      if (isNan()) {
-        if (isNegative()) {
-          return (otherDouble.isNan() && otherDouble.isNegative()) ? 0 : -1;
-        } else {
-          return (otherDouble.isNan() && !otherDouble.isNegative()) ? 0 : 1;
-        }
-      } else if (otherDouble.isNan()) {
-        return otherDouble.isNegative() ? 1 : -1;
-      } else {
-        return Double.compare(value, otherDouble.value);
-      }
+      return Double.compare(value, otherDouble.value);
     }
     throw new UnsupportedOperationException();
   }
