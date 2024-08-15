@@ -806,15 +806,19 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
   /**
    * Compare with total ordering
    *
+   * <p>Order as defined in the IEEE 754-2008 standard:
+   *
    * <pre>
    * -Nan < -Inf < ... < -0 < +0 < .. < +Inf < +Nan</pre>
+   *
+   * <p>Expects both arguments to have the same {@link Format} and throws an {@link
+   * IllegalArgumentException} if they don't match.
    */
   @Override
   public int compareTo(FloatValue pNumber) {
-    // Convert both values to the same format before comparing them
-    Format precision = format.matchWith(pNumber.format);
-    FloatValue arg1 = this.withPrecision(precision);
-    FloatValue arg2 = pNumber.withPrecision(precision);
+    Preconditions.checkArgument(format.equals(pNumber.format));
+    FloatValue arg1 = this;
+    FloatValue arg2 = pNumber;
 
     if (arg1.equals(arg2)) {
       // Check identity
