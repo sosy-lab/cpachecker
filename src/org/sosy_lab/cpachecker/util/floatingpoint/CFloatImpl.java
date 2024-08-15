@@ -399,8 +399,15 @@ class CFloatImpl extends CFloat {
   }
 
   @Override
+  public boolean equals(Object other) {
+    if (other instanceof CFloatImpl that) {
+      return delegate.equals(that.delegate);
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public int compareTo(CFloat other) {
-    // Delegate to FloatValue
     if (other instanceof CFloatImpl that) {
       return delegate.compareTo(that.delegate);
     }

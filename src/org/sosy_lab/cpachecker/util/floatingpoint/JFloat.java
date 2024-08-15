@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
@@ -287,6 +288,19 @@ class JFloat extends CFloat {
   @Override
   public boolean lessOrEqual(CFloat other) {
     return value <= toFloat(other.getWrapper());
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other instanceof JFloat otherFloat) {
+      return Float.compare(value, otherFloat.value) == 0;
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(value);
   }
 
   @Override

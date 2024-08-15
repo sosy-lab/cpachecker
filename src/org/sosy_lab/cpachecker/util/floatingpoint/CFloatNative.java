@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import static com.google.common.primitives.Ints.max;
 
 import com.google.common.base.Preconditions;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
@@ -363,6 +364,28 @@ class CFloatNative extends CFloat {
   public boolean lessOrEqual(CFloat other) {
     return CFloatNativeAPI.isLessEqualFp(
         wrapper, type.ordinal(), other.copyWrapper(), other.getType().ordinal());
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other instanceof CFloatNative otherFloat) {
+      if (type != otherFloat.type) {
+        return false;
+      } else {
+        if (isNan() && otherFloat.isNan()) {
+          // Ignore payload and sign for NaN and use just one canonical value
+          return true;
+        } else {
+          return this.compareTo(otherFloat) == 0;
+        }
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(wrapper, type);
   }
 
   @Override

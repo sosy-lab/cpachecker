@@ -558,6 +558,18 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
         format.equals(pNumber.format), "Format of the arguments is not the same");
   }
 
+  /**
+   * Equality
+   *
+   * <p>Follows the definition of "representation equivalence" from {@link Float}: <code>
+   * +0</code> and <code>-0</code> are considered different values, and all <code>NaNs</code> are
+   * collapsed into a single canonical <code>NaN</code> value which is equal to itself. To compare
+   * the numbers with "numeric equality" use {@link FloatValue#equalTo(FloatValue)}.
+   *
+   * <p>WARNING: This method expects both arguments to have the same {@link Format} and will always
+   * return <code>false</code> otherwise. Use {@link FloatValue#withPrecision(Format)} to upcast
+   * your arguments before calling this method.
+   */
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {
@@ -565,9 +577,10 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     }
     return pOther instanceof FloatValue other
         && format.equals(other.format)
-        && sign == other.sign
-        && exponent == other.exponent
-        && significand.equals(other.significand);
+        && ((isNan() && other.isNan())
+            || (sign == other.sign
+                && exponent == other.exponent
+                && significand.equals(other.significand)));
   }
 
   @Override

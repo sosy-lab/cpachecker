@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import java.util.Objects;
 import java.util.Optional;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
@@ -286,6 +287,19 @@ class JDouble extends CFloat {
   @Override
   public boolean lessOrEqual(CFloat other) {
     return value <= toDouble(other.getWrapper());
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other instanceof JDouble otherDouble) {
+      return Double.compare(value, otherDouble.value) == 0;
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(value);
   }
 
   @Override

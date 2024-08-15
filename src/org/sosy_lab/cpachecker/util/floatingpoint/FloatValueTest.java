@@ -1006,6 +1006,11 @@ public class FloatValueTest {
   }
 
   @Test
+  public void equalsTest() {
+    testPredicate("equals", (CFloat a, CFloat b) -> a.equals(b));
+  }
+
+  @Test
   public void compareToTestLT() {
     testPredicate("compareTo<", (CFloat a, CFloat b) -> a.compareTo(b) < 0);
   }

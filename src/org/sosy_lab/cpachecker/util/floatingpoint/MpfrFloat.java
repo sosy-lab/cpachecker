@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.util.Objects;
 import java.util.Optional;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
@@ -380,6 +381,21 @@ class MpfrFloat extends CFloat {
   public boolean lessOrEqual(CFloat other) {
     BigFloat that = toBigFloat(other.getWrapper());
     return value.lessThanOrEqualTo(that);
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    } else if (other instanceof MpfrFloat otherMpfr) {
+      return format.equals(otherMpfr.format) && value.equals(otherMpfr.value);
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(format, value);
   }
 
   @Override
