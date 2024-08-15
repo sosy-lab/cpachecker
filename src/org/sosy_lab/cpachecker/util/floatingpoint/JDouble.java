@@ -291,10 +291,10 @@ class JDouble extends CFloat {
 
   @Override
   public boolean equals(Object other) {
-    if (other instanceof JDouble otherDouble) {
-      return Double.compare(value, otherDouble.value) == 0;
+    if (this == other) {
+      return true;
     }
-    return false;
+    return other instanceof JDouble otherDouble && Double.compare(value, otherDouble.value) == 0;
   }
 
   @Override

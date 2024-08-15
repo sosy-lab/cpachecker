@@ -400,10 +400,10 @@ class CFloatImpl extends CFloat {
 
   @Override
   public boolean equals(Object other) {
-    if (other instanceof CFloatImpl that) {
-      return delegate.equals(that.delegate);
+    if (this == other) {
+      return true;
     }
-    throw new UnsupportedOperationException();
+    return other instanceof CFloatImpl that && delegate.equals(that.delegate);
   }
 
   @Override

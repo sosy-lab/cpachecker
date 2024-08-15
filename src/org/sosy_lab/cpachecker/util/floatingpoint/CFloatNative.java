@@ -368,19 +368,12 @@ class CFloatNative extends CFloat {
 
   @Override
   public boolean equals(Object other) {
-    if (other instanceof CFloatNative otherFloat) {
-      if (type != otherFloat.type) {
-        return false;
-      } else {
-        if (isNan() && otherFloat.isNan()) {
-          // Ignore payload and sign for NaN and use just one canonical value
-          return true;
-        } else {
-          return this.compareTo(otherFloat) == 0;
-        }
-      }
+    if (this == other) {
+      return true;
     }
-    return false;
+    return other instanceof CFloatNative otherFloat
+        && type == otherFloat.type
+        && (isNan() && otherFloat.isNan() || this.compareTo(otherFloat) == 0);
   }
 
   @Override

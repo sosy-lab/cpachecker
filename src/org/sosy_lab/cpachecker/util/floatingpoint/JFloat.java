@@ -292,10 +292,10 @@ class JFloat extends CFloat {
 
   @Override
   public boolean equals(Object other) {
-    if (other instanceof JFloat otherFloat) {
-      return Float.compare(value, otherFloat.value) == 0;
+    if (this == other) {
+      return true;
     }
-    return false;
+    return other instanceof JFloat otherFloat && Float.compare(value, otherFloat.value) == 0;
   }
 
   @Override

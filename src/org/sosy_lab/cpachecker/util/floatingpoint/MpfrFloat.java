@@ -387,10 +387,10 @@ class MpfrFloat extends CFloat {
   public boolean equals(Object other) {
     if (this == other) {
       return true;
-    } else if (other instanceof MpfrFloat otherMpfr) {
-      return format.equals(otherMpfr.format) && value.equals(otherMpfr.value);
     }
-    return false;
+    return other instanceof MpfrFloat otherMpfr
+        && format.equals(otherMpfr.format)
+        && value.equals(otherMpfr.value);
   }
 
   @Override
