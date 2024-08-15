@@ -2064,7 +2064,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
         FloatValue xlna = x.multiply(lna).withPrecision(precision);
 
         // Check if we call e^x with x close to zero
-        boolean nearZero = !xlna.abs().greaterThan(minNormal(format));
+        boolean nearZero = !xlna.abs().greaterThan(minNormal(precision));
 
         // Calculate a bound for the value of e^(x * ln a)
         // TODO: Call exp only once and *then* check if we're too close to a break point
