@@ -493,7 +493,7 @@ public class CFloatTest {
     CFloat b = new CFloatNative("0.0001220703125", CFloatNativeAPI.CFloatType.SINGLE);
 
     aI = new CFloatImpl(a.copyWrapper(), a.getType());
-    bI = new CFloatImpl(b.copyWrapper(), b.getType());
+    bI = new CFloatImpl(b.copyWrapper(), b.getType()).castTo(CFloatType.LONG_DOUBLE);
 
     CFloat res = aI.subtract(bI);
     assertThat(new CFloatNative(res.copyWrapper(), res.getType()).toString())
@@ -530,7 +530,7 @@ public class CFloatTest {
     CFloat a = new CFloatImpl("4", CFloatNativeAPI.CFloatType.DOUBLE);
     CFloat b = new CFloatImpl("2", CFloatNativeAPI.CFloatType.SINGLE);
 
-    CFloat c = a.divideBy(b).divideBy(a);
+    CFloat c = a.divideBy(b.castTo(CFloatType.DOUBLE)).divideBy(a);
     c = new CFloatNative(a.divideBy(c).copyWrapper(), a.getType());
 
     assertThat(c.toString()).isEqualTo("8.0000000000000000e+00");
