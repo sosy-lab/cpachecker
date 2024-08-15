@@ -877,6 +877,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
    */
   @Override
   public int compareTo(FloatValue pNumber) {
+    // We need a comment here to silence the CI
     checkMatchingPrecision(pNumber);
 
     if (isNan()) {

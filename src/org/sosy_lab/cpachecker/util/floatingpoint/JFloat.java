@@ -305,6 +305,7 @@ class JFloat extends CFloat {
 
   @Override
   public int compareTo(CFloat other) {
+    // FIXME: We only allow comparisons with other JFloat objects
     if (other instanceof JFloat otherFloat) {
       return Float.compare(value, otherFloat.value);
     }
