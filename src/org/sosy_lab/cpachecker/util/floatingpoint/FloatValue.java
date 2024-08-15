@@ -558,7 +558,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
 
   @Override
   public int hashCode() {
-    return Objects.hash(sign, exponent, significand);
+    return Objects.hash(format, sign, exponent, significand);
   }
 
   /** Shift the significand to the right while preserving the sticky bit. */
