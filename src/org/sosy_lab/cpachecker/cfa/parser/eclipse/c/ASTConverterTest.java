@@ -197,8 +197,6 @@ public class ASTConverterTest {
     record TestCase(String input, String expected, CType type) {}
     ImmutableList<TestCase> input_output =
         ImmutableList.of(
-            new TestCase("0", "0.0000000000000000e+00", CNumericTypes.DOUBLE),
-            new TestCase("-0", "-0.0000000000000000e+00", CNumericTypes.DOUBLE),
             new TestCase("0xfp00", "1.5000000000000000e+01", CNumericTypes.DOUBLE),
             new TestCase("5e2", "5.00000000e+02", CNumericTypes.FLOAT),
             new TestCase("5e2f", "5.00000000e+02", CNumericTypes.FLOAT),
@@ -211,7 +209,7 @@ public class ASTConverterTest {
             new TestCase("0x5ep-2", "2.35000000e+01", CNumericTypes.FLOAT),
             new TestCase("3.41E+38", "3.4100000000000000e+38", CNumericTypes.DOUBLE),
             new TestCase("-308e-2f", "-3.07999992e+00", CNumericTypes.FLOAT),
-            new TestCase("-308L", "-3.08000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
+            new TestCase("-308.0L", "-3.08000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
             new TestCase("-0x308p-2F", "-1.94000000e+02", CNumericTypes.FLOAT),
             new TestCase("-0x30ap0l", "-7.78000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
             new TestCase("-0000.000e+0", "-0.00000000e+00", CNumericTypes.FLOAT),
@@ -277,6 +275,8 @@ public class ASTConverterTest {
             "++0.0",
             "0.0+",
             "0",
+            "+0",
+            "-0",
             "0,0",
             "0.0.",
             "0..",

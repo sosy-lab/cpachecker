@@ -2809,6 +2809,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     // Get the fractional part of the number (and add ".0" if it has none)
     int radix = digits.indexOf('.');
     if (radix == -1) {
+      Preconditions.checkArgument(sep > -1);
       radix = digits.length();
       digits = digits + ".0";
     }
