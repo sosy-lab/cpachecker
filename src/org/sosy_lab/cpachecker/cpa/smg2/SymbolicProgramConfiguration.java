@@ -2295,7 +2295,7 @@ public class SymbolicProgramConfiguration {
           newSMG = newSPC.getSmg().copyAndRemovePointsToEdge(value);
         }
         newSMG = newSMG.copyAndRemoveValue(value);
-        valueMappingsToRemoveBuilder.add();
+        valueMappingsToRemoveBuilder.add(value);
       }
     }
     newSPC = newSPC.copyAndReplaceSMG(newSMG);
