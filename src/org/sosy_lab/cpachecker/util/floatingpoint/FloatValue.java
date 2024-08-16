@@ -44,30 +44,67 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * throw an exception otherwise. Use {@link Format#matchWith(Format)} and {@link
  * FloatValue#withPrecision(Format)} to upcast your arguments before the call.
  *
- * <p>We guarantee "correct rounding" for all operations, that is the result is always the same as
- * if the calculation had been performed with infinite precision before rounding down to the
- * precision of the final result. This can easily be ensured for the "algebraic" operations in this
- * class, that is addition, subtraction, multiplication, division and the square root. Here worst
- * case bounds exist on the number of extra digits that need to be calculated before the number can
- * always be rounded correctly. The same is not true for transcendental functions where such bounds
- * are unknown and may not even exist. This problem is known as <a
- * href="https://en.wikipedia.org/wiki/Rounding#Table-maker's_dilemma">"Table-maker's dilemma"</a>.
- * Luckily for the transcendental functions {@link FloatValue#exp()}, {@link FloatValue#ln()} and
- * {@link FloatValue#pow(FloatValue)}) from this class it can be shown that only a finite number of
- * extra digits are needed for correct rounding. This follows from Lindemann’s theorem that e^z is
- * transcendental for every nonzero algebraic complex number z. Since floating point numbers are
- * algebraic, the result of the calculation can never fall exactly on a floating point value, or the
- * break-point between two floating point values. It is therefore enough to repeat the calculation
- * with increasing precision until the result no longer falls on a break-point and can be correctly
- * rounded. This approach is know as <a href="https://dl.acm.org/doi/pdf/10.1145/114697.116813">
- * Ziv's technique</a> and requires a "rounding test" that decides if the value calculated in the
- * current iteration can be correctly rounded. Such test depend on the rounding mode used, but for
- * "round-to-nearest-ties-to-even" (the standard rounding mode in IEEE 754, and what is being used
- * by this implementation) it can be enough to simply look for patterns of the form 01+ or 10+ at
- * the end of the significand. These last few digits are exactly on the break-point in the current
- * iteration and can still change when the calculation is repeated with a higher precision.
- * Everything before that is stable, however, and we implement the rounding test by checking if
- * there are enough stable bits to round down to the final precision of the result.
+ * <h3>Rounding</h3>
+ *
+ * <p>With floating point values rounding is necessary after almost all operations to match the
+ * precision of the result. We guarantee "correct rounding" for all operations, that is the result
+ * is always the same as if the calculation had been performed with infinite precision before
+ * rounding down to the precision of the final result. This can easily be ensured for the
+ * "algebraic" operations in this class, that is addition, subtraction, multiplication, division and
+ * the square root. Here worst case bounds exist on the number of extra digits that need to be
+ * calculated before the number can always be rounded correctly. The same is not true for
+ * transcendental functions where such bounds are unknown and may not even exist. This problem is
+ * known as <a href="https://en.wikipedia.org/wiki/Rounding#Table-maker's_dilemma">"Table-maker's
+ * dilemma"</a>. Luckily for the transcendental functions {@link FloatValue#exp()}, {@link
+ * FloatValue#ln()} and {@link FloatValue#pow(FloatValue)}) from this class it can be shown that
+ * only a finite number of extra digits are needed for correct rounding. This follows from
+ * Lindemann’s theorem that e^z is transcendental for every nonzero algebraic complex number z.
+ * Since floating point numbers are algebraic, the result of the calculation can never fall exactly
+ * on a floating point value, or the break-point between two floating point values. It is therefore
+ * enough to repeat the calculation with increasing precision until the result no longer falls on a
+ * break-point and can be correctly rounded. This approach is know as <a
+ * href="https://dl.acm.org/doi/pdf/10.1145/114697.116813">Ziv's technique</a> and requires a
+ * "rounding test" that decides if the value calculated in the current iteration can be correctly
+ * rounded. Such test depend on the rounding mode used, but for "round-to-nearest-ties-to-even" (the
+ * standard rounding mode in IEEE 754, and what is being used by this implementation) it can be
+ * enough to simply look for patterns of the form 01+ or 10+ at the end of the significand. These
+ * last few digits are exactly on the break-point in the current iteration and can still change when
+ * the calculation is repeated with a higher precision. Everything before that is stable, however,
+ * and we implement the rounding test by checking if there are enough stable bits to round down to
+ * the final precision of the result.
+ *
+ * <h3>Comparison operators</h3>
+ *
+ * There are different ways to compare floating point values and the right choice often depends on
+ * the application. We follow the discussion <a
+ * href="https://download.java.net/java/early_access/valhalla/docs/api/java.base/java/lang/Double.html#equivalenceRelation">here</a>
+ * use the terms "numeric, "bit-wise" and "representational" to define different types of
+ * equivalence:
+ *
+ * <ul>
+ *   <li>"Numerical equivalence"
+ *       <p>Same as for primitive floats in Java: <code>+0 == -0</code> and <code>NaN != b</code>
+ *       for all <code>b</code> (including <code>NaN</code> itself). We use this order for the
+ *       following comparison predicates:
+ *       <ul>
+ *         <li>{@link #equalTo(FloatValue)}
+ *         <li>{@link #notEqualTo(FloatValue)}
+ *         <li>{@link #lessOrEqual(FloatValue)}
+ *         <li>{@link #lessThan(FloatValue)}
+ *         <li>{@link #greaterOrEqual(FloatValue)}
+ *         <li>{@link #greaterThan(FloatValue)}
+ *       </ul>
+ *   <li>"Representation equivalence"
+ *       <p>Same as for boxed floats in Java: <code>+0 != -0</code> and <code>NaN == NaN</code> for
+ *       any two <code>NaN</code> values ignoring both the sign and the payload. We use this order
+ *       for {@link #equals(Object)} and {@link #compareTo(FloatValue)} to match the behavior of
+ *       {@link Float} and {@link Double} for these operations.
+ *   <li>"Bit-wise equivalence"
+ *       <p>Considers the actual bit pattern of the values: <code>+0 != -0</code> and two <code>NaN
+ *       </code> values are consider equal if (and only if) their sign and payload match. Use in
+ *       {@link #compareWithTotalOrder(FloatValue)} to implement the totalOrder predicate from the
+ *       IEEE-754 standard.
+ * </ul>
  *
  * @see <a href="https://link.springer.com/book/10.1007/978-3-319-76526-6">Handbook of
  *     Floating-Point Arithmetic (12.1.1 The Table Maker’s Dilemma, 12.4.1 Lindemann’s theorem,
@@ -561,14 +598,27 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
   /**
    * Equality
    *
-   * <p>Follows the definition of "representation equivalence" from {@link Float}: <code>
-   * +0</code> and <code>-0</code> are considered different values, and all <code>NaNs</code> are
-   * collapsed into a single canonical <code>NaN</code> value which is equal to itself. To compare
-   * the numbers with "numeric equality" use {@link FloatValue#equalTo(FloatValue)}.
+   * <p>Returns <code>false</code> when the second argument is not a {@link FloatValue} or if the
+   * precisions of the arguments does not match. Otherwise follows the definition of "representation
+   * equivalence" from <a
+   * href="https://download.java.net/java/early_access/valhalla/docs/api/java.base/java/lang/Double.html#equivalenceRelation">this</a>
+   * discussion:
+   *
+   * <ul>
+   *   <li><code>+0</code> and <code>-0</code> are considered different value
+   *   <li>all <code>NaNs</code> are collapsed into a single canonical <code>NaN</code> value
+   *   <li>this canonical <code>NaN</code> value is considered equal to itself
+   * </ul>
+   *
+   * This definition is different from the way that floating point values are usually compared. To
+   * compare two numbers with "numeric equality" (as defined in the linked discussion) use {@link
+   * FloatValue#equalTo(FloatValue)}. For "bit-wise equivalence" use {@link
+   * FloatValue#compareWithTotalOrder(FloatValue)} and then compare the result to zero.
    *
    * <p>WARNING: This method expects both arguments to have the same {@link Format} and will always
-   * return <code>false</code> otherwise. Use {@link FloatValue#withPrecision(Format)} to upcast
-   * your arguments before calling this method.
+   * return <code>false</code> otherwise. To compare values with different precision use {@link
+   * Format#matchWith(Format)} and {@link #withPrecision(Format)} to upcast the arguments before
+   * calling this method.
    */
   @Override
   public boolean equals(Object pOther) {
@@ -750,10 +800,15 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
   }
 
   /**
-   * Equality
+   * Floating point equality ((<code>==</code>)
    *
-   * <p>Ignores the sign of the zero and returns `false` if one of the operands is NaN. Use {@link
-   * FloatValue#equals(Object)} for a bitwise comparison of the values.
+   * <p>Same as the <code>==</code> operation on primitive float values. Ignores the sign of the
+   * zero and returns `false` if one of the operands is NaN.
+   *
+   * <p>This is equivalent to "numerical equality" from <a
+   * href="https://download.java.net/java/early_access/valhalla/docs/api/java.base/java/lang/Double.html#equivalenceRelation">this</a>
+   * discussion. Use {@link FloatValue#equals(Object)} for "representation equality". For "bitwise
+   * equality" use {@link #compareWithTotalOrder(FloatValue)} and compare the result to zero.
    */
   public boolean equalTo(FloatValue pNumber) {
     checkMatchingPrecision(pNumber);
@@ -770,7 +825,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
   }
 
   /**
-   * Inequality ("less than or greater")
+   * Inequality (<code><></code>, "less than or greater")
    *
    * <p>Returns `false` if one of the operands is NaN. Otherwise behaves like the negation of {@link
    * FloatValue#equalTo(FloatValue)}
@@ -782,7 +837,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     return !equalTo(pNumber);
   }
 
-  /** Strictly greater than */
+  /** Strictly greater than (<code>></code>) */
   public boolean greaterThan(FloatValue pNumber) {
     checkMatchingPrecision(pNumber);
     FloatValue arg1 = this;
@@ -810,12 +865,12 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     }
   }
 
-  /** Greater or equal to */
+  /** Greater or equal to (<code>>=</code>) */
   public boolean greaterOrEqual(FloatValue pNumber) {
     return greaterThan(pNumber) || equalTo(pNumber);
   }
 
-  /** Strictly less than */
+  /** Strictly less than (<code><</code>) */
   public boolean lessThan(FloatValue pNumber) {
     if (isNan() || pNumber.isNan()) {
       return false;
@@ -823,7 +878,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     return !greaterOrEqual(pNumber);
   }
 
-  /** Less than or equal to */
+  /** Less than or equal to (<code><=</code>) */
   public boolean lessOrEqual(FloatValue pNumber) {
     return pNumber.greaterOrEqual(this);
   }
@@ -831,10 +886,16 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
   /**
    * Compare with total ordering
    *
-   * <p>Order as defined in the IEEE 754-2008 standard:
+   * <p>Order as defined in the IEEE 754-2008 standard for the totalOrder predicate:
    *
    * <pre>
    * -Nan < -Inf < ... < -0 < +0 < .. < +Inf < +Nan</pre>
+   *
+   * <p>Unlike {@link #compareTo(FloatValue)} this method considers the sign and the payload of
+   * <code>NaN</code> values in its comparison. This is equivalent to what is called "bit-wise
+   * equivalence" in <a
+   * href="https://download.java.net/java/early_access/valhalla/docs/api/java.base/java/lang/Double.html#equivalenceRelation">this</a>
+   * discussion.
    */
   public int compareWithTotalOrder(FloatValue pNumber) {
     checkMatchingPrecision(pNumber);
@@ -862,18 +923,28 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
   /**
    * Compare two floating point numbers
    *
-   * <p>Returns <code>-1</code> if the first number is larger, <code>0</code> if they are the same,
-   * and <code>1</code> if the second number is larger. We use the same order as {@link
-   * Float#compareTo}. Specifically, <code>-0</code> is considered smaller than <code>+0</code> and
-   * all NaN values are collapsed into a single canonical NaN value, that is considered larger than
-   * all other numbers (including <code>+Infinity</code>).
+   * <p>This method is compatible with {@link Float#compareTo(Float)} (and {@link #equals(Object)})
+   * and uses the following order:
    *
    * <pre>
    * -Inf < ... < -0 < +0 < .. < +Inf < Nan</pre>
    *
-   * <p>WARNING: This method expects both arguments to have the same {@link Format} and throws an
-   * {@link IllegalArgumentException} if they don't match. Use {@link Format#matchWith(Format)} and
-   * {@link FloatValue#withPrecision(Format)} to upcast your arguments before calling this method.
+   * <p>It returns <code>-1</code> if the first number is larger, <code>0</code> if they are the
+   * same, and <code>1</code> if the first number is smaller. We use the same order as {@link
+   * Float#compareTo}. Specifically, <code>-0</code> is considered smaller than <code>+0</code> and
+   * all NaN values are collapsed into a single canonical NaN value, that is considered larger than
+   * all other numbers (including <code>+Infinity</code>).
+   *
+   * <p>This is equivalent to what is called "representation equivalence" in <a
+   * href="https://download.java.net/java/early_access/valhalla/docs/api/java.base/java/lang/Double.html#equivalenceRelation">this</a>
+   * discussion. If you want to use the total order predicate from the IEEE 754 standard use {@link
+   * #compareWithTotalOrder(FloatValue)} instead. In the linked discussion this order is referred to
+   * as "bitwise equivalence".
+   *
+   * <p>WARNING: This method expects both arguments to have the same {@link Format} and will throw
+   * an {@link IllegalArgumentException} otherwise. To compare values with different precision use
+   * {@link Format#matchWith(Format)} and {@link #withPrecision(Format)} to upcast the arguments
+   * before calling this method.
    */
   @Override
   public int compareTo(FloatValue pNumber) {
