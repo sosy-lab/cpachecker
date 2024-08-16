@@ -2825,10 +2825,10 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Convert the value to a binary float representation
     if (isHexLiteral) {
-      Preconditions.checkArgument(digits.matches("\\d+"));
+      Preconditions.checkArgument(digits.matches("[0-9a-fA-F]+"));
       return fromHexadecimal(pFormat, sign, digits, expValue);
     } else {
-      Preconditions.checkArgument(digits.matches("\\h+"));
+      Preconditions.checkArgument(digits.matches("\\d+"));
       return fromDecimal(pFormat, sign, digits, expValue);
     }
   }
