@@ -1199,7 +1199,7 @@ public class FloatValueTest {
     // 16777217 = 1000000000000000000000001
     // The number is too large for a float and the last bit needs to be rounded off
     // This causes the rounding test to fail as it keeps looking for another 1 before rounding
-    String val = "16777217";
+    String val = "16777217.0";
 
     CFloat tested = toTestedImpl(val);
     CFloat reference = toReferenceImpl(val);
