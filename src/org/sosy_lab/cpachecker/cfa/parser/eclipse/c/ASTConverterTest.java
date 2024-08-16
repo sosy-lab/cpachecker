@@ -302,10 +302,9 @@ public class ASTConverterTest {
         try {
           converter.parseFloatLiteral(FileLocation.DUMMY, CNumericTypes.DOUBLE, value, null);
           assertWithMessage(
-                  "Expected IllegalArgumentException while parsing `%s`, but nothing was thrown",
-                  value)
+                  "Expected an exception while parsing `%s`, but nothing was thrown", value)
               .fail();
-        } catch (IllegalArgumentException e) {
+        } catch (CFAGenerationRuntimeException e) {
           // Skip, we expect the exception
         }
       }

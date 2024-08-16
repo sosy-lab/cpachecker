@@ -168,7 +168,7 @@ class ASTLiteralConverter {
     FloatValue value;
     try {
       value = FloatValue.fromString(format, input);
-    } catch (NumberFormatException e) {
+    } catch (IllegalArgumentException e) {
       throw parseContext.parseError(
           String.format("unable to parse floating point literal (%s)", pValueStr), pExp);
     }
