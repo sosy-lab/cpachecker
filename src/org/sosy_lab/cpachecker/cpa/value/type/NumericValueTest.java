@@ -66,7 +66,7 @@ public class NumericValueTest {
     NumericValue val = new NumericValue(5L);
     FloatValue.Format precision = FloatValue.Format.Float64;
     FloatValue result = val.floatingPointValue(precision);
-    assertThat(result).isEqualTo(FloatValue.fromString(precision, "5"));
+    assertThat(result).isEqualTo(FloatValue.fromString(precision, "5.0"));
   }
 
   @Test
@@ -109,7 +109,7 @@ public class NumericValueTest {
     NumericValue val = new NumericValue(input);
     FloatValue.Format precision = FloatValue.Format.Float64;
     FloatValue result = val.floatingPointValue(precision);
-    assertThat(result).isEqualTo(FloatValue.fromString(precision, "5"));
+    assertThat(result).isEqualTo(FloatValue.fromString(precision, "5.0"));
   }
 
   @Test
@@ -117,7 +117,7 @@ public class NumericValueTest {
     NumericValue val = new NumericValue(10);
     FloatValue.Format precision = FloatValue.Format.Float64;
     FloatValue result = val.floatingPointValue(precision);
-    assertThat(result).isEqualTo(FloatValue.fromString(precision, "10"));
+    assertThat(result).isEqualTo(FloatValue.fromString(precision, "10.0"));
   }
 
   @Test
