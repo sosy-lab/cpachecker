@@ -188,6 +188,7 @@ public class ASTConverterTest {
     }
   }
 
+  /** Test that the parser can handle valid floating point inputs */
   @Test
   public final void testValidFloatExpressions() {
     ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
@@ -212,7 +213,15 @@ public class ASTConverterTest {
             new TestCase("-308e-2f", "-3.07999992e+00", CNumericTypes.FLOAT),
             new TestCase("-308L", "-3.08000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
             new TestCase("-0x308p-2F", "-1.94000000e+02", CNumericTypes.FLOAT),
-            new TestCase("-0x30ap0l", "-7.78000000000000000000e+02", CNumericTypes.LONG_DOUBLE));
+            new TestCase("-0x30ap0l", "-7.78000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
+            new TestCase("-0000.000e+0", "-0.00000000e+00", CNumericTypes.FLOAT),
+            new TestCase("1.0", "1.00000000e+00", CNumericTypes.FLOAT),
+            new TestCase(".0", "0.00000000e+00", CNumericTypes.FLOAT),
+            new TestCase(".0e0", "0.00000000e+00", CNumericTypes.FLOAT),
+            new TestCase("1.", "1.00000000e+00", CNumericTypes.FLOAT),
+            new TestCase("1.e0", "1.00000000e+00", CNumericTypes.FLOAT),
+            new TestCase("1e0", "1.00000000e+00", CNumericTypes.FLOAT),
+            new TestCase("0x.0p0", "0.00000000e+00", CNumericTypes.FLOAT));
 
     for (ASTLiteralConverter converter : converters) {
       for (TestCase test : input_output) {
@@ -225,6 +234,10 @@ public class ASTConverterTest {
     }
   }
 
+  /**
+   * Test for floating point literals that will overflow to <code>Infinity</code> because their
+   * exponent is too large for the format
+   */
   @Test
   public final void testOverflowingFloatExpressions() {
     ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
@@ -251,10 +264,38 @@ public class ASTConverterTest {
     }
   }
 
+  /** Test that the parser rejects invalid floating point literals as input */
   @Test
   public final void testInvalidFloatExpressions() {
     ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
-    ImmutableList<String> inputs = ImmutableList.of("", "f", "0xf", "0x5e2f");
+    ImmutableList<String> inputs =
+        ImmutableList.of(
+            "",
+            "+",
+            "e",
+            "-+0.0",
+            "++0.0",
+            "0.0+",
+            "0",
+            "0,0",
+            "0.0.",
+            "0..",
+            ".",
+            ".e0",
+            "0.e0",
+            "0.0e",
+            "0.0e-",
+            "0e+-0",
+            "0e++0",
+            "0e+0+",
+            "f",
+            "0.f",
+            "0ee",
+            "0y0.0p0",
+            "0x0.0p0f",
+            "0xf",
+            "0x0.0",
+            "0x0.0e0");
 
     for (ASTLiteralConverter converter : converters) {
       for (String value : inputs) {
