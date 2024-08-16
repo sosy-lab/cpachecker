@@ -568,7 +568,7 @@ public class SMGCPAValueVisitor
                 currentState));
 
       } else if (binaryOperator == BinaryOperator.NOT_EQUALS) {
-        Preconditions.checkArgument(returnType instanceof CSimpleType);
+        // Preconditions.checkArgument(returnType instanceof CSimpleType);
         // address != address or address != not address
         return ImmutableList.of(
             ValueAndSMGState.of(
