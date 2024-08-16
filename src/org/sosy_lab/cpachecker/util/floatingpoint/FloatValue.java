@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
@@ -2760,8 +2758,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
    * </pre>
    */
   public static FloatValue fromString(Format pFormat, String pInput) {
-    // TODO: Add error handling for broken inputs.
-    checkArgument(!pInput.isEmpty());
+    Preconditions.checkArgument(!pInput.isEmpty());
 
     if ("inf".equals(pInput)) {
       return infinity(pFormat);
@@ -2792,7 +2789,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Abort if we have a hexadecimal float literal with no exponent part
     int sep = isHexLiteral ? pInput.indexOf('p') : pInput.indexOf('e');
-    checkArgument(
+    Preconditions.checkArgument(
         sep != -1 || !isHexLiteral,
         "Hexadecimal floating point numbers need to have an exponent part");
 
@@ -2800,10 +2797,12 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     String digits = sep > -1 ? pInput.substring(0, sep) : pInput;
     String exponent = sep > -1 ? pInput.substring(sep + 1) : "0";
 
+    // Check that the exponent is a valid number and get its value
+    Preconditions.checkArgument(exponent.matches("[+-]\\d+"));
     int expValue = Integer.parseInt(exponent);
 
     // Abort if the significand has no digits
-    checkArgument(
+    Preconditions.checkArgument(
         !digits.isEmpty() && !digits.equals("."),
         "There needs to be at least one digit for the decimal part");
 
