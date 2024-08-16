@@ -2798,7 +2798,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     String exponent = sep > -1 ? pInput.substring(sep + 1) : "0";
 
     // Check that the exponent is a valid number and get its value
-    Preconditions.checkArgument(exponent.matches("[+-]\\d+"));
+    Preconditions.checkArgument(exponent.matches("[+-]?\\d+"));
     int expValue = Integer.parseInt(exponent);
 
     // Abort if the significand has no digits
