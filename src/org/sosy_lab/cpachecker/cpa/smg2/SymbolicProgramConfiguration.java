@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -2284,11 +2285,23 @@ public class SymbolicProgramConfiguration {
     SMG newSMG = smg;
     for (SMGValue value : allValues) {
       Optional<Value> maybeMapping = getValueFromSMGValue(value);
-      // Don't remove zero ever
+
+      // Check if the value is referenced by the atexit stack
+      boolean isAtExitHandler = false;
+      if (maybeMapping.isPresent()) {
+        for (Value element : atExitStack) {
+          Value mapping = maybeMapping.orElseThrow();
+          Value address = ((AddressExpression) element).getMemoryAddress();
+          isAtExitHandler = isAtExitHandler | mapping == address;
+        }
+      }
+
+      // Don't remove zero ever, and don't remove values that are referenced by the atexit stack
       // Remove everything that is not used and not a numeric value
       //   (they don't do harm and having a mapping is quicker later)
       if (!value.isZero()
           && !valuesToRegionsTheyAreSavedIn.containsKey(value)
+          && !isAtExitHandler
           && (maybeMapping.isEmpty() || !maybeMapping.orElseThrow().isNumericValue())) {
         // Remove from PTEs and values
         if (newSMG.isPointer(value)) {
