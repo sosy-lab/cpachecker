@@ -2292,7 +2292,7 @@ public class SymbolicProgramConfiguration {
         for (Value element : atExitStack) {
           Value mapping = maybeMapping.orElseThrow();
           Value address = ((AddressExpression) element).getMemoryAddress();
-          isAtExitHandler = isAtExitHandler | mapping == address;
+          isAtExitHandler = isAtExitHandler || mapping == address;
         }
       }
 
