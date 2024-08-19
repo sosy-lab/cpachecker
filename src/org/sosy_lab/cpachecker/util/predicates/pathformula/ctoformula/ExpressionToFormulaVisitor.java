@@ -1033,6 +1033,17 @@ public class ExpressionToFormulaVisitor
                 conv.bfmgr.ifThenElse(noOpNeeded, param0, mainCalculation));
           }
         }
+      } else if (BuiltinFloatFunctions.matchesSqrt(functionName)) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            return fpfmgr.sqrt(
+                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType));
+          }
+        }
       } else if (BuiltinFloatFunctions.matchesFmin(functionName)) {
 
         if (parameters.size() == 2) {
