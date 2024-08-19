@@ -1023,6 +1023,20 @@ public abstract class AbstractExpressionValueVisitor
           return handleBuiltinFunction1(
               calledFunctionName, parameterValues, (FloatValue arg) -> arg.sqrt());
 
+        } else if (BuiltinFloatFunctions.matchesExp(calledFunctionName)) {
+          return handleBuiltinFunction1(
+              calledFunctionName, parameterValues, (FloatValue arg) -> arg.exp());
+
+        } else if (BuiltinFloatFunctions.matchesLog(calledFunctionName)) {
+          return handleBuiltinFunction1(
+              calledFunctionName, parameterValues, (FloatValue arg) -> arg.ln());
+
+        } else if (BuiltinFloatFunctions.matchesPow(calledFunctionName)) {
+          return handleBuiltinFunction2(
+              calledFunctionName,
+              parameterValues,
+              (FloatValue arg1, FloatValue arg2) -> arg1.pow(arg2));
+
         } else if (BuiltinFloatFunctions.matchesIsgreater(calledFunctionName)) {
           return handleBuiltinFunction2(
               calledFunctionName,
