@@ -64,13 +64,23 @@ public final class JFloatLiteralExpression extends AFloatLiteralExpression
 
   @Override
   public String toASTString() {
-    // Print the value
-    String repr = getValue().toString();
+    FloatValue value = getValue();
+    if (value.isInfinite()) {
+      // "Infinity" is not a valid float literal
+      // We need to rewrite it as the expression 1.0/0.0
+      return (value.isNegative() ? "-" : "") + "1.0/0.0";
+    } else if (value.isNan()) {
+      // Same for NaN: It needs to be replace by the expression 0.0/0.0
+      return (value.isNegative() ? "-" : "") + "0.0/0.0";
+    } else {
+      // We have a regular value: print the number and add a suffix if necessary
+      String repr = value.toString();
 
-    // Add a suffix if the literal has type "float"
-    JSimpleType type = (JSimpleType) getExpressionType();
-    String suffix = type.equals(JSimpleType.getFloat()) ? "f" : "";
+      // Add a suffix for "float" literals
+      JSimpleType type = (JSimpleType) getExpressionType();
+      String suffix = type.equals(JSimpleType.getFloat()) ? "f" : "";
 
-    return repr + suffix;
+      return repr + suffix;
+    }
   }
 }
