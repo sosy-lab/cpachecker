@@ -61,7 +61,7 @@ public class LoopInfoUtils {
         if (cfaEdge.getRawAST().isPresent()) {
           AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
           if (aAstNode instanceof CSimpleDeclaration) {
-            variablesDeclaredInsideLoop.add(((CSimpleDeclaration) aAstNode).getQualifiedName());
+            variablesDeclaredInsideLoop.addAll(getVariablesFromAAstNode(aAstNode));
           } else {
             liveVariables.addAll(getVariablesFromAAstNode(cfaEdge.getRawAST().orElseThrow()));
           }
@@ -76,7 +76,7 @@ public class LoopInfoUtils {
       // Determine type of each variable
       for (String variable : liveVariables) {
         String type = pCProgramScope.lookupVariable(variable).getType().toString();
-        
+
         if (type.startsWith("(")) {
           type = type.substring(1, type.length() - 2) + "*";
         }
@@ -152,6 +152,9 @@ public class LoopInfoUtils {
       cRightHandSide
           .getParameterExpressions()
           .forEach(e -> CFAUtils.getVariableNamesOfExpression(e).forEach(n -> variables.add(n)));
+    } else if (pAAstNode instanceof CSimpleDeclaration) {
+      CSimpleDeclaration cSimpleDeclaration = (CSimpleDeclaration) pAAstNode;
+      variables.add(cSimpleDeclaration.getQualifiedName());
     }
 
     return ImmutableSet.copyOf(variables);
