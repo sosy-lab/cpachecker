@@ -80,16 +80,20 @@ public class LoopInfoUtils {
       // Determine type of each variable
       for (String variable : liveVariables) {
         String type = pCProgramScope.lookupVariable(variable).getType().toString();
-
-        if (type.startsWith("(")) {
-          type = type.substring(1, type.length() - 2) + "*";
-        }
-
-        liveVariablesAndTypes.put(
+        variable =
             variable.contains("::")
                 ? Iterables.get(Splitter.on("::").split(variable), 1)
-                : variable,
-            type);
+                : variable;
+
+        if (type.contains("*")) {
+          String typeOfReferencedValue = type.replace("*", "").replace("(", "").replace(")", "");
+          int numberOfAsterisks = (type.length() - typeOfReferencedValue.length()) / 3;
+          String dereferencingVariable = "*".repeat(numberOfAsterisks) + variable;
+
+          liveVariablesAndTypes.put(dereferencingVariable, typeOfReferencedValue);
+        } else {
+          liveVariablesAndTypes.put(variable, type);
+        }
       }
 
       for (Integer loopLocation : loopLocations) {
@@ -120,6 +124,7 @@ public class LoopInfoUtils {
     return mapLoopHeadToLineNumbers;
   }
 
+  // TODO: the method can return variables like stdin, stdout, and stderr
   private static ImmutableSet<String> getAllGlobalVariables(CFA pCfa) {
     Set<String> allGlobalVariables = new HashSet<>();
 
@@ -171,6 +176,7 @@ public class LoopInfoUtils {
       cRightHandSide
           .getParameterExpressions()
           .forEach(e -> CFAUtils.getVariableNamesOfExpression(e).forEach(n -> variables.add(n)));
+
     } else if (pAAstNode instanceof CVariableDeclaration) {
       CVariableDeclaration cVariableDeclaration = (CVariableDeclaration) pAAstNode;
       variables.add(cVariableDeclaration.getQualifiedName());
