@@ -1013,6 +1013,11 @@ public class ExpressionToFormulaVisitor
             // N is rounded toward zero to an integer for function fmod and toward the nearest
             // integer (to the even one in case of a tie) for function remainderf.
 
+            // FIXME: Replace with fp.remainder once JavaSMT has been updated
+            // The current work-around is likely to be broken as the quotient x/y needs to be
+            // calculated with infinite precision before rounding to the next integer. Otherwise it
+            // will fail if the exponent of x is much larger than the exponent of y (by at least as
+            // much as the precision)
             FloatingPointFormula n;
             // x / y -> rounded towards 0
             if (BuiltinFloatFunctions.matchesFmod(functionName)) {
