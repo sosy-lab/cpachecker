@@ -29,7 +29,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -39,6 +41,7 @@ public class LoopInfoUtils {
   public static ImmutableSet<NormalLoopInfo> getAllNormalLoopInfos(
       CFA pCfa, CProgramScope pCProgramScope) {
     Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>();
+    ImmutableSet<String> allGlobalVariables = getAllGlobalVariables(pCfa);
 
     for (Loop loop : pCfa.getLoopStructure().orElseThrow().getAllLoops()) {
       // Determine loop locations. There may be more than one, as some loops have multiple
@@ -72,6 +75,7 @@ public class LoopInfoUtils {
           e ->
               e.contains("::")
                   && Iterables.get(Splitter.on("::").split(e), 1).startsWith("__CPAchecker_TMP_"));
+      liveVariables.addAll(allGlobalVariables);
 
       // Determine type of each variable
       for (String variable : liveVariables) {
@@ -114,6 +118,25 @@ public class LoopInfoUtils {
       }
     }
     return mapLoopHeadToLineNumbers;
+  }
+
+  private static ImmutableSet<String> getAllGlobalVariables(CFA pCfa) {
+    Set<String> allGlobalVariables = new HashSet<>();
+
+    for (CFAEdge cfaEdge : pCfa.edges()) {
+      if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+        AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
+        if (aAstNode instanceof CVariableDeclaration) {
+          allGlobalVariables.add(
+              getVariablesFromAAstNode(aAstNode).stream()
+                  .filter(e -> !e.contains("::"))
+                  .findFirst()
+                  .get());
+        }
+      }
+    }
+
+    return ImmutableSet.copyOf(allGlobalVariables);
   }
 
   private static ImmutableSet<String> getVariablesFromAAstNode(AAstNode pAAstNode) {
