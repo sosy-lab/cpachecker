@@ -126,13 +126,9 @@ public class LoopInfoUtils {
     for (CFAEdge cfaEdge : pCfa.edges()) {
       if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
         AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
-        if (aAstNode instanceof CVariableDeclaration) {
-          allGlobalVariables.add(
-              getVariablesFromAAstNode(aAstNode).stream()
-                  .filter(e -> !e.contains("::"))
-                  .findFirst()
-                  .get());
-        }
+        getVariablesFromAAstNode(aAstNode).stream()
+            .filter(e -> !e.contains("::"))
+            .forEach(e -> allGlobalVariables.add(e));
       }
     }
 
@@ -175,9 +171,9 @@ public class LoopInfoUtils {
       cRightHandSide
           .getParameterExpressions()
           .forEach(e -> CFAUtils.getVariableNamesOfExpression(e).forEach(n -> variables.add(n)));
-    } else if (pAAstNode instanceof CSimpleDeclaration) {
-      CSimpleDeclaration cSimpleDeclaration = (CSimpleDeclaration) pAAstNode;
-      variables.add(cSimpleDeclaration.getQualifiedName());
+    } else if (pAAstNode instanceof CVariableDeclaration) {
+      CVariableDeclaration cVariableDeclaration = (CVariableDeclaration) pAAstNode;
+      variables.add(cVariableDeclaration.getQualifiedName());
     }
 
     return ImmutableSet.copyOf(variables);
