@@ -289,7 +289,7 @@ public class ExpressionToFormulaVisitor
                 case LESS_THAN -> mgr.makeLessThan(f1, f2, signed);
                 case LESS_EQUAL -> mgr.makeLessOrEqual(f1, f2, signed);
                 case EQUALS -> handleEquals(exp, f1, f2);
-                case NOT_EQUALS -> conv.bfmgr.not(mgr.makeEqual(f1, f2));
+                case NOT_EQUALS -> mgr.makeNot((handleEquals(exp, f1, f2)));
                 default -> throw new AssertionError();
               };
           // Here we directly use the returnFormulaType instead of the calculcationType
