@@ -451,14 +451,14 @@ public class SMTFloat extends CFloat {
           }
           prover.addConstraint(pFormula);
           return !prover.isUnsat();
-        } catch (SolverException pE) {
-          throw new RuntimeException(pE);
-        } catch (InterruptedException pE) {
+        } catch (SolverException e) {
+          throw new RuntimeException(e);
+        } catch (InterruptedException e) {
           // Skip
         } finally {
           prover.pop();
         }
-      } catch (InterruptedException pE) {
+      } catch (InterruptedException e) {
         // Skip
       }
       return false;
@@ -488,14 +488,14 @@ public class SMTFloat extends CFloat {
             }
             return value.orElseThrow();
           }
-        } catch (SolverException pE) {
-          throw new RuntimeException(pE);
-        } catch (InterruptedException pE) {
+        } catch (SolverException e) {
+          throw new RuntimeException(e);
+        } catch (InterruptedException e) {
           // Skip
         } finally {
           prover.pop();
         }
-      } catch (InterruptedException pE) {
+      } catch (InterruptedException e) {
         // skip
       }
       return Double.NaN;
