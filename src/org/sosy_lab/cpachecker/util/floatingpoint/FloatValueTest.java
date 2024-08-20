@@ -1073,6 +1073,30 @@ public class FloatValueTest {
   }
 
   @Test
+  public void differenceTest() {
+    assume().that(configuration.pReference).isEqualTo(ReferenceImpl.NATIVE);
+    testOperator("difference", 0, (CFloat a, CFloat b) -> a.difference(b));
+  }
+
+  @Test
+  public void minTest() {
+    assume().that(configuration.pReference).isEqualTo(ReferenceImpl.NATIVE);
+    testOperator("min", 0, (CFloat a, CFloat b) -> a.min(b));
+  }
+
+  @Test
+  public void maxTest() {
+    assume().that(configuration.pReference).isEqualTo(ReferenceImpl.NATIVE);
+    testOperator("max", 0, (CFloat a, CFloat b) -> a.max(b));
+  }
+
+  @Test
+  public void fractionTest() {
+    assume().that(configuration.pReference).isEqualTo(ReferenceImpl.NATIVE);
+    testOperator("fraction", 0, (CFloat a) -> a.fraction());
+  }
+
+  @Test
   public void hardestExpTest() {
     assume().that(configuration.pFormat).isEqualTo(Format.Float16);
     /* Hardest instance for exp(...) in float16

@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
-import static com.google.common.primitives.Ints.max;
-
 import com.google.common.base.Preconditions;
 import java.util.Objects;
 import java.util.Optional;
@@ -49,7 +47,7 @@ class CFloatNative extends CFloat {
         CFloatNativeAPI.addFp(
             wrapper, type.ordinal(), summand.copyWrapper(), summand.getType().ordinal());
     return new CFloatNative(
-        newFloat, toFloatType(max(type.ordinal(), summand.getType().ordinal())));
+        newFloat, toFloatType(Math.max(type.ordinal(), summand.getType().ordinal())));
   }
 
   public CFloat add3(CFloat summand1, CFloat summand2) {
@@ -64,7 +62,9 @@ class CFloatNative extends CFloat {
     return new CFloatNative(
         newFloat,
         toFloatType(
-            max(type.ordinal(), summand1.getType().ordinal(), summand1.getType().ordinal())));
+            Math.max(
+                type.ordinal(),
+                Math.max(summand1.getType().ordinal(), summand1.getType().ordinal()))));
   }
 
   @Override
@@ -92,7 +92,8 @@ class CFloatNative extends CFloat {
     CFloatWrapper newFloat =
         CFloatNativeAPI.multiplyFp(
             wrapper, type.ordinal(), factor.copyWrapper(), factor.getType().ordinal());
-    return new CFloatNative(newFloat, toFloatType(max(type.ordinal(), factor.getType().ordinal())));
+    return new CFloatNative(
+        newFloat, toFloatType(Math.max(type.ordinal(), factor.getType().ordinal())));
   }
 
   @Override
@@ -122,7 +123,7 @@ class CFloatNative extends CFloat {
             wrapper, type.ordinal(), subtrahend.copyWrapper(), subtrahend.getType().ordinal());
 
     return new CFloatNative(
-        newFloat, toFloatType(max(type.ordinal(), subtrahend.getType().ordinal())));
+        newFloat, toFloatType(Math.max(type.ordinal(), subtrahend.getType().ordinal())));
   }
 
   @Override
@@ -132,7 +133,7 @@ class CFloatNative extends CFloat {
             wrapper, type.ordinal(), divisor.copyWrapper(), divisor.getType().ordinal());
 
     return new CFloatNative(
-        newFloat, toFloatType(max(type.ordinal(), divisor.getType().ordinal())));
+        newFloat, toFloatType(Math.max(type.ordinal(), divisor.getType().ordinal())));
   }
 
   @Override
@@ -142,7 +143,7 @@ class CFloatNative extends CFloat {
             wrapper, type.ordinal(), divisor.copyWrapper(), divisor.getType().ordinal());
 
     return new CFloatNative(
-        newFloat, toFloatType(max(type.ordinal(), divisor.getType().ordinal())));
+        newFloat, toFloatType(Math.max(type.ordinal(), divisor.getType().ordinal())));
   }
 
   @Override
@@ -152,7 +153,7 @@ class CFloatNative extends CFloat {
             wrapper, type.ordinal(), divisor.copyWrapper(), divisor.getType().ordinal());
 
     return new CFloatNative(
-        newFloat, toFloatType(max(type.ordinal(), divisor.getType().ordinal())));
+        newFloat, toFloatType(Math.max(type.ordinal(), divisor.getType().ordinal())));
   }
 
   @Override
@@ -172,7 +173,7 @@ class CFloatNative extends CFloat {
             wrapper, type.ordinal(), exponent.copyWrapper(), exponent.getType().ordinal());
 
     return new CFloatNative(
-        newFloat, toFloatType(max(type.ordinal(), exponent.getType().ordinal())));
+        newFloat, toFloatType(Math.max(type.ordinal(), exponent.getType().ordinal())));
   }
 
   @Override
@@ -309,7 +310,7 @@ class CFloatNative extends CFloat {
     types[0] = type.ordinal();
     for (CFloat f : summands) {
       wrappers[index] = f.copyWrapper();
-      maxType = max(maxType, f.getType().ordinal());
+      maxType = Math.max(maxType, f.getType().ordinal());
       types[++index] = f.getType().ordinal();
     }
     return maxType;
@@ -393,6 +394,39 @@ class CFloatNative extends CFloat {
       return CFloatNativeAPI.totalOrderFp(
           wrapper, type.ordinal(), other.copyWrapper(), other.getType().ordinal());
     }
+  }
+
+  @Override
+  public CFloat difference(CFloat pOther) {
+    CFloatWrapper newFloat =
+        CFloatNativeAPI.fdimFp(
+            wrapper, type.ordinal(), pOther.copyWrapper(), pOther.getType().ordinal());
+    return new CFloatNative(
+        newFloat, toFloatType(Math.max(type.ordinal(), pOther.getType().ordinal())));
+  }
+
+  @Override
+  public CFloat min(CFloat pOther) {
+    CFloatWrapper newFloat =
+        CFloatNativeAPI.fminFp(
+            wrapper, type.ordinal(), pOther.copyWrapper(), pOther.getType().ordinal());
+    return new CFloatNative(
+        newFloat, toFloatType(Math.max(type.ordinal(), pOther.getType().ordinal())));
+  }
+
+  @Override
+  public CFloat max(CFloat pOther) {
+    CFloatWrapper newFloat =
+        CFloatNativeAPI.fmaxFp(
+            wrapper, type.ordinal(), pOther.copyWrapper(), pOther.getType().ordinal());
+    return new CFloatNative(
+        newFloat, toFloatType(Math.max(type.ordinal(), pOther.getType().ordinal())));
+  }
+
+  @Override
+  public CFloat fraction() {
+    CFloatWrapper newFloat = CFloatNativeAPI.modfFp(wrapper, type.ordinal());
+    return new CFloatNative(newFloat, toFloatType(type.ordinal()));
   }
 
   @Override
