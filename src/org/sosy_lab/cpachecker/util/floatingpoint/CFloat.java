@@ -295,7 +295,7 @@ abstract class CFloat implements Comparable<CFloat> {
 
   public abstract boolean equalTo(final CFloat other);
 
-  public abstract boolean notEqualTo(final CFloat other);
+  public abstract boolean lessOrGreater(final CFloat other);
 
   /**
    * Compare <code>this</code> with another {@link CFloat} object and return whether <code>this

@@ -338,7 +338,7 @@ class CFloatNative extends CFloat {
   }
 
   @Override
-  public boolean notEqualTo(CFloat other) {
+  public boolean lessOrGreater(CFloat other) {
     return CFloatNativeAPI.isNotEqualFp(
         wrapper, type.ordinal(), other.copyWrapper(), other.getType().ordinal());
   }

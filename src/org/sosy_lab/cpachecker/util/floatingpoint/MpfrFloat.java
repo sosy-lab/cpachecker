@@ -347,7 +347,7 @@ class MpfrFloat extends CFloat {
   }
 
   @Override
-  public boolean notEqualTo(CFloat other) {
+  public boolean lessOrGreater(CFloat other) {
     BigFloat that = toBigFloat(other.getWrapper());
     if (value.isNaN() || that.isNaN()) {
       return false;

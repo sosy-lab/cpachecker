@@ -86,7 +86,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  *       following comparison predicates:
  *       <ul>
  *         <li>{@link #equalTo(FloatValue)}
- *         <li>{@link #notEqualTo(FloatValue)}
+ *         <li>{@link #lessOrGreater(FloatValue)}
  *         <li>{@link #lessOrEqual(FloatValue)}
  *         <li>{@link #lessThan(FloatValue)}
  *         <li>{@link #greaterOrEqual(FloatValue)}
@@ -828,7 +828,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
    * <p>Returns `false` if one of the operands is NaN. Otherwise behaves like the negation of {@link
    * FloatValue#equalTo(FloatValue)}
    */
-  public boolean notEqualTo(FloatValue pNumber) {
+  public boolean lessOrGreater(FloatValue pNumber) {
     if (isNan() || pNumber.isNan()) {
       return false;
     }
@@ -2920,7 +2920,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     } else {
       String bits = significand.toString(2);
       bits = "0".repeat(format.sigBits + 1 - bits.length()) + bits;
-      return "%s%s.%s e%d".formatted(sign ? "-" : "", bits.charAt(0), bits.substring(1), exponent);
+      return "%s%s.%se%d".formatted(sign ? "-" : "", bits.charAt(0), bits.substring(1), exponent);
     }
   }
 

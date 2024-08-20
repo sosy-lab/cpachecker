@@ -1012,8 +1012,8 @@ public class FloatValueTest {
   }
 
   @Test
-  public void notEqualToTest() {
-    testPredicate("notEqualTo", (CFloat a, CFloat b) -> a.notEqualTo(b));
+  public void lessOrGreaterTest() {
+    testPredicate("lessOrGreater", (CFloat a, CFloat b) -> a.lessOrGreater(b));
   }
 
   @Test

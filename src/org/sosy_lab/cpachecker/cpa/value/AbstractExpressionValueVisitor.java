@@ -749,7 +749,7 @@ public abstract class AbstractExpressionValueVisitor
       case LESS_THAN -> pArg1.lessThan(pArg2);
       case LESS_EQUAL -> pArg1.lessOrEqual(pArg2);
       case EQUALS -> pArg1.equalTo(pArg2);
-      case NOT_EQUALS -> pArg1.notEqualTo(pArg2);
+      case NOT_EQUALS -> pArg1.lessOrGreater(pArg2);
       default -> throw new AssertionError("unknown binary operation: " + pOperation);
     };
   }
@@ -1085,7 +1085,7 @@ public abstract class AbstractExpressionValueVisitor
           return handleBuiltinFunction2(
               calledFunctionName,
               parameterValues,
-              (FloatValue arg1, FloatValue arg2) -> arg1.notEqualTo(arg2) ? 1 : 0);
+              (FloatValue arg1, FloatValue arg2) -> arg1.lessOrGreater(arg2) ? 1 : 0);
 
         } else if (BuiltinFloatFunctions.matchesIsunordered(calledFunctionName)) {
           return handleBuiltinFunction2(

@@ -262,7 +262,7 @@ class JFloat extends CFloat {
   }
 
   @Override
-  public boolean notEqualTo(CFloat other) {
+  public boolean lessOrGreater(CFloat other) {
     float that = toFloat(other.getWrapper());
     if (Float.isNaN(value) || Float.isNaN(that)) {
       return false;

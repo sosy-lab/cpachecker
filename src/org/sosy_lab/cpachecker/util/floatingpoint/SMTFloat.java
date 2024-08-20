@@ -393,7 +393,7 @@ public class SMTFloat extends CFloat {
   }
 
   @Override
-  public boolean notEqualTo(CFloat other) {
+  public boolean lessOrGreater(CFloat other) {
     if (other instanceof SMTFloat otherFloat) {
       return evalPredicate(
           constraints,

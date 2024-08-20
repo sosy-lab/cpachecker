@@ -359,9 +359,9 @@ class CFloatImpl extends CFloat {
   }
 
   @Override
-  public boolean notEqualTo(CFloat other) {
+  public boolean lessOrGreater(CFloat other) {
     if (other instanceof CFloatImpl that) {
-      return delegate.notEqualTo(that.delegate);
+      return delegate.lessOrGreater(that.delegate);
     }
     throw new UnsupportedOperationException();
   }
