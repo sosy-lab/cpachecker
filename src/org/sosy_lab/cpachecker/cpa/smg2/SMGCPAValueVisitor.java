@@ -1560,8 +1560,8 @@ public class SMGCPAValueVisitor
               ValueAndSMGState.of(new NumericValue(FloatValue.infinity(precision)), currentState));
 
         } else if (BuiltinFloatFunctions.matchesNaN(calledFunctionName)) {
-          // FIXME: Make sure nan is not called with a payload other than zero
-          // checkArgument(parameterValues.isEmpty(), "NaN payloads are not supported");
+          // FIXME: Add support for NaN payloads
+          checkArgument(parameterValues.size() < 2);
           FloatValue.Format precision =
               FloatValue.Format.fromCType(
                   machineModel,
@@ -1656,18 +1656,34 @@ public class SMGCPAValueVisitor
                   arg1.lessOrEqual(arg2) ? FloatValue.zero(arg1.getFormat()) : arg1.subtract(arg2));
 
         } else if (BuiltinFloatFunctions.matchesFmax(calledFunctionName)) {
+          // TODO: Add a warning message for fmax(0.0,-0.0) and fmax(-0.0, 0.0)
+          // The value is undefined and we simply pick 0.0 in those cases, but gcc will always
+          // return the first argument.
           return handleBuiltinFunction2(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg1, FloatValue arg2) -> arg1.greaterThan(arg2) ? arg1 : arg2);
+              (FloatValue arg1, FloatValue arg2) ->
+                  switch (arg1.compareWithTotalOrder(arg2)) {
+                    case -1 -> arg2.isNan() ? arg1 : arg2;
+                    case +1 -> arg1.isNan() ? arg2 : arg1;
+                    default -> arg1;
+                  });
 
         } else if (BuiltinFloatFunctions.matchesFmin(calledFunctionName)) {
+          // FIXME: Add a warning message for fmin(0.0,-0.0) and fmin(-0.0, 0.0)
+          // The value is undefined and we pick -0.0 in those cases, but gcc will return the first
+          // argument for `float` or `double` and the second for `long double`
           return handleBuiltinFunction2(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg1, FloatValue arg2) -> arg1.lessThan(arg2) ? arg1 : arg2);
+              (FloatValue arg1, FloatValue arg2) ->
+                  switch (arg1.compareWithTotalOrder(arg2)) {
+                    case -1 -> arg1.isNan() ? arg2 : arg1;
+                    case +1 -> arg2.isNan() ? arg1 : arg2;
+                    default -> arg1;
+                  });
 
         } else if (BuiltinFloatFunctions.matchesSignbit(calledFunctionName)) {
           return handleBuiltinFunction1(
@@ -1716,16 +1732,22 @@ public class SMGCPAValueVisitor
                       BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName),
                       (NumericValue) value);
 
-              FloatValue integer = arg.round(FloatValue.RoundingMode.TRUNCATE);
-              FloatValue fraction = arg.subtract(integer);
-
-              // Fix the sign if the result is zero
-              return ImmutableList.of(
-                  ValueAndSMGState.of(
-                      new NumericValue(
-                          (arg.isInfinite() ? FloatValue.zero(arg.getFormat()) : fraction)
-                              .copySign(arg)),
-                      currentState));
+              if (arg.isInfinite()) {
+                // Return zero if the number is infinite
+                return ImmutableList.of(
+                    ValueAndSMGState.of(
+                        new NumericValue(
+                            arg.isNegative()
+                                ? FloatValue.negativeZero(arg.getFormat())
+                                : FloatValue.zero(arg.getFormat())),
+                        currentState));
+              } else {
+                // Otherwise, get the fractional part
+                return ImmutableList.of(
+                    ValueAndSMGState.of(
+                        new NumericValue(arg.modulo(FloatValue.one(arg.getFormat()))),
+                        currentState));
+              }
             }
           }
 
