@@ -690,7 +690,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
       return isNegative() ? negativeInfinity(format) : infinity(format);
     } else if (pExponent < format.minExp()) {
       // Exponent too small
-      int diff = (int) Math.abs(pExponent + format.sigBits);
+      int diff = (int) (pExponent - format.minExp());
       if (diff > format.sigBits) {
         // Return zero if the result is below the subnormal range
         return zero(format);
