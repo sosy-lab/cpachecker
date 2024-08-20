@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
+import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
@@ -65,7 +66,7 @@ public class SMTFloat extends CFloat {
 
   private FloatingPointFormula fromString(String pInput, Format pFormat) {
     FloatingPointType floatType =
-        FloatingPointType.getFloatingPointType(pFormat.expBits(), pFormat.sigBits());
+        FormulaType.getFloatingPointType(pFormat.expBits(), pFormat.sigBits());
     if ("inf".equals(pInput)) {
       return fpfmgr.makePlusInfinity(floatType);
     } else if ("-inf".equals(pInput)) {
@@ -151,10 +152,9 @@ public class SMTFloat extends CFloat {
   @Override
   public String toString() {
     FloatValue r = FloatValue.fromDouble(getValue());
-    if (getFloatingPointType().equals(FloatingPointType.getSinglePrecisionFloatingPointType())) {
+    if (getFloatingPointType().equals(FormulaType.getSinglePrecisionFloatingPointType())) {
       return r.withPrecision(Format.Float32).toString();
-    } else if (getFloatingPointType()
-        .equals(FloatingPointType.getDoublePrecisionFloatingPointType())) {
+    } else if (getFloatingPointType().equals(FormulaType.getDoublePrecisionFloatingPointType())) {
       return r.toString();
     } else {
       throw new UnsupportedOperationException();
@@ -373,11 +373,11 @@ public class SMTFloat extends CFloat {
   @Override
   public CFloatType getType() {
     FloatingPointType floatType = getFloatingPointType();
-    if (floatType.equals(FloatingPointType.getSinglePrecisionFloatingPointType())) {
+    if (floatType.equals(FormulaType.getSinglePrecisionFloatingPointType())) {
       return CFloatType.SINGLE;
-    } else if (floatType.equals(FloatingPointType.getDoublePrecisionFloatingPointType())) {
+    } else if (floatType.equals(FormulaType.getDoublePrecisionFloatingPointType())) {
       return CFloatType.DOUBLE;
-    } else if (floatType.equals(FloatingPointType.getFloatingPointType(15, 63))) {
+    } else if (floatType.equals(FormulaType.getFloatingPointType(15, 63))) {
       return CFloatType.LONG_DOUBLE;
     } else {
       throw new UnsupportedOperationException();
