@@ -39,6 +39,7 @@ import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
+import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 /**
  * Abstract test class for the {@link CFloat} interface.
@@ -97,11 +98,12 @@ public class FloatValueTest {
   public enum ReferenceImpl {
     MPFR,
     JAVA,
-    NATIVE
+    NATIVE,
+    SMT
   }
 
-  /** Supported floating point formats and the number of test values to generate for each of them */
-  private static final ImmutableMap<Format, Integer> SUPPORTED_FORMATS =
+  /** Floating point formats for the tests and the number of values to generate for each of them */
+  private static final ImmutableMap<Format, Integer> TEST_FORMATS =
       ImmutableMap.of(
           Format.Float8,
           50000,
@@ -113,6 +115,10 @@ public class FloatValueTest {
           25000,
           Format.Extended,
           15000);
+
+  /** Reference implementations that will be used as oracles in the test */
+  private static final Iterable<ReferenceImpl> TEST_REFERENCES =
+      ImmutableList.of(ReferenceImpl.MPFR, ReferenceImpl.JAVA, ReferenceImpl.NATIVE);
 
   /**
    * Test configuration
@@ -144,9 +150,9 @@ public class FloatValueTest {
   @Parameters(name = "{0}")
   public static Configuration[] getConfigurations() {
     ImmutableList.Builder<Configuration> builder = ImmutableList.builder();
-    for (Map.Entry<Format, Integer> entry : SUPPORTED_FORMATS.entrySet()) {
+    for (Map.Entry<Format, Integer> entry : TEST_FORMATS.entrySet()) {
       Format precision = entry.getKey();
-      for (ReferenceImpl reference : ReferenceImpl.values()) {
+      for (ReferenceImpl reference : TEST_REFERENCES) {
         if (reference.equals(ReferenceImpl.MPFR)
             || precision.equals(Format.Float32)
             || precision.equals(Format.Float64)
@@ -170,28 +176,36 @@ public class FloatValueTest {
    *
    * <p>This is used in the tests to convert the result of the operation back to a BigFloat value.
    */
-  private BigFloat toBigFloat(CFloat value) {
-    if (value instanceof MpfrFloat val) {
-      return val.toBigFloat();
-    } else if (value instanceof CFloatImpl val) {
-      int sigBits = val.getValue().getFormat().sigBits();
-      int expBits = val.getValue().getFormat().expBits();
+  private BigFloat toBigFloat(CFloat pValue) {
+    if (pValue instanceof MpfrFloat floatValue) {
+      return floatValue.toBigFloat();
+    } else if (pValue instanceof CFloatImpl floatValue) {
+      int sigBits = floatValue.getValue().getFormat().sigBits();
+      int expBits = floatValue.getValue().getFormat().expBits();
       BinaryMathContext context = new BinaryMathContext(sigBits + 1, expBits);
-      if (val.isNan()) {
-        return val.isNegative()
+      if (floatValue.isNan()) {
+        return floatValue.isNegative()
             ? BigFloat.NaN(context.precision).negate()
             : BigFloat.NaN(context.precision);
       }
-      if (val.isInfinity()) {
-        return val.isNegative()
+      if (floatValue.isInfinity()) {
+        return floatValue.isNegative()
             ? BigFloat.negativeInfinity(context.precision)
             : BigFloat.positiveInfinity(context.precision);
       }
       return new BigFloat(
-          val.isNegative(), val.getValue().getSignificand(), val.getValue().getExponent(), context);
+          floatValue.isNegative(),
+          floatValue.getValue().getSignificand(),
+          floatValue.getValue().getExponent(),
+          context);
+    } else if (pValue instanceof SMTFloat floatExpr) {
+      FloatingPointType floatType = floatExpr.getFloatingPointType();
+      return new BigFloat(
+          floatExpr.getValue(),
+          new BinaryMathContext(floatType.getMantissaSize() + 1, floatType.getExponentSize()));
     } else {
-      CFloatType toType = value.getType();
-      if (value instanceof CFloatNative val && toType == CFloatType.LONG_DOUBLE) {
+      CFloatType toType = pValue.getType();
+      if (pValue instanceof CFloatNative val && toType == CFloatType.LONG_DOUBLE) {
         // Special case for "extended precision" with CFloatNative
         BinaryMathContext context = new BinaryMathContext(64, 15);
         if (val.isNan()) {
@@ -214,8 +228,8 @@ public class FloatValueTest {
         // We have either a CFloatNative or a JFloat/JDouble and only need to support single and
         // double precision
         return switch (toType) {
-          case SINGLE -> new BigFloat(value.toFloat(), BinaryMathContext.BINARY32);
-          case DOUBLE -> new BigFloat(value.toDouble(), BinaryMathContext.BINARY64);
+          case SINGLE -> new BigFloat(pValue.toFloat(), BinaryMathContext.BINARY32);
+          case DOUBLE -> new BigFloat(pValue.toDouble(), BinaryMathContext.BINARY64);
           case LONG_DOUBLE -> throw new UnsupportedOperationException();
           default -> throw new IllegalArgumentException();
         };
@@ -369,10 +383,17 @@ public class FloatValueTest {
     } else {
       BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
       BigFloat constant = new BigFloat(0.5f, context);
-      return FluentIterable.concat(
-          floatConstants(format),
-          floatPowers(format, 14, constant, 20, constant),
-          floatRandom(format, configuration.pNumber));
+      if (configuration.pReference.equals(ReferenceImpl.SMT)) {
+        return FluentIterable.concat(
+            floatConstants(format),
+            floatPowers(format, 3, constant, 3, constant),
+            floatRandom(format, 16));
+      } else {
+        return FluentIterable.concat(
+            floatConstants(format),
+            floatPowers(format, 14, constant, 20, constant),
+            floatRandom(format, configuration.pNumber));
+      }
     }
   }
 
@@ -388,10 +409,15 @@ public class FloatValueTest {
     } else {
       BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
       BigFloat constant = new BigFloat(0.5f, context);
-      return FluentIterable.concat(
-          floatConstants(format),
-          floatPowers(format, 3, constant, 3, constant),
-          floatRandom(format, (int) Math.sqrt(configuration.pNumber)));
+
+      if (configuration.pReference.equals(ReferenceImpl.SMT)) {
+        return FluentIterable.concat(floatConstants(format), floatRandom(format, 4));
+      } else {
+        return FluentIterable.concat(
+            floatConstants(format),
+            floatPowers(format, 3, constant, 3, constant),
+            floatRandom(format, (int) Math.sqrt(configuration.pNumber)));
+      }
     }
   }
 
@@ -428,8 +454,12 @@ public class FloatValueTest {
   /** Generate integer test inputs that include both special cases and random values. */
   private Iterable<BigFloat> integerTestValues() {
     Format format = configuration.pFormat;
-    return FluentIterable.concat(
-        integerConstants(format), integerRandom(format, (int) Math.sqrt(configuration.pNumber)));
+    if (configuration.pReference.equals(ReferenceImpl.SMT)) {
+      return FluentIterable.concat(integerConstants(format), integerRandom(format, 16));
+    } else {
+      return FluentIterable.concat(
+          integerConstants(format), integerRandom(format, (int) Math.sqrt(configuration.pNumber)));
+    }
   }
 
   private static int calculateExpWidth(Format pFormat) {
@@ -734,6 +764,7 @@ public class FloatValueTest {
                       value.sign() ? Double.longBitsToDouble(0xFFF8000000000000L) : Float.NaN)
                   : new JDouble(value.doubleValue()));
       case NATIVE -> new CFloatNative(toPlainString(value), toNativeType(configuration.pFormat));
+      case SMT -> new SMTFloat(toPlainString(value), configuration.pFormat);
     };
   }
 
@@ -1074,25 +1105,25 @@ public class FloatValueTest {
 
   @Test
   public void differenceTest() {
-    assume().that(configuration.pReference).isEqualTo(ReferenceImpl.NATIVE);
+    assume().that(configuration.pReference).isAnyOf(ReferenceImpl.NATIVE, ReferenceImpl.SMT);
     testOperator("difference", 0, (CFloat a, CFloat b) -> a.difference(b));
   }
 
   @Test
   public void minTest() {
-    assume().that(configuration.pReference).isEqualTo(ReferenceImpl.NATIVE);
+    assume().that(configuration.pReference).isAnyOf(ReferenceImpl.NATIVE, ReferenceImpl.SMT);
     testOperator("min", 0, (CFloat a, CFloat b) -> a.min(b));
   }
 
   @Test
   public void maxTest() {
-    assume().that(configuration.pReference).isEqualTo(ReferenceImpl.NATIVE);
+    assume().that(configuration.pReference).isAnyOf(ReferenceImpl.NATIVE, ReferenceImpl.SMT);
     testOperator("max", 0, (CFloat a, CFloat b) -> a.max(b));
   }
 
   @Test
   public void fractionTest() {
-    assume().that(configuration.pReference).isEqualTo(ReferenceImpl.NATIVE);
+    assume().that(configuration.pReference).isAnyOf(ReferenceImpl.NATIVE, ReferenceImpl.SMT);
     testOperator("fraction", 0, (CFloat a) -> a.fraction());
   }
 
@@ -1141,7 +1172,7 @@ public class FloatValueTest {
   @Test
   public void overflowTest() {
     assume().that(configuration.pFormat).isEqualTo(Format.Float32);
-    // Should overflow as the exponents add up to 127 in binary and the product of th significands
+    // Should overflow as the exponents add up to 127 in binary and the product of the significands
     // is greater than two. After normalization, this should give us infinity.
     String val1 = "1.3835058e+19";
     String val2 = "2.7670116e+19";
