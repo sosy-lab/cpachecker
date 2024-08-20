@@ -2190,7 +2190,7 @@ public abstract class AbstractExpressionValueVisitor
             } else {
               // Either Double or Float
               // Cast to double and then convert
-              result = FloatValue.fromDouble(numericValue.doubleValue());
+              result = FloatValue.fromDouble(numericValue.doubleValue()).withPrecision(target);
             }
           } else if (numericValue.hasIntegerType()) {
             // Casting from an integer
