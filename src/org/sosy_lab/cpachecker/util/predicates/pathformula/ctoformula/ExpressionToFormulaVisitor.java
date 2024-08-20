@@ -931,7 +931,6 @@ public class ExpressionToFormulaVisitor
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
           if (formulaType.isFloatingPointType()) {
-            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
                 (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
             FloatingPointFormula param1 =
@@ -1319,7 +1318,7 @@ public class ExpressionToFormulaVisitor
     // - If `b` is NaN we return a new value that can be either `a` or `-a`
     // - Otherwise we copy the sign
 
-    FloatingPointFormulaManagerView fpfmgr = conv.fmgr.getFloatingPointFormulaManager();
+    FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
 
     FloatingPointFormula maybeNegated =
         (FloatingPointFormula)
