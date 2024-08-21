@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.SerializeCTypeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -27,11 +28,12 @@ public class SerializeDataflowAnalysisStateOperator implements SerializeOperator
   public BlockSummaryMessagePayload serialize(AbstractState pState) {
     InvariantsState state = (InvariantsState) pState;
     StringBuilder stringBuilder = new StringBuilder();
+    SerializeCTypeVisitor cTypeVisitor = new SerializeCTypeVisitor();
 
     for (Entry<MemoryLocation, CType> entry : state.getVariableTypes().entrySet()) {
       String key = entry.getKey().getExtendedQualifiedName();
-      String value = entry.getValue().toString();
-      stringBuilder.append(key).append("->").append(value).append(" && ");
+      String cType = entry.getValue().accept(cTypeVisitor);
+      stringBuilder.append(key).append("-typeInfo>").append(cType).append(" && ");
     }
     String serializedVariableTypes = stringBuilder.toString();
 

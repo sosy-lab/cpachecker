@@ -19,7 +19,7 @@ public class SerializeNumeralFormulaVisitor
   public String visit(Add<CompoundInterval> pAdd) {
     return "(("
         + pAdd.getSummand1().accept(this)
-        + ") + ("
+        + ") +.add ("
         + pAdd.getSummand2().accept(this)
         + "))";
   }
@@ -28,26 +28,30 @@ public class SerializeNumeralFormulaVisitor
   public String visit(BinaryAnd<CompoundInterval> pAnd) {
     return "(("
         + pAnd.getOperand1().accept(this)
-        + ") & ("
+        + ") &.binaryAnd ("
         + pAnd.getOperand2().accept(this)
         + "))";
   }
 
   @Override
   public String visit(BinaryNot<CompoundInterval> pNot) {
-    return "(~(" + pNot.getFlipped().accept(this) + "))";
+    return "(~.binaryNot(" + pNot.getFlipped().accept(this) + "))";
   }
 
   @Override
   public String visit(BinaryOr<CompoundInterval> pOr) {
-    return "((" + pOr.getOperand1().accept(this) + ") | (" + pOr.getOperand2().accept(this) + "))";
+    return "(("
+        + pOr.getOperand1().accept(this)
+        + ") |.binaryOr ("
+        + pOr.getOperand2().accept(this)
+        + "))";
   }
 
   @Override
   public String visit(BinaryXor<CompoundInterval> pXor) {
     return "(("
         + pXor.getOperand1().accept(this)
-        + ") ^ ("
+        + ") ^.binaryXor ("
         + pXor.getOperand2().accept(this)
         + "))";
   }
@@ -75,7 +79,7 @@ public class SerializeNumeralFormulaVisitor
   public String visit(Divide<CompoundInterval> pDivide) {
     return "(("
         + pDivide.getNumerator().accept(this)
-        + ") / ("
+        + ") /.divide ("
         + pDivide.getDenominator().accept(this)
         + "))";
   }
@@ -83,14 +87,14 @@ public class SerializeNumeralFormulaVisitor
   @Override
   public String visit(Exclusion<CompoundInterval> pExclusion) {
 
-    return "(" + " \\ (" + pExclusion.getExcluded().accept(this) + "))";
+    return "(" + " \\.exclusion (" + pExclusion.getExcluded().accept(this) + "))";
   }
 
   @Override
   public String visit(Modulo<CompoundInterval> pModulo) {
     return "(("
         + pModulo.getNumerator().accept(this)
-        + ") % ("
+        + ") %.modulo ("
         + pModulo.getDenominator().accept(this)
         + "))";
   }
@@ -99,7 +103,7 @@ public class SerializeNumeralFormulaVisitor
   public String visit(Multiply<CompoundInterval> pMultiply) {
     return "(("
         + pMultiply.getFactor1().accept(this)
-        + ") * ("
+        + ") *.multiply ("
         + pMultiply.getFactor2().accept(this)
         + "))";
   }
@@ -108,7 +112,7 @@ public class SerializeNumeralFormulaVisitor
   public String visit(ShiftLeft<CompoundInterval> pShiftLeft) {
     return "(("
         + pShiftLeft.getShifted().accept(this)
-        + ") << ("
+        + ") <<.shiftLeft ("
         + pShiftLeft.getShiftDistance().accept(this)
         + "))";
   }
@@ -117,7 +121,7 @@ public class SerializeNumeralFormulaVisitor
   public String visit(ShiftRight<CompoundInterval> pShiftRight) {
     return "(("
         + pShiftRight.getShifted().accept(this)
-        + ") >> ("
+        + ") >>.shiftRight ("
         + pShiftRight.getShiftDistance().accept(this)
         + "))";
   }
@@ -126,7 +130,7 @@ public class SerializeNumeralFormulaVisitor
   public String visit(Union<CompoundInterval> pUnion) {
     return "(("
         + pUnion.getOperand1().accept(this)
-        + ") UNION ("
+        + ") U.union ("
         + pUnion.getOperand2().accept(this)
         + "))";
   }
@@ -144,9 +148,9 @@ public class SerializeNumeralFormulaVisitor
   public String visit(IfThenElse<CompoundInterval> pIfThenElse) {
     return "(("
         + pIfThenElse.getCondition().accept(new SerializeBooleanFormulaVisitor(this))
-        + ") ? ("
+        + ") ?.if ("
         + pIfThenElse.getPositiveCase().accept(this)
-        + ") : ("
+        + ") :.else ("
         + pIfThenElse.getNegativeCase().accept(this)
         + "))";
   }

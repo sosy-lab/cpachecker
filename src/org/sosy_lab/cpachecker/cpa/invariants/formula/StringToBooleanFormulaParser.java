@@ -1,3 +1,10 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2024 Sara Ruckstuhl <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import com.google.common.base.Splitter;
@@ -45,24 +52,23 @@ public class StringToBooleanFormulaParser {
         brackets.pop();
       } else if (brackets.isEmpty()) {
         String remaining = formulaString.substring(i).trim();
-        if (remaining.startsWith("&&")) {
+        if (remaining.startsWith("&&.logicalAnd")) {
           return LogicalAnd.of(
               parseBooleanFormula(formulaString.substring(0, i).trim()),
-              parseBooleanFormula(remaining.substring(2).trim()));
-        } else if (remaining.startsWith("!")) {
-          return LogicalNot.of(parseBooleanFormula(remaining.substring(1).trim()));
-        } else if (remaining.startsWith("=")) {
+              parseBooleanFormula(remaining.substring(13).trim()));
+        } else if (remaining.startsWith("!.logicalNot")) {
+          return LogicalNot.of(parseBooleanFormula(remaining.substring(12).trim()));
+        } else if (remaining.startsWith("=.equal")) {
           return Equal.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(1).trim()));
-        } else if (remaining.startsWith("<")) {
+              parseNumeralFormula(remaining.substring(7).trim()));
+        } else if (remaining.startsWith("<.lessThan")) {
           return LessThan.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(1).trim()));
+              parseNumeralFormula(remaining.substring(10).trim()));
         }
       }
     }
-
     throw new IllegalArgumentException("Unknown boolean formula: " + formulaString);
   }
 
@@ -73,7 +79,7 @@ public class StringToBooleanFormulaParser {
       return parseCast(formulaString);
     }
 
-    if (formulaString.contains("?")) {
+    if (formulaString.contains("?.if")) {
       return parseIfThenElse(formulaString);
     }
 
@@ -81,15 +87,10 @@ public class StringToBooleanFormulaParser {
   }
 
   private static NumeralFormula<CompoundInterval> parseCast(String formulaString) {
-    int typeInfoStartIndex = formulaString.indexOf("-typeInfo>") + 10; // Adjust to the correct
-    // length
+    int typeInfoStartIndex = formulaString.indexOf("-typeInfo>") + 10;
     int typeInfoEndIndex = formulaString.indexOf('(', typeInfoStartIndex);
-    if (typeInfoEndIndex == -1) {
-      throw new IllegalArgumentException("Invalid cast format: " + formulaString);
-    }
     String typeInfoString = formulaString.substring(typeInfoStartIndex, typeInfoEndIndex).trim();
     TypeInfo typeInfo = parseTypeInfo(typeInfoString);
-
     int castEndIndex = findMatchingParenthesis(formulaString, typeInfoEndIndex);
     String castedFormula = formulaString.substring(typeInfoEndIndex + 1, castEndIndex).trim();
 
@@ -97,11 +98,11 @@ public class StringToBooleanFormulaParser {
   }
 
   private static NumeralFormula<CompoundInterval> parseIfThenElse(String formulaString) {
-    int questionMarkIndex = formulaString.indexOf("?");
-    int colonIndex = findMatchingColon(formulaString, questionMarkIndex);
-    String condition = formulaString.substring(0, questionMarkIndex).trim();
-    String ifCase = formulaString.substring(questionMarkIndex + 1, colonIndex).trim();
-    String elseCase = formulaString.substring(colonIndex + 1).trim();
+    int ifIndex = formulaString.indexOf("?.if");
+    int elseIndex = formulaString.indexOf(":.else", ifIndex);
+    String condition = formulaString.substring(0, ifIndex).trim();
+    String ifCase = formulaString.substring(ifIndex + 5, elseIndex).trim();
+    String elseCase = formulaString.substring(elseIndex + 7).trim();
 
     return IfThenElse.of(
         parseBooleanFormula(condition), parseNumeralFormula(ifCase), parseNumeralFormula(elseCase));
@@ -122,50 +123,51 @@ public class StringToBooleanFormulaParser {
         brackets.pop();
       } else if (brackets.isEmpty()) {
         String remaining = formulaString.substring(i).trim();
-        if (remaining.startsWith("+")) {
+        if (remaining.startsWith("+.add")) {
           return Add.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(1).trim()));
-        } else if (remaining.startsWith("*")) {
+              parseNumeralFormula(remaining.substring(6).trim()));
+        } else if (remaining.startsWith("*.multiply")) {
           return Multiply.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(1).trim()));
-        } else if (remaining.startsWith("/")) {
+              parseNumeralFormula(remaining.substring(10).trim()));
+        } else if (remaining.startsWith("/.divide")) {
           return Divide.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(1).trim()));
-        } else if (remaining.startsWith("%")) {
+              parseNumeralFormula(remaining.substring(9).trim()));
+        } else if (remaining.startsWith("%.modulo")) {
           return Modulo.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(1).trim()));
-        } else if (remaining.startsWith("&")) {
+              parseNumeralFormula(remaining.substring(9).trim()));
+        } else if (remaining.startsWith("&.binaryAnd")) {
           return BinaryAnd.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(1).trim()));
-        } else if (remaining.startsWith("|")) {
+              parseNumeralFormula(remaining.substring(11).trim()));
+        } else if (remaining.startsWith("|.binaryOr")) {
           return BinaryOr.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(1).trim()));
-        } else if (remaining.startsWith("^")) {
+              parseNumeralFormula(remaining.substring(10).trim()));
+        } else if (remaining.startsWith("^.binaryXor")) {
           return BinaryXor.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(1).trim()));
-        } else if (remaining.startsWith("<<")) {
+              parseNumeralFormula(remaining.substring(11).trim()));
+        } else if (remaining.startsWith("<<.shiftLeft")) {
           return ShiftLeft.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(2).trim()));
-        } else if (remaining.startsWith(">>")) {
+              parseNumeralFormula(remaining.substring(12).trim()));
+        } else if (remaining.startsWith(">>.shiftRight")) {
           return ShiftRight.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(2).trim()));
-        } else if (remaining.startsWith("\\")) {
-          return Exclusion.of(parseNumeralFormula(remaining.substring(1).trim()));
-        } else if (remaining.startsWith("UNION")) {
+              parseNumeralFormula(remaining.substring(13).trim()));
+        } else if (remaining.startsWith("\\.exclusion")) {
+          return Exclusion.of(parseNumeralFormula(remaining.substring(12).trim()));
+
+        } else if (remaining.startsWith("U.union")) {
           return Union.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(1).trim()));
-        } else if (remaining.startsWith("~")) {
-          return BinaryNot.of(parseNumeralFormula(remaining.substring(1).trim()));
+              parseNumeralFormula(remaining.substring(7).trim()));
+        } else if (remaining.startsWith("~.binaryNot")) {
+          return BinaryNot.of(parseNumeralFormula(remaining.substring(11).trim()));
         }
       }
     }
@@ -174,24 +176,18 @@ public class StringToBooleanFormulaParser {
 
   private static NumeralFormula<CompoundInterval> parseNumeralConstantOrVariable(
       String formulaString) {
-
-    // Adjusted regex to handle the new format with -inf and inf, and the "UNION" operator
     if (formulaString.matches(
         "(\\[(-?\\d+|-inf),(\\d+|inf)\\],?)+-typeInfo>Size: \\d+; Signed: (true|false)")) {
       return parseConstant(formulaString);
     }
-
     formulaString = removeEnclosingParentheses(formulaString);
-
-    // Ensure the separator "-typeInfo>" is correctly identified
     int separatorIndex = formulaString.lastIndexOf("-typeInfo>");
     if (separatorIndex == -1) {
       throw new IllegalArgumentException("Invalid type info in formula: " + formulaString);
     }
 
-    String variableString = formulaString.substring(0, separatorIndex).trim();
+    String variableString = formulaString.substring(0, separatorIndex);
     String typeInfoString = formulaString.substring(separatorIndex + "-typeInfo>".length()).trim();
-
     TypeInfo typeInfo = parseTypeInfo(typeInfoString);
 
     return Variable.of(typeInfo, MemoryLocation.fromQualifiedName(variableString));
@@ -201,14 +197,12 @@ public class StringToBooleanFormulaParser {
     List<String> parts = Splitter.on("-typeInfo>").splitToList(input);
     String intervalsString = parts.get(0).trim();
     TypeInfo typeInfo = parseTypeInfo(parts.get(1).trim());
-
     List<BitVectorInterval> bitVectorIntervals = new ArrayList<>();
     Iterable<String> intervalStrings = Splitter.onPattern("],\\[").split(intervalsString);
 
     for (String intervalString : intervalStrings) {
       intervalString = intervalString.replace("[", "").replace("]", "");
       List<String> bounds = Splitter.on(',').splitToList(intervalString);
-
       BigInteger lowerBound = bounds.get(0).equals("-inf") ? null : new BigInteger(bounds.get(0));
       BigInteger upperBound = bounds.get(1).equals("inf") ? null : new BigInteger(bounds.get(1));
 
@@ -296,22 +290,9 @@ public class StringToBooleanFormulaParser {
       }
     }
     throw new IllegalArgumentException(
-        "No matching closing parenthesis found for opening parenthesis at index " + openIndex);
-  }
-
-  private static int findMatchingColon(String input, int questionMarkIndex) {
-    int depth = 0;
-    for (int i = questionMarkIndex + 1; i < input.length(); i++) {
-      char c = input.charAt(i);
-      if (c == '(') {
-        depth++;
-      } else if (c == ')') {
-        depth--;
-      } else if (c == ':' && depth == 0) {
-        return i;
-      }
-    }
-    throw new IllegalArgumentException(
-        "No matching colon found for question mark at index " + questionMarkIndex);
+        "No matching closing parenthesis found for opening parenthesis at index "
+            + openIndex
+            + " for input: "
+            + input);
   }
 }
