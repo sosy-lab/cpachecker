@@ -321,11 +321,16 @@ public class SMTFloat extends CFloat {
     return evalPredicate(constraints, fpfmgr.isNegative(formula));
   }
 
+  /** Returns a fresh variable name */
+  private static String makeVariableName(String prefix) {
+    return prefix + counter++;
+  }
+
   @Override
   public CFloat copySignFrom(CFloat source) {
     if (source instanceof SMTFloat otherFloat) {
       FloatingPointFormula maybeNegated =
-          fpfmgr.makeVariable("__nondetSign_" + counter++, getFloatingPointType());
+          fpfmgr.makeVariable(makeVariableName("__nondetSign_"), getFloatingPointType());
 
       BooleanFormula assertion =
           bfmgr.or(
