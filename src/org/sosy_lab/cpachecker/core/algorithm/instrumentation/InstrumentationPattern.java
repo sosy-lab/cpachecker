@@ -65,6 +65,18 @@ public class InstrumentationPattern {
       case "SUB" :
         type = patternType.SUB;
         break;
+      case "MUL" :
+        type = patternType.MUL;
+        break;
+      case "DIV" :
+        type = patternType.DIV;
+        break;
+      case "MOD" :
+        type = patternType.MOD;
+        break;
+      case "SHIFT" :
+        type = patternType.SHIFT;
+        break;
       default:
         type = patternType.REGEX;
         break;
@@ -81,8 +93,12 @@ public class InstrumentationPattern {
       case TRUE -> ImmutableList.of();
       case COND -> isOriginalCond(pCFAEdge) ? ImmutableList.of() : null;
       case NOT_COND -> isNegatedCond(pCFAEdge) ? ImmutableList.of() : null;
-      case ADD -> getTheOperandsFromAdd(pCFAEdge);
-      case SUB -> getTheOperandsFromSub(pCFAEdge);
+      case ADD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.PLUS);
+      case SUB -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MINUS);
+      case MUL -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MULTIPLY);
+      case DIV -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.DIVIDE);
+      case MOD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MODULO);
+      case SHIFT -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.SHIFT_LEFT);
       default -> null;
     };
   }
@@ -93,28 +109,14 @@ public class InstrumentationPattern {
   }
 
   @Nullable
-  private ImmutableList<String> getTheOperandsFromAdd(CFAEdge pCFAEdge) {
+  private ImmutableList<String> getTheOperandsFromOperation(CFAEdge pCFAEdge, BinaryOperator pOperator) {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().get();
       CExpression expression = LoopInfoUtils.extractExpression(astNode);
       if (expression instanceof CBinaryExpression
-          && ((CBinaryExpression) expression).getOperator().equals(BinaryOperator.PLUS)) {
+          && ((CBinaryExpression) expression).getOperator().equals(pOperator)) {
           return ImmutableList.of(((CBinaryExpression) expression).getOperand1().toASTString(),
               ((CBinaryExpression) expression).getOperand2().toASTString());
-      }
-    }
-    return null;
-  }
-
-  @Nullable
-  private ImmutableList<String> getTheOperandsFromSub(CFAEdge pCFAEdge) {
-    if (pCFAEdge.getRawAST().isPresent()) {
-      AAstNode astNode = pCFAEdge.getRawAST().get();
-      CExpression expression = LoopInfoUtils.extractExpression(astNode);
-      if (expression instanceof CBinaryExpression
-          && ((CBinaryExpression) expression).getOperator().equals(BinaryOperator.MINUS)) {
-        return ImmutableList.of(((CBinaryExpression) expression).getOperand1().toASTString(),
-            ((CBinaryExpression) expression).getOperand2().toASTString());
       }
     }
     return null;
@@ -144,6 +146,10 @@ public class InstrumentationPattern {
     NOT_COND,
     ADD,
     SUB,
+    MUL,
+    DIV,
+    MOD,
+    SHIFT,
     REGEX
   }
 }

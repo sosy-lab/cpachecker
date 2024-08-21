@@ -141,9 +141,46 @@ public class InstrumentationAutomaton {
                     + " (x2 < 0 && x1 > INT_MAX + x2)))"),
             InstrumentationOrder.BEFORE,
             q2);
+    InstrumentationTransition t4 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("MUL"),
+            new InstrumentationOperation(
+                "__VERIFIER_assert((!((x1 > 0) && (x2 > 0)) || !(x1 > (INT_MAX/x2)))"
+                          + " && (!((x1 > 0) && (x2 <= 0)) || !(x2 < (INT_MAX/x1)))"
+                          + " && (!((x1 <= 0) && (x2 > 0)) || !(x1 < (INT_MAX/x2)))"
+                          + " && (!((x1 <= 0) && (x2 <= 0)) || !((x1 != 0) && x2 > (INT_MAX/x1))))"),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t5 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("DIV"),
+            new InstrumentationOperation(
+                "__VERIFIER_assert(!((x2 == 0) || ((x1 == INT_MIN) && (x2 == -1))))"),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t6 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("MOD"),
+            new InstrumentationOperation(
+                "__VERIFIER_assert(!((x2 == 0) || ((x1 == INT_MIN) && (x2 == -1))))"),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t7 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("SHIFT"),
+            new InstrumentationOperation(
+                "__VERIFIER_assert(!((x1 < 0) || (x2 < 0) ||"
+                        + "(x2 >= INT_MAX) ||"
+                        + "(x1 > (INT_MAX >> si_b)))))"),
+            InstrumentationOrder.BEFORE,
+            q2);
 
     this.instrumentationTransitions =
-        ImmutableList.of(t1, t2, t3);
+        ImmutableList.of(t1, t2, t3, t4, t5, t6, t7);
   }
 
   private void constructTerminationAutomaton(int pIndex) {
