@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE table PUBLIC "+//IDN sosy-lab.org//DTD BenchExec table 1.10//EN" "https://www.sosy-lab.org/benchexec/table-1.10.dtd">
+<table>
+  <column title="has_floats">Requires float handling</column>
+  <column title="has_arrays">Requires array handling</column>
+  <column title="has_recursion">Requires recursion handling</column>
+  <column title="has_composite_handling">Requires composite-type handling</column>
+  <column title="has_loop">Requires loop handling</column>
+  <column title="has_alias_handling">Requires alias handling</column>
+  <column title="status"/>
+  <column title="cputime"/>
+  <column title="walltime"/>
+  <column title="memory"/>
+</table>

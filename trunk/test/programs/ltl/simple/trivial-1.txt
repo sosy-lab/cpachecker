@@ -1,0 +1,16 @@
+// SPDX-FileCopyrightText: University of Freiburg
+//
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+CONTROL AUTOMATON BA
+
+INITIAL STATE T0_init;
+
+STATE T0_init:
+    TRUE -> ASSUME {x <= 10000} GOTO T0_init;
+    TRUE -> ASSUME {x > 10000} GOTO accept_all;
+
+STATE accept_all:
+    TRUE -> ASSUME {1} GOTO accept_all;
+
+END AUTOMATON

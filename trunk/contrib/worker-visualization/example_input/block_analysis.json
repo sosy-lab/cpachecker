@@ -1,0 +1,87 @@
+{
+    "B2": {
+        "predecessors": [
+            "B1"
+        ],
+        "code": [
+            "[__CPAchecker_TMP_0 == 0]",
+            "return 0;",
+            ""
+        ],
+        "messages": [
+            {
+                "payload": "{\"org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA\":\"11.main\",\"reach\":\"true\",\"org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA\":\"(`and` (`=_<BitVec, 32, >` main::__retval__@1 0_32) (`=_<BitVec, 32, >` main::__CPAchecker_TMP_0@1 0_32))\",\"sound\":\"SOUND\",\"property\":\"CHECKED\",\"visited\":\"B2\",\"precise\":\"PRECISE\",\"org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA\":\"\",\"full\":\"false\"}",
+                "from": "B2",
+                "type": "BLOCK_POSTCONDITION",
+                "timestamp": "2022-07-21 11:33:54.966300"
+            }
+        ]
+    },
+    "B3": {
+        "predecessors": [
+            "B1"
+        ],
+        "code": [
+            "[!(__CPAchecker_TMP_0 == 0)]",
+            "reach_error();",
+            "return 1;",
+            ""
+        ],
+        "messages": [
+            {
+                "payload": "{\"org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA\":\"11.main\",\"reach\":\"true\",\"org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA\":\"(`and` (`=_<BitVec, 32, >` main::__retval__@1 1_32) (`not` (`=_<BitVec, 32, >` main::__CPAchecker_TMP_0@1 0_32)))\",\"sound\":\"SOUND\",\"property\":\"CHECKED\",\"visited\":\"B3\",\"precise\":\"PRECISE\",\"org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA\":\"\",\"full\":\"false\"}",
+                "from": "B3",
+                "type": "BLOCK_POSTCONDITION",
+                "timestamp": "2022-07-21 11:33:54.994210"
+            }
+        ]
+    },
+    "B0": {
+        "code": [
+            ""
+        ],
+        "successors": [
+            "B1"
+        ],
+        "messages": [
+            {
+                "payload": "{\"org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA\":\"5.main\",\"reach\":\"true\",\"org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA\":\"`true`\",\"visited\":\"B0\",\"org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA\":\"\",\"full\":\"true\"}",
+                "from": "B0",
+                "type": "BLOCK_POSTCONDITION",
+                "timestamp": "2022-07-21 11:33:54.914572"
+            }
+        ]
+    },
+    "B1": {
+        "predecessors": [
+            "B0"
+        ],
+        "code": [
+            "int isnan_float(float x);",
+            "int main();",
+            "float iptr = 0.0 \/ 0.0;",
+            "int __CPAchecker_TMP_0;",
+            "isnan_float(iptr)",
+            "return x != x;",
+            ""
+        ],
+        "successors": [
+            "B3",
+            "B2"
+        ],
+        "messages": [
+            {
+                "payload": "{\"org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA\":\"5.main\",\"reach\":\"true\",\"org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA\":\"(`and` (`and` (`and` (`=_<FP, 8:23, >` main::iptr@1 4286578689_8_23) (`=_<FP, 8:23, >` main::iptr@1 isnan_float::x@1)) (`=_<BitVec, 32, >` (`ite_<BitVec, 32, >` (`not` (`fpeq_8_23` isnan_float::x@1 isnan_float::x@1)) 1_32 0_32) isnan_float::__retval__@1)) (`=_<BitVec, 32, >` main::__CPAchecker_TMP_0@1 isnan_float::__retval__@1))\",\"sound\":\"SOUND\",\"property\":\"CHECKED\",\"visited\":\"B1\",\"precise\":\"PRECISE\",\"org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA\":\"\",\"full\":\"false\"}",
+                "from": "B1",
+                "type": "BLOCK_POSTCONDITION",
+                "timestamp": "2022-07-21 11:33:55.010311"
+            },
+            {
+                "payload": "{\"result\":\"TRUE\",\"visited\":\"B1\"}",
+                "from": "B1",
+                "type": "FOUND_RESULT",
+                "timestamp": "2022-07-21 11:33:55.032938"
+            }
+        ]
+    }
+}
