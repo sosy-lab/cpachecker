@@ -96,7 +96,7 @@ public class InstrumentationPattern {
   private ImmutableList<String> getTheOperandsFromAdd(CFAEdge pCFAEdge) {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().get();
-      CExpression expression = extractExpression(astNode);
+      CExpression expression = LoopInfoUtils.extractExpression(astNode);
       if (expression instanceof CBinaryExpression
           && ((CBinaryExpression) expression).getOperator().equals(BinaryOperator.PLUS)) {
           return ImmutableList.of(((CBinaryExpression) expression).getOperand1().toASTString(),
@@ -110,72 +110,11 @@ public class InstrumentationPattern {
   private ImmutableList<String> getTheOperandsFromSub(CFAEdge pCFAEdge) {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().get();
-      CExpression expression = extractExpression(astNode);
+      CExpression expression = LoopInfoUtils.extractExpression(astNode);
       if (expression instanceof CBinaryExpression
           && ((CBinaryExpression) expression).getOperator().equals(BinaryOperator.MINUS)) {
         return ImmutableList.of(((CBinaryExpression) expression).getOperand1().toASTString(),
             ((CBinaryExpression) expression).getOperand2().toASTString());
-      }
-    }
-    return null;
-  }
-
-  @Nullable
-  private CExpression extractExpression(AAstNode pAAstNode) {
-    if (pAAstNode instanceof CReturnStatement) {
-      // return statement
-      Optional<CExpression> optionalCExpression = ((CReturnStatement) pAAstNode).getReturnValue();
-      if (optionalCExpression.isPresent()) {
-        CExpression cExpression = optionalCExpression.get();
-        if (cExpression instanceof CBinaryExpression) {
-          return (CBinaryExpression) cExpression;
-        } else if (cExpression instanceof CUnaryExpression){
-          return (CUnaryExpression) cExpression;
-        }
-      }
-    } else if (pAAstNode instanceof CAssignment) {
-      // assignment
-      ALeftHandSide leftHandSide = ((CAssignment) pAAstNode).getLeftHandSide();
-      ARightHandSide rightHandSide = ((CAssignment) pAAstNode).getRightHandSide();
-      if (rightHandSide instanceof CFunctionCallExpression) {
-        // function call expression
-        List<CExpression> parameterExpressions = ((CFunctionCallExpression) rightHandSide).getParameterExpressions();
-        for (CExpression expression : parameterExpressions) {
-          if (expression instanceof CBinaryExpression) {
-            return (CBinaryExpression) expression;
-          }
-          if (expression instanceof CUnaryExpression) {
-            return (CUnaryExpression) expression;
-          }
-        }
-      } else if (rightHandSide instanceof CBinaryExpression) {
-        return (CBinaryExpression) rightHandSide;
-      } else if (rightHandSide instanceof CUnaryExpression){
-        return (CUnaryExpression) rightHandSide;
-      }
-    } else if (pAAstNode instanceof CBinaryExpression) {
-      // binary expression
-      return (CBinaryExpression) pAAstNode;
-    } else if (pAAstNode instanceof CFunctionCall) {
-      // function call
-      CFunctionCallExpression cFunctionCallExpression = ((CFunctionCall) pAAstNode).getFunctionCallExpression();
-      List<CExpression> parameterExpressions = cFunctionCallExpression.getParameterExpressions();
-      for (CExpression expression : parameterExpressions) {
-        if (expression instanceof CBinaryExpression) {
-          return (CBinaryExpression) expression;
-        }
-        if (expression instanceof CUnaryExpression) {
-          return (CUnaryExpression) expression;
-        }
-      }
-    } else if (pAAstNode instanceof CVariableDeclaration) {
-      // variable declaration
-      CInitializer cInitializer = ((CVariableDeclaration) pAAstNode).getInitializer();
-      if (cInitializer instanceof CInitializerExpression) {
-        CExpression cExpression = ((CInitializerExpression) cInitializer).getExpression();
-        if (cExpression instanceof CBinaryExpression) {
-          return (CBinaryExpression) cExpression;
-        }
       }
     }
     return null;

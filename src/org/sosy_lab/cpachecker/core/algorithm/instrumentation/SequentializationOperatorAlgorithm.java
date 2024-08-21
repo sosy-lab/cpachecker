@@ -29,12 +29,21 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.parser.llvm.CFABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationProperty;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
@@ -134,7 +143,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
               .getTransitions(currentState)) {
             ImmutableList<String> matchedVariables = transition.getPattern().MatchThePattern(edge);
             if (matchedVariables != null) {
-              if (isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist)) {
+              if ((canBeDecomposed(edge, transition, waitlist))
+                  || isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist)) {
                 matched = true;
               }
               newEdges.add(
@@ -195,6 +205,47 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     } catch (IOException e) {
     logger.logException(Level.SEVERE, e, "The creation of file newEdgesInfo.txt failed!");
     }
+  }
+
+  /**
+   * Checks if the CFAEdge contains a complex expression that can be decomposed into
+   * smaller pieces and then creates arbitrary CFANodes in between with edges containing
+   * the simpler decomposed expressions.
+   */
+  private boolean canBeDecomposed(CFAEdge pCFAEdge,
+                                  InstrumentationTransition pTransition,
+                                  List<Pair<CFANode, InstrumentationState>> pWaitlist) {
+    if (!pTransition.getPattern().toString().equals("ADD")
+        && !pTransition.getPattern().toString().equals("SUB")) {
+      return false;
+    }
+    AAstNode astNode = pCFAEdge.getRawAST().get();
+    CExpression expression = LoopInfoUtils.extractExpression(astNode);
+    CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
+    CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
+
+    if (!(operand1 instanceof CBinaryExpression)
+        && !(operand2 instanceof CBinaryExpression)) {
+      return false;
+    }
+
+    CFANode node1 = CFANode.newDummyCFANode();
+    CFANode node2 = CFANode.newDummyCFANode();
+
+    node1.addLeavingEdge(new CStatementEdge(operand1.toASTString(),
+        new CExpressionStatement(pCFAEdge.getFileLocation(), operand1),
+        pCFAEdge.getFileLocation(),
+        node1,
+        pCFAEdge.getSuccessor()));
+    node2.addLeavingEdge(new CStatementEdge(operand2.toASTString(),
+        new CExpressionStatement(pCFAEdge.getFileLocation(), operand2),
+        pCFAEdge.getFileLocation(),
+        node2,
+        pCFAEdge.getSuccessor()));
+
+    pWaitlist.add(Pair.of(node1, pTransition.getSource()));
+    pWaitlist.add(Pair.of(node2, pTransition.getSource()));
+    return true;
   }
 
   /**

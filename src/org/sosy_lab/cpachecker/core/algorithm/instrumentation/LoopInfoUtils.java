@@ -17,18 +17,29 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -138,6 +149,70 @@ public class LoopInfoUtils {
     }
 
     return ImmutableSet.copyOf(allGlobalVariables);
+  }
+
+  @Nullable
+  public static CExpression extractExpression(AAstNode pAAstNode) {
+    if (pAAstNode instanceof CReturnStatement) {
+      // return statement
+      Optional<CExpression> optionalCExpression = ((CReturnStatement) pAAstNode).getReturnValue();
+      if (optionalCExpression.isPresent()) {
+        CExpression cExpression = optionalCExpression.get();
+        if (cExpression instanceof CBinaryExpression) {
+          return (CBinaryExpression) cExpression;
+        } else if (cExpression instanceof CUnaryExpression){
+          return (CUnaryExpression) cExpression;
+        }
+      }
+    } else if (pAAstNode instanceof CAssignment) {
+      // assignment
+      ALeftHandSide leftHandSide = ((CAssignment) pAAstNode).getLeftHandSide();
+      ARightHandSide rightHandSide = ((CAssignment) pAAstNode).getRightHandSide();
+      if (rightHandSide instanceof CFunctionCallExpression) {
+        // function call expression
+        List<CExpression> parameterExpressions = ((CFunctionCallExpression) rightHandSide).getParameterExpressions();
+        for (CExpression expression : parameterExpressions) {
+          if (expression instanceof CBinaryExpression) {
+            return (CBinaryExpression) expression;
+          }
+          if (expression instanceof CUnaryExpression) {
+            return (CUnaryExpression) expression;
+          }
+        }
+      } else if (rightHandSide instanceof CBinaryExpression) {
+        return (CBinaryExpression) rightHandSide;
+      } else if (rightHandSide instanceof CUnaryExpression){
+        return (CUnaryExpression) rightHandSide;
+      }
+    } else if (pAAstNode instanceof CBinaryExpression) {
+      // binary expression
+      return (CBinaryExpression) pAAstNode;
+    } else if (pAAstNode instanceof CExpressionStatement) {
+    // binary expression
+    return ((CExpressionStatement) pAAstNode).getExpression();
+    } else if (pAAstNode instanceof CFunctionCall) {
+      // function call
+      CFunctionCallExpression cFunctionCallExpression = ((CFunctionCall) pAAstNode).getFunctionCallExpression();
+      List<CExpression> parameterExpressions = cFunctionCallExpression.getParameterExpressions();
+      for (CExpression expression : parameterExpressions) {
+        if (expression instanceof CBinaryExpression) {
+          return (CBinaryExpression) expression;
+        }
+        if (expression instanceof CUnaryExpression) {
+          return (CUnaryExpression) expression;
+        }
+      }
+    } else if (pAAstNode instanceof CVariableDeclaration) {
+      // variable declaration
+      CInitializer cInitializer = ((CVariableDeclaration) pAAstNode).getInitializer();
+      if (cInitializer instanceof CInitializerExpression) {
+        CExpression cExpression = ((CInitializerExpression) cInitializer).getExpression();
+        if (cExpression instanceof CBinaryExpression) {
+          return (CBinaryExpression) cExpression;
+        }
+      }
+    }
+    return null;
   }
 
   private static ImmutableSet<String> getVariablesFromAAstNode(AAstNode pAAstNode) {
