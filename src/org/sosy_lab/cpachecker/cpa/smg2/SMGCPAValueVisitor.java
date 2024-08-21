@@ -497,7 +497,7 @@ public class SMGCPAValueVisitor
     final CType calculationType = e.getCalculationType();
     final CExpression lVarInBinaryExp = e.getOperand1();
     final CExpression rVarInBinaryExp = e.getOperand2();
-    final CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getCalculationType());
+    final CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
     Preconditions.checkArgument(!leftValue.isUnknown());
     Preconditions.checkArgument(!rightValue.isUnknown());
 
@@ -553,7 +553,7 @@ public class SMGCPAValueVisitor
       }
 
       if (binaryOperator == BinaryOperator.EQUALS) {
-        // Preconditions.checkArgument(returnType instanceof CSimpleType);
+        Preconditions.checkArgument(returnType instanceof CSimpleType);
         if ((!(nonConstLeftValue instanceof AddressExpression)
                 && !evaluator.isPointerValue(nonConstLeftValue, currentState))
             || (!(nonConstRightValue instanceof AddressExpression)
@@ -568,7 +568,7 @@ public class SMGCPAValueVisitor
                 currentState));
 
       } else if (binaryOperator == BinaryOperator.NOT_EQUALS) {
-        // Preconditions.checkArgument(returnType instanceof CSimpleType);
+        Preconditions.checkArgument(returnType instanceof CSimpleType);
         // address != address or address != not address
         return ImmutableList.of(
             ValueAndSMGState.of(

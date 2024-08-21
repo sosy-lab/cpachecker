@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -36,11 +37,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 @SuppressWarnings("unused")
 public class AtExitTransformer {
   private final MutableCFA cfa;
+  private final CBinaryExpressionBuilder exprBuilder;
 
   private final LogManager logger;
   private final Configuration config;
@@ -58,6 +59,7 @@ public class AtExitTransformer {
     cfa = pCFA;
     logger = pLogger;
     config = pConfiguration;
+    exprBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
   }
 
   /** Check if the atexit() function is used by the program */
@@ -106,11 +108,8 @@ public class AtExitTransformer {
         CExpression value = maybeReturnValue.orElseThrow();
 
         // Convert the "return" statement to a call to exit()
-        CType intType =
-            new CSimpleType(
-                false, false, CBasicType.INT, false, false, false, false, false, false, false);
         ImmutableList<CParameterDeclaration> exitArgs =
-            ImmutableList.of(new CParameterDeclaration(loc, intType, "status"));
+            ImmutableList.of(new CParameterDeclaration(loc, CNumericTypes.INT, "status"));
         CFunctionType exitType = new CFunctionTypeWithNames(CVoidType.VOID, exitArgs, false);
         CFunctionDeclaration exitDecl =
             new CFunctionDeclaration(
@@ -215,14 +214,8 @@ public class AtExitTransformer {
         CFACreationUtils.addEdgeUnconditionallyToCFA(e3);
 
         // Add two assumption edge to branch on the result of __CPACHECKER_atexit_next():
-        CType intType =
-            new CSimpleType(
-                false, false, CBasicType.INT, false, false, false, false, false, false, false);
         CBinaryExpression isEmpty =
-            new CBinaryExpression(
-                loc,
-                fpointerType,
-                intType,
+            exprBuilder.buildBinaryExpressionUnchecked(
                 new CIdExpression(loc, fpointerType, var, declVar),
                 CIntegerLiteralExpression.ZERO,
                 BinaryOperator.EQUALS);
