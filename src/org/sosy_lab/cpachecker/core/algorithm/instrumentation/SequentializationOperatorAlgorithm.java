@@ -134,11 +134,12 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
               .getTransitions(currentState)) {
             ImmutableList<String> matchedVariables = transition.getPattern().MatchThePattern(edge);
             if (matchedVariables != null) {
-              isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist);
+              if (isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist)) {
+                matched = true;
+              }
               newEdges.add(
                   computeLineNumberBasedOnTransition(transition, edge) + "|||" +
                   transition.getOperation().InsertVariablesInsideOperation(matchedVariables));
-              matched = true;
             }
           }
         }
