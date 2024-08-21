@@ -143,7 +143,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
               .getTransitions(currentState)) {
             ImmutableList<String> matchedVariables = transition.getPattern().MatchThePattern(edge);
             if (matchedVariables != null) {
-              if ((canBeDecomposed(edge, transition, waitlist))
+              if (canBeDecomposed(edge, transition, waitlist)
                   || isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist)) {
                 matched = true;
               }
