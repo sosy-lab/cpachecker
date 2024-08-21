@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.errorprone.annotations.DoNotCall;
 import java.math.BigInteger;
 import java.util.List;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -83,19 +84,32 @@ public class BitvectorFormulaManagerView extends BaseManagerView
    *
    * <p>Example: SMTlib2: 10%3==1, 10%(-3)==1, (-10)%3==2, (-10)%(-3)==2 C99: 10%3==1, 10%(-3)==1,
    * (-10)%3==(-1), (-10)%(-3)==(-1)
+   *
+   * <p>Note: this has been deprecated and succeeded by smodulo() and remainder(). Also note that
+   * this call used/uses remainder() internally.
    */
   @SuppressWarnings({"deprecation", "removal"})
+  @DoNotCall
   @Override
-  public BitvectorFormula modulo(
+  public final BitvectorFormula modulo(
       BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
-    return manager.modulo(pNumber1, pNumber2, signed);
+    throw new UnsupportedOperationException(
+        "This operation has been deprecated and replaced by smodulo() and remainder().");
   }
 
+  /**
+   * Note: this does NOT behave in the same way modulo behaves in C or Java! See remainder() or the
+   * JavaSMT doc for more information.
+   */
   @Override
   public BitvectorFormula smodulo(BitvectorFormula numerator, BitvectorFormula denominator) {
     return manager.smodulo(numerator, denominator);
   }
 
+  /**
+   * This method was previously used inside the modulo() method for Bitvectors in JavaSMT.
+   * It behaves according to the % operator in C or Java. More info in the JavaSMT doc.
+   */
   @Override
   public BitvectorFormula remainder(
       BitvectorFormula numerator, BitvectorFormula denominator, boolean signed) {
