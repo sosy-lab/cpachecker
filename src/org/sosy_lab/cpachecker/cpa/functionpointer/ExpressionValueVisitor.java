@@ -32,14 +32,14 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFun
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class ExpressionValueVisitor
+class ExpressionValueVisitor
     extends DefaultCExpressionVisitor<FunctionPointerTarget, UnrecognizedCodeException>
     implements CRightHandSideVisitor<FunctionPointerTarget, UnrecognizedCodeException> {
 
   private final FunctionPointerState.Builder state;
   private final FunctionPointerTarget targetForInvalidPointers;
 
-  public ExpressionValueVisitor(
+  ExpressionValueVisitor(
       FunctionPointerState.Builder pElement, FunctionPointerTarget pTargetForInvalidPointers) {
     state = pElement;
     targetForInvalidPointers = pTargetForInvalidPointers;

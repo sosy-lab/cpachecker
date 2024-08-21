@@ -9,13 +9,11 @@
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -57,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.atexit.AtExitState;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.FunctionPointerTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.InvalidTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFunctionTarget;
@@ -381,9 +378,43 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       FunctionPointerState.Builder pNewState, CStatement pStatement, CFAEdge pCfaEdge)
       throws UnrecognizedCodeException {
 
-    if (pStatement instanceof CAssignment) {
+    // TODO: Handle calls like "int r = atexit(argExpr)" that don't ignore the return value
+    if (pStatement instanceof CFunctionCallAssignmentStatement callAssignStmt
+        && callAssignStmt.getLeftHandSide() instanceof CIdExpression leftSide
+        && callAssignStmt.getRightHandSide().getFunctionNameExpression()
+            instanceof CIdExpression fnExpr
+        && fnExpr.getName().equals("__CPACHECKER_atexit_next")) {
+      // We found a call "x = __CPA_CHECKER_atexit_next()":
+      // Get the target for the function pointer returned by __CPACHECKER_atexit_next() from the
+      // atexit stack and store it in "x".
+      // Then remove the last element from the stack.
+      String varName = getLeftHandSide(leftSide, pCfaEdge);
+      FunctionPointerTarget target = pNewState.popTarget();
+      pNewState.setTarget(varName, target);
+
+    } else if (pStatement instanceof CAssignment) {
       // assignment like "a = b" or "a = foo()"
       handleAssignment(pNewState, (CAssignment) pStatement, pCfaEdge);
+
+    } else if (pStatement instanceof CFunctionCallStatement callStmt
+        && callStmt.getFunctionCallExpression().getFunctionNameExpression()
+            instanceof CIdExpression fnExpr
+        && fnExpr.getName().equals("atexit")) {
+      // We've found a statement "atexit(<argExpr>)":
+      // Evaluate <argExpr> to get a target for the function pointer and store it on the stack
+      List<CExpression> params = callStmt.getFunctionCallExpression().getParameterExpressions();
+      Preconditions.checkArgument(
+          params.size() == 1,
+          "atexit() takes one argument, but it was called with %s",
+          params.size());
+      CExpression argExpr = params.get(0);
+      // Note: The default value here needs to be UnknownTarget, and not IllegalTarget, to make
+      // sure that AtExitState.peek() only returns IllegalTarget when the stack is actually
+      // empty
+      ExpressionValueVisitor evaluator =
+          new ExpressionValueVisitor(pNewState, UnknownTarget.getInstance());
+      FunctionPointerTarget target = argExpr.accept(evaluator);
+      pNewState.pushTarget(target);
 
     } else if (pStatement instanceof CFunctionCallStatement) {
       // external function call without return value
@@ -524,35 +555,5 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
         + "["
         + exp.getSubscriptExpression().toASTString()
         + "]";
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState state,
-      Iterable<AbstractState> otherStates,
-      @Nullable CFAEdge cfaEdge,
-      Precision precision)
-      throws CPATransferException, InterruptedException {
-    for (AbstractState other : otherStates) {
-      if (state instanceof FunctionPointerState fnState
-          && other instanceof AtExitState atExitState) {
-        if (cfaEdge instanceof CStatementEdge stmtEdge
-            && stmtEdge.getStatement() instanceof CFunctionCallAssignmentStatement callAssignStmt
-            && callAssignStmt.getLeftHandSide() instanceof CIdExpression leftSide
-            && callAssignStmt.getRightHandSide().getFunctionNameExpression()
-                instanceof CIdExpression fnExpr
-            && fnExpr.getName().equals("__CPACHECKER_atexit_next")) {
-          // Edge "x = __CPACHECKER_atexit_next()"
-          // Get the target for the function pointer returned by __CPACHECKER_atexti_next() from the
-          // atexit CPA and store it in "x"
-          FunctionPointerState.Builder newState = fnState.createBuilder();
-          String varName = getLeftHandSide(leftSide, cfaEdge);
-          FunctionPointerTarget target = atExitState.peek();
-          newState.setTarget(varName, target);
-          return ImmutableList.of(newState.build());
-        }
-      }
-    }
-    return ImmutableList.of(state);
   }
 }
