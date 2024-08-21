@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -72,10 +73,11 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     // For some properties we construct more automata to more effectively track variables within
     // the scope. This map is used to map the automata to concrete line numbers in the code.
     Map<Integer, InstrumentationAutomaton> mapAutomataToLocations = new HashMap<>();
-    Map<CFANode, Integer> mapLoopHeadsToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
+    Map<CFANode, Integer> mapNodesToLineNumbers;
 
     if (instrumentationProperty == InstrumentationProperty.TERMINATION) {
       int index = 0;
+      mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
       for (NormalLoopInfo info : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
         mapAutomataToLocations.put(info.loopLocation(),
                                    new InstrumentationAutomaton(instrumentationProperty,
@@ -84,7 +86,12 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         index += 1;
       }
     } else {
-      mapAutomataToLocations.put(0, new InstrumentationAutomaton(instrumentationProperty));
+      mapNodesToLineNumbers = Map.of(
+          cfa.getMainFunction(),
+          0);
+      mapAutomataToLocations.put(0, new InstrumentationAutomaton(instrumentationProperty,
+          ImmutableMap.of(),
+          0));
     }
     // MAIN INSTRUMENTATION OPERATOR ALGORITHM
     // Initialize the search
@@ -104,10 +111,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         // If the current state was dummy, we have to look for an automaton that matches the
         // CFANode
         if (currentState.toString().equals("DUMMY") &&
-            mapLoopHeadsToLineNumbers.containsKey(currentNode)) {
+            mapNodesToLineNumbers.containsKey(currentNode)) {
           isThePairNew(currentNode,
               mapAutomataToLocations
-                  .get(mapLoopHeadsToLineNumbers
+                  .get(mapNodesToLineNumbers
                       .get(currentNode))
                   .getInitialState(),
               waitlist,
@@ -150,11 +157,16 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   /**
    * This method computes line number depending on the pattern. For example, if the pattern
    * is [!cond], then we want to add the edge only after the real statement in the program.
+   * Further, is the line number could not be parsed and the source state of the transition
+   * is annotated with INIT then the intended line number is 0.
    * Moreover, if the order is BEFORE, we want to include the edge one line before the
    * real operation and similarly for AFTER.
    */
   private String computeLineNumberBasedOnTransition(InstrumentationTransition pTransition,
                                                     CFAEdge pEdge) {
+    if (pTransition.getSource().isInitialAnnotation()) {
+      return "1";
+    }
     try {
       int location;
       String fileLocation = pEdge.getFileLocation().toString();

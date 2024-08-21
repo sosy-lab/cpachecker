@@ -71,16 +71,6 @@ public class InstrumentationAutomaton {
     }
   }
 
-  /**
-   * @param pInstrumentationProperty temporary indication of which property is used in the
-   *     transformation
-   */
-  public InstrumentationAutomaton(InstrumentationProperty pInstrumentationProperty) {
-    if (pInstrumentationProperty == InstrumentationProperty.NOOVERFLOW) {
-      constructOverflowAutomaton();
-    }
-  }
-
   public InstrumentationState getInitialState() {
     return initialState;
   }

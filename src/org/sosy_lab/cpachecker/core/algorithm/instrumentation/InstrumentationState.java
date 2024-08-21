@@ -40,6 +40,10 @@ public class InstrumentationState {
     return automatonOfTheState;
   }
 
+  public boolean isInitialAnnotation() {
+    return stateAnnotation == StateAnnotation.INIT;
+  }
+
   public boolean stateMatchesCfaNode(CFANode pCFANode, CFA pCFA) {
     return (stateAnnotation == StateAnnotation.TRUE && !name.equals("DUMMY")) ||
         (stateAnnotation == StateAnnotation.INIT &&

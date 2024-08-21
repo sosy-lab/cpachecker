@@ -8,16 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationOrder;
 
 public class InstrumentationTransition {
   private InstrumentationState source;
   private InstrumentationState destination;
-  /**
-   * TODO: Implement pattern class and matching (look for possible regexes?)
-   */
   private InstrumentationPattern pattern;
   private InstrumentationOperation operation;
   private InstrumentationOrder order;
