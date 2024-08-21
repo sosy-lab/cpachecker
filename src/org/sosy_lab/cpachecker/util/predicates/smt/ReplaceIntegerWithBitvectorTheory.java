@@ -205,10 +205,10 @@ class ReplaceIntegerWithBitvectorTheory extends BaseManagerView implements Integ
     return modularCongruence(pNumber1, pNumber2, BigInteger.valueOf(pN));
   }
 
-  @SuppressWarnings({"deprecation", "removal"})
   @Override
   public IntegerFormula modulo(IntegerFormula pNumber1, IntegerFormula pNumber2) {
     return wrap(
-        FormulaType.IntegerType, bvFormulaManager.modulo(unwrap(pNumber1), unwrap(pNumber2), true));
+        FormulaType.IntegerType,
+        bvFormulaManager.remainder(unwrap(pNumber1), unwrap(pNumber2), true));
   }
 }

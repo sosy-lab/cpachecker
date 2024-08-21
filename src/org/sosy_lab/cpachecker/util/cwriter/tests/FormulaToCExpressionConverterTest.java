@@ -596,19 +596,27 @@ public class FormulaToCExpressionConverterTest {
       checkThat(converter.formulaToCExpression(unsigned)).isEquivalentTo(expected);
     }
 
+    /*
+     * The correct equivalent for the % operator in C is signed remainder in SMTLIB2.
+     */
     @Test
     public void convertBVModulo() throws InterruptedException {
       skipTestForSolvers(Solvers.SMTINTERPOL, Solvers.OPENSMT, Solvers.MATHSAT5, Solvers.PRINCESS);
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.equal(
-              bvmgrv.smodulo(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
+              bvmgrv.remainder(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true),
+              bvmgrv.makeVariable(5, "z"));
+      BooleanFormula unsigned =
+          bvmgrv.equal(
+              bvmgrv.remainder(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), false),
               bvmgrv.makeVariable(5, "z"));
       String expected = "((x % y) == z)";
       if (solverToUse() == Solvers.CVC4) {
         expected = "(((0 == y) ? x : (x % y)) == z)";
       }
       checkThat(converter.formulaToCExpression(signed)).isEquivalentTo(expected);
+      checkThat(converter.formulaToCExpression(unsigned)).isEquivalentTo(expected);
     }
 
     @Test

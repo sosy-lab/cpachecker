@@ -218,7 +218,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     if (numericFormulaManager instanceof IntegerFormulaManager) {
       return wrap(
           getFormulaType(pNumber1),
-          getC99ReplacementForSMTlib2Modulo(unwrap(pNumber1), unwrap(pNumber2)));
+          getCReplacementForSMTlib2IntegerModulo(unwrap(pNumber1), unwrap(pNumber2)));
     } else {
       return makeUf(getFormulaType(pNumber1), moduloUfDecl, pNumber1, pNumber2);
     }
@@ -226,20 +226,22 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
 
   @Override
   public BitvectorFormula smodulo(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
-    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    if (numericFormulaManager instanceof IntegerFormulaManager) {
-      return wrap(
-          getFormulaType(pNumber1),
-          getC99ReplacementForSMTlib2Modulo(unwrap(pNumber1), unwrap(pNumber2)));
-    } else {
-      return makeUf(getFormulaType(pNumber1), moduloUfDecl, pNumber1, pNumber2);
-    }
+    // Note: signed bv modulo behaves differently compared to int modulo or bv remainder!
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
   }
 
   @Override
   public BitvectorFormula remainder(
       BitvectorFormula numerator, BitvectorFormula denominator, boolean signed) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+    assert getLength(numerator) == getLength(denominator)
+        : "Expect operators to have the same size";
+    if (numericFormulaManager instanceof IntegerFormulaManager) {
+      return wrap(
+          getFormulaType(numerator),
+          getCReplacementForSMTlib2IntegerModulo(unwrap(numerator), unwrap(denominator)));
+    } else {
+      return makeUf(getFormulaType(numerator), moduloUfDecl, numerator, denominator);
+    }
   }
 
   /**
@@ -268,10 +270,11 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   }
 
   /**
-   * @see BitvectorFormulaManagerView#smodulo(BitvectorFormula, BitvectorFormula)
+   * @see BitvectorFormulaManagerView#remainder(BitvectorFormula, BitvectorFormula, boolean) with
+   *     signed true for the BV equivalent.
    */
   @SuppressWarnings("unchecked")
-  private Formula getC99ReplacementForSMTlib2Modulo(final T f1, final T f2) {
+  private Formula getCReplacementForSMTlib2IntegerModulo(final T f1, final T f2) {
     final T zero = numericFormulaManager.makeNumber(0);
     final T additionalUnit =
         booleanFormulaManager.ifThenElse(

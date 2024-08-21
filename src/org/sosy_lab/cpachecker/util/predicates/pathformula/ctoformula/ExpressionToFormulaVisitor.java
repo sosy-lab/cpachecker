@@ -249,9 +249,10 @@ public class ExpressionToFormulaVisitor
         ret = mgr.makeDivide(f1, f2, signed);
         break;
       case MODULO:
-        ret = mgr.makeModulo(f1, f2, signed);
+        // Modulo in C is remainder in SMTLIB2
+        ret = mgr.makeRemainder(f1, f2, signed);
 
-        addModuloConstraints(exp, f1, f2, signed, ret);
+        addRemainderConstraints(exp, f1, f2, signed, ret);
 
         break;
       case BINARY_AND:
@@ -336,10 +337,10 @@ public class ExpressionToFormulaVisitor
   }
 
   /**
-   * Some solvers (Mathsat, Princess) do not support MODULO and replace it with an UF. Thus, we
-   * limit the result of the UF with additional constraints.
+   * Some solvers (Mathsat, Princess) do not support MODULO/REMAINDER and replace it with an UF.
+   * Thus, we limit the result of the UF with additional constraints.
    */
-  private void addModuloConstraints(
+  private void addRemainderConstraints(
       final CBinaryExpression exp,
       final Formula f1,
       final Formula f2,
