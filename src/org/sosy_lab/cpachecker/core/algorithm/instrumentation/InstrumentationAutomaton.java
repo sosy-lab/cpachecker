@@ -145,10 +145,10 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("MUL"),
             new InstrumentationOperation(
-                "__VERIFIER_assert((!((x1 > 0) && (x2 > 0)) || !(x1 > (INT_MAX/x2)))"
-                          + " && (!((x1 > 0) && (x2 <= 0)) || !(x2 < (INT_MAX/x1)))"
-                          + " && (!((x1 <= 0) && (x2 > 0)) || !(x1 < (INT_MAX/x2)))"
-                          + " && (!((x1 <= 0) && (x2 <= 0)) || !((x1 != 0) && x2 > (INT_MAX/x1))));"),
+                "__VERIFIER_assert((!((x1 > 0) && (x2 > 0)) || !(x1 > (INT_MAX / x2)))"
+                          + " && (!((x1 > 0) && (x2 <= 0)) || !(x2 < (INT_MAX / x1)))"
+                          + " && (!((x1 <= 0) && (x2 > 0)) || !(x1 < (INT_MAX / x2)))"
+                          + " && (!((x1 <= 0) && (x2 <= 0)) || !((x1 != 0) && x2 > (INT_MAX / x1))));"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t5 =
