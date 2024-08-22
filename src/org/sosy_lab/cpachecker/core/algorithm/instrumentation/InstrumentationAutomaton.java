@@ -127,8 +127,8 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("ADD"),
             new InstrumentationOperation(
-                "__VERIFIER_assert(((x2 > 0) && (x1 > (INT_MAX - x2))) "
-                    + "|| ((x2 < 0) && (x1 < (INT_MIN - x2))));"),
+                "__VERIFIER_assert(!(((x2 > 0) && (x1 > (INT_MAX - x2))) "
+                    + "|| ((x2 < 0) && (x1 < (INT_MIN - x2)))));"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t3 =
@@ -136,8 +136,8 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("SUB"),
             new InstrumentationOperation(
-                "__VERIFIER_assert(((x2 > 0 && x1 < INT_MIN + x2) ||"
-                    + " (x2 < 0 && x1 > INT_MAX + x2)));"),
+                "__VERIFIER_assert(!(((x2 > 0 && x1 < INT_MIN + x2) ||"
+                    + " (x2 < 0 && x1 > INT_MAX + x2))));"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t4 =
