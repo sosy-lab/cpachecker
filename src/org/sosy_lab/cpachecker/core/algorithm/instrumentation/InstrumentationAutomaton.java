@@ -128,8 +128,7 @@ public class InstrumentationAutomaton {
             new InstrumentationPattern("ADD"),
             new InstrumentationOperation(
                 "__VERIFIER_assert(((x2 > 0) && (x1 > (INT_MAX - x2))) "
-                    + "|| ((x2 < 0) && (x1 < (INT_MIN - x2))))"
-            ),
+                    + "|| ((x2 < 0) && (x1 < (INT_MIN - x2))));"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t3 =
@@ -138,7 +137,7 @@ public class InstrumentationAutomaton {
             new InstrumentationPattern("SUB"),
             new InstrumentationOperation(
                 "__VERIFIER_assert(((x2 > 0 && x1 < INT_MIN + x2) ||"
-                    + " (x2 < 0 && x1 > INT_MAX + x2)))"),
+                    + " (x2 < 0 && x1 > INT_MAX + x2)));"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t4 =
@@ -149,7 +148,7 @@ public class InstrumentationAutomaton {
                 "__VERIFIER_assert((!((x1 > 0) && (x2 > 0)) || !(x1 > (INT_MAX/x2)))"
                           + " && (!((x1 > 0) && (x2 <= 0)) || !(x2 < (INT_MAX/x1)))"
                           + " && (!((x1 <= 0) && (x2 > 0)) || !(x1 < (INT_MAX/x2)))"
-                          + " && (!((x1 <= 0) && (x2 <= 0)) || !((x1 != 0) && x2 > (INT_MAX/x1))))"),
+                          + " && (!((x1 <= 0) && (x2 <= 0)) || !((x1 != 0) && x2 > (INT_MAX/x1))));"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t5 =
@@ -157,7 +156,7 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("DIV"),
             new InstrumentationOperation(
-                "__VERIFIER_assert(!((x2 == 0) || ((x1 == INT_MIN) && (x2 == -1))))"),
+                "__VERIFIER_assert(!((x2 == 0) || ((x1 == INT_MIN) && (x2 == -1))));"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t6 =
@@ -165,7 +164,7 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("MOD"),
             new InstrumentationOperation(
-                "__VERIFIER_assert(!((x2 == 0) || ((x1 == INT_MIN) && (x2 == -1))))"),
+                "__VERIFIER_assert(!((x2 == 0) || ((x1 == INT_MIN) && (x2 == -1))));"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t7 =
@@ -175,7 +174,7 @@ public class InstrumentationAutomaton {
             new InstrumentationOperation(
                 "__VERIFIER_assert(!((x1 < 0) || (x2 < 0) ||"
                         + "(x2 >= INT_MAX) ||"
-                        + "(x1 > (INT_MAX >> si_b)))))"),
+                        + "(x1 > (INT_MAX >> si_b)))));"),
             InstrumentationOrder.BEFORE,
             q2);
 
