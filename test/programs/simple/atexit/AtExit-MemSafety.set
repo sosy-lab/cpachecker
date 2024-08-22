@@ -1,0 +1,2 @@
+../../benchmarks/memsafety/global-atexit*.yml
+memsafety/*.yml
