@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 /**
  * Class for patterns defined on the transitions of instrumentation automaton. Should not be used
@@ -155,8 +156,13 @@ public class InstrumentationPattern {
       CExpression expression = LoopInfoUtils.extractExpression(astNode);
       if (expression instanceof CBinaryExpression
           && ((CBinaryExpression) expression).getOperator().equals(pOperator)) {
-          return ImmutableList.of(((CBinaryExpression) expression).getOperand1().toASTString(),
-              ((CBinaryExpression) expression).getOperand2().toASTString());
+          CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
+          CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
+          if ((operand1.getExpressionType().getCanonicalType().toString()).equals("signed int")
+              || (operand2.getExpressionType().getCanonicalType().toString()).equals("signed int")) {
+            return ImmutableList.of(((CBinaryExpression) expression).getOperand1().toASTString(),
+                ((CBinaryExpression) expression).getOperand2().toASTString());
+          }
       }
     }
     return null;
