@@ -99,7 +99,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  *       {@link Float} and {@link Double} for these operations.
  *   <li>"Bit-wise equivalence"
  *       <p>Considers the actual bit pattern of the values: <code>+0 != -0</code> and two <code>NaN
- *       </code> values are consider equal if (and only if) their sign and payload match. Use in
+ *       </code> values are consider equal if (and only if) their sign and payload match. Used in
  *       {@link #compareWithTotalOrder(FloatValue)} to implement the totalOrder predicate from the
  *       IEEE-754 standard.
  * </ul>
@@ -798,7 +798,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
   }
 
   /**
-   * Floating point equality ((<code>==</code>)
+   * Floating point equality (<code>==</code>)
    *
    * <p>Same as the <code>==</code> operation on primitive float values. Ignores the sign of the
    * zero and returns `false` if one of the operands is NaN.
@@ -823,10 +823,16 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
   }
 
   /**
-   * Inequality (<code><></code>, "less than or greater")
+   * Less than or greater (<code><></code>)
    *
    * <p>Returns `false` if one of the operands is NaN. Otherwise behaves like the negation of {@link
    * FloatValue#equalTo(FloatValue)}
+   *
+   * <p>This operation uses "numerical equality" as defined in <a
+   * href="https://download.java.net/java/early_access/valhalla/docs/api/java.base/java/lang/Double.html#equivalenceRelation">this</a>
+   * discussion. For "representation equivalence" use {@link #compareTo(FloatValue)} and check if
+   * the result is different from zero. The same can be done with {@link
+   * #compareWithTotalOrder(FloatValue)} to get the result under "bitwise equality".
    */
   public boolean lessOrGreater(FloatValue pNumber) {
     if (isNan() || pNumber.isNan()) {
@@ -835,7 +841,18 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     return !equalTo(pNumber);
   }
 
-  /** Strictly greater than (<code>></code>) */
+  /**
+   * Strictly greater than (<code>></code>)
+   *
+   * <p>Returns <code>false</code> if either number is <code>NaN</code> and considers `0.0` and
+   * `-0.0` the same number.
+   *
+   * <p>This operation uses "numerical equality" as defined in <a
+   * href="https://download.java.net/java/early_access/valhalla/docs/api/java.base/java/lang/Double.html#equivalenceRelation">this</a>
+   * discussion. For "representation equivalence" use {@link #compareTo(FloatValue)} and check if
+   * the result is greater than zero. The same can be done with {@link
+   * #compareWithTotalOrder(FloatValue)} to get the result under "bitwise equality".
+   */
   public boolean greaterThan(FloatValue pNumber) {
     checkMatchingPrecision(pNumber);
     FloatValue arg1 = this;
@@ -863,12 +880,34 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     }
   }
 
-  /** Greater or equal to (<code>>=</code>) */
+  /**
+   * Greater or equal to (<code>>=</code>)
+   *
+   * <p>Returns <code>false</code> if either number is <code>NaN</code> and considers `0.0` and
+   * `-0.0` the same number.
+   *
+   * <p>This operation uses "numerical equality" as defined in <a
+   * href="https://download.java.net/java/early_access/valhalla/docs/api/java.base/java/lang/Double.html#equivalenceRelation">this</a>
+   * discussion. For "representation equivalence" use {@link #compareTo(FloatValue)} and check if
+   * the result is greater or equal to zero. The same can be done with {@link
+   * #compareWithTotalOrder(FloatValue)} to get the result under "bitwise equality".
+   */
   public boolean greaterOrEqual(FloatValue pNumber) {
     return greaterThan(pNumber) || equalTo(pNumber);
   }
 
-  /** Strictly less than (<code><</code>) */
+  /**
+   * Strictly less than (<code><</code>)
+   *
+   * <p>Returns <code>false</code> if either number is <code>NaN</code> and considers `0.0` and
+   * `-0.0` the same number.
+   *
+   * <p>This operation uses "numerical equality" as defined in <a
+   * href="https://download.java.net/java/early_access/valhalla/docs/api/java.base/java/lang/Double.html#equivalenceRelation">this</a>
+   * discussion. For "representation equivalence" use {@link #compareTo(FloatValue)} and check if
+   * the result is less than zero. The same can be done with {@link
+   * #compareWithTotalOrder(FloatValue)} to get the result under "bitwise equality".
+   */
   public boolean lessThan(FloatValue pNumber) {
     if (isNan() || pNumber.isNan()) {
       return false;
@@ -876,7 +915,18 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     return !greaterOrEqual(pNumber);
   }
 
-  /** Less than or equal to (<code><=</code>) */
+  /**
+   * Less than or equal to (<code><=</code>) *
+   *
+   * <p>Returns <code>false</code> if either number is <code>NaN</code> and considers `0.0` and
+   * `-0.0` the same number.
+   *
+   * <p>This operation uses "numerical equality" as defined in <a
+   * href="https://download.java.net/java/early_access/valhalla/docs/api/java.base/java/lang/Double.html#equivalenceRelation">this</a>
+   * discussion. For "representation equivalence" use {@link #compareTo(FloatValue)} and check if
+   * the result is less or equal to zero. The same can be done with {@link
+   * #compareWithTotalOrder(FloatValue)} to get the result under "bitwise equality".
+   */
   public boolean lessOrEqual(FloatValue pNumber) {
     return pNumber.greaterOrEqual(this);
   }
