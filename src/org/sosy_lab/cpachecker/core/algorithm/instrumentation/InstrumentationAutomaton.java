@@ -174,7 +174,7 @@ public class InstrumentationAutomaton {
             new InstrumentationOperation(
                 "__VERIFIER_assert(!((x1 < 0) || (x2 < 0) ||"
                         + "(x2 >= INT_MAX) ||"
-                        + "(x1 > (INT_MAX >> si_b)))));"),
+                        + "(x1 > (INT_MAX >> x2)))));"),
             InstrumentationOrder.BEFORE,
             q2);
 
