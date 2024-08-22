@@ -177,9 +177,80 @@ public class InstrumentationAutomaton {
                         + "(x1 > (INT_MAX >> x2)))));"),
             InstrumentationOrder.BEFORE,
             q2);
+    InstrumentationTransition t8 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("EQ"),
+            new InstrumentationOperation(""),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t9 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("GEQ"),
+            new InstrumentationOperation(
+                ""),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t10 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("GR"),
+            new InstrumentationOperation(""),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t11 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("LEQ"),
+            new InstrumentationOperation(""),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t12 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("LS"),
+            new InstrumentationOperation(""),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t13 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("NEQ"),
+            new InstrumentationOperation(""),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t14 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("RSHIFT"),
+            new InstrumentationOperation(""),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t15 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("AND"),
+            new InstrumentationOperation(""),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t16 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("OR"),
+            new InstrumentationOperation(""),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t17 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("XOR"),
+            new InstrumentationOperation(""),
+            InstrumentationOrder.BEFORE,
+            q2);
 
     this.instrumentationTransitions =
-        ImmutableList.of(t1, t2, t3, t4, t5, t6, t7);
+        ImmutableList.of(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17);
   }
 
   private void constructTerminationAutomaton(int pIndex) {

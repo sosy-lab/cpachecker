@@ -77,6 +77,36 @@ public class InstrumentationPattern {
       case "SHIFT" :
         type = patternType.SHIFT;
         break;
+      case "EQ" :
+        type = patternType.EQ;
+        break;
+      case "GEQ" :
+        type = patternType.GEQ;
+        break;
+      case "GR" :
+        type = patternType.GR;
+        break;
+      case "LEQ" :
+        type = patternType.LEQ;
+        break;
+      case "LS" :
+        type = patternType.LS;
+        break;
+      case "NEQ" :
+        type = patternType.NEQ;
+        break;
+      case "RSHIFT" :
+        type = patternType.RSHIFT;
+        break;
+      case "OR" :
+        type = patternType.OR;
+        break;
+      case "AND" :
+        type = patternType.AND;
+        break;
+      case "XOR" :
+        type = patternType.XOR;
+        break;
       default:
         type = patternType.REGEX;
         break;
@@ -99,6 +129,16 @@ public class InstrumentationPattern {
       case DIV -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.DIVIDE);
       case MOD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MODULO);
       case SHIFT -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.SHIFT_LEFT);
+      case EQ -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.EQUALS);
+      case GEQ -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.GREATER_EQUAL);
+      case GR -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.GREATER_THAN);
+      case LEQ -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.LESS_EQUAL);
+      case LS -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.LESS_THAN);
+      case NEQ -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.NOT_EQUALS);
+      case RSHIFT -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.SHIFT_RIGHT);
+      case OR -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.BINARY_OR);
+      case AND -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.BINARY_AND);
+      case XOR -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.BINARY_XOR);
       default -> null;
     };
   }
@@ -150,6 +190,16 @@ public class InstrumentationPattern {
     DIV,
     MOD,
     SHIFT,
+    EQ,
+    GEQ,
+    GR,
+    LEQ,
+    LS,
+    NEQ,
+    RSHIFT,
+    OR,
+    AND,
+    XOR,
     REGEX
   }
 }

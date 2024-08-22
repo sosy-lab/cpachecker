@@ -216,9 +216,24 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                                   InstrumentationTransition pTransition,
                                   List<Pair<CFANode, InstrumentationState>> pWaitlist) {
     if (!pTransition.getPattern().toString().equals("ADD")
-        && !pTransition.getPattern().toString().equals("SUB")) {
+        && !pTransition.getPattern().toString().equals("SUB")
+        && !pTransition.getPattern().toString().equals("MUL")
+        && !pTransition.getPattern().toString().equals("MOD")
+        && !pTransition.getPattern().toString().equals("DIV")
+        && !pTransition.getPattern().toString().equals("SHIFT")
+        && !pTransition.getPattern().toString().equals("EQ")
+        && !pTransition.getPattern().toString().equals("GEQ")
+        && !pTransition.getPattern().toString().equals("GR")
+        && !pTransition.getPattern().toString().equals("LEQ")
+        && !pTransition.getPattern().toString().equals("LS")
+        && !pTransition.getPattern().toString().equals("NEQ")
+        && !pTransition.getPattern().toString().equals("RSHIFT")
+        && !pTransition.getPattern().toString().equals("OR")
+        && !pTransition.getPattern().toString().equals("AND")
+        && !pTransition.getPattern().toString().equals("XOR")) {
       return false;
     }
+
     AAstNode astNode = pCFAEdge.getRawAST().get();
     CExpression expression = LoopInfoUtils.extractExpression(astNode);
     CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
