@@ -1,2 +1,0 @@
-/opt/cpachecker/bin/cpachecker /usr/bin/cpachecker
-/opt/cpachecker/bin/cpa-witness2test /usr/bin/cpa-witness2test
