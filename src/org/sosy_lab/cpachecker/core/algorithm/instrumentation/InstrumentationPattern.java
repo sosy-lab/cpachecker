@@ -158,8 +158,8 @@ public class InstrumentationPattern {
           && ((CBinaryExpression) expression).getOperator().equals(pOperator)) {
           CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
           CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
-          if ((operand1.getExpressionType().getCanonicalType().toString()).equals("signed int")
-              || (operand2.getExpressionType().getCanonicalType().toString()).equals("signed int")) {
+        if ( operand1.getExpressionType().getCanonicalType().toString().equals("signed int")
+            ||  operand2.getExpressionType().getCanonicalType().toString().equals("signed int")) {
             return ImmutableList.of(((CBinaryExpression) expression).getOperand1().toASTString(),
                 ((CBinaryExpression) expression).getOperand2().toASTString());
           }
