@@ -85,8 +85,7 @@ public class BitvectorFormulaManagerView extends BaseManagerView
    * <p>Example: SMTlib2: 10%3==1, 10%(-3)==1, (-10)%3==2, (-10)%(-3)==2 C99: 10%3==1, 10%(-3)==1,
    * (-10)%3==(-1), (-10)%(-3)==(-1)
    *
-   * <p>Note: this has been deprecated and succeeded by smodulo() and remainder(). Also note that
-   * this call used/uses remainder() internally.
+   * <p>Note: this call used remainder() internally.
    */
   @SuppressWarnings({"deprecation", "removal"})
   @DoNotCall
@@ -98,8 +97,11 @@ public class BitvectorFormulaManagerView extends BaseManagerView
   }
 
   /**
-   * Note: this does NOT behave in the same way modulo behaves in C or Java! See remainder() or the
-   * JavaSMT doc for more information.
+   * Signed bitvector modulo operation. See {@link BitvectorFormulaManager#smodulo(BitvectorFormula,
+   * BitvectorFormula)} for more information. For unsigned bitvector modulo please use unsigned
+   * {@link BitvectorFormulaManagerView#remainder(BitvectorFormula, BitvectorFormula, boolean)}.
+   *
+   * <p>Note: this does NOT behave in the same way the modulo operation (%) behaves in C or Java!
    */
   @Override
   public BitvectorFormula smodulo(BitvectorFormula numerator, BitvectorFormula denominator) {
@@ -107,8 +109,16 @@ public class BitvectorFormulaManagerView extends BaseManagerView
   }
 
   /**
-   * This method was previously used inside the modulo() method for Bitvectors in JavaSMT.
-   * It behaves according to the % operator in C or Java. More info in the JavaSMT doc.
+   * Returns the remainder when numerator is divided by denominator. Sign bit is taken from the
+   * numerator in the signed case.
+   *
+   * <p>This method was previously used inside the {@link
+   * BitvectorFormulaManagerView#modulo(BitvectorFormula, BitvectorFormula, boolean)} method. It
+   * behaves mostly according to the % operator in C or Java. While in C the modulo operation is
+   * rounded towards 0, SMTLIB2 rounds towards the nearest infinity depending on the operands. It
+   * behaves differently compared to the {@link IntegerFormulaManagerView#modulo(IntegerFormula,
+   * IntegerFormula)} for negative numerators (in the signed case). More info in the JavaSMT doc
+   * here: {@link BitvectorFormulaManager#remainder(BitvectorFormula, BitvectorFormula, boolean)}.
    */
   @Override
   public BitvectorFormula remainder(
