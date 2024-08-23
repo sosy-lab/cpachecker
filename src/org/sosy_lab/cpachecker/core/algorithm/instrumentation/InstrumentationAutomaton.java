@@ -249,9 +249,16 @@ public class InstrumentationAutomaton {
             new InstrumentationOperation(""),
             InstrumentationOrder.BEFORE,
             q2);
+    InstrumentationTransition t18 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("NEG"),
+            new InstrumentationOperation("__VERIFIER_assert(!(x1 == INT_MIN));"),
+            InstrumentationOrder.BEFORE,
+            q2);
 
     this.instrumentationTransitions =
-        ImmutableList.of(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17);
+        ImmutableList.of(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18);
   }
 
   private void constructTerminationAutomaton(int pIndex) {

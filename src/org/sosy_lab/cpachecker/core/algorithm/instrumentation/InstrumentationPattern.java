@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -65,6 +66,9 @@ public class InstrumentationPattern {
         break;
       case "SUB" :
         type = patternType.SUB;
+        break;
+      case "NEG" :
+        type = patternType.NEG;
         break;
       case "MUL" :
         type = patternType.MUL;
@@ -126,6 +130,7 @@ public class InstrumentationPattern {
       case NOT_COND -> isNegatedCond(pCFAEdge) ? ImmutableList.of() : null;
       case ADD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.PLUS);
       case SUB -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MINUS);
+      case NEG -> getTheOperandsFromUnaryOperation(pCFAEdge, UnaryOperator.MINUS);
       case MUL -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MULTIPLY);
       case DIV -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.DIVIDE);
       case MOD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MODULO);
@@ -147,6 +152,22 @@ public class InstrumentationPattern {
   @Override
   public String toString() {
     return pattern;
+  }
+
+  @Nullable
+  private ImmutableList<String> getTheOperandsFromUnaryOperation(CFAEdge pCFAEdge, UnaryOperator pOperator) {
+    if (pCFAEdge.getRawAST().isPresent()) {
+      AAstNode astNode = pCFAEdge.getRawAST().get();
+      CExpression expression = LoopInfoUtils.extractExpression(astNode);
+      if (expression instanceof CUnaryExpression
+          && ((CUnaryExpression) expression).getOperator().equals(pOperator)) {
+        CExpression operand = ((CUnaryExpression) expression).getOperand();
+        if (operand.getExpressionType().getCanonicalType().toString().equals("signed int")) {
+          return ImmutableList.of(((CUnaryExpression) expression).getOperand().toASTString());
+        }
+      }
+    }
+    return null;
   }
 
   @Nullable
@@ -192,6 +213,7 @@ public class InstrumentationPattern {
     NOT_COND,
     ADD,
     SUB,
+    NEG,
     MUL,
     DIV,
     MOD,
