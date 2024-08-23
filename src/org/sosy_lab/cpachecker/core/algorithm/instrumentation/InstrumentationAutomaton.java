@@ -146,9 +146,9 @@ public class InstrumentationAutomaton {
             new InstrumentationPattern("MUL"),
             new InstrumentationOperation(
                 "__VERIFIER_assert(!(((x1 > 0) && (x2 > 0) && (x1 > (INT_MAX / x2)))"
-                    + "&& ((x1 > 0) && (x2 <= 0) && (x2 < (INT_MIN / x1)))"
-                    + "&& ((x1 <= 0) && (x2 > 0) && (x1 < (INT_MIN / x2)))"
-                    + "&& ((x1 <= 0) && (x2 <= 0) && (x1 != 0 && (x2 < (INT_MAX / x1))))"
+                    + "|| ((x1 > 0) && (x2 <= 0) && (x2 < (INT_MIN / x1)))"
+                    + "|| ((x1 <= 0) && (x2 > 0) && (x1 < (INT_MIN / x2)))"
+                    + "|| ((x1 <= 0) && (x2 <= 0) && (x1 != 0 && (x2 < (INT_MAX / x1))))"
                     + "));"),
             InstrumentationOrder.BEFORE,
             q2);
