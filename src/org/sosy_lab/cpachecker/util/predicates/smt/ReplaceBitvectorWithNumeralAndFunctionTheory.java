@@ -16,6 +16,7 @@ import static org.sosy_lab.java_smt.api.FormulaType.getBitvectorTypeWithSize;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.DoNotCall;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -210,18 +211,13 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
         getC99ReplacementForSMTlib2Division(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
+  @DoNotCall
   @SuppressWarnings({"deprecation", "removal"})
   @Override
-  public BitvectorFormula modulo(
+  public final BitvectorFormula modulo(
       BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
-    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    if (numericFormulaManager instanceof IntegerFormulaManager) {
-      return wrap(
-          getFormulaType(pNumber1),
-          getCReplacementForSMTlib2IntegerModulo(unwrap(pNumber1), unwrap(pNumber2)));
-    } else {
-      return makeUf(getFormulaType(pNumber1), moduloUfDecl, pNumber1, pNumber2);
-    }
+    throw new UnsupportedOperationException(
+        "This operation has been deprecated and replaced by smodulo() and remainder().");
   }
 
   @Override
@@ -238,7 +234,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     if (numericFormulaManager instanceof IntegerFormulaManager) {
       return wrap(
           getFormulaType(numerator),
-          getCReplacementForSMTlib2IntegerModulo(unwrap(numerator), unwrap(denominator)));
+          getCModuloReplacementForSMTlib2(unwrap(numerator), unwrap(denominator)));
     } else {
       return makeUf(getFormulaType(numerator), moduloUfDecl, numerator, denominator);
     }
@@ -274,7 +270,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
    *     signed true for the BV equivalent.
    */
   @SuppressWarnings("unchecked")
-  private Formula getCReplacementForSMTlib2IntegerModulo(final T f1, final T f2) {
+  private Formula getCModuloReplacementForSMTlib2(final T f1, final T f2) {
     final T zero = numericFormulaManager.makeNumber(0);
     final T additionalUnit =
         booleanFormulaManager.ifThenElse(
