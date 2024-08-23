@@ -664,7 +664,7 @@ public class FormulaManagerView {
     if (pF1 instanceof IntegerFormula pFi1 && pF2 instanceof IntegerFormula pFi2) {
       // Integer modulo does not behave according to the C standard (or Java) for
       //   negative numbers in pF1.
-      t = getCReplacementForSMTlib2IntegerModulo(pFi1, pFi2);
+      t = getCModuloReplacementForSMTlib2(pFi1, pFi2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       // remainder for BVs behaves as the C standard defines modulo (%)
       //   (also Javas % operator behaves the same)
@@ -682,8 +682,7 @@ public class FormulaManagerView {
    * @see BitvectorFormulaManagerView#remainder(BitvectorFormula, BitvectorFormula, boolean) with
    *     signed true for the BV equivalent.
    */
-  @SuppressWarnings("unchecked")
-  private IntegerFormula getCReplacementForSMTlib2IntegerModulo(
+  private IntegerFormula getCModuloReplacementForSMTlib2(
       final IntegerFormula f1, final IntegerFormula f2) {
     IntegerFormulaManagerView imgr = getIntegerFormulaManager();
     final IntegerFormula zero = imgr.makeNumber(0);
