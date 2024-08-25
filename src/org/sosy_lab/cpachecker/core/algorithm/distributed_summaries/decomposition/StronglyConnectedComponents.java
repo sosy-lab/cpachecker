@@ -15,6 +15,7 @@ import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -135,38 +136,63 @@ public class StronglyConnectedComponents {
     List<List<BlockNodeWithoutGraphInformation>> components = new ArrayList<>();
     for (Vertex vertex : vertices) {
       if (vertex.getIndex() == UNDEFINED_INDEX) {
-        findStronglyConnectedComponents(vertex, components);
+        findStronglyConnectedComponentsIterative(vertex, components);
       }
     }
     return components;
   }
 
-  private void findStronglyConnectedComponents(
-      Vertex v, List<List<BlockNodeWithoutGraphInformation>> pComponents) {
-    v.setIndex(index);
-    v.setLowLink(index);
-    index++;
-    stack.push(v);
-    v.setOnStack(true);
-    for (Vertex w : successors.get(v)) {
-      if (w.getIndex() == UNDEFINED_INDEX) {
-        findStronglyConnectedComponents(w, pComponents);
-        v.setLowLink(Integer.min(v.getLowLink(), w.getLowLink()));
-      } else if (w.isOnStack()) {
-        v.setLowLink(Integer.min(v.getLowLink(), w.getIndex()));
+  private void findStronglyConnectedComponentsIterative(
+      Vertex startVertex, List<List<BlockNodeWithoutGraphInformation>> pComponents) {
+
+    Deque<Vertex> callStack = new ArrayDeque<>();
+    Deque<Iterator<Vertex>> iteratorStack = new ArrayDeque<>();
+
+    callStack.push(startVertex);
+    iteratorStack.push(successors.get(startVertex).iterator());
+
+    while (!callStack.isEmpty()) {
+      Vertex v = callStack.peek();
+      Iterator<Vertex> it = iteratorStack.peek();
+
+      if (v.getIndex() == UNDEFINED_INDEX) {
+        v.setIndex(index);
+        v.setLowLink(index);
+        index++;
+        stack.push(v);
+        v.setOnStack(true);
       }
-    }
-    if (v.getLowLink() == v.getIndex()) {
-      List<BlockNodeWithoutGraphInformation> stronglyConnected = new ArrayList<>();
-      while (!stack.isEmpty()) {
-        Vertex w = stack.pop();
-        w.setOnStack(false);
-        stronglyConnected.add(w.getWrapped());
-        if (v.equals(w)) {
+
+      boolean finishedCurrentVertex = true;
+
+      while (it.hasNext()) {
+        Vertex w = it.next();
+        if (w.getIndex() == UNDEFINED_INDEX) {
+          callStack.push(w);
+          iteratorStack.push(successors.get(w).iterator());
+          finishedCurrentVertex = false;
           break;
+        } else if (w.isOnStack()) {
+          v.setLowLink(Integer.min(v.getLowLink(), w.getIndex()));
         }
       }
-      pComponents.add(stronglyConnected);
+
+      if (finishedCurrentVertex) {
+        if (v.getLowLink() == v.getIndex()) {
+          List<BlockNodeWithoutGraphInformation> stronglyConnected = new ArrayList<>();
+          while (!stack.isEmpty()) {
+            Vertex w = stack.pop();
+            w.setOnStack(false);
+            stronglyConnected.add(w.getWrapped());
+            if (v.equals(w)) {
+              break;
+            }
+          }
+          pComponents.add(stronglyConnected);
+        }
+        callStack.pop();
+        iteratorStack.pop();
+      }
     }
   }
 }
