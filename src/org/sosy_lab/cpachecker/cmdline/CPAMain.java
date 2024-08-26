@@ -618,7 +618,7 @@ public class CPAMain {
   }
 
   @Options
-  private static class WitnessOptions {
+  public static class WitnessOptions {
     @Option(
         secure = true,
         name = "witness.validation.file",
@@ -657,7 +657,7 @@ public class CPAMain {
     private boolean useACSLAnnotatedProgram = false;
   }
 
-  private static Configuration handleWitnessOptions(
+  public static Configuration handleWitnessOptions(
       Configuration config, Map<String, String> overrideOptions, Optional<String> configFileName)
       throws InvalidConfigurationException, IOException, InterruptedException {
     WitnessOptions options = new WitnessOptions();
