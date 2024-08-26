@@ -424,7 +424,9 @@ public class CPAchecker {
 
       // create reached set, cpa, algorithm
       ConfigurableProgramAnalysis cpa;
-      if (!stats.creationTime.isRunning()) stats.creationTime.start();
+      if (!stats.creationTime.isRunning()) {
+        stats.creationTime.start();
+      }
       stats.cpaCreationTime.start();
       try {
         logAboutSpecification();
