@@ -1644,21 +1644,21 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     // sqrt(f * 2^2m) = sqrt(f)*2^m
     FloatValue f = new FloatValue(format, sign, resultExponent % 2, resultSignificand);
 
-    // Define constants
-    // TODO: These constants should be declared only once for each supported precision
-    FloatValue c1d2 = new FloatValue(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits));
-    FloatValue c3d2 =
+    // Define constants 0.5 and 1.5
+    FloatValue oneHalf =
+        new FloatValue(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits));
+    FloatValue threeHalves =
         new FloatValue(format, false, 0, BigInteger.valueOf(3).shiftLeft(format.sigBits - 1));
 
     // Initial value (0.5 will always converge)
-    FloatValue x = c1d2;
+    FloatValue x = oneHalf;
 
     boolean done = false;
     List<FloatValue> partial = new ArrayList<>();
     while (!done) {
       partial.add(x);
       // x_n+1 = x_n * (3/2 - 1/2 * f * x_n^2)
-      x = x.multiply(c3d2.subtract(c1d2.multiply(f).multiply(x.squared())));
+      x = x.multiply(threeHalves.subtract(oneHalf.multiply(f).multiply(x.squared())));
 
       // Abort once we have enough precision
       done = partial.contains(x);
