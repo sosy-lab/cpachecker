@@ -31,19 +31,15 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.llvm.CFABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationProperty;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
@@ -106,6 +102,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     // Initialize the search
     List<Pair<CFANode, InstrumentationState>> waitlist = new ArrayList<>();
     Set<Pair<CFANode, InstrumentationState>> reachlist = new HashSet<>();
+    Map<CFANode, String> mapDecomposedOperationsCondition = new HashMap<>();
     waitlist.add(Pair.of(cfa.getMetadata().getMainFunctionEntry(), new InstrumentationState()));
 
     while (!waitlist.isEmpty()) {
@@ -141,9 +138,14 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
           for (InstrumentationTransition transition : currentState
               .getAutomatonOfTheState()
               .getTransitions(currentState)) {
-            ImmutableList<String> matchedVariables = transition.getPattern().MatchThePattern(edge);
+            ImmutableList<String> matchedVariables = transition.getPattern().MatchThePattern(edge,
+                mapDecomposedOperationsCondition);
             if (matchedVariables != null) {
-              if (canBeDecomposed(edge, transition, waitlist)
+              if (canBeDecomposed(edge,
+                    transition,
+                    waitlist,
+                    mapDecomposedOperationsCondition,
+                    matchedVariables)
                   || isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist)) {
                 matched = true;
               }
@@ -197,7 +199,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   }
 
   private void writeAllInformationIntoOutputFile(Set<String> newEdges) {
-    // Output the collected CFA information into AllCFAInfos
+    // Output the collected CFA information into newEdgesInfo
     try (BufferedWriter writer =
              Files.newBufferedWriter(new File("output/newEdgesInfo.txt").toPath(), StandardCharsets.UTF_8)) {
       String result = String.join("\n", newEdges);
@@ -214,7 +216,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
    */
   private boolean canBeDecomposed(CFAEdge pCFAEdge,
                                   InstrumentationTransition pTransition,
-                                  List<Pair<CFANode, InstrumentationState>> pWaitlist) {
+                                  List<Pair<CFANode, InstrumentationState>> pWaitlist,
+                                  Map<CFANode, String> pDecomposedMap,
+                                  ImmutableList<String> pMatchedVariables) {
     if (!pTransition.getPattern().toString().equals("ADD")
         && !pTransition.getPattern().toString().equals("SUB")
         && !pTransition.getPattern().toString().equals("MUL")
@@ -244,6 +248,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       return false;
     }
 
+    String condition = pMatchedVariables.size() != 3 ? "true" : pMatchedVariables.get(2);
     CFANode node1 = CFANode.newDummyCFANode();
     CFANode node2 = CFANode.newDummyCFANode();
 
@@ -257,6 +262,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         pCFAEdge.getFileLocation(),
         node2,
         pCFAEdge.getSuccessor()));
+    pDecomposedMap.put(node1, condition);
+    pDecomposedMap.put(node2, condition);
 
     pWaitlist.add(Pair.of(node1, pTransition.getSource()));
     pWaitlist.add(Pair.of(node2, pTransition.getSource()));
