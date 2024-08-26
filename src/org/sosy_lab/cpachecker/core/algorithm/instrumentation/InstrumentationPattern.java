@@ -217,7 +217,7 @@ public class InstrumentationPattern {
    * all such conditions and connects them into one conjunction.
    */
   private String collectConditionFromPreviousEdge(CFAEdge pCFAEdge) {
-    String condition = "true";
+    String condition = "1";
     CFAEdge currentEdge = getPreviousAssumeEdge(pCFAEdge);
     if (currentEdge == null || pCFAEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
       return condition;
