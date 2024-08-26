@@ -2139,7 +2139,7 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     FloatValue r = nan(format);
     boolean done = false;
 
-    while (!done && !arg2.isInfinite()) { // TODO: Derive better bounds based on the exponent range
+    while (!done && !arg2.isInfinite()) {
       // Rewrite a^x with a=b^2 and x=y/2 as b^y until we're left with an integer exponent
       Optional<FloatValue> val = arg1.sqrtExact();
       if (val.isEmpty()) {
