@@ -415,6 +415,7 @@ public class CPAchecker {
 
       ConfigurableProgramAnalysis cpa;
       stats.creationTime.start();
+      stats.cpaCreationTime.start();
       try {
         logAboutSpecification();
         specification =
