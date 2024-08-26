@@ -2107,14 +2107,11 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
       }
       if (r.isNan()) {
         // If the result is NaN we assume that the real result is a floating point number (or a
-        // break
-        // point between two floating point number). Unlike exp and log, pow has many arguments
-        // where
-        // this is the case. Examples include a^0, a^1, a^k (where k is an integer), or a^0.5 (where
-        // 'a') is a square number.
-        // We still check some of the trivial cases earlier for performance reasons.
-        // The more general check is more costly, however, so it is only performed after the search
-        // in the main algorithm has failed.
+        // break point between two floating point number). Unlike exp and log, pow has many
+        // arguments where this is the case. Examples include a^0, a^1, a^k (where k is an integer),
+        // or a^0.5 (where 'a') is a square number. We still check some of the trivial cases earlier
+        // for performance reasons. The more general check is more costly, however, so it is only
+        // performed after the search in the main algorithm has failed.
         r = arg1.powExact(arg2);
       }
       return r;
