@@ -2778,9 +2778,18 @@ class ASTConverter {
     }
   }
 
-  private FloatValue parseFloatLiteral(String valueStr) {
-    // TODO: Add support for "f" and "l" suffix and use a parameter for the target type
-    return FloatValue.fromString(FloatValue.Format.Float64, valueStr);
+  private FloatValue parseFloatLiteral(String pValueStr) {
+    String input = Ascii.toLowerCase(pValueStr);
+    FloatValue.Format format;
+    if (input.endsWith("f")) {
+      // Parse as a 32bit float if the input string ends in "f"
+      input = input.substring(0, input.length() - 1);
+      format = FloatValue.Format.Float32;
+    } else {
+      // Use double-precision otherwise
+      format = FloatValue.Format.Float64;
+    }
+    return FloatValue.fromString(format, input);
   }
 
   private BigInteger parseIntegerLiteral(String s, ASTNode e) {
