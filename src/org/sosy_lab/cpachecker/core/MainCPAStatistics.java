@@ -130,6 +130,7 @@ class MainCPAStatistics implements Statistics {
 
   private final Timer programTime = new Timer();
   final Timer creationTime = new Timer();
+  final Timer cfaCreationTime = new Timer();
   final Timer cpaCreationTime = new Timer();
   private final Timer analysisTime = new Timer();
   final Timer resultAnalysisTime = new Timer();
@@ -522,6 +523,7 @@ class MainCPAStatistics implements Statistics {
 
   private void printTimeStatistics(
       PrintStream out, Result result, UnmodifiableReachedSet reached, Timer statisticsTime) {
+    out.println("Time for CFA creation:      " + cfaCreationTime);
     out.println("Time for analysis setup:      " + creationTime);
     out.println("  Time for loading CPAs:      " + cpaCreationTime);
     if (cfaCreatorStatistics != null) {
