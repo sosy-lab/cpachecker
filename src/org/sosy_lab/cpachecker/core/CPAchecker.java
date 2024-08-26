@@ -414,7 +414,7 @@ public class CPAchecker {
       shutdownNotifier.shutdownIfNecessary();
 
       ConfigurableProgramAnalysis cpa;
-      stats.cpaCreationTime.start();
+      stats.creationTime.start();
       try {
         logAboutSpecification();
         specification =
