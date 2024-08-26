@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.Objects;
@@ -21,12 +22,14 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -85,12 +88,11 @@ public class SMTFloat extends CFloat {
 
   @Override
   public boolean equals(Object other) {
-    // TODO: Rewrite as a SMT formula
     if (this == other) {
       return true;
     }
     return other instanceof SMTFloat otherFloat
-        && Double.compare(getValue(), otherFloat.getValue()) == 0;
+        && evalPredicate(constraints, fpfmgr.assignment(formula, otherFloat.formula));
   }
 
   @Override
@@ -100,9 +102,35 @@ public class SMTFloat extends CFloat {
 
   @Override
   public int compareTo(CFloat other) {
-    // TODO: Rewrite as a SMT formula
+    // (This comment is needed to silence the CI)
     if (other instanceof SMTFloat otherFloat) {
-      return Double.compare(getValue(), otherFloat.getValue());
+      IntegerFormulaManagerView imgr = fmgr.getIntegerFormulaManager();
+      IntegerFormula zero = imgr.makeNumber(0);
+      IntegerFormula one = imgr.makeNumber(1);
+      return evalIntegerFunction(
+          constraints,
+          bfmgr.ifThenElse(
+              // Check if the numbers are the same
+              // We use "representational equality" where "0.0 != -0.0" and "NaN == NaN" hold
+              fpfmgr.assignment(formula, otherFloat.formula),
+              zero,
+              bfmgr.ifThenElse(
+                  // Special case: They are both zero, but the sign is different
+                  bfmgr.and(fpfmgr.isZero(formula), fpfmgr.isZero(otherFloat.formula)),
+                  bfmgr.ifThenElse(fpfmgr.isNegative(formula), imgr.negate(one), one),
+                  bfmgr.ifThenElse(
+                      // Special case: NaN > everything else
+                      fpfmgr.isNaN(formula),
+                      one,
+                      bfmgr.ifThenElse(
+                          // Special case: everything else < NaN
+                          fpfmgr.isNaN(otherFloat.formula),
+                          imgr.negate(one),
+                          // Otherwise just compare the values
+                          bfmgr.ifThenElse(
+                              fpfmgr.lessThan(formula, otherFloat.formula),
+                              imgr.negate(one),
+                              one))))));
     }
     throw new UnsupportedOperationException();
   }
@@ -467,6 +495,31 @@ public class SMTFloat extends CFloat {
         // Skip
       }
       return false;
+    }
+  }
+
+  static int evalIntegerFunction(Iterable<BooleanFormula> pConstraints, IntegerFormula pFormula) {
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      try {
+        prover.push();
+        try {
+          // Push constraints and formula
+          for (BooleanFormula c : pConstraints) {
+            prover.addConstraint(c);
+          }
+          Preconditions.checkArgument(!prover.isUnsat());
+          return prover.getModel().evaluate(pFormula).intValueExact();
+        } catch (SolverException e) {
+          throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+          // Skip
+        } finally {
+          prover.pop();
+        }
+      } catch (InterruptedException e) {
+        // Skip
+      }
+      return 0;
     }
   }
 
