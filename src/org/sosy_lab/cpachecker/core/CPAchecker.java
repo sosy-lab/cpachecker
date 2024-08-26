@@ -479,14 +479,12 @@ public class CPAchecker {
   public CPAcheckerResult run(List<String> programDenotation) {
     checkArgument(!programDenotation.isEmpty());
     final MainCPAStatistics stats;
-    final CPAcheckerResult failedResult =
-        new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, null, null);
 
     try {
       stats = new MainCPAStatistics(config, logger, shutdownNotifier);
     } catch (InvalidConfigurationException e) {
       logErrorMessage(e, logger);
-      return failedResult;
+      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, null, null);
     }
 
     CFABuilder cfaBuilder =
@@ -507,7 +505,7 @@ public class CPAchecker {
         | InterruptedException
         | ClassNotFoundException e) {
       logErrorMessage(e, logger);
-      return failedResult;
+      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, null, stats);
     }
 
     return run(cfa, stats);
