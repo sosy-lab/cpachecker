@@ -63,6 +63,7 @@ public class SMTFloat extends CFloat {
   private Optional<Double> value = Optional.empty();
 
   public SMTFloat(String pValue, Format pFormat) {
+    Preconditions.checkArgument(pFormat.equals(Format.Float32) || pFormat.equals(Format.Float64));
     formula = fromString(pValue, pFormat);
     constraints = ImmutableList.of();
   }
@@ -541,7 +542,7 @@ public class SMTFloat extends CFloat {
             } else if (object instanceof Double doubleValue) {
               value = Optional.of(doubleValue);
             } else {
-              // TODO: Add support for arbitrary precisions
+              // Should be unreachable, as guaranteed by the precondition in the constructor
               throw new UnsupportedOperationException();
             }
             return value.orElseThrow();
