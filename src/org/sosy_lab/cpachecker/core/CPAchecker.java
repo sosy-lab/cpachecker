@@ -13,6 +13,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -42,6 +43,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -162,6 +164,15 @@ public class CPAchecker {
               + "\n(see config/specification/ for examples)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> backwardSpecificationFiles = ImmutableList.of();
+
+  @Option(
+      secure = true,
+      name = "analysis.serializedCfaFile",
+      description =
+          "if this option is used, the CFA will be loaded from the given file "
+              + "instead of parsed from sourcefile.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private @Nullable Path serializedCfaFile = null;
 
   @Option(
       secure = true,
@@ -356,65 +367,11 @@ public class CPAchecker {
 
       AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
 
-      if (status.wasPropertyChecked()) {
-        stats.resultAnalysisTime.start();
-        if (reached.wasTargetReached()) {
-          targetDescription = Joiner.on(", ").join(reached.getTargetInformation());
+      result = getResultFromStatus(status, reached, stats);
+      targetDescription = getTargetDescription(status, reached);
 
-          if (!status.isPrecise()) {
-            result = Result.UNKNOWN;
-          } else {
-            result = Result.FALSE;
-          }
-        } else {
-          result = analyzeResult(reached, status.isSound());
-          if (unknownAsTrue && result == Result.UNKNOWN) {
-            result = Result.TRUE;
-          }
-        }
-        stats.resultAnalysisTime.stop();
-      } else {
-        result = Result.DONE;
-      }
-
-    } catch (IOException e) {
-      logger.logUserException(Level.SEVERE, e, "Could not read file");
-
-    } catch (ParserException e) {
-      logger.logUserException(Level.SEVERE, e, "Parsing failed");
-      StringBuilder msg = new StringBuilder();
-      msg.append("Please make sure that the code can be compiled by a compiler.\n");
-      switch (e.getLanguage()) {
-        case C:
-          msg.append(
-              "If the code was not preprocessed, please use a C preprocessor\n"
-                  + "or specify the --preprocess command-line argument.\n");
-          break;
-        case LLVM:
-          msg.append(
-              "If you want to use the LLVM frontend, please make sure that\n"
-                  + "the code can be compiled by clang or input valid LLVM code.\n");
-          break;
-        default:
-          // do not log additional messages
-          break;
-      }
-      msg.append(
-          "If the error still occurs, please send this error message\n"
-              + "together with the input file to cpachecker-users@googlegroups.com.\n");
-      logger.log(Level.INFO, msg);
-
-    } catch (InvalidConfigurationException e) {
-      logger.logUserException(Level.SEVERE, e, "Invalid configuration");
-
-    } catch (InterruptedException e) {
-      // CPAchecker must exit because it was asked to
-      // we return normally instead of propagating the exception
-      // so we can return the partial result we have so far
-      logger.logUserException(Level.WARNING, e, "Analysis interrupted");
-
-    } catch (CPAException e) {
-      logger.logUserException(Level.SEVERE, e, null);
+    } catch (InvalidConfigurationException | InterruptedException | CPAException e) {
+      logErrorMessage(e, logger);
 
     } finally {
       CPAs.closeIfPossible(algorithm, logger);
@@ -423,15 +380,119 @@ public class CPAchecker {
     return new CPAcheckerResult(result, targetDescription, reached, cfa, stats);
   }
 
-  private CFA parse(List<String> fileNames, MainCPAStatistics stats)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+  public CPAcheckerResult run(List<String> programDenotation) {
+    checkArgument(!programDenotation.isEmpty());
+    final MainCPAStatistics stats;
+    final CPAcheckerResult failedResult =
+        new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, null, null);
 
-    logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
-    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
-    stats.setCFACreator(cfaCreator);
-    final CFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
-    stats.setCFA(cfa);
-    return cfa;
+    try {
+      stats = new MainCPAStatistics(config, logger, shutdownNotifier);
+    } catch (InvalidConfigurationException e) {
+      logErrorMessage(e, logger);
+      return failedResult;
+    }
+
+    CFABuilder cfaBuilder = cfaBuilder()
+        .setConfiguration(config)
+        .setLogger(logger)
+        .setShutdownNotifier(shutdownNotifier)
+        .setFileNames(programDenotation)
+        .setSerializedCfaFile(serializedCfaFile)
+        .setStats(stats);
+
+    final CFA cfa;
+    try {
+        cfa = cfaBuilder.build();
+    }
+    catch (InvalidConfigurationException | ParserException | IOException | InterruptedException | ClassNotFoundException e) {
+      logErrorMessage(e, logger);
+      return failedResult;
+    }
+
+    return run(cfa);
+  }
+
+  /**
+   * Builder for CFAs. This class is used to create CFAs from files.
+   */
+  public static class CFABuilder {
+    @Nullable private Configuration config = null;
+    @Nullable private LogManager logger = null;
+    @Nullable private ShutdownNotifier shutdownNotifier = null;
+    @Nullable private MainCPAStatistics stats = null;
+    @Nullable private List<String> fileNames = null;
+    @Nullable private Path serializedCfaFile = null;
+
+    public CFABuilder() {
+    }
+
+    public CFA build()
+        throws InvalidConfigurationException, ParserException, IOException, InterruptedException,
+               ClassNotFoundException {
+      Preconditions.checkNotNull(config);
+      Preconditions.checkNotNull(logger);
+      Preconditions.checkNotNull(shutdownNotifier);
+      Preconditions.checkNotNull(stats);
+
+      final CFA cfa;
+      if (serializedCfaFile == null) {
+        Preconditions.checkNotNull(fileNames);
+        // parse file and create CFA
+        logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
+        CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+        stats.setCFACreator(cfaCreator);
+        cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
+      } else {
+        // load CFA from serialization file
+        logger.logf(Level.INFO, "Reading CFA from file \"%s\"", serializedCfaFile);
+        try (InputStream inputStream = Files.newInputStream(serializedCfaFile);
+             InputStream gzipInputStream = new GZIPInputStream(inputStream);
+             ObjectInputStream ois = new ObjectInputStream(gzipInputStream)) {
+          cfa = (CFA) ois.readObject();
+        }
+
+        assert CFACheck.check(cfa.getMainFunction(), null, cfa.getMachineModel());
+      }
+
+      stats.setCFA(cfa);
+      return cfa;
+    }
+
+    public CFABuilder setConfiguration(Configuration pConfig) {
+      config = pConfig;
+      return this;
+    }
+
+    public CFABuilder setLogger(LogManager pLogger) {
+      logger = pLogger;
+      return this;
+    }
+
+    public CFABuilder setShutdownNotifier(ShutdownNotifier pShutdownNotifier) {
+      shutdownNotifier = pShutdownNotifier;
+      return this;
+    }
+
+    public CFABuilder setStats(MainCPAStatistics pStats) {
+      stats = pStats;
+      return this;
+    }
+
+    public CFABuilder setFileNames(List<String> pFileNames) {
+      fileNames = pFileNames;
+      return this;
+    }
+
+    public CFABuilder setSerializedCfaFile(@Nullable Path pSerializedCfaFile) {
+      serializedCfaFile = pSerializedCfaFile;
+      return this;
+    }
+
+  }
+
+  public static CFABuilder cfaBuilder() {
+    return new CFABuilder();
   }
 
   private void printConfigurationWarnings() {
