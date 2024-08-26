@@ -29,10 +29,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-// TODO: Add support for more rounding modes
-// TODO: Add more functions (like sin(x), etc)
-// TODO: Add support for unsigned types
-
 /**
  * Java based implementation of multi-precision floating point values with correct rounding.
  *
