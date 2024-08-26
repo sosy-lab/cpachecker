@@ -85,7 +85,6 @@ class MpfrFloat extends CFloat {
   }
 
   private CFloatWrapper fromBigFloat(BigFloat floatValue) {
-    // TODO: This method should probably use mpfr_set_z_2exp (unfortunately not in BigFloat)
     long signBit = (floatValue.sign() ? 1L : 0) << sizeExponent();
     long exponentBits =
         floatValue.exponent(format.minExponent, format.maxExponent) + biasExponent();

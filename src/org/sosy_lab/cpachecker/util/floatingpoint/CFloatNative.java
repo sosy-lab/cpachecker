@@ -178,7 +178,6 @@ class CFloatNative extends CFloat {
 
   @Override
   public CFloat powToIntegral(int exponent) {
-    // FIXME: Add support for negative integer exponent in floatingPoints.c
     Preconditions.checkArgument(0 <= exponent, "Negative exponents not supported");
 
     CFloatWrapper newFloat = CFloatNativeAPI.powIntegralFp(wrapper, exponent, type.ordinal());
