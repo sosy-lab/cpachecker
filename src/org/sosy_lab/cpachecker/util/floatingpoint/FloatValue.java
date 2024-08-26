@@ -2102,7 +2102,6 @@ public class FloatValue extends Number implements Comparable<FloatValue> {
     } else if (arg2.equals(
         new FloatValue(format, false, -1, BigInteger.ONE.shiftLeft(format.sigBits)))) {
       // pow(base, exponent) where exponent=1/2: calculate sqrt(a) instead
-      // TODO: Also include a^3/2 in this check?
       return arg1.sqrt();
     } else {
       FloatValue r = arg1.abs().pow_(pExponent, pPowStats);
