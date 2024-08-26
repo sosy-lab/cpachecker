@@ -217,7 +217,7 @@ public class CFloatTest {
     assertThat(res.toString()).isEqualTo("1.00000036e+00");
 
     wrapper.setExponent(wrapper.getExponent() - 1);
-    // FIXME: We need to update the CFloat after the wrapper changed as our code is non-mutable
+    // We need to update the CFloat after the wrapper changed as our code is non-mutable
     bIFractioned = new CFloatImpl(wrapper, bI.getType());
 
     resI2 = resI.add(bI.add(bIFractioned));
@@ -273,7 +273,7 @@ public class CFloatTest {
     assertThat(res.toString()).isEqualTo("1.0000000000000007e+00");
 
     wrapper.setExponent(wrapper.getExponent() - 1);
-    // FIXME: We need to update the CFloat after the wrapper changed as our code is non-mutable
+    // We need to update the CFloat after the wrapper changed as our code is non-mutable
     bIFractioned = new CFloatImpl(wrapper, bI.getType());
 
     resI2 = resI.add(bI.add(bIFractioned));
@@ -450,7 +450,7 @@ public class CFloatTest {
 
     wrapperB.setMantissa(
         0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001L);
-    // FIXME: We need to update the CFloat after the wrapper changed as our code is non-mutable
+    // We need to update the CFloat after the wrapper changed as our code is non-mutable
     bI = new CFloatImpl(wrapperB, bI.getType());
 
     assertThat(aI.subtract(bI).copyWrapper().getMantissa()).isEqualTo(1);
@@ -480,7 +480,7 @@ public class CFloatTest {
 
     wrapperB.setMantissa(
         0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001L);
-    // FIXME: We need to update the CFloat after the wrapper changed as our code is non-mutable
+    // We need to update the CFloat after the wrapper changed as our code is non-mutable
     bI = new CFloatImpl(wrapperB, bI.getType());
 
     assertThat(aI.subtract(bI).copyWrapper().getMantissa()).isEqualTo(-9223372036854775807L);
