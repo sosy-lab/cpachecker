@@ -176,6 +176,8 @@ public class InstrumentationPattern {
         if (operand.getExpressionType().getCanonicalType().toString().equals("signed int")) {
           return ImmutableList.of(((CUnaryExpression) expression).getOperand().toASTString(),
               condition);
+        } else {
+          return ImmutableList.of();
         }
       }
     }
@@ -200,10 +202,12 @@ public class InstrumentationPattern {
         }
 
         if (expression.getExpressionType().getCanonicalType().toString().equals("signed int")) {
-          return ImmutableList.of(((CBinaryExpression) expression).getOperand1().toASTString(),
-              ((CBinaryExpression) expression).getOperand2().toASTString(),
+          return ImmutableList.of(operand1.toASTString(),
+              operand2.toASTString(),
               condition);
-          }
+        } else {
+          return ImmutableList.of();
+        }
       }
     }
     return null;

@@ -29,6 +29,9 @@ public class InstrumentationOperation {
     for (int i = 0; i < pVariables.size(); i++) {
       resultingOperation = resultingOperation.replace("x" + (i + 1), pVariables.get(i));
     }
+    if (resultingOperation.contains("x" + (pVariables.size() + 1))) {
+      return "";
+    }
     return resultingOperation;
   }
 }
