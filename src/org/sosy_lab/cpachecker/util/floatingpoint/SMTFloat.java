@@ -153,7 +153,15 @@ public class SMTFloat extends CFloat {
   @Override
   public CFloat min(CFloat pOther) {
     if (pOther instanceof SMTFloat otherFloat) {
-      return new SMTFloat(fpfmgr.min(formula, otherFloat.formula), constraints);
+      return new SMTFloat(
+          bfmgr.ifThenElse(
+              bfmgr.and(
+                  fpfmgr.isZero(formula),
+                  fpfmgr.isZero(otherFloat.formula),
+                  bfmgr.not(fpfmgr.assignment(formula, otherFloat.formula))),
+              bfmgr.ifThenElse(fpfmgr.isNegative(formula), formula, otherFloat.formula),
+              fpfmgr.min(formula, otherFloat.formula)),
+          constraints);
     }
     throw new UnsupportedOperationException();
   }
@@ -161,7 +169,15 @@ public class SMTFloat extends CFloat {
   @Override
   public CFloat max(CFloat pOther) {
     if (pOther instanceof SMTFloat otherFloat) {
-      return new SMTFloat(fpfmgr.max(formula, otherFloat.formula), constraints);
+      return new SMTFloat(
+          bfmgr.ifThenElse(
+              bfmgr.and(
+                  fpfmgr.isZero(formula),
+                  fpfmgr.isZero(otherFloat.formula),
+                  bfmgr.not(fpfmgr.assignment(formula, otherFloat.formula))),
+              bfmgr.ifThenElse(fpfmgr.isNegative(formula), otherFloat.formula, formula),
+              fpfmgr.max(formula, otherFloat.formula)),
+          constraints);
     }
     throw new UnsupportedOperationException();
   }

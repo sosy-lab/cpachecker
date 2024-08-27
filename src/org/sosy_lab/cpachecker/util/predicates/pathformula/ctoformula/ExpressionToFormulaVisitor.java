@@ -1017,7 +1017,24 @@ public class ExpressionToFormulaVisitor
                 (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
             FloatingPointFormula param1 =
                 (FloatingPointFormula) processOperand(parameters.get(1), paramType, paramType);
-            return fpfmgr.min(param0, param1);
+
+            // The return value of fmin(0.0,-0.0) and fmin(-0.0, 0.0) is not defined by the C11
+            // standard and may be either 0.0 or -0.0 depending on the implementation.
+            // We handle this case by introducing a new variable for the result and then
+            // constraining it to be equal to either of the arguments.
+            Formula anything =
+                conv.makeNondet(
+                    functionName + "_NondetAnything", CNumericTypes.INT, ssa, constraints);
+            constraints.addConstraint(
+                mgr.makeOr(mgr.makeEqual(anything, param0), mgr.makeEqual(anything, param1)));
+
+            return conv.bfmgr.ifThenElse(
+                mgr.makeAnd(
+                    fpfmgr.isZero(param0),
+                    mgr.makeAnd(
+                        fpfmgr.isZero(param1), mgr.makeNot(fpfmgr.assignment(param0, param1)))),
+                anything,
+                fpfmgr.min(param0, param1));
           }
         }
       } else if (BuiltinFloatFunctions.matchesFmax(functionName)) {
@@ -1031,7 +1048,24 @@ public class ExpressionToFormulaVisitor
                 (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
             FloatingPointFormula param1 =
                 (FloatingPointFormula) processOperand(parameters.get(1), paramType, paramType);
-            return fpfmgr.max(param0, param1);
+
+            // The return value of fmax(0.0,-0.0) and fmax(-0.0, 0.0) is not defined by the C11
+            // standard and may be either 0.0 or -0.0 depending on the implementation.
+            // We handle this case by introducing a new variable for the result and then
+            // constraining it to be equal to either of the arguments.
+            Formula anything =
+                conv.makeNondet(
+                    functionName + "_NondetAnything", CNumericTypes.INT, ssa, constraints);
+            constraints.addConstraint(
+                mgr.makeOr(mgr.makeEqual(anything, param0), mgr.makeEqual(anything, param1)));
+
+            return conv.bfmgr.ifThenElse(
+                mgr.makeAnd(
+                    fpfmgr.isZero(param0),
+                    mgr.makeAnd(
+                        fpfmgr.isZero(param1), mgr.makeNot(fpfmgr.assignment(param0, param1)))),
+                anything,
+                fpfmgr.max(param0, param1));
           }
         }
       } else if (BuiltinFloatFunctions.matchesFdim(functionName)) {
