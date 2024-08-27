@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -234,17 +235,26 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         && !pTransition.getPattern().toString().equals("RSHIFT")
         && !pTransition.getPattern().toString().equals("OR")
         && !pTransition.getPattern().toString().equals("AND")
-        && !pTransition.getPattern().toString().equals("XOR")) {
+        && !pTransition.getPattern().toString().equals("XOR")
+        && !pTransition.getPattern().toString().equals("NEG")) {
       return false;
     }
 
     AAstNode astNode = pCFAEdge.getRawAST().get();
     CExpression expression = LoopInfoUtils.extractExpression(astNode);
-    CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
-    CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
+    CExpression operand1;
+    CExpression operand2;
 
-    if (!(operand1 instanceof CBinaryExpression)
-        && !(operand2 instanceof CBinaryExpression)) {
+    if (expression instanceof  CBinaryExpression) {
+      operand1 = ((CBinaryExpression) expression).getOperand1();
+      operand2 = ((CBinaryExpression) expression).getOperand2();
+    } else {
+      operand1 = ((CUnaryExpression) expression).getOperand();
+      operand2 = ((CUnaryExpression) expression).getOperand();
+    }
+
+    if (!(operand1 instanceof CBinaryExpression || operand1 instanceof CUnaryExpression)
+        && !(operand2 instanceof CBinaryExpression || operand2 instanceof CUnaryExpression)) {
       return false;
     }
 
