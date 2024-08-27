@@ -527,7 +527,10 @@ public class FloatValueTest {
    *     "Known Maximum Errors in Math Functions" (from the glibc documentation)</a>
    */
   private int ulpError() {
-    return configuration.pReference == ReferenceImpl.MPFR ? 0 : 1;
+    return ImmutableList.of(ReferenceImpl.JAVA, ReferenceImpl.NATIVE)
+            .contains(configuration.pReference)
+        ? 1
+        : 0;
   }
 
   /** Returns a list of all float values in the error range. */
