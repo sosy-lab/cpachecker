@@ -199,8 +199,7 @@ public class InstrumentationPattern {
           condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor());
         }
 
-        if ( operand1.getExpressionType().getCanonicalType().toString().equals("signed int")
-            ||  operand2.getExpressionType().getCanonicalType().toString().equals("signed int")) {
+        if (expression.getExpressionType().getCanonicalType().toString().equals("signed int")) {
           return ImmutableList.of(((CBinaryExpression) expression).getOperand1().toASTString(),
               ((CBinaryExpression) expression).getOperand2().toASTString(),
               condition);
