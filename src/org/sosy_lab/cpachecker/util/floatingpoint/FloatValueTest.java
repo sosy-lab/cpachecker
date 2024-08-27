@@ -487,6 +487,7 @@ public class FloatValueTest {
     long valueExp = value.exponent(format.minExp(), format.maxExp()) + format.maxExp();
     String exponent = Long.toString(valueExp, 2);
     exponent = "0".repeat(calculateExpWidth(format) - exponent.length()) + exponent;
+    exponent = exponent.substring(0, format.expBits());
 
     // Print the significand
     // We use NaN as default value and then only extract the actual bits if the value was different
