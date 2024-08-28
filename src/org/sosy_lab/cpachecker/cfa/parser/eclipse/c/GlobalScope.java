@@ -290,6 +290,7 @@ class GlobalScope extends AbstractScope {
       // the type from the other file
       if (programContainsEqualType) {
         CComplexTypeDeclaration oldProgDeclaration = programDeclarations.getEqualType(declaration);
+        parseContext.overwriteTypeIfNecessary(type, oldProgDeclaration.getType(), currentFile);
         type = oldProgDeclaration.getType();
 
         // there was already a declaration with this typename before, however
@@ -297,6 +298,7 @@ class GlobalScope extends AbstractScope {
       } else if (programContainsExactNamedType) {
         declaration = createRenamedTypeDeclaration(declaration);
         name = declaration.getType().getQualifiedName();
+        parseContext.overwriteTypeIfNecessary(type, declaration.getType(), currentFile);
       }
 
       // We now have a real declaration for a type for which we have seen a forward
@@ -312,6 +314,7 @@ class GlobalScope extends AbstractScope {
       // the type from this file instead of the new one
     } else if (programContainsEqualType) {
       declaration = programDeclarations.getEqualType(declaration);
+      parseContext.overwriteTypeIfNecessary(type, declaration.getType(), currentFile);
 
       // there was no former type declaration here, but the NAME of the type that
       // should be declared is already known from another parsed file, so we rename
@@ -319,6 +322,7 @@ class GlobalScope extends AbstractScope {
     } else if (programContainsExactNamedType) {
       declaration = createRenamedTypeDeclaration(declaration);
       name = declaration.getType().getQualifiedName();
+      parseContext.overwriteTypeIfNecessary(type, declaration.getType(), currentFile);
     }
 
     if (!programContainsEqualType) {

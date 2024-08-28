@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
@@ -125,11 +126,34 @@ class ParseContext {
     return typeConversions.getOrDefault(filePrefix, ImmutableMap.of()).get(type);
   }
 
+  private IType getTypeFromTypeConversion(CType ourCType, String filePrefix) {
+    for (Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
+      if (ourCType.equals(entry.getValue())) {
+        return entry.getKey();
+      }
+    }
+    return null;
+  }
+
+  void overwriteTypeIfNecessary(CType oldType, CType newType, String filePrefix) {
+    IType iType = getTypeFromTypeConversion(oldType, filePrefix);
+    if (iType != null) {
+      rememberAndOverrideCType(iType, newType, filePrefix);
+    }
+  }
+
   void rememberCType(IType originalType, CType cType, String filePrefix) {
     typeConversions.putIfAbsent(filePrefix, new HashMap<>());
 
     // If originalType was already mapped for this file prefix leave it untouched
     typeConversions.get(filePrefix).putIfAbsent(originalType, cType);
+  }
+
+  private void rememberAndOverrideCType(IType originalType, CType cType, String filePrefix) {
+    typeConversions.putIfAbsent(filePrefix, new HashMap<>());
+
+    // Override a type if it was previously mapped
+    typeConversions.get(filePrefix).put(originalType, cType);
   }
 
   /** This function returns the converted file-location of an IASTNode. */
