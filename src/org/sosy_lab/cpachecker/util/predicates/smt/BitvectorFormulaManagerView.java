@@ -66,8 +66,10 @@ public class BitvectorFormulaManagerView extends BaseManagerView
   }
 
   /**
-   * This method returns the formula for the C99-conform DIVIDE-operator, which is rounded towards
-   * zero. SMTlib2 rounds towards positive or negative infinity, depending on both operands.
+   * {@inheritDoc}
+   *
+   * <p>This method returns the formula for the C99-conform DIVIDE-operator, which is rounded
+   * towards zero. SMTlib2 rounds towards positive or negative infinity, depending on both operands.
    *
    * <p>Example: SMTlib2: 10/3==3, 10/(-3)==(-3), (-10)/3==(-4), (-10)/(-3)==4 (4 different values!)
    * C99: 10/3==3, 10/(-3)==(-3), (-10)/3==(-3), (-10)/(-3)==3
@@ -79,7 +81,9 @@ public class BitvectorFormulaManagerView extends BaseManagerView
   }
 
   /**
-   * Deprecated and unsupported operation.
+   * {@inheritDoc}
+   *
+   * <p>Deprecated and unsupported operation.
    *
    * <p>This method returns the formula for the C99-conform MODULO-operator, which is rounded
    * towards zero. SMTlib2 rounds towards positive or negative infinity, depending on both operands.
@@ -99,9 +103,12 @@ public class BitvectorFormulaManagerView extends BaseManagerView
   }
 
   /**
-   * Signed bitvector modulo operation. See {@link BitvectorFormulaManager#smodulo(BitvectorFormula,
-   * BitvectorFormula)} for more information. For unsigned bitvector modulo please use unsigned
-   * {@link BitvectorFormulaManagerView#remainder(BitvectorFormula, BitvectorFormula, boolean)}.
+   * {@inheritDoc}
+   *
+   * <p>Signed bitvector modulo operation. See {@link
+   * BitvectorFormulaManager#smodulo(BitvectorFormula, BitvectorFormula)} for more information. For
+   * unsigned bitvector modulo please use unsigned {@link
+   * BitvectorFormulaManagerView#remainder(BitvectorFormula, BitvectorFormula, boolean)}.
    *
    * <p>Note: this does NOT behave in the same way the modulo operation (%) behaves in C or Java!
    */
@@ -111,8 +118,7 @@ public class BitvectorFormulaManagerView extends BaseManagerView
   }
 
   /**
-   * Returns the remainder when numerator is divided by denominator. Sign bit is taken from the
-   * numerator in the signed case.
+   * {@inheritDoc}
    *
    * <p>This method was previously used inside the {@link
    * BitvectorFormulaManagerView#modulo(BitvectorFormula, BitvectorFormula, boolean)} method. It
