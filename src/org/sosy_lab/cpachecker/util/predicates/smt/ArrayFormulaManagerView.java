@@ -118,7 +118,7 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
           TE extends Formula,
           FTI extends FormulaType<TI>,
           FTE extends FormulaType<TE>>
-      ArrayFormula<TI, TE> makeArray(FTI pIndexType, FTE pElementType, TE elseElem) {
+      ArrayFormula<TI, TE> makeArray(FTI pIndexType, FTE pElementType, TE defaultElement) {
     final ArrayFormulaType<TI, TE> inputArrayType =
         FormulaType.getArrayType(pIndexType, pElementType);
 
@@ -127,7 +127,7 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     @SuppressWarnings("unchecked")
     final FTE unwrappedElementType = (FTE) unwrapType(pElementType);
     @SuppressWarnings("unchecked")
-    final TE unwrappedElse = (TE) unwrap(elseElem);
+    final TE unwrappedElse = (TE) unwrap(defaultElement);
 
     final ArrayFormula<TI, TE> result =
         manager.makeArray(unwrappedIndexType, unwrappedElementType, unwrappedElse);
