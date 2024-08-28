@@ -79,6 +79,8 @@ public class BitvectorFormulaManagerView extends BaseManagerView
   }
 
   /**
+   * Deprecated and unsupported operation.
+   *
    * This method returns the formula for the C99-conform MODULO-operator, which is rounded towards
    * zero. SMTlib2 rounds towards positive or negative infinity, depending on both operands.
    *
