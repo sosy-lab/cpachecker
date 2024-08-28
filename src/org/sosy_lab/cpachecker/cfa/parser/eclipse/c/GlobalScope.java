@@ -46,6 +46,7 @@ class GlobalScope extends AbstractScope {
   private final Map<String, CComplexTypeDeclaration> types;
   private final Map<String, CTypeDefDeclaration> typedefs;
   private final ProgramDeclarations programDeclarations;
+  private final ParseContext parseContext;
 
   public GlobalScope(
       Map<String, CSimpleDeclaration> globalVars,
@@ -53,6 +54,7 @@ class GlobalScope extends AbstractScope {
       Map<String, CFunctionDeclaration> functions,
       Map<String, CComplexTypeDeclaration> types,
       Map<String, CTypeDefDeclaration> typedefs,
+      ParseContext parseContext,
       ProgramDeclarations programDeclarations,
       String currentFile,
       Scope pFallbackScope) {
@@ -63,6 +65,7 @@ class GlobalScope extends AbstractScope {
     this.types = types;
     this.typedefs = typedefs;
     this.programDeclarations = programDeclarations;
+    this.parseContext = parseContext;
     fallbackScope = pFallbackScope;
   }
 
@@ -73,6 +76,7 @@ class GlobalScope extends AbstractScope {
         new HashMap<>(),
         new HashMap<>(),
         new HashMap<>(),
+        ParseContext.dummy(),
         new ProgramDeclarations(),
         "",
         CProgramScope.empty());
