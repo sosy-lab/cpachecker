@@ -86,7 +86,6 @@ public class SerializeNumeralFormulaVisitor
 
   @Override
   public String visit(Exclusion<CompoundInterval> pExclusion) {
-
     return "(" + " \\.exclusion (" + pExclusion.getExcluded().accept(this) + "))";
   }
 
@@ -157,6 +156,6 @@ public class SerializeNumeralFormulaVisitor
 
   @Override
   public String visit(Cast<CompoundInterval> pCast) {
-    return "(cast -typeInfo>" + pCast.getTypeInfo() + "(" + pCast.getCasted().accept(this) + "))";
+    return "(.cast -typeInfo>" + pCast.getTypeInfo() + "(" + pCast.getCasted().accept(this) + "))";
   }
 }

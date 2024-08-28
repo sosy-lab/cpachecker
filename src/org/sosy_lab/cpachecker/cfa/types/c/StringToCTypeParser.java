@@ -151,53 +151,87 @@ public class StringToCTypeParser {
   private static CType parseCompositeType(String input) {
     String content = extractInnerContent(input, "CompositeType(");
     List<String> parts = splitIgnoringNestedCommas(content);
+
     boolean isConst = Boolean.parseBoolean(parts.get(0));
     boolean isVolatile = Boolean.parseBoolean(parts.get(1));
     CComplexType.ComplexTypeKind kind = CComplexType.ComplexTypeKind.valueOf(parts.get(2));
     String name = parts.get(3);
     String origName = parts.get(4);
 
-    return new CCompositeType(isConst, isVolatile, kind, name, origName);
+    List<CCompositeType.CCompositeTypeMemberDeclaration> members = null;
+
+    if (parts.size() > 5 && !"null".equals(parts.get(5))) {
+      members = new ArrayList<>();
+      String membersContent = parts.get(5).substring(1, parts.get(5).length() - 1);
+      // brackets
+      List<String> memberStrings = splitIgnoringNestedCommas(membersContent);
+      for (String memberString : memberStrings) {
+        List<String> memberParts = Splitter.on(":").trimResults().splitToList(memberString);
+        CType memberType = parse(memberParts.get(0));
+        String memberName = memberParts.get(1);
+        members.add(new CCompositeType.CCompositeTypeMemberDeclaration(memberType, memberName));
+      }
+    }
+
+    return new CCompositeType(isConst, isVolatile, kind, members, name, origName);
   }
 
   private static CType parseEnumType(String input) {
     String content = extractInnerContent(input, "EnumType(");
     List<String> parts = splitIgnoringNestedCommas(content);
+
     boolean isConst = Boolean.parseBoolean(parts.get(0));
     boolean isVolatile = Boolean.parseBoolean(parts.get(1));
-    String name = parts.get(2);
-    String origName = parts.get(3);
+    CSimpleType enumCompatibleType = (CSimpleType) parseSimpleType(parts.get(2));
+
+    String name = parts.get(4);
+    String originName = parts.get(5).equals("null") ? "" : parts.get(5);
+
+    String enumeratorsPart = parts.get(3);
     List<CEnumerator> enumerators = new ArrayList<>();
-    for (String enumStr :
-        splitIgnoringNestedCommas(parts.get(4).substring(1, parts.get(4).length() - 1))) {
-      List<String> enumParts = Splitter.on(" = ").splitToList(enumStr);
-      String enumeratorName = enumParts.get(0).trim();
-      long value = Long.parseLong(enumParts.get(1).trim());
-      enumerators.add(
-          new CEnumerator(FileLocation.DUMMY, enumeratorName, name + "::" + enumeratorName, value));
+
+    if (enumeratorsPart.startsWith("[") && enumeratorsPart.endsWith("]")) {
+      String enumeratorsContent = enumeratorsPart.substring(1, enumeratorsPart.length() - 1);
+
+      if (!enumeratorsContent.isEmpty()) {
+        List<String> enumeratorStrings = splitIgnoringNestedCommas(enumeratorsContent);
+
+        for (String enumStr : enumeratorStrings) {
+          List<String> enumParts = Splitter.on("=").trimResults().splitToList(enumStr);
+
+          String enumeratorName = enumParts.get(0);
+          long value = Long.parseLong(enumParts.get(1));
+
+          enumerators.add(
+              new CEnumerator(
+                  FileLocation.DUMMY, enumeratorName, name + "::" + enumeratorName, value));
+        }
+      }
     }
 
-    CSimpleType enumCompatibleType =
-        new CSimpleType(
-            false, false, CBasicType.INT, false, false, false, false, false, false, false);
-
-    return new CEnumType(isConst, isVolatile, enumCompatibleType, enumerators, name, origName);
+    return new CEnumType(isConst, isVolatile, enumCompatibleType, enumerators, name, originName);
   }
 
   private static List<String> splitIgnoringNestedCommas(String input) {
     List<String> parts = new ArrayList<>();
     StringBuilder currentPart = new StringBuilder();
-    int nestedLevel = 0;
+    int nestedParantheses = 0;
+    int nestedBrackets = 0;
 
     for (int i = 0; i < input.length(); i++) {
       char c = input.charAt(i);
       if (c == '(') {
-        nestedLevel++;
+        nestedParantheses++;
       } else if (c == ')') {
-        nestedLevel--;
+        nestedParantheses--;
+      }
+      if (c == '[') {
+        nestedBrackets++;
+      } else if (c == ']') {
+        nestedBrackets--;
       }
 
-      if (c == ',' && nestedLevel == 0) {
+      if (c == ',' && nestedParantheses == 0 && nestedBrackets == 0) {
         parts.add(currentPart.toString().trim());
         currentPart.setLength(0);
       } else {

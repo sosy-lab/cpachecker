@@ -90,8 +90,26 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
         .append(", ")
         .append(pCompositeType.getName())
         .append(", ")
-        .append(pCompositeType.getOrigName())
-        .append(")");
+        .append(pCompositeType.getOrigName());
+
+    if (pCompositeType.getMembers() != null && !pCompositeType.getMembers().isEmpty()) {
+      result.append(", [");
+      for (CCompositeType.CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
+        result
+            .append(member.getType().accept(this))
+            .append(":")
+            .append(member.getName())
+            .append(", ");
+      }
+      if (result.length() > 0) {
+        result.setLength(result.length() - 2);
+      }
+      result.append("]");
+    } else {
+      result.append(", null");
+    }
+
+    result.append(")");
 
     return result.toString();
   }
@@ -150,20 +168,26 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
     for (CEnumerator enumerator : pEnumType.getEnumerators()) {
       enumerators.append(enumerator.toASTString()).append(", ");
     }
-    // Removing the last comma and space
+    String originName = pEnumType.getOrigName();
+    if (originName == null || originName.isEmpty()) {
+      originName = "null";
+    }
     if (enumerators.length() > 0) {
       enumerators.setLength(enumerators.length() - 2);
     }
     return "EnumType("
         + pEnumType.isConst()
-        + ", "
+        + ","
         + pEnumType.isVolatile()
-        + ", "
-        + pEnumType.getName()
-        + ", "
-        + pEnumType.getOrigName()
-        + ", ["
+        + ","
+        + pEnumType.getCompatibleType().accept(this)
+        + ",["
         + enumerators
-        + "])";
+        + "]"
+        + ","
+        + pEnumType.getName()
+        + ","
+        + originName
+        + ")";
   }
 }

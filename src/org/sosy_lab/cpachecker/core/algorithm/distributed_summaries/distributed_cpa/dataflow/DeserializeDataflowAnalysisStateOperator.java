@@ -51,7 +51,7 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
   @Override
   public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
     Optional<Object> abstractStateOptional = pMessage.getAbstractState(InvariantsCPA.class);
-    if (!abstractStateOptional.isPresent()) {
+    if (abstractStateOptional.isEmpty()) {
       return invariantsCPA.getInitialState(
           blockNode.getFirst(), StateSpacePartition.getDefaultPartition());
     }
@@ -73,29 +73,9 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
           (AcceptSpecifiedVariableSelection<CompoundInterval>) newSelection;
     }
 
-    String abstractionStrategy = "";
-    String variableTypesString = "";
-
-    if (pMessage instanceof BlockSummaryPostConditionMessage) {
-      abstractionStrategy = ((BlockSummaryPostConditionMessage) pMessage).getAbstractionStrategy();
-      variableTypesString = ((BlockSummaryPostConditionMessage) pMessage).getVTypes();
-    } else if (pMessage instanceof BlockSummaryErrorConditionMessage) {
-      abstractionStrategy = ((BlockSummaryErrorConditionMessage) pMessage).getAbstractionStrategy();
-      variableTypesString = ((BlockSummaryErrorConditionMessage) pMessage).getVTypes();
-    }
-
-    Map<MemoryLocation, CType> variableTypes = new HashMap<>();
-
-    for (String variableTypeEntry : Splitter.on(" && ").split(variableTypesString)) {
-      variableTypeEntry = variableTypeEntry.trim();
-      if (variableTypeEntry.isEmpty()) {
-        continue;
-      }
-      List<String> parts = Splitter.on("-typeInfo>").splitToList(variableTypeEntry);
-      MemoryLocation memoryLocation = MemoryLocation.parseExtendedQualifiedName(parts.get(0));
-      CType type = StringToCTypeParser.parse(parts.get(1));
-      variableTypes.put(memoryLocation, type);
-    }
+    String abstractionStrategy = extractAbstractionStrategyString(pMessage);
+    String variableTypesString = extractVariableTypesString(pMessage);
+    Map<MemoryLocation, CType> variableTypes = deserializeVariableTypes(variableTypesString);
 
     InvariantsState deserializedInvariantsState =
         new InvariantsState(
@@ -116,5 +96,38 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
         deserializedInvariantsState.addAssumptions(ImmutableSet.copyOf(assumptionParts));
 
     return deserializedInvariantsState;
+  }
+
+  private String extractAbstractionStrategyString(BlockSummaryMessage pMessage) {
+    if (pMessage instanceof BlockSummaryPostConditionMessage postMessage) {
+      return postMessage.getAbstractionStrategy();
+    } else if (pMessage instanceof BlockSummaryErrorConditionMessage errorMessage) {
+      return errorMessage.getAbstractionStrategy();
+    }
+    return "";
+  }
+
+  private String extractVariableTypesString(BlockSummaryMessage pMessage) {
+    if (pMessage instanceof BlockSummaryPostConditionMessage postConditionMessage) {
+      return postConditionMessage.getVTypes();
+    } else if (pMessage instanceof BlockSummaryErrorConditionMessage errorConditionMessage) {
+      return errorConditionMessage.getVTypes();
+    }
+    return "";
+  }
+
+  private Map<MemoryLocation, CType> deserializeVariableTypes(String pVariableTypesString) {
+    Map<MemoryLocation, CType> variableTypes = new HashMap<>();
+    for (String variableTypeEntry : Splitter.on(" && ").split(pVariableTypesString)) {
+      variableTypeEntry = variableTypeEntry.trim();
+      if (variableTypeEntry.isEmpty()) {
+        continue;
+      }
+      List<String> parts = Splitter.on("-typeInfo>").splitToList(variableTypeEntry);
+      MemoryLocation memoryLocation = MemoryLocation.parseExtendedQualifiedName(parts.get(0));
+      CType type = StringToCTypeParser.parse(parts.get(1));
+      variableTypes.put(memoryLocation, type);
+    }
+    return variableTypes;
   }
 }

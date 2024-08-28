@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow;
 
 import java.util.Map.Entry;
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.SerializeCTypeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -27,30 +28,28 @@ public class SerializeDataflowAnalysisStateOperator implements SerializeOperator
   @Override
   public BlockSummaryMessagePayload serialize(AbstractState pState) {
     InvariantsState state = (InvariantsState) pState;
-    StringBuilder stringBuilder = new StringBuilder();
-    SerializeCTypeVisitor cTypeVisitor = new SerializeCTypeVisitor();
-
-    for (Entry<MemoryLocation, CType> entry : state.getVariableTypes().entrySet()) {
-      String key = entry.getKey().getExtendedQualifiedName();
-      String cType = entry.getValue().accept(cTypeVisitor);
-      stringBuilder.append(key).append("-typeInfo>").append(cType).append(" && ");
-    }
-    String serializedVariableTypes = stringBuilder.toString();
-
     BooleanFormula<CompoundInterval> booleanFormula = state.asFormula();
     SerializeNumeralFormulaVisitor numeralFormulaVisitor = new SerializeNumeralFormulaVisitor();
     SerializeBooleanFormulaVisitor booleanFormulaVisitor =
         new SerializeBooleanFormulaVisitor(numeralFormulaVisitor);
     String abstractionStrategy = state.getAbstractionState().getAbstractionStrategyName();
     String booleanFormulaString = booleanFormula.accept(booleanFormulaVisitor);
+    StringJoiner stringJoiner = new StringJoiner(" && ");
+    SerializeCTypeVisitor cTypeVisitor = new SerializeCTypeVisitor();
+
+    for (Entry<MemoryLocation, CType> entry : state.getVariableTypes().entrySet()) {
+      String key = entry.getKey().getExtendedQualifiedName();
+      String cType = entry.getValue().accept(cTypeVisitor);
+      stringJoiner.add(key + "-typeInfo>" + cType);
+    }
+    String serializedVariableTypes = stringJoiner.toString();
+
     BlockSummaryMessagePayload.Builder payload =
         BlockSummaryMessagePayload.builder()
             .addEntry(InvariantsCPA.class.getName(), booleanFormulaString)
             .addEntry(BlockSummaryMessagePayload.STRATEGY, abstractionStrategy);
 
     if (!serializedVariableTypes.isEmpty()) {
-      serializedVariableTypes =
-          serializedVariableTypes.substring(0, serializedVariableTypes.length() - 4);
       payload.addEntry(BlockSummaryMessagePayload.VTYPES, serializedVariableTypes);
     }
 

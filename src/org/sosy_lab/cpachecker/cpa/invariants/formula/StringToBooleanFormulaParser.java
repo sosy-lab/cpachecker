@@ -75,14 +75,12 @@ public class StringToBooleanFormulaParser {
   private static NumeralFormula<CompoundInterval> parseNumeralFormula(String formulaString) {
     formulaString = removeEnclosingParentheses(formulaString);
 
-    if (formulaString.startsWith("cast -typeInfo>")) {
+    if (formulaString.startsWith(".cast")) {
       return parseCast(formulaString);
     }
-
     if (formulaString.contains("?.if")) {
       return parseIfThenElse(formulaString);
     }
-
     return parseNumeralOperators(formulaString);
   }
 
@@ -259,19 +257,11 @@ public class StringToBooleanFormulaParser {
     return BitVectorInfo.from(size, signed);
   }
 
-  private static boolean isEnclosedInParentheses(String formulaString) {
-    return formulaString.startsWith("(")
-        && formulaString.endsWith(")")
-        && findMatchingParenthesis(formulaString, 0) == formulaString.length() - 1;
-  }
-
-  private static String stripEnclosingParentheses(String formulaString) {
-    return formulaString.substring(1, formulaString.length() - 1).trim();
-  }
-
   private static String removeEnclosingParentheses(String formulaString) {
-    while (isEnclosedInParentheses(formulaString)) {
-      formulaString = stripEnclosingParentheses(formulaString);
+    while (formulaString.startsWith("(")
+        && formulaString.endsWith(")")
+        && findMatchingParenthesis(formulaString, 0) == formulaString.length() - 1) {
+      formulaString = formulaString.substring(1, formulaString.length() - 1).trim();
     }
     return formulaString;
   }
