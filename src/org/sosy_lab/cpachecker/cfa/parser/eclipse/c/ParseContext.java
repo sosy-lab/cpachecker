@@ -12,6 +12,7 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -121,7 +122,7 @@ class ParseContext {
   }
 
   CType getCType(IType type, String filePrefix) {
-    return typeConversions.getOrDefault(filePrefix, Map.of()).get(type);
+    return typeConversions.getOrDefault(filePrefix, ImmutableMap.of()).get(type);
   }
 
   void rememberCType(IType originalType, CType cType, String filePrefix) {
