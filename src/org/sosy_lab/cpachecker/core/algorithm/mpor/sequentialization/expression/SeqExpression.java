@@ -8,6 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-public interface SeqExpression {
-  String string();
-}
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqElement;
+
+public interface SeqExpression extends SeqElement {}

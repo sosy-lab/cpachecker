@@ -8,33 +8,34 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity.DataType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqDataType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity.SeqDataEntity;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity.Variable;
 
 public class DeclareExpr implements SeqExpression {
 
-  private final DataType dataType;
+  private final SeqDataType dataType;
 
   private final Variable variable;
 
   private final SeqDataEntity value;
 
-  protected DeclareExpr(DataType pDataType, Variable pVariable, Variable pValue) {
+  public DeclareExpr(SeqDataType pDataType, Variable pVariable, Variable pValue) {
     dataType = pDataType;
     variable = pVariable;
     value = pValue;
   }
 
   @Override
-  public String string() {
+  public String generateString() {
     return dataType.string
-        + " "
-        + variable.string()
-        + " "
+        + SeqSyntax.SPACE.getString()
+        + variable.generateString()
+        + SeqSyntax.SPACE.getString()
         + Operator.ASSIGN.string
-        + " "
-        + value.string()
-        + ";\n";
+        + SeqSyntax.SPACE.getString()
+        + value.generateString()
+        + SeqSyntax.SEMICOLON.getString();
   }
 }

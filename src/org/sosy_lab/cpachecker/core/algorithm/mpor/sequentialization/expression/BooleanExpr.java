@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqSyntax;
+
 public class BooleanExpr implements SeqExpression {
 
   // TODO this should be restricted to BooleanExpr, Value, Variable, ArrayExpr
@@ -17,14 +19,18 @@ public class BooleanExpr implements SeqExpression {
 
   private final SeqExpression subsequent;
 
-  protected BooleanExpr(SeqExpression pPreceding, Operator pOperator, SeqExpression pSubsequent) {
+  public BooleanExpr(SeqExpression pPreceding, Operator pOperator, SeqExpression pSubsequent) {
     preceding = pPreceding;
     operator = pOperator;
     subsequent = pSubsequent;
   }
 
   @Override
-  public String string() {
-    return preceding.string() + " " + operator.string + " " + subsequent.string();
+  public String generateString() {
+    return preceding.generateString()
+        + SeqSyntax.SPACE.getString()
+        + operator.string
+        + SeqSyntax.SPACE.getString()
+        + subsequent.generateString();
   }
 }

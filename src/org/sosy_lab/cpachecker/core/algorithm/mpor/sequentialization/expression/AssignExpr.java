@@ -8,19 +8,26 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqSyntax;
+
 public class AssignExpr implements SeqExpression {
 
   private final SeqExpression preceding;
 
   private final SeqExpression subsequent;
 
-  protected AssignExpr(SeqExpression pPreceding, SeqExpression pSubsequent) {
+  public AssignExpr(SeqExpression pPreceding, SeqExpression pSubsequent) {
     preceding = pPreceding;
     subsequent = pSubsequent;
   }
 
   @Override
-  public String string() {
-    return preceding.string() + " " + Operator.ASSIGN.string + " " + subsequent.string() + ";\n";
+  public String generateString() {
+    return preceding.generateString()
+        + SeqSyntax.SPACE.getString()
+        + Operator.ASSIGN.string
+        + SeqSyntax.SPACE.getString()
+        + subsequent.generateString()
+        + SeqSyntax.SEMICOLON.getString();
   }
 }

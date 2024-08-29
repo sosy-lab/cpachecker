@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity.DataType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqDataType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity.Value;
 
 /**
@@ -17,7 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
  */
 public class ArrayInitExpr implements SeqExpression {
 
-  private final DataType dataType;
+  private final SeqDataType dataType;
 
   private final ArrayExpr array;
 
@@ -30,21 +31,22 @@ public class ArrayInitExpr implements SeqExpression {
    * @param pArray the expression of the array, e.g. array_name[array_size]
    * @param pInitValue the initial value assigned to ALL indexes in the array
    */
-  public ArrayInitExpr(DataType pDataType, ArrayExpr pArray, Value pInitValue) {
+  public ArrayInitExpr(SeqDataType pDataType, ArrayExpr pArray, Value pInitValue) {
     dataType = pDataType;
     array = pArray;
     initValue = pInitValue;
   }
 
   @Override
-  public String string() {
+  public String generateString() {
     return dataType.string
-        + " "
-        + array.string()
-        + " "
+        + SeqSyntax.SPACE.getString()
+        + array.generateString()
+        + SeqSyntax.SPACE.getString()
         + Operator.ASSIGN.string
-        + " { "
-        + initValue.string()
-        + " };";
+        + SeqSyntax.SPACE.getString()
+        + SeqSyntax.CURLY_BRACKET_LEFT
+        + initValue.generateString()
+        + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 }

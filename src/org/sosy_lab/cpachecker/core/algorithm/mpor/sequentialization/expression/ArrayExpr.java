@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity.SeqDataEntity;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity.Variable;
 
@@ -17,13 +18,16 @@ public class ArrayExpr implements SeqExpression {
 
   private final SeqDataEntity index;
 
-  protected ArrayExpr(Variable pArray, Variable pIndex) {
+  public ArrayExpr(Variable pArray, Variable pIndex) {
     array = pArray;
     index = pIndex;
   }
 
   @Override
-  public String string() {
-    return array.string() + "[" + index.string() + "]";
+  public String generateString() {
+    return array.generateString()
+        + SeqSyntax.SQUARE_BRACKET_LEFT.getString()
+        + index.generateString()
+        + SeqSyntax.SQUARE_BRACKET_RIGHT.getString();
   }
 }

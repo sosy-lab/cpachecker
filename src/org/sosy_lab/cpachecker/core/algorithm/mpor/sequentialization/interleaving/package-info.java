@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
-
-public interface SeqElement {
-  String generateString();
-}
+/** TODO */
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.interleaving;

@@ -6,8 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-public interface SeqElement {
-  String generateString();
+public class CaseExpr implements SeqExpression {
+
+  @Override
+  public String generateString() {
+    return "";
+  }
 }

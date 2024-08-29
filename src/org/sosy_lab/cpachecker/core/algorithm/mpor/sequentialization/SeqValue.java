@@ -8,6 +8,19 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
-public interface SeqElement {
-  String generateString();
+public enum SeqValue {
+  FALSE("false"),
+  TRUE("true"),
+  ZERO("0");
+
+  /** The String representation for the value. */
+  private final String string;
+
+  SeqValue(String pString) {
+    string = pString;
+  }
+
+  public String getString() {
+    return string;
+  }
 }

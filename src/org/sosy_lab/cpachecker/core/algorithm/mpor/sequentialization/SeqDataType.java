@@ -6,15 +6,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
-public enum DataType {
+public enum SeqDataType {
   BOOL("bool"),
   INT("int");
 
   public final String string;
 
-  DataType(String pString) {
+  SeqDataType(String pString) {
     string = pString;
   }
 }

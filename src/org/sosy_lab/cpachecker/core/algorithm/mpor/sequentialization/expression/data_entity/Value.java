@@ -8,16 +8,18 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqValue;
+
 public class Value implements SeqDataEntity {
 
-  private final String value;
+  private final SeqValue value;
 
-  public Value(String pValue) {
+  public Value(SeqValue pValue) {
     value = pValue;
   }
 
   @Override
-  public String string() {
-    return value;
+  public String generateString() {
+    return value.getString();
   }
 }
