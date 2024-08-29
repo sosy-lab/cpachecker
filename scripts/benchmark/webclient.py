@@ -452,12 +452,7 @@ class WebInterface:
 
     def getUserAndPassword(self, user_pwd):
         # split only once, password might contain special char ':'
-        tokens = user_pwd.split(":", maxsplit=1)
-        if len(tokens) == 2 and all(tokens):
-            user, password = tokens
-        else:
-            user = user_pwd
-            password = getpass("Please enter password for user '" + user + "': ")
+        user, password = user_pwd.split(":", maxsplit=1)
         return user, password
 
     def _read_hash_code_cache(self):

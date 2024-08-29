@@ -8,6 +8,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import argparse
 import getpass
 import glob
 import logging
@@ -101,6 +102,12 @@ class Benchmark(VcloudBenchmarkBase):
         return "--" + pname
 
     def load_executor(self):
+        if self.config.cloudUser:
+            user = self.config.cloudUser
+            if ":" not in user:
+                psw = getpass.getpass("Please enter password for user '" + user + "': ")
+                self.config.cloudUser += (":" + psw)
+
         webclient = False
         if getpass.getuser() == "root":
             logging.warning(
