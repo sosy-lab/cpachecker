@@ -24,7 +24,6 @@ import ssl
 import zipfile
 import zlib
 
-from getpass import getpass
 from time import sleep
 from time import time
 
