@@ -103,18 +103,16 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
 
   @Option(
       secure = true,
-      name = "counterExampleFiles",
       description = "File name for analysis report in case a counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate counterExamplePerVariable =
+  private PathTemplate detailedCounterexample =
       PathTemplate.ofFormatString("Counterexample.variable.%d.txt");
 
   @Option(
       secure = true,
-      name = "counterExampleFiles",
       description = "File name for analysis report in case a counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate counterExampleFiles =
+  private PathTemplate counterExampleToCFiles =
       PathTemplate.ofFormatString("Counterexample.inline.%d.c");
 
   @Option(secure = true, name = "actions", description = "Actions to perform")
@@ -166,7 +164,7 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
       CounterexampleToCodeVisitor visitor = new CounterexampleToCodeVisitor();
       String cCode = visitor.visit(counterexample);
       IO.writeFile(
-          counterExampleFiles.getPath(exportedCounterexamples++), StandardCharsets.UTF_8, cCode);
+          counterExampleToCFiles.getPath(exportedCounterexamples++), StandardCharsets.UTF_8, cCode);
     }
   }
 
@@ -365,7 +363,7 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
           preciseCexExport.append("  ").append(variable).append(" == ").append(value).append(";\n");
         }
         IO.writeFile(
-            counterExamplePerVariable.getPath(exportedPreciseCounterexamples++),
+            detailedCounterexample.getPath(exportedPreciseCounterexamples++),
             StandardCharsets.UTF_8,
             preciseCexExport.toString());
       }
