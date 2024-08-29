@@ -382,6 +382,7 @@ class GlobalScope extends AbstractScope {
               renamedCompositeType.getName(),
               renamedCompositeType.getOrigName(),
               renamedCompositeType);
+      parseContext.overwriteTypeIfNecessary(oldType, renamedElaboratedType, currentFile);
 
       List<CCompositeTypeMemberDeclaration> newMembers =
           new ArrayList<>(oldCompositeType.getMembers().size());
