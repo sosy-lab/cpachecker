@@ -127,7 +127,8 @@ class ParseContext {
   }
 
   private IType getTypeFromTypeConversion(CType ourCType, String filePrefix) {
-    for (Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
+    for (Entry<IType, CType> entry :
+        typeConversions.getOrDefault(filePrefix, ImmutableMap.of()).entrySet()) {
       if (ourCType.equals(entry.getValue())) {
         return entry.getKey();
       }
