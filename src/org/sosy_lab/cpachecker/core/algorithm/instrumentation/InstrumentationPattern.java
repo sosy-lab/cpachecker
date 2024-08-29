@@ -238,7 +238,7 @@ public class InstrumentationPattern {
 
   @Nullable
   private CFAEdge getPreviousAssumeEdge(CFAEdge pCFAEdge) {
-    if (pCFAEdge.getPredecessor().getNumEnteringEdges() != 1) {
+    if (pCFAEdge.getPredecessor().getNumEnteringEdges() < 1) {
       return null;
     }
     return pCFAEdge.getPredecessor().getEnteringEdge(0);
