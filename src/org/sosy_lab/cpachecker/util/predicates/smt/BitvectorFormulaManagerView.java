@@ -112,13 +112,11 @@ public class BitvectorFormulaManagerView extends BaseManagerView
   /**
    * {@inheritDoc}
    *
-   * <p>This method was previously used inside the {@link
-   * BitvectorFormulaManagerView#modulo(BitvectorFormula, BitvectorFormula, boolean)} method. It
-   * behaves mostly according to the % operator in C or Java. While in C the modulo operation is
-   * rounded towards 0, SMTLIB2 rounds towards the nearest infinity depending on the operands. It
+   * <p>This method behaves mostly according to the % operator in C or Java. While in C the modulo
+   * operation is rounded towards 0, SMTLIB2 rounds towards the nearest infinity depending on the
+   * operands so that the sign of the result of the operation is equal to the numerator sign. It
    * behaves differently compared to the {@link IntegerFormulaManagerView#modulo(IntegerFormula,
-   * IntegerFormula)} for negative numerators (in the signed case). More info in the JavaSMT doc
-   * here: {@link BitvectorFormulaManager#remainder(BitvectorFormula, BitvectorFormula, boolean)}.
+   * IntegerFormula)} for negative numerators (in the signed case).
    */
   @Override
   public BitvectorFormula remainder(
