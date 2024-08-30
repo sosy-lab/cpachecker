@@ -787,8 +787,8 @@ public final class ValueAnalysisState
     CExpression val = null;
     if (pCType instanceof CSimpleType simpleType) {
       if (simpleType.getType().isIntegerType()) {
-        long value = pNum.getNumber().longValue();
-        val = new CIntegerLiteralExpression(loc, simpleType, BigInteger.valueOf(value));
+        BigInteger value = getBigIntFromIntegerNumber(pNum.getNumber());
+        val = new CIntegerLiteralExpression(loc, simpleType, value);
       } else if (simpleType.getType().isFloatingPointType()) {
         double value = pNum.getNumber().doubleValue();
         if (Double.isNaN(value) || Double.isInfinite(value)) {
@@ -800,15 +800,15 @@ public final class ValueAnalysisState
         throw new AssertionError("Unexpected type: " + simpleType);
       }
     } else if (pCType instanceof CEnumType enumType) {
-      long value = pNum.getNumber().longValue();
+      BigInteger value = getBigIntFromIntegerNumber(pNum.getNumber());
       for (CEnumerator enumerator : enumType.getEnumerators()) {
-        if (value == enumerator.getValue()) {
+        if (value.equals(enumerator.getValue())) {
           val = new CIdExpression(loc, enumerator);
           break;
         }
       }
       if (val == null) {
-        val = new CIntegerLiteralExpression(loc, enumType, BigInteger.valueOf(value));
+        val = new CIntegerLiteralExpression(loc, enumType, value);
       }
     } else {
       // disabled since this blocks too many programs for which plenty other information
@@ -819,6 +819,14 @@ public final class ValueAnalysisState
       return Optional.empty();
     }
     return Optional.of(builder.buildBinaryExpressionUnchecked(pVar, val, BinaryOperator.EQUALS));
+  }
+
+  private BigInteger getBigIntFromIntegerNumber(Number pNum) {
+    if (pNum instanceof BigInteger) {
+      return (BigInteger) pNum;
+    } else {
+      return BigInteger.valueOf(pNum.longValue());
+    }
   }
 
   @Override

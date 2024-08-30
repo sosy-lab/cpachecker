@@ -139,7 +139,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
           "Which strategy should be used for generating invariants, a comma separated"
               + " list can be specified. Usually later specified strategies serve as"
               + " fallback for earlier ones. (default is no invariant generation at all)")
-  private List<InvariantGenerationStrategy> generationStrategy = new ArrayList<>();
+  private ImmutableList<InvariantGenerationStrategy> generationStrategy = ImmutableList.of();
 
   @Option(
       secure = true,

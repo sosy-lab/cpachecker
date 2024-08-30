@@ -47,6 +47,10 @@ public class SMGSolverException extends CPATransferException {
     return wrappedException instanceof UnrecognizedCodeException;
   }
 
+  public UnrecognizedCodeException getUnrecognizedCodeException() {
+    return (UnrecognizedCodeException) wrappedException;
+  }
+
   public InterruptedException getInterruptedException() {
     return (InterruptedException) wrappedException;
   }

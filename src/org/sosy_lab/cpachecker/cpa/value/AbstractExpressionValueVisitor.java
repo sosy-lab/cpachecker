@@ -1596,7 +1596,6 @@ public abstract class AbstractExpressionValueVisitor
   @Override
   public Value visit(CIdExpression idExp) throws UnrecognizedCodeException {
     if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
-      // TODO rewrite CEnumerator to handle abstract type Value and not just Long
       return new NumericValue(enumerator.getValue());
     }
 
@@ -1901,9 +1900,9 @@ public abstract class AbstractExpressionValueVisitor
               numResult = lVal % rVal;
               break;
 
-              // shift operations' behaviour is determined by whether the left hand side value is of
-              // type
-              // int or long, so we have to cast if the actual type is int.
+            // shift operations' behaviour is determined by whether the left hand side value is of
+            // type
+            // int or long, so we have to cast if the actual type is int.
             case SHIFT_LEFT:
               if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
                 final int intResult = ((int) lVal) << rVal;

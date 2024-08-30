@@ -73,7 +73,7 @@ Install CPAchecker -- Source
    so put them in your PATH or change the system-wide default JDK.
    (Ubuntu: `sudo update-alternatives --config java; sudo update-alternatives --config javac`)
 
-2. Install `ant` (version 1.10.x or later is recommended).
+2. Install `ant` (version 1.10.2 or later is required).
    (Ubuntu: `sudo apt-get install ant`)
 
 3. Install Subversion.
