@@ -25,9 +25,9 @@ public class FunctionCallExpr implements SeqExpression {
   @Override
   public String generateString() {
     return functionName.getString()
-        + SeqSyntax.BRACKET_LEFT
+        + SeqSyntax.BRACKET_LEFT.getString()
         + parameter.generateString()
-        + SeqSyntax.BRACKET_RIGHT
-        + SeqSyntax.SEMICOLON;
+        + SeqSyntax.BRACKET_RIGHT.getString()
+        + SeqSyntax.SEMICOLON.getString();
   }
 }

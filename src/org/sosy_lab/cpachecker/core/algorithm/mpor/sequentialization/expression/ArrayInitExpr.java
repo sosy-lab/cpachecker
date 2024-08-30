@@ -45,8 +45,11 @@ public class ArrayInitExpr implements SeqExpression {
         + SeqSyntax.SPACE.getString()
         + Operator.ASSIGN.string
         + SeqSyntax.SPACE.getString()
-        + SeqSyntax.CURLY_BRACKET_LEFT
+        + SeqSyntax.CURLY_BRACKET_LEFT.getString()
+        + SeqSyntax.SPACE.getString()
         + initValue.generateString()
-        + SeqSyntax.CURLY_BRACKET_RIGHT;
+        + SeqSyntax.SPACE.getString()
+        + SeqSyntax.CURLY_BRACKET_RIGHT.getString()
+        + SeqSyntax.SEMICOLON.getString();
   }
 }

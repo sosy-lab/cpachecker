@@ -22,9 +22,9 @@ public class LoopExpr implements SeqExpression {
   @Override
   public String generateString() {
     return SeqToken.WHILE.getString()
-        + SeqSyntax.SPACE
-        + SeqSyntax.BRACKET_LEFT
+        + SeqSyntax.SPACE.getString()
+        + SeqSyntax.BRACKET_LEFT.getString()
         + condition.generateString()
-        + SeqSyntax.BRACKET_RIGHT;
+        + SeqSyntax.BRACKET_RIGHT.getString();
   }
 }

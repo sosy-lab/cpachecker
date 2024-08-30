@@ -8,12 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
+// TODO replace getString with hardcoded String variables
+//  e.g. BRACKET_LEFT = "(";
+//  then we can call just SeqSyntax.BRACKET_LEFT
+
 public enum SeqSyntax {
   BRACKET_LEFT("("),
   BRACKET_RIGHT(")"),
   COLON(":"),
   CURLY_BRACKET_LEFT("{"),
   CURLY_BRACKET_RIGHT("}"),
+  EMPTY_STRING(""),
   EXCLAMATION_MARK("!"),
   NEWLINE("\n"),
   SEMICOLON(";"),

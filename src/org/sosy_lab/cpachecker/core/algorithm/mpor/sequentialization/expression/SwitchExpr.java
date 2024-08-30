@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
 import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SwitchExpr implements SeqExpression {
@@ -28,32 +30,48 @@ public class SwitchExpr implements SeqExpression {
 
   @Override
   public String generateString() {
-    String cases = "";
-    int count = 0;
-    // TODO handle assumeEdges
-    // TODO create separate createCaseFromEdge Method
+    String cases = SeqSyntax.EMPTY_STRING.getString();
     for (var entry : globalAccesses.entrySet()) {
-      cases +=
-          SeqToken.CASE.getString()
-              + SeqSyntax.SPACE.getString()
-              + count
-              + SeqSyntax.COLON.getString()
-              + SeqSyntax.SPACE.getString()
-              + entry.getValue().getCode()
-              + SeqSyntax.SEMICOLON.getString()
-              + SeqSyntax.SPACE.getString()
-              + SeqToken.BREAK.getString()
-              + SeqSyntax.SEMICOLON.getString()
-              + SeqSyntax.NEWLINE.getString();
-      count++;
+      cases += generateCase(Integer.toString(entry.getKey().id), entry.getValue());
     }
     return SeqToken.SWITCH.getString()
+        + SeqSyntax.SPACE.getString()
         + SeqSyntax.BRACKET_LEFT.getString()
         + expression.generateString()
         + SeqSyntax.BRACKET_RIGHT.getString()
         + SeqSyntax.SPACE.getString()
         + SeqSyntax.CURLY_BRACKET_LEFT.getString()
+        + SeqSyntax.NEWLINE.getString()
         + cases
+        + SeqUtil.tab
         + SeqSyntax.CURLY_BRACKET_RIGHT.getString();
+  }
+
+  public static String generateCase(String pCase, CFAEdge pEdge) {
+    String codeBlock = pEdge.getCode();
+    String suffix = SeqSyntax.SEMICOLON.getString();
+    if (codeBlock.endsWith(SeqSyntax.SEMICOLON.getString())) {
+      suffix = SeqSyntax.EMPTY_STRING.getString();
+    }
+    if (pEdge instanceof AssumeEdge) {
+      codeBlock =
+          SeqToken.ASSUME.getString()
+              + SeqSyntax.BRACKET_LEFT.getString()
+              + codeBlock
+              + SeqSyntax.BRACKET_RIGHT.getString();
+    }
+    return SeqUtil.tab
+        + SeqUtil.tab
+        + SeqToken.CASE.getString()
+        + SeqSyntax.SPACE.getString()
+        + pCase
+        + SeqSyntax.COLON.getString()
+        + SeqSyntax.SPACE.getString()
+        + codeBlock
+        + suffix
+        + SeqSyntax.SPACE.getString()
+        + SeqToken.BREAK.getString()
+        + SeqSyntax.SEMICOLON.getString()
+        + SeqSyntax.NEWLINE.getString();
   }
 }

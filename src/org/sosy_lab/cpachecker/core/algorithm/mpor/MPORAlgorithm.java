@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.interleaving.SeqInterleaving;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.ExecutionTrace;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.MPORState;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
@@ -139,7 +140,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             handleState(nextState);
           }
         } else {
-          // TODO create seq interleaving
+          for (Map<MPORThread, CFAEdge> combination : getEdgeInterleavingCombinations(gapState)) {
+            SeqInterleaving interleaving = new SeqInterleaving(ImmutableMap.copyOf(combination));
+            return;
+          }
         }
       }
     }
@@ -262,6 +266,25 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           pEdgesByThread, pThreads, pIndex + 1, pCurrentCombination, pEdgeCombinations);
       pCurrentCombination.remove(thread); // backtrack
     }
+  }
+
+  private List<Map<MPORThread, CFAEdge>> getEdgeInterleavingCombinations(MPORState pGapState) {
+    // create list of maps of edges to be executed to their threads
+    Map<MPORThread, List<CFAEdge>> threadEdges = new HashMap<>();
+    for (var entry : pGapState.threadNodes.entrySet()) {
+      MPORThread thread = entry.getKey();
+      CFANode node = entry.getValue();
+      Optional<CFANode> funcReturnNode = pGapState.funcReturnNodes.get(thread);
+      threadEdges.put(thread, new ArrayList<>(MPORUtil.returnLeavingEdges(node, funcReturnNode)));
+    }
+
+    // TODO make immutable?
+    // create all combinations of edges to execute in all threads
+    List<Map<MPORThread, CFAEdge>> rEdgeCombinations = new ArrayList<>();
+    cartesianProduct(
+        threadEdges, new ArrayList<>(threadEdges.keySet()), 0, new HashMap<>(), rEdgeCombinations);
+
+    return rEdgeCombinations;
   }
 
   private final ConfigurableProgramAnalysis CPA;

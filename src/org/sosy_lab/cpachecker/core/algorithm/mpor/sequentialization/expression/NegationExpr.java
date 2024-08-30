@@ -21,8 +21,8 @@ public class NegationExpr implements SeqExpression {
   @Override
   public String generateString() {
     return SeqSyntax.EXCLAMATION_MARK.getString()
-        + SeqSyntax.BRACKET_LEFT
+        + SeqSyntax.BRACKET_LEFT.getString()
         + expression.generateString()
-        + SeqSyntax.BRACKET_RIGHT;
+        + SeqSyntax.BRACKET_RIGHT.getString();
   }
 }

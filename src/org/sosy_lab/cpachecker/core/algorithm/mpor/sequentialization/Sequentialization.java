@@ -14,6 +14,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class Sequentialization {
 
+  protected static final int TAB_SIZE = 3;
+
   protected final int numThreads;
 
   public Sequentialization(int pNumThreads) {

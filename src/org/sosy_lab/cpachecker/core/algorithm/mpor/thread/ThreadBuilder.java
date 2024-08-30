@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class ThreadBuilder {
 
+  private static int currentId = 0;
+
   /** A copy of the functionCallMap in {@link MPORAlgorithm}. */
   private final ImmutableMap<CFANode, CFANode> functionCallMap;
 
@@ -66,6 +68,7 @@ public class ThreadBuilder {
     // TODO searchThreadForBarriers
 
     return new MPORThread(
+        currentId++,
         pPthreadT,
         pEntryNode,
         pExitNode,

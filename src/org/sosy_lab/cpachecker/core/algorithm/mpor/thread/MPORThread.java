@@ -25,6 +25,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
  */
 public class MPORThread {
 
+  public final int id;
+
   /** The pthread_t object. Set to empty for the main thread. */
   public final Optional<CExpression> threadObject;
 
@@ -48,6 +50,7 @@ public class MPORThread {
   public final ImmutableSet<MPORJoin> joins;
 
   protected MPORThread(
+      int pId,
       Optional<CExpression> pThreadObject,
       FunctionEntryNode pEntryNode,
       FunctionExitNode pExitNode,
@@ -57,6 +60,7 @@ public class MPORThread {
       ImmutableSet<MPORMutex> pMutexes,
       ImmutableSet<MPORJoin> pJoins) {
 
+    id = pId;
     threadObject = pThreadObject;
     entryNode = pEntryNode;
     exitNode = pExitNode;
