@@ -37,6 +37,8 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
@@ -46,6 +48,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.util.SMGAndHasValueEdges;
+import org.sosy_lab.cpachecker.util.smg.util.SMGAndSMGValues;
 
 /**
  * Class to represent a immutable bipartite symbolic memory graph. Manipulating methods return a
@@ -260,7 +263,7 @@ public class SMG {
    * @return a new {@link SMG} in which the mapping is removed.
    */
   public SMG copyAndRemovePointsToEdge(SMGValue pValue) {
-    if (!pointsToEdges.containsKey(pValue)) {
+    if (!pointsToEdges.containsKey(pValue) || pValue.isZero()) {
       return this;
     }
     ImmutableMap.Builder<SMGValue, SMGPointsToEdge> builder = ImmutableMap.builder();
@@ -670,7 +673,9 @@ public class SMG {
     }
 
     Integer currentNum = innerMap.get(pointer);
-    Preconditions.checkNotNull(currentNum);
+    if (currentNum == null) {
+      return this;
+    }
     PersistentMap<SMGObject, PersistentMap<SMGValue, Integer>> newObjectsAndPointersPointingAtThem;
     if (currentNum > 1) {
       newObjectsAndPointersPointingAtThem =
@@ -886,7 +891,7 @@ public class SMG {
           ImmutableMap.Builder<SMGValue, SMGPointsToEdge> builder = ImmutableMap.builder();
           for (Entry<SMGValue, SMGPointsToEdge> entry :
               newValuesToRegionsTheyAreSavedIn.pointsToEdges.entrySet()) {
-            if (!entry.getKey().equals(value)) {
+            if (!entry.getKey().equals(value) || entry.getKey().isZero()) {
               builder = builder.put(entry);
             }
           }
@@ -1540,6 +1545,9 @@ public class SMG {
    * @return true if pValue is a pointer.
    */
   public boolean isPointer(SMGValue pValue) {
+    assert pointsToEdges.containsKey(SMGValue.zeroValue())
+        && pointsToEdges.containsKey(SMGValue.zeroFloatValue())
+        && pointsToEdges.containsKey(SMGValue.zeroDoubleValue());
     return pointsToEdges.containsKey(pValue);
   }
 
@@ -1587,7 +1595,7 @@ public class SMG {
         .filter(
             entry -> {
               SMGPointsToEdge edge = entry.getValue();
-              return edge.getOffset().equals(pOffset)
+              return edge.getOffset().equals(new NumericValue(pOffset))
                   && edge.targetSpecifier().equals(pTargetSpecifier)
                   && edge.pointsTo().equals(targetObject);
             })
@@ -2379,8 +2387,8 @@ public class SMG {
             .getOrDefault(pTarget, PathCopyingPersistentTreeMap.of())
             .keySet()) {
       // All existing pointers towards the target
-      if (getNestingLevel(ptr) == pNestingLevel
-          && pointsToEdges.get(ptr).getOffset().equals(pOffset)) {
+      Value pteOffset = pointsToEdges.get(ptr).getOffset();
+      if (getNestingLevel(ptr) == pNestingLevel && pteOffset.equals(new NumericValue(pOffset))) {
         return Optional.of(ptr);
       }
     }
@@ -2407,12 +2415,90 @@ public class SMG {
       // All existing pointers towards the target
       SMGPointsToEdge pte = pointsToEdges.get(ptr);
       if (getNestingLevel(ptr) == pNestingLevel
-          && pte.getOffset().equals(pOffset)
+          && pte.getOffset().equals(new NumericValue(pOffset))
           && specifierAllowedToOverride.contains(pte.targetSpecifier())) {
         return Optional.of(ptr);
       }
     }
     return Optional.empty();
+  }
+
+  // Switch all HVEs everywhere that are pointers w the fitting specifier towards oldTarget with
+  // existing or newly created HVEs that are pointers towards newTarget.
+  // Important: all target offsets are retained here
+  // Returned SMGValues need NEW mapping in the SPC
+  public SMGAndSMGValues replaceHVEPointersWithExistingHVEPointers(
+      SMGObject pOldTargetObj,
+      SMGObject pNewTargetObj,
+      Set<SMGTargetSpecifier> pSpecifierToSwitch) {
+    SMG newSMG = this;
+
+    Set<SMGValue> pointersTowardsOld =
+        objectsAndPointersPointingAtThem
+            .getOrDefault(pOldTargetObj, PathCopyingPersistentTreeMap.of())
+            .keySet()
+            .stream()
+            .filter(v -> pSpecifierToSwitch.contains(pointsToEdges.get(v).targetSpecifier()))
+            .collect(ImmutableSet.toImmutableSet());
+    // TODO: merge the set into the for-each loop?
+    Set<SMGObject> sourcesOfPointersTowardsOld = ImmutableSet.of();
+    for (SMGValue ptrToRemove : pointersTowardsOld) {
+      sourcesOfPointersTowardsOld =
+          ImmutableSet.<SMGObject>builder()
+              .addAll(
+                  valuesToRegionsTheyAreSavedIn
+                      .getOrDefault(ptrToRemove, PathCopyingPersistentTreeMap.of())
+                      .keySet())
+              .addAll(sourcesOfPointersTowardsOld)
+              .build();
+    }
+
+    ImmutableSet.Builder<SMGValue> newValuesWithNeedOfMapping = ImmutableSet.builder();
+
+    // Replace HVEs (automatically increments reverse maps)
+    for (SMGObject valueSource : sourcesOfPointersTowardsOld) {
+      for (SMGHasValueEdge oldHve : hasValueEdges.get(valueSource)) {
+        if (pointersTowardsOld.contains(oldHve.hasValue())) {
+          // Replace, get existing if possible, else create a new edge
+          SMGPointsToEdge oldPTEdge = pointsToEdges.get(oldHve.hasValue());
+          Value ptrTargetOffset = oldPTEdge.getOffset();
+          SMGTargetSpecifier newTargetSpec =
+              !(pNewTargetObj instanceof SMGSinglyLinkedListSegment)
+                  ? SMGTargetSpecifier.IS_REGION
+                  : oldPTEdge.targetSpecifier();
+          SMGValue replacementValue = null;
+          SMGPointsToEdge searchedForEdge =
+              new SMGPointsToEdge(pNewTargetObj, ptrTargetOffset, newTargetSpec);
+
+          if (pNewTargetObj.isZero()) {
+            replacementValue = SMGValue.zeroValue();
+          } else {
+            PersistentMap<SMGValue, Integer> allPtrsTowardsNew =
+                objectsAndPointersPointingAtThem.getOrDefault(
+                    pNewTargetObj, PathCopyingPersistentTreeMap.of());
+            for (SMGValue valuesWithPtrsToNew : allPtrsTowardsNew.keySet()) {
+              SMGPointsToEdge pteTowardsNew = pointsToEdges.get(valuesWithPtrsToNew);
+              if (pteTowardsNew.equals(searchedForEdge)) {
+                replacementValue = valuesWithPtrsToNew;
+              }
+            }
+
+            if (replacementValue == null) {
+              // ALL of these need to be mapped to new symbolic values in the SPC!!!!
+              // Use: copyAndPutValue()
+              replacementValue = SMGValue.of();
+              newValuesWithNeedOfMapping.add(replacementValue);
+            }
+          }
+
+          SMGHasValueEdge replacementHVE =
+              new SMGHasValueEdge(replacementValue, oldHve.getOffset(), oldHve.getSizeInBits());
+          newSMG = newSMG.copyAndReplaceHVEdge(valueSource, oldHve, replacementHVE);
+        }
+      }
+    }
+
+    return SMGAndSMGValues.of(newSMG, newValuesWithNeedOfMapping.build());
   }
 
   public SMG replacePointersWithSMGValue(

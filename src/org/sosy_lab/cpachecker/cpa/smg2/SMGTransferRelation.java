@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -34,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -79,6 +82,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
@@ -111,6 +115,8 @@ public class SMGTransferRelation
 
   private final SMGOptions options;
 
+  private final PrecAdjustmentOptions precisionAdjustmentOptions;
+
   @SuppressWarnings("unused")
   private final SMGCPAExportOptions exportSMGOptions;
 
@@ -135,6 +141,7 @@ public class SMGTransferRelation
   public SMGTransferRelation(
       LogManager pLogger,
       SMGOptions pOptions,
+      PrecAdjustmentOptions pPrecisionAdjustmentOptions,
       SMGCPAExportOptions pExportSMGOptions,
       CFA pCfa,
       ConstraintsStrengthenOperator pConstraintsStrengthenOperator,
@@ -144,6 +151,7 @@ public class SMGTransferRelation
     cfa = pCfa;
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
+    precisionAdjustmentOptions = pPrecisionAdjustmentOptions;
     exportSMGOptions = pExportSMGOptions;
     solver = pSolver;
 
@@ -162,6 +170,7 @@ public class SMGTransferRelation
   protected SMGTransferRelation(
       LogManager pLogger,
       SMGOptions pOptions,
+      PrecAdjustmentOptions pPrecisionAdjustmentOptions,
       SMGCPAExportOptions pExportSMGOptions,
       MachineModel pMachineModel,
       Collection<String> pBooleanVariables,
@@ -170,6 +179,7 @@ public class SMGTransferRelation
       throws InvalidConfigurationException {
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
+    precisionAdjustmentOptions = pPrecisionAdjustmentOptions;
     exportSMGOptions = pExportSMGOptions;
     booleanVariables = pBooleanVariables;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
@@ -816,6 +826,18 @@ public class SMGTransferRelation
         return null;
       }
       return handledAssumptions;
+    } catch (SMGSolverException e) {
+      if (e.isSolverException()) {
+        throw new CPATransferException(
+            "Error while computing the constraint for "
+                + expression
+                + ". With: \n"
+                + e.getSolverException());
+      } else if (e.isInterruptedException()) {
+        throw e.getInterruptedException();
+      } else {
+        throw e.getUnrecognizedCodeException();
+      }
     } catch (SolverException e) {
       throw new CPATransferException(
           "Error while computing the constraint for " + expression + ".");
@@ -834,6 +856,19 @@ public class SMGTransferRelation
     Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
     CExpression cExpression = (CExpression) simplifiedExpression.getFirst();
     truthValue = simplifiedExpression.getSecond();
+
+    if (expression instanceof CBinaryExpression binEx
+        && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound) {
+      if (binEx.getOperator().equals(LESS_THAN) || binEx.getOperator().equals(LESS_EQUAL)) {
+        // Concrete loop of the form x < 5, increment abstraction bound to 1 larger than loop
+        if (precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
+                <= loopBound.getValue().intValueExact()
+            && precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
+                < precisionAdjustmentOptions.getListAbstractionMaximumIncreaseLengthThreshold()) {
+          precisionAdjustmentOptions.incListAbstractionMinimumLengthThreshold();
+        }
+      }
+    }
 
     ImmutableList.Builder<SMGState> resultStateBuilder = ImmutableList.builder();
     // Get the value of the expression (either true[1L], false[0L], or unknown[null])
@@ -926,41 +961,34 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> handleStatementEdge(CStatementEdge pCfaEdge, CStatement cStmt)
       throws CPATransferException {
-    try {
-      // Either assignments a = b; or function calls foo(..);
-      if (cStmt instanceof CAssignment cAssignment) {
-        // Assignments, evaluate the right hand side value using the value visitor and write it into
-        // the address returned by the address evaluator for the left hand side.
-        CExpression lValue = cAssignment.getLeftHandSide();
-        CRightHandSide rValue = cAssignment.getRightHandSide();
-        ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
-        for (SMGState currentState : createVariableOnTheSpot(lValue, state)) {
-          stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
-        }
-        return stateBuilder.build();
-
-      } else if (cStmt instanceof CFunctionCallStatement cFCall) {
-        // Check the arguments for the function, then simply execute the function
-        CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
-        CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
-        String calledFunctionName = fileNameExpression.toASTString();
-
-        ImmutableList.Builder<SMGState> resultStatesBuilder = ImmutableList.builder();
-
-        // function calls without assignments
-        resultStatesBuilder.addAll(
-            handleFunctionCallWithoutBody(state, pCfaEdge, cFCExpression, calledFunctionName));
-
-        return resultStatesBuilder.build();
-      } else {
-        // Fall through for unneeded cases
-        return ImmutableList.of(state);
+    // Either assignments a = b; or function calls foo(..);
+    if (cStmt instanceof CAssignment cAssignment) {
+      // Assignments, evaluate the right hand side value using the value visitor and write it into
+      // the address returned by the address evaluator for the left hand side.
+      CExpression lValue = cAssignment.getLeftHandSide();
+      CRightHandSide rValue = cAssignment.getRightHandSide();
+      ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
+      for (SMGState currentState : createVariableOnTheSpot(lValue, state)) {
+        stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
       }
-    } catch (SolverException e) {
-      throw new CPATransferException("Solver error handling a statement with SMG analysis: ", e);
-    } catch (InterruptedException e) {
-      throw new CPATransferException(
-          "Solver interrupted handling a statement with SMG analysis: ", e);
+      return stateBuilder.build();
+
+    } else if (cStmt instanceof CFunctionCallStatement cFCall) {
+      // Check the arguments for the function, then simply execute the function
+      CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
+      CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
+      String calledFunctionName = fileNameExpression.toASTString();
+
+      ImmutableList.Builder<SMGState> resultStatesBuilder = ImmutableList.builder();
+
+      // function calls without assignments
+      resultStatesBuilder.addAll(
+          handleFunctionCallWithoutBody(state, pCfaEdge, cFCExpression, calledFunctionName));
+
+      return resultStatesBuilder.build();
+    } else {
+      // Fall through for unneeded cases
+      return ImmutableList.of(state);
     }
   }
 
@@ -973,7 +1001,7 @@ public class SMGTransferRelation
       CStatementEdge pCfaEdge,
       CFunctionCallExpression cFCExpression,
       String calledFunctionName)
-      throws CPATransferException, SolverException, InterruptedException {
+      throws CPATransferException {
     SMGCPABuiltins builtins = evaluator.getBuiltinFunctionHandler();
     List<ValueAndSMGState> uselessValuesAndStates;
     if (builtins.isABuiltIn(calledFunctionName)) {
@@ -1285,9 +1313,7 @@ public class SMGTransferRelation
           // Offset known but not 0, search for/create the correct address
           List<ValueAndSMGState> newAddressesAndStates =
               evaluator.findOrcreateNewPointer(
-                  addressInValue.getMemoryAddress(),
-                  addressInValue.getOffset().asNumericValue().bigIntegerValue(),
-                  currentState);
+                  addressInValue.getMemoryAddress(), addressInValue.getOffset(), currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here
           Preconditions.checkArgument(newAddressesAndStates.size() == 1);
@@ -1322,13 +1348,11 @@ public class SMGTransferRelation
             && addressInValue.getOffset().asNumericValue().longValue() == 0) {
           // offset == 0 -> write the value directly (known pointer)
           valueToWrite = addressInValue.getMemoryAddress();
-        } else if (addressInValue.getOffset().isNumericValue()) {
+        } else if (addressInValue.getOffset().isNumericValue() || options.trackPredicates()) {
           // Offset known but not 0, search for/create the correct address
           List<ValueAndSMGState> newAddressesAndStates =
               evaluator.findOrcreateNewPointer(
-                  addressInValue.getMemoryAddress(),
-                  addressInValue.getOffset().asNumericValue().bigIntegerValue(),
-                  currentState);
+                  addressInValue.getMemoryAddress(), addressInValue.getOffset(), currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here
           Preconditions.checkArgument(newAddressesAndStates.size() == 1);

@@ -142,22 +142,44 @@ public class SMGCPAMaterializer {
         currentState.copyAndReplaceMemoryModel(
             currentState
                 .getMemoryModel()
-                .replacePointersWithSMGValue(
+                .replacePointerValuesWithExistingOrNew(
                     pListSeg,
                     nextPointerValue,
-                    0,
                     ImmutableSet.of(
                         SMGTargetSpecifier.IS_FIRST_POINTER, SMGTargetSpecifier.IS_ALL_POINTER)));
 
     // Last ptr to the current
-    // Important: last pointer specifier need to be region for the non-extended case
+    // Important: last pointer specifier need to be region for the non-extended case if it points
+    // towards a region, else last
+    assert !(currentState
+                .getMemoryModel()
+                .getSmg()
+                .getPTEdge(prevPointerValue)
+                .orElseThrow()
+                .pointsTo()
+            instanceof SMGSinglyLinkedListSegment)
+        || currentState
+            .getMemoryModel()
+            .getSmg()
+            .getPTEdge(prevPointerValue)
+            .orElseThrow()
+            .targetSpecifier()
+            .equals(SMGTargetSpecifier.IS_LAST_POINTER);
+
     assert currentState
-        .getMemoryModel()
-        .getSmg()
-        .getPTEdge(prevPointerValue)
-        .orElseThrow()
-        .targetSpecifier()
-        .equals(SMGTargetSpecifier.IS_REGION);
+                .getMemoryModel()
+                .getSmg()
+                .getPTEdge(prevPointerValue)
+                .orElseThrow()
+                .pointsTo()
+            instanceof SMGSinglyLinkedListSegment
+        || currentState
+            .getMemoryModel()
+            .getSmg()
+            .getPTEdge(prevPointerValue)
+            .orElseThrow()
+            .targetSpecifier()
+            .equals(SMGTargetSpecifier.IS_REGION);
 
     assert currentState
             .getMemoryModel()
@@ -174,11 +196,12 @@ public class SMGCPAMaterializer {
         currentState.copyAndReplaceMemoryModel(
             currentState
                 .getMemoryModel()
-                .replacePointersWithSMGValue(
+                .replacePointerValuesWithExistingOrNew(
                     pListSeg,
                     prevPointerValue,
-                    0,
                     ImmutableSet.of(SMGTargetSpecifier.IS_LAST_POINTER)));
+
+    assert currentState.getMemoryModel().getSmg().getPointerValuesForTarget(pListSeg).isEmpty();
 
     // We can assume that a 0+ does not have other valid pointers to it!
     // Remove all other pointers/subgraphs associated with the 0+ object
@@ -549,9 +572,12 @@ public class SMGCPAMaterializer {
                 !e.hasValue().isZero()
                     && smg.isPointer(e.hasValue())
                     && smg.getPTEdge(e.hasValue()).orElseThrow().pointsTo().equals(newAbsListSeg)
+                    && smg.getPTEdge(e.hasValue()).orElseThrow().getOffset().isNumericValue()
                     && smg.getPTEdge(e.hasValue())
                         .orElseThrow()
                         .getOffset()
+                        .asNumericValue()
+                        .bigIntegerValue()
                         .equals(
                             ((SMGDoublyLinkedListSegment) newAbsListSeg)
                                 .getPrevPointerTargetOffset())
@@ -795,13 +821,13 @@ public class SMGCPAMaterializer {
           // Create a new pointer to the new memory that is equal to the old and save in newConcrete
           SMGPointsToEdge oldPTE =
               currentState.getMemoryModel().getSmg().getPTEdge(smgValue).orElseThrow();
-          BigInteger oldOffset = oldPTE.getOffset();
+          Value oldOffset = oldPTE.getOffset();
           Preconditions.checkArgument(
               targetMemoryAndState
                   .getOffsetForObject()
                   .asNumericValue()
                   .bigIntegerValue()
-                  .equals(oldOffset));
+                  .equals(oldOffset.asNumericValue().bigIntegerValue()));
           int oldPtrNestingLvl = currentState.getMemoryModel().getNestingLevel(value);
           SMGTargetSpecifier oldPtrTargetSpec = oldPTE.targetSpecifier();
           if (!(newTarget instanceof SMGSinglyLinkedListSegment)) {

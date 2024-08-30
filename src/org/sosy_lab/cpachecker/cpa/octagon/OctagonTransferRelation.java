@@ -268,7 +268,7 @@ public class OctagonTransferRelation
     // IMPORTANT: for this switch we assume that in each conditional statement, there is only one
     // condition, (this simplification is added in the cfa creation phase)
     switch (binExp.getOperator()) {
-        // TODO check which cases can be handled
+      // TODO check which cases can be handled
       case BINARY_AND:
       case BINARY_OR:
       case BINARY_XOR:
@@ -277,9 +277,9 @@ public class OctagonTransferRelation
       case MODULO:
         return Collections.singleton(pState);
 
-        // for the following cases we first create a temporary variable where
-        // the result of the operation is saved, afterwards, the equality with == 0
-        // is checked
+      // for the following cases we first create a temporary variable where
+      // the result of the operation is saved, afterwards, the equality with == 0
+      // is checked
       case MINUS:
       case PLUS:
       case MULTIPLY:
@@ -310,10 +310,10 @@ public class OctagonTransferRelation
         }
         return possibleStates;
 
-        // in the following cases we have to check left and right part of the binary
-        // expression, when they are not single variables but contain for example
-        // another binary expression we have to create some temporary variables again
-        // which will be compared afterwards
+      // in the following cases we have to check left and right part of the binary
+      // expression, when they are not single variables but contain for example
+      // another binary expression we have to create some temporary variables again
+      // which will be compared afterwards
       case EQUALS:
       case NOT_EQUALS:
       case GREATER_EQUAL:
@@ -377,8 +377,8 @@ public class OctagonTransferRelation
           op = BinaryOperator.GREATER_THAN;
           break;
 
-          // we do not need to change the binary operator for other cases
-          // (== and != stay the same when swapping the operands)
+        // we do not need to change the binary operator for other cases
+        // (== and != stay the same when swapping the operands)
         default:
           break;
       }
@@ -1232,8 +1232,8 @@ public class OctagonTransferRelation
                                   rightVisitorState.sizeOfVariables(), rightVisitorState),
                               rightVisitorState));
                       break;
-                      // unused default statements, all possible values for this switch
-                      // statement are handled above
+                    // unused default statements, all possible values for this switch
+                    // statement are handled above
                     default:
                       throw new AssertionError("Unhandled case in switch clause.");
                   }

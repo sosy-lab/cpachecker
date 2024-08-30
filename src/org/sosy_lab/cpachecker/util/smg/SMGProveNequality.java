@@ -91,23 +91,22 @@ public class SMGProveNequality {
   private boolean checkIfEdgePointsOutOfBounds(SMGPointsToEdge pToEdge)
       throws SMGException, SMGSolverException {
     SMGObject targetObj = pToEdge.pointsTo();
-    if (targetObj.getSize().isNumericValue()) {
-      return pToEdge
-                  .getOffset()
-                  .compareTo(pToEdge.pointsTo().getSize().asNumericValue().bigIntegerValue())
-              > 0
-          || pToEdge.getOffset().signum() < 0;
-    } else if (pToEdge.pointsTo().getSize().isUnknown()) {
+    if (pToEdge.pointsTo().getSize().isUnknown() || pToEdge.getOffset().isUnknown()) {
       // Unknown -> Overapproximate
       return true;
+    } else if (targetObj.getSize().isNumericValue() && pToEdge.getOffset().isNumericValue()) {
+      return pToEdge
+                  .getOffset()
+                  .asNumericValue()
+                  .bigIntegerValue()
+                  .compareTo(pToEdge.pointsTo().getSize().asNumericValue().bigIntegerValue())
+              > 0
+          || pToEdge.getOffset().asNumericValue().bigIntegerValue().signum() < 0;
     } else {
       // Use SMT solver
       return state
           .checkBoundariesOfMemoryAccessWithSolver(
-              targetObj,
-              new NumericValue(pToEdge.getOffset()),
-              new NumericValue(BigInteger.ZERO),
-              null)
+              targetObj, pToEdge.getOffset(), new NumericValue(BigInteger.ZERO), null)
           .isSAT();
     }
   }
