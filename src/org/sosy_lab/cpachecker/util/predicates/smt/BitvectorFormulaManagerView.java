@@ -81,17 +81,9 @@ public class BitvectorFormulaManagerView extends BaseManagerView
   }
 
   /**
-   * {@inheritDoc}
+   * Deprecated and unsupported operation.
    *
-   * <p>Deprecated and unsupported operation.
-   *
-   * <p>This method returns the formula for the C99-conform MODULO-operator, which is rounded
-   * towards zero. SMTlib2 rounds towards positive or negative infinity, depending on both operands.
-   *
-   * <p>Example: SMTlib2: 10%3==1, 10%(-3)==1, (-10)%3==2, (-10)%(-3)==2 C99: 10%3==1, 10%(-3)==1,
-   * (-10)%3==(-1), (-10)%(-3)==(-1)
-   *
-   * <p>Note: this call used remainder() internally.
+   * <p>This method previously returned the SMTLIB2 remainder operator.
    */
   @SuppressWarnings({"deprecation", "removal"})
   @DoNotCall
