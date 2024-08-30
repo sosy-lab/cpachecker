@@ -103,7 +103,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     // Initialize the search
     List<Pair<CFANode, InstrumentationState>> waitlist = new ArrayList<>();
     Set<Pair<CFANode, InstrumentationState>> reachlist = new HashSet<>();
-    Map<CFANode, List<String>> mapDecomposedOperationsCondition = new HashMap<>();
+    Map<CFANode, String> mapDecomposedOperationsCondition = new HashMap<>();
     waitlist.add(Pair.of(cfa.getMetadata().getMainFunctionEntry(), new InstrumentationState()));
 
     while (!waitlist.isEmpty()) {
@@ -218,7 +218,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   private boolean canBeDecomposed(CFAEdge pCFAEdge,
                                   InstrumentationTransition pTransition,
                                   List<Pair<CFANode, InstrumentationState>> pWaitlist,
-                                  Map<CFANode, List<String>> pDecomposedMap,
+                                  Map<CFANode, String> pDecomposedMap,
                                   ImmutableList<String> pMatchedVariables) {
     if (!pTransition.getPattern().toString().equals("ADD")
         && !pTransition.getPattern().toString().equals("SUB")
@@ -273,12 +273,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         node2,
         pCFAEdge.getSuccessor()));
 
-    if (pDecomposedMap.containsKey(pCFAEdge.getPredecessor())) {
-      pDecomposedMap.put(node1, List.of(condition, pDecomposedMap.get(pCFAEdge.getPredecessor()).get(1)));
-      pDecomposedMap.put(node2, List.of(condition, pDecomposedMap.get(pCFAEdge.getPredecessor()).get(1)));
-    }
-    pDecomposedMap.put(node1, List.of(condition, expression.getExpressionType().getCanonicalType().toString()));
-    pDecomposedMap.put(node2, List.of(condition, expression.getExpressionType().getCanonicalType().toString()));
+    pDecomposedMap.put(node1, condition);
+    pDecomposedMap.put(node2, condition);
 
     pWaitlist.add(Pair.of(node1, pTransition.getSource()));
     pWaitlist.add(Pair.of(node2, pTransition.getSource()));
