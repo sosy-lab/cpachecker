@@ -190,7 +190,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       if (pTransition.getPattern().toString().equals("[!cond]")) {
         fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation();
       }
-      int location = fileLocation.getStartingLineNumber();
+      int location = fileLocation.getStartingLineInOrigin();
       if (pTransition.getOrderAsString().equals("AFTER")) {
         location += 1;
       }
