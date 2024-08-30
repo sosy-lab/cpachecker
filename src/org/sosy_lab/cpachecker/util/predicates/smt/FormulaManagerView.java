@@ -665,9 +665,7 @@ public class FormulaManagerView {
     if (pF1 instanceof IntegerFormula pFi1 && pF2 instanceof IntegerFormula pFi2) {
       // Integer modulo does not behave according to the C standard (or Java) for
       //   negative numbers in pF1.
-      t =
-          getCModuloReplacementForSMTlib2(
-              pFi1, pFi2, getIntegerFormulaManager(), getBooleanFormulaManager());
+      t = getIntegerFormulaManager().remainder(pFi1, pFi2, getBooleanFormulaManager());
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       // remainder for BVs behaves as the C standard defines modulo (%)
       //   (also Javas % operator behaves the same)
@@ -679,34 +677,6 @@ public class FormulaManagerView {
     }
 
     return (T) t;
-  }
-
-  /**
-   * Applies the modulo operator (%) as defined in the C programming language (C99/C11) to the 2
-   * given Integer formulas.
-   *
-   * @see BitvectorFormulaManagerView#remainder(BitvectorFormula, BitvectorFormula, boolean) with
-   *     signed true for the BV equivalent.
-   */
-  static IntegerFormula getCModuloReplacementForSMTlib2(
-      final IntegerFormula dividend,
-      final IntegerFormula divisor,
-      final IntegerFormulaManager imgr,
-      final BooleanFormulaManager bmgr) {
-    final IntegerFormula zero = imgr.makeNumber(0);
-    final IntegerFormula additionalUnit =
-        bmgr.ifThenElse(imgr.greaterOrEquals(divisor, zero), imgr.negate(divisor), divisor);
-
-    final IntegerFormula mod = imgr.modulo(dividend, divisor);
-
-    // IF   first operand is positive or mod-result is zero
-    // THEN return plain modulo --> here C99/C11/Java is equal to SMTlib2
-    // ELSE modulo and add an additional unit towards the nearest infinity.
-
-    return bmgr.ifThenElse(
-        bmgr.or(imgr.greaterOrEquals(dividend, zero), imgr.equal(mod, zero)),
-        mod,
-        imgr.add(mod, additionalUnit));
   }
 
   public <T extends Formula> BooleanFormula makeModularCongruence(

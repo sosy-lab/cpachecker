@@ -35,7 +35,6 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
-import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
@@ -231,13 +230,12 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
       BitvectorFormula numerator, BitvectorFormula denominator, boolean signed) {
     assert getLength(numerator) == getLength(denominator)
         : "Expect operators to have the same size";
-    if (numericFormulaManager instanceof IntegerFormulaManager imgr) {
+    if (numericFormulaManager instanceof IntegerFormulaManagerView imgr) {
       return wrap(
           getFormulaType(numerator),
-          FormulaManagerView.getCModuloReplacementForSMTlib2(
+          imgr.remainder(
               (IntegerFormula) unwrap(numerator),
               (IntegerFormula) unwrap(denominator),
-              imgr,
               booleanFormulaManager));
     } else {
       return makeUf(getFormulaType(numerator), moduloUfDecl, numerator, denominator);
