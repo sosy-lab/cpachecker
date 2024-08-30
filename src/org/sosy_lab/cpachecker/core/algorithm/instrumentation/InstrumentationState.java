@@ -19,9 +19,10 @@ public class InstrumentationState {
   private StateAnnotation stateAnnotation;
   private InstrumentationAutomaton automatonOfTheState;
 
-  public InstrumentationState(String pName,
-                              StateAnnotation pStateAnnotation,
-                              InstrumentationAutomaton pInstrumentationAutomaton) {
+  public InstrumentationState(
+      String pName,
+      StateAnnotation pStateAnnotation,
+      InstrumentationAutomaton pInstrumentationAutomaton) {
     this.name = pName;
     this.stateAnnotation = pStateAnnotation;
     this.automatonOfTheState = pInstrumentationAutomaton;
@@ -31,9 +32,8 @@ public class InstrumentationState {
   public InstrumentationState() {
     this.name = "DUMMY";
     this.stateAnnotation = StateAnnotation.TRUE;
-    this.automatonOfTheState = new InstrumentationAutomaton(InstrumentationProperty.TERMINATION,
-                                                            ImmutableMap.of(),
-                                                            0);
+    this.automatonOfTheState =
+        new InstrumentationAutomaton(InstrumentationProperty.TERMINATION, ImmutableMap.of(), 0);
   }
 
   public InstrumentationAutomaton getAutomatonOfTheState() {
@@ -45,10 +45,10 @@ public class InstrumentationState {
   }
 
   public boolean stateMatchesCfaNode(CFANode pCFANode, CFA pCFA) {
-    return (stateAnnotation == StateAnnotation.TRUE && !name.equals("DUMMY")) ||
-        (stateAnnotation == StateAnnotation.INIT &&
-            pCFANode.equals(pCFA.getMetadata().getMainFunctionEntry())) ||
-            (stateAnnotation == StateAnnotation.LOOPHEAD && pCFANode.isLoopStart());
+    return (stateAnnotation == StateAnnotation.TRUE && !name.equals("DUMMY"))
+        || (stateAnnotation == StateAnnotation.INIT
+            && pCFANode.equals(pCFA.getMetadata().getMainFunctionEntry()))
+        || (stateAnnotation == StateAnnotation.LOOPHEAD && pCFANode.isLoopStart());
   }
 
   @Override

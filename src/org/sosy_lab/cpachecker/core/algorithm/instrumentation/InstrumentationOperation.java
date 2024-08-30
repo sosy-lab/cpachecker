@@ -12,10 +12,10 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Class for operations defined on the transitions of instrumentation automaton. Should not be used
- * outside the Sequentialization operator !
- * The operation can be any valid C expression. It is possible to insert the variables matched from
- * the pattern by special variables x1, x2, ..., xn. All these variables are after match
- * replaced by first, second, third, ..., n-th mathced variable from InstrumentationPattern.
+ * outside the Sequentialization operator ! The operation can be any valid C expression. It is
+ * possible to insert the variables matched from the pattern by special variables x1, x2, ..., xn.
+ * All these variables are after match replaced by first, second, third, ..., n-th mathced variable
+ * from InstrumentationPattern.
  */
 public class InstrumentationOperation {
   private String operation;
@@ -24,7 +24,7 @@ public class InstrumentationOperation {
     operation = pOperation;
   }
 
-  public String InsertVariablesInsideOperation(ImmutableList<String> pVariables) {
+  public String insertVariablesInsideOperation(ImmutableList<String> pVariables) {
     String resultingOperation = operation;
     for (int i = 0; i < pVariables.size(); i++) {
       resultingOperation = resultingOperation.replace("x" + (i + 1), pVariables.get(i));

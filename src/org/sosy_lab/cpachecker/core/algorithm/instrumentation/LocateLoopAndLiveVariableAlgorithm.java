@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -175,10 +177,9 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
   }
 
   private FunctionEntryNode getFunctionFromFunctionCallEdge(CFAEdge pCfaEdge) {
-    if (pCfaEdge.getEdgeType() != CFAEdgeType.FunctionCallEdge) {
-      throw new IllegalArgumentException(
-          "The type of the given CFA edge must be \"FunctionCallEdge\"");
-    }
+    checkArgument(
+        pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge,
+        "The type of the given CFA edge must be \"FunctionCallEdge\"");
 
     AAstNode astNode = pCfaEdge.getRawAST().orElseThrow();
     if (astNode instanceof CFunctionCallStatement) {
@@ -246,8 +247,9 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
 
     for (CFAEdge cfaEdge : cfa.edges()) {
       Optional<AAstNode> aAstNodeOp = cfaEdge.getRawAST();
-      if (aAstNodeOp.isPresent() && aAstNodeOp.get() instanceof CComplexTypeDeclaration) {
-        String cComplexTypeDeclaration = ((CComplexTypeDeclaration) aAstNodeOp.get()).toString();
+      if (aAstNodeOp.isPresent() && aAstNodeOp.orElseThrow() instanceof CComplexTypeDeclaration) {
+        String cComplexTypeDeclaration =
+            ((CComplexTypeDeclaration) aAstNodeOp.orElseThrow()).toString();
 
         if (cComplexTypeDeclaration.startsWith(
             "struct ")) { // A C complex type can also be an enum by definition in CPAchecker
@@ -301,7 +303,7 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
             allStructInfos.stream()
                 .filter(e -> type.endsWith(e.structName()))
                 .findFirst()
-                .get()
+                .orElseThrow()
                 .members();
         Map<String, String> modifiedMembersUnderOneLevel = new HashMap<>();
 
@@ -310,10 +312,12 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
           String typeUnderOneLevel = memberUnderOneLevel.getValue();
 
           String nameUnderOneLevelWithoutAsterisk = nameUnderOneLevel.replace("*", "");
-          int countOfAsterisk = nameUnderOneLevel.length() - nameUnderOneLevelWithoutAsterisk.length();
+          int countOfAsterisk =
+              nameUnderOneLevel.length() - nameUnderOneLevelWithoutAsterisk.length();
 
           modifiedMembersUnderOneLevel.put(
-              "*".repeat(countOfAsterisk) + name + "." + nameUnderOneLevelWithoutAsterisk, typeUnderOneLevel);
+              "*".repeat(countOfAsterisk) + name + "." + nameUnderOneLevelWithoutAsterisk,
+              typeUnderOneLevel);
         }
 
         ans.putAll(

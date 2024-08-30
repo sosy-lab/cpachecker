@@ -23,17 +23,13 @@ public class InstrumentationAutomaton {
   private ImmutableList<InstrumentationTransition> instrumentationTransitions;
   private InstrumentationState initialState;
 
-  /**
-   * Currently supported properties with encoded automata.
-   */
+  /** Currently supported properties with encoded automata. */
   enum InstrumentationProperty {
     TERMINATION,
     NOOVERFLOW
   }
 
-  /**
-   * The annotation is used to match a property of a CFA node.
-   */
+  /** The annotation is used to match a property of a CFA node. */
   enum StateAnnotation {
     TRUE,
     LOOPHEAD,
@@ -42,8 +38,8 @@ public class InstrumentationAutomaton {
   }
 
   /**
-   * The order is used in each instrumentation transition to denote whether the operation should
-   * be included after or before the original CFA transition.
+   * The order is used in each instrumentation transition to denote whether the operation should be
+   * included after or before the original CFA transition.
    */
   enum InstrumentationOrder {
     AFTER,
@@ -97,14 +93,14 @@ public class InstrumentationAutomaton {
   }
 
   private String getAllocationForPointer(String pType) {
-    String originalType = "";
+    StringBuilder originalType = new StringBuilder();
     for (int i = 0; i < pType.length(); i++) {
       if (pType.charAt(i) == '*') {
-        return originalType;
+        return originalType.toString();
       }
-      originalType = originalType + pType.charAt(i);
+      originalType.append(pType.charAt(i));
     }
-    return originalType;
+    return originalType.toString();
   }
 
   private void constructOverflowAutomaton() {
@@ -117,9 +113,7 @@ public class InstrumentationAutomaton {
         new InstrumentationTransition(
             q1,
             new InstrumentationPattern("true"),
-            new InstrumentationOperation(
-                "int INT_MAX = 2147483647; int INT_MIN = -2147483648;"
-            ),
+            new InstrumentationOperation("int INT_MAX = 2147483647; int INT_MIN = -2147483648;"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t2 =
@@ -174,8 +168,8 @@ public class InstrumentationAutomaton {
             new InstrumentationPattern("SHIFT"),
             new InstrumentationOperation(
                 "if (x3) { __VERIFIER_assert(!((x1 < 0) || (x2 < 0) ||"
-                        + "(x2 >= INT_MAX) ||"
-                        + "(x1 > (INT_MAX >> x2))))); }"),
+                    + "(x2 >= INT_MAX) ||"
+                    + "(x1 > (INT_MAX >> x2))))); }"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t8 =
@@ -189,8 +183,7 @@ public class InstrumentationAutomaton {
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("GEQ"),
-            new InstrumentationOperation(
-                ""),
+            new InstrumentationOperation(""),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t10 =
@@ -258,54 +251,83 @@ public class InstrumentationAutomaton {
             q2);
 
     this.instrumentationTransitions =
-        ImmutableList.of(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18);
+        ImmutableList.of(
+            t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18);
   }
 
   private void constructTerminationAutomaton(int pIndex) {
-      InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
-      InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
-      InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
-      this.initialState = q1;
+    InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
+    InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
+    InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
+    this.initialState = q1;
 
-      InstrumentationTransition t1 =
-          new InstrumentationTransition(
-              q1,
-              new InstrumentationPattern("true"),
-              new InstrumentationOperation(
-              "int saved_" + pIndex + " = 0; " +
-                  liveVariablesAndTypes.entrySet().stream()
-                      .map((entry) ->
-                          entry.getValue() + " " + entry.getKey() + "_instr_" + pIndex +
-                              (entry.getValue().charAt(entry.getValue().length() - 1) == '*'
-                               ? " = alloca(sizeof(" + getAllocationForPointer(entry.getValue()) + "))"
-                               : ""))
-                      .collect(Collectors.joining("; ")) +
-                      (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
-              InstrumentationOrder.BEFORE,
-              q2);
-      InstrumentationTransition t2 =
-          new InstrumentationTransition(
-              q2,
-              new InstrumentationPattern("[cond]"),
-              new InstrumentationOperation("if(__VERIFIER_nondet_int() && saved_" + pIndex + " == 0) { saved_" + pIndex + " =1; " +
-                  liveVariablesAndTypes.entrySet().stream()
-                      .map((entry) ->
-                          getDereferencesForPointer(entry.getValue()) + entry.getKey()
-                              + "_instr_" + pIndex + " = " +
-                          getDereferencesForPointer(entry.getValue()) + entry.getKey())
-                      .collect(Collectors.joining("; ")) +
-                  (!liveVariablesAndTypes.isEmpty() ? "; " : "") +
-                  "} else { __VERIFIER_assert((saved_" + pIndex + " == 0)" +
-                  (!liveVariablesAndTypes.isEmpty() ? " || " : "") +
-                  liveVariablesAndTypes.entrySet().stream()
-                      .map((entry) ->
-                          "(" + getDereferencesForPointer(entry.getValue()) + entry.getKey()
-                              + " != " + getDereferencesForPointer(entry.getValue()) + entry.getKey()
-                              + "_instr_" + pIndex + ")")
-                      .collect(Collectors.joining("||")) +
-                  ");}"),
-              InstrumentationOrder.AFTER,
-              q3);
+    InstrumentationTransition t1 =
+        new InstrumentationTransition(
+            q1,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation(
+                "int saved_"
+                    + pIndex
+                    + " = 0; "
+                    + liveVariablesAndTypes.entrySet().stream()
+                        .map(
+                            (entry) ->
+                                entry.getValue()
+                                    + " "
+                                    + entry.getKey()
+                                    + "_instr_"
+                                    + pIndex
+                                    + (entry.getValue().charAt(entry.getValue().length() - 1) == '*'
+                                        ? " = alloca(sizeof("
+                                            + getAllocationForPointer(entry.getValue())
+                                            + "))"
+                                        : ""))
+                        .collect(Collectors.joining("; "))
+                    + (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t2 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("[cond]"),
+            new InstrumentationOperation(
+                "if(__VERIFIER_nondet_int() && saved_"
+                    + pIndex
+                    + " == 0) { saved_"
+                    + pIndex
+                    + " =1; "
+                    + liveVariablesAndTypes.entrySet().stream()
+                        .map(
+                            (entry) ->
+                                getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + "_instr_"
+                                    + pIndex
+                                    + " = "
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey())
+                        .collect(Collectors.joining("; "))
+                    + (!liveVariablesAndTypes.isEmpty() ? "; " : "")
+                    + "} else { __VERIFIER_assert((saved_"
+                    + pIndex
+                    + " == 0)"
+                    + (!liveVariablesAndTypes.isEmpty() ? " || " : "")
+                    + liveVariablesAndTypes.entrySet().stream()
+                        .map(
+                            (entry) ->
+                                "("
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + " != "
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + "_instr_"
+                                    + pIndex
+                                    + ")")
+                        .collect(Collectors.joining("||"))
+                    + ");}"),
+            InstrumentationOrder.AFTER,
+            q3);
     InstrumentationTransition t3 =
         new InstrumentationTransition(
             q3,
@@ -313,7 +335,6 @@ public class InstrumentationAutomaton {
             new InstrumentationOperation(""),
             InstrumentationOrder.AFTER,
             q3);
-      this.instrumentationTransitions =
-          ImmutableList.of(t1, t2, t3);
+    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
   }
 }

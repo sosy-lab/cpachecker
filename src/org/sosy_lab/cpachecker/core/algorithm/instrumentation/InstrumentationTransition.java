@@ -17,11 +17,12 @@ public class InstrumentationTransition {
   private InstrumentationOperation operation;
   private InstrumentationOrder order;
 
-  public InstrumentationTransition(InstrumentationState pSource,
-                                   InstrumentationPattern pPattern,
-                                   InstrumentationOperation pOperation,
-                                   InstrumentationOrder pOrder,
-                                   InstrumentationState pDestination) {
+  public InstrumentationTransition(
+      InstrumentationState pSource,
+      InstrumentationPattern pPattern,
+      InstrumentationOperation pOperation,
+      InstrumentationOrder pOrder,
+      InstrumentationState pDestination) {
     this.source = pSource;
     this.operation = pOperation;
     this.pattern = pPattern;
@@ -31,11 +32,15 @@ public class InstrumentationTransition {
 
   @Override
   public String toString() {
-    return source.toString() +
-        " | " + pattern +
-        " | " + operation +
-        " | " + order.name() +
-        " | " + destination.toString();
+    return source.toString()
+        + " | "
+        + pattern
+        + " | "
+        + operation
+        + " | "
+        + order.name()
+        + " | "
+        + destination;
   }
 
   public String getOrderAsString() {

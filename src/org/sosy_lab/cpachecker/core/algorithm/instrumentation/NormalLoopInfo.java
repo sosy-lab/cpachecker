@@ -17,4 +17,5 @@ import com.google.common.collect.ImmutableMap;
  * @param liveVariablesAndTypes the mapping from variable names used, but not declared, in the loop
  *     to their types
  */
-public record NormalLoopInfo(int loopLocation, ImmutableMap<String, String> liveVariablesAndTypes) {}
+public record NormalLoopInfo(
+    int loopLocation, ImmutableMap<String, String> liveVariablesAndTypes) {}

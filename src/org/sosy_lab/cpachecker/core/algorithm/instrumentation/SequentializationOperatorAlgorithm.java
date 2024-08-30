@@ -85,19 +85,16 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       int index = 0;
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
       for (NormalLoopInfo info : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
-        mapAutomataToLocations.put(info.loopLocation(),
-                                   new InstrumentationAutomaton(instrumentationProperty,
-                                                                info.liveVariablesAndTypes(),
-                                                                index));
+        mapAutomataToLocations.put(
+            info.loopLocation(),
+            new InstrumentationAutomaton(
+                instrumentationProperty, info.liveVariablesAndTypes(), index));
         index += 1;
       }
     } else {
-      mapNodesToLineNumbers = Map.of(
-          cfa.getMainFunction(),
-          0);
-      mapAutomataToLocations.put(0, new InstrumentationAutomaton(instrumentationProperty,
-          ImmutableMap.of(),
-          0));
+      mapNodesToLineNumbers = ImmutableMap.of(cfa.getMainFunction(), 0);
+      mapAutomataToLocations.put(
+          0, new InstrumentationAutomaton(instrumentationProperty, ImmutableMap.of(), 0));
     }
     // MAIN INSTRUMENTATION OPERATOR ALGORITHM
     // Initialize the search
@@ -117,13 +114,11 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       if (!currentState.stateMatchesCfaNode(currentNode, cfa)) {
         // If the current state was dummy, we have to look for an automaton that matches the
         // CFANode
-        if (currentState.toString().equals("DUMMY") &&
-            mapNodesToLineNumbers.containsKey(currentNode)) {
-          isThePairNew(currentNode,
-              mapAutomataToLocations
-                  .get(mapNodesToLineNumbers
-                      .get(currentNode))
-                  .getInitialState(),
+        if (currentState.toString().equals("DUMMY")
+            && mapNodesToLineNumbers.containsKey(currentNode)) {
+          isThePairNew(
+              currentNode,
+              mapAutomataToLocations.get(mapNodesToLineNumbers.get(currentNode)).getInitialState(),
               waitlist,
               reachlist);
         }
@@ -136,23 +131,24 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         boolean matched = false;
         for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
           CFAEdge edge = currentNode.getLeavingEdge(i);
-          for (InstrumentationTransition transition : currentState
-              .getAutomatonOfTheState()
-              .getTransitions(currentState)) {
-            ImmutableList<String> matchedVariables = transition.getPattern().MatchThePattern(edge,
-                mapDecomposedOperationsCondition);
+          for (InstrumentationTransition transition :
+              currentState.getAutomatonOfTheState().getTransitions(currentState)) {
+            ImmutableList<String> matchedVariables =
+                transition.getPattern().matchThePattern(edge, mapDecomposedOperationsCondition);
             if (matchedVariables != null) {
-              if (canBeDecomposed(edge,
-                    transition,
-                    waitlist,
-                    mapDecomposedOperationsCondition,
-                    matchedVariables)
+              if (canBeDecomposed(
+                      edge,
+                      transition,
+                      waitlist,
+                      mapDecomposedOperationsCondition,
+                      matchedVariables)
                   || isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist)) {
                 matched = true;
               }
               newEdges.add(
-                  computeLineNumberBasedOnTransition(transition, edge) + "|||" +
-                  transition.getOperation().InsertVariablesInsideOperation(matchedVariables));
+                  computeLineNumberBasedOnTransition(transition, edge)
+                      + "|||"
+                      + transition.getOperation().insertVariablesInsideOperation(matchedVariables));
             }
           }
         }
@@ -169,15 +165,14 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   }
 
   /**
-   * This method computes line number depending on the pattern. For example, if the pattern
-   * is [!cond], then we want to add the edge only after the real statement in the program.
-   * Further, is the line number could not be parsed and the source state of the transition
-   * is annotated with INIT then the intended line number is 0.
-   * Moreover, if the order is BEFORE, we want to include the edge one line before the
-   * real operation and similarly for AFTER.
+   * This method computes line number depending on the pattern. For example, if the pattern is
+   * [!cond], then we want to add the edge only after the real statement in the program. Further, is
+   * the line number could not be parsed and the source state of the transition is annotated with
+   * INIT then the intended line number is 0. Moreover, if the order is BEFORE, we want to include
+   * the edge one line before the real operation and similarly for AFTER.
    */
-  private String computeLineNumberBasedOnTransition(InstrumentationTransition pTransition,
-                                                    CFAEdge pEdge) {
+  private String computeLineNumberBasedOnTransition(
+      InstrumentationTransition pTransition, CFAEdge pEdge) {
     if (pTransition.getSource().isInitialAnnotation()) {
       return "1";
     }
@@ -202,24 +197,26 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   private void writeAllInformationIntoOutputFile(Set<String> newEdges) {
     // Output the collected CFA information into newEdgesInfo
     try (BufferedWriter writer =
-             Files.newBufferedWriter(new File("output/newEdgesInfo.txt").toPath(), StandardCharsets.UTF_8)) {
+        Files.newBufferedWriter(
+            new File("output/newEdgesInfo.txt").toPath(), StandardCharsets.UTF_8)) {
       String result = String.join("\n", newEdges);
       writer.write(result);
     } catch (IOException e) {
-    logger.logException(Level.SEVERE, e, "The creation of file newEdgesInfo.txt failed!");
+      logger.logException(Level.SEVERE, e, "The creation of file newEdgesInfo.txt failed!");
     }
   }
 
   /**
-   * Checks if the CFAEdge contains a complex expression that can be decomposed into
-   * smaller pieces and then creates arbitrary CFANodes in between with edges containing
-   * the simpler decomposed expressions.
+   * Checks if the CFAEdge contains a complex expression that can be decomposed into smaller pieces
+   * and then creates arbitrary CFANodes in between with edges containing the simpler decomposed
+   * expressions.
    */
-  private boolean canBeDecomposed(CFAEdge pCFAEdge,
-                                  InstrumentationTransition pTransition,
-                                  List<Pair<CFANode, InstrumentationState>> pWaitlist,
-                                  Map<CFANode, String> pDecomposedMap,
-                                  ImmutableList<String> pMatchedVariables) {
+  private boolean canBeDecomposed(
+      CFAEdge pCFAEdge,
+      InstrumentationTransition pTransition,
+      List<Pair<CFANode, InstrumentationState>> pWaitlist,
+      Map<CFANode, String> pDecomposedMap,
+      ImmutableList<String> pMatchedVariables) {
     if (!pTransition.getPattern().toString().equals("ADD")
         && !pTransition.getPattern().toString().equals("SUB")
         && !pTransition.getPattern().toString().equals("MUL")
@@ -240,12 +237,12 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       return false;
     }
 
-    AAstNode astNode = pCFAEdge.getRawAST().get();
+    AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
     CExpression expression = LoopInfoUtils.extractExpression(astNode);
     CExpression operand1;
     CExpression operand2;
 
-    if (expression instanceof  CBinaryExpression) {
+    if (expression instanceof CBinaryExpression) {
       operand1 = ((CBinaryExpression) expression).getOperand1();
       operand2 = ((CBinaryExpression) expression).getOperand2();
     } else {
@@ -262,16 +259,20 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     CFANode node1 = CFANode.newDummyCFANode();
     CFANode node2 = CFANode.newDummyCFANode();
 
-    node1.addLeavingEdge(new CStatementEdge(operand1.toASTString(),
-        new CExpressionStatement(pCFAEdge.getFileLocation(), operand1),
-        pCFAEdge.getFileLocation(),
-        node1,
-        pCFAEdge.getSuccessor()));
-    node2.addLeavingEdge(new CStatementEdge(operand2.toASTString(),
-        new CExpressionStatement(pCFAEdge.getFileLocation(), operand2),
-        pCFAEdge.getFileLocation(),
-        node2,
-        pCFAEdge.getSuccessor()));
+    node1.addLeavingEdge(
+        new CStatementEdge(
+            operand1.toASTString(),
+            new CExpressionStatement(pCFAEdge.getFileLocation(), operand1),
+            pCFAEdge.getFileLocation(),
+            node1,
+            pCFAEdge.getSuccessor()));
+    node2.addLeavingEdge(
+        new CStatementEdge(
+            operand2.toASTString(),
+            new CExpressionStatement(pCFAEdge.getFileLocation(), operand2),
+            pCFAEdge.getFileLocation(),
+            node2,
+            pCFAEdge.getSuccessor()));
 
     pDecomposedMap.put(node1, condition);
     pDecomposedMap.put(node2, condition);
@@ -282,13 +283,14 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   }
 
   /**
-   * Checks if the pair (pCFANode, pState) has already been explored or not. If not, then it
-   * adds the state into waitlist.
+   * Checks if the pair (pCFANode, pState) has already been explored or not. If not, then it adds
+   * the state into waitlist.
    */
-  private boolean isThePairNew(CFANode pCFANode,
-                               InstrumentationState pState,
-                               List<Pair<CFANode, InstrumentationState>> pWaitlist,
-                               Set<Pair<CFANode, InstrumentationState>> pReachSet) {
+  private boolean isThePairNew(
+      CFANode pCFANode,
+      InstrumentationState pState,
+      List<Pair<CFANode, InstrumentationState>> pWaitlist,
+      Set<Pair<CFANode, InstrumentationState>> pReachSet) {
     Pair<CFANode, InstrumentationState> newPair = Pair.of(pCFANode, pState);
     if (!pReachSet.contains(newPair) && !pWaitlist.contains(newPair)) {
       pWaitlist.add(newPair);
