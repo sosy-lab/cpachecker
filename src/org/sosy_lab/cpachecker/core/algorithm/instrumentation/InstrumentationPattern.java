@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Map;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
  * AdditionExpression or SubstractionExpression - true, false = The match is always true/false
  */
 public class InstrumentationPattern {
-  private patternType type;
-  private String pattern;
+  private final patternType type;
+  private final String pattern;
 
   public InstrumentationPattern(String pPattern) {
     pattern = pPattern;
