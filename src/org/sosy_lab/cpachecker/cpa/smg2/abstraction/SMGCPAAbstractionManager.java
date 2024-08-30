@@ -107,8 +107,6 @@ public class SMGCPAAbstractionManager {
    */
   public SMGState findAndAbstractLists() throws SMGException {
     SMGState currentState = state;
-    equalityCache = EqualityCache.of();
-    objectCache = EqualityCache.of();
     statistics.startTotalListSearchTime();
 
     // Sort in DLL and SLL candidates and also order by nesting
@@ -144,6 +142,7 @@ public class SMGCPAAbstractionManager {
         }
       }
     }
+    currentState = currentState.removeUnusedValues();
     statistics.stopTotalAbstractionTime();
     assert candidatesHaveBeenAbstracted(orderedListCandidatesByNesting, currentState);
     return currentState;
@@ -193,6 +192,8 @@ public class SMGCPAAbstractionManager {
   }
 
   List<Set<SMGCandidate>> getListCandidates() throws SMGException {
+    equalityCache = EqualityCache.of();
+    objectCache = EqualityCache.of();
 
     SymbolicProgramConfiguration memModel = state.getMemoryModel();
     SMG smg = memModel.getSmg();

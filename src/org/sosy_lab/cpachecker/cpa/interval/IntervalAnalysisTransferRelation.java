@@ -225,7 +225,7 @@ public class IntervalAnalysisTransferRelation
     assert !interval2.isEmpty() : operand2;
 
     switch (operator) {
-        // a < b, a < 1
+      // a < b, a < 1
       case LESS_THAN:
         {
           newState =
@@ -235,7 +235,7 @@ public class IntervalAnalysisTransferRelation
           return soleSuccessor(newState);
         }
 
-        // a <= b, a <= 1
+      // a <= b, a <= 1
       case LESS_EQUAL:
         {
           newState = addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2));
@@ -243,7 +243,7 @@ public class IntervalAnalysisTransferRelation
           return soleSuccessor(newState);
         }
 
-        // a > b, a > 1
+      // a > b, a > 1
       case GREATER_THAN:
         {
           newState =
@@ -253,7 +253,7 @@ public class IntervalAnalysisTransferRelation
           return soleSuccessor(newState);
         }
 
-        // a >= b, a >= 1
+      // a >= b, a >= 1
       case GREATER_EQUAL:
         {
           newState = addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2));
@@ -261,7 +261,7 @@ public class IntervalAnalysisTransferRelation
           return soleSuccessor(newState);
         }
 
-        // a == b, a == 1
+      // a == b, a == 1
       case EQUALS:
         {
           newState = addInterval(newState, operand1, interval1.intersect(interval2));
@@ -269,7 +269,7 @@ public class IntervalAnalysisTransferRelation
           return soleSuccessor(newState);
         }
 
-        // a != b, a != 1
+      // a != b, a != 1
       case NOT_EQUALS:
         {
 

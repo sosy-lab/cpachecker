@@ -673,7 +673,9 @@ public class SMG {
     }
 
     Integer currentNum = innerMap.get(pointer);
-    Preconditions.checkNotNull(currentNum);
+    if (currentNum == null) {
+      return this;
+    }
     PersistentMap<SMGObject, PersistentMap<SMGValue, Integer>> newObjectsAndPointersPointingAtThem;
     if (currentNum > 1) {
       newObjectsAndPointersPointingAtThem =

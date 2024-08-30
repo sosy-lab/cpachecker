@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -41,6 +42,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -163,7 +166,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         FluentIterable.from(pCfa.edges())
             .filter(ADeclarationEdge.class)
             .transform(edge -> edge.getDeclaration())
-            .filter(AbstractSimpleDeclaration.class)) {
+            .filter(AbstractSimpleDeclaration.class)
+            .filter(
+                Predicates.or(
+                    Predicates.instanceOf(AVariableDeclaration.class),
+                    Predicates.instanceOf(AParameterDeclaration.class)))) {
       builder.put(MemoryLocation.forDeclaration(decl), decl.getType());
     }
 
@@ -1215,6 +1222,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       alwaysOdd = alwaysOdd && isOdd(newVal);
     }
 
+    private boolean isZeroInMinMax() {
+      NumericValue zeroVal = new NumericValue(0);
+      return compareVals(minVal, zeroVal) <= 0 && compareVals(maxVal, zeroVal) >= 0;
+    }
+
     @Override
     protected Collection<BooleanFormula> asBooleanFormulae(
         final FormulaManagerView pFmgrV,
@@ -1246,7 +1258,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                 varF, encodeNumVal(pFmgrV, formulaType, varF, maxVal.getNumber()), signed));
       }
 
-      if (isNeverZero) {
+      if (isNeverZero && isZeroInMinMax()) {
         result.add(pFmgrV.makeNot(pFmgrV.makeEqual(varF, pFmgrV.makeNumber(formulaType, 0))));
       }
 

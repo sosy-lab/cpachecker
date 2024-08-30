@@ -231,7 +231,7 @@ public class SMGCPABuiltins {
 
       case "__VERIFIER_BUILTIN_PLOT":
         evaluateVBPlot(cFCExpression, pState);
-        // $FALL-THROUGH$
+      // $FALL-THROUGH$
       case "printf":
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
@@ -500,8 +500,8 @@ public class SMGCPABuiltins {
                       + " cpa.smg2.SMGCPABuiltins.handleUnknownFunction()",
                   calledFunctionName));
         }
-        // fallthrough for safe functions
-        // $FALL-THROUGH$
+      // fallthrough for safe functions
+      // $FALL-THROUGH$
       case ASSUME_SAFE:
       case ASSUME_EXTERNAL_ALLOCATED:
         List<SMGState> checkedStates =

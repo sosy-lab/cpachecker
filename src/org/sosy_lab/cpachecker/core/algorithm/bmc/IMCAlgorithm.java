@@ -183,7 +183,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Options(prefix = "imc")
   private class LoopBoundManager {
-    private class IndividualCheckInfoWrapper {
+    private static class IndividualCheckInfoWrapper {
       private final String name;
       private final LoopBoundIncrementStrategy strategy;
       private int incrementValue;
