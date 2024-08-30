@@ -231,10 +231,14 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
       BitvectorFormula numerator, BitvectorFormula denominator, boolean signed) {
     assert getLength(numerator) == getLength(denominator)
         : "Expect operators to have the same size";
-    if (numericFormulaManager instanceof IntegerFormulaManager) {
+    if (numericFormulaManager instanceof IntegerFormulaManager imgr) {
       return wrap(
           getFormulaType(numerator),
-          getCModuloReplacementForSMTlib2(unwrap(numerator), unwrap(denominator)));
+          FormulaManagerView.getCModuloReplacementForSMTlib2(
+              (IntegerFormula) unwrap(numerator),
+              (IntegerFormula) unwrap(denominator),
+              imgr,
+              booleanFormulaManager));
     } else {
       return makeUf(getFormulaType(numerator), moduloUfDecl, numerator, denominator);
     }
@@ -263,35 +267,6 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
             numericFormulaManager.equal(numericFormulaManager.multiply(div, f2), f1)),
         div,
         numericFormulaManager.add(div, additionalUnit));
-  }
-
-  /**
-   * @see BitvectorFormulaManagerView#remainder(BitvectorFormula, BitvectorFormula, boolean) with
-   *     signed true for the BV equivalent.
-   */
-  @SuppressWarnings("unchecked")
-  private Formula getCModuloReplacementForSMTlib2(final T f1, final T f2) {
-    final T zero = numericFormulaManager.makeNumber(0);
-    final T additionalUnit =
-        booleanFormulaManager.ifThenElse(
-            numericFormulaManager.greaterOrEquals(f2, zero), numericFormulaManager.negate(f2), f2);
-
-    final T mod;
-    mod =
-        (T)
-            ((IntegerFormulaManager) numericFormulaManager)
-                .modulo((IntegerFormula) f1, (IntegerFormula) f2);
-
-    // IF   first operand is positive or mod-result is zero
-    // THEN return plain modulo --> here C99 is equal to SMTlib2
-    // ELSE modulo and add an additional unit towards the nearest infinity.
-
-    return booleanFormulaManager.ifThenElse(
-        booleanFormulaManager.or(
-            numericFormulaManager.greaterOrEquals(f1, zero),
-            numericFormulaManager.equal(mod, zero)),
-        mod,
-        numericFormulaManager.add(mod, additionalUnit));
   }
 
   @Override
