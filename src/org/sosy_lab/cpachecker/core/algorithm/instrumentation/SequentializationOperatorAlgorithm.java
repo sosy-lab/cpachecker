@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,13 +24,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -62,6 +67,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
               + "TERMINATION: transform termination to reachability\n"
               + "NOOVERFLOW: transform no-overflow to reachability")
   private InstrumentationProperty instrumentationProperty = InstrumentationProperty.TERMINATION;
+
+  @Option(secure = true, description = "Where to write machine readable new edges.")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path newEdgesFile = Path.of("newEdgesInfo.txt");
 
   public SequentializationOperatorAlgorithm(CFA pCfa, Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -177,13 +186,11 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       return "1";
     }
     try {
-      int location;
-      String fileLocation = pEdge.getFileLocation().toString();
+      FileLocation fileLocation = pEdge.getFileLocation();
       if (pTransition.getPattern().toString().equals("[!cond]")) {
-        fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation().toString();
+        fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation();
       }
-      fileLocation = fileLocation.replaceFirst("line ", "");
-      location = Integer.parseInt(fileLocation);
+      int location = fileLocation.getStartingLineNumber();
       if (pTransition.getOrderAsString().equals("AFTER")) {
         location += 1;
       }
@@ -196,11 +203,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
 
   private void writeAllInformationIntoOutputFile(Set<String> newEdges) {
     // Output the collected CFA information into newEdgesInfo
-    try (BufferedWriter writer =
-        Files.newBufferedWriter(
-            new File("output/newEdgesInfo.txt").toPath(), StandardCharsets.UTF_8)) {
-      String result = String.join("\n", newEdges);
-      writer.write(result);
+    try {
+      IO.writeFile(newEdgesFile, StandardCharsets.UTF_8, String.join("\n", newEdges));
     } catch (IOException e) {
       logger.logException(Level.SEVERE, e, "The creation of file newEdgesInfo.txt failed!");
     }

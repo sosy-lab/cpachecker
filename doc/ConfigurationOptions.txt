@@ -4242,6 +4242,9 @@ impact.useForcedCovering = true
 instrumentation.instrumentationProperty = TERMINATION
   enum:     [TERMINATION, NOOVERFLOW]
 
+# Where to write machine readable new edges.
+instrumentation.newEdgesFile = "newEdgesInfo.txt"
+
 # Configuration file for the K-Induction algorithm for checking candidates on
 # invariance.
 invariantChecker.kInductionConfig = "config/bmc-invgen.properties"
