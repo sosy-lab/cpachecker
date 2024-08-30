@@ -8,18 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqToken;
-
 public class Variable implements SeqDataEntity {
 
-  private final SeqToken seqTokenType;
+  private final String name;
 
-  public Variable(SeqToken pSeqTokenType) {
-    seqTokenType = pSeqTokenType;
+  public Variable(String pName) {
+    name = pName;
   }
 
   @Override
-  public String generateString() {
-    return seqTokenType.getString();
+  public String createString() {
+    return name;
   }
 }

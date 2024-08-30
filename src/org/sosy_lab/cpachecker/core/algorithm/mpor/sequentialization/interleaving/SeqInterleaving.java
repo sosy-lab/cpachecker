@@ -10,12 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.interleavi
 
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqElement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqToken;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqValue;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ArrayExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ArrayInitExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
@@ -24,26 +19,28 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.FunctionCallExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.LoopExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.NegationExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.Operator;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SwitchExpr;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SwitchCaseExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity.Value;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity.Variable;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqDataType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqValue;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 /**
  * A class representing a non-deterministic interleaving of global access edges. A {@link
- * SeqInterleaving} is created if at least one pair of {@link SeqInterleaving#globalAccesses} does
- * not commute.
+ * SeqInterleaving} is created if at least one pair of global accesses does not commute.
  */
 public class SeqInterleaving implements SeqElement {
 
-  private final ImmutableMap<MPORThread, CFAEdge> globalAccesses;
+  private final SwitchCaseExpr switchCaseExpr;
 
   public SeqInterleaving(ImmutableMap<MPORThread, CFAEdge> pGlobalAccesses) {
-    globalAccesses = pGlobalAccesses;
     // TODO create separate any_false method
     //  if all values in the given array are true, return true
-    switchExpr = new SwitchExpr(nextThread, globalAccesses);
+    switchCaseExpr = new SwitchCaseExpr(nextThread, pGlobalAccesses);
   }
 
   private static final Variable numThreads = new Variable(SeqToken.NUM_THREADS);
@@ -60,47 +57,48 @@ public class SeqInterleaving implements SeqElement {
   private static final LoopExpr loopExpr = new LoopExpr(new Value(SeqValue.TRUE));
 
   private static final DeclareExpr declareExpr =
-      new DeclareExpr(SeqDataType.INT, nextThread, new Variable(SeqToken.NON_DET));
+      new DeclareExpr(SeqDataType.INT, nextThread, new FunctionCallExpr(SeqToken.NON_DET));
 
   private static final FunctionCallExpr assumeNextThreadExpr =
       new FunctionCallExpr(
           SeqToken.ASSUME,
           new BooleanExpr(
-              new BooleanExpr(new Value(SeqValue.ZERO), Operator.LESS_OR_EQUAL, nextThread),
-              Operator.AND,
-              new BooleanExpr(nextThread, Operator.LESS, numThreads)));
+              new BooleanExpr(new Value(SeqValue.ZERO), SeqOperator.LESS_OR_EQUAL, nextThread),
+              SeqOperator.AND,
+              new BooleanExpr(nextThread, SeqOperator.LESS, numThreads)));
 
   private static final FunctionCallExpr assumeNotExecutedExpr =
       new FunctionCallExpr(SeqToken.ASSUME, new NegationExpr(arrayExpr));
 
   private static final AssignExpr assignExpr = new AssignExpr(arrayExpr, new Value(SeqValue.TRUE));
 
-  private final SwitchExpr switchExpr;
+  private static final String preSwitchCase =
+      arrayInitExpr.createString()
+          + SeqSyntax.NEWLINE
+          + loopExpr.createString()
+          + SeqSyntax.SPACE
+          + SeqSyntax.CURLY_BRACKET_LEFT
+          + SeqSyntax.NEWLINE
+          + SeqSyntax.TAB
+          + declareExpr.createString()
+          + SeqSyntax.NEWLINE
+          + SeqSyntax.TAB
+          + assumeNextThreadExpr.createString()
+          + SeqSyntax.SEMICOLON
+          + SeqSyntax.NEWLINE
+          + SeqSyntax.TAB
+          + assumeNotExecutedExpr.createString()
+          + SeqSyntax.SEMICOLON
+          + SeqSyntax.NEWLINE
+          + SeqSyntax.TAB
+          + assignExpr.createString()
+          + SeqSyntax.NEWLINE
+          + SeqSyntax.TAB;
+
+  private static final String postSwitchCase = SeqSyntax.NEWLINE + SeqSyntax.CURLY_BRACKET_RIGHT;
 
   @Override
-  public String generateString() {
-    // TODO generate the pre and post switch strings beforehand (they are constants)
-    return arrayInitExpr.generateString()
-        + SeqSyntax.NEWLINE.getString()
-        + loopExpr.generateString()
-        + SeqSyntax.SPACE.getString()
-        + SeqSyntax.CURLY_BRACKET_LEFT.getString()
-        + SeqSyntax.NEWLINE.getString()
-        + SeqUtil.tab
-        + declareExpr.generateString()
-        + SeqSyntax.NEWLINE.getString()
-        + SeqUtil.tab
-        + assumeNextThreadExpr.generateString()
-        + SeqSyntax.NEWLINE.getString()
-        + SeqUtil.tab
-        + assumeNotExecutedExpr.generateString()
-        + SeqSyntax.NEWLINE.getString()
-        + SeqUtil.tab
-        + assignExpr.generateString()
-        + SeqSyntax.NEWLINE.getString()
-        + SeqUtil.tab
-        + switchExpr.generateString()
-        + SeqSyntax.NEWLINE.getString()
-        + SeqSyntax.CURLY_BRACKET_RIGHT.getString();
+  public String createString() {
+    return preSwitchCase + switchCaseExpr.createString() + postSwitchCase;
   }
 }

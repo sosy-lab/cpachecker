@@ -8,26 +8,30 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqSyntax;
 
 public class FunctionCallExpr implements SeqExpression {
 
-  private final SeqToken functionName;
+  private final String functionName;
 
   private final SeqExpression parameter;
 
-  public FunctionCallExpr(SeqToken pFunctionName, SeqExpression pParameter) {
+  public FunctionCallExpr(String pFunctionName) {
+    functionName = pFunctionName;
+    parameter = null;
+  }
+
+  public FunctionCallExpr(String pFunctionName, SeqExpression pParameter) {
     functionName = pFunctionName;
     parameter = pParameter;
   }
 
   @Override
-  public String generateString() {
-    return functionName.getString()
-        + SeqSyntax.BRACKET_LEFT.getString()
-        + parameter.generateString()
-        + SeqSyntax.BRACKET_RIGHT.getString()
-        + SeqSyntax.SEMICOLON.getString();
+  public String createString() {
+    String parameters = SeqSyntax.EMPTY_STRING;
+    if (parameter != null) {
+      parameters = parameter.createString();
+    }
+    return functionName + SeqSyntax.BRACKET_LEFT + parameters + SeqSyntax.BRACKET_RIGHT;
   }
 }

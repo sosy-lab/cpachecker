@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqDataType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity.Value;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqSyntax;
 
 /**
  * An Expression for initializing an array, e.g. int array[size] = { 0 }. Note that all init values
@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
  */
 public class ArrayInitExpr implements SeqExpression {
 
-  private final SeqDataType dataType;
+  private final String dataType;
 
   private final ArrayExpr array;
 
@@ -31,25 +31,25 @@ public class ArrayInitExpr implements SeqExpression {
    * @param pArray the expression of the array, e.g. array_name[array_size]
    * @param pInitValue the initial value assigned to ALL indexes in the array
    */
-  public ArrayInitExpr(SeqDataType pDataType, ArrayExpr pArray, Value pInitValue) {
+  public ArrayInitExpr(String pDataType, ArrayExpr pArray, Value pInitValue) {
     dataType = pDataType;
     array = pArray;
     initValue = pInitValue;
   }
 
   @Override
-  public String generateString() {
-    return dataType.string
-        + SeqSyntax.SPACE.getString()
-        + array.generateString()
-        + SeqSyntax.SPACE.getString()
-        + Operator.ASSIGN.string
-        + SeqSyntax.SPACE.getString()
-        + SeqSyntax.CURLY_BRACKET_LEFT.getString()
-        + SeqSyntax.SPACE.getString()
-        + initValue.generateString()
-        + SeqSyntax.SPACE.getString()
-        + SeqSyntax.CURLY_BRACKET_RIGHT.getString()
-        + SeqSyntax.SEMICOLON.getString();
+  public String createString() {
+    return dataType
+        + SeqSyntax.SPACE
+        + array.createString()
+        + SeqSyntax.SPACE
+        + SeqOperator.ASSIGN
+        + SeqSyntax.SPACE
+        + SeqSyntax.CURLY_BRACKET_LEFT
+        + SeqSyntax.SPACE
+        + initValue.createString()
+        + SeqSyntax.SPACE
+        + SeqSyntax.CURLY_BRACKET_RIGHT
+        + SeqSyntax.SEMICOLON;
   }
 }

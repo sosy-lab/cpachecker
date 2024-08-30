@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqSyntax;
 
 public class NegationExpr implements SeqExpression {
 
@@ -19,10 +19,10 @@ public class NegationExpr implements SeqExpression {
   }
 
   @Override
-  public String generateString() {
-    return SeqSyntax.EXCLAMATION_MARK.getString()
-        + SeqSyntax.BRACKET_LEFT.getString()
-        + expression.generateString()
-        + SeqSyntax.BRACKET_RIGHT.getString();
+  public String createString() {
+    return SeqSyntax.EXCLAMATION_MARK
+        + SeqSyntax.BRACKET_LEFT
+        + expression.createString()
+        + SeqSyntax.BRACKET_RIGHT;
   }
 }

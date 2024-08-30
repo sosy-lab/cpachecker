@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqToken;
 
 public class LoopExpr implements SeqExpression {
   // TODO restrict to ArrayExpr, BoolenaExpr, FunctionCallExpr, NegationExpr
@@ -20,11 +20,11 @@ public class LoopExpr implements SeqExpression {
   }
 
   @Override
-  public String generateString() {
-    return SeqToken.WHILE.getString()
-        + SeqSyntax.SPACE.getString()
-        + SeqSyntax.BRACKET_LEFT.getString()
-        + condition.generateString()
-        + SeqSyntax.BRACKET_RIGHT.getString();
+  public String createString() {
+    return SeqToken.WHILE
+        + SeqSyntax.SPACE
+        + SeqSyntax.BRACKET_LEFT
+        + condition.createString()
+        + SeqSyntax.BRACKET_RIGHT;
   }
 }

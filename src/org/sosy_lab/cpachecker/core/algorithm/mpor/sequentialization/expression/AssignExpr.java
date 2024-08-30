@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqSyntax;
 
 public class AssignExpr implements SeqExpression {
 
@@ -22,12 +23,12 @@ public class AssignExpr implements SeqExpression {
   }
 
   @Override
-  public String generateString() {
-    return preceding.generateString()
-        + SeqSyntax.SPACE.getString()
-        + Operator.ASSIGN.string
-        + SeqSyntax.SPACE.getString()
-        + subsequent.generateString()
-        + SeqSyntax.SEMICOLON.getString();
+  public String createString() {
+    return preceding.createString()
+        + SeqSyntax.SPACE
+        + SeqOperator.ASSIGN
+        + SeqSyntax.SPACE
+        + subsequent.createString()
+        + SeqSyntax.SEMICOLON;
   }
 }

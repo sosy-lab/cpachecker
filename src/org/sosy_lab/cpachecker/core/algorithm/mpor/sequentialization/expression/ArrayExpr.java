@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity.SeqDataEntity;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity.Variable;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqSyntax;
 
 public class ArrayExpr implements SeqExpression {
 
@@ -24,10 +24,10 @@ public class ArrayExpr implements SeqExpression {
   }
 
   @Override
-  public String generateString() {
-    return array.generateString()
-        + SeqSyntax.SQUARE_BRACKET_LEFT.getString()
-        + index.generateString()
-        + SeqSyntax.SQUARE_BRACKET_RIGHT.getString();
+  public String createString() {
+    return array.createString()
+        + SeqSyntax.SQUARE_BRACKET_LEFT
+        + index.createString()
+        + SeqSyntax.SQUARE_BRACKET_RIGHT;
   }
 }
