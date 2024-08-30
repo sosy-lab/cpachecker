@@ -166,7 +166,6 @@ public class LoopInfoUtils {
       }
     } else if (pAAstNode instanceof CAssignment) {
       // assignment
-      ALeftHandSide leftHandSide = ((CAssignment) pAAstNode).getLeftHandSide();
       ARightHandSide rightHandSide = ((CAssignment) pAAstNode).getRightHandSide();
       if (rightHandSide instanceof CFunctionCallExpression) {
         // function call expression
