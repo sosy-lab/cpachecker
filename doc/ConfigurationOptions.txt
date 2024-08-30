@@ -5197,8 +5197,8 @@ tubes.assumes.performAlgorithm = true
 tubes.boundedConfig = "config/boundedPredicateAnalysis.properties"
 
 # File name for analysis report in case a counterexample was found.
-tubes.counterExampleFiles = "Counterexample.variable.%d.txt"
-tubes.counterExampleFiles = "Counterexample.inline.%d.c"
+tubes.counterExampleToCFiles = "Counterexample.inline.%d.c"
+tubes.detailedCounterexample = "Counterexample.variable.%d.txt"
 
 # export counterexample to file, if one is found
 tubes.errorInputs = "nondets.txt"
