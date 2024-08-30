@@ -175,6 +175,7 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
       case BV_MUL:
       case FP_MUL:
         return " * ";
+      case MODULO:
       case BV_SREM:
       case BV_UREM:
         return " % ";
