@@ -6,7 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Algorithms and data structures for data entities (values and variables) in the sequentialization.
- */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity;
+
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExpression;
+
+public interface SeqDataEntity extends SeqExpression {}

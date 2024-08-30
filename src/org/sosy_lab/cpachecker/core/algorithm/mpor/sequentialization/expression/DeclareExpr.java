@@ -8,29 +8,23 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity.Variable;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqOperator;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 public class DeclareExpr implements SeqExpression {
 
-  private final String dataType;
-
-  private final Variable variable;
+  private final VariableExpr variableExpr;
 
   private final SeqExpression value;
 
-  public DeclareExpr(String pDataType, Variable pVariable, SeqExpression pValue) {
-    dataType = pDataType;
-    variable = pVariable;
+  public DeclareExpr(VariableExpr pVariableExpr, SeqExpression pValue) {
+    variableExpr = pVariableExpr;
     value = pValue;
   }
 
   @Override
   public String createString() {
-    return dataType
-        + SeqSyntax.SPACE
-        + variable.createString()
+    return variableExpr.createString()
         + SeqSyntax.SPACE
         + SeqOperator.ASSIGN
         + SeqSyntax.SPACE

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
@@ -18,13 +18,13 @@ public class SeqSyntax {
 
   public static final String COLON = ":";
 
+  public static final String COMMA = ",";
+
   public static final String CURLY_BRACKET_LEFT = "{";
 
   public static final String CURLY_BRACKET_RIGHT = "}";
 
   public static final String EMPTY_STRING = "";
-
-  public static final String EXCLAMATION_MARK = "!";
 
   public static final String NEWLINE = "\n";
 

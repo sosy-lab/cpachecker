@@ -8,27 +8,20 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.SeqDataEntity;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Variable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
-public class ArrayExpr implements SeqExpression {
+public class ReturnExpr implements SeqExpression {
 
-  private final Variable array;
+  private final SeqDataEntity dataEntity;
 
-  private final Optional<SeqDataEntity> index;
-
-  public ArrayExpr(Variable pArray, Optional<SeqDataEntity> pIndex) {
-    array = pArray;
-    index = pIndex;
+  public ReturnExpr(SeqDataEntity pDataEntity) {
+    dataEntity = pDataEntity;
   }
 
   @Override
   public String createString() {
-    return array.createString()
-        + SeqSyntax.SQUARE_BRACKET_LEFT
-        + (index.isPresent() ? index.get().createString() : SeqSyntax.EMPTY_STRING)
-        + SeqSyntax.SQUARE_BRACKET_RIGHT;
+    return SeqToken.RETURN + SeqSyntax.SPACE + dataEntity.createString() + SeqSyntax.SEMICOLON;
   }
 }

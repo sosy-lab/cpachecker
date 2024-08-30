@@ -6,18 +6,18 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity;
 
-public class Variable implements SeqDataEntity {
+public class Value implements SeqDataEntity {
 
-  private final String name;
+  private final String value;
 
-  public Variable(String pName) {
-    name = pName;
+  public Value(String pValue) {
+    value = pValue;
   }
 
   @Override
   public String createString() {
-    return name;
+    return value;
   }
 }

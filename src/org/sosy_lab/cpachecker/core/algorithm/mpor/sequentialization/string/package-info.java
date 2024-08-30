@@ -6,11 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings;
-
-public class SeqDataType {
-
-  public static final String BOOL = "bool";
-
-  public static final String INT = "int";
-}
+/** Classes containing hard coded strings used to create a sequentialization. */
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;

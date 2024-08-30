@@ -8,30 +8,33 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqSyntax;
+import com.google.common.collect.ImmutableList;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 public class FunctionCallExpr implements SeqExpression {
 
   private final String functionName;
 
-  private final SeqExpression parameter;
+  private final Optional<ImmutableList<SeqExpression>> parameters;
 
-  public FunctionCallExpr(String pFunctionName) {
+  public FunctionCallExpr(
+      String pFunctionName, Optional<ImmutableList<SeqExpression>> pParameters) {
     functionName = pFunctionName;
-    parameter = null;
-  }
-
-  public FunctionCallExpr(String pFunctionName, SeqExpression pParameter) {
-    functionName = pFunctionName;
-    parameter = pParameter;
+    parameters = pParameters;
   }
 
   @Override
   public String createString() {
-    String parameters = SeqSyntax.EMPTY_STRING;
-    if (parameter != null) {
-      parameters = parameter.createString();
+    StringBuilder parametersString = new StringBuilder(SeqSyntax.EMPTY_STRING);
+    if (parameters.isPresent()) {
+      String separator = SeqSyntax.COMMA + SeqSyntax.SPACE;
+      for (int i = 0; i < parameters.get().size(); i++) {
+        parametersString
+            .append(parameters.get().get(i).createString())
+            .append(i == parameters.get().size() - 1 ? SeqSyntax.EMPTY_STRING : separator);
+      }
     }
-    return functionName + SeqSyntax.BRACKET_LEFT + parameters + SeqSyntax.BRACKET_RIGHT;
+    return functionName + SeqSyntax.BRACKET_LEFT + parametersString + SeqSyntax.BRACKET_RIGHT;
   }
 }

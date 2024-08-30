@@ -8,22 +8,22 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
-public class NegationExpr implements SeqExpression {
+public class VariableExpr implements SeqExpression {
 
-  private final SeqExpression expression;
+  private final String dataType;
 
-  public NegationExpr(SeqExpression pExpression) {
-    expression = pExpression;
+  // TODO restrict to ArrayExpr, Variable
+  private final SeqExpression variable;
+
+  public VariableExpr(String pDataType, SeqExpression pVariable) {
+    dataType = pDataType;
+    variable = pVariable;
   }
 
   @Override
   public String createString() {
-    return SeqOperator.NOT
-        + SeqSyntax.BRACKET_LEFT
-        + expression.createString()
-        + SeqSyntax.BRACKET_RIGHT;
+    return dataType + SeqSyntax.SPACE + variable.createString();
   }
 }

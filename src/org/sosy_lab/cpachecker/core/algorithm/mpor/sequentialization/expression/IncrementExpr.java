@@ -8,28 +8,20 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.SeqDataEntity;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
-public class AssignExpr implements SeqExpression {
+public class IncrementExpr implements SeqExpression {
 
-  // TODO restrictions? create assignable interface?
-  private final SeqExpression preceding;
+  private final SeqDataEntity dataEntity;
 
-  private final SeqExpression subsequent;
-
-  public AssignExpr(SeqExpression pPreceding, SeqExpression pSubsequent) {
-    preceding = pPreceding;
-    subsequent = pSubsequent;
+  public IncrementExpr(SeqDataEntity pDataEntity) {
+    dataEntity = pDataEntity;
   }
 
   @Override
   public String createString() {
-    return preceding.createString()
-        + SeqSyntax.SPACE
-        + SeqOperator.ASSIGN
-        + SeqSyntax.SPACE
-        + subsequent.createString()
-        + SeqSyntax.SEMICOLON;
+    return dataEntity.createString() + SeqOperator.INCREMENT + SeqSyntax.SEMICOLON;
   }
 }

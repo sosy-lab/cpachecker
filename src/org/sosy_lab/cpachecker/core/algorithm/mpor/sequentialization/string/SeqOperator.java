@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 
 public class SeqOperator {
 
@@ -20,9 +20,13 @@ public class SeqOperator {
 
   public static final String GREATER_OR_EQUAL = ">=";
 
+  public static final String INCREMENT = "++";
+
   public static final String LESS = "<";
 
   public static final String LESS_OR_EQUAL = "<=";
+
+  public static final String NOT = "!";
 
   public static final String NOT_EQUAL = "!=";
 

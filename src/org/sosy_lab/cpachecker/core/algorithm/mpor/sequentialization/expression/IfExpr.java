@@ -8,22 +8,23 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
-public class NegationExpr implements SeqExpression {
+public class IfExpr implements SeqExpression {
 
-  private final SeqExpression expression;
+  private final SeqExpression condition;
 
-  public NegationExpr(SeqExpression pExpression) {
-    expression = pExpression;
+  public IfExpr(SeqExpression pCondition) {
+    condition = pCondition;
   }
 
   @Override
   public String createString() {
-    return SeqOperator.NOT
+    return SeqToken.IF
+        + SeqSyntax.SPACE
         + SeqSyntax.BRACKET_LEFT
-        + expression.createString()
+        + condition.createString()
         + SeqSyntax.BRACKET_RIGHT;
   }
 }

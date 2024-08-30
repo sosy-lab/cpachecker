@@ -6,13 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function;
 
-public class SeqValue {
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqElement;
 
-  public static final String FALSE = "false";
-
-  public static final String TRUE = "true";
-
-  public static final String ZERO = "0";
-}
+public interface SeqFunction extends SeqElement {}

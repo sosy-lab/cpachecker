@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.interleaving.SeqInterleaving;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.interleaving.Interleaving;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.ExecutionTrace;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.MPORState;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
@@ -141,7 +141,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           }
         } else {
           for (Map<MPORThread, CFAEdge> combination : getEdgeInterleavingCombinations(gapState)) {
-            SeqInterleaving interleaving = new SeqInterleaving(ImmutableMap.copyOf(combination));
+            Interleaving interleaving = new Interleaving(ImmutableMap.copyOf(combination));
+            // TODO
             return;
           }
         }

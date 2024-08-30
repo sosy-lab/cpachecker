@@ -6,20 +6,17 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity;
 
-import java.util.Optional;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.SeqDataEntity;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Variable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
-public class ArrayExpr implements SeqExpression {
+public class ArrayElement implements SeqDataEntity {
 
   private final Variable array;
 
-  private final Optional<SeqDataEntity> index;
+  private final SeqDataEntity index;
 
-  public ArrayExpr(Variable pArray, Optional<SeqDataEntity> pIndex) {
+  public ArrayElement(Variable pArray, SeqDataEntity pIndex) {
     array = pArray;
     index = pIndex;
   }
@@ -28,7 +25,7 @@ public class ArrayExpr implements SeqExpression {
   public String createString() {
     return array.createString()
         + SeqSyntax.SQUARE_BRACKET_LEFT
-        + (index.isPresent() ? index.get().createString() : SeqSyntax.EMPTY_STRING)
+        + index.createString()
         + SeqSyntax.SQUARE_BRACKET_RIGHT;
   }
 }

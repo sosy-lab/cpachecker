@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.data_entity.Value;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqOperator;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 /**
  * An Expression for initializing an array, e.g. int array[size] = { 0 }. Note that all init values
@@ -20,7 +20,7 @@ public class ArrayInitExpr implements SeqExpression {
 
   private final String dataType;
 
-  private final ArrayExpr array;
+  private final ArrayExpr arrayExpr;
 
   private final Value initValue;
 
@@ -28,12 +28,12 @@ public class ArrayInitExpr implements SeqExpression {
    * Creates an expression for initializing an array.
    *
    * @param pDataType the data type of the array
-   * @param pArray the expression of the array, e.g. array_name[array_size]
+   * @param pArrayExpr the expression of the array, e.g. array_name[array_size]
    * @param pInitValue the initial value assigned to ALL indexes in the array
    */
-  public ArrayInitExpr(String pDataType, ArrayExpr pArray, Value pInitValue) {
+  public ArrayInitExpr(String pDataType, ArrayExpr pArrayExpr, Value pInitValue) {
     dataType = pDataType;
-    array = pArray;
+    arrayExpr = pArrayExpr;
     initValue = pInitValue;
   }
 
@@ -41,7 +41,7 @@ public class ArrayInitExpr implements SeqExpression {
   public String createString() {
     return dataType
         + SeqSyntax.SPACE
-        + array.createString()
+        + arrayExpr.createString()
         + SeqSyntax.SPACE
         + SeqOperator.ASSIGN
         + SeqSyntax.SPACE
