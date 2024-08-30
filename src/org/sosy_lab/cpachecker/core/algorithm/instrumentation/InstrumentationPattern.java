@@ -126,7 +126,7 @@ public class InstrumentationPattern {
    * @return Null, if the edge does not match the pattern, otherwise returns the list of matched variables.
    */
   @Nullable
-  public ImmutableList<String> MatchThePattern(CFAEdge pCFAEdge, Map<CFANode, String> pDecomposedMap) {
+  public ImmutableList<String> MatchThePattern(CFAEdge pCFAEdge, Map<CFANode, List<String>> pDecomposedMap) {
     return switch (type) {
       case TRUE -> ImmutableList.of();
       case COND -> isOriginalCond(pCFAEdge) ? ImmutableList.of() : null;
@@ -160,7 +160,7 @@ public class InstrumentationPattern {
   @Nullable
   private ImmutableList<String> getTheOperandsFromUnaryOperation(CFAEdge pCFAEdge,
                                                                  UnaryOperator pOperator,
-                                                                 Map<CFANode, String> pDecomposedMap) {
+                                                                 Map<CFANode, List<String>> pDecomposedMap) {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().get();
       CExpression expression = LoopInfoUtils.extractExpression(astNode);
@@ -170,7 +170,7 @@ public class InstrumentationPattern {
 
         String condition = collectConditionFromPreviousEdge(pCFAEdge);
         if (pDecomposedMap.containsKey(pCFAEdge.getPredecessor())) {
-          condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor());
+          condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor()).get(0);
         }
 
         if (operand.getExpressionType().getCanonicalType().toString().equals("signed int")) {
@@ -187,7 +187,7 @@ public class InstrumentationPattern {
   @Nullable
   private ImmutableList<String> getTheOperandsFromOperation(CFAEdge pCFAEdge,
                                                             BinaryOperator pOperator,
-                                                            Map<CFANode, String> pDecomposedMap) {
+                                                            Map<CFANode, List<String>> pDecomposedMap) {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().get();
       CExpression expression = LoopInfoUtils.extractExpression(astNode);
@@ -198,10 +198,12 @@ public class InstrumentationPattern {
 
         String condition = collectConditionFromPreviousEdge(pCFAEdge);
         if (pDecomposedMap.containsKey(pCFAEdge.getPredecessor())) {
-          condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor());
+          condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor()).get(0);
         }
 
-        if (expression.getExpressionType().getCanonicalType().toString().equals("signed int")) {
+        if (expression.getExpressionType().getCanonicalType().toString().equals("signed int")
+          || (pDecomposedMap.containsKey(pCFAEdge.getPredecessor())
+            && pDecomposedMap.get(pCFAEdge.getPredecessor()).get(1).equals("signed int"))) {
           return ImmutableList.of(operand1.toASTString(),
               operand2.toASTString(),
               condition);
