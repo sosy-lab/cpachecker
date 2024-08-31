@@ -69,6 +69,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   public static int reuses = 0;
   public static int suffixReuses = 0;
   public static int siblingCheckFalseCounter = 0;
+  public static int siblingCheckTrueCounter = 0;
+  public static int siblingCheckUnknownCounter = 0;
+  public static int createCounterexampleCallCounter = 0;
 
   private static class RestartAlgorithmStatistics extends MultiStatistics {
 
@@ -111,6 +114,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       out.println("Reuses:        " + reuses);
       out.println("Suffix Reuses:        " + suffixReuses);
       out.println("Sibling Check False:        " + siblingCheckFalseCounter);
+      out.println("Sibling Check True:        " + siblingCheckTrueCounter);
+      out.println("Sibling Check Unknown:        " + siblingCheckUnknownCounter);
+      out.println("Calls to createCounterexample:        " + createCounterexampleCallCounter);
 
       printSubStatistics(out, result, reached);
     }

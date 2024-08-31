@@ -183,6 +183,7 @@ public class PathChecker {
       precisePath = counterexample.getPrecisePath();
     }
 
+    RestartAlgorithm.createCounterexampleCallCounter++;
     if (withReuse) {
       return createCounterexampleWithReuse(precisePath, counterexample);
     } else {
@@ -350,6 +351,14 @@ public class PathChecker {
             }
           }
 
+          if ((siblingReuseSuccessful == TruthValue.TRUE)) {
+            RestartAlgorithm.siblingCheckTrueCounter++;
+          }
+
+          if ((siblingReuseSuccessful == TruthValue.UNKNOWN)) {
+            RestartAlgorithm.siblingCheckUnknownCounter++;
+          }
+
           BooleanFormula pathFormulaSuffix = replayedPathSuffix.getFirstNotNull().getFormula();
 
           // suffix can only be reused if there is no function call or return statement in the
@@ -393,6 +402,8 @@ public class PathChecker {
             prover.pop();
             prover.push(pathFormula);
           }
+        } else {
+          RestartAlgorithm.siblingCheckFalseCounter++;
         }
       }
       // when the reuse is not successful, get a new model, not necessary when sibling check true
