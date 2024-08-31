@@ -28,7 +28,7 @@ public class ArrayExpr implements SeqExpression {
   public String createString() {
     return array.createString()
         + SeqSyntax.SQUARE_BRACKET_LEFT
-        + (index.isPresent() ? index.get().createString() : SeqSyntax.EMPTY_STRING)
+        + (index.isPresent() ? index.orElseThrow().createString() : SeqSyntax.EMPTY_STRING)
         + SeqSyntax.SQUARE_BRACKET_RIGHT;
   }
 }

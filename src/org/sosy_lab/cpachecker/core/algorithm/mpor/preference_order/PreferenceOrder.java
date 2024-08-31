@@ -32,6 +32,8 @@ public class PreferenceOrder {
   //  atomic blocks
   //  sequential blocks
 
+  // TODO create PreferenceOrderType enum (CREATE, JOIN, MUTEX, etc.)
+
   /** The thread executing {@link PreferenceOrder#precedingEdges}. */
   public final MPORThread precedingThread;
 

@@ -34,8 +34,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.interleaving.Interleaving;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.ExecutionTrace;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.MPORState;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
@@ -95,11 +95,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
-    // TODO the number of total interleavings under full commutativity is given by
-    //  multinomial coefficient of ( n / k1, k2, ..., km)
-    //  with n the total number of edges in the program
-    //  and k1, k2, ..., km the number of edges for each thread 1...m
-
     checkForCorrectInitialState(pReachedSet, threads);
 
     // if there is only one element in pReachedSet, it is our initial AbstractState
@@ -123,7 +118,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     // make sure the MPORState was not yet visited to prevent infinite loops
     if (MPORUtil.shouldVisit(stateBuilder.getExistingStates(), pState)) {
-      // TODO create handlePreferenceOrders function that returns a set of updated MPORStates
+      handlePreferenceOrders(pState);
 
       // execute all threads up to a global access preceding (GAP) node
       ImmutableSet.Builder<MPORState> gapStateBuilder = ImmutableSet.builder();
@@ -141,13 +136,80 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           }
         } else {
           for (Map<MPORThread, CFAEdge> combination : getEdgeInterleavingCombinations(gapState)) {
-            Interleaving interleaving = new Interleaving(ImmutableMap.copyOf(combination));
-            // TODO
-            return;
+            // Interleaving interleaving = new Interleaving(ImmutableMap.copyOf(combination));
+            MPORState nextState = gapState;
+            for (var entry : combination.entrySet()) {
+              nextState = stateBuilder.createNewState(nextState, entry.getKey(), entry.getValue());
+            }
+            handleState(nextState);
           }
         }
       }
     }
+  }
+
+  /**
+   * TODO
+   *
+   * @param pState TODO
+   * @return TODO
+   */
+  private ImmutableSet<MPORState> handlePreferenceOrders(MPORState pState) {
+    if (deadlockDetected(pState.preferenceOrders)) {
+      throw new IllegalArgumentException("deadlock detected in state " + pState);
+    }
+    return null;
+  }
+
+  /**
+   * NOTE: This function does not guarantee the absence of a deadlock if {@code false} is returned.
+   *
+   * <p>Searches pPreferenceOrders for potential deadlocks. If e.g. thread1 waits for thread2 to
+   * terminate via a pthread_join call and vice versa, a deadlock is found.
+   *
+   * @return {@code true} if a deadlock is found
+   */
+  private boolean deadlockDetected(ImmutableSet<PreferenceOrder> pPreferenceOrders) {
+    // TODO make immutable
+    // create a directed graph from subsequent to preceding threads
+    Map<MPORThread, Set<MPORThread>> preferenceRelation = new HashMap<>();
+    for (PreferenceOrder preferenceOrder : pPreferenceOrders) {
+      if (!preferenceRelation.containsKey(preferenceOrder.subsequentThread)) {
+        preferenceRelation.put(preferenceOrder.subsequentThread, new HashSet<>());
+      }
+      preferenceRelation.get(preferenceOrder.subsequentThread).add(preferenceOrder.precedingThread);
+    }
+    // search the directed graph for cycles
+    for (var entry : preferenceRelation.entrySet()) {
+      Set<MPORThread> currentCycle = new HashSet<>();
+      currentCycle.add(entry.getKey());
+      if (cycleDetected(entry.getKey(), preferenceRelation, currentCycle)) {
+        return true; // cycle detected = deadlock detected
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Recursively searches for cycles in pPreferenceRelation.
+   *
+   * @return {@code true} if a cycle is found
+   */
+  private boolean cycleDetected(
+      MPORThread pCurrentThread,
+      final Map<MPORThread, Set<MPORThread>> pPreferenceRelation,
+      Set<MPORThread> pCurrentCycle) {
+
+    if (pPreferenceRelation.containsKey(pCurrentThread)) {
+      for (MPORThread precedingThread : pPreferenceRelation.get(pCurrentThread)) {
+        if (pCurrentCycle.contains(precedingThread)) {
+          return true; // cycle detected
+        }
+        pCurrentCycle.add(precedingThread);
+        cycleDetected(precedingThread, pPreferenceRelation, new HashSet<>(pCurrentCycle));
+      }
+    }
+    return false;
   }
 
   /**
@@ -210,6 +272,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private ImmutableSet<MPORState> executeGlobalAccessesSequentially(MPORState pGapState)
       throws CPATransferException, InterruptedException {
 
+    // TODO use getEdgeInterleavingCombinations here
     ImmutableSet.Builder<MPORState> nextStates = ImmutableSet.builder();
 
     // create list of maps of edges to be executed to their threads

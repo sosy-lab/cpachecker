@@ -29,10 +29,10 @@ public class FunctionCallExpr implements SeqExpression {
     StringBuilder parametersString = new StringBuilder(SeqSyntax.EMPTY_STRING);
     if (parameters.isPresent()) {
       String separator = SeqSyntax.COMMA + SeqSyntax.SPACE;
-      for (int i = 0; i < parameters.get().size(); i++) {
+      for (int i = 0; i < parameters.orElseThrow().size(); i++) {
         parametersString
-            .append(parameters.get().get(i).createString())
-            .append(i == parameters.get().size() - 1 ? SeqSyntax.EMPTY_STRING : separator);
+            .append(parameters.orElseThrow().get(i).createString())
+            .append(i == parameters.orElseThrow().size() - 1 ? SeqSyntax.EMPTY_STRING : separator);
       }
     }
     return functionName + SeqSyntax.BRACKET_LEFT + parametersString + SeqSyntax.BRACKET_RIGHT;

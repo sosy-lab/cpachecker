@@ -88,7 +88,6 @@ public class StateBuilder {
         AbstractStates.extractStateByType(initAbstractState, PredicateAbstractState.class));
   }
 
-  // TODO include the sequentialization nodes and edges in this function
   /**
    * Returns a new state with the same threadNodes map except that the key pThread is assigned the
    * successor CFANode of pExecutedEdge.
@@ -337,7 +336,7 @@ public class StateBuilder {
     //  funcreturnnodes first. if it is the other way around, checking the tail first is more
     //  performant
     return pStateA.threadNodes.equals(pThreadNodesB)
-        /*&& pStateA.funcReturnNodes.equals(pFuncReturnNodesB)*/
+        && pStateA.funcReturnNodes.equals(pFuncReturnNodesB)
         && pStateA.executionTrace.tail().equals(pExecutionTraceB.tail());
   }
 
@@ -369,6 +368,7 @@ public class StateBuilder {
 
   // Getters =======================================================================================
 
+  // TODO optimize this by using another data structure instead of set
   public Set<MPORState> getExistingStates() {
     return existingStates;
   }
