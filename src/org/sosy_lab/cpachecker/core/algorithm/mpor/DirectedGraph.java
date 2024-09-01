@@ -81,7 +81,6 @@ public class DirectedGraph<T> {
    *
    * @return a set of sets of Nodes that form an SCC
    */
-  @SuppressWarnings("unused")
   public ImmutableSet<ImmutableSet<T>> computeSCCs() {
     int index = 0;
     Deque<T> stack = new ArrayDeque<>();

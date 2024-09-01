@@ -145,14 +145,23 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
-   * TODO
+   * Handles the preferenceOrders of pState by choosing a priority thread which does not wait for
+   * any other thread to execute an edge.
    *
-   * @param pState TODO
-   * @return TODO
+   * <p>As a byproduct, this function can detect deadlocks if the preferenceGraph contains cycles.
+   * However, the absence of deadlocks does not guarantee that the input program is deadlock-free.
+   *
+   * @throws IllegalArgumentException if a deadlock is found (do not catch)
    */
-  private ImmutableSet<MPORState> handlePreferenceOrders(MPORState pState) {
-    // TODO check if POs are empty and return with state if that is the case
-    // create a directed graph from subsequent to preceding threads
+  private void handlePreferenceOrders(MPORState pState)
+      throws CPATransferException, InterruptedException {
+
+    // if there are no preferenceOrders, continue from the input state
+    if (pState.preferenceOrders.isEmpty()) {
+      return;
+    }
+
+    // otherwise, create a directed graph from subsequent to preceding threads
     DirectedGraph<MPORThread> preferenceGraph = new DirectedGraph<>();
     for (PreferenceOrder preferenceOrder : pState.preferenceOrders) {
       MPORThread subsequent = preferenceOrder.subsequentThread;
@@ -161,13 +170,33 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
       preferenceGraph.addEdge(subsequent, preferenceOrder.precedingThread);
     }
-    // search graph for cycles (= deadlocks). if false, the absence of deadlocks is not guaranteed!
+    // search graph for cycles (= deadlocks). if false, the absence of deadlocks is not guaranteed
     if (preferenceGraph.containsCycle()) {
       throw new IllegalArgumentException("deadlock detected in state " + pState);
     }
-    // TODO get maximal SCC (assert that it is only one thread)
-    //  that is the first preceding thread we execute edges from
-    return null;
+
+    // retrieve the priority thread which is not waiting on any other thread
+    ImmutableSet<MPORThread> maximalScc = preferenceGraph.computeSCCs().iterator().next();
+    assert maximalScc.size() == 1; // TODO should always hold because there are no loops
+    MPORThread priorityThread = maximalScc.asList().get(0);
+    // retrieve the priority edges executed by the priority thread and recursively execute them
+    ImmutableSet.Builder<CFAEdge> priorityEdges = ImmutableSet.builder();
+    for (PreferenceOrder preferenceOrder : pState.preferenceOrders) {
+      if (preferenceOrder.precedingThread.equals(priorityThread)) {
+        priorityEdges.addAll(preferenceOrder.precedingEdges);
+      }
+    }
+    ImmutableSet<CFAEdge> edgesToExecute = priorityEdges.build();
+
+    // execute the priorityThread and create new states to explore
+    CFANode priorityNode = pState.threadNodes.get(priorityThread);
+    Optional<CFANode> funcReturnNode = pState.funcReturnNodes.get(priorityThread);
+    for (CFAEdge edge : MPORUtil.returnLeavingEdges(priorityNode, funcReturnNode)) {
+      if (edgesToExecute.contains(edge)) {
+        // handle the PO step by step as every new state can induce new POs from another thread
+        handleState(stateBuilder.createNewState(pState, priorityThread, edge));
+      }
+    }
   }
 
   /**
