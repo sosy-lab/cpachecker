@@ -152,61 +152,21 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @return TODO
    */
   private ImmutableSet<MPORState> handlePreferenceOrders(MPORState pState) {
-    if (deadlockDetected(pState.preferenceOrders)) {
+    // create a directed graph from subsequent to preceding threads
+    DirectedGraph<MPORThread> preferenceGraph = new DirectedGraph<>();
+    for (PreferenceOrder preferenceOrder : pState.preferenceOrders) {
+      if (!preferenceGraph.hasNode(preferenceOrder.subsequentThread)) {
+        preferenceGraph.addNode(preferenceOrder.subsequentThread);
+      }
+      preferenceGraph.addEdge(preferenceOrder.subsequentThread, preferenceOrder.precedingThread);
+    }
+    // search graph for cycles (= deadlocks). if false, the absence of deadlocks is not guaranteed!
+    if (preferenceGraph.containsCycle()) {
       throw new IllegalArgumentException("deadlock detected in state " + pState);
     }
+    // TODO get maximal SCC (assert that it is only one thread)
+    //  that is the first preceding thread we execute edges from
     return null;
-  }
-
-  /**
-   * NOTE: This function does not guarantee the absence of a deadlock if {@code false} is returned.
-   *
-   * <p>Searches pPreferenceOrders for potential deadlocks. If e.g. thread1 waits for thread2 to
-   * terminate via a pthread_join call and vice versa, a deadlock is found.
-   *
-   * @return {@code true} if a deadlock is found
-   */
-  private boolean deadlockDetected(ImmutableSet<PreferenceOrder> pPreferenceOrders) {
-    // TODO make immutable
-    // create a directed graph from subsequent to preceding threads
-    Map<MPORThread, Set<MPORThread>> preferenceRelation = new HashMap<>();
-    for (PreferenceOrder preferenceOrder : pPreferenceOrders) {
-      if (!preferenceRelation.containsKey(preferenceOrder.subsequentThread)) {
-        preferenceRelation.put(preferenceOrder.subsequentThread, new HashSet<>());
-      }
-      preferenceRelation.get(preferenceOrder.subsequentThread).add(preferenceOrder.precedingThread);
-    }
-    // search the directed graph for cycles
-    for (var entry : preferenceRelation.entrySet()) {
-      Set<MPORThread> currentCycle = new HashSet<>();
-      currentCycle.add(entry.getKey());
-      if (cycleDetected(entry.getKey(), preferenceRelation, currentCycle)) {
-        return true; // cycle detected = deadlock detected
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Recursively searches for cycles in pPreferenceRelation.
-   *
-   * @return {@code true} if a cycle is found
-   */
-  private boolean cycleDetected(
-      MPORThread pCurrentThread,
-      final Map<MPORThread, Set<MPORThread>> pPreferenceRelation,
-      Set<MPORThread> pCurrentCycle) {
-
-    if (pPreferenceRelation.containsKey(pCurrentThread)) {
-      for (MPORThread precedingThread : pPreferenceRelation.get(pCurrentThread)) {
-        if (pCurrentCycle.contains(precedingThread)) {
-          return true; // cycle detected
-        }
-        pCurrentCycle.add(precedingThread);
-        cycleDetected(precedingThread, pPreferenceRelation, new HashSet<>(pCurrentCycle));
-      }
-    }
-    return false;
   }
 
   /**
