@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORCreate;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrderType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -40,6 +41,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class StateBuilder {
+
+  // TODO private int currentId = 0;
 
   private final PredicateTransferRelation ptr;
 
@@ -224,7 +227,11 @@ public class StateBuilder {
                   ImmutableSet.copyOf(CFAUtils.leavingEdges(createdThread.entryNode));
               rCreatePreferenceOrders.add(
                   new PreferenceOrder(
-                      pCreatingThread, createdThread, create.precedingEdges, subsequentEdges));
+                      PreferenceOrderType.CREATE,
+                      pCreatingThread,
+                      createdThread,
+                      create.precedingEdges,
+                      subsequentEdges));
             }
           }
         }
@@ -267,6 +274,7 @@ public class StateBuilder {
                   precedingEdges.addAll(mutex.edges);
                   rMutexPreferenceOrders.add(
                       new PreferenceOrder(
+                          PreferenceOrderType.MUTEX,
                           pThreadInMutex,
                           lockingThread,
                           precedingEdges.build(),
@@ -309,7 +317,12 @@ public class StateBuilder {
           ImmutableSet<CFAEdge> subsequentEdges =
               ImmutableSet.copyOf(CFAUtils.leavingEdges(join.preJoinNode));
           rJoinPreferenceOrders.add(
-              new PreferenceOrder(targetThread, pJoiningThread, precedingEdges, subsequentEdges));
+              new PreferenceOrder(
+                  PreferenceOrderType.JOIN,
+                  targetThread,
+                  pJoiningThread,
+                  precedingEdges,
+                  subsequentEdges));
         }
       }
     }

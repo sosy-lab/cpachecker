@@ -94,6 +94,8 @@ public class Interleaving implements SeqElement {
     switchCaseExpr = new SwitchCaseExpr(nextThread, pGlobalAccesses);
   }
 
+  // TODO create goto statements in the switch case after an edge is executed
+  //  e.g. interleave abc and execute a to reach a', then the next state will interleave a'bc
   private final SwitchCaseExpr switchCaseExpr;
 
   private static FunctionCallExpr initAnyFalseCall() {

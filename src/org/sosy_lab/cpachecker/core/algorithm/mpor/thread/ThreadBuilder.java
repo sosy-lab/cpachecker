@@ -31,13 +31,12 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class ThreadBuilder {
 
-  private int currentId;
+  private int currentId = 0;
 
   /** A copy of the functionCallMap in {@link MPORAlgorithm}. */
   private final ImmutableMap<CFANode, CFANode> functionCallMap;
 
   public ThreadBuilder(ImmutableMap<CFANode, CFANode> pFunctionCallMap) {
-    currentId = 0;
     functionCallMap = pFunctionCallMap;
   }
 

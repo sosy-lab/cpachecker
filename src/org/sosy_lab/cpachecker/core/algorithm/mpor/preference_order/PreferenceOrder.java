@@ -32,7 +32,8 @@ public class PreferenceOrder {
   //  atomic blocks
   //  sequential blocks
 
-  // TODO create PreferenceOrderType enum (CREATE, JOIN, MUTEX, etc.)
+  /** How the PreferenceOrder was induced. Only used for debugging purposes. */
+  public final PreferenceOrderType type;
 
   /** The thread executing {@link PreferenceOrder#precedingEdges}. */
   public final MPORThread precedingThread;
@@ -51,10 +52,12 @@ public class PreferenceOrder {
   public final ImmutableSet<CFAEdge> subsequentEdges;
 
   public PreferenceOrder(
+      PreferenceOrderType pType,
       MPORThread pPrecedingThread,
       MPORThread pSubsequentThread,
       ImmutableSet<CFAEdge> pPrecedingEdges,
       ImmutableSet<CFAEdge> pSubsequentEdges) {
+    type = pType;
     precedingThread = pPrecedingThread;
     precedingEdges = pPrecedingEdges;
     subsequentThread = pSubsequentThread;

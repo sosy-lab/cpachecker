@@ -136,12 +136,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           }
         } else {
           for (Map<MPORThread, CFAEdge> combination : getEdgeInterleavingCombinations(gapState)) {
-            // Interleaving interleaving = new Interleaving(ImmutableMap.copyOf(combination));
-            MPORState nextState = gapState;
-            for (var entry : combination.entrySet()) {
-              nextState = stateBuilder.createNewState(nextState, entry.getKey(), entry.getValue());
-            }
-            handleState(nextState);
+            // TODO for each edge in the combination, create a new state. give these states to the
+            //  Interleaving and use them in the goto statements
+            //  Interleaving interleaving = new Interleaving(ImmutableMap.copyOf(combination));
           }
         }
       }

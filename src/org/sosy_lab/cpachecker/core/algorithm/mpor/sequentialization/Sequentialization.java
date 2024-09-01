@@ -14,6 +14,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class Sequentialization {
 
+  // TODO create LineOfCode class with multiple constructors where we define tab amount, semicolon
+  //  curly left / right brackets, newlines, etc.
   public static final int TAB_SIZE = 3;
 
   protected final int numThreads;

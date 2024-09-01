@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Algorithms and data structures for the sequentialization of a parallel C program. This includes
- * methods to build a CFA and output it as a String C program.
- */
+/** Algorithms and data structures for the sequentialization of a parallel C program. */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
