@@ -115,7 +115,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @param pState the current MPORState we analyze
    */
   private void handleState(MPORState pState) throws CPATransferException, InterruptedException {
-
     // make sure the MPORState was not yet visited to prevent infinite loops
     if (MPORUtil.shouldVisit(stateBuilder.getExistingStates(), pState)) {
       handlePreferenceOrders(pState);
@@ -152,13 +151,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * @return TODO
    */
   private ImmutableSet<MPORState> handlePreferenceOrders(MPORState pState) {
+    // TODO check if POs are empty and return with state if that is the case
     // create a directed graph from subsequent to preceding threads
     DirectedGraph<MPORThread> preferenceGraph = new DirectedGraph<>();
     for (PreferenceOrder preferenceOrder : pState.preferenceOrders) {
-      if (!preferenceGraph.hasNode(preferenceOrder.subsequentThread)) {
-        preferenceGraph.addNode(preferenceOrder.subsequentThread);
+      MPORThread subsequent = preferenceOrder.subsequentThread;
+      if (!preferenceGraph.hasNode(subsequent)) {
+        preferenceGraph.addNode(subsequent);
       }
-      preferenceGraph.addEdge(preferenceOrder.subsequentThread, preferenceOrder.precedingThread);
+      preferenceGraph.addEdge(subsequent, preferenceOrder.precedingThread);
     }
     // search graph for cycles (= deadlocks). if false, the absence of deadlocks is not guaranteed!
     if (preferenceGraph.containsCycle()) {

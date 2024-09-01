@@ -67,9 +67,7 @@ public class DirectedGraph<T> {
     return graph;
   }
 
-  /**
-   * Returns {@code true} if pNode exists
-   */
+  /** Returns {@code true} if pNode exists */
   public boolean hasNode(T pNode) {
     return graph.containsKey(pNode);
   }

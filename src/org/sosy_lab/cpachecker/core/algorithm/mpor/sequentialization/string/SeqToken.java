@@ -12,6 +12,8 @@ public class SeqToken {
 
   public static final String ANY_FALSE = "anyFalse";
 
+  public static final String ANY_NON_NEGATIVE = "anyNonNegative";
+
   public static final String ARRAY = "array";
 
   public static final String ASSUME = "assume";
