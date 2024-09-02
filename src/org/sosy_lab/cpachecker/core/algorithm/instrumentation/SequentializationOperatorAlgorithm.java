@@ -183,11 +183,13 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       return "1";
     }
     try {
-      FileLocation fileLocation = pEdge.getFileLocation();
+      int location;
+      String fileLocation = pEdge.getFileLocation().toString();
       if (pTransition.getPattern().toString().equals("[!cond]")) {
-        fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation();
+        fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation().toString();
       }
-      int location = fileLocation.getStartingLineInOrigin();
+      fileLocation = fileLocation.replaceFirst("line ", "");
+      location = Integer.parseInt(fileLocation);
       if (pTransition.getOrderAsString().equals("AFTER")) {
         location += 1;
       }
