@@ -183,6 +183,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       return "1";
     }
     try {
+      //TODO: The location should be computed differently !
       int location;
       String fileLocation = pEdge.getFileLocation().toString();
       if (pTransition.getPattern().toString().equals("[!cond]")) {
