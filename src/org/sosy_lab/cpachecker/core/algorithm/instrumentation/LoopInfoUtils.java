@@ -13,11 +13,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -37,22 +37,22 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class LoopInfoUtils {
 
+
   public static ImmutableSet<NormalLoopInfo> getAllNormalLoopInfos(
       CFA pCfa, CProgramScope pCProgramScope) {
     Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>();
-    ImmutableSet<String> allGlobalVariables = getAllGlobalVariables(pCfa);
 
     for (Loop loop : pCfa.getLoopStructure().orElseThrow().getAllLoops()) {
       // Determine loop locations. There may be more than one, as some loops have multiple
@@ -66,18 +66,39 @@ public class LoopInfoUtils {
                 .getFileLocation()
                 .getStartingLineInOrigin());
       }
+      Integer maxLoopLocation = Collections.max(loopLocations);
 
       // Determine the names of all variables used except those declared inside the loop
       Set<String> liveVariables = new HashSet<>();
       Set<String> variablesDeclaredInsideLoop = new HashSet<>();
       Map<String, String> liveVariablesAndTypes = new HashMap<>();
-      for (CFAEdge cfaEdge : loop.getInnerLoopEdges()) {
+      List<CFAEdge> notChecked = new ArrayList<>(loop.getIncomingEdges());
+      Set<CFAEdge> checked = new HashSet<>();
+      while (!notChecked.isEmpty()) {
+        CFAEdge cfaEdge = notChecked.remove(notChecked.size() - 1);
+        checked.add(cfaEdge);
         if (cfaEdge.getRawAST().isPresent()) {
           AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
-          if (aAstNode instanceof CSimpleDeclaration) {
-            variablesDeclaredInsideLoop.addAll(getVariablesFromAAstNode(aAstNode));
+          if (aAstNode instanceof CSimpleDeclaration
+              && cfaEdge.getFileLocation().getStartingLineInOrigin() > maxLoopLocation) {
+            variablesDeclaredInsideLoop.add(((CSimpleDeclaration) aAstNode).getQualifiedName());
           } else {
-            liveVariables.addAll(getVariablesFromAAstNode(cfaEdge.getRawAST().orElseThrow()));
+            if (aAstNode instanceof CFunctionCallStatement) {
+              for (CParameterDeclaration parameter :
+                  ((CFunctionCallStatement) aAstNode)
+                      .getFunctionCallExpression()
+                      .getDeclaration()
+                      .getParameters()) {
+                variablesDeclaredInsideLoop.add(parameter.getQualifiedName());
+              }
+            } else {
+              liveVariables.addAll(getVariablesFromAAstNode(cfaEdge.getRawAST().orElseThrow()));
+            }
+          }
+        }
+        for (int i = 0; i < cfaEdge.getSuccessor().getNumLeavingEdges(); i++) {
+          if (!checked.contains(cfaEdge.getSuccessor().getLeavingEdge(i))) {
+            notChecked.add(cfaEdge.getSuccessor().getLeavingEdge(i));
           }
         }
       }
@@ -86,26 +107,20 @@ public class LoopInfoUtils {
           e ->
               e.contains("::")
                   && Iterables.get(Splitter.on("::").split(e), 1).startsWith("__CPAchecker_TMP_"));
-      liveVariables.addAll(allGlobalVariables);
 
       // Determine type of each variable
       for (String variable : liveVariables) {
-        String type =
-            Objects.requireNonNull(pCProgramScope.lookupVariable(variable)).getType().toString();
-        variable =
-            variable.contains("::")
-                ? Iterables.get(Splitter.on("::").split(variable), 1)
-                : variable;
+        String type = pCProgramScope.lookupVariable(variable).getType().toString();
 
-        if (type.contains("*")) {
-          String typeOfReferencedValue = type.replace("*", "").replace("(", "").replace(")", "");
-          int numberOfAsterisks = (type.length() - typeOfReferencedValue.length()) / 3;
-          String dereferencingVariable = "*".repeat(numberOfAsterisks) + variable;
-
-          liveVariablesAndTypes.put(dereferencingVariable, typeOfReferencedValue);
-        } else {
-          liveVariablesAndTypes.put(variable, type);
+        if (type.startsWith("(")) {
+          type = type.substring(1, type.length() - 2) + "*";
         }
+
+        liveVariablesAndTypes.put(
+            variable.contains("::")
+            ? Iterables.get(Splitter.on("::").split(variable), 1)
+            : variable,
+            type);
       }
 
       for (Integer loopLocation : loopLocations) {
@@ -134,22 +149,6 @@ public class LoopInfoUtils {
       }
     }
     return mapLoopHeadToLineNumbers;
-  }
-
-  // TODO: the method can return variables like stdin, stdout, and stderr
-  private static ImmutableSet<String> getAllGlobalVariables(CFA pCfa) {
-    Set<String> allGlobalVariables = new HashSet<>();
-
-    for (CFAEdge cfaEdge : pCfa.edges()) {
-      if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-        AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
-        getVariablesFromAAstNode(aAstNode).stream()
-            .filter(e -> !e.contains("::"))
-            .forEach(e -> allGlobalVariables.add(e));
-      }
-    }
-
-    return ImmutableSet.copyOf(allGlobalVariables);
   }
 
   @Nullable
@@ -235,14 +234,16 @@ public class LoopInfoUtils {
       CExpression cRightHandSide = ((CExpressionAssignmentStatement) pAAstNode).getRightHandSide();
       CFAUtils.getVariableNamesOfExpression(cRightHandSide).forEach(e -> variables.add(e));
 
-    } else if (pAAstNode instanceof CFunctionCallStatement cFunctionCallStatement) {
+    } else if (pAAstNode instanceof CFunctionCallStatement) {
+      CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) pAAstNode;
       cFunctionCallStatement
           .getFunctionCallExpression()
           .getParameterExpressions()
           .forEach(e -> CFAUtils.getVariableNamesOfExpression(e).forEach(n -> variables.add(n)));
 
-    } else if (pAAstNode
-        instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
+    } else if (pAAstNode instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement =
+          (CFunctionCallAssignmentStatement) pAAstNode;
 
       CLeftHandSide cLeftHandSide = cFunctionCallAssignmentStatement.getLeftHandSide();
       CFAUtils.getVariableNamesOfExpression(cLeftHandSide).forEach(e -> variables.add(e));
@@ -251,9 +252,6 @@ public class LoopInfoUtils {
       cRightHandSide
           .getParameterExpressions()
           .forEach(e -> CFAUtils.getVariableNamesOfExpression(e).forEach(n -> variables.add(n)));
-
-    } else if (pAAstNode instanceof CVariableDeclaration cVariableDeclaration) {
-      variables.add(cVariableDeclaration.getQualifiedName());
     }
 
     return ImmutableSet.copyOf(variables);
