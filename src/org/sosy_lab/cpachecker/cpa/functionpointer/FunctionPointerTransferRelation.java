@@ -156,6 +156,27 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
   private boolean shouldGoByEdge(FunctionPointerState oldState, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
+    if (cfaEdge instanceof CAssumeEdge assumeEdge
+        && assumeEdge.getExpression() instanceof CBinaryExpression binaryOp
+        && binaryOp.getOperator() == BinaryOperator.NOT_EQUALS) {
+      // Rewrite (a != b) as !(a == b)
+      return shouldGoByEdge(
+          oldState,
+          new CAssumeEdge(
+              cfaEdge.getRawStatement(),
+              cfaEdge.getFileLocation(),
+              cfaEdge.getPredecessor(),
+              cfaEdge.getSuccessor(),
+              new CBinaryExpression(
+                  binaryOp.getFileLocation(),
+                  binaryOp.getExpressionType(),
+                  binaryOp.getCalculationType(),
+                  binaryOp.getOperand1(),
+                  binaryOp.getOperand2(),
+                  BinaryOperator.EQUALS),
+              !assumeEdge.getTruthAssumption()));
+    }
+
     if (cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       CAssumeEdge a = (CAssumeEdge) cfaEdge;
       CExpression exp = a.getExpression();

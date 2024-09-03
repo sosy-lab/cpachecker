@@ -218,7 +218,7 @@ public class AtExitTransformer {
             exprBuilder.buildBinaryExpressionUnchecked(
                 new CIdExpression(loc, fpointerType, var, declVar),
                 CIntegerLiteralExpression.ZERO,
-                BinaryOperator.EQUALS);
+                BinaryOperator.NOT_EQUALS);
         // "then"
         CFANode n4 = mkNode(scope);
         CAssumeEdge e4 = new CAssumeEdge("", loc, n3, n4, isEmpty, true);
@@ -233,7 +233,7 @@ public class AtExitTransformer {
         // Add an edge that calls exit and returns to the rest of the graph
         CFunctionCallStatement stmtExit =
             new CFunctionCallStatement(loc, callStmt.getFunctionCallExpression());
-        CFAEdge e0 = new CStatementEdge("", stmtExit, loc, n4, edge.getSuccessor());
+        CFAEdge e0 = new CStatementEdge("", stmtExit, loc, n5, edge.getSuccessor());
         CFACreationUtils.addEdgeUnconditionallyToCFA(e0);
 
         // Otherwise continue with the body of the loop:
@@ -245,7 +245,7 @@ public class AtExitTransformer {
                 loc,
                 new CFunctionCallExpression(
                     loc, CVoidType.VOID, expFPointer, ImmutableList.of(), null));
-        CFAEdge e6 = new CStatementEdge("", callFPointer, loc, n5, n2);
+        CFAEdge e6 = new CStatementEdge("", callFPointer, loc, n4, n2);
         CFACreationUtils.addEdgeUnconditionallyToCFA(e6);
       }
     }

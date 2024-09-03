@@ -16,7 +16,6 @@ SPDX-License-Identifier: Apache-2.0
     <rundefinition>
         <option name="--valueAnalysis"/>
         <option name="--option">cpa.functionpointer.trackInvalidFunctionPointers=true</option>
-        <option name="--option">analysis.checkCounterexamples=false</option>
     </rundefinition>
 
     <option name="--no-output-files"/>
