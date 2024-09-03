@@ -22,11 +22,13 @@ public class SeqToken {
 
   public static final String CASE = "case";
 
-  public static final String EXECUTED = "executed";
+  public static final String GOTO = "goto";
 
   public static final String IF = "if";
 
   public static final String INDEX = "index";
+
+  public static final String NEXT_STATEMENT = "nextStatement";
 
   public static final String NEXT_THREAD = "nextThread";
 

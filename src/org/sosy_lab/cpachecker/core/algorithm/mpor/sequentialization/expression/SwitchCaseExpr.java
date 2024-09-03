@@ -8,31 +8,27 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import com.google.common.collect.ImmutableMap;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SwitchCaseExpr implements SeqExpression {
 
   // TODO restrict to Variable, ArrayExpr
   private final SeqExpression expression;
 
-  private final ImmutableMap<MPORThread, CFAEdge> globalAccesses;
+  private final ImmutableSet<String> cases;
 
-  public SwitchCaseExpr(
-      SeqExpression pExpression, ImmutableMap<MPORThread, CFAEdge> pGlobalAccesses) {
+  public SwitchCaseExpr(SeqExpression pExpression, ImmutableSet<String> pCases) {
     expression = pExpression;
-    globalAccesses = pGlobalAccesses;
+    cases = pCases;
   }
 
   @Override
   public String createString() {
-    StringBuilder cases = new StringBuilder(SeqSyntax.EMPTY_STRING);
-    for (var entry : globalAccesses.entrySet()) {
-      cases.append(generateCase(Integer.toString(entry.getKey().id), entry.getValue()));
+    StringBuilder casesString = new StringBuilder(SeqSyntax.EMPTY_STRING);
+    for (String caseString : cases) {
+      casesString.append(caseString);
     }
     return SeqToken.SWITCH
         + SeqSyntax.SPACE
@@ -45,29 +41,5 @@ public class SwitchCaseExpr implements SeqExpression {
         + cases
         + SeqSyntax.TAB
         + SeqSyntax.CURLY_BRACKET_RIGHT;
-  }
-
-  public static String generateCase(String pCase, CFAEdge pEdge) {
-    String codeBlock = pEdge.getCode();
-    String suffix = SeqSyntax.SEMICOLON;
-    if (codeBlock.endsWith(SeqSyntax.SEMICOLON)) {
-      suffix = SeqSyntax.EMPTY_STRING;
-    }
-    if (pEdge instanceof AssumeEdge) {
-      codeBlock = SeqToken.ASSUME + SeqSyntax.BRACKET_LEFT + codeBlock + SeqSyntax.BRACKET_RIGHT;
-    }
-    return SeqSyntax.TAB
-        + SeqSyntax.TAB
-        + SeqToken.CASE
-        + SeqSyntax.SPACE
-        + pCase
-        + SeqSyntax.COLON
-        + SeqSyntax.SPACE
-        + codeBlock
-        + suffix
-        + SeqSyntax.SPACE
-        + SeqToken.BREAK
-        + SeqSyntax.SEMICOLON
-        + SeqSyntax.NEWLINE;
   }
 }

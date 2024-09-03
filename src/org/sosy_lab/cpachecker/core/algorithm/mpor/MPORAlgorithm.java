@@ -248,6 +248,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     return pGapStatesBuilder.build();
   }
 
+  private void interleaveThreads(MPORState pGapState) {
+    ImmutableMap.Builder<MPORThread, ImmutableSet<CFAEdge>> threadEdges = ImmutableMap.builder();
+    for (var entry : pGapState.threadNodes.entrySet()) {
+      MPORThread thread = entry.getKey();
+      Optional<CFANode> funcReturnNode = pGapState.funcReturnNodes.get(thread);
+      threadEdges.put(thread, MPORUtil.returnLeavingEdges(entry.getValue(), funcReturnNode));
+    }
+    var unused = threadEdges.build();
+  }
+
   /**
    * Executes all possible combinations of leaving edges sequentially, i.e. thread order does not
    * matter.
