@@ -38,7 +38,7 @@ public class SwitchCaseExpr implements SeqExpression {
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.NEWLINE
-        + cases
+        + casesString
         + SeqSyntax.TAB
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
