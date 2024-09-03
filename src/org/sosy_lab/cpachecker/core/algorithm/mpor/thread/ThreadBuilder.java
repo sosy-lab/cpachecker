@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORCreate;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @SuppressWarnings("unused")
@@ -33,7 +34,7 @@ public class ThreadBuilder {
 
   private int currentId = 0;
 
-  private int currentPc = 0;
+  private int currentPc = SeqUtil.INIT_PC;
 
   /** A copy of the functionCallMap in {@link MPORAlgorithm}. */
   private final ImmutableMap<CFANode, CFANode> functionCallMap;
@@ -55,7 +56,7 @@ public class ThreadBuilder {
       FunctionEntryNode pEntryNode,
       FunctionExitNode pExitNode) {
 
-    currentPc = 0; // reset pc for every thread created
+    currentPc = SeqUtil.INIT_PC; // reset pc for every thread created
 
     Set<CFANode> visitedNodes = new HashSet<>(); // using set so that we can use .contains()
     ImmutableSet.Builder<ThreadNode> threadNodes = ImmutableSet.builder();
@@ -113,7 +114,7 @@ public class ThreadBuilder {
       pThreadEdges.addAll(threadEdges);
       if (pCurrentNode.equals(pExitNode)) {
         assert threadEdges.isEmpty();
-        pThreadNodes.add(new ThreadNode(pCurrentNode, -1, threadEdges));
+        pThreadNodes.add(new ThreadNode(pCurrentNode, SeqUtil.EXIT_PC, threadEdges));
       } else {
         pThreadNodes.add(new ThreadNode(pCurrentNode, currentPc++, threadEdges));
         for (CFAEdge cfaEdge : leavingCfaEdges) {

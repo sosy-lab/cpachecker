@@ -15,7 +15,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqT
 
 public class SeqUtil {
 
-  // TODO INIT_PC = 0, EXIT_PC = -1 here
+  public static final int INIT_PC = 0;
+
+  public static final int EXIT_PC = -1;
 
   public static String createCodeFrom() {
     // TODO
