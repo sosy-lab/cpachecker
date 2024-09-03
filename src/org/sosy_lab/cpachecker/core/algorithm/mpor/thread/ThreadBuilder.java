@@ -109,18 +109,13 @@ public class ThreadBuilder {
     if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
       ImmutableSet<CFAEdge> leavingCfaEdges =
           MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode);
-      ImmutableSet.Builder<ThreadEdge> threadEdgesBuilder = ImmutableSet.builder();
-      for (CFAEdge cfaEdge : leavingCfaEdges) {
-        threadEdgesBuilder.add(new ThreadEdge(cfaEdge));
-      }
-      ImmutableSet<ThreadEdge> threadEdges = threadEdgesBuilder.build();
+      ImmutableSet<ThreadEdge> threadEdges = createThreadEdgesFromCfaEdges(leavingCfaEdges);
       pThreadEdges.addAll(threadEdges);
-      // TODO use -1 here if current node is exit node
-      ThreadNode newThreadNode = new ThreadNode(pCurrentNode, currentPc++, threadEdges);
-      pThreadNodes.add(newThreadNode);
       if (pCurrentNode.equals(pExitNode)) {
         assert threadEdges.isEmpty();
+        pThreadNodes.add(new ThreadNode(pCurrentNode, -1, threadEdges));
       } else {
+        pThreadNodes.add(new ThreadNode(pCurrentNode, currentPc++, threadEdges));
         for (CFAEdge cfaEdge : leavingCfaEdges) {
           initThreadVariables(
               pExitNode,
@@ -350,5 +345,13 @@ public class ThreadBuilder {
   private Optional<CFANode> updateFuncReturnNode(
       CFANode pCurrentNode, Optional<CFANode> pPrevFuncReturnNode) {
     return MPORUtil.updateFuncReturnNode(functionCallMap, pCurrentNode, pPrevFuncReturnNode);
+  }
+
+  private ImmutableSet<ThreadEdge> createThreadEdgesFromCfaEdges(ImmutableSet<CFAEdge> pCfaEdges) {
+    ImmutableSet.Builder<ThreadEdge> rThreadEdges = ImmutableSet.builder();
+    for (CFAEdge cfaEdge : pCfaEdges) {
+      rThreadEdges.add(new ThreadEdge(cfaEdge));
+    }
+    return rThreadEdges.build();
   }
 }

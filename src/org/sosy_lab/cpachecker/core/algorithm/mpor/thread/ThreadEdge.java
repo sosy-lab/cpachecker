@@ -16,8 +16,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 public class ThreadEdge {
 
   public final CFAEdge cfaEdge;
+  
   // TODO maybe use Optional here
-  public ThreadNode predecessor = null;
+  private ThreadNode predecessor = null;
 
   private ThreadNode successor = null;
 
@@ -25,7 +26,7 @@ public class ThreadEdge {
     cfaEdge = pCfaEdge;
   }
 
-  public void setPredecessor(ThreadNode pPredecessor) {
+  protected void setPredecessor(ThreadNode pPredecessor) {
     checkNotNull(pPredecessor);
     checkArgument(predecessor == null, "predecessor set already");
     predecessor = pPredecessor;
@@ -35,7 +36,7 @@ public class ThreadEdge {
     return predecessor;
   }
 
-  public void setSuccessor(ThreadNode pSuccessor) {
+  protected void setSuccessor(ThreadNode pSuccessor) {
     checkNotNull(pSuccessor);
     checkArgument(successor == null, "successor set already");
     successor = pSuccessor;
