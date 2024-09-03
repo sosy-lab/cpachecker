@@ -312,6 +312,7 @@ public class StateBuilder {
         CFANode targetThreadNode = pThreadNodes.get(targetThread);
         assert targetThreadNode != null;
         if (!targetThreadNode.equals(targetThread.exitNode)) {
+          // TODO use predecessor / successor of edges for pcs in seq
           // add all CFAEdges executed by pthread_t as preceding edges
           ImmutableSet<CFAEdge> precedingEdges = targetThread.edges;
           ImmutableSet<CFAEdge> subsequentEdges =

@@ -8,12 +8,19 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
+import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
 public class SeqUtil {
+
+  public static String createCodeFrom(CFANode pNode, ImmutableMap<CFANode, Integer> pNodePcs) {
+    // TODO
+    return "";
+  }
 
   public static String createLineOfCode(CFAEdge pEdge) {
     if (pEdge instanceof AssumeEdge) {

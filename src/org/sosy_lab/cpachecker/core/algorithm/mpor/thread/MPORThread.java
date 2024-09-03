@@ -8,12 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORCreate;
@@ -40,8 +38,8 @@ public class MPORThread {
    */
   public final FunctionExitNode exitNode;
 
-  /** The (unique) program counters of all CFANodes that this thread reaches. */
-  public final ImmutableMap<CFANode, Integer> nodePcs;
+  /** The (sub)set of CFANodes from the original input CFA that this thread can reach. */
+  public final ImmutableSet<ThreadNode> threadNodes;
 
   public final ImmutableSet<CFAEdge> edges;
 
@@ -56,7 +54,7 @@ public class MPORThread {
       Optional<CExpression> pThreadObject,
       FunctionEntryNode pEntryNode,
       FunctionExitNode pExitNode,
-      ImmutableMap<CFANode, Integer> pNodePcs,
+      ImmutableSet<ThreadNode> pThreadNodes,
       ImmutableSet<CFAEdge> pEdges,
       ImmutableSet<MPORCreate> pCreates,
       ImmutableSet<MPORMutex> pMutexes,
@@ -66,7 +64,7 @@ public class MPORThread {
     threadObject = pThreadObject;
     entryNode = pEntryNode;
     exitNode = pExitNode;
-    nodePcs = pNodePcs;
+    threadNodes = pThreadNodes;
     edges = pEdges;
     creates = pCreates;
     mutexes = pMutexes;

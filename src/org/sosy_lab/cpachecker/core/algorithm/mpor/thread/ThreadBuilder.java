@@ -31,9 +31,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class ThreadBuilder {
 
-  private static int currentId = 0;
+  private int currentId = 0;
 
-  private static int currentPc = 0;
+  private int currentPc = 0;
 
   /** A copy of the functionCallMap in {@link MPORAlgorithm}. */
   private final ImmutableMap<CFANode, CFANode> functionCallMap;
@@ -56,10 +56,10 @@ public class ThreadBuilder {
     currentPc = 0; // reset pc for every thread created
 
     Set<CFANode> visitedNodes = new HashSet<>(); // using set so that we can use .contains()
-    ImmutableMap.Builder<CFANode, Integer> nodePcs = ImmutableMap.builder();
+    ImmutableSet.Builder<ThreadNode> threadNodes = ImmutableSet.builder();
     ImmutableSet.Builder<CFAEdge> threadEdges = ImmutableSet.builder();
     initThreadVariables(
-        pExitNode, visitedNodes, nodePcs, threadEdges, pEntryNode, Optional.empty());
+        pExitNode, visitedNodes, threadNodes, threadEdges, pEntryNode, Optional.empty());
 
     ImmutableSet.Builder<MPORCreate> creates = ImmutableSet.builder();
     searchThreadForCreates(
@@ -78,7 +78,7 @@ public class ThreadBuilder {
         pPthreadT,
         pEntryNode,
         pExitNode,
-        nodePcs.buildOrThrow(),
+        threadNodes.build(),
         threadEdges.build(),
         creates.build(),
         mutexes.build(),
@@ -91,7 +91,8 @@ public class ThreadBuilder {
    *
    * @param pExitNode the FunctionExitNode of the start routine or main function of the thread
    * @param pVisitedNodes the set of already visited CFANodes
-   * @param pThreadEdges the set of CFAEdges executed by the thread
+   * @param pThreadNodes the set of ThreadNodes reachable by the thread
+   * @param pThreadEdges the set of CFAEdges the thread can execute
    * @param pCurrentNode the current CFANode whose leaving CFAEdges are analyzed
    * @param pFuncReturnNode pFuncReturnNode used to track the original context when entering the CFA
    *     of another function.
@@ -99,24 +100,23 @@ public class ThreadBuilder {
   private void initThreadVariables(
       final FunctionExitNode pExitNode,
       Set<CFANode> pVisitedNodes,
-      ImmutableMap.Builder<CFANode, Integer> pNodePcs,
+      ImmutableSet.Builder<ThreadNode> pThreadNodes,
       ImmutableSet.Builder<CFAEdge> pThreadEdges,
       CFANode pCurrentNode,
       Optional<CFANode> pFuncReturnNode) {
 
     if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
-      pNodePcs.put(pCurrentNode, currentPc++);
       ImmutableSet<CFAEdge> leavingEdges =
           MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode);
+      pThreadNodes.add(new ThreadNode(pCurrentNode, currentPc++, leavingEdges));
       if (pCurrentNode.equals(pExitNode)) {
         assert leavingEdges.isEmpty();
       } else {
         for (CFAEdge cfaEdge : leavingEdges) {
-          pThreadEdges.add(cfaEdge);
           initThreadVariables(
               pExitNode,
               pVisitedNodes,
-              pNodePcs,
+              pThreadNodes,
               pThreadEdges,
               cfaEdge.getSuccessor(),
               updateFuncReturnNode(pCurrentNode, pFuncReturnNode));
