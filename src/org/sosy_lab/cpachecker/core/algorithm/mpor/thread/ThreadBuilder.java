@@ -45,19 +45,21 @@ public class ThreadBuilder {
   /**
    * Initializes a MPORThread object with the corresponding CFANodes and CFAEdges and returns it.
    *
-   * @param pPthreadT the pthread_t object, set to empty for the main thread
+   * @param pThreadObject the pthread_t object, set to empty for the main thread
    * @param pEntryNode the entry node of the start routine or main function of the thread
    * @param pExitNode the exit node of the start routine or main function of the thread
    * @return a MPORThread object with properly initialized variables
    */
   public MPORThread createThread(
-      Optional<CExpression> pPthreadT, FunctionEntryNode pEntryNode, FunctionExitNode pExitNode) {
+      Optional<CExpression> pThreadObject,
+      FunctionEntryNode pEntryNode,
+      FunctionExitNode pExitNode) {
 
     currentPc = 0; // reset pc for every thread created
 
     Set<CFANode> visitedNodes = new HashSet<>(); // using set so that we can use .contains()
     ImmutableSet.Builder<ThreadNode> threadNodes = ImmutableSet.builder();
-    ImmutableSet.Builder<CFAEdge> threadEdges = ImmutableSet.builder();
+    ImmutableSet.Builder<ThreadEdge> threadEdges = ImmutableSet.builder();
     initThreadVariables(
         pExitNode, visitedNodes, threadNodes, threadEdges, pEntryNode, Optional.empty());
 
@@ -73,16 +75,16 @@ public class ThreadBuilder {
 
     // TODO searchThreadForBarriers
 
-    return new MPORThread(
-        currentId++,
-        pPthreadT,
-        pEntryNode,
-        pExitNode,
-        threadNodes.build(),
-        threadEdges.build(),
-        creates.build(),
-        mutexes.build(),
-        joins.build());
+    ThreadCFA threadCfa =
+        new ThreadCFA(
+            pEntryNode,
+            pExitNode,
+            threadNodes.build(),
+            threadEdges.build(),
+            creates.build(),
+            mutexes.build(),
+            joins.build());
+    return new MPORThread(currentId++, pThreadObject, threadCfa);
   }
 
   /**
@@ -92,7 +94,6 @@ public class ThreadBuilder {
    * @param pExitNode the FunctionExitNode of the start routine or main function of the thread
    * @param pVisitedNodes the set of already visited CFANodes
    * @param pThreadNodes the set of ThreadNodes reachable by the thread
-   * @param pThreadEdges the set of CFAEdges the thread can execute
    * @param pCurrentNode the current CFANode whose leaving CFAEdges are analyzed
    * @param pFuncReturnNode pFuncReturnNode used to track the original context when entering the CFA
    *     of another function.
@@ -101,18 +102,26 @@ public class ThreadBuilder {
       final FunctionExitNode pExitNode,
       Set<CFANode> pVisitedNodes,
       ImmutableSet.Builder<ThreadNode> pThreadNodes,
-      ImmutableSet.Builder<CFAEdge> pThreadEdges,
+      ImmutableSet.Builder<ThreadEdge> pThreadEdges,
       CFANode pCurrentNode,
       Optional<CFANode> pFuncReturnNode) {
 
     if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
-      ImmutableSet<CFAEdge> leavingEdges =
+      ImmutableSet<CFAEdge> leavingCfaEdges =
           MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode);
-      pThreadNodes.add(new ThreadNode(pCurrentNode, currentPc++, leavingEdges));
+      ImmutableSet.Builder<ThreadEdge> threadEdgesBuilder = ImmutableSet.builder();
+      for (CFAEdge cfaEdge : leavingCfaEdges) {
+        threadEdgesBuilder.add(new ThreadEdge(cfaEdge));
+      }
+      ImmutableSet<ThreadEdge> threadEdges = threadEdgesBuilder.build();
+      pThreadEdges.addAll(threadEdges);
+      // TODO use -1 here if current node is exit node
+      ThreadNode newThreadNode = new ThreadNode(pCurrentNode, currentPc++, threadEdges);
+      pThreadNodes.add(newThreadNode);
       if (pCurrentNode.equals(pExitNode)) {
-        assert leavingEdges.isEmpty();
+        assert threadEdges.isEmpty();
       } else {
-        for (CFAEdge cfaEdge : leavingEdges) {
+        for (CFAEdge cfaEdge : leavingCfaEdges) {
           initThreadVariables(
               pExitNode,
               pVisitedNodes,
@@ -317,7 +326,7 @@ public class ThreadBuilder {
       Optional<CFANode> pFuncReturnNode) {
 
     // TODO see pthread-divine for example barrier programs
-    if (!pCurrentNode.equals(pThread.exitNode)) {
+    if (!pCurrentNode.equals(pThread.cfa.exitNode)) {
       if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
         for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
           if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.BARRIER_INIT)) {

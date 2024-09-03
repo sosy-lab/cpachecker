@@ -232,7 +232,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       CFANode currentNode = entry.getValue();
       if (MPORUtil.shouldVisit(pVisitedNodes.get(currentThread), currentNode)) {
         // if the thread has terminated, stop
-        if (!currentNode.equals(currentThread.exitNode)) {
+        if (!currentNode.equals(currentThread.cfa.exitNode)) {
           Optional<CFANode> funcReturnNode = pState.funcReturnNodes.get(currentThread);
           for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(currentNode, funcReturnNode)) {
             // if the next edge(s) is a global access, stop
@@ -454,7 +454,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     boolean oneInitialState = pReachedSet.asCollection().size() == 1;
     checkArgument(oneInitialState, "the initial ReachedSet should contain only one AbstractState");
 
-    FunctionEntryNode mainFunctionEntryNode = getMainThread(pThreads).entryNode;
+    FunctionEntryNode mainFunctionEntryNode = getMainThread(pThreads).cfa.entryNode;
     boolean correctMainFunctionEntryNode = false;
     // take the first AbstractState, there is only one anyway
     if (pReachedSet.asCollection().iterator().next() instanceof ARGState argState) {

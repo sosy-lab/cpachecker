@@ -8,15 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
-import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORCreate;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 
 /**
  * An object for a thread containing an identifier (threadObject) and entry / exit Nodes of the
@@ -29,46 +22,13 @@ public class MPORThread {
   /** The pthread_t object. Set to empty for the main thread. */
   public final Optional<CExpression> threadObject;
 
-  /** FunctionEntryNode of the main function (main thread) or start routine (pthreads). */
-  public final FunctionEntryNode entryNode;
+  /** The subset of the original CFA executed by the thread. */
+  public final ThreadCFA cfa;
 
-  /**
-   * FunctionExitNode of the main function (main thread) or start routine (pthreads). Can be empty,
-   * see {@link FunctionEntryNode#getExitNode()}.
-   */
-  public final FunctionExitNode exitNode;
-
-  /** The (sub)set of CFANodes from the original input CFA that this thread can reach. */
-  public final ImmutableSet<ThreadNode> threadNodes;
-
-  public final ImmutableSet<CFAEdge> edges;
-
-  public final ImmutableSet<MPORCreate> creates;
-
-  public final ImmutableSet<MPORMutex> mutexes;
-
-  public final ImmutableSet<MPORJoin> joins;
-
-  protected MPORThread(
-      int pId,
-      Optional<CExpression> pThreadObject,
-      FunctionEntryNode pEntryNode,
-      FunctionExitNode pExitNode,
-      ImmutableSet<ThreadNode> pThreadNodes,
-      ImmutableSet<CFAEdge> pEdges,
-      ImmutableSet<MPORCreate> pCreates,
-      ImmutableSet<MPORMutex> pMutexes,
-      ImmutableSet<MPORJoin> pJoins) {
-
+  protected MPORThread(int pId, Optional<CExpression> pThreadObject, ThreadCFA pCfa) {
     id = pId;
     threadObject = pThreadObject;
-    entryNode = pEntryNode;
-    exitNode = pExitNode;
-    threadNodes = pThreadNodes;
-    edges = pEdges;
-    creates = pCreates;
-    mutexes = pMutexes;
-    joins = pJoins;
+    cfa = pCfa;
   }
 
   public boolean isMain() {

@@ -9,22 +9,21 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class ThreadNode {
 
   /** The corresponding CFANode of the input CFA. */
-  public final CFANode node;
+  public final CFANode cfaNode;
 
   /** The corresponding program counter of the CFANode. */
   public final int pc;
 
-  /** The set of context-sensitive return leaving edges of {@link ThreadNode#node}. */
-  public final ImmutableSet<CFAEdge> leavingEdges;
+  /** The set of context-sensitive return leaving edges of this ThreadNode. */
+  public final ImmutableSet<ThreadEdge> leavingEdges;
 
-  public ThreadNode(CFANode pNode, int pPc, ImmutableSet<CFAEdge> pLeavingEdges) {
-    node = pNode;
+  public ThreadNode(CFANode pCfaNode, int pPc, ImmutableSet<ThreadEdge> pLeavingEdges) {
+    cfaNode = pCfaNode;
     pc = pPc;
     leavingEdges = pLeavingEdges;
   }

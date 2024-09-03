@@ -77,7 +77,7 @@ public class StateBuilder {
 
     ImmutableMap.Builder<MPORThread, CFANode> threadNodesBuilder = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
-      threadNodesBuilder.put(thread, thread.entryNode);
+      threadNodesBuilder.put(thread, thread.cfa.entryNode);
     }
     ImmutableMap<MPORThread, CFANode> threadNodes = threadNodesBuilder.buildOrThrow();
 
@@ -219,12 +219,12 @@ public class StateBuilder {
     for (var entry : pThreadNodes.entrySet()) {
       MPORThread createdThread = entry.getKey();
       if (!createdThread.equals(pCreatingThread)) {
-        if (entry.getValue().equals(createdThread.entryNode)) {
+        if (entry.getValue().equals(createdThread.cfa.entryNode)) {
           // check if pCreatingThread creates the thread which is at its entry
-          for (MPORCreate create : pCreatingThread.creates) {
+          for (MPORCreate create : pCreatingThread.cfa.creates) {
             if (create.createdPthreadT.equals(createdThread.threadObject.orElseThrow())) {
               ImmutableSet<CFAEdge> subsequentEdges =
-                  ImmutableSet.copyOf(CFAUtils.leavingEdges(createdThread.entryNode));
+                  ImmutableSet.copyOf(CFAUtils.leavingEdges(createdThread.cfa.entryNode));
               rCreatePreferenceOrders.add(
                   new PreferenceOrder(
                       PreferenceOrderType.CREATE,
@@ -256,7 +256,7 @@ public class StateBuilder {
     ImmutableSet.Builder<PreferenceOrder> rMutexPreferenceOrders = ImmutableSet.builder();
 
     // if pThreadInMutex is in a mutex lock
-    for (MPORMutex mutex : pThreadInMutex.mutexes) {
+    for (MPORMutex mutex : pThreadInMutex.cfa.mutexes) {
       if (mutex.nodes.contains(pNodeInMutex)) {
 
         // search all other threads for pthread_mutex_lock calls to the same pthread_mutex_t object
@@ -304,17 +304,17 @@ public class StateBuilder {
 
     ImmutableSet.Builder<PreferenceOrder> rJoinPreferenceOrders = ImmutableSet.builder();
     // if pJoiningThread is right before a pthread_join call
-    for (MPORJoin join : pJoiningThread.joins) {
+    for (MPORJoin join : pJoiningThread.cfa.joins) {
       if (pJoiningNode.equals(join.preJoinNode)) {
         CExpression pthreadT = CFAUtils.getParameterAtIndex(join.joinEdge, 0);
         MPORThread targetThread = getThreadByPthreadT(pThreadNodes, pthreadT);
         // if the thread specified as pthread_t in the pthread_join call has not yet terminated
         CFANode targetThreadNode = pThreadNodes.get(targetThread);
         assert targetThreadNode != null;
-        if (!targetThreadNode.equals(targetThread.exitNode)) {
+        if (!targetThreadNode.equals(targetThread.cfa.exitNode)) {
           // TODO use predecessor / successor of edges for pcs in seq
           // add all CFAEdges executed by pthread_t as preceding edges
-          ImmutableSet<CFAEdge> precedingEdges = targetThread.edges;
+          ImmutableSet<CFAEdge> precedingEdges = null;
           ImmutableSet<CFAEdge> subsequentEdges =
               ImmutableSet.copyOf(CFAUtils.leavingEdges(join.preJoinNode));
           rJoinPreferenceOrders.add(
