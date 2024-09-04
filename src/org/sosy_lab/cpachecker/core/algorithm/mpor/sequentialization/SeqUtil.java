@@ -37,7 +37,7 @@ public class SeqUtil {
 
   private static final ArrayElement pcsNextThread = new ArrayElement(pcs, nextThread);
 
-  private static final AssignExpr resetPcsNextThread =
+  private static final AssignExpr setExitPc =
       new AssignExpr(pcsNextThread, new Value(Integer.toString(EXIT_PC)));
 
   // TODO make sure all pthread_... functions are removed (skip pcs)
@@ -48,11 +48,11 @@ public class SeqUtil {
   public static String createCodeFromThreadNode(ThreadNode pThreadNode) {
     StringBuilder code = new StringBuilder();
 
-    if (pThreadNode.pc == EXIT_PC) {
-      code.append(resetPcsNextThread.createString());
+    // no edges -> exit node reached (assert fail or main / start routine exit node)
+    if (pThreadNode.leavingEdges.isEmpty()) {
+      code.append(setExitPc.createString());
 
     } else {
-
       boolean firstEdge = true;
       for (ThreadEdge threadEdge : pThreadNode.leavingEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;

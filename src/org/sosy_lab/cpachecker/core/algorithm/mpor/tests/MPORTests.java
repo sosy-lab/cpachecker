@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -122,8 +123,10 @@ public class MPORTests {
       rProgram.append("=============== thread ").append(thread.id).append(" ===============");
       rProgram.append(SeqSyntax.NEWLINE);
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
+        rProgram.append(SeqToken.CASE).append(SeqSyntax.SPACE);
+        rProgram.append(threadNode.pc).append(SeqSyntax.SPACE);
         rProgram.append(SeqUtil.createCodeFromThreadNode(threadNode));
-        rProgram.append(SeqSyntax.NEWLINE);
+        rProgram.append(SeqSyntax.NEWLINE).append(SeqSyntax.NEWLINE);
       }
     }
     return rProgram.toString();
