@@ -112,8 +112,7 @@ public class ThreadBuilder {
           MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode);
       ImmutableSet<ThreadEdge> threadEdges = createThreadEdgesFromCfaEdges(leavingCfaEdges);
       pThreadEdges.addAll(threadEdges);
-      if (pCurrentNode.equals(pExitNode)) {
-        assert threadEdges.isEmpty();
+      if (leavingCfaEdges.isEmpty()) {
         pThreadNodes.add(new ThreadNode(pCurrentNode, SeqUtil.EXIT_PC, threadEdges));
       } else {
         pThreadNodes.add(new ThreadNode(pCurrentNode, currentPc++, threadEdges));

@@ -26,12 +26,15 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
@@ -373,15 +376,18 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    */
   private final ImmutableMap<CFANode, CFANode> functionCallMap;
 
+  private final StateBuilder stateBuilder;
+
+  private final ThreadBuilder threadBuilder;
+
+  /** The set of global variable declarations in the input program, used to identify variables. */
+  private final ImmutableSet<CVariableDeclaration> globalVars;
+
   /**
    * The set of threads in the program, including the main thread and all pthreads. Needs to be
    * initialized after {@link MPORAlgorithm#functionCallMap}.
    */
   private final ImmutableSet<MPORThread> threads;
-
-  private final StateBuilder stateBuilder;
-
-  private final ThreadBuilder threadBuilder;
 
   public MPORAlgorithm(
       ConfigurableProgramAnalysis pCpa,
@@ -411,6 +417,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     threadBuilder = new ThreadBuilder(functionCallMap);
     stateBuilder = new StateBuilder(PTR, functionCallMap);
 
+    globalVars = getGlobalVars(INPUT_CFA);
     threads = getThreads(INPUT_CFA, functionCallMap);
 
     SEQ = new Sequentialization(threads.size());
@@ -496,6 +503,24 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     return rFunctionCallMap.buildOrThrow();
+  }
+
+  // TODO create method extracting the CVariableDeclaration from a CExpression
+  /** Extracts all global variable declarations from pCfa. */
+  private ImmutableSet<CVariableDeclaration> getGlobalVars(CFA pCfa) {
+    ImmutableSet.Builder<CVariableDeclaration> rGlobalVars = ImmutableSet.builder();
+    for (CFAEdge edge : pCfa.edges()) {
+      if (edge instanceof CDeclarationEdge declarationEdge) {
+        if (GAC.hasGlobalAccess(edge) && declarationEdge.getDeclaration().isGlobal()) {
+          AAstNode aAstNode = declarationEdge.getRawAST().orElseThrow();
+          // exclude FunctionDeclarations
+          if (aAstNode instanceof CVariableDeclaration cVariableDeclaration) {
+            rGlobalVars.add(cVariableDeclaration);
+          }
+        }
+      }
+    }
+    return rGlobalVars.build();
   }
 
   // TODO pthread_create calls in loops can be considered by loop unrolling
