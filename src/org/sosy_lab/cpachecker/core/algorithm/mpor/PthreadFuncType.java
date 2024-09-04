@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public enum FunctionType {
+public enum PthreadFuncType {
   // TODO decide which of these are actually relevant for us
   // TODO create barrier logic, see e.g. pthread-divine/barrier_2t.i
   BARRIER_INIT("pthread_barrier_init"),
@@ -31,24 +31,33 @@ public enum FunctionType {
 
   public final String name;
 
-  FunctionType(String pName) {
+  PthreadFuncType(String pName) {
     this.name = pName;
   }
 
   /**
    * Tries to extract the CFunctionCallStatement from pCfaEdge and checks if it is a call to
-   * pFunctionType.
+   * pFuncType.
    *
    * @param pCfaEdge the CFAEdge to be analyzed
-   * @param pFunctionType the desired FunctionType
-   * @return true if pCfaEdge is a call to pFunctionType
+   * @param pFuncType the desired FunctionType
+   * @return true if pCfaEdge is a call to pFuncType
    */
-  public static boolean isEdgeCallToFunctionType(CFAEdge pCfaEdge, FunctionType pFunctionType) {
+  public static boolean isEdgeCallToFuncType(CFAEdge pCfaEdge, PthreadFuncType pFuncType) {
     return CFAUtils.isCfaEdgeCFunctionCallStatement(pCfaEdge)
         && CFAUtils.getCFunctionCallStatementFromCfaEdge(pCfaEdge)
             .getFunctionCallExpression()
             .getFunctionNameExpression()
             .toASTString()
-            .equals(pFunctionType.name);
+            .equals(pFuncType.name);
+  }
+
+  public static boolean isEdgeCallToAnyFunc(CFAEdge pCfaEdge) {
+    for (PthreadFuncType functionType : PthreadFuncType.values()) {
+      if (isEdgeCallToFuncType(pCfaEdge, functionType)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

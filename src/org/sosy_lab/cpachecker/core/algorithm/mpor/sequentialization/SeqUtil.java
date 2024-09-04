@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.ArrayElement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Variable;
@@ -54,27 +55,35 @@ public class SeqUtil {
 
       boolean firstEdge = true;
       for (ThreadEdge threadEdge : pThreadNode.leavingEdges) {
+        CFAEdge cfaEdge = threadEdge.cfaEdge;
         AssignExpr updatePcsNextThread = createUpdatePcsNextThread(threadEdge.getSuccessor().pc);
-
-        switch (threadEdge.cfaEdge.getEdgeType()) {
+        switch (cfaEdge.getEdgeType()) {
           // use (else) if (condition) for assumes, no matter if induced by if, for, while...
           case AssumeEdge:
             // TODO here for test purposes, can be removed later
             assert allEdgesAssume(pThreadNode.leavingEdges);
-            IfExpr ifExpr = new IfExpr(new EdgeCodeExpr(threadEdge.cfaEdge));
+            IfExpr ifExpr = new IfExpr(new EdgeCodeExpr(cfaEdge));
             if (firstEdge) {
               firstEdge = false;
               IfCodeExpr ifCodeExpr = new IfCodeExpr(ifExpr, updatePcsNextThread);
               code.append(ifCodeExpr.createString());
             } else {
               ElseIfCodeExpr elseIfCodeExpr = new ElseIfCodeExpr(ifExpr, updatePcsNextThread);
-              code.append(elseIfCodeExpr.createString());
+              code.append(SeqSyntax.NEWLINE).append(elseIfCodeExpr.createString());
             }
+            break;
+
+          case FunctionCallEdge:
+            // TODO
+            //  extract the original parameter names, find all edges inside the called function,
+            //  replace the parameter names with the original names
+            code.append(cfaEdge.getCode())
+                .append(SeqSyntax.SPACE)
+                .append(updatePcsNextThread.createString());
             break;
 
           // TODO
           //  ReturnStatementEdge
-          //  FunctionCallEdge
           //  FunctionReturnEdge
           //  CallToReturnEdge
           //  BlankEdge
@@ -82,9 +91,15 @@ public class SeqUtil {
           default:
             // TODO here for test purposes, can be removed later
             assert pThreadNode.leavingEdges.size() == 1;
-            code.append(threadEdge.cfaEdge.getCode())
-                .append(SeqSyntax.SPACE)
-                .append(updatePcsNextThread.createString());
+            // TODO not crucial but also remove pthread_t and pthread_mutex_t variables
+            // do not include any pthread functions
+            if (PthreadFuncType.isEdgeCallToAnyFunc(cfaEdge)) {
+              code.append(updatePcsNextThread.createString());
+            } else {
+              code.append(cfaEdge.getCode())
+                  .append(SeqSyntax.SPACE)
+                  .append(updatePcsNextThread.createString());
+            }
             break;
         }
       }

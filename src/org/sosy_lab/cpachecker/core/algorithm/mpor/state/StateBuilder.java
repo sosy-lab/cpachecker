@@ -22,9 +22,9 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.FunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORCreate;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
@@ -265,7 +265,8 @@ public class StateBuilder {
           if (!lockingThread.equals(pThreadInMutex)) {
             CFANode otherNode = entry.getValue();
             for (CFAEdge cfaEdge : CFAUtils.leavingEdges(otherNode)) {
-              if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_MUTEX_LOCK)) {
+              if (PthreadFuncType.isEdgeCallToFuncType(
+                  cfaEdge, PthreadFuncType.PTHREAD_MUTEX_LOCK)) {
                 CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
                 if (pthreadMutexT.equals(mutex.pthreadMutexT)) {
 

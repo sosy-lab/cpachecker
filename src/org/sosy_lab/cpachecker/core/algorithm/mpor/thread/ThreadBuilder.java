@@ -19,9 +19,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.FunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORCreate;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
@@ -153,7 +153,7 @@ public class ThreadBuilder {
     if (!pCurrentNode.equals(pThreadExitNode)) {
       if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
         for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
-          if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_CREATE)) {
+          if (PthreadFuncType.isEdgeCallToFuncType(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
             pEdgesTrace.add(cfaEdge);
             CExpression pthreadT =
                 CFAUtils.getValueFromPointer(CFAUtils.getParameterAtIndex(cfaEdge, 0));
@@ -194,7 +194,7 @@ public class ThreadBuilder {
     if (!pCurrentNode.equals(pThreadExitNode)) {
       if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
         for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
-          if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_MUTEX_LOCK)) {
+          if (PthreadFuncType.isEdgeCallToFuncType(cfaEdge, PthreadFuncType.PTHREAD_MUTEX_LOCK)) {
             CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
             // the successor node of mutex_lock is the first inside the lock
             CFANode initialNode = cfaEdge.getSuccessor();
@@ -252,7 +252,7 @@ public class ThreadBuilder {
     if (MPORUtil.shouldVisit(pMutexNodes, pCurrentNode)) {
       for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
         pMutexEdges.add(cfaEdge);
-        if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_MUTEX_UNLOCK)) {
+        if (PthreadFuncType.isEdgeCallToFuncType(cfaEdge, PthreadFuncType.PTHREAD_MUTEX_UNLOCK)) {
           CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
           if (pthreadMutexT.equals(pPthreadMutexT)) {
             pMutexExitNodes.add(pCurrentNode);
@@ -291,7 +291,7 @@ public class ThreadBuilder {
     if (!pCurrentNode.equals(pThreadExitNode)) {
       if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
         for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
-          if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.PTHREAD_JOIN)) {
+          if (PthreadFuncType.isEdgeCallToFuncType(cfaEdge, PthreadFuncType.PTHREAD_JOIN)) {
             CExpression pthreadT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
             MPORJoin join = new MPORJoin(pthreadT, pCurrentNode, cfaEdge);
             pJoins.add(join);
@@ -325,7 +325,7 @@ public class ThreadBuilder {
     if (!pCurrentNode.equals(pThread.cfa.exitNode)) {
       if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
         for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
-          if (FunctionType.isEdgeCallToFunctionType(cfaEdge, FunctionType.BARRIER_INIT)) {
+          if (PthreadFuncType.isEdgeCallToFuncType(cfaEdge, PthreadFuncType.BARRIER_INIT)) {
             // TODO unsure how to handle this, SV benchmarks use their custom barrier objects and
             //  functions, e.g. pthread-divine/barrier_2t.i
             //  but the general approach is identifying MPORBarriers from barrier_init calls
