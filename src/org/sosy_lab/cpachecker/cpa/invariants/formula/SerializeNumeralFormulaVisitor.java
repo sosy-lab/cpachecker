@@ -1,16 +1,11 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2024 Sara Ruckstuhl <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.List;
+
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 
 public class SerializeNumeralFormulaVisitor
     implements NumeralFormulaVisitor<CompoundInterval, String> {
@@ -19,7 +14,9 @@ public class SerializeNumeralFormulaVisitor
   public String visit(Add<CompoundInterval> pAdd) {
     return "(("
         + pAdd.getSummand1().accept(this)
-        + ") +.add ("
+        + ") "
+        + Operation.ADD.getRepresentation()
+        + " ("
         + pAdd.getSummand2().accept(this)
         + "))";
   }
@@ -28,21 +25,29 @@ public class SerializeNumeralFormulaVisitor
   public String visit(BinaryAnd<CompoundInterval> pAnd) {
     return "(("
         + pAnd.getOperand1().accept(this)
-        + ") &.binaryAnd ("
+        + ") "
+        + Operation.BINARY_AND.getRepresentation()
+        + " ("
         + pAnd.getOperand2().accept(this)
         + "))";
   }
 
   @Override
   public String visit(BinaryNot<CompoundInterval> pNot) {
-    return "(~.binaryNot(" + pNot.getFlipped().accept(this) + "))";
+    return "("
+        + Operation.BINARY_NOT.getRepresentation()
+        + "("
+        + pNot.getFlipped().accept(this)
+        + "))";
   }
 
   @Override
   public String visit(BinaryOr<CompoundInterval> pOr) {
     return "(("
         + pOr.getOperand1().accept(this)
-        + ") |.binaryOr ("
+        + ") "
+        + Operation.BINARY_OR.getRepresentation()
+        + " ("
         + pOr.getOperand2().accept(this)
         + "))";
   }
@@ -51,7 +56,9 @@ public class SerializeNumeralFormulaVisitor
   public String visit(BinaryXor<CompoundInterval> pXor) {
     return "(("
         + pXor.getOperand1().accept(this)
-        + ") ^.binaryXor ("
+        + ") "
+        + Operation.BINARY_XOR.getRepresentation()
+        + " ("
         + pXor.getOperand2().accept(this)
         + "))";
   }
@@ -72,28 +79,36 @@ public class SerializeNumeralFormulaVisitor
         output.append(",");
       }
     }
-    return output.toString() + "-typeInfo>" + pConstant.getTypeInfo();
+    return output.toString() + ".ti" + typeInfoToString(pConstant.getTypeInfo());
   }
 
   @Override
   public String visit(Divide<CompoundInterval> pDivide) {
     return "(("
         + pDivide.getNumerator().accept(this)
-        + ") /.divide ("
+        + ") "
+        + Operation.DIVIDE.getRepresentation()
+        + " ("
         + pDivide.getDenominator().accept(this)
         + "))";
   }
 
   @Override
   public String visit(Exclusion<CompoundInterval> pExclusion) {
-    return "(" + " \\.exclusion (" + pExclusion.getExcluded().accept(this) + "))";
+    return "("
+        + Operation.EXCLUSION.getRepresentation()
+        + " ("
+        + pExclusion.getExcluded().accept(this)
+        + "))";
   }
 
   @Override
   public String visit(Modulo<CompoundInterval> pModulo) {
     return "(("
         + pModulo.getNumerator().accept(this)
-        + ") %.modulo ("
+        + ") "
+        + Operation.MODULO.getRepresentation()
+        + " ("
         + pModulo.getDenominator().accept(this)
         + "))";
   }
@@ -102,7 +117,9 @@ public class SerializeNumeralFormulaVisitor
   public String visit(Multiply<CompoundInterval> pMultiply) {
     return "(("
         + pMultiply.getFactor1().accept(this)
-        + ") *.multiply ("
+        + ") "
+        + Operation.MULTIPLY.getRepresentation()
+        + " ("
         + pMultiply.getFactor2().accept(this)
         + "))";
   }
@@ -111,7 +128,9 @@ public class SerializeNumeralFormulaVisitor
   public String visit(ShiftLeft<CompoundInterval> pShiftLeft) {
     return "(("
         + pShiftLeft.getShifted().accept(this)
-        + ") <<.shiftLeft ("
+        + ") "
+        + Operation.SHIFT_LEFT.getRepresentation()
+        + " ("
         + pShiftLeft.getShiftDistance().accept(this)
         + "))";
   }
@@ -120,7 +139,9 @@ public class SerializeNumeralFormulaVisitor
   public String visit(ShiftRight<CompoundInterval> pShiftRight) {
     return "(("
         + pShiftRight.getShifted().accept(this)
-        + ") >>.shiftRight ("
+        + ") "
+        + Operation.SHIFT_RIGHT.getRepresentation()
+        + " ("
         + pShiftRight.getShiftDistance().accept(this)
         + "))";
   }
@@ -129,7 +150,9 @@ public class SerializeNumeralFormulaVisitor
   public String visit(Union<CompoundInterval> pUnion) {
     return "(("
         + pUnion.getOperand1().accept(this)
-        + ") U.union ("
+        + ") "
+        + Operation.UNION.getRepresentation()
+        + " ("
         + pUnion.getOperand2().accept(this)
         + "))";
   }
@@ -138,8 +161,8 @@ public class SerializeNumeralFormulaVisitor
   public String visit(Variable<CompoundInterval> pVariable) {
     return "("
         + pVariable.getMemoryLocation().getQualifiedName()
-        + "-typeInfo>"
-        + pVariable.getTypeInfo()
+        + ".ti"
+        + typeInfoToString(pVariable.getTypeInfo())
         + ")";
   }
 
@@ -147,15 +170,33 @@ public class SerializeNumeralFormulaVisitor
   public String visit(IfThenElse<CompoundInterval> pIfThenElse) {
     return "(("
         + pIfThenElse.getCondition().accept(new SerializeBooleanFormulaVisitor(this))
-        + ") ?.if ("
+        + ") "
+        + Operation.IF.getRepresentation()
+        + " ("
         + pIfThenElse.getPositiveCase().accept(this)
-        + ") :.else ("
+        + ") "
+        + Operation.ELSE.getRepresentation()
+        + " ("
         + pIfThenElse.getNegativeCase().accept(this)
         + "))";
   }
 
   @Override
   public String visit(Cast<CompoundInterval> pCast) {
-    return "(.cast -typeInfo>" + pCast.getTypeInfo() + "(" + pCast.getCasted().accept(this) + "))";
+    return "("
+        + Operation.CAST.getRepresentation()
+        + ".ti"
+        + typeInfoToString(pCast.getTypeInfo())
+        + "("
+        + pCast.getCasted().accept(this)
+        + "))";
+  }
+
+  private String typeInfoToString(TypeInfo typeInfo) {
+    if (typeInfo instanceof BitVectorInfo) {
+      return ((BitVectorInfo) typeInfo).getSize() + "," + ((BitVectorInfo) typeInfo).isSigned();
+    } else {
+      return typeInfo.abbrev();
+    }
   }
 }

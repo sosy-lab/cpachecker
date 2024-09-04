@@ -1,10 +1,3 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2024 Sara Ruckstuhl <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import com.google.common.base.Splitter;
@@ -13,6 +6,7 @@ import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorInterval;
@@ -52,20 +46,26 @@ public class StringToBooleanFormulaParser {
         brackets.pop();
       } else if (brackets.isEmpty()) {
         String remaining = formulaString.substring(i).trim();
-        if (remaining.startsWith("&&.logicalAnd")) {
+
+        if (remaining.startsWith(Operation.LOGICAL_AND.getRepresentation())) {
           return LogicalAnd.of(
               parseBooleanFormula(formulaString.substring(0, i).trim()),
-              parseBooleanFormula(remaining.substring(13).trim()));
-        } else if (remaining.startsWith("!.logicalNot")) {
-          return LogicalNot.of(parseBooleanFormula(remaining.substring(12).trim()));
-        } else if (remaining.startsWith("=.equal")) {
+              parseBooleanFormula(
+                  remaining.substring(Operation.LOGICAL_AND.getRepresentation().length()).trim()));
+        } else if (remaining.startsWith(Operation.LOGICAL_NOT.getRepresentation())) {
+          return LogicalNot.of(
+              parseBooleanFormula(
+                  remaining.substring(Operation.LOGICAL_NOT.getRepresentation().length()).trim()));
+        } else if (remaining.startsWith(Operation.EQUAL.getRepresentation())) {
           return Equal.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(7).trim()));
-        } else if (remaining.startsWith("<.lessThan")) {
+              parseNumeralFormula(
+                  remaining.substring(Operation.EQUAL.getRepresentation().length()).trim()));
+        } else if (remaining.startsWith(Operation.LESS_THAN.getRepresentation())) {
           return LessThan.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(10).trim()));
+              parseNumeralFormula(
+                  remaining.substring(Operation.LESS_THAN.getRepresentation().length()).trim()));
         }
       }
     }
@@ -75,17 +75,17 @@ public class StringToBooleanFormulaParser {
   private static NumeralFormula<CompoundInterval> parseNumeralFormula(String formulaString) {
     formulaString = removeEnclosingParentheses(formulaString);
 
-    if (formulaString.startsWith(".cast")) {
+    if (formulaString.startsWith(Operation.CAST.getRepresentation())) {
       return parseCast(formulaString);
     }
-    if (formulaString.contains("?.if")) {
+    if (formulaString.contains(Operation.IF.getRepresentation())) {
       return parseIfThenElse(formulaString);
     }
     return parseNumeralOperators(formulaString);
   }
 
   private static NumeralFormula<CompoundInterval> parseCast(String formulaString) {
-    int typeInfoStartIndex = formulaString.indexOf("-typeInfo>") + 10;
+    int typeInfoStartIndex = formulaString.indexOf(".ti") + 3;
     int typeInfoEndIndex = formulaString.indexOf('(', typeInfoStartIndex);
     String typeInfoString = formulaString.substring(typeInfoStartIndex, typeInfoEndIndex).trim();
     TypeInfo typeInfo = parseTypeInfo(typeInfoString);
@@ -96,11 +96,15 @@ public class StringToBooleanFormulaParser {
   }
 
   private static NumeralFormula<CompoundInterval> parseIfThenElse(String formulaString) {
-    int ifIndex = formulaString.indexOf("?.if");
-    int elseIndex = formulaString.indexOf(":.else", ifIndex);
+    int ifIndex = formulaString.indexOf(Operation.IF.getRepresentation());
+    int elseIndex = formulaString.indexOf(Operation.ELSE.getRepresentation(), ifIndex);
     String condition = formulaString.substring(0, ifIndex).trim();
-    String ifCase = formulaString.substring(ifIndex + 5, elseIndex).trim();
-    String elseCase = formulaString.substring(elseIndex + 7).trim();
+    String ifCase =
+        formulaString
+            .substring(ifIndex + Operation.IF.getRepresentation().length(), elseIndex)
+            .trim();
+    String elseCase =
+        formulaString.substring(elseIndex + Operation.ELSE.getRepresentation().length()).trim();
 
     return IfThenElse.of(
         parseBooleanFormula(condition), parseNumeralFormula(ifCase), parseNumeralFormula(elseCase));
@@ -121,51 +125,65 @@ public class StringToBooleanFormulaParser {
         brackets.pop();
       } else if (brackets.isEmpty()) {
         String remaining = formulaString.substring(i).trim();
-        if (remaining.startsWith("+.add")) {
+        if (remaining.startsWith(Operation.ADD.getRepresentation())) {
           return Add.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(6).trim()));
-        } else if (remaining.startsWith("*.multiply")) {
+              parseNumeralFormula(
+                  remaining.substring(Operation.ADD.getRepresentation().length()).trim()));
+        } else if (remaining.startsWith(Operation.MULTIPLY.getRepresentation())) {
           return Multiply.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(10).trim()));
-        } else if (remaining.startsWith("/.divide")) {
+              parseNumeralFormula(
+                  remaining.substring(Operation.MULTIPLY.getRepresentation().length()).trim()));
+        } else if (remaining.startsWith(Operation.DIVIDE.getRepresentation())) {
           return Divide.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(9).trim()));
-        } else if (remaining.startsWith("%.modulo")) {
+              parseNumeralFormula(
+                  remaining.substring(Operation.DIVIDE.getRepresentation().length()).trim()));
+        } else if (remaining.startsWith(Operation.MODULO.getRepresentation())) {
           return Modulo.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(9).trim()));
-        } else if (remaining.startsWith("&.binaryAnd")) {
+              parseNumeralFormula(
+                  remaining.substring(Operation.MODULO.getRepresentation().length()).trim()));
+        } else if (remaining.startsWith(Operation.BINARY_AND.getRepresentation())) {
           return BinaryAnd.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(11).trim()));
-        } else if (remaining.startsWith("|.binaryOr")) {
+              parseNumeralFormula(
+                  remaining.substring(Operation.BINARY_AND.getRepresentation().length()).trim()));
+        } else if (remaining.startsWith(Operation.BINARY_OR.getRepresentation())) {
           return BinaryOr.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(10).trim()));
-        } else if (remaining.startsWith("^.binaryXor")) {
+              parseNumeralFormula(
+                  remaining.substring(Operation.BINARY_OR.getRepresentation().length()).trim()));
+        } else if (remaining.startsWith(Operation.BINARY_XOR.getRepresentation())) {
           return BinaryXor.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(11).trim()));
-        } else if (remaining.startsWith("<<.shiftLeft")) {
+              parseNumeralFormula(
+                  remaining.substring(Operation.BINARY_XOR.getRepresentation().length()).trim()));
+        } else if (remaining.startsWith(Operation.SHIFT_LEFT.getRepresentation())) {
           return ShiftLeft.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(12).trim()));
-        } else if (remaining.startsWith(">>.shiftRight")) {
+              parseNumeralFormula(
+                  remaining.substring(Operation.SHIFT_LEFT.getRepresentation().length()).trim()));
+        } else if (remaining.startsWith(Operation.SHIFT_RIGHT.getRepresentation())) {
           return ShiftRight.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(13).trim()));
-        } else if (remaining.startsWith("\\.exclusion")) {
-          return Exclusion.of(parseNumeralFormula(remaining.substring(12).trim()));
+              parseNumeralFormula(
+                  remaining.substring(Operation.SHIFT_RIGHT.getRepresentation().length()).trim()));
+        } else if (remaining.startsWith(Operation.EXCLUSION.getRepresentation())) {
+          return Exclusion.of(
+              parseNumeralFormula(
+                  remaining.substring(Operation.EXCLUSION.getRepresentation().length()).trim()));
 
-        } else if (remaining.startsWith("U.union")) {
+        } else if (remaining.startsWith(Operation.UNION.getRepresentation())) {
           return Union.of(
               parseNumeralFormula(formulaString.substring(0, i).trim()),
-              parseNumeralFormula(remaining.substring(7).trim()));
-        } else if (remaining.startsWith("~.binaryNot")) {
-          return BinaryNot.of(parseNumeralFormula(remaining.substring(11).trim()));
+              parseNumeralFormula(
+                  remaining.substring(Operation.UNION.getRepresentation().length()).trim()));
+        } else if (remaining.startsWith(Operation.BINARY_NOT.getRepresentation())) {
+          return BinaryNot.of(
+              parseNumeralFormula(
+                  remaining.substring(Operation.BINARY_NOT.getRepresentation().length()).trim()));
         }
       }
     }
@@ -174,25 +192,24 @@ public class StringToBooleanFormulaParser {
 
   private static NumeralFormula<CompoundInterval> parseNumeralConstantOrVariable(
       String formulaString) {
-    if (formulaString.matches(
-        "(\\[(-?\\d+|-inf),(\\d+|inf)\\],?)+-typeInfo>Size: \\d+; Signed: (true|false)")) {
+    if (formulaString.matches("(\\[(-?\\d+|-inf),(\\d+|inf)\\],?)+.ti\\d+,\\w+")) {
       return parseConstant(formulaString);
     }
     formulaString = removeEnclosingParentheses(formulaString);
-    int separatorIndex = formulaString.lastIndexOf("-typeInfo>");
+    int separatorIndex = formulaString.lastIndexOf(".ti");
     if (separatorIndex == -1) {
       throw new IllegalArgumentException("Invalid type info in formula: " + formulaString);
     }
 
     String variableString = formulaString.substring(0, separatorIndex);
-    String typeInfoString = formulaString.substring(separatorIndex + "-typeInfo>".length()).trim();
+    String typeInfoString = formulaString.substring(separatorIndex + ".ti".length()).trim();
     TypeInfo typeInfo = parseTypeInfo(typeInfoString);
 
     return Variable.of(typeInfo, MemoryLocation.fromQualifiedName(variableString));
   }
 
   private static NumeralFormula<CompoundInterval> parseConstant(String input) {
-    List<String> parts = Splitter.on("-typeInfo>").splitToList(input);
+    List<String> parts = Splitter.on(".ti").splitToList(input);
     String intervalsString = parts.get(0).trim();
     TypeInfo typeInfo = parseTypeInfo(parts.get(1).trim());
     List<BitVectorInterval> bitVectorIntervals = new ArrayList<>();
@@ -215,46 +232,21 @@ public class StringToBooleanFormulaParser {
   }
 
   private static TypeInfo parseTypeInfo(String typeInfo) {
-    int size = 32;
-    boolean signed = true;
-
-    if (typeInfo != null && !typeInfo.isEmpty()) {
-      List<String> parts = Splitter.on(';').trimResults().splitToList(typeInfo);
-      for (String part : parts) {
-        List<String> keyValue = Splitter.on(':').trimResults().splitToList(part);
-        if (keyValue.size() != 2) {
-          if (keyValue.size() == 1) {
-            switch (keyValue.get(0).trim()) {
-              case "FLOAT":
-                return FloatingPointTypeInfo.FLOAT;
-              case "DOUBLE":
-                return FloatingPointTypeInfo.DOUBLE;
-              default:
-                throw new IllegalArgumentException(
-                    "Unrecognized or malformed type information: " + typeInfo);
-            }
-          }
-          throw new IllegalArgumentException(
-              "Invalid key-value pair: " + part + " TypeInfo: " + typeInfo);
-        }
-
-        String key = keyValue.get(0).trim();
-        String value = keyValue.get(1).trim();
-
-        switch (key) {
-          case "Size":
-            size = Integer.parseInt(value);
-            break;
-          case "Signed":
-            signed = Boolean.parseBoolean(value);
-            break;
-          default:
-            throw new IllegalArgumentException("Unexpected key in type information: " + key);
-        }
+    if (typeInfo.contains(",")) {
+      List<String> parts = Splitter.on(',').splitToList(typeInfo);
+      int size = Integer.parseInt(parts.get(0).trim());
+      boolean signed = Boolean.parseBoolean(parts.get(1).trim());
+      return BitVectorInfo.from(size, signed);
+    } else {
+      switch (typeInfo) {
+        case "float":
+          return FloatingPointTypeInfo.FLOAT;
+        case "double":
+          return FloatingPointTypeInfo.DOUBLE;
+        default:
+          throw new IllegalArgumentException("Unknown TypeInfo abbreviation: " + typeInfo);
       }
     }
-
-    return BitVectorInfo.from(size, signed);
   }
 
   private static String removeEnclosingParentheses(String formulaString) {

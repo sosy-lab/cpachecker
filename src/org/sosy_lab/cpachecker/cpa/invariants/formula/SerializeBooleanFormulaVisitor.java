@@ -1,11 +1,3 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2024 Sara Ruckstuhl <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
@@ -23,7 +15,9 @@ public class SerializeBooleanFormulaVisitor
   public String visit(Equal<CompoundInterval> pEqual) {
     return "(("
         + pEqual.getOperand1().accept(numeralVisitor)
-        + ") =.equal ("
+        + ") "
+        + Operation.EQUAL.getRepresentation()
+        + " ("
         + pEqual.getOperand2().accept(numeralVisitor)
         + "))";
   }
@@ -32,7 +26,9 @@ public class SerializeBooleanFormulaVisitor
   public String visit(LessThan<CompoundInterval> pLessThan) {
     return "(("
         + pLessThan.getOperand1().accept(numeralVisitor)
-        + ") <.lessThan ("
+        + ") "
+        + Operation.LESS_THAN.getRepresentation()
+        + " ("
         + pLessThan.getOperand2().accept(numeralVisitor)
         + "))";
   }
@@ -41,14 +37,20 @@ public class SerializeBooleanFormulaVisitor
   public String visit(LogicalAnd<CompoundInterval> pAnd) {
     return "(("
         + pAnd.getOperand1().accept(this)
-        + ") &&.logicalAnd ("
+        + ") "
+        + Operation.LOGICAL_AND.getRepresentation()
+        + " ("
         + pAnd.getOperand2().accept(this)
         + "))";
   }
 
   @Override
   public String visit(LogicalNot<CompoundInterval> pNot) {
-    return "(!.logicalNot(" + pNot.getNegated().accept(this) + "))";
+    return "("
+        + Operation.LOGICAL_NOT.getRepresentation()
+        + "("
+        + pNot.getNegated().accept(this)
+        + "))";
   }
 
   @Override

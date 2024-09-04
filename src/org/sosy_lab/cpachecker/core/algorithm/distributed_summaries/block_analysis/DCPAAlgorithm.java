@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -133,7 +134,6 @@ public class DCPAAlgorithm {
   }
 
   public Collection<BlockSummaryMessage> reportUnreachableBlockEnd() {
-    // if sent once, it will never change (precondition is always the most general information)
     if (alreadyReportedInfeasibility) {
       return ImmutableSet.of();
     }
@@ -152,11 +152,26 @@ public class DCPAAlgorithm {
     ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
     if (blockEnds.size() == 1) {
       ARGState blockEndState = Iterables.getOnlyElement(blockEnds);
+      PredicateAbstractState predicateState =
+          AbstractStates.extractStateByType(blockEndState, PredicateAbstractState.class);
+      ARGState newBlockEndState = blockEndState;
+
+      // remove InvariantsState if predicateState is an abstraction state
+      if (predicateState.isAbstractionState()) {
+        List<AbstractState> wrappedStates =
+            new ArrayList<>(
+                ((CompositeState) blockEndState.getWrappedStates().get(0)).getWrappedStates());
+        wrappedStates.removeIf(state -> state instanceof InvariantsState);
+        newBlockEndState = new ARGState(new CompositeState(wrappedStates), null);
+      }
+
       if (dcpa.isTop(blockEndState) && !allowTop) {
         return ImmutableSet.of();
       }
+
       BlockSummaryMessagePayload serialized =
-          dcpa.serialize(blockEndState, reachedSet.getPrecision(blockEndState));
+          dcpa.serialize(newBlockEndState, reachedSet.getPrecision(blockEndState));
+
       messages.add(
           BlockSummaryMessage.newBlockPostCondition(
               block.getId(),
@@ -173,11 +188,13 @@ public class DCPAAlgorithm {
     SSAMapBuilder newMap = SSAMap.emptySSAMap().builder();
     BooleanFormulaManagerView bmgr =
         predicateCPA.getSolver().getFormulaManager().getBooleanFormulaManager();
-    BooleanFormula formula = bmgr.makeFalse();
+    BooleanFormula predicateFormula = bmgr.makeFalse();
+
     for (PredicateAbstractState abstractState :
         FluentIterable.from(blockEnds)
             .transform(b -> AbstractStates.extractStateByType(b, PredicateAbstractState.class))) {
-      formula = bmgr.or(formula, abstractState.getAbstractionFormula().asFormula());
+      predicateFormula =
+          bmgr.or(predicateFormula, abstractState.getAbstractionFormula().asFormula());
       SSAMap ssa = abstractState.getPathFormula().getSsa();
       for (String variable : ssa.allVariables()) {
         if (!newMap.build().containsVariable(variable)) {
@@ -185,21 +202,25 @@ public class DCPAAlgorithm {
         }
       }
     }
-    formula =
+    predicateFormula =
         predicateCPA
             .getSolver()
             .getFormulaManager()
             .simplifyBooleanFormula(
-                predicateCPA.getSolver().getFormulaManager().instantiate(formula, newMap.build()));
+                predicateCPA
+                    .getSolver()
+                    .getFormulaManager()
+                    .instantiate(predicateFormula, newMap.build()));
     PredicateAbstractState state =
         PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
             predicateCPA
                 .getPathFormulaManager()
                 .makeEmptyPathFormulaWithContext(
                     newMap.build(), PointerTargetSet.emptyPointerTargetSet())
-                .withFormula(formula),
+                .withFormula(predicateFormula),
             Objects.requireNonNull(
                 AbstractStates.extractStateByType(makeStartState(), PredicateAbstractState.class)));
+
     List<AbstractState> curr = new ArrayList<>();
     for (AbstractState wrappedState :
         Objects.requireNonNull(AbstractStates.extractStateByType(start, CompositeState.class))
@@ -345,7 +366,7 @@ public class DCPAAlgorithm {
     assert predecessors.contains(pReceived.getBlockId())
         : "Proceed failed to recognize that this message is not meant for this block.";
     // TODO: this should somehow be checked by ProceedBlockStateOperator,
-    //  but it has no access to this attribute.
+    // but it has no access to this attribute.
     boolean repeat = false;
     if (pReceived.isReachable()) {
       boolean receivedMessageHasNewInformation = hasNewInformation(pReceived);

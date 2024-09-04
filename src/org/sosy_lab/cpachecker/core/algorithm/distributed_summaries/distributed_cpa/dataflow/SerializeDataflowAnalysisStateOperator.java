@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow;
 
+import com.google.common.base.Joiner;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map.Entry;
-import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.SerializeCTypeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -34,15 +36,19 @@ public class SerializeDataflowAnalysisStateOperator implements SerializeOperator
         new SerializeBooleanFormulaVisitor(numeralFormulaVisitor);
     String abstractionStrategy = state.getAbstractionState().getAbstractionStrategyName();
     String booleanFormulaString = booleanFormula.accept(booleanFormulaVisitor);
-    StringJoiner stringJoiner = new StringJoiner(" && ");
     SerializeCTypeVisitor cTypeVisitor = new SerializeCTypeVisitor();
+    List<String> serializedVariableTypeEntries = new ArrayList<>();
 
     for (Entry<MemoryLocation, CType> entry : state.getVariableTypes().entrySet()) {
       String key = entry.getKey().getExtendedQualifiedName();
+      if (entry.getValue().isIncomplete()) {
+        continue;
+      }
       String cType = entry.getValue().accept(cTypeVisitor);
-      stringJoiner.add(key + "-typeInfo>" + cType);
+      serializedVariableTypeEntries.add(key + ".ti" + cType);
     }
-    String serializedVariableTypes = stringJoiner.toString();
+
+    String serializedVariableTypes = Joiner.on(" && ").join(serializedVariableTypeEntries);
 
     BlockSummaryMessagePayload.Builder payload =
         BlockSummaryMessagePayload.builder()

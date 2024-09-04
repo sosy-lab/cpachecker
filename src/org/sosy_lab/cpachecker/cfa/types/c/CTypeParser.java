@@ -13,7 +13,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 
-public class StringToCTypeParser {
+public class CTypeParser {
 
   public static CType parse(String input) {
     if (input.startsWith("ArrayType(")) {
@@ -159,20 +159,26 @@ public class StringToCTypeParser {
     String origName = parts.get(4);
 
     List<CCompositeType.CCompositeTypeMemberDeclaration> members = null;
-
-    if (parts.size() > 5 && !"null".equals(parts.get(5))) {
+    if (parts.size() > 5 && !parts.get(5).equals("null")) {
       members = new ArrayList<>();
       String membersContent = parts.get(5).substring(1, parts.get(5).length() - 1);
-      // brackets
       List<String> memberStrings = splitIgnoringNestedCommas(membersContent);
       for (String memberString : memberStrings) {
-        List<String> memberParts = Splitter.on(":").trimResults().splitToList(memberString);
+        List<String> memberParts = new ArrayList<>();
+        int lastColonIndex = memberString.lastIndexOf(':');
+
+        if (lastColonIndex != -1) {
+          memberParts.add(memberString.substring(0, lastColonIndex).trim());
+          memberParts.add(memberString.substring(lastColonIndex + 1).trim());
+        } else {
+          throw new IllegalArgumentException("No colon found in member string: " + memberString);
+        }
         CType memberType = parse(memberParts.get(0));
         String memberName = memberParts.get(1);
+
         members.add(new CCompositeType.CCompositeTypeMemberDeclaration(memberType, memberName));
       }
     }
-
     return new CCompositeType(isConst, isVolatile, kind, members, name, origName);
   }
 
