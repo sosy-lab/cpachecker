@@ -29,7 +29,7 @@ public class ThreadCFA {
   /** The (sub)set of CFANodes from the original input CFA that this thread can reach. */
   public final ImmutableSet<ThreadNode> threadNodes;
 
-  public ImmutableSet<ThreadEdge> threadEdges = null;
+  public final ImmutableSet<ThreadEdge> threadEdges;
 
   public final ImmutableSet<MPORCreate> creates;
 

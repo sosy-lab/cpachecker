@@ -22,6 +22,8 @@ public class SeqToken {
 
   public static final String CASE = "case";
 
+  public static final String ELSE = "else";
+
   public static final String GOTO = "goto";
 
   public static final String IF = "if";
@@ -35,6 +37,8 @@ public class SeqToken {
   public static final String NON_DET = "nondet";
 
   public static final String NUM_THREADS = "numThreads";
+
+  public static final String PCS = "pcs";
 
   public static final String RETURN = "return";
 

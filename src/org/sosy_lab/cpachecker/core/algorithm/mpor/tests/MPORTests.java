@@ -15,6 +15,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.DirectedGraph;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -105,5 +109,23 @@ public class MPORTests {
     directedGraphC.addEdge(2, 3);
     directedGraphC.addEdge(2, 4);
     assert !directedGraphC.containsCycle();
+  }
+
+  public static String generateProgram(ImmutableSet<MPORThread> pThreads) {
+    StringBuilder rProgram = new StringBuilder();
+    for (MPORThread thread : pThreads) {
+      rProgram.append(SeqSyntax.NEWLINE);
+      rProgram.append(SeqSyntax.NEWLINE);
+      rProgram.append(SeqSyntax.NEWLINE);
+      rProgram.append(SeqSyntax.NEWLINE);
+      rProgram.append(SeqSyntax.NEWLINE);
+      rProgram.append("=============== thread ").append(thread.id).append(" ===============");
+      rProgram.append(SeqSyntax.NEWLINE);
+      for (ThreadNode threadNode : thread.cfa.threadNodes) {
+        rProgram.append(SeqUtil.createCodeFromThreadNode(threadNode));
+        rProgram.append(SeqSyntax.NEWLINE);
+      }
+    }
+    return rProgram.toString();
   }
 }
