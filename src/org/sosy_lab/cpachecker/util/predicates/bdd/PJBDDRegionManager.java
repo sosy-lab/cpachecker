@@ -243,7 +243,7 @@ public class PJBDDRegionManager implements RegionManager {
     @Option(
         secure = true,
         description = "Type of BDD used in PJBDD.",
-        values = {"BDD, ChainedBDD"},
+        values = {"BDD", "ChainedBDD"},
         toUppercase = true)
     private String useBDDType = "BDD";
 
