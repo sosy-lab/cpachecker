@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -242,6 +243,15 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     }
 
     AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+    if (astNode instanceof CFunctionCallAssignmentStatement) {
+      decomposeFunction(pCFAEdge,
+          pTransition,
+          pWaitlist,
+          pDecomposedMap,
+          pMatchedVariables,
+          (CFunctionCallAssignmentStatement) astNode);
+      return true;
+    }
     CExpression expression = LoopInfoUtils.extractExpression(astNode);
     CExpression operand1;
     CExpression operand2;
@@ -284,6 +294,35 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     pWaitlist.add(Pair.of(node1, pTransition.getSource()));
     pWaitlist.add(Pair.of(node2, pTransition.getSource()));
     return true;
+  }
+
+  /**
+   * Decomposes a CFAEdge with function call.
+   */
+  private void decomposeFunction(CFAEdge pCFAEdge,
+                                 InstrumentationTransition pTransition,
+                                 List<Pair<CFANode, InstrumentationState>> pWaitlist,
+                                 Map<CFANode, String> pDecomposedMap,
+                                 ImmutableList<String> pMatchedVariables,
+                                 CFunctionCallAssignmentStatement pCallAssignmentStatement) {
+    String condition = pMatchedVariables.size() != 3 ? "true" : pMatchedVariables.get(2);
+    List<CExpression> parameters = pCallAssignmentStatement
+        .getFunctionCallExpression()
+        .getParameterExpressions();
+
+    for (CExpression parameter : parameters.subList(1, parameters.size())) {
+      CFANode node1 = CFANode.newDummyCFANode();
+
+      node1.addLeavingEdge(
+          new CStatementEdge(
+              parameter.toASTString(),
+              new CExpressionStatement(pCFAEdge.getFileLocation(), parameter),
+              pCFAEdge.getFileLocation(),
+              node1,
+              pCFAEdge.getSuccessor()));
+      pDecomposedMap.put(node1, condition);
+      pWaitlist.add(Pair.of(node1, pTransition.getSource()));
+    }
   }
 
   /**
