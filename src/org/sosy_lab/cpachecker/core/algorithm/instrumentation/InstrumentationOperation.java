@@ -27,9 +27,9 @@ public class InstrumentationOperation {
   public String insertVariablesInsideOperation(ImmutableList<String> pVariables) {
     String resultingOperation = operation;
     for (int i = 0; i < pVariables.size(); i++) {
-      resultingOperation = resultingOperation.replace("x" + (i + 1), pVariables.get(i));
+      resultingOperation = resultingOperation.replace("x_instr_" + (i + 1), pVariables.get(i));
     }
-    if (resultingOperation.contains("x" + (pVariables.size() + 1))) {
+    if (resultingOperation.contains("x_instr_" + (pVariables.size() + 1))) {
       return "";
     }
     return resultingOperation;
