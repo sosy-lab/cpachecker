@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.Theory;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -108,7 +109,9 @@ public class RemainderBitvectorTest {
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       prover.push(bvfmgr.equal(var, pFormula));
       Preconditions.checkArgument(!prover.isUnsat());
-      return prover.getModel().evaluate(var).intValue();
+      try (Model model = prover.getModel()) {
+        return model.evaluate(var).intValue();
+      }
     } catch (InterruptedException e) {
       return 0;
     } catch (SolverException e) {

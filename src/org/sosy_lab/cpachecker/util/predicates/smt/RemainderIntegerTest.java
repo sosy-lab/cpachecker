@@ -23,6 +23,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.Theory;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
+import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
@@ -109,7 +110,9 @@ public class RemainderIntegerTest {
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       prover.push(ifmgr.equal(var, pFormula));
       Preconditions.checkArgument(!prover.isUnsat());
-      return prover.getModel().evaluate(var).intValueExact();
+      try (Model model = prover.getModel()) {
+        return model.evaluate(var).intValue();
+      }
     } catch (InterruptedException e) {
       return 0;
     } catch (SolverException e) {
