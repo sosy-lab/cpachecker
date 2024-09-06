@@ -697,8 +697,9 @@ bdd.pjbdd.tableParallelism = 10000
 # default
 bdd.pjbdd.threads = Runtime.getRuntime().availableProcessors()
 
-# Use bdd chaining.
-bdd.pjbdd.useChainedBDD = false
+# Type of BDD used in PJBDD.
+bdd.pjbdd.useBDDType = "BDD"
+  allowed values: [BDD, ChainedBDD]
 
 # Use internal a int based bdd representation.
 bdd.pjbdd.useInts = false
