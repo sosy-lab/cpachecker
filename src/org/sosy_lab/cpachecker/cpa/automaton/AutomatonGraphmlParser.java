@@ -56,7 +56,6 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
-import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -97,6 +96,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
+import org.sosy_lab.cpachecker.util.XMLUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
@@ -1113,30 +1113,10 @@ public class AutomatonGraphmlParser {
       throws WitnessParseException, IOException {
 
     // Parse the XML document ----
-    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilderFactory docFactory;
 
-    // protect against XML eXternal Entity injection (XXE) following the recommendations on
-    // https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
-    // see https://xerces.apache.org/xerces-j/features.html
-    // and http://xerces.apache.org/xerces2-j/features.html for features
     try {
-      // disable DTD, only works for Xerces2
-      docFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-
-      // ignore the external DTD completely
-      docFactory.setFeature(
-          "http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-      // Do not include external entitites
-      docFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-      // Do not include external parameter entities or the external DTD subset.
-      docFactory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-
-      // Add these as per Timothy Morgan's 2014 paper: "XML Schema, DTD, and Entity Attacks"
-      docFactory.setXIncludeAware(false);
-      docFactory.setExpandEntityReferences(false);
-      // ensure that central mechanism for safeguarding XML processing
-      // "Feature for Secure Processing (FSP)" is enabled
-      docFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+      docFactory = XMLUtils.getSecureDocumentBuilderFactory(true);
     } catch (ParserConfigurationException e1) {
       throw new WitnessParseException(e1);
     }
@@ -2148,28 +2128,7 @@ public class AutomatonGraphmlParser {
   public static boolean isGraphmlAutomaton(Path pPath) throws IOException {
     SAXParser saxParser;
     try {
-      SAXParserFactory saxFactory = SAXParserFactory.newInstance();
-      // protect against XML eXternal Entity injection (XXE) following the recommendations on
-      // https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
-      // see https://xerces.apache.org/xerces-j/features.html
-      // and http://xerces.apache.org/xerces2-j/features.html for features
-
-      // disable DTD, only works for Xerces2
-      saxFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-
-      // ignore the external DTD completely
-      saxFactory.setFeature(
-          "http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-      // Do not include external entitites
-      saxFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-      // Do not include external parameter entities or the external DTD subset.
-      saxFactory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-
-      // Add these as per Timothy Morgan's 2014 paper: "XML Schema, DTD, and Entity Attacks"
-      saxFactory.setXIncludeAware(false);
-      // ensure that central mechanism for safeguarding XML processing
-      // "Feature for Secure Processing (FSP)" is enabled
-      saxFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+      SAXParserFactory saxFactory = XMLUtils.getSecureSaxParserFactory();
 
       saxParser = saxFactory.newSAXParser();
     } catch (ParserConfigurationException | SAXException e) {
@@ -2220,30 +2179,10 @@ public class AutomatonGraphmlParser {
   private static AutomatonGraphmlCommon.WitnessType getWitnessType(InputStream pInputStream)
       throws InvalidConfigurationException, IOException {
     // Parse the XML document ----
-    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilderFactory docFactory;
 
-    // protect against XML eXternal Entity injection (XXE) following the recommendations on
-    // https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
-    // see https://xerces.apache.org/xerces-j/features.html
-    // and http://xerces.apache.org/xerces2-j/features.html for features
     try {
-      // disable DTD, only works for Xerces2
-      docFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-
-      // ignore the external DTD completely
-      docFactory.setFeature(
-          "http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-      // Do not include external entitites
-      docFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-      // Do not include external parameter entities or the external DTD subset.
-      docFactory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-
-      // Add these as per Timothy Morgan's 2014 paper: "XML Schema, DTD, and Entity Attacks"
-      docFactory.setXIncludeAware(false);
-      docFactory.setExpandEntityReferences(false);
-      // ensure that central mechanism for safeguarding XML processing
-      // "Feature for Secure Processing (FSP)" is enabled
-      docFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+      docFactory = XMLUtils.getSecureDocumentBuilderFactory(true);
     } catch (ParserConfigurationException e1) {
       throw new WitnessParseException(e1);
     }
