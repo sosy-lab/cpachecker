@@ -124,6 +124,19 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">solver.solver=princess</option>
   </rundefinition>
 
+    <rundefinition name="k1-opensmt2">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+  <rundefinition name="k10-opensmt2">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+
   <rundefinition name="k1-boolector">
     <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
@@ -139,6 +152,17 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.handlePointerAliasing=false</option>
     <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
     <option name="--option">solver.solver=boolector</option>
+  </rundefinition>
+
+    <rundefinition name="k1-bitwuzla">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+  <rundefinition name="k10-bitwuzla">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
   </rundefinition>
 
   <!-- To install Yices2, please edit `lib/ivy.xml` and include the GPL-licenced parts of JavaSMT. -->
