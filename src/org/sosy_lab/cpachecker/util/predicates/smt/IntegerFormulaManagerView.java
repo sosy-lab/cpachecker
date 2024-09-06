@@ -41,11 +41,6 @@ public class IntegerFormulaManagerView
     return integerFormulaManager.modularCongruence(number1, number2, n);
   }
 
-  @Override
-  public IntegerFormula modulo(IntegerFormula pNumber1, IntegerFormula pNumber2) {
-    return integerFormulaManager.modulo(pNumber1, pNumber2);
-  }
-
   /* Division
    * <p>Uses truncate to round the result to the next integer, just as in C or Java.
    */
@@ -81,18 +76,20 @@ public class IntegerFormulaManagerView
    * @param bmgr {@link BooleanFormulaManager} needed for the creation of the formula.
    * @return the remainder of the 2 given formulas.
    */
-  public IntegerFormula remainder(final IntegerFormula dividend, final IntegerFormula divisor) {
+  @Override
+  public IntegerFormula modulo(final IntegerFormula dividend, final IntegerFormula divisor) {
     final IntegerFormula zero = makeNumber(0);
     final IntegerFormula additionalUnit =
         booleanFormulaManager.ifThenElse(greaterOrEquals(divisor, zero), negate(divisor), divisor);
 
-    final IntegerFormula mod = modulo(dividend, divisor);
+    final IntegerFormula mod = integerFormulaManager.modulo(dividend, divisor);
 
     // IF   first operand is positive or mod-result is zero
     // THEN return plain modulo --> here the result is equal to SMTlib2 Integer mod
     // ELSE modulo and add an additional unit towards the nearest infinity.
 
     // This resembles C99/C11/Java closely but not 100%
+    // TODO: Make sure it's always correct
     return booleanFormulaManager.ifThenElse(
         booleanFormulaManager.or(greaterOrEquals(dividend, zero), equal(mod, zero)),
         mod,

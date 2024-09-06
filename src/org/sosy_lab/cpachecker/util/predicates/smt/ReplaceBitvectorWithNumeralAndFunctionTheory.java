@@ -233,7 +233,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     if (numericFormulaManager instanceof IntegerFormulaManagerView imgr) {
       return wrap(
           getFormulaType(numerator),
-          imgr.remainder((IntegerFormula) unwrap(numerator), (IntegerFormula) unwrap(denominator)));
+          imgr.modulo((IntegerFormula) unwrap(numerator), (IntegerFormula) unwrap(denominator)));
     } else {
       return makeUf(getFormulaType(numerator), moduloUfDecl, numerator, denominator);
     }

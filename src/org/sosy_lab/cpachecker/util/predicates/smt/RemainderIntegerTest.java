@@ -95,7 +95,7 @@ public class RemainderIntegerTest {
     for (Pair<Integer, Integer> value : testValues) {
       int x = value.getFirstNotNull();
       int y = value.getSecondNotNull();
-      assertThat(eval(ifmgr.remainder(ifmgr.makeNumber(x), ifmgr.makeNumber(y)))).isEqualTo(x % y);
+      assertThat(eval(ifmgr.modulo(ifmgr.makeNumber(x), ifmgr.makeNumber(y)))).isEqualTo(x % y);
     }
   }
 
