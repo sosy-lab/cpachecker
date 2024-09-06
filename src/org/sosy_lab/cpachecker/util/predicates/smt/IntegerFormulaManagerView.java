@@ -46,6 +46,9 @@ public class IntegerFormulaManagerView
     return integerFormulaManager.modulo(pNumber1, pNumber2);
   }
 
+  /* Division
+   * <p>Uses truncate to round the result to the next integer, just as in C or Java.
+   */
   @Override
   public IntegerFormula divide(IntegerFormula dividend, IntegerFormula divisor) {
     // TODO: Make sure division by zero is handled correctly
