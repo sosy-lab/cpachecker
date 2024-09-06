@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -353,6 +354,29 @@ public final class AutomatonGraphmlCommon {
         VerificationTaskMetaData pVerificationTaskMetaData)
         throws ParserConfigurationException, DOMException, IOException {
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+
+      // protect against XML eXternal Entity injection (XXE) following the recommendations on
+      // https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
+      // see https://xerces.apache.org/xerces-j/features.html
+      // and http://xerces.apache.org/xerces2-j/features.html for features
+      // disable DTD, only works for Xerces2
+      docFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+
+      // ignore the external DTD completely
+      docFactory.setFeature(
+          "http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+      // Do not include external entitites
+      docFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+      // Do not include external parameter entities or the external DTD subset.
+      docFactory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+
+      // Add these as per Timothy Morgan's 2014 paper: "XML Schema, DTD, and Entity Attacks"
+      docFactory.setXIncludeAware(false);
+      docFactory.setExpandEntityReferences(false);
+      // ensure that central mechanism for safeguarding XML processing
+      // "Feature for Secure Processing (FSP)" is enabled
+      docFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 
       doc = docBuilder.newDocument();
@@ -495,6 +519,11 @@ public final class AutomatonGraphmlCommon {
         pTarget.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
 
         TransformerFactory tf = TransformerFactory.newInstance();
+        // protect against XML eXternal Entity injection (XXE) following the recommendations on
+        // https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
+        tf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        tf.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
+
         Transformer transformer = tf.newTransformer();
         transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
         transformer.setOutputProperty(OutputKeys.METHOD, "xml");
