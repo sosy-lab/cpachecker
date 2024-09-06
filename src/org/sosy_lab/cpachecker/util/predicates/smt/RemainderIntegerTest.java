@@ -33,9 +33,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class RemainderIntegerTest {
   private Solver solver;
   private FormulaManagerView fmgr;
-  private BooleanFormulaManagerView bfmgr;
   private IntegerFormulaManagerView ifmgr;
 
+  @SuppressWarnings("unused")
   private final Solvers solverName;
 
   @Parameters(name = "{0}")
@@ -65,7 +65,6 @@ public class RemainderIntegerTest {
       solver = Solver.create(config, logger, notifier);
       solverName = pSolvers;
       fmgr = solver.getFormulaManager();
-      bfmgr = fmgr.getBooleanFormulaManager();
       ifmgr = fmgr.getIntegerFormulaManager();
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
