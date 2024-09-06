@@ -87,7 +87,7 @@ public class RemainderIntegerTest {
           Pair.of(-1, -2));
 
   @Test
-  public void IntegerDivisionTest() {
+  public void integerDivisionTest() {
     for (Pair<Integer, Integer> value : testValues) {
       int x = value.getFirstNotNull();
       int y = value.getSecondNotNull();
@@ -96,7 +96,7 @@ public class RemainderIntegerTest {
   }
 
   @Test
-  public void IntegerRemainderTest() {
+  public void integerRemainderTest() {
     for (Pair<Integer, Integer> value : testValues) {
       int x = value.getFirstNotNull();
       int y = value.getSecondNotNull();

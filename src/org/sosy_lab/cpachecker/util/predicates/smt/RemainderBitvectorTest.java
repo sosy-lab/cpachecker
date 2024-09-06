@@ -82,7 +82,7 @@ public class RemainderBitvectorTest {
           Pair.of(-1, -2));
 
   @Test
-  public void BitvectorDivisionTest() {
+  public void bitvectorDivisionTest() {
     for (Pair<Integer, Integer> value : testValues) {
       int x = value.getFirstNotNull();
       int y = value.getSecondNotNull();
@@ -93,7 +93,7 @@ public class RemainderBitvectorTest {
   }
 
   @Test
-  public void BitvectorRemainderTest() {
+  public void bitvectorRemainderTest() {
     for (Pair<Integer, Integer> value : testValues) {
       int x = value.getFirstNotNull();
       int y = value.getSecondNotNull();
