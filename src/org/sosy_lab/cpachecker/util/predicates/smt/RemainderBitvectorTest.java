@@ -32,9 +32,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class RemainderBitvectorTest {
   private Solver solver;
   private FormulaManagerView fmgr;
-  private BooleanFormulaManagerView bfmgr;
   private BitvectorFormulaManagerView bvfmgr;
 
+  @SuppressWarnings("unused")
   private final Solvers solverName;
 
   @Parameters(name = "{0}")
@@ -59,7 +59,6 @@ public class RemainderBitvectorTest {
       solver = Solver.create(config, logger, notifier);
       solverName = pSolvers;
       fmgr = solver.getFormulaManager();
-      bfmgr = fmgr.getBooleanFormulaManager();
       bvfmgr = fmgr.getBitvectorFormulaManager();
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
