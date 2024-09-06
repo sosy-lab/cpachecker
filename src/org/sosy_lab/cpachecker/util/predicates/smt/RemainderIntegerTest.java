@@ -40,7 +40,12 @@ public class RemainderIntegerTest {
   @Parameters(name = "{0}")
   public static Solvers[] data() {
     return new Solvers[] {
-      Solvers.OPENSMT, Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS, Solvers.CVC4, Solvers.CVC5
+      Solvers.OPENSMT,
+      Solvers.SMTINTERPOL,
+      Solvers.Z3,
+      Solvers.PRINCESS,
+      Solvers.CVC4,
+      Solvers.CVC5,
     };
   }
 
@@ -61,8 +66,8 @@ public class RemainderIntegerTest {
       fmgr = solver.getFormulaManager();
       bfmgr = fmgr.getBooleanFormulaManager();
       ifmgr = fmgr.getIntegerFormulaManager();
-    } catch (InvalidConfigurationException pE) {
-      throw new RuntimeException(pE);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -105,10 +110,10 @@ public class RemainderIntegerTest {
       prover.push(ifmgr.equal(var, pFormula));
       Preconditions.checkArgument(!prover.isUnsat());
       return prover.getModel().evaluate(var).intValueExact();
-    } catch (InterruptedException pE) {
+    } catch (InterruptedException e) {
       return 0;
-    } catch (SolverException pE) {
-      throw new RuntimeException(pE);
+    } catch (SolverException e) {
+      throw new RuntimeException(e);
     }
   }
 }

@@ -41,7 +41,7 @@ public class RemainderBitvectorTest {
   public static Solvers[] data() {
     return new Solvers[] {
       // Solvers.MATHSAT5,
-      Solvers.Z3, Solvers.PRINCESS, Solvers.BOOLECTOR, Solvers.CVC4, Solvers.CVC5, Solvers.BITWUZLA
+      Solvers.Z3, Solvers.PRINCESS, Solvers.BOOLECTOR, Solvers.CVC4, Solvers.CVC5, Solvers.BITWUZLA,
     };
   }
 
@@ -61,8 +61,8 @@ public class RemainderBitvectorTest {
       fmgr = solver.getFormulaManager();
       bfmgr = fmgr.getBooleanFormulaManager();
       bvfmgr = fmgr.getBitvectorFormulaManager();
-    } catch (InvalidConfigurationException pE) {
-      throw new RuntimeException(pE);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -110,10 +110,10 @@ public class RemainderBitvectorTest {
       prover.push(bvfmgr.equal(var, pFormula));
       Preconditions.checkArgument(!prover.isUnsat());
       return prover.getModel().evaluate(var).intValue();
-    } catch (InterruptedException pE) {
+    } catch (InterruptedException e) {
       return 0;
-    } catch (SolverException pE) {
-      throw new RuntimeException(pE);
+    } catch (SolverException e) {
+      throw new RuntimeException(e);
     }
   }
 }
