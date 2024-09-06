@@ -86,7 +86,8 @@ public class RemainderIntegerTest {
     for (Pair<Integer, Integer> value : testValues) {
       int x = value.getFirstNotNull();
       int y = value.getSecondNotNull();
-      assertThat(eval(ifmgr.divide(ifmgr.makeNumber(x), ifmgr.makeNumber(y)))).isEqualTo(x / y);
+      assertThat(eval(ifmgr.divide(ifmgr.makeNumber(x), ifmgr.makeNumber(y), bfmgr)))
+          .isEqualTo(x / y);
     }
   }
 

@@ -42,6 +42,18 @@ public class IntegerFormulaManagerView
     return integerFormulaManager.modulo(pNumber1, pNumber2);
   }
 
+  public IntegerFormula divide(
+      IntegerFormula dividend, IntegerFormula divisor, BooleanFormulaManager bmgr) {
+    // TODO: Make sure division by zero is handled correctly
+    IntegerFormula zero = makeNumber(0);
+    IntegerFormula r = super.divide(dividend, divisor);
+
+    return bmgr.ifThenElse(
+        lessOrEquals(divisor, zero),
+        bmgr.ifThenElse(greaterThan(r, zero), add(r, makeNumber(-1)), r),
+        bmgr.ifThenElse(lessThan(r, zero), add(r, makeNumber(1)), r));
+  }
+
   /**
    * Returns the remainder of the division of the two given Integer formulas. The result of the
    * division (dividend/divisor) applied on the 2 Integer formulas used as quotient in the modulo
