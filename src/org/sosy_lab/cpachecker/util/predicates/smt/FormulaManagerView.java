@@ -229,7 +229,7 @@ public class FormulaManagerView {
 
     bitvectorFormulaManager = createBitvectorFormulaManager(config);
     floatingPointFormulaManager = createFloatingPointFormulaManager();
-    integerFormulaManager = createIntegerFormulaManager(intOptions);
+    integerFormulaManager = createIntegerFormulaManager(booleanFormulaManager, intOptions);
 
     logInfo();
   }
@@ -368,7 +368,8 @@ public class FormulaManagerView {
 
   /** Creates the IntegerFormulaManager or a replacement based on the option encodeIntegerAs. */
   private @Nullable IntegerFormulaManagerView createIntegerFormulaManager(
-      ReplaceIntegerEncodingOptions pIntegerOptions) throws InvalidConfigurationException {
+      BooleanFormulaManager pBooleanFormulaManager, ReplaceIntegerEncodingOptions pIntegerOptions)
+      throws InvalidConfigurationException {
     if (encodeIntegerAs == Theory.UNSUPPORTED) {
       return null;
     }
@@ -398,7 +399,7 @@ public class FormulaManagerView {
               + "but CPAchecker will crash if integers are used during the analysis.",
           e);
     }
-    return new IntegerFormulaManagerView(wrappingHandler, rawImgr);
+    return new IntegerFormulaManagerView(wrappingHandler, pBooleanFormulaManager, rawImgr);
   }
 
   FormulaWrappingHandler getFormulaWrappingHandler() {
@@ -665,7 +666,7 @@ public class FormulaManagerView {
     if (pF1 instanceof IntegerFormula pFi1 && pF2 instanceof IntegerFormula pFi2) {
       // Integer modulo does not behave according to the C standard (or Java) for
       //   negative numbers in pF1.
-      t = getIntegerFormulaManager().remainder(pFi1, pFi2, getBooleanFormulaManager());
+      t = getIntegerFormulaManager().remainder(pFi1, pFi2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       // remainder for BVs behaves as the C standard defines modulo (%)
       //   (also Javas % operator behaves the same)
