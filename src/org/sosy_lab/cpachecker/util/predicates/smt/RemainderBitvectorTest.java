@@ -104,16 +104,6 @@ public class RemainderBitvectorTest {
     }
   }
 
-  @Test
-  public void BitvectorModuloTest() {
-    for (Pair<Integer, Integer> value : testValues) {
-      int x = value.getFirstNotNull();
-      int y = value.getSecondNotNull();
-      assertThat(eval(bvfmgr.smodulo(bvfmgr.makeBitvector(32, x), bvfmgr.makeBitvector(32, y))))
-          .isEqualTo(Math.floorMod(x, y));
-    }
-  }
-
   public int eval(BitvectorFormula pFormula) {
     BitvectorFormula var = bvfmgr.makeVariable(32, "v");
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {

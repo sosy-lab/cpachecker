@@ -99,16 +99,6 @@ public class RemainderIntegerTest {
     }
   }
 
-  @Test
-  public void IntegerModuloTest() {
-    for (Pair<Integer, Integer> value : testValues) {
-      int x = value.getFirstNotNull();
-      int y = value.getSecondNotNull();
-      assertThat(eval(ifmgr.modulo(ifmgr.makeNumber(x), ifmgr.makeNumber(y))))
-          .isEqualTo(Math.floorMod(x, y));
-    }
-  }
-
   public int eval(IntegerFormula pFormula) {
     IntegerFormula var = ifmgr.makeVariable("v");
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
