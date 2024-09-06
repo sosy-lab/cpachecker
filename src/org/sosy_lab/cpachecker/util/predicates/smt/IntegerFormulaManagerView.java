@@ -73,7 +73,6 @@ public class IntegerFormulaManagerView
    *     signed true for the BV equivalent.
    * @param dividend the formula used as the dividend of the operation.
    * @param divisor the formula used as the divisor of the operation.
-   * @param bmgr {@link BooleanFormulaManager} needed for the creation of the formula.
    * @return the remainder of the 2 given formulas.
    */
   @Override
