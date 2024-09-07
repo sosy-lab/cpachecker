@@ -98,6 +98,15 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">solver.solver=cvc4</option>
   </rundefinition>
 
+  <rundefinition name="k1-cvc5">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+  <rundefinition name="k10-cvc5">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
   <rundefinition name="k1-smtinterpol">
     <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
