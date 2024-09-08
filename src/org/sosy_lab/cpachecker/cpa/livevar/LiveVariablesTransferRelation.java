@@ -98,6 +98,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -477,7 +478,7 @@ public class LiveVariablesTransferRelation
       } else if (lhs instanceof JLeftHandSide jlhs) {
         lhsIsPointerDereference = jlhs.accept(lhsPointerDereferenceVisitor);
       }
-    } catch (Exception pE) {
+    } catch (Exception e) {
       // Should never happen
     }
 
@@ -655,7 +656,7 @@ public class LiveVariablesTransferRelation
           && exp.getOperand2() instanceof JExpression op2) {
         return op1.accept(this) || op2.accept(this);
       }
-      return null;
+      return false;
     }
 
     @Override
@@ -670,7 +671,7 @@ public class LiveVariablesTransferRelation
       } else if (exp.getOperand() instanceof JExpression op) {
         return op.accept(this);
       }
-      return null;
+      return false;
     }
 
     @Override
@@ -730,7 +731,9 @@ public class LiveVariablesTransferRelation
 
     @Override
     public Boolean visit(AUnaryExpression exp) throws Exception {
-      return null;
+      return exp instanceof JUnaryExpression jUnary
+          ? jUnary.accept(this)
+          : ((CUnaryExpression) exp).accept(this);
     }
 
     @Override
@@ -741,7 +744,7 @@ public class LiveVariablesTransferRelation
     @Override
     public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws Exception {
       // TODO: is this correct?
-      return true;
+      return false;
     }
 
     @Override
