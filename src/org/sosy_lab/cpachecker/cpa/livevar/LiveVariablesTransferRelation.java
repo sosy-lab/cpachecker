@@ -430,6 +430,7 @@ public class LiveVariablesTransferRelation
     boolean isLhsLive =
         isLeftHandSideLive(lhs) || assignment instanceof AFunctionCallAssignmentStatement;
 
+    // TODO: this is insufficient for arbitrary nested structures
     boolean lhsIsPointerDereference =
         ((lhs instanceof CFieldReference
                 && (((CFieldReference) lhs).isPointerDereference()
@@ -488,9 +489,11 @@ public class LiveVariablesTransferRelation
         // when there is a field reference, an array access or a pointer expression,
         // and the assigned variable was live before, we need to let it also be
         // live afterwards
+        // Also, if there is an assignment to one of those, we have to over-approximate it to live
       } else if (lhs instanceof CFieldReference
           || lhs instanceof AArraySubscriptExpression
           || lhs instanceof CPointerExpression) {
+        newLiveVars.or(assignedVariable);
         writeInto.or(newLiveVars);
 
         // no special case here, the assigned variable is not live anymore
