@@ -25,10 +25,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORCreate;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORCreate;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORJoin;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORMutex;
 import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 

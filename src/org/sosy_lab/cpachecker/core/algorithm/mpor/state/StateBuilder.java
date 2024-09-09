@@ -25,12 +25,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORCreate;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrderType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORCreate;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORJoin;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORMutex;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.TSO;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.TSOType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
@@ -65,7 +65,7 @@ public class StateBuilder {
 
   /**
    * Returns the initial MPORState of the program, properly initializing the map from MPORThreads to
-   * their start routines / main FunctionEntryNodes, the PreferenceOrders and the corresponding
+   * their start routines / main FunctionEntryNodes, the {@link TSO}s and the corresponding
    * AbstractState.
    *
    * @param pThreads the set of Threads we put in {@link MPORState#threadNodes}
@@ -86,7 +86,7 @@ public class StateBuilder {
     return new MPORState(
         threadNodes,
         initFuncReturnNodes(threadNodes),
-        getPreferenceOrdersForThreadNodes(threadNodes),
+        getTSOsForThreadNodes(threadNodes),
         new ExecutionTrace(emptyTrace.build()),
         AbstractStates.extractStateByType(initAbstractState, PredicateAbstractState.class));
   }
@@ -132,7 +132,7 @@ public class StateBuilder {
     return new MPORState(
         newThreadNodes,
         newFuncReturnNodes,
-        getPreferenceOrdersForThreadNodes(newThreadNodes),
+        getTSOsForThreadNodes(newThreadNodes),
         newExecutionTrace,
         MPORUtil.getNextPredicateAbstractState(ptr, pState.abstractState, pExecutedEdge));
   }
@@ -180,40 +180,40 @@ public class StateBuilder {
     return rFuncReturnNodes.buildOrThrow();
   }
 
-  // Preference Orders =============================================================================
+  // Total Strict Orders ===========================================================================
 
   /**
-   * Computes and returns the PreferenceOrders for the current program state pState.
+   * Computes and returns the {@link TSO}s for the current program state pState.
    *
    * @param pThreadNodes the threads and their current CFANodes to be analyzed
-   * @return an ImmutableSet of (positional) PreferenceOrders for the given threadNodes
+   * @return an ImmutableSet of positional, i.e. in this program location, {@link TSO}s for the
+   *     given threadNodes
    */
-  private ImmutableSet<PreferenceOrder> getPreferenceOrdersForThreadNodes(
-      ImmutableMap<MPORThread, CFANode> pThreadNodes) {
-    ImmutableSet.Builder<PreferenceOrder> rPreferenceOrders = ImmutableSet.builder();
+  private ImmutableSet<TSO> getTSOsForThreadNodes(ImmutableMap<MPORThread, CFANode> pThreadNodes) {
+    ImmutableSet.Builder<TSO> rTSOs = ImmutableSet.builder();
     for (var entry : pThreadNodes.entrySet()) {
       MPORThread currentThread = entry.getKey();
       CFANode currentNode = entry.getValue();
-      rPreferenceOrders.addAll(getCreatePreferenceOrder(pThreadNodes, currentThread, currentNode));
-      rPreferenceOrders.addAll(getMutexPreferenceOrders(pThreadNodes, currentThread, currentNode));
-      rPreferenceOrders.addAll(getJoinPreferenceOrders(pThreadNodes, currentThread, currentNode));
-      // TODO getBarrierPreferenceOrders
+      rTSOs.addAll(getCreateTSOs(pThreadNodes, currentThread, currentNode));
+      rTSOs.addAll(getMutexTSO(pThreadNodes, currentThread, currentNode));
+      rTSOs.addAll(getJoinTSOs(pThreadNodes, currentThread, currentNode));
+      // TODO getBarrierTSO
     }
-    return rPreferenceOrders.build();
+    return rTSOs.build();
   }
 
   /**
    * @param pThreadNodes the threads and their current CFANodes
    * @param pCreatingThread the thread where we check if it is calling pthread_create
    * @param pCreatingNode the current CFANode of pCreatingThread
-   * @return the set of PreferenceOrders induced by pthread_create calls
+   * @return the set of {@link TSO}s induced by pthread_create calls
    */
-  private ImmutableSet<PreferenceOrder> getCreatePreferenceOrder(
+  private ImmutableSet<TSO> getCreateTSOs(
       ImmutableMap<MPORThread, CFANode> pThreadNodes,
       MPORThread pCreatingThread,
       CFANode pCreatingNode) {
 
-    ImmutableSet.Builder<PreferenceOrder> rCreatePreferenceOrders = ImmutableSet.builder();
+    ImmutableSet.Builder<TSO> rCreateTSOs = ImmutableSet.builder();
 
     // if any thread is at their entryNode
     for (var entry : pThreadNodes.entrySet()) {
@@ -225,9 +225,9 @@ public class StateBuilder {
             if (create.createdPthreadT.equals(createdThread.threadObject.orElseThrow())) {
               ImmutableSet<CFAEdge> subsequentEdges =
                   ImmutableSet.copyOf(CFAUtils.leavingEdges(createdThread.cfa.entryNode));
-              rCreatePreferenceOrders.add(
-                  new PreferenceOrder(
-                      PreferenceOrderType.CREATE,
+              rCreateTSOs.add(
+                  new TSO(
+                      TSOType.CREATE,
                       pCreatingThread,
                       createdThread,
                       create.precedingEdges,
@@ -237,23 +237,23 @@ public class StateBuilder {
         }
       }
     }
-    return rCreatePreferenceOrders.build();
+    return rCreateTSOs.build();
   }
 
   /**
-   * Computes and returns the PreferenceOrders induced by mutex locks in the program.
+   * Computes and returns the {@link TSO}s induced by mutex locks in the program.
    *
    * @param pThreadNodes the threads and their current CFANodes
    * @param pThreadInMutex the thread where we check if it is inside a mutex lock
    * @param pNodeInMutex the current CFANode of pThreadInMutex
-   * @return the set of PreferenceOrders induced by mutex locks
+   * @return the set of {@link TSO}s induced by mutex locks
    */
-  private ImmutableSet<PreferenceOrder> getMutexPreferenceOrders(
+  private ImmutableSet<TSO> getMutexTSO(
       ImmutableMap<MPORThread, CFANode> pThreadNodes,
       MPORThread pThreadInMutex,
       CFANode pNodeInMutex) {
 
-    ImmutableSet.Builder<PreferenceOrder> rMutexPreferenceOrders = ImmutableSet.builder();
+    ImmutableSet.Builder<TSO> rMutexTSOs = ImmutableSet.builder();
 
     // if pThreadInMutex is in a mutex lock
     for (MPORMutex mutex : pThreadInMutex.mutexes) {
@@ -273,9 +273,9 @@ public class StateBuilder {
                   // extract all CFAEdges inside mutex excluding the leaving edges of exitNodes
                   ImmutableSet.Builder<CFAEdge> precedingEdges = ImmutableSet.builder();
                   precedingEdges.addAll(mutex.edges);
-                  rMutexPreferenceOrders.add(
-                      new PreferenceOrder(
-                          PreferenceOrderType.MUTEX,
+                  rMutexTSOs.add(
+                      new TSO(
+                          TSOType.MUTEX,
                           pThreadInMutex,
                           lockingThread,
                           precedingEdges.build(),
@@ -287,23 +287,23 @@ public class StateBuilder {
         }
       }
     }
-    return rMutexPreferenceOrders.build();
+    return rMutexTSOs.build();
   }
 
   /**
-   * Computes and returns the PreferenceOrders induced by joins in the program.
+   * Computes and returns the {@link TSO}s induced by joins in the program.
    *
    * @param pThreadNodes the map of all threads to their current CFANode in the program
    * @param pJoiningThread the thread where we check if it is calling pthread_join
    * @param pJoiningNode the current CFANode of pJoiningThread
-   * @return the set of PreferenceOrders induced by joins
+   * @return the set of {@link TSO}s induced by joins
    */
-  private ImmutableSet<PreferenceOrder> getJoinPreferenceOrders(
+  private ImmutableSet<TSO> getJoinTSOs(
       ImmutableMap<MPORThread, CFANode> pThreadNodes,
       MPORThread pJoiningThread,
       CFANode pJoiningNode) {
 
-    ImmutableSet.Builder<PreferenceOrder> rJoinPreferenceOrders = ImmutableSet.builder();
+    ImmutableSet.Builder<TSO> rJoinTSOs = ImmutableSet.builder();
     // if pJoiningThread is right before a pthread_join call
     for (MPORJoin join : pJoiningThread.joins) {
       if (pJoiningNode.equals(join.preJoinNode)) {
@@ -318,17 +318,12 @@ public class StateBuilder {
           ImmutableSet<CFAEdge> precedingEdges = null;
           ImmutableSet<CFAEdge> subsequentEdges =
               ImmutableSet.copyOf(CFAUtils.leavingEdges(join.preJoinNode));
-          rJoinPreferenceOrders.add(
-              new PreferenceOrder(
-                  PreferenceOrderType.JOIN,
-                  targetThread,
-                  pJoiningThread,
-                  precedingEdges,
-                  subsequentEdges));
+          rJoinTSOs.add(
+              new TSO(TSOType.JOIN, targetThread, pJoiningThread, precedingEdges, subsequentEdges));
         }
       }
     }
-    return rJoinPreferenceOrders.build();
+    return rJoinTSOs.build();
   }
 
   // (Private) Helpers =============================================================================

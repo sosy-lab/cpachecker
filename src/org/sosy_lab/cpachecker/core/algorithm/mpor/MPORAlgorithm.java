@@ -37,14 +37,13 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.ExecutionTrace;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.MPORState;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.tests.MPORTests;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.TSO;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -114,14 +113,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /**
    * Recursively searches all possible transitions between MPORStates, i.e. interleavings, factoring
-   * in (positional) preference orders and local vs. global accesses.
+   * in (positional) {@link TSO}s and local vs. global accesses.
    *
    * @param pState the current MPORState we analyze
    */
   private void handleState(MPORState pState) throws CPATransferException, InterruptedException {
     // make sure the MPORState was not yet visited to prevent infinite loops
     if (MPORUtil.shouldVisit(stateBuilder.getExistingStates(), pState)) {
-      handlePreferenceOrders(pState);
+      handleTSOs(pState);
 
       // execute all threads up to a global access preceding (GAP) node
       ImmutableSet.Builder<MPORState> gapStateBuilder = ImmutableSet.builder();
@@ -149,45 +148,45 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
-   * Handles the preferenceOrders of pState by choosing a priority thread which does not wait for
-   * any other thread to execute an edge.
+   * Handles the {@link TSO}s of pState by choosing a priority thread which does not wait for any
+   * other thread to execute an edge.
    *
-   * <p>As a byproduct, this function can detect deadlocks if the preferenceGraph contains cycles.
-   * However, the absence of deadlocks does not guarantee that the input program is deadlock-free.
+   * <p>As a byproduct, this function can detect deadlocks if the tsoGraph contains cycles. However,
+   * the absence of deadlocks in this algorithm does not guarantee that the input program is
+   * deadlock-free.
    *
    * @throws IllegalArgumentException if a deadlock is found (do not catch)
    */
-  private void handlePreferenceOrders(MPORState pState)
-      throws CPATransferException, InterruptedException {
+  private void handleTSOs(MPORState pState) throws CPATransferException, InterruptedException {
 
-    // if there are no preferenceOrders, continue from the input state
-    if (pState.preferenceOrders.isEmpty()) {
+    // if there are no TSOs, continue from the input state
+    if (pState.totalStrictOrders.isEmpty()) {
       return;
     }
 
     // otherwise, create a directed graph from subsequent to preceding threads
-    DirectedGraph<MPORThread> preferenceGraph = new DirectedGraph<>();
-    for (PreferenceOrder preferenceOrder : pState.preferenceOrders) {
-      MPORThread subsequent = preferenceOrder.subsequentThread;
-      if (!preferenceGraph.hasNode(subsequent)) {
-        preferenceGraph.addNode(subsequent);
+    DirectedGraph<MPORThread> tsoGraph = new DirectedGraph<>();
+    for (TSO tso : pState.totalStrictOrders) {
+      MPORThread subsequent = tso.subsequentThread;
+      if (!tsoGraph.hasNode(subsequent)) {
+        tsoGraph.addNode(subsequent);
       }
-      preferenceGraph.addEdge(subsequent, preferenceOrder.precedingThread);
+      tsoGraph.addEdge(subsequent, tso.precedingThread);
     }
     // search graph for cycles (= deadlocks). if false, the absence of deadlocks is not guaranteed
-    if (preferenceGraph.containsCycle()) {
+    if (tsoGraph.containsCycle()) {
       throw new IllegalArgumentException("deadlock detected in state " + pState);
     }
 
     // retrieve the priority thread which is not waiting on any other thread
-    ImmutableSet<MPORThread> maximalScc = preferenceGraph.computeSCCs().iterator().next();
+    ImmutableSet<MPORThread> maximalScc = tsoGraph.computeSCCs().iterator().next();
     assert maximalScc.size() == 1; // TODO should always hold because there are no loops
     MPORThread priorityThread = maximalScc.asList().get(0);
     // retrieve the priority edges executed by the priority thread and recursively execute them
     ImmutableSet.Builder<CFAEdge> priorityEdges = ImmutableSet.builder();
-    for (PreferenceOrder preferenceOrder : pState.preferenceOrders) {
-      if (preferenceOrder.precedingThread.equals(priorityThread)) {
-        priorityEdges.addAll(preferenceOrder.precedingEdges);
+    for (TSO tso : pState.totalStrictOrders) {
+      if (tso.precedingThread.equals(priorityThread)) {
+        priorityEdges.addAll(tso.precedingEdges);
       }
     }
     ImmutableSet<CFAEdge> edgesToExecute = priorityEdges.build();

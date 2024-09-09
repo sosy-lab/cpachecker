@@ -12,8 +12,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.PreferenceOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.TSO;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 
 public class MPORState {
@@ -27,8 +27,8 @@ public class MPORState {
    */
   public final ImmutableMap<MPORThread, Optional<CFANode>> funcReturnNodes;
 
-  /** The set of PreferenceOrders in this state, i.e. positional preference orders. */
-  public final ImmutableSet<PreferenceOrder> preferenceOrders;
+  /** The set of {@link TSO}s in this state, i.e. positional {@link TSO}s. */
+  public final ImmutableSet<TSO> totalStrictOrders;
 
   /** The list of CFAEdges executed leading us to {@link MPORState#threadNodes}. */
   public final ExecutionTrace executionTrace;
@@ -40,12 +40,12 @@ public class MPORState {
   protected MPORState(
       ImmutableMap<MPORThread, CFANode> pThreadNodes,
       ImmutableMap<MPORThread, Optional<CFANode>> pFunctionReturnNodes,
-      ImmutableSet<PreferenceOrder> pPreferenceOrders,
+      ImmutableSet<TSO> pTotalStrictOrders,
       ExecutionTrace pExecutionTrace,
       PredicateAbstractState pAbstractState) {
     threadNodes = pThreadNodes;
     funcReturnNodes = pFunctionReturnNodes;
-    preferenceOrders = pPreferenceOrders;
+    totalStrictOrders = pTotalStrictOrders;
     executionTrace = pExecutionTrace;
     abstractState = pAbstractState;
   }

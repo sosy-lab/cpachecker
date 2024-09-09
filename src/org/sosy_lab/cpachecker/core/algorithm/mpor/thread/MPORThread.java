@@ -12,9 +12,9 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORCreate;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORCreate;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORJoin;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORMutex;
 
 /**
  * An object for a thread containing an identifier (threadObject) and entry / exit Nodes of the

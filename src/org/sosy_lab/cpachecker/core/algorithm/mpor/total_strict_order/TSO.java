@@ -6,20 +6,20 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order;
 
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 /**
- * A program contains a PreferenceOrder e.g. when one thread t0 calls pthread_join(t1) while t1 has
- * not terminated yet -> t1 needs to execute all edges until termination (= precedingEdges) until t0
- * can execute pthread_join(t1) (= subsequentEdge).
+ * A program contains a Total Strict Order (TS0) e.g. when one thread t0 calls pthread_join(t1)
+ * while t1 has not terminated yet -> t1 needs to execute all edges until termination (=
+ * precedingEdges) until t0 can execute pthread_join(t1) (= subsequentEdge).
  */
-public class PreferenceOrder {
+public class TSO {
 
-  // TODO positional preference order ("a <q b") possible cases:
+  // TODO Total strict order in program location q ("a <q b") possible cases:
   //  pthread_mutex_lock / mutex_unlock
   //  pthread_join
   //  pthread_barrier_wait
@@ -32,27 +32,27 @@ public class PreferenceOrder {
   //  atomic blocks
   //  sequential blocks
 
-  /** How the PreferenceOrder was induced. Only used for debugging purposes. */
-  public final PreferenceOrderType type;
+  /** How the TotalStrictOrder was induced. Only used for debugging purposes. */
+  public final TSOType type;
 
-  /** The thread executing {@link PreferenceOrder#precedingEdges}. */
+  /** The thread executing {@link TSO#precedingEdges}. */
   public final MPORThread precedingThread;
 
-  /** The thread executing {@link PreferenceOrder#subsequentEdges}. */
+  /** The thread executing {@link TSO#subsequentEdges}. */
   public final MPORThread subsequentThread;
 
-  /** The set of CFAEdges that must be executed before {@link PreferenceOrder#subsequentEdges}. */
+  /** The set of CFAEdges that must be executed before {@link TSO#subsequentEdges}. */
   public final ImmutableSet<CFAEdge> precedingEdges;
 
   /**
-   * The CFAEdges that can be executed only once all {@link PreferenceOrder#precedingEdges} are
-   * executed. Usually, there is only one subsequent edge, but they can also be nondeterministic.
-   * The predecessor CFANode of all subsequentEdges is always the same.
+   * The CFAEdges that can be executed only once all {@link TSO#precedingEdges} are executed.
+   * Usually, there is only one subsequent edge, but they can also be nondeterministic. The
+   * predecessor CFANode of all subsequentEdges is always the same.
    */
   public final ImmutableSet<CFAEdge> subsequentEdges;
 
-  public PreferenceOrder(
-      PreferenceOrderType pType,
+  public TSO(
+      TSOType pType,
       MPORThread pPrecedingThread,
       MPORThread pSubsequentThread,
       ImmutableSet<CFAEdge> pPrecedingEdges,

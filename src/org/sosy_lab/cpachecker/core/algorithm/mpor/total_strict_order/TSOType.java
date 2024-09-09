@@ -6,9 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order;
 
-public enum PreferenceOrderType {
+public enum TSOType {
   CREATE,
   JOIN,
   MUTEX
