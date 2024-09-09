@@ -20,6 +20,9 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPATest0;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -45,6 +48,8 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
  * Tests (list) abstraction and materialization.
  */
 public class SMGCPAAbstractionTest extends SMGCPATest0 {
+
+  private static final CType LIST_POINTER_TYPE = CPointerType.POINTER_TO_VOID;
 
   // test list specifier after normal abstraction
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
@@ -1149,7 +1154,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
           // Build self pointers w differing target offsets into the list
           ValueAndSMGState selfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(0));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(0));
           currentState = selfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -1162,7 +1168,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                       .orElseThrow());
 
           ValueAndSMGState otherSelfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(1));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(1));
           currentState = otherSelfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -1365,7 +1372,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
           // Build self pointers w differing target offsets into the list
           ValueAndSMGState selfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(0));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(0));
           currentState = selfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -1378,7 +1386,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                       .orElseThrow());
 
           ValueAndSMGState otherSelfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(1));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(1));
           currentState = otherSelfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -1583,7 +1592,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
           // Build self pointers w differing target offsets into the list
           ValueAndSMGState selfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(0));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(0));
           currentState = selfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -1596,7 +1606,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                       .orElseThrow());
 
           ValueAndSMGState otherSelfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(1));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(1));
           currentState = otherSelfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -1850,7 +1861,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
           // Build self pointers w differing target offsets into the list
           ValueAndSMGState selfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(0));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(0));
           currentState = selfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -1863,7 +1875,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                       .orElseThrow());
 
           ValueAndSMGState otherSelfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(1));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(1));
           currentState = otherSelfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -2130,7 +2143,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
           // Build self pointers w differing target offsets into the list
           ValueAndSMGState selfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(0));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(0));
           currentState = selfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -2143,7 +2157,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                       .orElseThrow());
 
           ValueAndSMGState otherSelfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(1));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(1));
           currentState = otherSelfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -2451,7 +2466,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
           // Build self pointers w differing target offsets into the list
           ValueAndSMGState selfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(0));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(0));
           currentState = selfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -2464,7 +2480,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                       .orElseThrow());
 
           ValueAndSMGState otherSelfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(1));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(1));
           currentState = otherSelfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -2772,7 +2789,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
           // Build self pointers w differing target offsets into the list
           ValueAndSMGState selfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(0));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(0));
           currentState = selfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -2785,7 +2803,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                       .orElseThrow());
 
           ValueAndSMGState otherSelfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(1));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(1));
           currentState = otherSelfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -3053,7 +3072,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
           // Build self pointers w differing target offsets into the list
           ValueAndSMGState selfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(0));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(0));
           currentState = selfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -3066,7 +3086,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                       .orElseThrow());
 
           ValueAndSMGState otherSelfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(1));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(1));
           currentState = otherSelfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -3340,7 +3361,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
           // Build self pointers w differing target offsets into the list
           ValueAndSMGState selfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(0));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(0));
           currentState = selfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -3353,7 +3375,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                       .orElseThrow());
 
           ValueAndSMGState otherSelfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(1));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(1));
           currentState = otherSelfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -3667,7 +3690,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
           // Build self pointers w differing target offsets into the list
           ValueAndSMGState selfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(0));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(0));
           currentState = selfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -3680,7 +3704,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                       .orElseThrow());
 
           ValueAndSMGState otherSelfPtrAndState =
-              currentState.searchOrCreateAddress(obj, targetOffsetsForSelfPtrs.get(1));
+              currentState.searchOrCreateAddress(
+                  obj, CPointerType.POINTER_TO_VOID, targetOffsetsForSelfPtrs.get(1));
           currentState = otherSelfPtrAndState.getState();
           currentState =
               currentState.writeValueWithoutChecks(
@@ -3897,13 +3922,16 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     currentState = nonAbstractingListHeadAndState.getState();
     SMGObject nonAbstractingListHead = nonAbstractingListHeadAndState.getSMGObject();
     ValueAndSMGState ptrToNonAbstractingListHead =
-        currentState.searchOrCreateAddress(nonAbstractingListHead, BigInteger.ZERO);
+        currentState.searchOrCreateAddress(
+            nonAbstractingListHead, CPointerType.POINTER_TO_VOID, BigInteger.ZERO);
     currentState = ptrToNonAbstractingListHead.getState();
     ValueAndSMGState nextPtrWOffsetToNonAbstractingListHead =
-        currentState.searchOrCreateAddress(nonAbstractingListHead, nextPtrTargetOffset);
+        currentState.searchOrCreateAddress(
+            nonAbstractingListHead, CPointerType.POINTER_TO_VOID, nextPtrTargetOffset);
     currentState = nextPtrWOffsetToNonAbstractingListHead.getState();
     ValueAndSMGState prevPtrWOffsetToNonAbstractingListHead =
-        currentState.searchOrCreateAddress(nonAbstractingListHead, prevPtrTargetOffset);
+        currentState.searchOrCreateAddress(
+            nonAbstractingListHead, CPointerType.POINTER_TO_VOID, prevPtrTargetOffset);
     currentState = prevPtrWOffsetToNonAbstractingListHead.getState();
 
     // Save ptr to this in head
@@ -3927,6 +3955,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                 .dereferencePointerWithoutMaterilization(listPtrs[0])
                 .orElseThrow()
                 .getSMGObject(),
+            CPointerType.POINTER_TO_VOID,
             nextPtrTargetOffset);
     currentState = nextPtrWOffsetToAbstractingFirst.getState();
     currentState =
@@ -3945,6 +3974,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                 .dereferencePointerWithoutMaterilization(listPtrs[listPtrs.length - 1])
                 .orElseThrow()
                 .getSMGObject(),
+            CPointerType.POINTER_TO_VOID,
             prevPtrTargetOffset);
     currentState = prevPtrWOffsetToAbstractingLast.getState();
     currentState =
@@ -5915,7 +5945,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       currentState = leftMostConcreteObjAndState.getSMGState();
       SMGObject leftMostConcreteObj = leftMostConcreteObjAndState.getSMGObject();
       ValueAndSMGState pointerToLeftmostConcreteAndState =
-          currentState.searchOrCreateAddress(leftMostConcreteObj, BigInteger.ZERO);
+          currentState.searchOrCreateAddress(
+              leftMostConcreteObj, CPointerType.POINTER_TO_VOID, BigInteger.ZERO);
       currentState = pointerToLeftmostConcreteAndState.getState();
       Value pointerToLeftMostConcrete = pointerToLeftmostConcreteAndState.getValue();
       SMGDoublyLinkedListSegment newDLLSegment =
@@ -5923,7 +5954,11 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               0, dllSizeValue, BigInteger.ZERO, hfo, nfo, BigInteger.ZERO, pfo, BigInteger.ZERO, 0);
       ValueAndSMGState pointerToLeftmostZeroPlusAndState =
           currentState.searchOrCreateAddress(
-              newDLLSegment, BigInteger.ZERO, 0, SMGTargetSpecifier.IS_LAST_POINTER);
+              newDLLSegment,
+              CPointerType.POINTER_TO_VOID,
+              BigInteger.ZERO,
+              0,
+              SMGTargetSpecifier.IS_LAST_POINTER);
       currentState = pointerToLeftmostZeroPlusAndState.getState();
       Value pointerToLeftMostZeroPlus = pointerToLeftmostZeroPlusAndState.getValue();
       // Write the pointer to the leftmost concrete to the new 0+
@@ -6896,7 +6931,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             new NumericValue(hfo),
             numericPointerSizeInBits,
             new NumericValue(1),
-            null,
+            CNumericTypes.INT,
             dummyCDAEdge);
     currentState =
         currentState.writeValueWithChecks(
@@ -6904,7 +6939,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             new NumericValue(nfo),
             numericPointerSizeInBits,
             new NumericValue(0),
-            null,
+            CPointerType.POINTER_TO_VOID,
             dummyCDAEdge);
     currentState =
         currentState.writeValueWithChecks(
@@ -6912,13 +6947,18 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             new NumericValue(pfo),
             numericPointerSizeInBits,
             new NumericValue(0),
-            null,
+            CPointerType.POINTER_TO_VOID,
             dummyCDAEdge);
     // Pointer to the abstracted list
     Value pointer = SymbolicValueFactory.getInstance().newIdentifier(null);
     currentState =
         currentState.createAndAddPointer(
-            pointer, currentAbstraction, BigInteger.ZERO, 0, SMGTargetSpecifier.IS_FIRST_POINTER);
+            pointer,
+            currentAbstraction,
+            LIST_POINTER_TYPE,
+            BigInteger.ZERO,
+            0,
+            SMGTargetSpecifier.IS_FIRST_POINTER);
 
     // Save the pointer in a "stack" variable
     SMGValue pointerToFirst =
@@ -7060,7 +7100,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             new NumericValue(hfo),
             numericPointerSizeInBits,
             new NumericValue(1),
-            null,
+            CNumericTypes.INT,
             dummyCDAEdge);
     currentState =
         currentState.writeValueWithChecks(
@@ -7068,13 +7108,18 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             new NumericValue(nfo),
             numericPointerSizeInBits,
             new NumericValue(0),
-            null,
+            CNumericTypes.INT,
             dummyCDAEdge);
     // First pointer to the abstracted list
     Value pointer = SymbolicValueFactory.getInstance().newIdentifier(null);
     currentState =
         currentState.createAndAddPointer(
-            pointer, currentAbstraction, BigInteger.ZERO, 0, SMGTargetSpecifier.IS_FIRST_POINTER);
+            pointer,
+            currentAbstraction,
+            LIST_POINTER_TYPE,
+            BigInteger.ZERO,
+            0,
+            SMGTargetSpecifier.IS_FIRST_POINTER);
     // Save the pointer in a stack variable
     SMGObjectAndSMGState objAndState = currentState.copyAndAddStackObject(sllSizeValue);
     currentState = objAndState.getState();
@@ -7207,21 +7252,37 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         currentState.copyAndAddNewHeapObject(sllSizeValue);
     SMGObject initialListSegment = initialListSegmentAndState.getSMGObject();
     currentState = initialListSegmentAndState.getState();
-    ValueAndSMGState ptrAndState = currentState.searchOrCreateAddress(initialListSegment, hfo);
+    ValueAndSMGState ptrAndState =
+        currentState.searchOrCreateAddress(initialListSegment, CPointerType.POINTER_TO_VOID, hfo);
     currentState = ptrAndState.getState();
     currentState =
         currentState.writeValueWithChecks(
-            plist, hfoValue, numericPointerSizeInBits, ptrAndState.getValue(), null, null);
+            plist,
+            hfoValue,
+            numericPointerSizeInBits,
+            ptrAndState.getValue(),
+            CPointerType.POINTER_TO_VOID,
+            null);
 
     // write the "next" pointer to 0 for the list segment
     currentState =
         currentState.writeValueWithChecks(
-            initialListSegment, nfoValue, numericPointerSizeInBits, zeroValue, null, null);
+            initialListSegment,
+            nfoValue,
+            numericPointerSizeInBits,
+            zeroValue,
+            CPointerType.POINTER_TO_VOID,
+            null);
 
     // Write some value in the payload (we write numeric 1)
     currentState =
         currentState.writeValueWithChecks(
-            initialListSegment, hfoValue, numericPointerSizeInBits, oneValue, null, null);
+            initialListSegment,
+            hfoValue,
+            numericPointerSizeInBits,
+            oneValue,
+            CPointerType.POINTER_TO_VOID,
+            null);
 
     stackObjForPointerAndState = currentState.copyAndAddStackObject(numericPointerSizeInBits);
     SMGObject newHeadOnStack = stackObjForPointerAndState.getSMGObject();
@@ -7235,7 +7296,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       SMGObject newListSegment = newListSegmentAndState.getSMGObject();
       currentState = newListSegmentAndState.getState();
       ValueAndSMGState newListPtrAndState =
-          currentState.searchOrCreateAddress(newListSegment, BigInteger.ZERO);
+          currentState.searchOrCreateAddress(
+              newListSegment, CPointerType.POINTER_TO_VOID, BigInteger.ZERO);
       currentState = newListPtrAndState.getState();
       currentState =
           currentState.writeValueWithChecks(
@@ -7243,13 +7305,14 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               hfoValue,
               numericPointerSizeInBits,
               newListPtrAndState.getValue(),
-              null,
+              CPointerType.POINTER_TO_VOID,
               null);
       // save pointer to previous list segment (read stack variable plist) in next field of just
       // created list segment
       // !! This might trigger a materialization if the non-head pointer is read!!
       List<ValueAndSMGState> listHeadPtrsAndStates =
-          currentState.readValue(plist, BigInteger.ZERO, pointerSizeInBits, null);
+          currentState.readValue(
+              plist, BigInteger.ZERO, pointerSizeInBits, CPointerType.POINTER_TO_VOID);
       assertThat(listHeadPtrsAndStates).hasSize(1);
       currentState = listHeadPtrsAndStates.get(0).getState();
       Value listHeadPtr = listHeadPtrsAndStates.get(0).getValue();
@@ -7268,7 +7331,12 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
       currentState =
           currentState.writeValueWithChecks(
-              newListSegment, nfoValue, numericPointerSizeInBits, listHeadPtr, null, null);
+              newListSegment,
+              nfoValue,
+              numericPointerSizeInBits,
+              listHeadPtr,
+              CPointerType.POINTER_TO_VOID,
+              null);
 
       // read data payload from now "next" list segment and save in new list segments data
       SMGObject derefedObj = derefOfListWOMat.orElseThrow().getSMGObject();
@@ -7282,11 +7350,19 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         assertThat(nestinglvl).isEqualTo(llObj.getMinLength() - 1);
         payloadPointerAndState =
             currentState.searchOrCreateAddress(
-                derefedObj, hfo, nestinglvl, SMGTargetSpecifier.IS_FIRST_POINTER);
+                derefedObj,
+                CPointerType.POINTER_TO_VOID,
+                hfo,
+                nestinglvl,
+                SMGTargetSpecifier.IS_FIRST_POINTER);
       } else {
         payloadPointerAndState =
             currentState.searchOrCreateAddress(
-                derefedObj, hfo, nestinglvl, SMGTargetSpecifier.IS_REGION);
+                derefedObj,
+                CPointerType.POINTER_TO_VOID,
+                hfo,
+                nestinglvl,
+                SMGTargetSpecifier.IS_REGION);
       }
       Value payloadPointer = payloadPointerAndState.getValue();
       currentState = payloadPointerAndState.getState();
@@ -7305,18 +7381,29 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       currentState = valuesAndStates.get(0).getState();
       currentState =
           currentState.writeValueWithChecks(
-              newListSegment, hfoValue, numericPointerSizeInBits, payloadValue, null, null);
+              newListSegment,
+              hfoValue,
+              numericPointerSizeInBits,
+              payloadValue,
+              CNumericTypes.INT,
+              null);
 
       // Switch pointer of new segment to plist
       List<ValueAndSMGState> valuesAndStatesNewHead =
-          currentState.readValue(newHeadOnStack, BigInteger.ZERO, pointerSizeInBits, null);
+          currentState.readValue(
+              newHeadOnStack, BigInteger.ZERO, pointerSizeInBits, CPointerType.POINTER_TO_VOID);
       assertThat(valuesAndStatesNewHead).hasSize(1);
       Value newHeadPtr = valuesAndStatesNewHead.get(0).getValue();
       assertThat(newHeadPtr).isEqualTo(newListPtrAndState.getValue());
       currentState = valuesAndStatesNewHead.get(0).getState();
       currentState =
           currentState.writeValueWithChecks(
-              plist, zeroValue, numericPointerSizeInBits, newHeadPtr, null, null);
+              plist,
+              zeroValue,
+              numericPointerSizeInBits,
+              newHeadPtr,
+              CPointerType.POINTER_TO_VOID,
+              null);
 
       // abstract
       SMGCPAAbstractionManager absFinder =
@@ -7382,7 +7469,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       SMGCandidate firstObj = candidates.iterator().next();
       assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
       state =
-          state.abstractIntoSLL(firstObj.getObject(), nfo, BigInteger.ZERO, ImmutableSet.of(), 0);
+          state.abstractIntoSLL(
+              firstObj.getObject(), nfo, BigInteger.ZERO, ImmutableSet.of(), 0, LIST_POINTER_TYPE);
 
       Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
       // All should be invalid except our SLL here
@@ -7430,7 +7518,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       SMGCandidate firstObj = candidates.iterator().next();
       assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
       state =
-          state.abstractIntoSLL(firstObj.getObject(), nfo, BigInteger.ZERO, ImmutableSet.of(), 0);
+          state.abstractIntoSLL(
+              firstObj.getObject(), nfo, BigInteger.ZERO, ImmutableSet.of(), 0, LIST_POINTER_TYPE);
 
       Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
       // All should be invalid except our SLL here
@@ -7481,7 +7570,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               pfo,
               BigInteger.ZERO,
               ImmutableSet.of(),
-              0);
+              0,
+              LIST_POINTER_TYPE);
 
       Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
       // All should be invalid except our SLL here
@@ -7541,7 +7631,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                 pfo,
                 BigInteger.ZERO,
                 ImmutableSet.of(),
-                0);
+                0,
+                LIST_POINTER_TYPE);
 
         Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
         // All should be invalid except our SLL here
@@ -7698,7 +7789,9 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         prevObjForNxt = currentObj;
         ValueAndSMGState addressAndState =
             currentState.searchOrCreateAddress(
-                derefWConcreteTarget.orElseThrow().getSMGObject(), BigInteger.ZERO);
+                derefWConcreteTarget.orElseThrow().getSMGObject(),
+                CPointerType.POINTER_TO_VOID,
+                BigInteger.ZERO);
         currentState = addressAndState.getState();
         Value address = addressAndState.getValue();
         assertThat(address).isEqualTo(derefPointer);

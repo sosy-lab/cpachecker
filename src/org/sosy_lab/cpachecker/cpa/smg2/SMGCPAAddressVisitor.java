@@ -130,7 +130,8 @@ public class SMGCPAAddressVisitor
     }
     // TODO: assertion that the Strings are immutable
     ValueAndSMGState addressValueAndState =
-        evaluator.createAddressForLocalOrGlobalVariable(globalVarName, currentState);
+        evaluator.createAddressForLocalOrGlobalVariable(
+            globalVarName, e.getExpressionType(), currentState);
     Value addressValue = addressValueAndState.getValue();
     currentState = addressValueAndState.getState();
 

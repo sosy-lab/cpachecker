@@ -27,6 +27,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
@@ -202,7 +204,8 @@ public class SMGCPATest0 {
     SMGObject listSegmentFront = SMGObject.of(0, segmentSize, BigInteger.ZERO);
     currentState = currentState.copyAndAddObjectToHeap(listSegmentFront);
     ValueAndSMGState ptrToFrontAndState =
-        currentState.searchOrCreateAddress(listSegmentFront, otherPtrOffset);
+        currentState.searchOrCreateAddress(
+            listSegmentFront, CPointerType.POINTER_TO_VOID, otherPtrOffset);
     currentState = ptrToFrontAndState.getState();
     currentState =
         currentState.writeValueWithChecks(
@@ -210,7 +213,7 @@ public class SMGCPATest0 {
             new NumericValue(BigInteger.valueOf(0)),
             numericPointerSizeInBits,
             new NumericValue(0),
-            null,
+            CPointerType.POINTER_TO_VOID,
             dummyCDAEdge);
 
     // Pointer to the next list segment
@@ -220,7 +223,7 @@ public class SMGCPATest0 {
             new NumericValue(nfo),
             numericPointerSizeInBits,
             listPtrs[0],
-            null,
+            CPointerType.POINTER_TO_VOID,
             dummyCDAEdge);
     if (dll) {
       currentState =
@@ -229,12 +232,13 @@ public class SMGCPATest0 {
               new NumericValue(pfo),
               numericPointerSizeInBits,
               new NumericValue(0),
-              null,
+              CPointerType.POINTER_TO_VOID,
               dummyCDAEdge);
       List<SMGStateAndOptionalSMGObjectAndOffset> derefedFirstAbstrListElem =
           currentState.dereferencePointer(listPtrs[0]);
       ValueAndSMGState ptrToFirstNotAbstrAndState =
-          currentState.searchOrCreateAddress(listSegmentFront, otherPtrOffset);
+          currentState.searchOrCreateAddress(
+              listSegmentFront, CPointerType.POINTER_TO_VOID, otherPtrOffset);
       currentState = ptrToFirstNotAbstrAndState.getState();
       Value ptrToFirstNotAbstr = ptrToFirstNotAbstrAndState.getValue();
       currentState =
@@ -243,7 +247,7 @@ public class SMGCPATest0 {
               new NumericValue(pfo),
               numericPointerSizeInBits,
               ptrToFirstNotAbstr,
-              null,
+              CPointerType.POINTER_TO_VOID,
               dummyCDAEdge);
     }
 
@@ -255,7 +259,7 @@ public class SMGCPATest0 {
             new NumericValue(BigInteger.valueOf(0)),
             numericPointerSizeInBits,
             new NumericValue(0),
-            null,
+            CPointerType.POINTER_TO_VOID,
             dummyCDAEdge);
     currentState =
         currentState.writeValueWithChecks(
@@ -263,7 +267,7 @@ public class SMGCPATest0 {
             new NumericValue(nfo),
             numericPointerSizeInBits,
             new NumericValue(0),
-            null,
+            CPointerType.POINTER_TO_VOID,
             dummyCDAEdge);
     if (dll) {
       currentState =
@@ -272,7 +276,7 @@ public class SMGCPATest0 {
               new NumericValue(pfo),
               numericPointerSizeInBits,
               listPtrs[listLength - 3],
-              null,
+              CPointerType.POINTER_TO_VOID,
               dummyCDAEdge);
     }
 
@@ -282,7 +286,8 @@ public class SMGCPATest0 {
     assertThat(derefedLastAbstrListElem).hasSize(1);
     assertThat(derefedLastAbstrListElem.get(0).hasSMGObjectAndOffset()).isTrue();
     ValueAndSMGState ptrToLastAndState =
-        currentState.searchOrCreateAddress(listSegmentBack, otherPtrOffset);
+        currentState.searchOrCreateAddress(
+            listSegmentBack, CPointerType.POINTER_TO_VOID, otherPtrOffset);
     currentState = ptrToLastAndState.getState();
     currentState =
         currentState.writeValueWithChecks(
@@ -290,7 +295,7 @@ public class SMGCPATest0 {
             new NumericValue(nfo),
             numericPointerSizeInBits,
             ptrToLastAndState.getValue(),
-            null,
+            CPointerType.POINTER_TO_VOID,
             dummyCDAEdge);
 
     return ImmutableList.<Value>builder()
@@ -323,7 +328,7 @@ public class SMGCPATest0 {
                 new NumericValue(BigInteger.valueOf(j).multiply(BigInteger.valueOf(32))),
                 new NumericValue(pointerSizeInBits),
                 new NumericValue(j),
-                null,
+                CNumericTypes.INT,
                 dummyCDAEdge);
       }
 
@@ -336,12 +341,13 @@ public class SMGCPATest0 {
                 new NumericValue(nfo),
                 numericPointerSizeInBits,
                 nextPointer,
-                null,
+                CPointerType.POINTER_TO_VOID,
                 dummyCDAEdge);
       }
       if (prevObject != null) {
         ValueAndSMGState pointerAndState =
-            currentState.searchOrCreateAddress(listSegment, BigInteger.ZERO);
+            currentState.searchOrCreateAddress(
+                listSegment, CPointerType.POINTER_TO_VOID, BigInteger.ZERO);
         currentState = pointerAndState.getState();
         currentState =
             currentState.writeValueWithChecks(
@@ -349,7 +355,7 @@ public class SMGCPATest0 {
                 new NumericValue(nfo),
                 numericPointerSizeInBits,
                 pointerAndState.getValue(),
-                null,
+                CPointerType.POINTER_TO_VOID,
                 dummyCDAEdge);
       }
 
@@ -360,7 +366,8 @@ public class SMGCPATest0 {
           prevPointer = new NumericValue(0);
         } else {
           ValueAndSMGState pointerAndState =
-              currentState.searchOrCreateAddress(prevObject, BigInteger.ZERO);
+              currentState.searchOrCreateAddress(
+                  prevObject, CPointerType.POINTER_TO_VOID, BigInteger.ZERO);
           prevPointer = pointerAndState.getValue();
           currentState = pointerAndState.getState();
         }
@@ -370,13 +377,14 @@ public class SMGCPATest0 {
                 new NumericValue(pfo),
                 numericPointerSizeInBits,
                 prevPointer,
-                null,
+                CPointerType.POINTER_TO_VOID,
                 dummyCDAEdge);
       }
       if (i == 0 || i == listLength - 1) {
         // Pointer to the list segment
         ValueAndSMGState pointerAndState =
-            currentState.searchOrCreateAddress(listSegment, BigInteger.ZERO);
+            currentState.searchOrCreateAddress(
+                listSegment, CPointerType.POINTER_TO_VOID, BigInteger.ZERO);
         pointerArray[i == 0 ? i : 1] = pointerAndState.getValue();
         currentState = pointerAndState.getState();
         // Save all pointers in objects to not confuse the internal SMG assertions
@@ -392,12 +400,13 @@ public class SMGCPATest0 {
                 new NumericValue(BigInteger.ZERO),
                 new NumericValue(pointerSizeInBits),
                 pointerAndState.getValue(),
-                null,
+                CPointerType.POINTER_TO_VOID,
                 dummyCDAEdge);
       }
       if (listLength == 1) {
         ValueAndSMGState pointerAndState =
-            currentState.searchOrCreateAddress(listSegment, BigInteger.ZERO);
+            currentState.searchOrCreateAddress(
+                listSegment, CPointerType.POINTER_TO_VOID, BigInteger.ZERO);
         pointerArray[1] = pointerAndState.getValue();
         currentState = pointerAndState.getState();
         // Save all pointers in objects to not confuse the internal SMG assertions
@@ -408,7 +417,7 @@ public class SMGCPATest0 {
                 new NumericValue(BigInteger.ZERO),
                 numericPointerSizeInBits,
                 pointerAndState.getValue(),
-                null,
+                CPointerType.POINTER_TO_VOID,
                 dummyCDAEdge);
       }
 
@@ -486,7 +495,7 @@ public class SMGCPATest0 {
                 new NumericValue(BigInteger.valueOf(j).multiply(BigInteger.valueOf(32))),
                 numericPointerSizeInBits,
                 new NumericValue(valueStart + j),
-                null,
+                CNumericTypes.INT,
                 dummyCDAEdge);
       }
 
@@ -499,12 +508,13 @@ public class SMGCPATest0 {
                 new NumericValue(nfo),
                 numericPointerSizeInBits,
                 nextPointer,
-                null,
+                CPointerType.POINTER_TO_VOID,
                 dummyCDAEdge);
       }
       if (prevObject != null) {
         ValueAndSMGState pointerAndState =
-            currentState.searchOrCreateAddress(listSegment, nextPointerTargetOffset);
+            currentState.searchOrCreateAddress(
+                listSegment, CPointerType.POINTER_TO_VOID, nextPointerTargetOffset);
         currentState = pointerAndState.getState();
         currentState =
             currentState.writeValueWithChecks(
@@ -512,7 +522,7 @@ public class SMGCPATest0 {
                 new NumericValue(nfo),
                 numericPointerSizeInBits,
                 pointerAndState.getValue(),
-                null,
+                CPointerType.POINTER_TO_VOID,
                 dummyCDAEdge);
       }
 
@@ -523,7 +533,8 @@ public class SMGCPATest0 {
           prevPointer = new NumericValue(0);
         } else {
           ValueAndSMGState pointerAndState =
-              currentState.searchOrCreateAddress(prevObject, prevPointerTargetOffset.orElseThrow());
+              currentState.searchOrCreateAddress(
+                  prevObject, CPointerType.POINTER_TO_VOID, prevPointerTargetOffset.orElseThrow());
           prevPointer = pointerAndState.getValue();
           currentState = pointerAndState.getState();
         }
@@ -533,12 +544,13 @@ public class SMGCPATest0 {
                 new NumericValue(pfo),
                 numericPointerSizeInBits,
                 prevPointer,
-                null,
+                CPointerType.POINTER_TO_VOID,
                 dummyCDAEdge);
       }
       // Pointer to the list segment
       ValueAndSMGState pointerAndState =
-          currentState.searchOrCreateAddress(listSegment, BigInteger.ZERO);
+          currentState.searchOrCreateAddress(
+              listSegment, CPointerType.POINTER_TO_VOID, BigInteger.ZERO);
       pointerArray[i] = pointerAndState.getValue();
       currentState = pointerAndState.getState();
 
@@ -557,7 +569,7 @@ public class SMGCPATest0 {
                 new NumericValue(BigInteger.ZERO),
                 numericPointerSizeInBits,
                 pointer,
-                null,
+                CPointerType.POINTER_TO_VOID,
                 dummyCDAEdge);
       }
     }
@@ -621,7 +633,7 @@ public class SMGCPATest0 {
                     .getSMGObject(),
                 BigInteger.valueOf(j).multiply(pointerSizeInBits),
                 pointerSizeInBits,
-                null);
+                CPointerType.POINTER_TO_VOID);
         currentState = readDataWithoutMaterialization.getState();
         assertThat(readDataWithoutMaterialization.getValue().isNumericValue()).isTrue();
         assertThat(readDataWithoutMaterialization.getValue().asNumericValue().bigIntegerValue())
@@ -650,7 +662,7 @@ public class SMGCPATest0 {
               new NumericValue(BigInteger.valueOf(i).multiply(BigInteger.valueOf(sizeOfElements))),
               new NumericValue(BigInteger.valueOf(sizeOfElements)),
               valuesInOrder[i],
-              null,
+              CNumericTypes.INT,
               dummyCDAEdge);
     }
 

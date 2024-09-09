@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
@@ -124,6 +125,11 @@ public class SMGCPAAbstractionManager {
         if (!currentState.getMemoryModel().isObjectValid(candidate.getObject())) {
           continue;
         }
+        Set<SMGValue> ptrsToListCandidate =
+            currentState.getMemoryModel().getSmg().getPointerValuesForTarget(candidate.getObject());
+        Preconditions.checkArgument(!ptrsToListCandidate.isEmpty());
+        CType listPointerType =
+            currentState.getMemoryModel().getTypeForValue(ptrsToListCandidate.iterator().next());
         int nestingLvl = getNewNestingLvl(candidate, currentState);
         if (candidate.isDLL()) {
           currentState =
@@ -134,7 +140,8 @@ public class SMGCPAAbstractionManager {
                   candidate.getSuspectedPfo().orElseThrow(),
                   candidate.getSuspectedPfoTargetPointerOffset().orElseThrow(),
                   ImmutableSet.of(),
-                  nestingLvl);
+                  nestingLvl,
+                  listPointerType);
 
         } else {
           currentState =
@@ -143,7 +150,8 @@ public class SMGCPAAbstractionManager {
                   candidate.getSuspectedNfo(),
                   candidate.getSuspectedNfoTargetOffset(),
                   ImmutableSet.of(),
-                  nestingLvl);
+                  nestingLvl,
+                  listPointerType);
         }
       }
     }

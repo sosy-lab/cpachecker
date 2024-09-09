@@ -397,7 +397,8 @@ public class SMGCPABuiltins {
         BigInteger.valueOf(currentStack.getVariableArguments().size()).multiply(sizeInBitsVarArg);
 
     ValueAndSMGState pointerAndState =
-        evaluator.createHeapMemoryAndPointer(currentState, new NumericValue(overallSizeOfVarArgs));
+        evaluator.createHeapMemoryAndPointer(
+            currentState, new NumericValue(overallSizeOfVarArgs), CPointerType.POINTER_TO_VOID);
 
     currentState = pointerAndState.getState();
     Value address = pointerAndState.getValue();
@@ -753,7 +754,12 @@ public class SMGCPABuiltins {
 
       resultBuilder.addAll(
           handleConfigurableMemoryAllocation(
-              functionCall, currentState, sizeInBits, sizeType, cfaEdge));
+              functionCall,
+              currentState,
+              sizeInBits,
+              sizeType,
+              functionCall.getExpressionType(),
+              cfaEdge));
     }
 
     return resultBuilder.build();
@@ -765,6 +771,7 @@ public class SMGCPABuiltins {
       SMGState pState,
       Value sizeInBits,
       CType sizeType,
+      CType returnType,
       CFAEdge edge)
       throws SMGException, SMGSolverException {
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
@@ -779,7 +786,8 @@ public class SMGCPABuiltins {
 
       // Create a new memory region with the specified size and use the pointer to its beginning
       // from now on
-      ValueAndSMGState addressAndState = evaluator.createHeapMemoryAndPointer(pState, sizeInBits);
+      ValueAndSMGState addressAndState =
+          evaluator.createHeapMemoryAndPointer(pState, sizeInBits, returnType);
       Value addressToNewRegion = addressAndState.getValue();
       SMGState stateWithNewHeap = addressAndState.getState();
 
@@ -799,7 +807,7 @@ public class SMGCPABuiltins {
       // Symbolic size allowed
       // sizeInBits is a symbolic expr with a multiplication times 8 inside
       resultBuilder.addAll(
-          handleSymbolicAllocation(sizeInBits, sizeType, pState, edge, functionName));
+          handleSymbolicAllocation(sizeInBits, sizeType, returnType, pState, edge, functionName));
     }
 
     // If malloc can fail (and fails) it simply returns a pointer to 0 (C also sets errno)
@@ -812,7 +820,12 @@ public class SMGCPABuiltins {
   }
 
   private Collection<ValueAndSMGState> handleSymbolicAllocation(
-      Value sizeInBits, CType sizeType, SMGState pState, CFAEdge edge, String functionName)
+      Value sizeInBits,
+      CType sizeType,
+      CType pointerType,
+      SMGState pState,
+      CFAEdge edge,
+      String functionName)
       throws SMGSolverException, SMGException {
     // Symbolic size allowed
     // check that the size is not 0 (or may be zero)
@@ -852,7 +865,7 @@ public class SMGCPABuiltins {
     if (satisfiabilityAndStateNotEqZero.isSAT()) {
       // Create a state with the memory size
       ValueAndSMGState addressAndState =
-          evaluator.createHeapMemoryAndPointer(stateWithNewNonZeroHeap, sizeInBits);
+          evaluator.createHeapMemoryAndPointer(stateWithNewNonZeroHeap, sizeInBits, pointerType);
       addressToNewRegion = addressAndState.getValue();
       stateWithNewNonZeroHeap = addressAndState.getState();
 
@@ -885,7 +898,7 @@ public class SMGCPABuiltins {
     } else {
       // Some size, does not matter
       return evaluator.createMallocZeroMemoryAndPointer(
-          currentState, new NumericValue(BigInteger.ONE));
+          currentState, new NumericValue(BigInteger.ONE), CPointerType.POINTER_TO_VOID);
     }
   }
 
@@ -1180,15 +1193,18 @@ public class SMGCPABuiltins {
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> evaluateAlloca(
-      SMGState pState, Value pSizeValue, CType type, @SuppressWarnings("unused") CFAEdge cfaEdge)
+      SMGState pState,
+      Value pSizeValue,
+      CType memoryType,
+      @SuppressWarnings("unused") CFAEdge cfaEdge)
       throws CPATransferException {
     Value sizeInBits =
         SMGCPAExpressionEvaluator.multiplyValues(
-            pSizeValue, BigInteger.valueOf(8), type, machineModel);
+            pSizeValue, BigInteger.valueOf(8), memoryType, machineModel);
 
     String allocationLabel = "_ALLOCA_ID_" + U_ID_GENERATOR.getFreshId();
     ValueAndSMGState addressValueAndState =
-        evaluator.createStackAllocation(allocationLabel, sizeInBits, type, pState);
+        evaluator.createStackAllocation(allocationLabel, sizeInBits, memoryType, pState);
 
     return ImmutableList.of(
         ValueAndSMGState.of(addressValueAndState.getValue(), addressValueAndState.getState()));
@@ -1555,7 +1571,10 @@ public class SMGCPABuiltins {
 
     ValueAndSMGState newPointersAndStates =
         evaluator.searchOrCreatePointer(
-            targetAddress, new NumericValue(targetOffset), copyResultState);
+            targetAddress,
+            CPointerType.POINTER_TO_VOID,
+            new NumericValue(targetOffset),
+            copyResultState);
 
     return ValueAndSMGState.of(newPointersAndStates.getValue(), newPointersAndStates.getState());
   }
@@ -1750,7 +1769,7 @@ public class SMGCPABuiltins {
     if (pPtrValue.isNumericValue()
         && pPtrValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
       return handleConfigurableMemoryAllocation(
-          functionCall, currentState, sizeInBits, sizeType, pCfaEdge);
+          functionCall, currentState, sizeInBits, sizeType, CPointerType.POINTER_TO_VOID, pCfaEdge);
     } else if (options.trackPredicates()) {
       // Check with solver
       throw new SMGException("Can't handle symbolic realloc parameters.");
@@ -1771,7 +1790,8 @@ public class SMGCPABuiltins {
       currentState = oldObj.getSMGState();
       // Malloc new memory
       ValueAndSMGState addressAndState =
-          evaluator.createHeapMemoryAndPointer(currentState, sizeInBits);
+          evaluator.createHeapMemoryAndPointer(
+              currentState, sizeInBits, CPointerType.POINTER_TO_VOID);
       Value addressToNewRegion = addressAndState.getValue();
       currentState = addressAndState.getState();
       // New mem can not materialize, and we know the offset is 0

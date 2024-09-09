@@ -225,6 +225,8 @@ public class SMGCPAExpressionEvaluator {
       // Get the correct address with its offset in the SMGPointsToEdge
       Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTargetAndOffset =
           state.getPointsToTarget(address1.getMemoryAddress());
+      CType pointerType = state.getMemoryModel().getTypeForValue(address1.getMemoryAddress());
+      Preconditions.checkNotNull(pointerType);
       if (maybeTargetAndOffset.isEmpty()) {
         return ValueAndSMGState.ofUnknownValue(state);
       }
@@ -240,7 +242,7 @@ public class SMGCPAExpressionEvaluator {
       }
       Value offset = addOffsetValues(offsetValue, additionalOffset);
 
-      return searchOrCreatePointer(target, offset, state);
+      return searchOrCreatePointer(target, pointerType, offset, state);
     }
   }
 
@@ -292,7 +294,8 @@ public class SMGCPAExpressionEvaluator {
    * @return the {@link Value} that is the address for the new heap memory region created with the
    *     size and the {@link SMGState} with the region (SMGObject) pointer and address Value added.
    */
-  public ValueAndSMGState createHeapMemoryAndPointer(SMGState pInitialSmgState, Value sizeInBits) {
+  public ValueAndSMGState createHeapMemoryAndPointer(
+      SMGState pInitialSmgState, Value sizeInBits, CType pointerType) {
     SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddNewHeapObject(sizeInBits);
     SMGObject newObject = newObjectAndState.getSMGObject();
     SMGState newState = newObjectAndState.getState();
@@ -300,7 +303,8 @@ public class SMGCPAExpressionEvaluator {
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     // New regions always have offset 0
     SMGState finalState =
-        newState.createAndAddPointer(addressValue, newObject, new NumericValue(BigInteger.ZERO));
+        newState.createAndAddPointer(
+            addressValue, newObject, new NumericValue(BigInteger.ZERO), pointerType);
     return ValueAndSMGState.of(addressValue, finalState);
   }
 
@@ -313,7 +317,7 @@ public class SMGCPAExpressionEvaluator {
    * @return {@link ValueAndSMGState} of the pointer to the memory and its state.
    */
   public ValueAndSMGState createMallocZeroMemoryAndPointer(
-      SMGState pInitialSmgState, Value sizeInBits) {
+      SMGState pInitialSmgState, Value sizeInBits, CType pointerType) {
     SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddNewHeapObject(sizeInBits);
     SMGObject newObject = newObjectAndState.getSMGObject();
     SMGState newState = newObjectAndState.getState();
@@ -321,7 +325,8 @@ public class SMGCPAExpressionEvaluator {
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     // New regions always have offset 0
     SMGState finalState =
-        newState.createAndAddPointer(addressValue, newObject, new NumericValue(BigInteger.ZERO));
+        newState.createAndAddPointer(
+            addressValue, newObject, new NumericValue(BigInteger.ZERO), pointerType);
     SymbolicProgramConfiguration newSPC =
         finalState.getMemoryModel().setMemoryAsResultOfMallocZero(newObject);
     newSPC = newSPC.invalidateSMGObject(newObject, false);
@@ -339,7 +344,8 @@ public class SMGCPAExpressionEvaluator {
    * @return the {@link Value} that is the address for the new stack memory region created with the
    *     size and the {@link SMGState} with the region (SMGObject) pointer and address Value added.
    */
-  public ValueAndSMGState createStackMemoryAndPointer(SMGState pInitialSmgState, Value sizeInBits) {
+  public ValueAndSMGState createStackMemoryAndPointer(
+      SMGState pInitialSmgState, Value sizeInBits, CType pointerType) {
     SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddStackObject(sizeInBits);
     SMGObject newObject = newObjectAndState.getSMGObject();
     SMGState newState = newObjectAndState.getState();
@@ -347,7 +353,8 @@ public class SMGCPAExpressionEvaluator {
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     // New regions always have offset 0
     SMGState finalState =
-        newState.createAndAddPointer(addressValue, newObject, new NumericValue(BigInteger.ZERO));
+        newState.createAndAddPointer(
+            addressValue, newObject, new NumericValue(BigInteger.ZERO), pointerType);
     return ValueAndSMGState.of(addressValue, finalState);
   }
 
@@ -395,10 +402,9 @@ public class SMGCPAExpressionEvaluator {
                   functionObject.orElseThrow(), currentState);
         } else {
           // This is not necessarily an error! If we can't get an address because a lookup is based
-          // on
-          // an unknown value for example. We create a dummy pointer in such cases that points
-          // nowhere
-          // throw new SMG2Exception("No address could be created for the expression: " + operand);
+          // on an unknown value for example. We create a dummy pointer in such cases that points
+          // nowhere throw
+          // new SMG2Exception("No address could be created for the expression: " + operand);
           // Try unknown first, wrapped in AddressExpr and see what happens
           resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
           continue;
@@ -413,7 +419,12 @@ public class SMGCPAExpressionEvaluator {
         // continue;
       }
       // search for existing pointer first and return if found; else make a new one
-      ValueAndSMGState addressAndState = searchOrCreatePointer(target, offset, currentState);
+      ValueAndSMGState addressAndState =
+          searchOrCreatePointer(
+              target,
+              SMGCPAExpressionEvaluator.getCanonicalType(operand.getExpressionType()),
+              offset,
+              currentState);
       resultBuilder.add(
           ValueAndSMGState.of(
               AddressExpression.withZeroOffset(
@@ -489,15 +500,17 @@ public class SMGCPAExpressionEvaluator {
       Value finalOffsetInBits = addOffsetValues(baseOffset, offsetInBits);
 
       // search for existing pointer first and return if found; else make a new one for the offset
+      CType knownType = pState.getMemoryModel().getTypeForValue(targetAddress);
       returnBuilder.add(
-          searchOrCreatePointer(object, finalOffsetInBits, maybeTargetAndOffset.getSMGState()));
+          searchOrCreatePointer(
+              object, knownType, finalOffsetInBits, maybeTargetAndOffset.getSMGState()));
     }
     return returnBuilder.build();
   }
 
   public ValueAndSMGState searchOrCreatePointer(
-      SMGObject targetObject, Value offsetInBits, SMGState pState) {
-    return pState.searchOrCreateAddress(targetObject, offsetInBits);
+      SMGObject targetObject, CType pointerType, Value offsetInBits, SMGState pState) {
+    return pState.searchOrCreateAddress(targetObject, pointerType, offsetInBits);
   }
 
   /**
@@ -586,7 +599,8 @@ public class SMGCPAExpressionEvaluator {
         break;
       }
     }
-    return searchOrCreatePointer(bestObj, new NumericValue(bestDifToMemBeginning), state);
+    return searchOrCreatePointer(
+        bestObj, CPointerType.POINTER_TO_VOID, new NumericValue(bestDifToMemBeginning), state);
   }
 
   /**
@@ -595,11 +609,12 @@ public class SMGCPAExpressionEvaluator {
    * operator.
    *
    * @param variableName the variable name. The variable should exist, else an exception is thrown.
+   * @param type the type of the address created.
    * @param pState current {@link SMGState}
    * @return either unknown or a {@link Value} representing the address.
    */
   public ValueAndSMGState createAddressForLocalOrGlobalVariable(
-      String variableName, SMGState pState) {
+      String variableName, CType type, SMGState pState) {
     // Get the variable SMGObject
     Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeObjectAndOffset =
         getTargetObjectAndOffset(pState, variableName, new NumericValue(BigInteger.ZERO));
@@ -628,7 +643,7 @@ public class SMGCPAExpressionEvaluator {
     // If none is found, we need a new Value -> SMGValue mapping for the address + a new
     // PointsToEdge with the correct offset
     Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
-    SMGState newState = pState.createAndAddPointer(addressValue, target, offset);
+    SMGState newState = pState.createAndAddPointer(addressValue, target, offset, type);
     return ValueAndSMGState.of(addressValue, newState);
   }
 
@@ -640,18 +655,22 @@ public class SMGCPAExpressionEvaluator {
    *
    * @param internalName internal name that should be unique.
    * @param sizeInBits size in bits for the memory region created.
+   * @param memoryType the type of the local
    * @return the Value leading to the created region (pointer) and the state with the pointer, value
    *     and the region added.
    * @throws CPATransferException may be thrown if i.e. there is no stackframe or the variable was
    *     not found (should never be possible).
    */
   public ValueAndSMGState createStackAllocation(
-      String internalName, Value sizeInBits, CType type, SMGState pState)
+      String internalName, Value sizeInBits, CType memoryType, SMGState pState)
       throws CPATransferException {
     Preconditions.checkArgument(
         !pState.getMemoryModel().getStackFrames().peek().containsVariable(internalName));
+    // We could also wrap the type
     return createAddressForLocalOrGlobalVariable(
-        internalName, pState.copyAndAddLocalVariable(sizeInBits, internalName, type));
+        internalName,
+        CPointerType.POINTER_TO_VOID,
+        pState.copyAndAddLocalVariable(sizeInBits, internalName, memoryType));
   }
 
   /**
@@ -2421,7 +2440,8 @@ public class SMGCPAExpressionEvaluator {
       for (SMGState initedState : initedStates) {
         // Now create a pointer to the String memory and save that in the original variable
         ValueAndSMGState addressAndState =
-            createAddressForLocalOrGlobalVariable(stringVarName, initedState);
+            createAddressForLocalOrGlobalVariable(
+                stringVarName, pCurrentExpressionType, initedState);
         SMGState addressState = addressAndState.getState();
         stateBuilder.add(
             addressState.writeToStackOrGlobalVariable(

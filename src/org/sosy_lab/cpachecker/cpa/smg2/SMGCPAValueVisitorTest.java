@@ -3315,13 +3315,15 @@ public class SMGCPAValueVisitorTest {
   private void writeToStackVariableInMemoryModel(
       String stackVariableName, int writeOffsetInBits, int writeSizeInBits, Value valueToWrite)
       throws SMGException {
+    CType dummyType = CPointerType.POINTER_TO_VOID;
     if (valueToWrite instanceof AddressExpression) {
-      ValueAndSMGState valueToWriteAndState = currentState.transformAddressExpression(valueToWrite);
+      ValueAndSMGState valueToWriteAndState =
+          currentState.transformAddressExpression(valueToWrite, dummyType);
       valueToWrite = valueToWriteAndState.getValue();
       currentState = valueToWriteAndState.getState();
     }
     Preconditions.checkArgument(!(valueToWrite instanceof AddressExpression));
-    SMGValueAndSMGState valueAndState = currentState.copyAndAddValue(valueToWrite);
+    SMGValueAndSMGState valueAndState = currentState.copyAndAddValue(valueToWrite, dummyType);
     SMGValue smgValue = valueAndState.getSMGValue();
     currentState = valueAndState.getSMGState();
     currentState =
@@ -3362,6 +3364,7 @@ public class SMGCPAValueVisitorTest {
         spc.copyAndAddPointerFromAddressToMemory(
             addressValue,
             smgHeapObject,
+            CPointerType.POINTER_TO_VOID,
             new NumericValue(BigInteger.valueOf(offset)),
             0,
             SMGTargetSpecifier.IS_REGION);
@@ -3381,9 +3384,9 @@ public class SMGCPAValueVisitorTest {
    */
   private Value addPointerToMemory(SMGObject pTarget, int offset)
       throws InvalidConfigurationException {
-
+    CType dummyType = CPointerType.POINTER_TO_VOID;
     ValueAndSMGState addressAndState =
-        currentState.searchOrCreateAddress(pTarget, BigInteger.valueOf(offset));
+        currentState.searchOrCreateAddress(pTarget, dummyType, BigInteger.valueOf(offset));
 
     currentState = addressAndState.getState();
     visitor =
@@ -3404,7 +3407,9 @@ public class SMGCPAValueVisitorTest {
     // Mapping to the smg points to edge
     ValueAndSMGState newPointerValueAndState =
         currentState.searchOrCreateAddress(
-            objectAndOffset.getSMGObject(), BigInteger.valueOf(offset));
+            objectAndOffset.getSMGObject(),
+            CPointerType.POINTER_TO_VOID,
+            BigInteger.valueOf(offset));
     currentState = newPointerValueAndState.getState();
 
     // This state now has the stack variable that is the pointer to the struct and the struct with a
@@ -3432,7 +3437,8 @@ public class SMGCPAValueVisitorTest {
     SymbolicProgramConfiguration spc = currentState.getMemoryModel();
     SMGStateAndOptionalSMGObjectAndOffset targetAndOffset =
         currentState.dereferencePointer(addressValue).get(0);
-    spc = spc.copyAndCreateValue(valueToWrite);
+    CType dummyType = CPointerType.POINTER_TO_VOID;
+    spc = spc.copyAndCreateValue(valueToWrite, dummyType);
     spc =
         spc.writeValue(
             targetAndOffset.getSMGObject(),

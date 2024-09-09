@@ -881,7 +881,8 @@ public class SMGCPAValueVisitor
 
         // if the variable is an array, create/search new pointer to the array and return that
         finalStatesBuilder.add(
-            evaluator.createAddressForLocalOrGlobalVariable(variableName, currentState));
+            evaluator.createAddressForLocalOrGlobalVariable(
+                variableName, returnType, currentState));
         continue;
 
       } else if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)) {
