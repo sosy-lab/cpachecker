@@ -14,11 +14,14 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
@@ -26,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORCreate;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @SuppressWarnings("unused")
@@ -36,10 +40,14 @@ public class ThreadBuilder {
 
   private int currentPc = SeqUtil.INIT_PC;
 
+  /** A copy of the GlobalAccessChecker in {@link MPORAlgorithm}. */
+  private final GlobalAccessChecker GAC;
+
   /** A copy of the functionCallMap in {@link MPORAlgorithm}. */
   private final ImmutableMap<CFANode, CFANode> functionCallMap;
 
-  public ThreadBuilder(ImmutableMap<CFANode, CFANode> pFunctionCallMap) {
+  public ThreadBuilder(GlobalAccessChecker pGac, ImmutableMap<CFANode, CFANode> pFunctionCallMap) {
+    GAC = pGac;
     functionCallMap = pFunctionCallMap;
   }
 
@@ -64,6 +72,11 @@ public class ThreadBuilder {
     initThreadVariables(
         pExitNode, visitedNodes, threadNodes, threadEdges, pEntryNode, Optional.empty());
 
+    ThreadCFA threadCfa =
+        new ThreadCFA(pEntryNode, pExitNode, threadNodes.build(), threadEdges.build());
+
+    ImmutableSet<CVariableDeclaration> localVars = getLocalVars(threadEdges.build());
+
     ImmutableSet.Builder<MPORCreate> creates = ImmutableSet.builder();
     searchThreadForCreates(
         creates, pExitNode, new HashSet<>(), new HashSet<>(), pEntryNode, Optional.empty());
@@ -76,16 +89,14 @@ public class ThreadBuilder {
 
     // TODO searchThreadForBarriers
 
-    ThreadCFA threadCfa =
-        new ThreadCFA(
-            pEntryNode,
-            pExitNode,
-            threadNodes.build(),
-            threadEdges.build(),
-            creates.build(),
-            mutexes.build(),
-            joins.build());
-    return new MPORThread(currentId++, pThreadObject, threadCfa);
+    return new MPORThread(
+        currentId++,
+        pThreadObject,
+        localVars,
+        creates.build(),
+        mutexes.build(),
+        joins.build(),
+        threadCfa);
   }
 
   /**
@@ -127,6 +138,24 @@ public class ThreadBuilder {
         }
       }
     }
+  }
+
+  /** Extracts all local variable declarations from pThreadEdges. */
+  private ImmutableSet<CVariableDeclaration> getLocalVars(ImmutableSet<ThreadEdge> pThreadEdges) {
+    ImmutableSet.Builder<CVariableDeclaration> rLocalVars = ImmutableSet.builder();
+    for (ThreadEdge threadEdge : pThreadEdges) {
+      CFAEdge edge = threadEdge.cfaEdge;
+      if (edge instanceof CDeclarationEdge declarationEdge) {
+        if (!GAC.hasGlobalAccess(edge) && !declarationEdge.getDeclaration().isGlobal()) {
+          AAstNode aAstNode = declarationEdge.getRawAST().orElseThrow();
+          // exclude FunctionDeclarations
+          if (aAstNode instanceof CVariableDeclaration cVariableDeclaration) {
+            rLocalVars.add(cVariableDeclaration);
+          }
+        }
+      }
+    }
+    return rLocalVars.build();
   }
 
   /**

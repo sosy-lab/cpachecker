@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.ExecutionTrace;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.MPORState;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.tests.MPORTests;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadBuilder;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -414,7 +415,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     PTR = predicateCpa.getTransferRelation();
 
     functionCallMap = getFunctionCallMap(INPUT_CFA);
-    threadBuilder = new ThreadBuilder(functionCallMap);
+    threadBuilder = new ThreadBuilder(GAC, functionCallMap);
     stateBuilder = new StateBuilder(PTR, functionCallMap);
 
     globalVars = getGlobalVars(INPUT_CFA);

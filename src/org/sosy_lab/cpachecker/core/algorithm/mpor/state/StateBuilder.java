@@ -221,7 +221,7 @@ public class StateBuilder {
       if (!createdThread.equals(pCreatingThread)) {
         if (entry.getValue().equals(createdThread.cfa.entryNode)) {
           // check if pCreatingThread creates the thread which is at its entry
-          for (MPORCreate create : pCreatingThread.cfa.creates) {
+          for (MPORCreate create : pCreatingThread.creates) {
             if (create.createdPthreadT.equals(createdThread.threadObject.orElseThrow())) {
               ImmutableSet<CFAEdge> subsequentEdges =
                   ImmutableSet.copyOf(CFAUtils.leavingEdges(createdThread.cfa.entryNode));
@@ -256,7 +256,7 @@ public class StateBuilder {
     ImmutableSet.Builder<PreferenceOrder> rMutexPreferenceOrders = ImmutableSet.builder();
 
     // if pThreadInMutex is in a mutex lock
-    for (MPORMutex mutex : pThreadInMutex.cfa.mutexes) {
+    for (MPORMutex mutex : pThreadInMutex.mutexes) {
       if (mutex.nodes.contains(pNodeInMutex)) {
 
         // search all other threads for pthread_mutex_lock calls to the same pthread_mutex_t object
@@ -305,7 +305,7 @@ public class StateBuilder {
 
     ImmutableSet.Builder<PreferenceOrder> rJoinPreferenceOrders = ImmutableSet.builder();
     // if pJoiningThread is right before a pthread_join call
-    for (MPORJoin join : pJoiningThread.cfa.joins) {
+    for (MPORJoin join : pJoiningThread.joins) {
       if (pJoiningNode.equals(join.preJoinNode)) {
         CExpression pthreadT = CFAUtils.getParameterAtIndex(join.joinEdge, 0);
         MPORThread targetThread = getThreadByPthreadT(pThreadNodes, pthreadT);

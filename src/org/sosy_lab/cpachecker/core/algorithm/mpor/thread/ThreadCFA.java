@@ -12,9 +12,6 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORCreate;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORJoin;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.preference_order.MPORMutex;
 
 public class ThreadCFA {
   /** FunctionEntryNode of the main function (main thread) or start routine (pthreads). */
@@ -31,28 +28,20 @@ public class ThreadCFA {
 
   public final ImmutableSet<ThreadEdge> threadEdges;
 
-  public final ImmutableSet<MPORCreate> creates;
-
-  public final ImmutableSet<MPORMutex> mutexes;
-
-  public final ImmutableSet<MPORJoin> joins;
+  // TODO for each FunctionCallEdge, map the original CVariableDeclaration to the
+  //  CParameterDeclaration. if a parameter declaration is a key, search for it in the values and
+  //  replace the parameter declaration
 
   protected ThreadCFA(
       FunctionEntryNode pEntryNode,
       FunctionExitNode pExitNode,
       ImmutableSet<ThreadNode> pThreadNodes,
-      ImmutableSet<ThreadEdge> pThreadEdges,
-      ImmutableSet<MPORCreate> pCreates,
-      ImmutableSet<MPORMutex> pMutexes,
-      ImmutableSet<MPORJoin> pJoins) {
+      ImmutableSet<ThreadEdge> pThreadEdges) {
 
     entryNode = pEntryNode;
     exitNode = pExitNode;
     threadNodes = pThreadNodes;
     threadEdges = pThreadEdges;
-    creates = pCreates;
-    mutexes = pMutexes;
-    joins = pJoins;
     initPredecessors();
     initSuccessors();
   }
