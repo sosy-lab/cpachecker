@@ -96,6 +96,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
+import org.sosy_lab.cpachecker.util.XMLUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
@@ -1112,7 +1113,13 @@ public class AutomatonGraphmlParser {
       throws WitnessParseException, IOException {
 
     // Parse the XML document ----
-    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilderFactory docFactory;
+
+    try {
+      docFactory = XMLUtils.getSecureDocumentBuilderFactory(true);
+    } catch (ParserConfigurationException e1) {
+      throw new WitnessParseException(e1);
+    }
 
     Document doc;
     try {
@@ -2121,7 +2128,9 @@ public class AutomatonGraphmlParser {
   public static boolean isGraphmlAutomaton(Path pPath) throws IOException {
     SAXParser saxParser;
     try {
-      saxParser = SAXParserFactory.newInstance().newSAXParser();
+      SAXParserFactory saxFactory = XMLUtils.getSecureSaxParserFactory();
+
+      saxParser = saxFactory.newSAXParser();
     } catch (ParserConfigurationException | SAXException e) {
       throw new AssertionError(
           "SAX parser configured incorrectly. Could not determine whether or not the file describes"
@@ -2170,7 +2179,14 @@ public class AutomatonGraphmlParser {
   private static AutomatonGraphmlCommon.WitnessType getWitnessType(InputStream pInputStream)
       throws InvalidConfigurationException, IOException {
     // Parse the XML document ----
-    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilderFactory docFactory;
+
+    try {
+      docFactory = XMLUtils.getSecureDocumentBuilderFactory(true);
+    } catch (ParserConfigurationException e1) {
+      throw new WitnessParseException(e1);
+    }
+
     Document doc;
     try {
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
