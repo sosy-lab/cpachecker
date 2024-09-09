@@ -18,10 +18,16 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
@@ -70,6 +76,34 @@ public final class MPORUtil {
         return pPrevFuncReturnNode;
       }
     }
+  }
+
+  public static CFunctionType getCFuncTypeFromCfaNode(CFANode pNode) {
+    if (pNode.getFunction().getType() instanceof CFunctionType cFuncType) {
+      return cFuncType;
+    }
+    throw new IllegalArgumentException("unable to extract CFunctionType from pNode");
+  }
+
+  // TODO use to sequentialize summaryEdges
+  public static CVariableDeclaration getVarDeclarationFromSummaryEdge(FunctionSummaryEdge pEdge) {
+    if (pEdge.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
+      if (assignment.getLeftHandSide() instanceof CIdExpression cIdExpression) {
+        if (cIdExpression.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration) {
+          return cVariableDeclaration;
+        }
+      }
+    }
+    throw new IllegalArgumentException("casting not possible");
+  }
+
+  // TODO use to sequentialize summaryEdges
+  public static CFunctionCallExpression getFunctionCallExprFromSummaryEdge(
+      FunctionSummaryEdge pEdge) {
+    if (pEdge.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
+      return assignment.getRightHandSide();
+    }
+    throw new IllegalArgumentException("casting not possible");
   }
 
   /**

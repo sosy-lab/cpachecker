@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -97,6 +99,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+
+    FluentIterable<CFAEdge> allEdges = CFAUtils.allEdges(INPUT_CFA);
+    for (CFAEdge edge : allEdges) {
+      if (true) {
+        continue;
+      }
+    }
 
     checkForCorrectInitialState(pReachedSet, threads);
 
@@ -374,7 +383,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * A map from FunctionCallEdge Predecessors to Return Nodes. Needs to be initialized before {@link
    * MPORAlgorithm#threads}.
    */
-  private final ImmutableMap<CFANode, CFANode> functionCallMap;
+  private final ImmutableMap<CFANode, CFANode> funcCallMap;
+
+  private final ImmutableMap<CFunctionType, ImmutableSet<CReturnStatementEdge>> funcReturnEdges;
 
   private final StateBuilder stateBuilder;
 
@@ -385,7 +396,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /**
    * The set of threads in the program, including the main thread and all pthreads. Needs to be
-   * initialized after {@link MPORAlgorithm#functionCallMap}.
+   * initialized after {@link MPORAlgorithm#funcCallMap}.
    */
   private final ImmutableSet<MPORThread> threads;
 
@@ -413,12 +424,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         CPAs.retrieveCPAOrFail(CPA, PredicateCPA.class, PredicateRefiner.class);
     PTR = predicateCpa.getTransferRelation();
 
-    functionCallMap = getFunctionCallMap(INPUT_CFA);
-    threadBuilder = new ThreadBuilder(GAC, functionCallMap);
-    stateBuilder = new StateBuilder(PTR, functionCallMap);
+    funcCallMap = getFunctionCallMap(INPUT_CFA);
+    funcReturnEdges = getFuncReturnEdges(INPUT_CFA);
+    threadBuilder = new ThreadBuilder(GAC, funcCallMap);
+    stateBuilder = new StateBuilder(PTR, funcCallMap);
 
     globalVars = getGlobalVars(INPUT_CFA);
-    threads = getThreads(INPUT_CFA, functionCallMap);
+    threads = getThreads(INPUT_CFA, funcCallMap);
 
     SEQ = new Sequentialization(threads.size());
   }
@@ -503,6 +515,27 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     return rFunctionCallMap.buildOrThrow();
+  }
+
+  private ImmutableMap<CFunctionType, ImmutableSet<CReturnStatementEdge>> getFuncReturnEdges(
+      CFA pCfa) {
+    ImmutableMap.Builder<CFunctionType, ImmutableSet<CReturnStatementEdge>> rFuncReturnEdges =
+        ImmutableMap.builder();
+    for (FunctionEntryNode entryNode : pCfa.entryNodes()) {
+      CFunctionType entryCFuncType = MPORUtil.getCFuncTypeFromCfaNode(entryNode);
+      ImmutableSet.Builder<CReturnStatementEdge> returnEdges = ImmutableSet.builder();
+      for (CFAEdge edge : pCfa.edges()) {
+        if (edge instanceof CReturnStatementEdge cFuncReturnEdge) {
+          CFunctionType cFuncType =
+              MPORUtil.getCFuncTypeFromCfaNode(cFuncReturnEdge.getPredecessor());
+          if (cFuncType.equals(entryCFuncType)) {
+            returnEdges.add(cFuncReturnEdge);
+          }
+        }
+      }
+      rFuncReturnEdges.put(entryCFuncType, returnEdges.build());
+    }
+    return rFuncReturnEdges.build();
   }
 
   // TODO create method extracting the CVariableDeclaration from a CExpression
