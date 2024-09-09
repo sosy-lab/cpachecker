@@ -56,6 +56,10 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
   private final StatTimer totalListSearchTime =
       new StatTimer("Time spend on searching for lists to abstract");
 
+  private final StatTimer totalMergeTime = new StatTimer("Time spend on merging states");
+  private StatCounter successfulMerges = new StatCounter("Number of successful merges");
+  private StatCounter mergeAttempts = new StatCounter("Number of merges attempted");
+
   private StatCounter assumptions = new StatCounter("Number of assumptions");
   private StatCounter deterministicAssumptions =
       new StatCounter("Number of deterministic assumptions");
@@ -113,6 +117,11 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
     writer.put(
         "Max time spent on searching a single list abstractions: ",
         totalListSearchTime.getMaxTime());
+
+    writer.put("Total time spent on merging states: ", totalMergeTime.getConsumedTime());
+    writer.put("Max time spent on merging two states: ", totalMergeTime.getMaxTime());
+    writer.put("Number of merge attempts: ", mergeAttempts);
+    writer.put("Number of successful merges: ", successfulMerges);
   }
 
   /**
@@ -189,6 +198,18 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
 
   int getCurrentNumberOfIterations() {
     return iterations.intValue();
+  }
+
+  StatTimer getMergeTime() {
+    return totalMergeTime;
+  }
+
+  void incrementNumberOfSuccessfulMerges() {
+    successfulMerges.inc();
+  }
+
+  void incrementMergeAttempts() {
+    mergeAttempts.inc();
   }
 
   int getCurrentLevelOfDeterminism() {
