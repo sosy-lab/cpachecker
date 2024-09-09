@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORCreate;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORMutex;
-import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @SuppressWarnings("unused")
@@ -40,14 +39,10 @@ public class ThreadBuilder {
 
   private int currentPc = SeqUtil.INIT_PC;
 
-  /** A copy of the GlobalAccessChecker in {@link MPORAlgorithm}. */
-  private final GlobalAccessChecker GAC;
-
   /** A copy of the functionCallMap in {@link MPORAlgorithm}. */
   private final ImmutableMap<CFANode, CFANode> functionCallMap;
 
-  public ThreadBuilder(GlobalAccessChecker pGac, ImmutableMap<CFANode, CFANode> pFunctionCallMap) {
-    GAC = pGac;
+  public ThreadBuilder(ImmutableMap<CFANode, CFANode> pFunctionCallMap) {
     functionCallMap = pFunctionCallMap;
   }
 
@@ -146,11 +141,11 @@ public class ThreadBuilder {
     for (ThreadEdge threadEdge : pThreadEdges) {
       CFAEdge edge = threadEdge.cfaEdge;
       if (edge instanceof CDeclarationEdge declarationEdge) {
-        if (!GAC.hasGlobalAccess(edge) && !declarationEdge.getDeclaration().isGlobal()) {
+        if (!declarationEdge.getDeclaration().isGlobal()) {
           AAstNode aAstNode = declarationEdge.getRawAST().orElseThrow();
           // exclude FunctionDeclarations
-          if (aAstNode instanceof CVariableDeclaration cVariableDeclaration) {
-            rLocalVars.add(cVariableDeclaration);
+          if (aAstNode instanceof CVariableDeclaration cVarDec) {
+            rLocalVars.add(cVarDec);
           }
         }
       }

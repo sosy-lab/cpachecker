@@ -75,8 +75,11 @@ public class SeqUtil {
             code.append(SeqSyntax.NEWLINE).append(elseIfCodeExpr.createString());
           }
 
-          // TODO CDeclarationEdge: test if we can put them all in front of the loop
+          // TODO CDeclarationEdge: put them all in front of the loop
           //  add __t0_... to local and __global_ to global variables
+          //  declarationEdges have to be checked for a right hand side. if it is present, the
+          //  declaration is transformed into an assignment in the seq. if it is not present, the
+          //  declaration happens outside the loop and the edge is skipped
 
           /*} else if (cfaEdge instanceof FunctionCallEdge functionCallEdge) {
             // TODO map calling parameter name to actual parameter name

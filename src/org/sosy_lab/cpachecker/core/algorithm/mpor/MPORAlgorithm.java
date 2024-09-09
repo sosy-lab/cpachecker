@@ -418,7 +418,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     funcCallMap = getFunctionCallMap(INPUT_CFA);
     funcReturnEdges = getFuncReturnEdges(INPUT_CFA);
-    threadBuilder = new ThreadBuilder(GAC, funcCallMap);
+    threadBuilder = new ThreadBuilder(funcCallMap);
     stateBuilder = new StateBuilder(PTR, funcCallMap);
 
     globalVars = getGlobalVars(INPUT_CFA);
