@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -99,13 +98,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-
-    FluentIterable<CFAEdge> allEdges = CFAUtils.allEdges(INPUT_CFA);
-    for (CFAEdge edge : allEdges) {
-      if (true) {
-        continue;
-      }
-    }
 
     checkForCorrectInitialState(pReachedSet, threads);
 
@@ -535,7 +527,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
       rFuncReturnEdges.put(entryCFuncType, returnEdges.build());
     }
-    return rFuncReturnEdges.build();
+    return rFuncReturnEdges.buildOrThrow();
   }
 
   // TODO create method extracting the CVariableDeclaration from a CExpression

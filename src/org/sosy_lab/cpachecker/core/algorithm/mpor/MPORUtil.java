@@ -131,6 +131,24 @@ public final class MPORUtil {
   }
 
   /**
+   * Equivalent to {@link MPORUtil#returnLeavingEdges(CFANode, Optional)} except that it includes
+   * {@link FunctionSummaryEdge}s.
+   */
+  public static ImmutableSet<CFAEdge> allReturnLeavingEdges(
+      CFANode pCurrentNode, Optional<CFANode> pFuncReturnNode) {
+
+    ImmutableSet.Builder<CFAEdge> rReturnEdges = ImmutableSet.builder();
+    if (pCurrentNode instanceof FunctionExitNode && pFuncReturnNode.isPresent()) {
+      rReturnEdges.addAll(
+          CFAUtils.allLeavingEdges(pCurrentNode)
+              .filter(cfaEdge -> cfaEdge.getSuccessor().equals(pFuncReturnNode.orElseThrow())));
+    } else {
+      rReturnEdges.addAll(CFAUtils.allLeavingEdges(pCurrentNode));
+    }
+    return rReturnEdges.build();
+  }
+
+  /**
    * Returns the successor PredicateAbstractState when executing pCfaEdge.
    *
    * @param pPtr the PredicateTransferRelation that handles creating a successor AbstractState

@@ -120,7 +120,7 @@ public class ThreadBuilder {
 
     if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
       ImmutableSet<CFAEdge> leavingCfaEdges =
-          MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode);
+          MPORUtil.allReturnLeavingEdges(pCurrentNode, pFuncReturnNode);
       ImmutableSet<ThreadEdge> threadEdges = createThreadEdgesFromCfaEdges(leavingCfaEdges);
       pThreadEdges.addAll(threadEdges);
       if (leavingCfaEdges.isEmpty()) {
