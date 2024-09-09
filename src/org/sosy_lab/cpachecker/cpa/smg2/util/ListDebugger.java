@@ -289,7 +289,7 @@ public class ListDebugger {
 
     // For now, we allow only the root of the list,
     //   so we check left and remember the first left ever for DLLs (to check that it's a loop)
-    Optional<SMGObject> prevOfRoot = Optional.empty();
+    // Optional<SMGObject> prevOfRoot = Optional.empty();
     if (pfo.isPresent()) {
       List<SMGHasValueEdge> prevEdges =
           smg.readValue(
@@ -321,7 +321,7 @@ public class ListDebugger {
             ptePrev.getOffset().isNumericValue()
                 && ptePrev.getOffset().asNumericValue().bigIntegerValue().intValue()
                     == prevPtrTargetOffset.orElseThrow());
-        prevOfRoot = Optional.of(ptePrev.pointsTo());
+        // prevOfRoot = Optional.of(ptePrev.pointsTo());
         throw new RuntimeException("implement me");
       }
     }
@@ -458,7 +458,7 @@ public class ListDebugger {
 
     // For now, we allow only the root of the list,
     //   so we check left and remember the first left ever for DLLs (to check that it's a loop)
-    Optional<SMGObject> prevOfRoot = Optional.empty();
+    // Optional<SMGObject> prevOfRoot = Optional.empty();
     if (pfo.isPresent()) {
       List<SMGHasValueEdge> prevEdges =
           smg.readValue(
@@ -601,21 +601,19 @@ public class ListDebugger {
 
     @Override
     public boolean equals(Object obj) {
-      if (obj instanceof ListElement other) {
-        if (this == other) {
-          return true;
-        }
-        return listType.equals(other.listType)
-            && size == other.size
-            && nfo == other.nfo
-            && nextPtrTargetOffset == other.nextPtrTargetOffset
-            && pfo.equals(other.pfo)
-            && prevPtrTargetOffset.equals(other.prevPtrTargetOffset)
-            && abstractedMinLength.equals(other.abstractedMinLength)
-            && listItems.equals(other.listItems)
-            && memorylistItems.equals(other.memorylistItems);
+      if (this == obj) {
+        return true;
       }
-      return false;
+      return obj instanceof ListElement other
+          && listType.equals(other.listType)
+          && size == other.size
+          && nfo == other.nfo
+          && nextPtrTargetOffset == other.nextPtrTargetOffset
+          && pfo.equals(other.pfo)
+          && prevPtrTargetOffset.equals(other.prevPtrTargetOffset)
+          && abstractedMinLength.equals(other.abstractedMinLength)
+          && listItems.equals(other.listItems)
+          && memorylistItems.equals(other.memorylistItems);
     }
   }
 }
