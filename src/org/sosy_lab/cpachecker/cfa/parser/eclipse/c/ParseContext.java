@@ -143,11 +143,29 @@ class ParseContext {
     }
   }
 
-  void rememberCType(IType originalType, CType cType, String filePrefix) {
+  /**
+   * Remember a type conversion from Eclipse CDT Types to CPAchecker Types.
+   *
+   * @param originalType the original eclipse type
+   * @param cType the converted CPAchecker type
+   * @param filePrefix the file for which to remember the conversion
+   * @throws IllegalStateException when the originalType was already contained in the mapping for
+   *     filePrefix
+   */
+  void rememberCType(IType originalType, CType cType, String filePrefix)
+      throws IllegalStateException {
     typeConversions.putIfAbsent(filePrefix, new HashMap<>());
 
     // If originalType was already mapped for this file prefix leave it untouched
-    typeConversions.get(filePrefix).putIfAbsent(originalType, cType);
+    if (typeConversions.get(filePrefix).containsKey(originalType)) {
+      String err =
+          String.format(
+              "Trying to re-remember %s but was already contained for filePrefix %s and CPAchecker"
+                  + " Type %s",
+              originalType, filePrefix, cType);
+      throw new IllegalStateException(err);
+    }
+    typeConversions.get(filePrefix).put(originalType, cType);
   }
 
   private void rememberAndOverrideCType(IType originalType, CType cType, String filePrefix) {
