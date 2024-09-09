@@ -126,6 +126,25 @@ public class BlockSummaryWorkerBuilder {
   }
 
   @CanIgnoreReturnValue
+  public BlockSummaryWorkerBuilder addWitnessWorker(
+      BlockNode pNode, BlockSummaryAnalysisOptions pOptions) {
+    String workerId = nextId(pNode.getId());
+    final LogManager logger = getLogger(pOptions, workerId);
+    workerGenerators.add(
+        connection ->
+            new BlockSummaryWitnessWorker(
+                workerId,
+                pOptions,
+                connection,
+                pNode,
+                cfa,
+                specification,
+                ShutdownManager.create(),
+                logger));
+    return this;
+  }
+
+  @CanIgnoreReturnValue
   public BlockSummaryWorkerBuilder addHubWorker(
       BlockNode pNode,
       BlockSummaryAnalysisOptions pOptions,

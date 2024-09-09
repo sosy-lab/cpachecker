@@ -41,7 +41,7 @@ public class FixpointNotifier {
   public void waiting(String id) throws InterruptedException {
     waiting.put(id, id);
     if (waiting.size() == connections) {
-      connection.write(BlockSummaryMessage.newResultMessage("root", 0, Result.TRUE));
+      connection.write(BlockSummaryMessage.newResultMessage("root", 0, Result.TRUE, ""));
     }
   }
 

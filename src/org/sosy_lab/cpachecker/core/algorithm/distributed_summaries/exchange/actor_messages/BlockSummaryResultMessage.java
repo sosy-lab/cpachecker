@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 public class BlockSummaryResultMessage extends BlockSummaryMessage {
 
   private final Result result;
+  private final String metadata;
 
   protected BlockSummaryResultMessage(
       String pUniqueBlockId,
@@ -23,9 +24,14 @@ public class BlockSummaryResultMessage extends BlockSummaryMessage {
       Instant pTimeStamp) {
     super(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, pPayload, pTimeStamp);
     result = Result.valueOf((String) getPayload().get(BlockSummaryMessagePayload.RESULT));
+    metadata = (String) getPayload().getOrDefault("metadata", "");
   }
 
   public Result getResult() {
     return result;
+  }
+
+  public String getMetadata() {
+    return metadata;
   }
 }

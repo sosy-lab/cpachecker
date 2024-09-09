@@ -34,6 +34,10 @@ public class BlockSummaryAnalysisOptions {
   @FileOption(Type.OUTPUT_DIRECTORY)
   private Path logDirectory = Path.of("block_summary/logfiles");
 
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  @Option(secure = true, description = "Where to store the witnesses of DSS")
+  private Path witnessOutput = Path.of("witness.yml");
+
   private final Configuration parentConfig;
 
   public BlockSummaryAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
@@ -51,5 +55,9 @@ public class BlockSummaryAnalysisOptions {
 
   public Path getLogDirectory() {
     return logDirectory;
+  }
+
+  public Path getWitnessOutput() {
+    return witnessOutput;
   }
 }

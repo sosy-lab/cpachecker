@@ -402,6 +402,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     };
   }
 
+
   private Components createComponentsDSS(CFA cfa, BlockGraph blockGraph)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
@@ -409,7 +410,8 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         new BlockSummaryWorkerBuilder(
                 cfa, new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()), specification)
             .createAdditionalConnections(1)
-            .addRootWorker(blockGraph.getRoot(), options);
+            .addRootWorker(blockGraph.getRoot(), options)
+            .addWitnessWorker(blockGraph.getRoot(), options);
     for (BlockNode distinctNode : blocks) {
       averageNumberOfEdges.setNextValue(distinctNode.getEdges().size());
       builder = builder.addAnalysisWorker(distinctNode, options);

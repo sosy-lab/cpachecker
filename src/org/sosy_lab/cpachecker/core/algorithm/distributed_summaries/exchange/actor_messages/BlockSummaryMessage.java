@@ -175,10 +175,11 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
   }
 
   public static BlockSummaryMessage newResultMessage(
-      String pUniqueBlockId, int pTargetNodeNumber, Result pResult) {
+      String pUniqueBlockId, int pTargetNodeNumber, Result pResult, String metadata) {
     BlockSummaryMessagePayload payload =
         BlockSummaryMessagePayload.builder()
             .addEntry(BlockSummaryMessagePayload.RESULT, pResult.name())
+            .addEntry("metadata", metadata)
             .buildPayload();
     return new BlockSummaryResultMessage(pUniqueBlockId, pTargetNodeNumber, payload, Instant.now());
   }

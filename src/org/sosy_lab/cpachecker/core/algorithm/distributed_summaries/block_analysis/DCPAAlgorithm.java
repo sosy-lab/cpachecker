@@ -84,6 +84,7 @@ public class DCPAAlgorithm {
   private final Set<Set<String>> seenPrefixes;
   private final Map<Set<String>, BlockSummaryErrorConditionMessage> errors;
   private final LogManager logger;
+  private final List<String> globalViolationPaths = new ArrayList<>();
 
   // forward analysis variables
   private AlgorithmStatus status;
@@ -253,6 +254,7 @@ public class DCPAAlgorithm {
       String pPrefix,
       boolean restoreAll)
       throws CPAException, InterruptedException, SolverException {
+
     ImmutableSet.Builder<ARGPath> pathsToViolations = ImmutableSet.builder();
     if (restoreAll) {
       for (ARGState violation : violations) {
@@ -276,25 +278,34 @@ public class DCPAAlgorithm {
                       .orElseThrow()
                       .getTargetPath()));
     }
+
     ImmutableSet.Builder<BlockSummaryMessage> messages = ImmutableSet.builder();
     boolean makeFirst = false;
+
     for (ARGPath path : pathsToViolations.build()) {
       AbstractState abstractState;
       try {
         abstractState = dcpa.computeVerificationCondition(path, condition);
       } catch (VerificationConditionException e) {
-        // see semantics of VerificationConditionException
         continue;
       }
+
       String prefix =
           FluentIterable.from(path.getFullPath())
-              .transform(e -> e.getPredecessor() + "->" + e.getSuccessor())
+              .transform(
+                  e -> e.getPredecessor().getNodeNumber() + "->" + e.getSuccessor().getNodeNumber())
               .join(Joiner.on(","));
+
       if (!pPrefix.isBlank()) {
         prefix = pPrefix + "," + prefix;
       }
+
+      // Add the path to the global collection
+      globalViolationPaths.add(prefix);
+
       BlockSummaryMessagePayload serialized =
           dcpa.serialize(abstractState, reachedSet.getPrecision(path.getLastState()));
+
       messages.add(
           BlockSummaryMessage.newErrorConditionMessage(
               block.getId(),
@@ -304,8 +315,13 @@ public class DCPAAlgorithm {
               prefix));
       makeFirst = true;
     }
+
     return messages.build();
   }
+
+
+
+
 
   public Collection<BlockSummaryMessage> runInitialAnalysis()
       throws CPAException, InterruptedException, SolverException {
