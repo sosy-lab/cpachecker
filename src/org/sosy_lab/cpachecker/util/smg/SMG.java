@@ -2414,7 +2414,7 @@ public class SMG {
   // Switch all HVEs everywhere that are pointers w the fitting specifier towards oldTarget with
   // existing or newly created HVEs that are pointers towards newTarget.
   // Important: all target offsets are retained here
-  // Returned SMGValues need NEW mapping in the SPC
+  // Returned SMGValues needing NEW mapping in the SPC in a map oldValue -> newValue
   public SMGAndSMGValues replaceHVEPointersWithExistingHVEPointers(
       SMGObject pOldTargetObj,
       SMGObject pNewTargetObj,
@@ -2441,7 +2441,7 @@ public class SMG {
               .build();
     }
 
-    ImmutableSet.Builder<SMGValue> newValuesWithNeedOfMapping = ImmutableSet.builder();
+    ImmutableMap.Builder<SMGValue, SMGValue> newValuesWithNeedOfMapping = ImmutableMap.builder();
 
     // Replace HVEs (automatically increments reverse maps)
     for (SMGObject valueSource : sourcesOfPointersTowardsOld) {
@@ -2475,7 +2475,7 @@ public class SMG {
               // ALL of these need to be mapped to new symbolic values in the SPC!!!!
               // Use: copyAndPutValue()
               replacementValue = SMGValue.of();
-              newValuesWithNeedOfMapping.add(replacementValue);
+              newValuesWithNeedOfMapping.put(oldHve.hasValue(), replacementValue);
             }
           }
 
@@ -2486,7 +2486,7 @@ public class SMG {
       }
     }
 
-    return SMGAndSMGValues.of(newSMG, newValuesWithNeedOfMapping.build());
+    return SMGAndSMGValues.of(newSMG, newValuesWithNeedOfMapping.buildOrThrow());
   }
 
   public SMG replacePointersWithSMGValue(
