@@ -99,6 +99,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.XMLUtils;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -352,7 +353,8 @@ public final class AutomatonGraphmlCommon {
         CFA pCfa,
         VerificationTaskMetaData pVerificationTaskMetaData)
         throws ParserConfigurationException, DOMException, IOException {
-      DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+      DocumentBuilderFactory docFactory = XMLUtils.getSecureDocumentBuilderFactory(true);
+
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 
       doc = docBuilder.newDocument();
@@ -494,7 +496,8 @@ public final class AutomatonGraphmlCommon {
       try {
         pTarget.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
 
-        TransformerFactory tf = TransformerFactory.newInstance();
+        TransformerFactory tf = XMLUtils.getSecureTransformerFactory();
+
         Transformer transformer = tf.newTransformer();
         transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
         transformer.setOutputProperty(OutputKeys.METHOD, "xml");
