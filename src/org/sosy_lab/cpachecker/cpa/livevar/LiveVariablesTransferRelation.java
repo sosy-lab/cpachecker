@@ -41,10 +41,15 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
@@ -52,16 +57,49 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
+import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -430,12 +468,19 @@ public class LiveVariablesTransferRelation
     boolean isLhsLive =
         isLeftHandSideLive(lhs) || assignment instanceof AFunctionCallAssignmentStatement;
 
-    boolean lhsIsPointerDereference =
-        ((lhs instanceof CFieldReference
-                && (((CFieldReference) lhs).isPointerDereference()
-                    || ((CFieldReference) lhs).getFieldOwner() instanceof CPointerExpression))
-            || lhs instanceof AArraySubscriptExpression
-            || lhs instanceof CPointerExpression);
+    LhsPointerDereferenceVisitor lhsPointerDereferenceVisitor =
+        LhsPointerDereferenceVisitor.getInstance();
+    boolean lhsIsPointerDereference = false;
+
+    try {
+      if (lhs instanceof CLeftHandSide clhs) {
+        lhsIsPointerDereference = clhs.accept(lhsPointerDereferenceVisitor);
+      } else if (lhs instanceof JLeftHandSide jlhs) {
+        lhsIsPointerDereference = jlhs.accept(lhsPointerDereferenceVisitor);
+      }
+    } catch (Exception e) {
+      // Should never happen
+    }
 
     if (!isLhsAlwaysLive && !isLhsLive && !lhsIsPointerDereference) {
 
@@ -488,9 +533,11 @@ public class LiveVariablesTransferRelation
         // when there is a field reference, an array access or a pointer expression,
         // and the assigned variable was live before, we need to let it also be
         // live afterwards
+        // Also, if there is an assignment to one of those, we have to over-approximate it to live
       } else if (lhs instanceof CFieldReference
           || lhs instanceof AArraySubscriptExpression
           || lhs instanceof CPointerExpression) {
+        newLiveVars.or(assignedVariable);
         writeInto.or(newLiveVars);
 
         // no special case here, the assigned variable is not live anymore
@@ -578,6 +625,213 @@ public class LiveVariablesTransferRelation
       List<? extends AExpression> parameters, BitSet writeInto) {
     for (AExpression expression : parameters) {
       handleExpression(expression, writeInto);
+    }
+  }
+
+  public static class LhsPointerDereferenceVisitor extends AExpressionVisitor<Boolean, Exception>
+      implements CExpressionVisitor<Boolean, Exception> {
+
+    // SINGELTON
+    private static final LhsPointerDereferenceVisitor lhsPointerDereferenceVisitor =
+        new LhsPointerDereferenceVisitor();
+
+    private LhsPointerDereferenceVisitor() {}
+
+    public static LhsPointerDereferenceVisitor getInstance() {
+      return lhsPointerDereferenceVisitor;
+    }
+
+    @Override
+    public Boolean visit(CBinaryExpression pIastBinaryExpression) throws Exception {
+      return pIastBinaryExpression.getOperand1().accept(this)
+          || pIastBinaryExpression.getOperand2().accept(this);
+    }
+
+    @Override
+    public Boolean visit(ABinaryExpression exp) throws Exception {
+      if (exp.getOperand1() instanceof CExpression op1
+          && exp.getOperand2() instanceof CExpression op2) {
+        return op1.accept(this) || op2.accept(this);
+      } else if (exp.getOperand1() instanceof JExpression op1
+          && exp.getOperand2() instanceof JExpression op2) {
+        return op1.accept(this) || op2.accept(this);
+      }
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CCastExpression pIastCastExpression) throws Exception {
+      return pIastCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(ACastExpression exp) throws Exception {
+      if (exp.getOperand() instanceof CExpression op) {
+        return op.accept(this);
+      } else if (exp.getOperand() instanceof JExpression op) {
+        return op.accept(this);
+      }
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(ACharLiteralExpression exp) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(AFloatLiteralExpression exp) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(AIntegerLiteralExpression exp) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(AStringLiteralExpression exp) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CTypeIdExpression pIastTypeIdExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CUnaryExpression pIastUnaryExpression) throws Exception {
+      if (pIastUnaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
+        // TODO: is this correct in this context?
+        //  This is not a deref, but we need to mark these variables anyway
+        return true;
+      }
+      return pIastUnaryExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(AUnaryExpression exp) throws Exception {
+      return exp instanceof JUnaryExpression jUnary
+          ? jUnary.accept(this)
+          : ((CUnaryExpression) exp).accept(this);
+    }
+
+    @Override
+    public Boolean visit(CImaginaryLiteralExpression PIastLiteralExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws Exception {
+      // TODO: is this correct?
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws Exception {
+      return true;
+    }
+
+    @Override
+    public Boolean visit(AArraySubscriptExpression exp) throws Exception {
+      return true;
+    }
+
+    @Override
+    public Boolean visit(CFieldReference pIastFieldReference) throws Exception {
+      return true;
+    }
+
+    @Override
+    public Boolean visit(CIdExpression pIastIdExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(AIdExpression exp) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CPointerExpression pointerExpression) throws Exception {
+      return true;
+    }
+
+    @Override
+    public Boolean visit(CComplexCastExpression complexCastExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(JBooleanLiteralExpression pJBooleanLiteralExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(JArrayCreationExpression pJArrayCreationExpression) throws Exception {
+      // TODO: Is this correct?
+      return false;
+    }
+
+    @Override
+    public Boolean visit(JArrayInitializer pJArrayInitializer) throws Exception {
+      // TODO: Is this correct?
+      return false;
+    }
+
+    @Override
+    public Boolean visit(JArrayLengthExpression pJArrayLengthExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(JVariableRunTimeType pJThisRunTimeType) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(JNullLiteralExpression pJNullLiteralExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(JEnumConstantExpression pJEnumConstantExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(JThisExpression pThisExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(JClassLiteralExpression pJClassLiteralExpression) throws Exception {
+      return false;
     }
   }
 }
