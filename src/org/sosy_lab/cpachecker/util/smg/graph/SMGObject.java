@@ -144,7 +144,6 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return offset;
   }
 
-  @Override
   public int getNestingLevel() {
     return nestingLevel;
   }
@@ -199,8 +198,24 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return false;
   }
 
-  @Override
   public SMGObject withNestingLevelAndCopy(int pNewLevel) {
     return new SMGObject(pNewLevel, size, offset);
+  }
+
+  public SMGObject join(SMGObject otherObj) {
+    // From: Algorithm 6; joinTargetObjects()
+    // 7. Create new Object o.
+    // 8. Initialize labeling of o to match the labeling of o1 if kind(o1) = dls,
+    //      or to match the labeling of o2 if kind(o2) = dls,
+    //      otherwise take the labeling from any of them (since they are equal).
+    // 9. If LL, let min length = min of o1 or o2
+    // 10. Let level(o) = max level of o1 and o2
+    int newNestingLevel = Integer.max(nestingLevel, otherObj.nestingLevel);
+    if (otherObj instanceof SMGSinglyLinkedListSegment otherSLL) {
+      // This includes DLLs
+      return otherSLL.withNestingLevelAndCopy(newNestingLevel);
+    } else {
+      return withNestingLevelAndCopy(newNestingLevel);
+    }
   }
 }

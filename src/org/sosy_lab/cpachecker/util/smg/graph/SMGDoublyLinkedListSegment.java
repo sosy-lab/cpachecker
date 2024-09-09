@@ -191,4 +191,22 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
         objectToCopy.getMinLength(),
         objectToCopy.getRelevantEqualities());
   }
+
+  @Override
+  public SMGObject join(SMGObject otherObj) {
+    // From: Algorithm 6; joinTargetObjects()
+    // 7. Create new Object o.
+    // 8. Initialize labeling of o to match the labeling of o1 if kind(o1) = dls,
+    //      or to match the labeling of o2 if kind(o2) = dls,
+    //      otherwise take the labeling from any of them (since they are equal).
+    // 9. If LL, let min length = min of o1 or o2
+    // 10. Let level(o) = max level of o1 and o2
+    int newNestingLevel = Integer.max(getNestingLevel(), otherObj.getNestingLevel());
+    int newMinLength = getMinLength();
+    if (otherObj instanceof SMGDoublyLinkedListSegment otherDLL) {
+      newMinLength = Integer.min(newMinLength, otherDLL.getMinLength());
+    }
+    return ((SMGDoublyLinkedListSegment) copyWithNewLevel(newNestingLevel))
+        .copyWithNewMinimumLength(newMinLength);
+  }
 }
