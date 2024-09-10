@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 
 /* This class provides a base for exporting and importing CFA data to and from JSON. */
-public abstract class CfaJsonIO {
+public final class CfaJsonIO {
 
   /* This record represents the CFA data. */
   protected final record CfaJsonData(

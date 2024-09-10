@@ -30,17 +30,17 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
  *
  * <p>The export format is JSON.
  *
- * <p>It extends {@link CfaJsonIO} and uses the {@link CfaJsonIO.CfaJsonData} record to store the
- * {@link CFA} data.
+ * <p>It uses the {@link CfaJsonIO.CfaJsonData} record to store the {@link CFA} data.
  */
-public final class CfaToJson extends CfaJsonIO {
-  private final CfaJsonData cfaJsonData;
+public final class CfaToJson {
+  private final CfaJsonIO.CfaJsonData cfaJsonData;
 
   public CfaToJson(CFA pCfa) {
     CFA cfa = checkNotNull(pCfa);
 
     this.cfaJsonData =
-        new CfaJsonData(cfa.nodes(), cfa.edges(), cfa.getAllFunctions(), cfa.getMetadata());
+        new CfaJsonIO.CfaJsonData(
+            cfa.nodes(), cfa.edges(), cfa.getAllFunctions(), cfa.getMetadata());
   }
 
   /**
@@ -60,7 +60,7 @@ public final class CfaToJson extends CfaJsonIO {
         JsonGenerator jsonGenerator =
             new JsonFactory().createGenerator(bufferedOutputStream, JsonEncoding.UTF8); ) {
 
-      provideConfiguredCfaObjectMapper().writeValue(jsonGenerator, this.cfaJsonData);
+      CfaJsonIO.provideConfiguredCfaObjectMapper().writeValue(jsonGenerator, this.cfaJsonData);
     }
   }
 }

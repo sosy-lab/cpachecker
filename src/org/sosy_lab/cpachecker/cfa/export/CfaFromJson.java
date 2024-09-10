@@ -38,10 +38,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
  *
  * <p>The import format is JSON.
  *
- * <p>It extends {@link CfaJsonIO} and imports the {@link CFA} data from a JSON file containing a
- * {@link CfaJsonIO.CfaJsonData} record.
+ * <p>It imports the {@link CFA} data from a JSON file containing a {@link CfaJsonIO.CfaJsonData}
+ * record.
  */
-public final class CfaFromJson extends CfaJsonIO {
+public final class CfaFromJson {
 
   /**
    * Reads a {@link CFA} from a JSON file.
@@ -58,7 +58,7 @@ public final class CfaFromJson extends CfaJsonIO {
       throws JsonParseException, JsonMappingException, IOException {
 
     /* Get configured ObjectMapper. */
-    ObjectMapper objectMapper = provideConfiguredCfaObjectMapper();
+    ObjectMapper objectMapper = CfaJsonIO.provideConfiguredCfaObjectMapper();
 
     /* Add custom deserializers. */
     SimpleModule simpleModule = new SimpleModule();
@@ -68,7 +68,7 @@ public final class CfaFromJson extends CfaJsonIO {
     objectMapper.registerModule(simpleModule);
 
     /* Read CfaJsonData from file. */
-    objectMapper.readValue(pCfaJsonFile.toFile(), CfaJsonData.class);
+    objectMapper.readValue(pCfaJsonFile.toFile(), CfaJsonIO.CfaJsonData.class);
 
     // TODO: Create CFA from CfaJsonData.
 
