@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
@@ -120,6 +121,12 @@ public final class LoopStructure implements Serializable {
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.of(loopHead);
       nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).add(loopHead).build();
+    }
+
+    @JsonCreator
+    private Loop(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
+      loopHeads = ImmutableSet.copyOf(pLoopHeads);
+      nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).addAll(pLoopHeads).build();
     }
 
     private void computeSets() {
