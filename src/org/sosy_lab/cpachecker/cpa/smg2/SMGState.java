@@ -1703,9 +1703,20 @@ public class SMGState
           return false;
         }
       } else if (!(thisObjSize.equals(otherObjSize)
-          && thisObj.getNestingLevel() == otherObj.getNestingLevel()
-          && thisObj.getOffset().compareTo(otherObj.getOffset()) == 0)) {
+          || !thisObj.getOffset().equals(otherObj.getOffset()))) {
         return false;
+      } else if (this != otherState && thisObj.getNestingLevel() != otherObj.getNestingLevel()) {
+        // lessOrEquals
+        return false;
+      } else if (this == otherState) {
+        // Equal heap comparison of the same state, e.g. abstraction
+        if (thisObj.getNestingLevel() > otherObj.getNestingLevel()
+            && thisObj.getNestingLevel() - otherObj.getNestingLevel() != 1) {
+          return false;
+        } else if (thisObj.getNestingLevel() < otherObj.getNestingLevel()
+            && otherObj.getNestingLevel() - thisObj.getNestingLevel() != 1) {
+          return false;
+        }
       }
 
       if (thisObj instanceof SMGSinglyLinkedListSegment
@@ -5104,7 +5115,8 @@ public class SMGState
       BigInteger nextPointerTargetOffset,
       BigInteger pfo,
       BigInteger prevPointerTargetOffset,
-      Set<SMGObject> alreadyVisited)
+      Set<SMGObject> alreadyVisited,
+      int nestingLevel)
       throws SMGException {
     statistics.incrementListAbstractions();
     // Check that the next object exists, is valid, has the same size and the same value in head
@@ -5204,7 +5216,7 @@ public class SMGState
       }
       newDLL =
           new SMGDoublyLinkedListSegment(
-              root.getNestingLevel(),
+              nestingLevel,
               root.getSize(),
               root.getOffset(),
               headOffset,
@@ -5384,6 +5396,7 @@ public class SMGState
 
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
     assert currentState.getMemoryModel().getSmg().checkFirstPointerNestingLevelConsistency();
+    Preconditions.checkArgument(newDLL.getNestingLevel() == nestingLevel);
 
     return currentState.abstractIntoDLL(
         newDLL,
@@ -5391,7 +5404,8 @@ public class SMGState
         nextPointerTargetOffset,
         pfo,
         prevPointerTargetOffset,
-        ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newDLL).build());
+        ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newDLL).build(),
+        nestingLevel);
   }
 
   /*
@@ -5404,7 +5418,8 @@ public class SMGState
       SMGObject root,
       BigInteger nfo,
       BigInteger nextPointerTargetOffset,
-      Set<SMGObject> alreadyVisited)
+      Set<SMGObject> alreadyVisited,
+      int nestingLevel)
       throws SMGException {
     statistics.incrementListAbstractions();
     // Check that the next object exists, is valid, has the same size and the same value in head
@@ -5485,7 +5500,7 @@ public class SMGState
               : BigInteger.ZERO;
       newSLL =
           new SMGSinglyLinkedListSegment(
-              root.getNestingLevel(),
+              nestingLevel,
               root.getSize(),
               root.getOffset(),
               headOffset,
@@ -5557,12 +5572,14 @@ public class SMGState
 
     // TODO: write a test that checks that we remove all unnecessary pointers/values etc.
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
+    Preconditions.checkArgument(newSLL.getNestingLevel() == nestingLevel);
 
     return currentState.abstractIntoSLL(
         newSLL,
         nfo,
         nextPointerTargetOffset,
-        ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
+        ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build(),
+        nestingLevel);
   }
 
   public SMGState removeUnusedValues() {

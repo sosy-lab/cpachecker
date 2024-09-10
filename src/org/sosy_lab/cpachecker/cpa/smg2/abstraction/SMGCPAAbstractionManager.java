@@ -119,9 +119,12 @@ public class SMGCPAAbstractionManager {
     for (Set<SMGCandidate> candidates : orderedListCandidatesByNesting) {
       for (SMGCandidate candidate : candidates) {
         // Not valid means kicked out by abstraction
+        // TODO: the nesting update might invalidate (nested) objects that should be abstracted now,
+        //    think of a solution without searching the entire SMG again
         if (!currentState.getMemoryModel().isObjectValid(candidate.getObject())) {
           continue;
         }
+        int nestingLvl = getNewNestingLvl(candidate, currentState);
         if (candidate.isDLL()) {
           currentState =
               currentState.abstractIntoDLL(
@@ -130,7 +133,8 @@ public class SMGCPAAbstractionManager {
                   candidate.getSuspectedNfoTargetOffset(),
                   candidate.getSuspectedPfo().orElseThrow(),
                   candidate.getSuspectedPfoTargetPointerOffset().orElseThrow(),
-                  ImmutableSet.of());
+                  ImmutableSet.of(),
+                  nestingLvl);
 
         } else {
           currentState =
@@ -138,14 +142,52 @@ public class SMGCPAAbstractionManager {
                   candidate.getObject(),
                   candidate.getSuspectedNfo(),
                   candidate.getSuspectedNfoTargetOffset(),
-                  ImmutableSet.of());
+                  ImmutableSet.of(),
+                  nestingLvl);
         }
       }
     }
     currentState = currentState.removeUnusedValues();
     statistics.stopTotalAbstractionTime();
     assert candidatesHaveBeenAbstracted(orderedListCandidatesByNesting, currentState);
+    assert checkNestingLevel(currentState);
     return currentState;
+  }
+
+  private static int getNewNestingLvl(SMGCandidate candidate, SMGState currentState) {
+    int nestingLvl = 0;
+    SMGObject root = candidate.getObject();
+    SMG curSMG = currentState.getMemoryModel().getSmg();
+    Set<SMGValue> ptrsTowards =
+        currentState.getMemoryModel().getSmg().getPointerValuesForTarget(root);
+    ImmutableSet.Builder<SMGObject> objsPointingTowards = ImmutableSet.builder();
+    for (SMGValue ptrTowards : ptrsTowards) {
+      objsPointingTowards.addAll(
+          currentState.getMemoryModel().getSmg().getAllObjectsWithValueInThem(ptrTowards));
+    }
+
+    for (SMGObject objPointingTowards : objsPointingTowards.build()) {
+      if (objPointingTowards != root
+          && objPointingTowards instanceof SMGSinglyLinkedListSegment sll) {
+        if (!curSMG
+            .getHasValueEdgesByPredicate(
+                objPointingTowards,
+                h ->
+                    !sll.getNextOffset().equals(h.getOffset())
+                        && (!(sll instanceof SMGDoublyLinkedListSegment dll)
+                            || !dll.getPrevOffset().equals(h.getOffset()))
+                        && curSMG.isPointer(h.hasValue())
+                        && curSMG.getPTEdge(h.hasValue()).orElseThrow().pointsTo().equals(root))
+            .isEmpty()) {
+          Preconditions.checkArgument(nestingLvl == 0); // Found two abstr. lists
+          nestingLvl = sll.getNestingLevel() + 1;
+        }
+      } else {
+        // Found two ptrs from abstr. and not abstr. elements
+        Preconditions.checkArgument(nestingLvl == 0);
+      }
+    }
+    return nestingLvl;
   }
 
   private boolean candidatesHaveBeenAbstracted(
@@ -177,11 +219,13 @@ public class SMGCPAAbstractionManager {
           if (sourceObjMap != null) {
             for (SMGObject sourceObj : sourceObjMap.keySet()) {
               // Only stack obj pointers
-              if (!state.getMemoryModel().isHeapObject(sourceObj)
-                  && (pte.isEmpty()
-                      || !(pte.orElseThrow().pointsTo() instanceof SMGSinglyLinkedListSegment sll)
-                      || sll.getMinLength() != candidate.maximalSizeOfList)) {
-                return false;
+              if (!state.getMemoryModel().isHeapObject(sourceObj)) {
+                if (pte.isEmpty()) {
+                  return false;
+                } else if (!(pte.orElseThrow().pointsTo() instanceof SMGSinglyLinkedListSegment sll)
+                    || sll.getMinLength() != candidate.maximalSizeOfList) {
+                  return false;
+                }
               }
             }
           }
@@ -792,6 +836,9 @@ public class SMGCPAAbstractionManager {
     return currentObj;
   }
 
+  /*
+   *  TODO: modify that it always represents the nesting and finds the correct nesting level
+   */
   List<Set<SMGCandidate>> findNestingOfCandidates(Set<SMGCandidate> allListCandidates)
       throws SMGException {
     // Search by traversing the SMG starting from non-heap objs
@@ -1483,6 +1530,41 @@ public class SMGCPAAbstractionManager {
       }
     }
     return res.build();
+  }
+
+  private boolean checkNestingLevel(SMGState pCurrentState) {
+    for (SMGSinglyLinkedListSegment nestedSll :
+        pCurrentState.getMemoryModel().getSmg().getAllValidAbstractedObjects()) {
+      Set<SMGValue> ptrsTowards =
+          pCurrentState.getMemoryModel().getSmg().getPointerValuesForTarget(nestedSll);
+      for (SMGValue ptrTowards : ptrsTowards) {
+        for (SMGObject objPointingToWards :
+            pCurrentState.getMemoryModel().getSmg().getAllObjectsWithValueInThem(ptrTowards)) {
+          // If an object that is NOT in the same list points towards a nested abstr. list, the
+          // nesting level must be different
+          if (objPointingToWards != nestedSll
+              && objPointingToWards instanceof SMGSinglyLinkedListSegment sll2) {
+            // Get location of the ptr in sll2 and check that it's not a next or prev of both
+            BigInteger ptrOffset = null;
+            for (SMGHasValueEdge hveSll2 :
+                pCurrentState.getMemoryModel().getSmg().getEdges(objPointingToWards)) {
+              if (hveSll2.hasValue().equals(ptrTowards)) {
+                ptrOffset = hveSll2.getOffset();
+                break;
+              }
+            }
+            if (!sll2.getNextOffset().equals(ptrOffset)
+                && (!(sll2 instanceof SMGDoublyLinkedListSegment dll2)
+                    || !dll2.getPrevOffset().equals(ptrOffset))) {
+              if (sll2.getNestingLevel() + 1 != nestedSll.getNestingLevel()) {
+                return false;
+              }
+            }
+          }
+        }
+      }
+    }
+    return true;
   }
 
   protected static class SMGCandidateOrRejectedObject {

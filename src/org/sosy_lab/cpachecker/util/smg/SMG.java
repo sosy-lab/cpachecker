@@ -640,13 +640,13 @@ public class SMG {
 
   /**
    * Increments the occurrence of the value given in the object given. Adds the mapping if
-   * necessary. Does increment pointer mappings!
+   * necessary. Does increment pointer mappings! (Public for copyHVEdgesFromTo() only!)
    *
    * @param pSmgObject the object in which the value was added
    * @param pNewValue the value added
    * @return a new SMG with the valuesToRegionsTheyAreSavedIn
    */
-  private SMG incrementValueToMemoryMapEntry(SMGObject pSmgObject, SMGValue pNewValue) {
+  public SMG incrementValueToMemoryMapEntry(SMGObject pSmgObject, SMGValue pNewValue) {
     PersistentMap<SMGObject, Integer> oldInnerMapNewV =
         valuesToRegionsTheyAreSavedIn.getOrDefault(pNewValue, PathCopyingPersistentTreeMap.of());
     Integer oldNumNewV = oldInnerMapNewV.getOrDefault(pSmgObject, 0);
@@ -1784,18 +1784,6 @@ public class SMG {
   public PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>>
       getSMGObjectsWithSMGHasValueEdges() {
     return hasValueEdges;
-  }
-
-  public SMG copyHVEdgesFromTo(SMGObject source, SMGObject target) {
-    PersistentSet<SMGHasValueEdge> setOfValues =
-        hasValueEdges.getOrDefault(source, PersistentSet.of());
-    // We expect that there are NO edges in the target!
-    assert hasValueEdges.getOrDefault(target, PersistentSet.of()).isEmpty();
-    SMG newSMG = this;
-    for (SMGHasValueEdge hve : setOfValues) {
-      newSMG = newSMG.incrementValueToMemoryMapEntry(target, hve.hasValue());
-    }
-    return newSMG.copyAndSetHVEdges(setOfValues, target);
   }
 
   // Replace the pointer behind value with a new pointer with the new SMGObject target

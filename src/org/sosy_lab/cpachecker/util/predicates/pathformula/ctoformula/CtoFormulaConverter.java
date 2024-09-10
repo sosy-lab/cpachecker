@@ -16,7 +16,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.primitives.Ints;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -337,7 +336,7 @@ public class CtoFormulaConverter {
       }
     }
 
-    int bitSize = Ints.checkedCast(typeHandler.getExactBitSizeof(type));
+    int bitSize = Math.toIntExact(typeHandler.getExactBitSizeof(type));
 
     return FormulaType.getBitvectorTypeWithSize(bitSize);
   }
@@ -1952,7 +1951,7 @@ public class CtoFormulaConverter {
     long msb = offset + fieldSize - 1;
     assert lsb >= 0;
     assert msb >= lsb;
-    return Pair.of(Ints.checkedCast(msb), Ints.checkedCast(lsb));
+    return Pair.of(Math.toIntExact(msb), Math.toIntExact(lsb));
   }
 
   /** We call this method for unsupported Expressions and just make a new Variable. */
