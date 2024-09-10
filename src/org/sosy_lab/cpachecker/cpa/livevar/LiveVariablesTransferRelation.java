@@ -111,6 +111,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -301,25 +303,43 @@ public class LiveVariablesTransferRelation
       throws CPATransferException {
 
     // we do only care about variable declarations
-    if (!(decl instanceof AVariableDeclaration)) {
+    if (!(decl instanceof AVariableDeclaration aVarDecl)) {
       return state;
     }
 
     Wrapper<ASimpleDeclaration> varDecl = LIVE_DECL_EQUIVALENCE.wrap(decl);
     int varDeclPos = declarationListPos.get(varDecl);
-    AInitializer init = ((AVariableDeclaration) decl).getInitializer();
+    AInitializer init = aVarDecl.getInitializer();
+    Type aVarDeclType = aVarDecl.getType();
+    BitSet out = state.getDataCopy();
 
-    // there is no initializer thus we only have to remove the initialized variable
-    // from the live variables
-    if (init == null) {
+    if (aVarDeclType instanceof CArrayType cArrayType) {
+      // Length of variable sized arrays are ignored when just looking at the initializer. This
+      //  is a problem for statements like:
+      //  int a[n]; // n being some length statement that is not concrete at compile time
+      //  a[i] = ...; // or *(a + 1) = ...;
+      //  As the variable n (and its tmp var) are not tracked when declaring, and not when
+      // assigning,
+      //  so it is NEVER live.
+      // Since this is possible: a = b[n]; we need to init this when declaring.
+      // There is also never an initializer, the length information is ONLY encoded in the type!
+      //  (CArrayType has nested length that may have a CIdExpression)
+      CExpression length = cArrayType.getCanonicalType().getLength();
+      // Skip if there is no var in there
+      if (length instanceof ALeftHandSide lhsLen) {
+        handleLeftHandSide(lhsLen, out);
+      }
+    } else if (init == null) {
+      // there is no initializer thus we only have to remove the initialized variable
+      // from the live variables
       return state.removeLiveVariable(varDeclPos);
+    }
 
+    if (!state.contains(varDeclPos)) {
       // don't do anything if declared variable is not live
-    } else if (!state.contains(varDeclPos)) {
       return state;
     }
 
-    BitSet out = state.getDataCopy();
     getVariablesUsedForInitialization(init, out);
     out.clear(varDeclPos);
 
