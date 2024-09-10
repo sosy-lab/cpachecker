@@ -475,7 +475,7 @@ public class CPAchecker {
     } else {
       // import CFA from JSON file
       logger.logf(Level.INFO, "Reading CFA from JSON file \"%s\"", cfaJsonFile);
-      cfa = CfaFromJson.read(cfaJsonFile);
+      cfa = CfaFromJson.read(cfaJsonFile).immutableCopy();
 
       assert CFACheck.check(cfa.getMainFunction(), null, cfa.getMachineModel());
     }

@@ -8,34 +8,31 @@
 
 package org.sosy_lab.cpachecker.cfa.export;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.JsonIdentityReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.google.common.collect.TreeMultimap;
 import java.util.NavigableMap;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 
 /* This class provides a base for exporting and importing CFA data to and from JSON. */
 public final class CfaJsonIO {
 
   /* This record represents the CFA data. */
-  protected final record CfaJsonData(
-      Set<CFANode> nodes,
+  final record CfaJsonData(
+      TreeMultimap<String, CFANode> nodes,
       Set<CFAEdge> edges,
       NavigableMap<String, FunctionEntryNode> functions,
+      Set<Partition> partitions,
       CfaMetadata metadata) {}
 
   /**
@@ -43,99 +40,22 @@ public final class CfaJsonIO {
    * deserialization.
    *
    * @return The configured {@link ObjectMapper} instance which only maps fields and uses
-   *     indentation and newlines. On top of that, it includes mixins to prevent redundant mappings.
+   *     indentation and newlines.
    */
   protected static final ObjectMapper provideConfiguredCfaObjectMapper() {
     return JsonMapper.builder()
 
         /* Only map fields of objects. */
-        .visibility(PropertyAccessor.ALL, Visibility.NONE)
-        .visibility(PropertyAccessor.FIELD, Visibility.ANY)
+        .visibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE)
+        .visibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY)
 
         /* Enable serialization with indentation and newlines. */
         .enable(SerializationFeature.INDENT_OUTPUT)
 
-        /* Add mixins. */
-        .addMixIn(FunctionEntryNode.class, FunctionEntryNodeMixin.class)
-        .addMixIn(FunctionExitNode.class, FunctionExitNodeMixin.class)
-        .addMixIn(CFANode.class, CfaNodeMixin.class)
-        .addMixIn(CFAEdge.class, CfaEdgeMixin.class)
-        .addMixIn(CfaMetadata.class, CfaMetadataMixin.class)
-        .addMixIn(Partition.class, PartitionMixin.class)
+        /* Add modules. */
+        .addModule(new CfaJsonModule())
+        .addModule(new GuavaModule())
+        .addModule(new Jdk8Module())
         .build();
   }
-
-  /**
-   * This class is a mixin for {@link FunctionEntryNode}.
-   *
-   * <p>It serializes its {@link FunctionExitNode} field as number.
-   */
-  private static final class FunctionEntryNodeMixin {
-
-    @JsonIdentityReference(alwaysAsId = true)
-    private FunctionExitNode exitNode;
-  }
-
-  /**
-   * This class is a mixin for {@link FunctionExitNode}.
-   *
-   * <p>It serializes its {@link FunctionEntryNode} field as number.
-   */
-  private static final class FunctionExitNodeMixin {
-
-    @JsonIdentityReference(alwaysAsId = true)
-    private FunctionEntryNode entryNode;
-  }
-
-  /**
-   * This class is a mixin for {@link CFANode}.
-   *
-   * <p>It prevents cyclic references by serializing the {@link CFANode} as number if the same node
-   * has already been fully serialized once.
-   *
-   * <p>It serializes the specific {@link CFANode} type as a property.
-   */
-  @JsonIdentityInfo(
-      generator = ObjectIdGenerators.PropertyGenerator.class,
-      scope = CFANode.class,
-      property = "nodeNumber")
-  @JsonTypeInfo(
-      use = JsonTypeInfo.Id.MINIMAL_CLASS,
-      include = JsonTypeInfo.As.PROPERTY,
-      property = "serializedType")
-  private static final class CfaNodeMixin {}
-
-  /**
-   * This class is a mixin for {@link CFAEdge}.
-   *
-   * <p>It serializes the specific {@link CFAEdge} type as a property.
-   */
-  @JsonTypeInfo(
-      use = JsonTypeInfo.Id.MINIMAL_CLASS,
-      include = JsonTypeInfo.As.PROPERTY,
-      property = "serializedType")
-  private static final class CfaEdgeMixin {}
-
-  /**
-   * This class represents a mixin for {@link CfaMetadata}.
-   *
-   * <p>It serializes the main {@link FunctionEntryNode} as node number and ensures that the {@link
-   * AstCfaRelation} is not serialized.
-   */
-  private static final class CfaMetadataMixin {
-
-    @JsonIgnore private AstCfaRelation astCFARelation;
-  }
-
-  /**
-   * This class is a mixin for {@link Partition}.
-   *
-   * <p>It prevents cyclic references by serializing the {@link Partition} as index if the same
-   * object has already been fully serialized once.
-   */
-  @JsonIdentityInfo(
-      generator = ObjectIdGenerators.PropertyGenerator.class,
-      scope = Partition.class,
-      property = "index")
-  private static final class PartitionMixin {}
 }

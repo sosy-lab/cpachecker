@@ -13,20 +13,25 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.google.common.collect.TreeMultimap;
 import com.google.common.io.MoreFiles;
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.util.variableclassification.Partition;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
- * Enables to export all {@link CFA} {@link CFANode}s, {@link CFAEdge}s, {@link FunctionEntryNode}s
- * and relevant {@link CfaMetadata}.
+ * Enables to export all {@link CFA} {@link CFANode}s, {@link CFAEdge}s, {@link FunctionEntryNode}s,
+ * {@link Partition}s and relevant {@link CfaMetadata}.
  *
  * <p>The export format is JSON.
  *
@@ -35,12 +40,32 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 public final class CfaToJson {
   private final CfaJsonIO.CfaJsonData cfaJsonData;
 
+  /**
+   * Constructs the {@link CfaJsonIO.CfaJsonData} field with the given {@link CFA}.
+   *
+   * @param pCfa The Control Flow Automaton (CFA) to be converted to JSON.
+   */
   public CfaToJson(CFA pCfa) {
     CFA cfa = checkNotNull(pCfa);
 
+    /* Create a mapping of function names to nodes of the corresponding function.
+    This collection is needed for the creation of a MutableCFA during deserialization.*/
+    TreeMultimap<String, CFANode> nodes =
+        cfa.nodes().stream()
+            .collect(
+                TreeMultimap::create,
+                (multimap, node) -> multimap.put(node.getFunctionName(), node),
+                TreeMultimap::putAll);
+
+    /* Get partitions. */
+    Optional<VariableClassification> varClassification = cfa.getVarClassification();
+    Set<Partition> partitions =
+        varClassification.isPresent() ? varClassification.get().getPartitions() : null;
+
+    /* Create the CFA JSON data. */
     this.cfaJsonData =
         new CfaJsonIO.CfaJsonData(
-            cfa.nodes(), cfa.edges(), cfa.getAllFunctions(), cfa.getMetadata());
+            nodes, cfa.edges(), cfa.getAllFunctions(), partitions, cfa.getMetadata());
   }
 
   /**
