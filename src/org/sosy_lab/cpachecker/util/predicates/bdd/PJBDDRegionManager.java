@@ -237,13 +237,13 @@ public class PJBDDRegionManager implements RegionManager {
     @Option(secure = true, description = "Use internal a int based bdd representation.")
     private boolean useInts = false;
 
-    // All usable BDD types in PJBDD
-    private static List<String> allBDDTypes = ImmutableList.of("BDD", "ChainedBDD");
+    // All usable BDD types in PJBDD. Keep synchronous with possible useBDDType parameters.
+    private static final List<String> ALL_BDD_TYPES = ImmutableList.of("BDD", "ChainedBDD");
 
     @Option(
         secure = true,
         description = "Type of BDD used in PJBDD.",
-        values = {"BDD, ChainedBDD"},
+        values = {"BDD", "ChainedBDD"},
         toUppercase = true)
     private String useBDDType = "BDD";
 
@@ -259,7 +259,7 @@ public class PJBDDRegionManager implements RegionManager {
     }
 
     protected List<String> getAllValidBDDTypes() {
-      return allBDDTypes;
+      return ALL_BDD_TYPES;
     }
 
     private Creator makeCreator() {

@@ -718,8 +718,18 @@ public class SMGCPAExpressionEvaluator {
       // The Value does not matter here as the error state should always end the analysis
       return ImmutableList.of(ValueAndSMGState.ofUnknownValue(errorState));
     }
+    SMGState currentState = initialState;
+    if (!initialState.getMemoryModel().isObjectValid(maybeObject.orElseThrow())) {
+      // live vars may have invalidated this var because it's useless. The read should of course
+      // still be valid!
+      // TODO: add sanity check for live vars. But C does not allow access to invalidated stack vars
+      // anyway....
+      currentState =
+          initialState.copyAndReplaceMemoryModel(
+              initialState.getMemoryModel().validateSMGObject(maybeObject.orElseThrow()));
+    }
     return readValue(
-        initialState, maybeObject.orElseThrow(), offsetInBits, sizeInBits, readType, materialize);
+        currentState, maybeObject.orElseThrow(), offsetInBits, sizeInBits, readType, materialize);
   }
 
   /**
