@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,6 +59,7 @@ public final class CfaJsonIO {
         .addMixIn(FunctionEntryNode.class, FunctionEntryNodeMixin.class)
         .addMixIn(FunctionExitNode.class, FunctionExitNodeMixin.class)
         .addMixIn(CFANode.class, CfaNodeMixin.class)
+        .addMixIn(CFAEdge.class, CfaEdgeMixin.class)
         .addMixIn(CfaMetadata.class, CfaMetadataMixin.class)
         .addMixIn(Partition.class, PartitionMixin.class)
         .build();
@@ -90,12 +92,29 @@ public final class CfaJsonIO {
    *
    * <p>It prevents cyclic references by serializing the {@link CFANode} as number if the same node
    * has already been fully serialized once.
+   *
+   * <p>It serializes the specific {@link CFANode} type as a property.
    */
   @JsonIdentityInfo(
       generator = ObjectIdGenerators.PropertyGenerator.class,
       scope = CFANode.class,
       property = "nodeNumber")
+  @JsonTypeInfo(
+      use = JsonTypeInfo.Id.MINIMAL_CLASS,
+      include = JsonTypeInfo.As.PROPERTY,
+      property = "serializedType")
   private static final class CfaNodeMixin {}
+
+  /**
+   * This class is a mixin for {@link CFAEdge}.
+   *
+   * <p>It serializes the specific {@link CFAEdge} type as a property.
+   */
+  @JsonTypeInfo(
+      use = JsonTypeInfo.Id.MINIMAL_CLASS,
+      include = JsonTypeInfo.As.PROPERTY,
+      property = "serializedType")
+  private static final class CfaEdgeMixin {}
 
   /**
    * This class represents a mixin for {@link CfaMetadata}.
