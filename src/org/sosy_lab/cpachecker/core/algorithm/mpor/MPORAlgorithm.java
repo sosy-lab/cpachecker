@@ -27,6 +27,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -384,6 +385,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final ThreadBuilder threadBuilder;
 
+  private final CBinaryExpressionBuilder cBinExprBuilder;
+
   /** The set of global variable declarations in the input program, used to identify variables. */
   private final ImmutableSet<CVariableDeclaration> globalVars;
 
@@ -421,8 +424,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     funcCallMap = getFunctionCallMap(INPUT_CFA);
     funcReturnEdges = getFuncReturnEdges(INPUT_CFA);
+
     threadBuilder = new ThreadBuilder(funcCallMap);
     stateBuilder = new StateBuilder(PTR, funcCallMap);
+    cBinExprBuilder = new CBinaryExpressionBuilder(INPUT_CFA.getMachineModel(), pLogManager);
 
     globalVars = getGlobalVars(INPUT_CFA);
     threads = getThreads(INPUT_CFA, funcCallMap);

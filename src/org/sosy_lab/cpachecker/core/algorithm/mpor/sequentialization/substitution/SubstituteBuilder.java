@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
@@ -44,7 +46,18 @@ public class SubstituteBuilder {
         pCVarDec.getType(),
         pNewName,
         pNewName,
-        pNewName, // TODO funcName::name? not relevant for the sequentialization
+        pNewName, // TODO funcName::name but not relevant for seq
         pCVarDec.getInitializer());
+  }
+
+  public static CAssumeEdge createAssumeEdgeSubstitute(
+      CAssumeEdge pOriginal, CExpression pSubstituteExpr) {
+    return new CAssumeEdge(
+        pOriginal.getRawStatement(),
+        pOriginal.getFileLocation(),
+        pOriginal.getPredecessor(),
+        pOriginal.getSuccessor(),
+        pSubstituteExpr,
+        pOriginal.getTruthAssumption());
   }
 }
