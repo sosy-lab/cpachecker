@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution;
 
+import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -19,18 +20,14 @@ import org.sosy_lab.cpachecker.util.ExpressionSubstitution.SubstitutionException
 
 public class CVariableDeclarationSubstitution implements Substitution {
 
-  private final CVariableDeclaration original;
-
-  private final CVariableDeclaration substitute;
+  public final ImmutableMap<CVariableDeclaration, CVariableDeclaration> substitutes;
 
   private final CBinaryExpressionBuilder binExprBuilder;
 
   public CVariableDeclarationSubstitution(
-      CVariableDeclaration pOriginal,
-      CVariableDeclaration pSubstitute,
+      ImmutableMap<CVariableDeclaration, CVariableDeclaration> pSubstitutes,
       CBinaryExpressionBuilder pCBinExprBuilder) {
-    original = pOriginal;
-    substitute = pSubstitute;
+    substitutes = pSubstitutes;
     binExprBuilder = pCBinExprBuilder;
   }
 
@@ -38,12 +35,15 @@ public class CVariableDeclarationSubstitution implements Substitution {
   public CExpression substitute(CExpression pExpression) throws SubstitutionException {
 
     if (pExpression instanceof CIdExpression cIdExpr) {
-      if (cIdExpr.getDeclaration().equals(original)) {
-        return new CIdExpression(
-            cIdExpr.getFileLocation(),
-            cIdExpr.getExpressionType(),
-            substitute.getName(),
-            substitute);
+      if (cIdExpr.getDeclaration() instanceof CVariableDeclaration cVarDec) {
+        CVariableDeclaration substitute = substitutes.get(cVarDec);
+        if (substitute != null) {
+          return new CIdExpression(
+              cIdExpr.getFileLocation(),
+              cIdExpr.getExpressionType(),
+              substitute.getName(),
+              substitute);
+        }
       }
 
       // recursively substitute operands of binary expressions

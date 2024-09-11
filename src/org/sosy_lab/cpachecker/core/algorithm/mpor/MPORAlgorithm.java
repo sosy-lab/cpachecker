@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -35,11 +36,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution.CVariableDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution.SubstituteBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.ExecutionTrace;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.MPORState;
@@ -64,6 +67,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.ExpressionSubstitution.SubstitutionException;
 
 /**
  * This is an implementation of a Partial Order Reduction (POR) algorithm, presented in the 2022
@@ -390,7 +394,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   /** The set of global variable declarations in the input program, used to identify variables. */
   private final ImmutableSet<CVariableDeclaration> globalVars;
 
+  private final CVariableDeclarationSubstitution cVarDecSubstitution;
+
   private final ImmutableMap<CVariableDeclaration, CVariableDeclaration> varSubstitutes;
+
+  private final ImmutableMap<CFAEdge, CFAEdge> edgeSubstitutes;
 
   /**
    * The set of threads in the program, including the main thread and all pthreads. Needs to be
@@ -433,6 +441,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     threads = getThreads(INPUT_CFA, funcCallMap);
 
     varSubstitutes = getVarSubstitutes();
+    cVarDecSubstitution = new CVariableDeclarationSubstitution(varSubstitutes, cBinExprBuilder);
+    edgeSubstitutes = getEdgeSubstitutes();
+    threadBuilder.initEdgeSubstitutes(edgeSubstitutes, threads);
 
     SEQ = new Sequentialization(threads.size());
   }
@@ -605,23 +616,56 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * substitutes differ only in their name.
    */
   private ImmutableMap<CVariableDeclaration, CVariableDeclaration> getVarSubstitutes() {
-    ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> rSubstitutions =
+    ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> rSubstitutes =
         ImmutableMap.builder();
     for (CVariableDeclaration globalVar : globalVars) {
       String substituteName = SubstituteBuilder.createGlobalVarSubstituteName(globalVar);
       CVariableDeclaration substitution =
           SubstituteBuilder.createVarSubstitute(globalVar, substituteName);
-      rSubstitutions.put(globalVar, substitution);
+      rSubstitutes.put(globalVar, substitution);
     }
     for (MPORThread thread : threads) {
       for (CVariableDeclaration localVar : thread.localVars) {
         String substituteName = SubstituteBuilder.createLocalVarSubstituteName(localVar, thread.id);
         CVariableDeclaration substitution =
             SubstituteBuilder.createVarSubstitute(localVar, substituteName);
-        rSubstitutions.put(localVar, substitution);
+        rSubstitutes.put(localVar, substitution);
       }
     }
-    return rSubstitutions.buildOrThrow();
+    return rSubstitutes.buildOrThrow();
+  }
+
+  private ImmutableMap<CFAEdge, CFAEdge> getEdgeSubstitutes() {
+    Map<CFAEdge, CFAEdge> rSubstitutes = new HashMap<>();
+    for (CFAEdge edge : CFAUtils.allEdges(INPUT_CFA)) {
+      // prevent duplicate keys by excluding parallel edges
+      if (!rSubstitutes.containsKey(edge)) {
+        CFAEdge substitute = null;
+
+        if (edge instanceof CDeclarationEdge cDecEdge) {
+          // TODO what about structs?
+          CDeclaration cDec = cDecEdge.getDeclaration();
+          if (cDec instanceof CVariableDeclaration cVarDec) {
+            if (varSubstitutes.containsKey(cVarDec)) {
+              substitute =
+                  SubstituteBuilder.substituteDeclarationEdge(
+                      cDecEdge, varSubstitutes.get(cVarDec));
+            }
+          }
+
+        } else if (edge instanceof CAssumeEdge cAssumeEdge) {
+          try {
+            substitute =
+                SubstituteBuilder.substituteAssumeEdge(
+                    cAssumeEdge, cVarDecSubstitution.substitute(cAssumeEdge.getExpression()));
+          } catch (SubstitutionException e) {
+            throw new IllegalArgumentException(e.getMessage());
+          }
+        }
+        rSubstitutes.put(edge, substitute == null ? edge : substitute);
+      }
+    }
+    return ImmutableMap.copyOf(rSubstitutes);
   }
 
   // (Private) Helpers ===========================================================================

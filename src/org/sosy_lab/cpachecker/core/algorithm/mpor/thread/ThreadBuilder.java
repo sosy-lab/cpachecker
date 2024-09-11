@@ -378,4 +378,13 @@ public class ThreadBuilder {
     }
     return rThreadEdges.build();
   }
+
+  public void initEdgeSubstitutes(
+      ImmutableMap<CFAEdge, CFAEdge> pSubstitutes, ImmutableSet<MPORThread> pThreads) {
+    for (MPORThread thread : pThreads) {
+      for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
+        threadEdge.setSubstitute(pSubstitutes.get(threadEdge.cfaEdge));
+      }
+    }
+  }
 }

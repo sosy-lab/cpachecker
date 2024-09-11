@@ -58,14 +58,14 @@ public class SeqUtil {
     } else {
       boolean firstEdge = true;
       for (ThreadEdge threadEdge : pThreadNode.leavingEdges) {
-        CFAEdge cfaEdge = threadEdge.cfaEdge;
+        CFAEdge substitute = threadEdge.substitute;
         AssignExpr updatePcsNextThread = createUpdatePcsNextThread(threadEdge.getSuccessor().pc);
 
         // use (else) if (condition) for assumes, no matter if induced by if, for, while...
-        if (cfaEdge instanceof CAssumeEdge) {
+        if (substitute instanceof CAssumeEdge) {
           // TODO here for test purposes, can be removed later
           assert allEdgesAssume(pThreadNode.leavingEdges);
-          IfExpr ifExpr = new IfExpr(new EdgeCodeExpr(cfaEdge));
+          IfExpr ifExpr = new IfExpr(new EdgeCodeExpr(substitute));
           if (firstEdge) {
             firstEdge = false;
             IfCodeExpr ifCodeExpr = new IfCodeExpr(ifExpr, updatePcsNextThread);
@@ -76,38 +76,35 @@ public class SeqUtil {
           }
 
           // TODO CDeclarationEdge: put them all in front of the loop
-          //  add __t0_... to local and __global_ to global variables
           //  declarationEdges have to be checked for a right hand side. if it is present, the
           //  declaration is transformed into an assignment in the seq. if it is not present, the
-          //  declaration happens outside the loop and the edge is skipped
+          //  edge is skipped
 
-          /*} else if (cfaEdge instanceof FunctionCallEdge functionCallEdge) {
+          /*} else if (substitute instanceof FunctionCallEdge functionCallEdge) {
             // TODO map calling parameter name to actual parameter name
-            code.append(cfaEdge.getCode())
+            code.append(substitute.getCode())
                 .append(SeqSyntax.SPACE)
                 .append(updatePcsNextThread.createString());
 
-          } else if (cfaEdge instanceof CFunctionReturnEdge) {
+          } else if (substitute instanceof CFunctionReturnEdge) {
             // TODO test purposes, remove later
             assert pThreadNode.leavingEdges.size() == 1;
-            assert cfaEdge.getCode().equals(SeqSyntax.EMPTY_STRING);
+            assert substitute.getCode().equals(SeqSyntax.EMPTY_STRING);
             // TODO pc has to be skipped
 
-          } else if (cfaEdge instanceof BlankEdge) {
+          } else if (substitute instanceof BlankEdge) {
             // TODO test purposes, remove later
             assert pThreadNode.leavingEdges.size() == 1;
-            assert cfaEdge.getCode().equals(SeqSyntax.EMPTY_STRING);
+            assert substitute.getCode().equals(SeqSyntax.EMPTY_STRING);
             // TODO pc has to be skipped*/
 
         } else {
-          // TODO test purposes, can be removed later
-          assert pThreadNode.leavingEdges.size() == 1;
           // TODO not crucial but also remove pthread_t and pthread_mutex_t variables
           // do not include any pthread functions
-          if (PthreadFuncType.isEdgeCallToAnyFunc(cfaEdge)) {
+          if (PthreadFuncType.isEdgeCallToAnyFunc(substitute)) {
             code.append(updatePcsNextThread.createString());
           } else {
-            code.append(cfaEdge.getCode())
+            code.append(substitute.getCode())
                 .append(SeqSyntax.SPACE)
                 .append(updatePcsNextThread.createString());
           }
