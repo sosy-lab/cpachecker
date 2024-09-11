@@ -36,22 +36,4 @@ public class CVariableDeclarationSubstitution implements Substitution {
     }
     return pExpression;
   }
-
-  /**
-   * Creates a clone of the given CVariableDeclaration with substituted name(s).
-   *
-   * @param pCVarDec the variable declaration to substitute
-   */
-  public static CVariableDeclaration createSubstitute(
-      CVariableDeclaration pCVarDec, String pNewName) {
-    return new CVariableDeclaration(
-        pCVarDec.getFileLocation(),
-        pCVarDec.isGlobal(),
-        pCVarDec.getCStorageClass(),
-        pCVarDec.getType(),
-        pNewName,
-        pNewName,
-        pNewName, // TODO funcName::name? not relevant for the sequentialization
-        pCVarDec.getInitializer());
-  }
 }

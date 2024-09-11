@@ -38,6 +38,8 @@ public class SeqSyntax {
 
   public static final String TAB = initTab();
 
+  public static final String UNDERSCORE = "_";
+
   private static String initTab() {
     return SeqSyntax.EMPTY_STRING + SeqSyntax.SPACE.repeat(Sequentialization.TAB_SIZE);
   }

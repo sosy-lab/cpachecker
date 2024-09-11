@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution.SubstituteBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.ExecutionTrace;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.MPORState;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
@@ -386,6 +387,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   /** The set of global variable declarations in the input program, used to identify variables. */
   private final ImmutableSet<CVariableDeclaration> globalVars;
 
+  private final ImmutableMap<CVariableDeclaration, CVariableDeclaration> varSubstitutes;
+
   /**
    * The set of threads in the program, including the main thread and all pthreads. Needs to be
    * initialized after {@link MPORAlgorithm#funcCallMap}.
@@ -423,6 +426,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     globalVars = getGlobalVars(INPUT_CFA);
     threads = getThreads(INPUT_CFA, funcCallMap);
+
+    varSubstitutes = getVarSubstitutes();
 
     SEQ = new Sequentialization(threads.size());
   }
@@ -588,6 +593,30 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     return rThreads.build();
+  }
+
+  /**
+   * Creates substitutes for all variables in the program and maps them to their original. The
+   * substitutes differ only in their name.
+   */
+  private ImmutableMap<CVariableDeclaration, CVariableDeclaration> getVarSubstitutes() {
+    ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> rSubstitutions =
+        ImmutableMap.builder();
+    for (CVariableDeclaration globalVar : globalVars) {
+      String substituteName = SubstituteBuilder.createGlobalVarSubstituteName(globalVar);
+      CVariableDeclaration substitution =
+          SubstituteBuilder.createVarSubstitute(globalVar, substituteName);
+      rSubstitutions.put(globalVar, substitution);
+    }
+    for (MPORThread thread : threads) {
+      for (CVariableDeclaration localVar : thread.localVars) {
+        String substituteName = SubstituteBuilder.createLocalVarSubstituteName(localVar, thread.id);
+        CVariableDeclaration substitution =
+            SubstituteBuilder.createVarSubstitute(localVar, substituteName);
+        rSubstitutions.put(localVar, substitution);
+      }
+    }
+    return rSubstitutions.buildOrThrow();
   }
 
   // (Private) Helpers ===========================================================================
