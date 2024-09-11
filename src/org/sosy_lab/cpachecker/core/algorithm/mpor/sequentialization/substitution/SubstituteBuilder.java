@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
@@ -36,19 +38,19 @@ public class SubstituteBuilder {
   /**
    * Creates a clone of the given CVariableDeclaration with substituted name(s).
    *
-   * @param pCVarDec the variable declaration to substitute
+   * @param pOriginal the variable declaration to substitute
    */
-  public static CVariableDeclaration createVarSubstitute(
-      CVariableDeclaration pCVarDec, String pNewName) {
+  public static CVariableDeclaration substituteVarDec(
+      CVariableDeclaration pOriginal, String pName) {
     return new CVariableDeclaration(
-        pCVarDec.getFileLocation(),
-        pCVarDec.isGlobal(),
-        pCVarDec.getCStorageClass(),
-        pCVarDec.getType(),
-        pNewName,
-        pNewName,
-        pNewName, // TODO funcName::name but not relevant for seq
-        pCVarDec.getInitializer());
+        pOriginal.getFileLocation(),
+        pOriginal.isGlobal(),
+        pOriginal.getCStorageClass(),
+        pOriginal.getType(),
+        pName,
+        pName,
+        pName, // TODO funcName::name but not relevant for seq
+        pOriginal.getInitializer());
   }
 
   public static CAssumeEdge substituteAssumeEdge(
@@ -70,5 +72,15 @@ public class SubstituteBuilder {
         pOriginal.getPredecessor(),
         pOriginal.getSuccessor(),
         pCVarDec);
+  }
+
+  public static CStatementEdge substituteStatementEdge(
+      CStatementEdge pOriginal, CStatement pCStmt) {
+    return new CStatementEdge(
+        pOriginal.getRawStatement(),
+        pCStmt,
+        pOriginal.getFileLocation(),
+        pOriginal.getPredecessor(),
+        pOriginal.getSuccessor());
   }
 }

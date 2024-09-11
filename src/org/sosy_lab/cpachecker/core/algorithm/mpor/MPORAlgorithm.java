@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -67,7 +68,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.ExpressionSubstitution.SubstitutionException;
 
 /**
  * This is an implementation of a Partial Order Reduction (POR) algorithm, presented in the 2022
@@ -621,14 +621,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     for (CVariableDeclaration globalVar : globalVars) {
       String substituteName = SubstituteBuilder.createGlobalVarSubstituteName(globalVar);
       CVariableDeclaration substitution =
-          SubstituteBuilder.createVarSubstitute(globalVar, substituteName);
+          SubstituteBuilder.substituteVarDec(globalVar, substituteName);
       rSubstitutes.put(globalVar, substitution);
     }
     for (MPORThread thread : threads) {
       for (CVariableDeclaration localVar : thread.localVars) {
         String substituteName = SubstituteBuilder.createLocalVarSubstituteName(localVar, thread.id);
         CVariableDeclaration substitution =
-            SubstituteBuilder.createVarSubstitute(localVar, substituteName);
+            SubstituteBuilder.substituteVarDec(localVar, substituteName);
         rSubstitutes.put(localVar, substitution);
       }
     }
@@ -654,13 +654,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           }
 
         } else if (edge instanceof CAssumeEdge cAssumeEdge) {
-          try {
-            substitute =
-                SubstituteBuilder.substituteAssumeEdge(
-                    cAssumeEdge, cVarDecSubstitution.substitute(cAssumeEdge.getExpression()));
-          } catch (SubstitutionException e) {
-            throw new IllegalArgumentException(e.getMessage());
-          }
+          substitute =
+              SubstituteBuilder.substituteAssumeEdge(
+                  cAssumeEdge, cVarDecSubstitution.substitute(cAssumeEdge.getExpression()));
+
+        } else if (edge instanceof CStatementEdge cStmtEdge) {
+          substitute =
+              SubstituteBuilder.substituteStatementEdge(
+                  cStmtEdge, cVarDecSubstitution.substitute(cStmtEdge.getStatement()));
         }
         rSubstitutes.put(edge, substitute == null ? edge : substitute);
       }

@@ -12,11 +12,13 @@ import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
-import org.sosy_lab.cpachecker.util.ExpressionSubstitution.SubstitutionException;
 
 public class CVariableDeclarationSubstitution implements Substitution {
 
@@ -32,7 +34,7 @@ public class CVariableDeclarationSubstitution implements Substitution {
   }
 
   @Override
-  public CExpression substitute(CExpression pExpression) throws SubstitutionException {
+  public CExpression substitute(CExpression pExpression) {
 
     if (pExpression instanceof CIdExpression cIdExpr) {
       if (cIdExpr.getDeclaration() instanceof CVariableDeclaration cVarDec) {
@@ -48,29 +50,46 @@ public class CVariableDeclarationSubstitution implements Substitution {
 
       // recursively substitute operands of binary expressions
     } else if (pExpression instanceof CBinaryExpression cBinExpr) {
-      CExpression leftSubstitute = substituteOperand(cBinExpr.getOperand1());
-      CExpression rightSubstitute = substituteOperand(cBinExpr.getOperand2());
+      CExpression op1 = substituteOperand(cBinExpr.getOperand1());
+      CExpression op2 = substituteOperand(cBinExpr.getOperand2());
       // only create a new expression if any operand was substituted
-      if (!leftSubstitute.equals(cBinExpr.getOperand1())
-          || !rightSubstitute.equals(cBinExpr.getOperand2())) {
+      if (!op1.equals(cBinExpr.getOperand1()) || !op2.equals(cBinExpr.getOperand2())) {
         try {
-          return binExprBuilder.buildBinaryExpression(
-              leftSubstitute, rightSubstitute, cBinExpr.getOperator());
-          // "convert" exceptions
-        } catch (UnrecognizedCodeException e) {
-          throw new SubstitutionException(e.getMessage());
+          return binExprBuilder.buildBinaryExpression(op1, op2, cBinExpr.getOperator());
+        } catch (UnrecognizedCodeException pE) {
+          // "convert" exception -> no UnrecognizedCodeException in signature
+          throw new RuntimeException(pE);
         }
       }
     }
+
     return pExpression;
   }
 
-  private CExpression substituteOperand(CExpression pOperand) throws SubstitutionException {
+  private CExpression substituteOperand(CExpression pOperand) {
     if (pOperand instanceof CIdExpression cIdExpr) {
       return substitute(cIdExpr);
     } else if (pOperand instanceof CBinaryExpression cBinExpr) {
       return substitute(cBinExpr);
     }
     return pOperand;
+  }
+
+  public CStatement substitute(CStatement pCStmt) {
+    if (pCStmt instanceof CExpressionAssignmentStatement cExprAssignStmt) {
+      if (cExprAssignStmt.getLeftHandSide() instanceof CIdExpression cIdExpr) {
+        CExpression substitute = substitute(cIdExpr);
+        if (substitute instanceof CIdExpression cIdExprSub) {
+          return new CExpressionAssignmentStatement(
+              pCStmt.getFileLocation(), cIdExprSub, substitute(cExprAssignStmt.getRightHandSide()));
+        }
+      }
+
+    } else if (pCStmt instanceof CExpressionStatement cExprStmt) {
+      return new CExpressionStatement(
+          cExprStmt.getFileLocation(), substitute(cExprStmt.getExpression()));
+    }
+
+    return pCStmt;
   }
 }
