@@ -17,7 +17,7 @@ public class ThreadEdge {
 
   public final CFAEdge cfaEdge;
 
-  public CFAEdge substitute;
+  private CFAEdge substitute;
 
   // TODO maybe use Optional here
   private ThreadNode predecessor = null;

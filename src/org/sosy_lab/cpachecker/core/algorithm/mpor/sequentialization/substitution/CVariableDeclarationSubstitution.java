@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -56,9 +57,9 @@ public class CVariableDeclarationSubstitution implements Substitution {
       if (!op1.equals(cBinExpr.getOperand1()) || !op2.equals(cBinExpr.getOperand2())) {
         try {
           return binExprBuilder.buildBinaryExpression(op1, op2, cBinExpr.getOperator());
-        } catch (UnrecognizedCodeException pE) {
+        } catch (UnrecognizedCodeException e) {
           // "convert" exception -> no UnrecognizedCodeException in signature
-          throw new RuntimeException(pE);
+          throw new RuntimeException(e);
         }
       }
     }
@@ -76,7 +77,20 @@ public class CVariableDeclarationSubstitution implements Substitution {
   }
 
   public CStatement substitute(CStatement pCStmt) {
-    if (pCStmt instanceof CExpressionAssignmentStatement cExprAssignStmt) {
+
+    if (pCStmt instanceof CFunctionCallAssignmentStatement cFuncCallAssignStmt) {
+      if (cFuncCallAssignStmt.getLeftHandSide() instanceof CIdExpression cIdExpr) {
+        CExpression substitute = substitute(cIdExpr);
+        if (substitute instanceof CIdExpression cIdExprSub) {
+          return new CFunctionCallAssignmentStatement(
+              pCStmt.getFileLocation(),
+              cIdExprSub,
+              // TODO test if CFuncCallExpr has to be substituted (so far: no)
+              cFuncCallAssignStmt.getRightHandSide());
+        }
+      }
+
+    } else if (pCStmt instanceof CExpressionAssignmentStatement cExprAssignStmt) {
       if (cExprAssignStmt.getLeftHandSide() instanceof CIdExpression cIdExpr) {
         CExpression substitute = substitute(cIdExpr);
         if (substitute instanceof CIdExpression cIdExprSub) {

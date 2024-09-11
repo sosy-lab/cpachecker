@@ -58,7 +58,7 @@ public class SeqUtil {
     } else {
       boolean firstEdge = true;
       for (ThreadEdge threadEdge : pThreadNode.leavingEdges) {
-        CFAEdge substitute = threadEdge.substitute;
+        CFAEdge substitute = threadEdge.getSubstitute();
         AssignExpr updatePcsNextThread = createUpdatePcsNextThread(threadEdge.getSuccessor().pc);
 
         // use (else) if (condition) for assumes, no matter if induced by if, for, while...
