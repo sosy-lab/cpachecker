@@ -35,13 +35,13 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  *
  * <p>The export format is JSON.
  *
- * <p>It uses the {@link CfaJsonIO.CfaJsonData} record to store the {@link CFA} data.
+ * <p>It uses the {@link CfaJsonModule.CfaJsonData} record to store the {@link CFA} data.
  */
 public final class CfaToJson {
-  private final CfaJsonIO.CfaJsonData cfaJsonData;
+  private final CfaJsonModule.CfaJsonData cfaJsonData;
 
   /**
-   * Constructs the {@link CfaJsonIO.CfaJsonData} field with the given {@link CFA}.
+   * Constructs the {@link CfaJsonModule.CfaJsonData} field with the given {@link CFA}.
    *
    * @param pCfa The Control Flow Automaton (CFA) to be converted to JSON.
    */
@@ -64,7 +64,7 @@ public final class CfaToJson {
 
     /* Create the CFA JSON data. */
     this.cfaJsonData =
-        new CfaJsonIO.CfaJsonData(
+        new CfaJsonModule.CfaJsonData(
             nodes, cfa.edges(), cfa.getAllFunctions(), partitions, cfa.getMetadata());
   }
 

@@ -22,6 +22,16 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
 
   private static final long serialVersionUID = 1945912240762984485L;
 
+  /* This record represents the CFA data. */
+  final record CfaJsonData(
+        com.google.common.collect.TreeMultimap<String, org.sosy_lab.cpachecker.cfa.model.CFANode> nodes,
+      java.util.Set<org.sosy_lab.cpachecker.cfa.model.CFAEdge> edges,
+      java.util.NavigableMap<String, org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode> functions,
+      @JsonSerialize(using = PartitionsSerializer.class)
+      @JsonDeserialize(using = PartitionsDeserializer.class)
+      java.util.Set<org.sosy_lab.cpachecker.util.variableclassification.Partition> partitions,
+      org.sosy_lab.cpachecker.cfa.CfaMetadata metadata) {}
+
   /**
    * Sets up the module by registering all mixins.
    *
@@ -112,7 +122,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
    */
   private record TableEntry(
       org.sosy_lab.cpachecker.cfa.model.CFAEdge edge,
-      Integer column,
+      java.lang.Integer column,
       org.sosy_lab.cpachecker.util.variableclassification.Partition partition) {}
 
   /**
@@ -125,14 +135,14 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
       extends com.fasterxml.jackson.databind.util.StdConverter<
           com.google.common.collect.Table<
               org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-              Integer,
+              java.lang.Integer,
               org.sosy_lab.cpachecker.util.variableclassification.Partition>,
           java.util.List<TableEntry>> {
     @Override
     public java.util.List<TableEntry> convert(
         com.google.common.collect.Table<
                 org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-                Integer,
+                java.lang.Integer,
                 org.sosy_lab.cpachecker.util.variableclassification.Partition>
             pTable) {
       return pTable.cellSet().stream()
@@ -179,7 +189,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @Override
     public void bindItem(
         com.fasterxml.jackson.annotation.ObjectIdGenerator.IdKey pId, Object pItem) {
-      if (pId.key.getClass() != Integer.class) {
+      if (pId.key.getClass() != java.lang.Integer.class) {
         throw new IllegalArgumentException(
             "Wrong key: " + pId.key.getClass().getSimpleName() + " is not an Integer");
       }
@@ -189,7 +199,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
             "Wrong object: " + pItem.getClass().getSimpleName() + " is not a CFAEdge");
       }
 
-      idToEdgeMap.put((Integer) pId.key, (org.sosy_lab.cpachecker.cfa.model.CFAEdge) pItem);
+      idToEdgeMap.put((java.lang.Integer) pId.key, (org.sosy_lab.cpachecker.cfa.model.CFAEdge) pItem);
       super.bindItem(pId, pItem);
     }
 
@@ -197,15 +207,22 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
      * Retrieves a {@link org.sosy_lab.cpachecker.cfa.model.CFAEdge} from its ID.
      *
      * @param pId The ID of the CFAEdge.
-     * @return The CFAEdge with the specified ID, or null if no such edge exists.
+     * @return The CFAEdge with the specified ID.
      * @throws IllegalStateException If no resolver is available.
+     * @throws IllegalArgumentException If no CFAEdge for the ID is found.
      */
-    public static org.sosy_lab.cpachecker.cfa.model.CFAEdge getEdgeFromId(Integer pId) {
+    public static org.sosy_lab.cpachecker.cfa.model.CFAEdge getEdgeFromId(java.lang.Integer pId) {
       if (currentResolver == null) {
         throw new IllegalStateException("No resolver available");
       }
 
-      return currentResolver.idToEdgeMap.get(pId);
+      org.sosy_lab.cpachecker.cfa.model.CFAEdge edge = currentResolver.idToEdgeMap.get(pId);
+
+      if (edge == null) {
+          throw new IllegalArgumentException("No edge with ID " + pId + " found");
+      }
+
+      return edge;
     }
   }
 
@@ -220,12 +237,12 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
           java.util.List<TableEntry>,
           com.google.common.collect.Table<
               org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-              Integer,
+              java.lang.Integer,
               org.sosy_lab.cpachecker.util.variableclassification.Partition>> {
     @Override
     public com.google.common.collect.Table<
             org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-            Integer,
+            java.lang.Integer,
             org.sosy_lab.cpachecker.util.variableclassification.Partition>
         convert(java.util.List<TableEntry> pList) {
       return pList.stream()
@@ -266,7 +283,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @JsonDeserialize(converter = ListToEtpTableConverter.class)
     private com.google.common.collect.Table<
             org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-            Integer,
+            java.lang.Integer,
             org.sosy_lab.cpachecker.util.variableclassification.Partition>
         edgeToPartitions;
 
@@ -833,7 +850,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @JsonDeserialize(converter = ListToEtpTableConverter.class)
     private com.google.common.collect.Table<
             org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-            Integer,
+            java.lang.Integer,
             org.sosy_lab.cpachecker.util.variableclassification.Partition>
         edgeToPartition;
   }

@@ -25,7 +25,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
-import org.sosy_lab.cpachecker.cfa.export.CfaJsonIO.CfaJsonData;
+import org.sosy_lab.cpachecker.cfa.export.CfaJsonModule.CfaJsonData;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.Partition;
  *
  * <p>The import format is JSON.
  *
- * <p>It imports the {@link CFA} data from a JSON file containing a {@link CfaJsonIO.CfaJsonData}
+ * <p>It imports the {@link CFA} data from a JSON file containing a {@link CfaJsonModule.CfaJsonData}
  * record.
  */
 public final class CfaFromJson {
@@ -47,12 +47,12 @@ public final class CfaFromJson {
   /**
    * Reads a {@link MutableCFA} from a JSON file.
    *
-   * @param pCfaJsonFile The path to the JSON file containing the {@link CfaJsonIO.CfaJsonData}
+   * @param pCfaJsonFile The path to the JSON file containing the {@link CfaJsonModule.CfaJsonData}
    *     record.
    * @return The {@link MutableCFA} object read from the JSON file.
    * @throws JsonParseException If there is an error parsing the JSON file.
    * @throws JsonMappingException If there is an error mapping the JSON data to the {@link
-   *     CfaJsonIO.CfaJsonData} record.
+   *     CfaJsonModule.CfaJsonData} record.
    * @throws IOException If there is an error reading the JSON file.
    */
   public static MutableCFA read(@Nullable Path pCfaJsonFile)
@@ -87,7 +87,7 @@ public final class CfaFromJson {
 
     /* Read CfaJsonData from file. */
     CfaJsonData cfaJsonData =
-        objectMapper.readValue(pCfaJsonFile.toFile(), CfaJsonIO.CfaJsonData.class);
+        objectMapper.readValue(pCfaJsonFile.toFile(), CfaJsonModule.CfaJsonData.class);
     return new MutableCFA(cfaJsonData.functions(), cfaJsonData.nodes(), cfaJsonData.metadata());
   }
 
