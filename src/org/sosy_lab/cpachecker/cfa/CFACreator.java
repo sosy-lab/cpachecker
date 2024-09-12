@@ -1176,7 +1176,7 @@ public class CFACreator {
 
     if (exportCfa && exportCfaJsonFile != null) {
       try {
-        new CfaToJson(cfa).write(exportCfaJsonFile);
+        new CfaToJson(cfa, logger).write(exportCfaJsonFile);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write CFA to JSON file");
         // continue with analysis

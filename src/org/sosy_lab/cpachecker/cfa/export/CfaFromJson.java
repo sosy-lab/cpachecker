@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -39,8 +40,8 @@ import org.sosy_lab.cpachecker.util.variableclassification.Partition;
  *
  * <p>The import format is JSON.
  *
- * <p>It imports the {@link CFA} data from a JSON file containing a {@link CfaJsonModule.CfaJsonData}
- * record.
+ * <p>It imports the {@link CFA} data from a JSON file containing a {@link
+ * CfaJsonModule.CfaJsonData} record.
  */
 public final class CfaFromJson {
 
@@ -49,17 +50,18 @@ public final class CfaFromJson {
    *
    * @param pCfaJsonFile The path to the JSON file containing the {@link CfaJsonModule.CfaJsonData}
    *     record.
+   * @param pLogger The logger to use for logging.
    * @return The {@link MutableCFA} object read from the JSON file.
    * @throws JsonParseException If there is an error parsing the JSON file.
    * @throws JsonMappingException If there is an error mapping the JSON data to the {@link
    *     CfaJsonModule.CfaJsonData} record.
    * @throws IOException If there is an error reading the JSON file.
    */
-  public static MutableCFA read(@Nullable Path pCfaJsonFile)
+  public static MutableCFA read(@Nullable Path pCfaJsonFile, LogManager pLogger)
       throws JsonParseException, JsonMappingException, IOException {
 
     /* Get configured ObjectMapper. */
-    ObjectMapper objectMapper = CfaJsonIO.provideConfiguredCfaObjectMapper();
+    ObjectMapper objectMapper = CfaJsonIO.provideConfiguredCfaObjectMapper(pLogger);
 
     /* Add custom deserializers. */
     SimpleModule simpleModule = new SimpleModule();

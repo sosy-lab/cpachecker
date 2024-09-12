@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import org.sosy_lab.common.log.LogManager;
 
 /* This class provides a base for exporting and importing CFA data to and from JSON. */
 public final class CfaJsonIO {
@@ -23,10 +24,11 @@ public final class CfaJsonIO {
    * Configures and provides an instance of {@link ObjectMapper} for CFA serialization and
    * deserialization.
    *
+   * @param pLogger The logger to use for logging.
    * @return The configured {@link ObjectMapper} instance which only maps fields and uses
    *     indentation and newlines.
    */
-  protected static final ObjectMapper provideConfiguredCfaObjectMapper() {
+  protected static final ObjectMapper provideConfiguredCfaObjectMapper(LogManager pLogger) {
     return JsonMapper.builder()
 
         /* Only map fields of objects. */
@@ -37,7 +39,7 @@ public final class CfaJsonIO {
         .enable(SerializationFeature.INDENT_OUTPUT)
 
         /* Add modules. */
-        .addModule(new CfaJsonModule())
+        .addModule(new CfaJsonModule(pLogger))
         .addModule(new GuavaModule())
         .addModule(new Jdk8Module())
         .build();
