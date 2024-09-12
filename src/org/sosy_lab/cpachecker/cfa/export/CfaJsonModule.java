@@ -14,7 +14,6 @@ import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
@@ -109,7 +108,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
   /**
    * Represents an entry in a {@link com.google.common.collect.Table}.
    *
-   * <p>This class encapsulates information about a CFAEdge, a column, and a Partition.
+   * <p>This record encapsulates information about a CFAEdge, a column, and a Partition.
    */
   private record TableEntry(
       org.sosy_lab.cpachecker.cfa.model.CFAEdge edge,
@@ -142,6 +141,74 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     }
   }
 
+/**
+ * This class is a custom {@link com.fasterxml.jackson.annotation.ObjectIdResolver}.
+ * 
+   * <p>It is used to retrieve {@link org.sosy_lab.cpachecker.cfa.model.CFAEdge}s from their
+   * respective IDs.
+ */
+  private static class CfaEdgeIdResolver
+      extends com.fasterxml.jackson.annotation.SimpleObjectIdResolver {
+    private static CfaEdgeIdResolver currentResolver;
+
+    private final java.util.Map<Integer, org.sosy_lab.cpachecker.cfa.model.CFAEdge> idToEdgeMap =
+        new java.util.HashMap<>();
+
+    /**
+     * Creates a new instance of {@link CfaEdgeIdResolver} for deserialization.
+     * 
+     * <p>It also sets the currentResolver field to the newly created instance for later use.
+     *
+     * @param pContext The deserialization context object.
+     * @return The newly created instance.
+     */
+    @Override
+    public com.fasterxml.jackson.annotation.ObjectIdResolver newForDeserialization(
+        Object pContext) {
+      return currentResolver = new CfaEdgeIdResolver();
+    }
+
+    /**
+     * Binds an item to an ID.
+     *
+     * <p>It checks if the key is an Integer and the item is a CFAEdge.
+     *
+     * @param pId The ID.
+     * @param pItem The object to bind.
+     */
+    @Override
+    public void bindItem(
+        com.fasterxml.jackson.annotation.ObjectIdGenerator.IdKey pId, Object pItem) {
+      if (pId.key.getClass() != Integer.class) {
+        throw new IllegalArgumentException(
+            "Wrong key: " + pId.key.getClass().getSimpleName() + " is not an Integer");
+      }
+
+      if (!(pItem instanceof org.sosy_lab.cpachecker.cfa.model.CFAEdge)) {
+        throw new IllegalArgumentException(
+            "Wrong object: " + pItem.getClass().getSimpleName() + " is not a CFAEdge");
+      }
+
+      idToEdgeMap.put((Integer) pId.key, (org.sosy_lab.cpachecker.cfa.model.CFAEdge) pItem);
+      super.bindItem(pId, pItem);
+    }
+
+    /**
+     * Retrieves a {@link org.sosy_lab.cpachecker.cfa.model.CFAEdge} from its ID.
+     *
+     * @param pId The ID of the CFAEdge.
+     * @return The CFAEdge with the specified ID, or null if no such edge exists.
+     * @throws IllegalStateException If no resolver is available.
+     */
+    public static org.sosy_lab.cpachecker.cfa.model.CFAEdge getEdgeFromId(Integer pId) {
+      if (currentResolver == null) {
+        throw new IllegalStateException("No resolver available");
+      }
+
+      return currentResolver.idToEdgeMap.get(pId);
+    }
+  }
+
   /**
    * A converter class that converts a list of {@link TableEntry} objects to a {@link
    * com.google.common.collect.Table} object.
@@ -164,7 +231,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
       return pList.stream()
           .collect(
               com.google.common.collect.HashBasedTable::create,
-              (table, entry) -> table.put(entry.edge, entry.column, null),
+              (table, entry) -> table.put(entry.edge, entry.column, entry.partition),
               com.google.common.collect.HashBasedTable::putAll);
     }
   }
@@ -628,7 +695,8 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
    * <p>Type information is being serialized to account for subtype polymorphism.
    */
   @JsonIdentityInfo(
-      generator = ObjectIdGenerators.IntSequenceGenerator.class,
+      generator = com.fasterxml.jackson.annotation.ObjectIdGenerators.IntSequenceGenerator.class,
+      resolver = CfaEdgeIdResolver.class,
       property = "edgeNumber")
   @JsonTypeInfo(
       use = JsonTypeInfo.Id.CLASS,
@@ -676,7 +744,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
    * <p>It specifies the constructor to use during deserialization.
    */
   @JsonIdentityInfo(
-      generator = ObjectIdGenerators.PropertyGenerator.class,
+      generator = com.fasterxml.jackson.annotation.ObjectIdGenerators.PropertyGenerator.class,
       scope = org.sosy_lab.cpachecker.cfa.model.CFANode.class,
       property = "nodeNumber")
   @JsonTypeInfo(
@@ -756,7 +824,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
    * and back to a Table object during deserialization.
    */
   @JsonIdentityInfo(
-      generator = ObjectIdGenerators.PropertyGenerator.class,
+      generator = com.fasterxml.jackson.annotation.ObjectIdGenerators.PropertyGenerator.class,
       scope = org.sosy_lab.cpachecker.util.variableclassification.Partition.class,
       property = "index")
   private static final class PartitionMixin {
