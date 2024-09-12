@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -51,6 +52,29 @@ public class SubstituteBuilder {
         pName,
         pName, // TODO funcName::name but not relevant for seq
         pOriginal.getInitializer());
+  }
+
+  /**
+   * Creates a clone of the given CVariableDeclaration with substituted name(s) and initializer.
+   *
+   * @param pOriginal the variable declaration to substitute
+   */
+  public static CVariableDeclaration substituteVarDec(
+      CVariableDeclaration pOriginal, CInitializerExpression cInitExpr) {
+    return new CVariableDeclaration(
+        pOriginal.getFileLocation(),
+        pOriginal.isGlobal(),
+        pOriginal.getCStorageClass(),
+        pOriginal.getType(),
+        pOriginal.getName(),
+        pOriginal.getOrigName(),
+        pOriginal.getQualifiedName(), // TODO funcName::name but not relevant for seq
+        cInitExpr);
+  }
+
+  public static CInitializerExpression substituteInitExpr(
+      CInitializerExpression pOriginal, CExpression pExpression) {
+    return new CInitializerExpression(pOriginal.getFileLocation(), pExpression);
   }
 
   public static CAssumeEdge substituteAssumeEdge(

@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -617,23 +619,51 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * substitutes differ only in their name.
    */
   private ImmutableMap<CVariableDeclaration, CVariableDeclaration> getVarSubstitutes() {
-    ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> rSubstitutes =
+
+    // step 1: create initial CVariableDeclaration substitutes
+    ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> initSubBuilder =
         ImmutableMap.builder();
     for (CVariableDeclaration globalVar : globalVars) {
       String substituteName = SubstituteBuilder.createGlobalVarSubstituteName(globalVar);
       CVariableDeclaration substitution =
           SubstituteBuilder.substituteVarDec(globalVar, substituteName);
-      rSubstitutes.put(globalVar, substitution);
+      initSubBuilder.put(globalVar, substitution);
     }
     for (MPORThread thread : threads) {
       for (CVariableDeclaration localVar : thread.localVars) {
         String substituteName = SubstituteBuilder.createLocalVarSubstituteName(localVar, thread.id);
-        CVariableDeclaration substitution =
+        CVariableDeclaration substitute =
             SubstituteBuilder.substituteVarDec(localVar, substituteName);
-        rSubstitutes.put(localVar, substitution);
+        initSubBuilder.put(localVar, substitute);
       }
     }
-    return rSubstitutes.buildOrThrow();
+    ImmutableMap<CVariableDeclaration, CVariableDeclaration> initSubs =
+        initSubBuilder.buildOrThrow();
+
+    // create temporary local CVarDecSubstitution
+    CVariableDeclarationSubstitution cVarDecSub =
+        new CVariableDeclarationSubstitution(initSubs, cBinExprBuilder);
+
+    // step 2: replace initializers of CVariableDeclarations with substitutes
+    ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> rFinalSubstitutes =
+        ImmutableMap.builder();
+    // TODO handle CInitializerList
+    for (var entry : initSubs.entrySet()) {
+      CInitializer cInitializer = entry.getValue().getInitializer();
+      if (cInitializer != null) {
+        if (cInitializer instanceof CInitializerExpression cInitExpr) {
+          CInitializerExpression cInitExprSub =
+              SubstituteBuilder.substituteInitExpr(
+                  cInitExpr, cVarDecSub.substitute(cInitExpr.getExpression()));
+          CVariableDeclaration finalSub =
+              SubstituteBuilder.substituteVarDec(entry.getValue(), cInitExprSub);
+          rFinalSubstitutes.put(entry.getKey(), finalSub);
+          continue;
+        }
+      }
+      rFinalSubstitutes.put(entry);
+    }
+    return rFinalSubstitutes.buildOrThrow();
   }
 
   private ImmutableMap<CFAEdge, CFAEdge> getEdgeSubstitutes() {
@@ -642,6 +672,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       // prevent duplicate keys by excluding parallel edges
       if (!rSubstitutes.containsKey(edge)) {
         CFAEdge substitute = null;
+        
         if (edge instanceof CDeclarationEdge cDecEdge) {
           // TODO what about structs?
           CDeclaration cDec = cDecEdge.getDeclaration();

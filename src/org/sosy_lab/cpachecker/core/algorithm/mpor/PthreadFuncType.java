@@ -21,6 +21,7 @@ public enum PthreadFuncType {
   EXIT("pthread_exit"),
   PTHREAD_CREATE("pthread_create"),
   PTHREAD_JOIN("pthread_join"),
+  PTHREAD_MUTEX_INIT("pthread_mutex_init"),
   PTHREAD_MUTEX_LOCK("pthread_mutex_lock"),
   PTHREAD_MUTEX_UNLOCK("pthread_mutex_unlock");
   // TODO unsure about yield, mutex_destroy
