@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitutio
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.ExecutionTrace;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.MPORState;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.tests.MPORTests;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.TSO;
@@ -641,7 +642,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       // prevent duplicate keys by excluding parallel edges
       if (!rSubstitutes.containsKey(edge)) {
         CFAEdge substitute = null;
-
         if (edge instanceof CDeclarationEdge cDecEdge) {
           // TODO what about structs?
           CDeclaration cDec = cDecEdge.getDeclaration();
