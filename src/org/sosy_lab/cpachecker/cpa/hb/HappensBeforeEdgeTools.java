@@ -138,7 +138,7 @@ final class HappensBeforeEdgeTools {
   private boolean isLhs = false;
 
   private HappensBeforeEdgeTools(final int idx, final Map<String, Integer> cssaCounters) {
-    this.thredId = idx;
+    thredId = idx;
     mutableCssaCounters = new LinkedHashMap<>(cssaCounters);
     expCloner = new CExpressionCloner();
   }

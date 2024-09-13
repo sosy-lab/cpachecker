@@ -88,7 +88,7 @@ public class ListDebugger {
    */
   public ListDebugger withNestedList(
       int offsetTowardsNested, int pSize, int pNfo, int pNextPtrTargetOffset) {
-    this.nestedOffset = Optional.of(offsetTowardsNested);
+    nestedOffset = Optional.of(offsetTowardsNested);
     if (nestedListShape.isEmpty()) {
       nestedListShape = Optional.of(new ListDebugger(pSize, pNfo, pNextPtrTargetOffset, logger));
     } else {
@@ -109,7 +109,7 @@ public class ListDebugger {
       int pNextPtrTargetOffset,
       int pPfo,
       int pPrevPtrTargetOffset) {
-    this.nestedOffset = Optional.of(offsetTowardsNested);
+    nestedOffset = Optional.of(offsetTowardsNested);
     if (nestedListShape.isEmpty()) {
       nestedListShape =
           Optional.of(
@@ -143,8 +143,8 @@ public class ListDebugger {
     for (int i = 0; i < list.size(); i++) {
       ListElement elem = list.get(i);
       doubleNestedListStrings[i] = new String[1];
-      if (!elem.listItems.isEmpty() && this.nestedOffset.isPresent()) {
-        List<ListElement> maybeNested = elem.memorylistItems.get(this.nestedOffset.orElseThrow());
+      if (!elem.listItems.isEmpty() && nestedOffset.isPresent()) {
+        List<ListElement> maybeNested = elem.memorylistItems.get(nestedOffset.orElseThrow());
         if (maybeNested != null) {
           ImmutableList<ListElement> nestedList = (ImmutableList<ListElement>) maybeNested;
           doubleNestedListStrings[i] = new String[nestedList.size() + 1];

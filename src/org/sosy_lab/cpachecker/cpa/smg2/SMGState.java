@@ -1280,7 +1280,7 @@ public class SMGState
 
   @SuppressWarnings("unused")
   private boolean experimentalNestedListFilter(SMGState pOther) {
-    if (!(this.memoryModel.getHeapObjectsMinSize() >= pOther.memoryModel.getHeapObjectsMinSize())) {
+    if (!(memoryModel.getHeapObjectsMinSize() >= pOther.memoryModel.getHeapObjectsMinSize())) {
       return false;
     }
 
@@ -1338,7 +1338,7 @@ public class SMGState
     if (!pOther
         .removeOldConstraints()
         .getConstraints()
-        .containsAll(this.removeOldConstraints().getConstraints())) {
+        .containsAll(removeOldConstraints().getConstraints())) {
       // TODO: Problem: there might still be distinct symbolic values with the same constraints.
       //   => Compare those by location.
       //   Example: imagine a loop, the loop bound may be against a nondet() function,
@@ -3679,7 +3679,7 @@ public class SMGState
         constraintFactory.checkValidMemoryAccess(
             offsetOfAccessInBits, sizeOfAccessInBits, object.getSize(), calcTypeForMemAccess, this);
 
-    String stackFrameFunctionName = this.getStackFrameTopFunctionName();
+    String stackFrameFunctionName = getStackFrameTopFunctionName();
 
     // Iff SAT -> memory-safety is violated
     return evaluator.checkMemoryConstraintsAreUnsatIndividually(
