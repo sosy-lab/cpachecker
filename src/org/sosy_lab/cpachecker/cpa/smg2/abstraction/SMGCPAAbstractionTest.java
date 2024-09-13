@@ -5040,7 +5040,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             false);
 
     SMGState stateBeforeStackObj = currentState;
-    for (int i = 0; i < topListPtrs.size(); i++) {
+    for (Value topListPtr : topListPtrs) {
       SMGObjectAndSMGState stackObjAndState =
           stateBeforeStackObj.copyAndAddStackObject(numericPointerSizeInBits);
       currentState = stackObjAndState.getState();
@@ -5050,7 +5050,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               dummyStackObject,
               new NumericValue(BigInteger.ZERO),
               numericPointerSizeInBits,
-              topListPtrs.get(i),
+              topListPtr,
               null,
               dummyCDAEdge);
 
