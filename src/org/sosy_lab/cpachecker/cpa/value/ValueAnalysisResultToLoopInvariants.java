@@ -1427,7 +1427,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         double val1 = pVal1.doubleValue();
         double val2 = pVal2.doubleValue();
         opMul = Pair.of(val1 * val2, EqualCompareType.EQ);
-        if ((divReversed && val1 == 0) || (!divReversed && val2 == 0)) {
+        if (divReversed ? val1 == 0 : val2 == 0) {
           opDiv = Pair.of(0.0, EqualCompareType.NONE);
         } else {
           double res = divReversed ? val2 / val1 : val1 / val2;
@@ -1440,7 +1440,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         long val1 = pVal1.longValue();
         long val2 = pVal2.longValue();
         opMul = Pair.of(val1 * val2, EqualCompareType.EQ);
-        if ((divReversed && val1 == 0) || (!divReversed && val2 == 0)) {
+        if (divReversed ? val1 == 0 : val2 == 0) {
           opDiv = Pair.of(0, EqualCompareType.NONE);
         } else {
           long res = divReversed ? val2 / val1 : val1 / val2;
