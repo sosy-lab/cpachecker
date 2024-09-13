@@ -2128,18 +2128,13 @@ public class SymbolicProgramConfiguration {
       }
       if (stackframe.getReturnObject().isPresent()) {
         // There is a return object!
-        String retObjString = "";
+        builder.append("\nFunction ").append(funName).append(" return object :");
         if (smg.isValid(stackframe.getReturnObject().orElseThrow())) {
-          retObjString = retObjString + stackframe.getReturnObject().orElseThrow();
+          builder.append(stackframe.getReturnObject().orElseThrow());
         } else {
-          retObjString = retObjString + " invalid " + stackframe.getReturnObject().orElseThrow();
+          builder.append(" invalid ").append(stackframe.getReturnObject().orElseThrow());
         }
-        builder.append("\n");
-        builder
-            .append("Function ")
-            .append(funName)
-            .append(" return object ")
-            .append(":" + retObjString + " with values: ");
+        builder.append(" with values: ");
         for (SMGHasValueEdge valueEdge :
             ImmutableList.sortedCopyOf(
                 Comparator.comparing(SMGHasValueEdge::getOffset),

@@ -135,7 +135,7 @@ public class ListDebugger {
   }
 
   private String printList(List<ListElement> list) {
-    String listString = "\n";
+    StringBuilder listString = new StringBuilder("\n");
     String[][] doubleNestedListStrings = new String[list.size()][];
     int largestNested = 0;
 
@@ -168,16 +168,16 @@ public class ListDebugger {
       for (int i = 0; i < doubleNestedListStrings.length; i++) {
         if (doubleNestedListStrings[i].length > nested
             && doubleNestedListStrings[i][nested] != null) {
-          listString += doubleNestedListStrings[i][nested];
+          listString.append(doubleNestedListStrings[i][nested]);
         } else {
-          listString += "       ";
+          listString.append("       ");
         }
         if (i + 1 == doubleNestedListStrings.length) {
-          listString += "\n";
+          listString.append("\n");
         }
       }
     }
-    return listString + "\n";
+    return listString.append("\n").toString();
   }
 
   public List<ListElement> buildListFromObjectWithPtrToList(
