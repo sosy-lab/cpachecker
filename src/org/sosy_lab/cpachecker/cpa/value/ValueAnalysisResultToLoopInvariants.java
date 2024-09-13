@@ -165,7 +165,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     for (AbstractSimpleDeclaration decl :
         FluentIterable.from(pCfa.edges())
             .filter(ADeclarationEdge.class)
-            .transform(edge -> edge.getDeclaration())
+            .transform(ADeclarationEdge::getDeclaration)
             .filter(AbstractSimpleDeclaration.class)
             .filter(
                 Predicates.or(
