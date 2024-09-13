@@ -1464,6 +1464,24 @@ public class SMGState
   @Nullable SMGState removeOldConstraints() {
     ConstantSymbolicExpressionLocator symIdentVisitor =
         ConstantSymbolicExpressionLocator.getInstance();
+    // There are 3 sources of constraints, values in objects (HVEs), offsets and sizes.
+    // TODO: offsets
+    ImmutableSet.Builder<SymbolicValue> sizeIdentsBuilder = ImmutableSet.builder();
+    for (SMGObject obj : getMemoryModel().getSmg().getObjects()) {
+      Value value = obj.getSize();
+      // Get all symbolic values in sizes (they might not have a SMGValue mapping anymore below!)
+      if (value instanceof SymbolicValue symValue) {
+        for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
+          SymbolicValue usedIdentifier = constSym;
+          if (constSym.getValue() instanceof SymbolicIdentifier symIdent) {
+            usedIdentifier = symIdent;
+          }
+          sizeIdentsBuilder.add(usedIdentifier);
+        }
+      }
+    }
+    ImmutableSet<SymbolicValue> sizeIdents = sizeIdentsBuilder.build();
+
     ImmutableSet.Builder<Constraint> constraints = ImmutableSet.builder();
     // First, get all SMGValues for possible identifier
     Map<SymbolicValue, Set<SMGValue>> identToAllValues = new HashMap<>();
@@ -1496,6 +1514,12 @@ public class SMGState
         if (identifierInConstraint.getValue() instanceof SymbolicIdentifier symIdent) {
           usedIdentifier = symIdent;
         }
+
+        if (sizeIdents.contains(usedIdentifier)) {
+          constraints.add(constraint);
+          break;
+        }
+
         Set<SMGValue> maybeSMGValues =
             identToAllValues.getOrDefault(usedIdentifier, ImmutableSet.of());
         for (SMGValue smgValue : maybeSMGValues) {
