@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -23,8 +26,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ElseIfCodeExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.IfCodeExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.IfExpr;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution.CParameterDeclarationSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution.CVariableDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 
@@ -42,6 +48,28 @@ public class SeqUtil {
 
   private static final AssignExpr setExitPc =
       new AssignExpr(pcsNextThread, new Value(Integer.toString(EXIT_PC)));
+
+  public static String createDeclarations(
+      CVariableDeclarationSubstitution varDecSub, CParameterDeclarationSubstitution paramDecSub) {
+
+    StringBuilder rDeclarations = new StringBuilder();
+    rDeclarations.append(SeqComment.VAR_DEC);
+    for (CVariableDeclaration varDec : varDecSub.substitutes.values()) {
+      // TODO
+      //  exclude const __CPAchecker_TMP vars (handled as atomics and not declared before the loop)
+      if (!varDec.getType().isConst() || !varDec.getName().contains(SeqToken.CPACHECKER_TMP)) {
+        rDeclarations.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
+      }
+    }
+    rDeclarations.append(SeqComment.PARAM_DEC);
+    for (ImmutableMap<CParameterDeclaration, CVariableDeclaration> map :
+        paramDecSub.substitutes.values()) {
+      for (CVariableDeclaration paramDec : map.values()) {
+        rDeclarations.append(paramDec.toASTString()).append(SeqSyntax.NEWLINE);
+      }
+    }
+    return rDeclarations.toString();
+  }
 
   // TODO make sure all pthread_... functions are removed (skip pcs)
   // TODO make sure all return statements are removed (skip pcs)

@@ -60,8 +60,8 @@ public class SubstituteBuilder {
         pOriginal.getCStorageClass(),
         pOriginal.getType(),
         pName,
-        pName,
-        pName, // TODO funcName::name but not relevant for seq
+        pOriginal.getOrigName(), // TODO (not relevant for seq)
+        pOriginal.getQualifiedName(), // TODO funcName::name but not relevant for seq
         pOriginal.getInitializer());
   }
 
