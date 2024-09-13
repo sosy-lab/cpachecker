@@ -44,6 +44,8 @@ public class SeqToken {
 
   public static final String PREFIX_GLOBAL = "__g";
 
+  public static final String PREFIX_PARAMETER = "__p";
+
   public static final String PREFIX_THREAD = "__t";
 
   public static final String RETURN = "return";

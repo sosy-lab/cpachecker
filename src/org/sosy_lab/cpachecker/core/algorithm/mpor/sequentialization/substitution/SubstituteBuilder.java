@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substituti
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -26,12 +27,16 @@ public class SubstituteBuilder {
     return SeqSyntax.UNDERSCORE + varId++ + SeqSyntax.UNDERSCORE;
   }
 
-  public static String createGlobalVarSubstituteName(CVariableDeclaration pCVarDec) {
+  public static String substituteGlobalVarName(CVariableDeclaration pCVarDec) {
     return SeqToken.PREFIX_GLOBAL + createVarId() + pCVarDec.getName();
   }
 
-  public static String createLocalVarSubstituteName(CVariableDeclaration pCVarDec, int pThreadId) {
+  public static String substituteLocalVarName(CVariableDeclaration pCVarDec, int pThreadId) {
     return SeqToken.PREFIX_THREAD + pThreadId + createVarId() + pCVarDec.getName();
+  }
+
+  public static String substituteParamVarName(CParameterDeclaration pCParDec, int pThreadId) {
+    return SeqToken.PREFIX_PARAMETER + pThreadId + createVarId() + pCParDec.getName();
   }
 
   // TODO createParameterVarSubstituteName

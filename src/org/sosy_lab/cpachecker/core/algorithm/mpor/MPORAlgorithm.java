@@ -553,7 +553,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     return rFuncReturnEdges.buildOrThrow();
   }
 
-  // TODO create method extracting the CVariableDeclaration from a CExpression
   /** Extracts all global variable declarations from pCfa. */
   private ImmutableSet<CVariableDeclaration> getGlobalVars(CFA pCfa) {
     ImmutableSet.Builder<CVariableDeclaration> rGlobalVars = ImmutableSet.builder();
@@ -623,14 +622,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> dummySubBuilder =
         ImmutableMap.builder();
     for (CVariableDeclaration globalVar : globalVars) {
-      String substituteName = SubstituteBuilder.createGlobalVarSubstituteName(globalVar);
+      String substituteName = SubstituteBuilder.substituteGlobalVarName(globalVar);
       CVariableDeclaration substitution =
           SubstituteBuilder.substituteVarDec(globalVar, substituteName);
       dummySubBuilder.put(globalVar, substitution);
     }
     for (MPORThread thread : threads) {
       for (CVariableDeclaration localVar : thread.localVars) {
-        String substituteName = SubstituteBuilder.createLocalVarSubstituteName(localVar, thread.id);
+        String substituteName = SubstituteBuilder.substituteLocalVarName(localVar, thread.id);
         CVariableDeclaration substitute =
             SubstituteBuilder.substituteVarDec(localVar, substituteName);
         dummySubBuilder.put(localVar, substitute);

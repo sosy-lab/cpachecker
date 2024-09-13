@@ -39,6 +39,8 @@ public class CVariableDeclarationSubstitution implements Substitution {
     binExprBuilder = pCBinExprBuilder;
   }
 
+  // TODO take a look at ExpressionSubstitution.applySubstitution()
+
   @Override
   public CExpression substitute(CExpression pExpression) {
 

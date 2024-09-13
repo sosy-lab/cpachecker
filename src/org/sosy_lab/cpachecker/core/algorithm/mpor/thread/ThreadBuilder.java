@@ -17,12 +17,16 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -66,11 +70,20 @@ public class ThreadBuilder {
     Set<CFANode> visitedNodes = new HashSet<>(); // using set so that we can use .contains()
     ImmutableSet.Builder<ThreadNode> threadNodes = ImmutableSet.builder();
     ImmutableSet.Builder<ThreadEdge> threadEdges = ImmutableSet.builder();
+    ImmutableSet.Builder<CFunctionDeclaration> calledFuncs = ImmutableSet.builder();
+
     initThreadVariables(
-        pExitNode, visitedNodes, threadNodes, threadEdges, pEntryNode, Optional.empty());
+        pExitNode,
+        visitedNodes,
+        threadNodes,
+        threadEdges,
+        calledFuncs,
+        pEntryNode,
+        Optional.empty());
 
     ThreadCFA threadCfa =
-        new ThreadCFA(pEntryNode, pExitNode, threadNodes.build(), threadEdges.build());
+        new ThreadCFA(
+            pEntryNode, pExitNode, threadNodes.build(), threadEdges.build(), calledFuncs.build());
 
     ImmutableSet<CVariableDeclaration> localVars = getLocalVars(threadEdges.build());
 
@@ -112,6 +125,7 @@ public class ThreadBuilder {
       Set<CFANode> pVisitedNodes,
       ImmutableSet.Builder<ThreadNode> pThreadNodes,
       ImmutableSet.Builder<ThreadEdge> pThreadEdges,
+      ImmutableSet.Builder<CFunctionDeclaration> pCalledFuncs,
       CFANode pCurrentNode,
       Optional<CFANode> pFuncReturnNode) {
 
@@ -127,11 +141,15 @@ public class ThreadBuilder {
           // exclude cFuncReturnEdges because their successors may be in other threads
           // the original, same-thread successor is included due to the FuncSummaryEdge
           if (!(cfaEdge instanceof CFunctionReturnEdge)) {
+            if (cfaEdge instanceof CFunctionCallEdge funcCallEdge) {
+              pCalledFuncs.add(extractFuncDec(funcCallEdge));
+            }
             initThreadVariables(
                 pExitNode,
                 pVisitedNodes,
                 pThreadNodes,
                 pThreadEdges,
+                pCalledFuncs,
                 cfaEdge.getSuccessor(),
                 updateFuncReturnNode(pCurrentNode, pFuncReturnNode));
           }
@@ -370,6 +388,13 @@ public class ThreadBuilder {
   }
 
   // (Private) Helpers =============================================================================
+
+  private CFunctionDeclaration extractFuncDec(FunctionCallEdge pEdge) {
+    if (pEdge.getFunctionCallExpression() instanceof CFunctionCallExpression funcCallExpr) {
+      return funcCallExpr.getDeclaration();
+    }
+    throw new IllegalArgumentException("cannot extract CFunctionDeclaration from pEdge");
+  }
 
   private Optional<CFANode> updateFuncReturnNode(
       CFANode pCurrentNode, Optional<CFANode> pPrevFuncReturnNode) {

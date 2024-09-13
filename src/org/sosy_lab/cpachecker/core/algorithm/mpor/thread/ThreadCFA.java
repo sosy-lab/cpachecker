@@ -13,12 +13,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 
 public class ThreadCFA {
+
   /** FunctionEntryNode of the main function (main thread) or start routine (pthreads). */
   public final FunctionEntryNode entryNode;
 
@@ -33,6 +35,8 @@ public class ThreadCFA {
 
   public final ImmutableSet<ThreadEdge> threadEdges;
 
+  public final ImmutableSet<CFunctionDeclaration> calledFuncs;
+
   // TODO for each FunctionCallEdge, map the original CVariableDeclaration to the
   //  CParameterDeclaration. if a parameter declaration is a key, search for it in the values and
   //  replace the parameter declaration
@@ -41,12 +45,14 @@ public class ThreadCFA {
       FunctionEntryNode pEntryNode,
       FunctionExitNode pExitNode,
       ImmutableSet<ThreadNode> pThreadNodes,
-      ImmutableSet<ThreadEdge> pThreadEdges) {
+      ImmutableSet<ThreadEdge> pThreadEdges,
+      ImmutableSet<CFunctionDeclaration> pCalledFuncs) {
 
     entryNode = pEntryNode;
     exitNode = pExitNode;
     threadNodes = pThreadNodes;
     threadEdges = pThreadEdges;
+    calledFuncs = pCalledFuncs;
     initPredecessors();
     initSuccessors();
     handleFuncReturnEdges();
