@@ -35,7 +35,7 @@ public class SubstituteBuilder {
     return SeqToken.PREFIX_THREAD + pThreadId + createVarId() + pCVarDec.getName();
   }
 
-  public static String substituteParamVarName(CParameterDeclaration pCParDec, int pThreadId) {
+  public static String substituteParamName(CParameterDeclaration pCParDec, int pThreadId) {
     return SeqToken.PREFIX_PARAMETER + pThreadId + createVarId() + pCParDec.getName();
   }
 

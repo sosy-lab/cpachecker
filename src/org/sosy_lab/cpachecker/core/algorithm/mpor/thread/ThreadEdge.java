@@ -17,6 +17,8 @@ public class ThreadEdge {
 
   public final CFAEdge cfaEdge;
 
+  // TODO there should be no substitute stuff in the thread package.
+  //  substitute once the seq code is created, store necessary information in the substitution class
   private CFAEdge substitute = null;
 
   // TODO maybe use Optional here
