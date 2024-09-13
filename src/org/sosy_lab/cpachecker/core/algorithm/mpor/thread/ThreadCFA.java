@@ -8,10 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableSet;
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 
 public class ThreadCFA {
   /** FunctionEntryNode of the main function (main thread) or start routine (pthreads). */
@@ -44,19 +49,62 @@ public class ThreadCFA {
     threadEdges = pThreadEdges;
     initPredecessors();
     initSuccessors();
+    handleFuncReturnEdges();
+  }
+
+  /**
+   * Initializes successors of CFunctionReturnEdges or prunes them if they lead to another thread.
+   */
+  private void handleFuncReturnEdges() {
+    for (ThreadNode threadNode : threadNodes) {
+      if (threadNode.cfaNode instanceof FunctionExitNode) {
+        Set<ThreadEdge> prunedEdges = new HashSet<>();
+        for (ThreadEdge threadEdge : threadNode.leavingEdges()) {
+          ThreadNode successor = getThreadNodeByCfaNode(threadEdge.cfaEdge.getSuccessor());
+          if (successor == null) {
+            prunedEdges.add(threadEdge);
+          } else {
+            threadEdge.setSuccessor(successor);
+          }
+        }
+        for (ThreadEdge prunedEdge : prunedEdges) {
+          pruneEdge(prunedEdge);
+        }
+      }
+    }
+  }
+
+  private void pruneEdge(ThreadEdge pThreadEdge) {
+    checkArgument(threadEdges.contains(pThreadEdge), "pThreadEdge not in threadEdges");
+    checkArgument(
+        pThreadEdge.cfaEdge instanceof CFunctionReturnEdge,
+        "only CFunctionReturnEdges can be pruned");
+
+    for (ThreadNode threadNode : threadNodes) {
+      if (threadNode.leavingEdges().contains(pThreadEdge)) {
+        threadNode.pruneLeavingEdge(pThreadEdge);
+      }
+    }
   }
 
   private void initPredecessors() {
     for (ThreadNode threadNode : threadNodes) {
-      for (ThreadEdge threadEdge : threadNode.leavingEdges) {
+      for (ThreadEdge threadEdge : threadNode.leavingEdges()) {
         threadEdge.setPredecessor(threadNode);
       }
     }
   }
 
+  /**
+   * Initializes all successor ThreadNodes for each ThreadEdge except CFunctionReturnEdges which are
+   * handled in {@link ThreadCFA#handleFuncReturnEdges()}.
+   */
   private void initSuccessors() {
     for (ThreadEdge threadEdge : threadEdges) {
-      threadEdge.setSuccessor(getThreadNodeByCfaNode(threadEdge.cfaEdge.getSuccessor()));
+      if (!(threadEdge.cfaEdge instanceof CFunctionReturnEdge)) {
+        ThreadNode successor = getThreadNodeByCfaNode(threadEdge.cfaEdge.getSuccessor());
+        threadEdge.setSuccessor(successor);
+      }
     }
   }
 
@@ -66,6 +114,6 @@ public class ThreadCFA {
         return rThreadNode;
       }
     }
-    throw new IllegalArgumentException("no corresponding ThreadNode found");
+    return null;
   }
 }

@@ -44,7 +44,7 @@ public enum PthreadFuncType {
    * @param pFuncType the desired FunctionType
    * @return true if pCfaEdge is a call to pFuncType
    */
-  public static boolean isEdgeCallToFuncType(CFAEdge pCfaEdge, PthreadFuncType pFuncType) {
+  public static boolean isCallToPthreadFunc(CFAEdge pCfaEdge, PthreadFuncType pFuncType) {
     return CFAUtils.isCfaEdgeCFunctionCallStatement(pCfaEdge)
         && CFAUtils.getCFunctionCallStatementFromCfaEdge(pCfaEdge)
             .getFunctionCallExpression()
@@ -53,9 +53,9 @@ public enum PthreadFuncType {
             .equals(pFuncType.name);
   }
 
-  public static boolean isEdgeCallToAnyFunc(CFAEdge pCfaEdge) {
+  public static boolean isCallToAnyPthreadFunc(CFAEdge pCfaEdge) {
     for (PthreadFuncType functionType : PthreadFuncType.values()) {
-      if (isEdgeCallToFuncType(pCfaEdge, functionType)) {
+      if (isCallToPthreadFunc(pCfaEdge, functionType)) {
         return true;
       }
     }

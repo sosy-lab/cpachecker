@@ -17,7 +17,7 @@ public class ThreadEdge {
 
   public final CFAEdge cfaEdge;
 
-  private CFAEdge substitute;
+  private CFAEdge substitute = null;
 
   // TODO maybe use Optional here
   private ThreadNode predecessor = null;
@@ -29,6 +29,7 @@ public class ThreadEdge {
   }
 
   public CFAEdge getSubstitute() {
+    checkArgument(substitute != null, "substitute not set yet");
     return substitute;
   }
 
@@ -38,23 +39,25 @@ public class ThreadEdge {
     substitute = pSubstitute;
   }
 
+  public ThreadNode getPredecessor() {
+    checkArgument(predecessor != null, "predecessor not set yet");
+    return predecessor;
+  }
+
   protected void setPredecessor(ThreadNode pPredecessor) {
     checkNotNull(pPredecessor);
     checkArgument(predecessor == null, "predecessor set already");
     predecessor = pPredecessor;
   }
 
-  public ThreadNode getPredecessor() {
-    return predecessor;
+  public ThreadNode getSuccessor() {
+    checkArgument(successor != null, "successor not set yet");
+    return successor;
   }
 
   protected void setSuccessor(ThreadNode pSuccessor) {
     checkNotNull(pSuccessor);
     checkArgument(successor == null, "successor set already");
     successor = pSuccessor;
-  }
-
-  public ThreadNode getSuccessor() {
-    return successor;
   }
 }

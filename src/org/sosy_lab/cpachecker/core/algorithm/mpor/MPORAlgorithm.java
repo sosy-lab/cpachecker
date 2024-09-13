@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitutio
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.ExecutionTrace;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.MPORState;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.tests.MPORTests;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.TSO;
@@ -466,7 +465,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private void checkForParallelProgram(CFA pCfa) {
     boolean isParallel = false;
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
-      if (PthreadFuncType.isEdgeCallToFuncType(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
+      if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         isParallel = true;
         break;
       }
@@ -597,7 +596,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     // search the CFA for pthread_create calls
     for (CFAEdge cfaEdge : CFAUtils.allUniqueEdges(pCfa)) {
-      if (PthreadFuncType.isEdgeCallToFuncType(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
+      if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         // extract the first parameter of pthread_create, i.e. the pthread_t value
         CExpression pthreadT =
             CFAUtils.getValueFromPointer(CFAUtils.getParameterAtIndex(cfaEdge, 0));
@@ -620,35 +619,35 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    */
   private ImmutableMap<CVariableDeclaration, CVariableDeclaration> getVarSubstitutes() {
 
-    // step 1: create initial CVariableDeclaration substitutes
-    ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> initSubBuilder =
+    // step 1: create dummy CVariableDeclaration substitutes which may be adjusted in step 2
+    ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> dummySubBuilder =
         ImmutableMap.builder();
     for (CVariableDeclaration globalVar : globalVars) {
       String substituteName = SubstituteBuilder.createGlobalVarSubstituteName(globalVar);
       CVariableDeclaration substitution =
           SubstituteBuilder.substituteVarDec(globalVar, substituteName);
-      initSubBuilder.put(globalVar, substitution);
+      dummySubBuilder.put(globalVar, substitution);
     }
     for (MPORThread thread : threads) {
       for (CVariableDeclaration localVar : thread.localVars) {
         String substituteName = SubstituteBuilder.createLocalVarSubstituteName(localVar, thread.id);
         CVariableDeclaration substitute =
             SubstituteBuilder.substituteVarDec(localVar, substituteName);
-        initSubBuilder.put(localVar, substitute);
+        dummySubBuilder.put(localVar, substitute);
       }
     }
-    ImmutableMap<CVariableDeclaration, CVariableDeclaration> initSubs =
-        initSubBuilder.buildOrThrow();
+    ImmutableMap<CVariableDeclaration, CVariableDeclaration> dummySubs =
+        dummySubBuilder.buildOrThrow();
 
     // create temporary local CVarDecSubstitution
     CVariableDeclarationSubstitution cVarDecSub =
-        new CVariableDeclarationSubstitution(initSubs, cBinExprBuilder);
+        new CVariableDeclarationSubstitution(dummySubs, cBinExprBuilder);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
-    ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> rFinalSubstitutes =
+    ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> rFinalSubs =
         ImmutableMap.builder();
     // TODO handle CInitializerList
-    for (var entry : initSubs.entrySet()) {
+    for (var entry : dummySubs.entrySet()) {
       CInitializer cInitializer = entry.getValue().getInitializer();
       if (cInitializer != null) {
         if (cInitializer instanceof CInitializerExpression cInitExpr) {
@@ -657,13 +656,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                   cInitExpr, cVarDecSub.substitute(cInitExpr.getExpression()));
           CVariableDeclaration finalSub =
               SubstituteBuilder.substituteVarDec(entry.getValue(), cInitExprSub);
-          rFinalSubstitutes.put(entry.getKey(), finalSub);
+          rFinalSubs.put(entry.getKey(), finalSub);
           continue;
         }
       }
-      rFinalSubstitutes.put(entry);
+      rFinalSubs.put(entry);
     }
-    return rFinalSubstitutes.buildOrThrow();
+    return rFinalSubs.buildOrThrow();
   }
 
   private ImmutableMap<CFAEdge, CFAEdge> getEdgeSubstitutes() {
@@ -672,7 +671,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       // prevent duplicate keys by excluding parallel edges
       if (!rSubstitutes.containsKey(edge)) {
         CFAEdge substitute = null;
-        
+
         if (edge instanceof CDeclarationEdge cDecEdge) {
           // TODO what about structs?
           CDeclaration cDec = cDecEdge.getDeclaration();

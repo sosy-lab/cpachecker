@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -22,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
@@ -114,22 +116,25 @@ public class ThreadBuilder {
       Optional<CFANode> pFuncReturnNode) {
 
     if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
-      ImmutableSet<CFAEdge> leavingCfaEdges =
-          MPORUtil.allReturnLeavingEdges(pCurrentNode, pFuncReturnNode);
-      ImmutableSet<ThreadEdge> threadEdges = createThreadEdgesFromCfaEdges(leavingCfaEdges);
+      FluentIterable<CFAEdge> leavingCfaEdges = CFAUtils.allLeavingEdges(pCurrentNode);
+      Set<ThreadEdge> threadEdges = createThreadEdgesFromCfaEdges(leavingCfaEdges);
       pThreadEdges.addAll(threadEdges);
       if (leavingCfaEdges.isEmpty()) {
         pThreadNodes.add(new ThreadNode(pCurrentNode, SeqUtil.EXIT_PC, threadEdges));
       } else {
         pThreadNodes.add(new ThreadNode(pCurrentNode, currentPc++, threadEdges));
         for (CFAEdge cfaEdge : leavingCfaEdges) {
-          initThreadVariables(
-              pExitNode,
-              pVisitedNodes,
-              pThreadNodes,
-              pThreadEdges,
-              cfaEdge.getSuccessor(),
-              updateFuncReturnNode(pCurrentNode, pFuncReturnNode));
+          // exclude cFuncReturnEdges because their successors may be in other threads
+          // the original, same-thread successor is included due to the FuncSummaryEdge
+          if (!(cfaEdge instanceof CFunctionReturnEdge)) {
+            initThreadVariables(
+                pExitNode,
+                pVisitedNodes,
+                pThreadNodes,
+                pThreadEdges,
+                cfaEdge.getSuccessor(),
+                updateFuncReturnNode(pCurrentNode, pFuncReturnNode));
+          }
         }
       }
     }
@@ -176,7 +181,7 @@ public class ThreadBuilder {
     if (!pCurrentNode.equals(pThreadExitNode)) {
       if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
         for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
-          if (PthreadFuncType.isEdgeCallToFuncType(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
+          if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
             pEdgesTrace.add(cfaEdge);
             CExpression pthreadT =
                 CFAUtils.getValueFromPointer(CFAUtils.getParameterAtIndex(cfaEdge, 0));
@@ -217,7 +222,7 @@ public class ThreadBuilder {
     if (!pCurrentNode.equals(pThreadExitNode)) {
       if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
         for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
-          if (PthreadFuncType.isEdgeCallToFuncType(cfaEdge, PthreadFuncType.PTHREAD_MUTEX_LOCK)) {
+          if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_MUTEX_LOCK)) {
             CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
             // the successor node of mutex_lock is the first inside the lock
             CFANode initialNode = cfaEdge.getSuccessor();
@@ -275,7 +280,7 @@ public class ThreadBuilder {
     if (MPORUtil.shouldVisit(pMutexNodes, pCurrentNode)) {
       for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
         pMutexEdges.add(cfaEdge);
-        if (PthreadFuncType.isEdgeCallToFuncType(cfaEdge, PthreadFuncType.PTHREAD_MUTEX_UNLOCK)) {
+        if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_MUTEX_UNLOCK)) {
           CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
           if (pthreadMutexT.equals(pPthreadMutexT)) {
             pMutexExitNodes.add(pCurrentNode);
@@ -314,7 +319,7 @@ public class ThreadBuilder {
     if (!pCurrentNode.equals(pThreadExitNode)) {
       if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
         for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
-          if (PthreadFuncType.isEdgeCallToFuncType(cfaEdge, PthreadFuncType.PTHREAD_JOIN)) {
+          if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_JOIN)) {
             CExpression pthreadT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
             MPORJoin join = new MPORJoin(pthreadT, pCurrentNode, cfaEdge);
             pJoins.add(join);
@@ -348,7 +353,7 @@ public class ThreadBuilder {
     if (!pCurrentNode.equals(pThread.cfa.exitNode)) {
       if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
         for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
-          if (PthreadFuncType.isEdgeCallToFuncType(cfaEdge, PthreadFuncType.BARRIER_INIT)) {
+          if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.BARRIER_INIT)) {
             // TODO unsure how to handle this, SV benchmarks use their custom barrier objects and
             //  functions, e.g. pthread-divine/barrier_2t.i
             //  but the general approach is identifying MPORBarriers from barrier_init calls
@@ -371,12 +376,12 @@ public class ThreadBuilder {
     return MPORUtil.updateFuncReturnNode(functionCallMap, pCurrentNode, pPrevFuncReturnNode);
   }
 
-  private ImmutableSet<ThreadEdge> createThreadEdgesFromCfaEdges(ImmutableSet<CFAEdge> pCfaEdges) {
-    ImmutableSet.Builder<ThreadEdge> rThreadEdges = ImmutableSet.builder();
+  private Set<ThreadEdge> createThreadEdgesFromCfaEdges(FluentIterable<CFAEdge> pCfaEdges) {
+    Set<ThreadEdge> rThreadEdges = new HashSet<>();
     for (CFAEdge cfaEdge : pCfaEdges) {
       rThreadEdges.add(new ThreadEdge(cfaEdge));
     }
-    return rThreadEdges.build();
+    return rThreadEdges;
   }
 
   public void initEdgeSubstitutes(

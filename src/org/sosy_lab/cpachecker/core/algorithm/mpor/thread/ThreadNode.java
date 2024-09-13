@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
-import com.google.common.collect.ImmutableSet;
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 
 public class ThreadNode {
 
@@ -20,11 +23,24 @@ public class ThreadNode {
   public final int pc;
 
   /** The set of context-sensitive return leaving edges of this ThreadNode. */
-  public final ImmutableSet<ThreadEdge> leavingEdges;
+  private final Set<ThreadEdge> leavingEdges;
 
-  public ThreadNode(CFANode pCfaNode, int pPc, ImmutableSet<ThreadEdge> pLeavingEdges) {
+  protected ThreadNode(CFANode pCfaNode, int pPc, Set<ThreadEdge> pLeavingEdges) {
     cfaNode = pCfaNode;
     pc = pPc;
     leavingEdges = pLeavingEdges;
+  }
+
+  public Set<ThreadEdge> leavingEdges() {
+    return leavingEdges;
+  }
+
+  protected void pruneLeavingEdge(ThreadEdge pThreadEdge) {
+    checkArgument(leavingEdges.contains(pThreadEdge), "pThreadEdge not in threadEdges");
+    checkArgument(
+        pThreadEdge.cfaEdge instanceof CFunctionReturnEdge,
+        "only CFunctionReturnEdges can be pruned");
+
+    leavingEdges.remove(pThreadEdge);
   }
 }
