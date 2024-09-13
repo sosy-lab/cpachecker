@@ -60,7 +60,8 @@ public class SeqUtil {
     } else {
       boolean firstEdge = true;
       for (ThreadEdge threadEdge : pThreadNode.leavingEdges()) {
-        CFAEdge substitute = threadEdge.getSubstitute();
+        // TODO use the substitute here later
+        CFAEdge substitute = threadEdge.cfaEdge;
         AssignExpr updatePcsNextThread = createUpdatePcsNextThread(threadEdge.getSuccessor().pc);
 
         if (emptyCaseCode(substitute)) {

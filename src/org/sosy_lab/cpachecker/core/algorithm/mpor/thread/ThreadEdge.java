@@ -17,10 +17,6 @@ public class ThreadEdge {
 
   public final CFAEdge cfaEdge;
 
-  // TODO there should be no substitute stuff in the thread package.
-  //  substitute once the seq code is created, store necessary information in the substitution class
-  private CFAEdge substitute = null;
-
   // TODO maybe use Optional here
   private ThreadNode predecessor = null;
 
@@ -28,17 +24,6 @@ public class ThreadEdge {
 
   public ThreadEdge(CFAEdge pCfaEdge) {
     cfaEdge = pCfaEdge;
-  }
-
-  public CFAEdge getSubstitute() {
-    checkArgument(substitute != null, "substitute not set yet");
-    return substitute;
-  }
-
-  public void setSubstitute(CFAEdge pSubstitute) {
-    checkNotNull(pSubstitute);
-    checkArgument(substitute == null, "substitute set already");
-    substitute = pSubstitute;
   }
 
   public ThreadNode getPredecessor() {

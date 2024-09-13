@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -17,8 +18,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.SubstitutionException;
 
+@SuppressWarnings("unused")
+@SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class CParameterDeclarationSubstitution implements Substitution {
 
+  // TODO maybe it would be better to exclude mpor stuff so that this class can be reused, just a
+  //  minor concern for later though
   /** The map of thread specific parameter to variable declaration substitutes. */
   public final ImmutableMap<MPORThread, ImmutableMap<CParameterDeclaration, CVariableDeclaration>>
       substitutes;

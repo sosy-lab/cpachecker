@@ -9,10 +9,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
+import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -22,8 +26,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 
 public class CVariableDeclarationSubstitution implements Substitution {
@@ -47,34 +56,34 @@ public class CVariableDeclarationSubstitution implements Substitution {
     FileLocation fl = pExpression.getFileLocation();
     CType exprType = pExpression.getExpressionType();
 
-    if (pExpression instanceof CIdExpression cIdExpr) {
-      if (cIdExpr.getDeclaration() instanceof CVariableDeclaration cVarDec) {
-        CVariableDeclaration substitute = substitutes.get(cVarDec);
+    if (pExpression instanceof CIdExpression idExpr) {
+      if (idExpr.getDeclaration() instanceof CVariableDeclaration varDec) {
+        CVariableDeclaration substitute = substitutes.get(varDec);
         if (substitute != null) {
           return new CIdExpression(fl, exprType, substitute.getName(), substitute);
         }
       }
 
-    } else if (pExpression instanceof CBinaryExpression cBinExpr) {
+    } else if (pExpression instanceof CBinaryExpression binExpr) {
       // recursively substitute operands of binary expressions
-      CExpression op1 = substitute(cBinExpr.getOperand1());
-      CExpression op2 = substitute(cBinExpr.getOperand2());
+      CExpression op1 = substitute(binExpr.getOperand1());
+      CExpression op2 = substitute(binExpr.getOperand2());
       // only create a new expression if any operand was substituted
-      if (!op1.equals(cBinExpr.getOperand1()) || !op2.equals(cBinExpr.getOperand2())) {
+      if (!op1.equals(binExpr.getOperand1()) || !op2.equals(binExpr.getOperand2())) {
         try {
-          return binExprBuilder.buildBinaryExpression(op1, op2, cBinExpr.getOperator());
+          return binExprBuilder.buildBinaryExpression(op1, op2, binExpr.getOperator());
         } catch (UnrecognizedCodeException e) {
           // "convert" exception -> no UnrecognizedCodeException in signature
           throw new RuntimeException(e);
         }
       }
 
-    } else if (pExpression instanceof CArraySubscriptExpression cArrSubExpr) {
-      CExpression arrSub = substitute(cArrSubExpr.getArrayExpression());
-      CExpression subscriptSub = substitute(cArrSubExpr.getSubscriptExpression());
+    } else if (pExpression instanceof CArraySubscriptExpression arrSubExpr) {
+      CExpression arrSub = substitute(arrSubExpr.getArrayExpression());
+      CExpression subscriptSub = substitute(arrSubExpr.getSubscriptExpression());
       // only create a new expression if any expr was substituted
-      if (!arrSub.equals(cArrSubExpr.getArrayExpression())
-          || !subscriptSub.equals(cArrSubExpr.getSubscriptExpression())) {
+      if (!arrSub.equals(arrSubExpr.getArrayExpression())
+          || !subscriptSub.equals(arrSubExpr.getSubscriptExpression())) {
         return new CArraySubscriptExpression(fl, exprType, arrSub, subscriptSub);
       }
     }
@@ -118,5 +127,38 @@ public class CVariableDeclarationSubstitution implements Substitution {
     }
 
     return pCStmt;
+  }
+
+  public ImmutableMap<CFAEdge, CFAEdge> substituteEdges(CFA pCFA) {
+    Map<CFAEdge, CFAEdge> rSubstitutes = new HashMap<>();
+    for (CFAEdge edge : CFAUtils.allEdges(pCFA)) {
+      // prevent duplicate keys by excluding parallel edges
+      if (!rSubstitutes.containsKey(edge)) {
+        CFAEdge substitute = null;
+
+        if (edge instanceof CDeclarationEdge cDecEdge) {
+          // TODO what about structs?
+          CDeclaration cDec = cDecEdge.getDeclaration();
+          if (cDec instanceof CVariableDeclaration cVarDec) {
+            if (substitutes.containsKey(cVarDec)) {
+              substitute =
+                  SubstituteBuilder.substituteDeclarationEdge(cDecEdge, substitutes.get(cVarDec));
+            }
+          }
+
+        } else if (edge instanceof CAssumeEdge cAssumeEdge) {
+          substitute =
+              SubstituteBuilder.substituteAssumeEdge(
+                  cAssumeEdge, substitute(cAssumeEdge.getExpression()));
+
+        } else if (edge instanceof CStatementEdge cStmtEdge) {
+          substitute =
+              SubstituteBuilder.substituteStatementEdge(
+                  cStmtEdge, substitute(cStmtEdge.getStatement()));
+        }
+        rSubstitutes.put(edge, substitute == null ? edge : substitute);
+      }
+    }
+    return ImmutableMap.copyOf(rSubstitutes);
   }
 }

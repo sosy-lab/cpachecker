@@ -28,22 +28,17 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -394,17 +389,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final ThreadBuilder threadBuilder;
 
-  private final CBinaryExpressionBuilder cBinExprBuilder;
+  private final CBinaryExpressionBuilder binExprBuilder;
 
   /** The set of global variable declarations in the input program, used to identify variables. */
   private final ImmutableSet<CVariableDeclaration> globalVars;
 
-  private final CVariableDeclarationSubstitution cVarDecSubstitution;
+  private final CVariableDeclarationSubstitution varDecSub;
 
-  // TODO move to Substitution
-  private final ImmutableMap<CVariableDeclaration, CVariableDeclaration> varSubs;
-
-  private final ImmutableMap<CFAEdge, CFAEdge> edgeSubs;
+  private final CParameterDeclarationSubstitution paramDecSub;
 
   /**
    * The set of threads in the program, including the main thread and all pthreads. Needs to be
@@ -441,17 +433,17 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     threadBuilder = new ThreadBuilder(funcCallMap);
     stateBuilder = new StateBuilder(PTR, funcCallMap);
-    cBinExprBuilder = new CBinaryExpressionBuilder(INPUT_CFA.getMachineModel(), pLogManager);
+    binExprBuilder = new CBinaryExpressionBuilder(INPUT_CFA.getMachineModel(), pLogManager);
 
     globalVars = getGlobalVars(INPUT_CFA);
     threads = getThreads(INPUT_CFA, funcCallMap);
 
-    varSubs = getVarSubs();
-    cVarDecSubstitution = new CVariableDeclarationSubstitution(varSubs, cBinExprBuilder);
-    CParameterDeclarationSubstitution paramDecSub =
-        new CParameterDeclarationSubstitution(getParamSubs(), cBinExprBuilder);
-    edgeSubs = getEdgeSubs();
-    threadBuilder.initEdgeSubstitutes(edgeSubs, threads);
+    varDecSub =
+        new CVariableDeclarationSubstitution(
+            SubstituteBuilder.getVarSubs(globalVars, threads, binExprBuilder), binExprBuilder);
+    paramDecSub =
+        new CParameterDeclarationSubstitution(
+            SubstituteBuilder.getParamSubs(threads), binExprBuilder);
 
     SEQ = new Sequentialization(threads.size());
   }
@@ -646,21 +638,21 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     ImmutableMap<CVariableDeclaration, CVariableDeclaration> dummySubs =
         dummySubBuilder.buildOrThrow();
 
-    // create temporary local CVarDecSubstitution
-    CVariableDeclarationSubstitution cVarDecSub =
-        new CVariableDeclarationSubstitution(dummySubs, cBinExprBuilder);
+    // create dummy local CVarDecSubstitution
+    CVariableDeclarationSubstitution dummySubstitution =
+        new CVariableDeclarationSubstitution(dummySubs, binExprBuilder);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
     ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> rFinalSubs =
         ImmutableMap.builder();
-    // TODO handle CInitializerList
+    // TODO handle CInitializerList?
     for (var entry : dummySubs.entrySet()) {
       CInitializer cInitializer = entry.getValue().getInitializer();
       if (cInitializer != null) {
         if (cInitializer instanceof CInitializerExpression cInitExpr) {
           CInitializerExpression cInitExprSub =
               SubstituteBuilder.substituteInitExpr(
-                  cInitExpr, cVarDecSub.substitute(cInitExpr.getExpression()));
+                  cInitExpr, dummySubstitution.substitute(cInitExpr.getExpression()));
           CVariableDeclaration finalSub =
               SubstituteBuilder.substituteVarDec(entry.getValue(), cInitExprSub);
           rFinalSubs.put(entry.getKey(), finalSub);
@@ -670,60 +662,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       rFinalSubs.put(entry);
     }
     return rFinalSubs.buildOrThrow();
-  }
-
-  private ImmutableMap<MPORThread, ImmutableMap<CParameterDeclaration, CVariableDeclaration>>
-      getParamSubs() {
-    ImmutableMap.Builder<MPORThread, ImmutableMap<CParameterDeclaration, CVariableDeclaration>>
-        rParamSubs = ImmutableMap.builder();
-    for (MPORThread thread : threads) {
-      ImmutableMap.Builder<CParameterDeclaration, CVariableDeclaration> rThreadSubs =
-          ImmutableMap.builder();
-      for (CFunctionDeclaration funcDec : thread.cfa.calledFuncs) {
-        for (CParameterDeclaration paramDec : funcDec.getParameters()) {
-          String varName = SubstituteBuilder.substituteParamName(paramDec, thread.id);
-          rThreadSubs.put(
-              paramDec,
-              SubstituteBuilder.substituteVarDec(paramDec.asVariableDeclaration(), varName));
-        }
-      }
-      rParamSubs.put(thread, rThreadSubs.buildOrThrow());
-    }
-    return rParamSubs.buildOrThrow();
-  }
-
-  // TODO move this to substitution package
-  private ImmutableMap<CFAEdge, CFAEdge> getEdgeSubs() {
-    Map<CFAEdge, CFAEdge> rSubstitutes = new HashMap<>();
-    for (CFAEdge edge : CFAUtils.allEdges(INPUT_CFA)) {
-      // prevent duplicate keys by excluding parallel edges
-      if (!rSubstitutes.containsKey(edge)) {
-        CFAEdge substitute = null;
-
-        if (edge instanceof CDeclarationEdge cDecEdge) {
-          // TODO what about structs?
-          CDeclaration cDec = cDecEdge.getDeclaration();
-          if (cDec instanceof CVariableDeclaration cVarDec) {
-            if (varSubs.containsKey(cVarDec)) {
-              substitute =
-                  SubstituteBuilder.substituteDeclarationEdge(cDecEdge, varSubs.get(cVarDec));
-            }
-          }
-
-        } else if (edge instanceof CAssumeEdge cAssumeEdge) {
-          substitute =
-              SubstituteBuilder.substituteAssumeEdge(
-                  cAssumeEdge, cVarDecSubstitution.substitute(cAssumeEdge.getExpression()));
-
-        } else if (edge instanceof CStatementEdge cStmtEdge) {
-          substitute =
-              SubstituteBuilder.substituteStatementEdge(
-                  cStmtEdge, cVarDecSubstitution.substitute(cStmtEdge.getStatement()));
-        }
-        rSubstitutes.put(edge, substitute == null ? edge : substitute);
-      }
-    }
-    return ImmutableMap.copyOf(rSubstitutes);
   }
 
   // (Private) Helpers ===========================================================================
