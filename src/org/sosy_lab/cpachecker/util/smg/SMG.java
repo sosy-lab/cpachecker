@@ -782,8 +782,7 @@ public class SMG {
     PersistentMap<SMGValue, Integer> innerMap =
         objectsAndPointersPointingAtThem.getOrDefault(target, PathCopyingPersistentTreeMap.of());
     Integer currentNum = innerMap.getOrDefault(pointer, 0);
-    PersistentMap<SMGObject, PersistentMap<SMGValue, Integer>> newObjectsAndPointersPointingAtThem;
-    newObjectsAndPointersPointingAtThem =
+    PersistentMap<SMGObject, PersistentMap<SMGValue, Integer>> newObjectsAndPointersPointingAtThem =
         objectsAndPointersPointingAtThem
             .removeAndCopy(target)
             .putAndCopy(
