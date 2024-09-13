@@ -16,7 +16,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import java.util.logging.Level;
 
 /* This class is a Jackson module for serialization and deserialization. */
 public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleModule {
@@ -241,7 +240,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
           pGenerator.writeEndArray();
 
         } catch (NoSuchFieldException | IllegalAccessException e) {
-          logger.logUserException(Level.SEVERE, e, "Error while serializing partition");
+          throw new java.io.IOException("Error while serializing partition: " + e.getMessage(), e);
         }
 
         pGenerator.writeEndObject();
@@ -417,18 +416,18 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
      *
      * @param pEdge The CFAEdge.
      * @return The ID of the CFAEdge.
-     * @logs If no generator is available.
-     * @logs If no ID for the CFAEdge is found.
+     * @throws IllegalStateException If no generator was set.
+     * @throws IllegalArgumentException If no ID for the CFAEdge is found.
      */
     public static java.lang.Integer getIdFromEdge(org.sosy_lab.cpachecker.cfa.model.CFAEdge pEdge) {
       if (currentGenerator == null) {
-        logger.log(Level.SEVERE, "No generator available");
+        throw new IllegalStateException("No generator available");
       }
 
       java.lang.Integer id = currentGenerator.edgeToIdMap.get(pEdge);
 
       if (id == null) {
-        logger.log(Level.SEVERE, "No ID for edge " + pEdge + " found");
+        throw new IllegalArgumentException("No ID for edge " + pEdge + " found");
       }
 
       return id;
@@ -465,7 +464,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     /**
      * Binds an item to an ID.
      *
-     * <p>It checks if the key is an Integer and the item is a CFAEdge.
+     * <p>It makes sure that the key is an Integer and the item is a CFAEdge.
      *
      * @param pId The ID.
      * @param pItem The object to bind.
@@ -474,14 +473,12 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     public void bindItem(
         com.fasterxml.jackson.annotation.ObjectIdGenerator.IdKey pId, Object pItem) {
       if (pId.key.getClass() != java.lang.Integer.class) {
-        logger.log(
-            Level.SEVERE,
+        throw new IllegalArgumentException(
             "Wrong key: " + pId.key.getClass().getSimpleName() + " is not an Integer");
       }
 
       if (!(pItem instanceof org.sosy_lab.cpachecker.cfa.model.CFAEdge)) {
-        logger.log(
-            Level.SEVERE,
+        throw new IllegalArgumentException(
             "Wrong object: " + pItem.getClass().getSimpleName() + " is not a CFAEdge");
       }
 
@@ -495,18 +492,18 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
      *
      * @param pId The ID of the CFAEdge.
      * @return The CFAEdge with the specified ID.
-     * @logs If no resolver is available.
-     * @logs If no CFAEdge for the ID is found.
+     * @throws IllegalStateException If no resolver was set.
+     * @throws IllegalArgumentException If no CFAEdge with the specified ID is found.
      */
     public static org.sosy_lab.cpachecker.cfa.model.CFAEdge getEdgeFromId(java.lang.Integer pId) {
       if (currentResolver == null) {
-        logger.log(Level.SEVERE, "No resolver available");
+        throw new IllegalStateException("No resolver available");
       }
 
       org.sosy_lab.cpachecker.cfa.model.CFAEdge edge = currentResolver.idToEdgeMap.get(pId);
 
       if (edge == null) {
-        logger.log(Level.SEVERE, "No edge with ID " + pId + " found");
+        throw new IllegalArgumentException("No edge with ID " + pId + " found");
       }
 
       return edge;
