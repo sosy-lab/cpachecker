@@ -3177,6 +3177,11 @@ cpa.smg2.abstraction.alwaysAtLoop = false
 # computations are performed (and iteration threshold was reached)
 cpa.smg2.abstraction.determinismThreshold = 85
 
+# toggle liveness abstraction if liveness abstraction is supposed to simply
+# abstract all variables away (invalidating memory) when unused, even if
+# there is valid outside pointers on them.
+cpa.smg2.abstraction.doEnforcePointerInsensitiveLiveness = true
+
 # toggle liveness abstraction. Is independent of CEGAR, but dependent on the
 # CFAs liveness variables being tracked.
 cpa.smg2.abstraction.doLivenessAbstraction = true
