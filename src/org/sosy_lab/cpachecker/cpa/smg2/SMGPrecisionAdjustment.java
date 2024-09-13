@@ -487,7 +487,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
                         .getMemoryModel()
                         .getSmg()
                         .getAllSourcesForPointersPointingTowards(maybeVarObj.orElseThrow());
-                if (allObjsPointingTowards.size() == 0
+                if (allObjsPointingTowards.isEmpty()
                     || (allObjsPointingTowards.size() == 1
                         && allObjsPointingTowards.contains(maybeVarObj.orElseThrow()))) {
                   currentState = currentState.invalidateVariable(variable);
