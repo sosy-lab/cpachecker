@@ -852,7 +852,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
   private abstract static class CandidateInvariant {
 
-    protected static enum EqualCompareType {
+    protected enum EqualCompareType {
       EQ,
       GEQ,
       LEQ,
@@ -1280,7 +1280,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   }
 
   private static class TwoVariableRelationInvariant extends CandidateInvariant {
-    private static enum ComparisonType {
+    private enum ComparisonType {
       EQ,
       GT,
       GEQ,
