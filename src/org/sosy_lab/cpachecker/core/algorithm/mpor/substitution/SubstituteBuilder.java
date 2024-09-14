@@ -36,12 +36,14 @@ public class SubstituteBuilder {
 
   public static String substituteVarName(CVariableDeclaration pVarDec, int pThreadId) {
     String prefix =
-        pVarDec.isGlobal() ? SeqToken.PREFIX_GLOBAL : SeqToken.PREFIX_THREAD + pThreadId;
+        pVarDec.isGlobal()
+            ? SeqToken.PREFIX_SUBSTITUTE_GLOBAL
+            : SeqToken.PREFIX_SUBSTITUTE_THREAD + pThreadId;
     return prefix + createVarId() + pVarDec.getName();
   }
 
   public static String substituteParamName(CParameterDeclaration pParamDec, int pThreadId) {
-    return SeqToken.PREFIX_PARAMETER + pThreadId + createVarId() + pParamDec.getName();
+    return SeqToken.PREFIX_SUBSTITUTE_PARAMETER + pThreadId + createVarId() + pParamDec.getName();
   }
 
   // TODO createParameterVarSubstituteName

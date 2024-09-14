@@ -45,7 +45,8 @@ public class AnyFalse implements SeqFunction {
           new FunctionCallExpr(SeqToken.ANY_FALSE, Optional.of(initParameters())));
 
   private static final DeclareExpr declareExpr =
-      new DeclareExpr(new VariableExpr(SeqDataType.INT, index), new Value(SeqValue.ZERO));
+      new DeclareExpr(
+          new VariableExpr(SeqDataType.INT, index), Optional.of(new Value(SeqValue.ZERO)));
 
   private static final LoopExpr loopExpr =
       new LoopExpr(new BooleanExpr(index, SeqOperator.LESS, size));

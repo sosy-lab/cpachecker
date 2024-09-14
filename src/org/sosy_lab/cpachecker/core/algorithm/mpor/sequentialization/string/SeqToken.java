@@ -30,6 +30,8 @@ public class SeqToken {
 
   public static final String GOTO = "goto";
 
+  public static final String FUNCTION = "function";
+
   public static final String IF = "if";
 
   public static final String INDEX = "index";
@@ -48,13 +50,17 @@ public class SeqToken {
 
   public static final String PCS = "pcs";
 
-  public static final String PREFIX_GLOBAL = "__g";
+  public static final String PREFIX_SUBSTITUTE_GLOBAL = "__g";
 
-  public static final String PREFIX_PARAMETER = "__p";
+  public static final String PREFIX_SUBSTITUTE_PARAMETER = "__p";
 
-  public static final String PREFIX_THREAD = "__t";
+  public static final String PREFIX_SUBSTITUTE_THREAD = "__t";
+
+  public static final String PREFIX_THREAD = "t";
 
   public static final String RETURN = "return";
+
+  public static final String RETURN_PC = "return_pc";
 
   public static final String SIZE = "size";
 

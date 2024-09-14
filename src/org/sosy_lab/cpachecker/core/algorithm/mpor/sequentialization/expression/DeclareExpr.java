@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
@@ -15,20 +16,22 @@ public class DeclareExpr implements SeqExpression {
 
   private final VariableExpr variableExpr;
 
-  private final SeqExpression value;
+  private final Optional<SeqExpression> value;
 
-  public DeclareExpr(VariableExpr pVariableExpr, SeqExpression pValue) {
+  public DeclareExpr(VariableExpr pVariableExpr, Optional<SeqExpression> pValue) {
     variableExpr = pVariableExpr;
     value = pValue;
   }
 
   @Override
   public String createString() {
-    return variableExpr.createString()
-        + SeqSyntax.SPACE
-        + SeqOperator.ASSIGN
-        + SeqSyntax.SPACE
-        + value.createString()
-        + SeqSyntax.SEMICOLON;
+    String assignment =
+        value.isEmpty()
+            ? SeqSyntax.EMPTY_STRING
+            : SeqSyntax.SPACE
+                + SeqOperator.ASSIGN
+                + SeqSyntax.SPACE
+                + value.orElseThrow().createString();
+    return variableExpr.createString() + assignment + SeqSyntax.SEMICOLON;
   }
 }

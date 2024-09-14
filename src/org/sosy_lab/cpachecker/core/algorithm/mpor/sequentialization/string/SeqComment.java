@@ -31,4 +31,18 @@ public class SeqComment {
         + SeqToken.VARIABLES
         + SeqSyntax.NEWLINE;
   }
+
+  public static String createReturnPcVarComment() {
+    return COMMENT_SINGLE
+        + SeqToken.THREAD
+        + SeqSyntax.SPACE
+        + SeqToken.LOCAL
+        + SeqSyntax.SPACE
+        + SeqToken.FUNCTION
+        + SeqSyntax.SPACE
+        + SeqToken.RETURN
+        + SeqSyntax.SPACE
+        + SeqToken.PCS
+        + SeqSyntax.NEWLINE;
+  }
 }
