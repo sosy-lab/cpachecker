@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substituti
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -49,15 +50,18 @@ public class CSimpleDeclarationSubstitution implements Substitution {
   /** The map of thread local variable declarations to their substitutes. */
   public final ImmutableMap<CVariableDeclaration, CVariableDeclaration> localVarSubs;
 
-  /** The map of parameter to variable declaration substitutes. */
-  public final ImmutableMap<CParameterDeclaration, CVariableDeclaration> paramSubs;
+  /**
+   * The map of parameter to variable declaration substitutes. {@code null} if this instance serves
+   * as a dummy.
+   */
+  @Nullable public final ImmutableMap<CParameterDeclaration, CVariableDeclaration> paramSubs;
 
   private final CBinaryExpressionBuilder binExprBuilder;
 
   public CSimpleDeclarationSubstitution(
       @Nullable ImmutableMap<CVariableDeclaration, CVariableDeclaration> pGlobalVarSubs,
       ImmutableMap<CVariableDeclaration, CVariableDeclaration> pLocalVarSubs,
-      ImmutableMap<CParameterDeclaration, CVariableDeclaration> pParamSubs,
+      @Nullable ImmutableMap<CParameterDeclaration, CVariableDeclaration> pParamSubs,
       CBinaryExpressionBuilder pBinExprBuilder) {
 
     globalVarSubs = pGlobalVarSubs;
@@ -102,6 +106,18 @@ public class CSimpleDeclarationSubstitution implements Substitution {
       if (arrSub != arrExpr || subscriptSub != subscriptExpr) {
         return new CArraySubscriptExpression(fl, exprType, arrSub, subscriptSub);
       }
+
+    } else if (pExpression instanceof CFieldReference fieldRef) {
+      CExpression ownerSub = substitute(fieldRef.getFieldOwner());
+      // only create a new expression if any expr was substituted (compare references)
+      if (ownerSub != fieldRef.getFieldOwner()) {
+        return new CFieldReference(
+            fl,
+            fieldRef.getExpressionType(),
+            fieldRef.getFieldName(),
+            ownerSub,
+            fieldRef.isPointerDereference());
+      }
     }
 
     return pExpression;
@@ -121,21 +137,12 @@ public class CSimpleDeclarationSubstitution implements Substitution {
         }
       }
 
-    } else if (pCStmt instanceof CExpressionAssignmentStatement cExprAssignStmt) {
-      CLeftHandSide lhs = cExprAssignStmt.getLeftHandSide();
-      CExpression rhs = cExprAssignStmt.getRightHandSide();
-
-      if (lhs instanceof CIdExpression) {
-        CExpression substitute = substitute(lhs);
-        if (substitute instanceof CIdExpression cIdExprSub) {
-          return new CExpressionAssignmentStatement(fl, cIdExprSub, substitute(rhs));
-        }
-
-      } else if (lhs instanceof CArraySubscriptExpression) {
-        CExpression lhsSub = substitute(lhs);
-        if (lhsSub instanceof CLeftHandSide newLhs) {
-          return new CExpressionAssignmentStatement(fl, newLhs, substitute(rhs));
-        }
+    } else if (pCStmt instanceof CExpressionAssignmentStatement exprAssignStmt) {
+      CLeftHandSide lhs = exprAssignStmt.getLeftHandSide();
+      CExpression rhs = exprAssignStmt.getRightHandSide();
+      CExpression sub = substitute(lhs);
+      if (sub instanceof CLeftHandSide lhsSub) {
+        return new CExpressionAssignmentStatement(fl, lhsSub, substitute(rhs));
       }
 
     } else if (pCStmt instanceof CExpressionStatement cExprStmt) {
@@ -184,12 +191,14 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     if (pSimpleDec instanceof CVariableDeclaration varDec) {
       if (localVarSubs.containsKey(varDec)) {
         return localVarSubs.get(varDec);
-      } else if (globalVarSubs != null) {
+      } else {
+        assert globalVarSubs != null;
         if (globalVarSubs.containsKey(varDec)) {
           return globalVarSubs.get(varDec);
         }
       }
     } else if (pSimpleDec instanceof CParameterDeclaration paramDec) {
+      assert paramSubs != null;
       if (paramSubs.containsKey(paramDec)) {
         return paramSubs.get(paramDec);
       }

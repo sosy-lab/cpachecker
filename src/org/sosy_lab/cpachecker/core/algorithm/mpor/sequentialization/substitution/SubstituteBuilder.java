@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substituti
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -124,11 +124,11 @@ public class SubstituteBuilder {
         ImmutableMap.builder();
     // create global vars up front, their initializer cannot contain local variables
     ImmutableMap<CVariableDeclaration, CVariableDeclaration> globalVarSubs =
-        getVarSubs(null, 0, pGlobalVars, pBinExprBuilder);
+        getVarSubs(null, null, 0, pGlobalVars, pBinExprBuilder);
     for (MPORThread thread : pThreads) {
-      ImmutableMap<CVariableDeclaration, CVariableDeclaration> localVarSubs =
-          getVarSubs(globalVarSubs, thread.id, thread.localVars, pBinExprBuilder);
       ImmutableMap<CParameterDeclaration, CVariableDeclaration> paramSubs = getParamSubs(thread);
+      ImmutableMap<CVariableDeclaration, CVariableDeclaration> localVarSubs =
+          getVarSubs(globalVarSubs, paramSubs, thread.id, thread.localVars, pBinExprBuilder);
       rDecSubstitutions.put(
           thread,
           new CSimpleDeclarationSubstitution(
@@ -158,6 +158,7 @@ public class SubstituteBuilder {
    */
   private static ImmutableMap<CVariableDeclaration, CVariableDeclaration> getVarSubs(
       @Nullable ImmutableMap<CVariableDeclaration, CVariableDeclaration> pGlobalVarSubs,
+      @Nullable ImmutableMap<CParameterDeclaration, CVariableDeclaration> pParamSubs,
       int pThreadId,
       ImmutableSet<CVariableDeclaration> pVarDecs,
       CBinaryExpressionBuilder pBinExprBuilder) {
@@ -176,7 +177,7 @@ public class SubstituteBuilder {
     // create dummy substitution
     CSimpleDeclarationSubstitution dummySubstitution =
         new CSimpleDeclarationSubstitution(
-            pGlobalVarSubs, dummyLocalVarSubs, null, pBinExprBuilder);
+            pGlobalVarSubs, dummyLocalVarSubs, pParamSubs, pBinExprBuilder);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
     ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> rFinalSubs =
