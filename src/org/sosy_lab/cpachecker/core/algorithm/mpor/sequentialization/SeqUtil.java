@@ -55,16 +55,28 @@ public class SeqUtil {
 
     StringBuilder rDeclarations = new StringBuilder();
     for (var entry : pDecSubstitutions.entrySet()) {
-      rDeclarations.append(SeqComment.createThreadIdComment(entry.getKey().id));
-      for (CVariableDeclaration varDec : entry.getValue().varSubs.values()) {
+      MPORThread thread = entry.getKey();
+      CSimpleDeclarationSubstitution substitution = entry.getValue();
+      // declare global vars only once (because every thread substitution has every global var)
+      if (thread.isMain()) {
+        assert substitution.globalVarSubs != null; // should always hold, null only used in dummy
+        rDeclarations.append(SeqComment.createGlobalVarsComment());
+        for (CVariableDeclaration globalSub : substitution.globalVarSubs.values()) {
+          rDeclarations.append(globalSub.toASTString()).append(SeqSyntax.NEWLINE);
+        }
+        rDeclarations.append(SeqSyntax.NEWLINE);
+      }
+      rDeclarations.append(SeqComment.createThreadVarsComment(thread.id));
+      for (CVariableDeclaration localSub : substitution.localVarSubs.values()) {
         // TODO handle const CPAcheckerTMPs as atomics (declared before the loop)
-        if (!isConstCpaCheckerTMP(varDec)) {
-          rDeclarations.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
+        if (!isConstCpaCheckerTMP(localSub)) {
+          rDeclarations.append(localSub.toASTString()).append(SeqSyntax.NEWLINE);
         }
       }
-      for (CVariableDeclaration paramDec : entry.getValue().paramSubs.values()) {
-        rDeclarations.append(paramDec.toASTString()).append(SeqSyntax.NEWLINE);
+      for (CVariableDeclaration paramSub : substitution.paramSubs.values()) {
+        rDeclarations.append(paramSub.toASTString()).append(SeqSyntax.NEWLINE);
       }
+      rDeclarations.append(SeqSyntax.NEWLINE);
     }
     return rDeclarations.toString();
   }

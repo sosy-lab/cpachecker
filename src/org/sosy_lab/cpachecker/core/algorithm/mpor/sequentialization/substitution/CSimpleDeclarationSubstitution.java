@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substituti
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -40,10 +41,13 @@ import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 public class CSimpleDeclarationSubstitution implements Substitution {
 
   /**
-   * The map of global and thread local variable declarations to their substitutes. Only the main
-   * thread contains global variable declarations.
+   * The map of global variable declarations to their substitutes. {@code null} if this instance
+   * serves as a dummy.
    */
-  public final ImmutableMap<CVariableDeclaration, CVariableDeclaration> varSubs;
+  @Nullable public final ImmutableMap<CVariableDeclaration, CVariableDeclaration> globalVarSubs;
+
+  /** The map of thread local variable declarations to their substitutes. */
+  public final ImmutableMap<CVariableDeclaration, CVariableDeclaration> localVarSubs;
 
   /** The map of parameter to variable declaration substitutes. */
   public final ImmutableMap<CParameterDeclaration, CVariableDeclaration> paramSubs;
@@ -51,10 +55,13 @@ public class CSimpleDeclarationSubstitution implements Substitution {
   private final CBinaryExpressionBuilder binExprBuilder;
 
   public CSimpleDeclarationSubstitution(
-      ImmutableMap<CVariableDeclaration, CVariableDeclaration> pVarSubs,
+      @Nullable ImmutableMap<CVariableDeclaration, CVariableDeclaration> pGlobalVarSubs,
+      ImmutableMap<CVariableDeclaration, CVariableDeclaration> pLocalVarSubs,
       ImmutableMap<CParameterDeclaration, CVariableDeclaration> pParamSubs,
       CBinaryExpressionBuilder pBinExprBuilder) {
-    varSubs = pVarSubs;
+
+    globalVarSubs = pGlobalVarSubs;
+    localVarSubs = pLocalVarSubs;
     paramSubs = pParamSubs;
     binExprBuilder = pBinExprBuilder;
   }
@@ -68,26 +75,16 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     CType exprType = pExpression.getExpressionType();
 
     if (pExpression instanceof CIdExpression idExpr) {
-      CSimpleDeclaration dec = idExpr.getDeclaration();
-      assert dec != null; // TODO test purposes
-      if (dec instanceof CVariableDeclaration varDec) {
-        CVariableDeclaration varSub = varSubs.get(varDec);
-        if (varSub != null) {
-          return new CIdExpression(fl, exprType, varSub.getName(), varSub);
-        }
-      } else if (dec instanceof CParameterDeclaration paramDec) {
-        CVariableDeclaration paramSub = paramSubs.get(paramDec);
-        if (paramSub != null) {
-          return new CIdExpression(fl, exprType, paramSub.getName(), paramSub);
-        }
-      }
+      CVariableDeclaration sub = getVarSub(idExpr.getDeclaration());
+      assert sub != null; // all CIdExpressions must be substituted
+      return new CIdExpression(fl, exprType, sub.getName(), sub);
 
     } else if (pExpression instanceof CBinaryExpression binExpr) {
       // recursively substitute operands of binary expressions
       CExpression op1 = substitute(binExpr.getOperand1());
       CExpression op2 = substitute(binExpr.getOperand2());
-      // only create a new expression if any operand was substituted
-      if (!op1.equals(binExpr.getOperand1()) || !op2.equals(binExpr.getOperand2())) {
+      // only create a new expression if any operand was substituted (compare references)
+      if (op1 != binExpr.getOperand1() || op2 != binExpr.getOperand2()) {
         try {
           return binExprBuilder.buildBinaryExpression(op1, op2, binExpr.getOperator());
         } catch (UnrecognizedCodeException e) {
@@ -96,12 +93,13 @@ public class CSimpleDeclarationSubstitution implements Substitution {
         }
       }
 
-    } else if (pExpression instanceof CArraySubscriptExpression arrSubExpr) {
-      CExpression arrSub = substitute(arrSubExpr.getArrayExpression());
-      CExpression subscriptSub = substitute(arrSubExpr.getSubscriptExpression());
-      // only create a new expression if any expr was substituted
-      if (!arrSub.equals(arrSubExpr.getArrayExpression())
-          || !subscriptSub.equals(arrSubExpr.getSubscriptExpression())) {
+    } else if (pExpression instanceof CArraySubscriptExpression arrSubscriptExpr) {
+      CExpression arrExpr = arrSubscriptExpr.getArrayExpression();
+      CExpression subscriptExpr = arrSubscriptExpr.getSubscriptExpression();
+      CExpression arrSub = substitute(arrExpr);
+      CExpression subscriptSub = substitute(subscriptExpr);
+      // only create a new expression if any expr was substituted (compare references)
+      if (arrSub != arrExpr || subscriptSub != subscriptExpr) {
         return new CArraySubscriptExpression(fl, exprType, arrSub, subscriptSub);
       }
     }
@@ -158,10 +156,10 @@ public class CSimpleDeclarationSubstitution implements Substitution {
         if (edge instanceof CDeclarationEdge decEdge) {
           // TODO what about structs?
           CDeclaration dec = decEdge.getDeclaration();
-          if (dec instanceof CVariableDeclaration varDec) {
-            if (varSubs.containsKey(varDec)) {
-              substitute =
-                  SubstituteBuilder.substituteDeclarationEdge(decEdge, varSubs.get(varDec));
+          if (dec instanceof CVariableDeclaration) {
+            CVariableDeclaration varSub = getVarSub(dec);
+            if (varSub != null) {
+              substitute = SubstituteBuilder.substituteDeclarationEdge(decEdge, varSub);
             }
           }
 
@@ -179,5 +177,23 @@ public class CSimpleDeclarationSubstitution implements Substitution {
       }
     }
     return ImmutableMap.copyOf(rSubstitutes);
+  }
+
+  /** Returns the global, local or param {@link CVariableDeclaration} substitute of pDec. */
+  private CVariableDeclaration getVarSub(CSimpleDeclaration pSimpleDec) {
+    if (pSimpleDec instanceof CVariableDeclaration varDec) {
+      if (localVarSubs.containsKey(varDec)) {
+        return localVarSubs.get(varDec);
+      } else if (globalVarSubs != null) {
+        if (globalVarSubs.containsKey(varDec)) {
+          return globalVarSubs.get(varDec);
+        }
+      }
+    } else if (pSimpleDec instanceof CParameterDeclaration paramDec) {
+      if (paramSubs.containsKey(paramDec)) {
+        return paramSubs.get(paramDec);
+      }
+    }
+    throw new IllegalArgumentException("pSimpleDec must be CVariable- or CParameterDeclaration");
   }
 }

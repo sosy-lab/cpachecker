@@ -12,7 +12,23 @@ public class SeqComment {
 
   private static final String COMMENT_SINGLE = "// ";
 
-  public static String createThreadIdComment(int threadId) {
-    return COMMENT_SINGLE + SeqToken.THREAD + SeqSyntax.SPACE + threadId + SeqSyntax.NEWLINE;
+  public static String createGlobalVarsComment() {
+    return COMMENT_SINGLE
+        + SeqToken.GLOBAL
+        + SeqSyntax.SPACE
+        + SeqToken.VARIABLES
+        + SeqSyntax.NEWLINE;
+  }
+
+  public static String createThreadVarsComment(int threadId) {
+    return COMMENT_SINGLE
+        + SeqToken.THREAD
+        + SeqSyntax.SPACE
+        + threadId
+        + SeqSyntax.SPACE
+        + SeqToken.LOCAL
+        + SeqSyntax.SPACE
+        + SeqToken.VARIABLES
+        + SeqSyntax.NEWLINE;
   }
 }

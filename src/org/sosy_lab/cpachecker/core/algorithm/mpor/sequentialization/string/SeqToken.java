@@ -26,11 +26,15 @@ public class SeqToken {
 
   public static final String ELSE = "else";
 
+  public static final String GLOBAL = "global";
+
   public static final String GOTO = "goto";
 
   public static final String IF = "if";
 
   public static final String INDEX = "index";
+
+  public static final String LOCAL = "local";
 
   public static final String MAIN = "main";
 
@@ -57,6 +61,8 @@ public class SeqToken {
   public static final String SWITCH = "switch";
 
   public static final String THREAD = "thread";
+
+  public static final String VARIABLES = "variables";
 
   public static final String WHILE = "while";
 }
