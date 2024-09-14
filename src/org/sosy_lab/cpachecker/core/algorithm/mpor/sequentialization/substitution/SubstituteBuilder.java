@@ -117,44 +117,74 @@ public class SubstituteBuilder {
         pOriginal.getSuccessor());
   }
 
+  public static ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> getDecSubstitutions(
+      ImmutableSet<CVariableDeclaration> pGlobalVars,
+      ImmutableSet<MPORThread> pThreads,
+      CBinaryExpressionBuilder pBinExprBuilder) {
+    ImmutableMap.Builder<MPORThread, CSimpleDeclarationSubstitution> rDecSubstitutions =
+        ImmutableMap.builder();
+    for (MPORThread thread : pThreads) {
+      ImmutableMap<CVariableDeclaration, CVariableDeclaration> varSubs =
+          getVarSubs(pGlobalVars, thread, pBinExprBuilder);
+      ImmutableMap<CParameterDeclaration, CVariableDeclaration> paramSubs = getParamSubs(thread);
+      rDecSubstitutions.put(
+          thread, new CSimpleDeclarationSubstitution(varSubs, paramSubs, pBinExprBuilder));
+    }
+    return rDecSubstitutions.buildOrThrow();
+  }
+
+  private static ImmutableMap<CParameterDeclaration, CVariableDeclaration> getParamSubs(
+      MPORThread pThread) {
+    ImmutableMap.Builder<CParameterDeclaration, CVariableDeclaration> rThreadSubs =
+        ImmutableMap.builder();
+    for (CFunctionDeclaration funcDec : pThread.cfa.calledFuncs) {
+      for (CParameterDeclaration paramDec : funcDec.getParameters()) {
+        String varName = SubstituteBuilder.substituteParamName(paramDec, pThread.id);
+        rThreadSubs.put(
+            paramDec,
+            SubstituteBuilder.substituteVarDec(paramDec.asVariableDeclaration(), varName));
+      }
+    }
+    return rThreadSubs.buildOrThrow();
+  }
+
   /**
    * Creates substitutes for all variables in the program and maps them to their original. The
    * substitutes differ only in their name.
    */
-  public static ImmutableMap<CVariableDeclaration, CVariableDeclaration> getVarSubs(
+  private static ImmutableMap<CVariableDeclaration, CVariableDeclaration> getVarSubs(
       ImmutableSet<CVariableDeclaration> pGlobalVars,
-      ImmutableSet<MPORThread> pThreads,
+      MPORThread pThread,
       CBinaryExpressionBuilder pBinExprBuilder) {
 
     // step 1: create dummy CVariableDeclaration substitutes which may be adjusted in step 2
-    ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> dummySubBuilder =
+    ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> dummyVarSubsB =
         ImmutableMap.builder();
-    for (CVariableDeclaration globalVar : pGlobalVars) {
-      String substituteName = SubstituteBuilder.substituteGlobalVarName(globalVar);
-      CVariableDeclaration substitution =
-          SubstituteBuilder.substituteVarDec(globalVar, substituteName);
-      dummySubBuilder.put(globalVar, substitution);
-    }
-    for (MPORThread thread : pThreads) {
-      for (CVariableDeclaration localVar : thread.localVars) {
-        String substituteName = SubstituteBuilder.substituteLocalVarName(localVar, thread.id);
-        CVariableDeclaration substitute =
-            SubstituteBuilder.substituteVarDec(localVar, substituteName);
-        dummySubBuilder.put(localVar, substitute);
+    if (pThread.isMain()) {
+      for (CVariableDeclaration globalVar : pGlobalVars) {
+        String substituteName = SubstituteBuilder.substituteGlobalVarName(globalVar);
+        CVariableDeclaration sub = SubstituteBuilder.substituteVarDec(globalVar, substituteName);
+        dummyVarSubsB.put(globalVar, sub);
       }
     }
-    ImmutableMap<CVariableDeclaration, CVariableDeclaration> dummySubs =
-        dummySubBuilder.buildOrThrow();
+    for (CVariableDeclaration localVar : pThread.localVars) {
+      String substituteName = SubstituteBuilder.substituteLocalVarName(localVar, pThread.id);
+      CVariableDeclaration substitute =
+          SubstituteBuilder.substituteVarDec(localVar, substituteName);
+      dummyVarSubsB.put(localVar, substitute);
+    }
+    ImmutableMap<CVariableDeclaration, CVariableDeclaration> dummyVarSubs =
+        dummyVarSubsB.buildOrThrow();
 
-    // create dummy local CVarDecSubstitution
-    CVariableDeclarationSubstitution dummySubstitution =
-        new CVariableDeclarationSubstitution(dummySubs, pBinExprBuilder);
+    // create dummy substitution
+    CSimpleDeclarationSubstitution dummySubstitution =
+        new CSimpleDeclarationSubstitution(dummyVarSubs, null, pBinExprBuilder);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
     ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> rFinalSubs =
         ImmutableMap.builder();
     // TODO handle CInitializerList?
-    for (var entry : dummySubs.entrySet()) {
+    for (var entry : dummyVarSubs.entrySet()) {
       CInitializer initializer = entry.getValue().getInitializer();
       if (initializer != null) {
         if (initializer instanceof CInitializerExpression initExpr) {
@@ -170,25 +200,5 @@ public class SubstituteBuilder {
       rFinalSubs.put(entry);
     }
     return rFinalSubs.buildOrThrow();
-  }
-
-  public static ImmutableMap<MPORThread, ImmutableMap<CParameterDeclaration, CVariableDeclaration>>
-      getParamSubs(ImmutableSet<MPORThread> pThreads) {
-    ImmutableMap.Builder<MPORThread, ImmutableMap<CParameterDeclaration, CVariableDeclaration>>
-        rParamSubs = ImmutableMap.builder();
-    for (MPORThread thread : pThreads) {
-      ImmutableMap.Builder<CParameterDeclaration, CVariableDeclaration> rThreadSubs =
-          ImmutableMap.builder();
-      for (CFunctionDeclaration funcDec : thread.cfa.calledFuncs) {
-        for (CParameterDeclaration paramDec : funcDec.getParameters()) {
-          String varName = SubstituteBuilder.substituteParamName(paramDec, thread.id);
-          rThreadSubs.put(
-              paramDec,
-              SubstituteBuilder.substituteVarDec(paramDec.asVariableDeclaration(), varName));
-        }
-      }
-      rParamSubs.put(thread, rThreadSubs.buildOrThrow());
-    }
-    return rParamSubs.buildOrThrow();
   }
 }

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substituti
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -24,6 +23,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -31,21 +32,31 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 
-public class CVariableDeclarationSubstitution implements Substitution {
+public class CSimpleDeclarationSubstitution implements Substitution {
 
-  public final ImmutableMap<CVariableDeclaration, CVariableDeclaration> substitutes;
+  /**
+   * The map of global and thread local variable declarations to their substitutes. Only the main
+   * thread contains global variable declarations.
+   */
+  public final ImmutableMap<CVariableDeclaration, CVariableDeclaration> varSubs;
+
+  /** The map of parameter to variable declaration substitutes. */
+  public final ImmutableMap<CParameterDeclaration, CVariableDeclaration> paramSubs;
 
   private final CBinaryExpressionBuilder binExprBuilder;
 
-  public CVariableDeclarationSubstitution(
-      ImmutableMap<CVariableDeclaration, CVariableDeclaration> pSubstitutes,
-      CBinaryExpressionBuilder pCBinExprBuilder) {
-    substitutes = pSubstitutes;
-    binExprBuilder = pCBinExprBuilder;
+  public CSimpleDeclarationSubstitution(
+      ImmutableMap<CVariableDeclaration, CVariableDeclaration> pVarSubs,
+      ImmutableMap<CParameterDeclaration, CVariableDeclaration> pParamSubs,
+      CBinaryExpressionBuilder pBinExprBuilder) {
+    varSubs = pVarSubs;
+    paramSubs = pParamSubs;
+    binExprBuilder = pBinExprBuilder;
   }
 
   // TODO take a look at ExpressionSubstitution.applySubstitution()
@@ -57,10 +68,17 @@ public class CVariableDeclarationSubstitution implements Substitution {
     CType exprType = pExpression.getExpressionType();
 
     if (pExpression instanceof CIdExpression idExpr) {
-      if (idExpr.getDeclaration() instanceof CVariableDeclaration varDec) {
-        CVariableDeclaration substitute = substitutes.get(varDec);
-        if (substitute != null) {
-          return new CIdExpression(fl, exprType, substitute.getName(), substitute);
+      CSimpleDeclaration dec = idExpr.getDeclaration();
+      assert dec != null; // TODO test purposes
+      if (dec instanceof CVariableDeclaration varDec) {
+        CVariableDeclaration varSub = varSubs.get(varDec);
+        if (varSub != null) {
+          return new CIdExpression(fl, exprType, varSub.getName(), varSub);
+        }
+      } else if (dec instanceof CParameterDeclaration paramDec) {
+        CVariableDeclaration paramSub = paramSubs.get(paramDec);
+        if (paramSub != null) {
+          return new CIdExpression(fl, exprType, paramSub.getName(), paramSub);
         }
       }
 
@@ -129,34 +147,35 @@ public class CVariableDeclarationSubstitution implements Substitution {
     return pCStmt;
   }
 
-  public ImmutableMap<CFAEdge, CFAEdge> substituteEdges(CFA pCFA) {
-    Map<CFAEdge, CFAEdge> rSubstitutes = new HashMap<>();
-    for (CFAEdge edge : CFAUtils.allEdges(pCFA)) {
+  public ImmutableMap<ThreadEdge, CFAEdge> substituteEdges(MPORThread pThread) {
+    Map<ThreadEdge, CFAEdge> rSubstitutes = new HashMap<>();
+    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       // prevent duplicate keys by excluding parallel edges
-      if (!rSubstitutes.containsKey(edge)) {
+      if (!rSubstitutes.containsKey(threadEdge)) {
+        CFAEdge edge = threadEdge.cfaEdge;
         CFAEdge substitute = null;
 
-        if (edge instanceof CDeclarationEdge cDecEdge) {
+        if (edge instanceof CDeclarationEdge decEdge) {
           // TODO what about structs?
-          CDeclaration cDec = cDecEdge.getDeclaration();
-          if (cDec instanceof CVariableDeclaration cVarDec) {
-            if (substitutes.containsKey(cVarDec)) {
+          CDeclaration dec = decEdge.getDeclaration();
+          if (dec instanceof CVariableDeclaration varDec) {
+            if (varSubs.containsKey(varDec)) {
               substitute =
-                  SubstituteBuilder.substituteDeclarationEdge(cDecEdge, substitutes.get(cVarDec));
+                  SubstituteBuilder.substituteDeclarationEdge(decEdge, varSubs.get(varDec));
             }
           }
 
-        } else if (edge instanceof CAssumeEdge cAssumeEdge) {
+        } else if (edge instanceof CAssumeEdge assumeEdge) {
           substitute =
               SubstituteBuilder.substituteAssumeEdge(
-                  cAssumeEdge, substitute(cAssumeEdge.getExpression()));
+                  assumeEdge, substitute(assumeEdge.getExpression()));
 
-        } else if (edge instanceof CStatementEdge cStmtEdge) {
+        } else if (edge instanceof CStatementEdge stmtEdge) {
           substitute =
               SubstituteBuilder.substituteStatementEdge(
-                  cStmtEdge, substitute(cStmtEdge.getStatement()));
+                  stmtEdge, substitute(stmtEdge.getStatement()));
         }
-        rSubstitutes.put(edge, substitute == null ? edge : substitute);
+        rSubstitutes.put(threadEdge, substitute == null ? edge : substitute);
       }
     }
     return ImmutableMap.copyOf(rSubstitutes);

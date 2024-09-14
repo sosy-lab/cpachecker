@@ -29,8 +29,6 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -42,8 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution.CParameterDeclarationSubstitution;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution.CVariableDeclarationSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution.SubstituteBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.ExecutionTrace;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.MPORState;
@@ -394,15 +391,17 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   /** The set of global variable declarations in the input program, used to identify variables. */
   private final ImmutableSet<CVariableDeclaration> globalVars;
 
-  private final CVariableDeclarationSubstitution varDecSub;
-
-  private final CParameterDeclarationSubstitution paramDecSub;
-
   /**
    * The set of threads in the program, including the main thread and all pthreads. Needs to be
    * initialized after {@link MPORAlgorithm#funcCallMap}.
    */
   private final ImmutableSet<MPORThread> threads;
+
+  /**
+   * The map of thread specific variable declaration substitutions. The main thread (0) handles
+   * global variables.
+   */
+  private final ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> decSubstitutions;
 
   public MPORAlgorithm(
       ConfigurableProgramAnalysis pCpa,
@@ -438,12 +437,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     globalVars = getGlobalVars(INPUT_CFA);
     threads = getThreads(INPUT_CFA, funcCallMap);
 
-    varDecSub =
-        new CVariableDeclarationSubstitution(
-            SubstituteBuilder.getVarSubs(globalVars, threads, binExprBuilder), binExprBuilder);
-    paramDecSub =
-        new CParameterDeclarationSubstitution(
-            SubstituteBuilder.getParamSubs(threads), binExprBuilder);
+    decSubstitutions = SubstituteBuilder.getDecSubstitutions(globalVars, threads, binExprBuilder);
 
     SEQ = new Sequentialization(threads.size());
   }
@@ -608,60 +602,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     return rThreads.build();
-  }
-
-  // TODO move this to substitution class
-  //  also do not store it in two places
-  /**
-   * Creates substitutes for all variables in the program and maps them to their original. The
-   * substitutes differ only in their name.
-   */
-  private ImmutableMap<CVariableDeclaration, CVariableDeclaration> getVarSubs() {
-
-    // step 1: create dummy CVariableDeclaration substitutes which may be adjusted in step 2
-    ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> dummySubBuilder =
-        ImmutableMap.builder();
-    for (CVariableDeclaration globalVar : globalVars) {
-      String substituteName = SubstituteBuilder.substituteGlobalVarName(globalVar);
-      CVariableDeclaration substitution =
-          SubstituteBuilder.substituteVarDec(globalVar, substituteName);
-      dummySubBuilder.put(globalVar, substitution);
-    }
-    for (MPORThread thread : threads) {
-      for (CVariableDeclaration localVar : thread.localVars) {
-        String substituteName = SubstituteBuilder.substituteLocalVarName(localVar, thread.id);
-        CVariableDeclaration substitute =
-            SubstituteBuilder.substituteVarDec(localVar, substituteName);
-        dummySubBuilder.put(localVar, substitute);
-      }
-    }
-    ImmutableMap<CVariableDeclaration, CVariableDeclaration> dummySubs =
-        dummySubBuilder.buildOrThrow();
-
-    // create dummy local CVarDecSubstitution
-    CVariableDeclarationSubstitution dummySubstitution =
-        new CVariableDeclarationSubstitution(dummySubs, binExprBuilder);
-
-    // step 2: replace initializers of CVariableDeclarations with substitutes
-    ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> rFinalSubs =
-        ImmutableMap.builder();
-    // TODO handle CInitializerList?
-    for (var entry : dummySubs.entrySet()) {
-      CInitializer cInitializer = entry.getValue().getInitializer();
-      if (cInitializer != null) {
-        if (cInitializer instanceof CInitializerExpression cInitExpr) {
-          CInitializerExpression cInitExprSub =
-              SubstituteBuilder.substituteInitExpr(
-                  cInitExpr, dummySubstitution.substitute(cInitExpr.getExpression()));
-          CVariableDeclaration finalSub =
-              SubstituteBuilder.substituteVarDec(entry.getValue(), cInitExprSub);
-          rFinalSubs.put(entry.getKey(), finalSub);
-          continue;
-        }
-      }
-      rFinalSubs.put(entry);
-    }
-    return rFinalSubs.buildOrThrow();
   }
 
   // (Private) Helpers ===========================================================================

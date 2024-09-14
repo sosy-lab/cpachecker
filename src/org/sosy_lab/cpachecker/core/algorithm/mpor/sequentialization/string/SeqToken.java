@@ -32,6 +32,8 @@ public class SeqToken {
 
   public static final String INDEX = "index";
 
+  public static final String MAIN = "main";
+
   public static final String NEXT_STATEMENT = "nextStatement";
 
   public static final String NEXT_THREAD = "nextThread";
@@ -53,6 +55,8 @@ public class SeqToken {
   public static final String SIZE = "size";
 
   public static final String SWITCH = "switch";
+
+  public static final String THREAD = "thread";
 
   public static final String WHILE = "while";
 }

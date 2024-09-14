@@ -12,19 +12,7 @@ public class SeqComment {
 
   private static final String COMMENT_SINGLE = "// ";
 
-  public static final String PARAM_DEC =
-      COMMENT_SINGLE
-          + "parameter ("
-          + SeqToken.PREFIX_PARAMETER
-          + ") variable declarations"
-          + SeqSyntax.NEWLINE;
-
-  public static final String VAR_DEC =
-      COMMENT_SINGLE
-          + "global ("
-          + SeqToken.PREFIX_GLOBAL
-          + ") and thread local ("
-          + SeqToken.PREFIX_THREAD
-          + ") variable declarations"
-          + SeqSyntax.NEWLINE;
+  public static String createThreadIdComment(int threadId) {
+    return COMMENT_SINGLE + SeqToken.THREAD + SeqSyntax.SPACE + threadId + SeqSyntax.NEWLINE;
+  }
 }
