@@ -8,10 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -19,11 +23,15 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.ArrayElement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Variable;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ASTStringExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.DeclareExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.EdgeCodeExpr;
@@ -55,13 +63,57 @@ public class SeqUtil {
   private static final AssignExpr setExitPc =
       new AssignExpr(pcsNextThread, new Value(Integer.toString(EXIT_PC)));
 
+  public static ImmutableMap<CFunctionCallEdge, ImmutableList<AssignExpr>> mapParamAssignments(
+      MPORThread pThread, CSimpleDeclarationSubstitution pSub) {
+
+    ImmutableMap.Builder<CFunctionCallEdge, ImmutableList<AssignExpr>> rAssigns =
+        ImmutableMap.builder();
+
+    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
+      if (threadEdge.cfaEdge instanceof CFunctionCallEdge funcCall) {
+
+        ImmutableList.Builder<AssignExpr> assigns = ImmutableList.builder();
+        List<CParameterDeclaration> paramDecs =
+            funcCall.getSuccessor().getFunctionDefinition().getParameters();
+
+        // for each parameter, assign the param substitute to the param expression in funcCall
+        for (int i = 0; i < paramDecs.size(); i++) {
+          CParameterDeclaration paramDec = paramDecs.get(i);
+          assert pSub.paramSubs != null;
+          CExpression paramExpr =
+              funcCall.getFunctionCallExpression().getParameterExpressions().get(i);
+          CVariableDeclaration sub = pSub.paramSubs.get(paramDec);
+          assert sub != null;
+          AssignExpr assign =
+              new AssignExpr(
+                  new VariableExpr(Optional.empty(), new Variable(createParamAssignName(sub))),
+                  new ASTStringExpr(paramExpr.toASTString()));
+          assigns.add(assign);
+        }
+        rAssigns.put(funcCall, assigns.build());
+      }
+    }
+    return rAssigns.buildOrThrow();
+  }
+
+  private static String createParamAssignName(CVariableDeclaration pVarDec) {
+    StringBuilder rName = new StringBuilder();
+    CType type = pVarDec.getType();
+    while (type instanceof CPointerType pointerType) {
+      type = pointerType.getType();
+      rName.append(SeqSyntax.POINTER);
+    }
+    rName.append(pVarDec.getName());
+    return rName.toString();
+  }
+
   public static ImmutableMap<FunctionSummaryEdge, DeclareExpr> mapReturnPcDecs(MPORThread pThread) {
     ImmutableMap.Builder<FunctionSummaryEdge, DeclareExpr> rDecs = ImmutableMap.builder();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (threadEdge.cfaEdge instanceof FunctionSummaryEdge funcSummaryEdge) {
+      if (threadEdge.cfaEdge instanceof FunctionSummaryEdge funcSummary) {
         rDecs.put(
-            funcSummaryEdge,
-            createReturnPcVarDec(pThread.id, funcSummaryEdge.getFunctionEntry().getFunctionName()));
+            funcSummary,
+            createReturnPcVarDec(pThread.id, funcSummary.getFunctionEntry().getFunctionName()));
       }
     }
     return rDecs.buildOrThrow();
@@ -70,7 +122,7 @@ public class SeqUtil {
   private static DeclareExpr createReturnPcVarDec(int pThreadId, String pFuncName) {
     String varName = createReturnPcVarName(pThreadId, pFuncName);
     return new DeclareExpr(
-        new VariableExpr(SeqDataType.INT, new Variable(varName)), Optional.empty());
+        new VariableExpr(Optional.of(SeqDataType.INT), new Variable(varName)), Optional.empty());
   }
 
   private static String createReturnPcVarName(int pThreadId, String pFuncName) {

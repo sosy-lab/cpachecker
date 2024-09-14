@@ -46,7 +46,8 @@ public class AnyFalse implements SeqFunction {
 
   private static final DeclareExpr declareExpr =
       new DeclareExpr(
-          new VariableExpr(SeqDataType.INT, index), Optional.of(new Value(SeqValue.ZERO)));
+          new VariableExpr(Optional.of(SeqDataType.INT), index),
+          Optional.of(new Value(SeqValue.ZERO)));
 
   private static final LoopExpr loopExpr =
       new LoopExpr(new BooleanExpr(index, SeqOperator.LESS, size));
@@ -61,8 +62,9 @@ public class AnyFalse implements SeqFunction {
 
   private static ImmutableList<SeqExpression> initParameters() {
     ImmutableList.Builder<SeqExpression> rParameters = ImmutableList.builder();
-    rParameters.add(new VariableExpr(SeqDataType.BOOL, new ArrayExpr(array, Optional.empty())));
-    rParameters.add(new VariableExpr(SeqDataType.INT, size));
+    rParameters.add(
+        new VariableExpr(Optional.of(SeqDataType.BOOL), new ArrayExpr(array, Optional.empty())));
+    rParameters.add(new VariableExpr(Optional.of(SeqDataType.INT), size));
     return rParameters.build();
   }
 

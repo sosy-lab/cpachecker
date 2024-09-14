@@ -8,22 +8,24 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 public class VariableExpr implements SeqExpression {
 
-  private final String dataType;
+  private final Optional<String> dataType;
 
   // TODO restrict to ArrayExpr, Variable
   private final SeqExpression variable;
 
-  public VariableExpr(String pDataType, SeqExpression pVariable) {
+  public VariableExpr(Optional<String> pDataType, SeqExpression pVariable) {
     dataType = pDataType;
     variable = pVariable;
   }
 
   @Override
   public String createString() {
-    return dataType + SeqSyntax.SPACE + variable.createString();
+    return (dataType.isEmpty() ? SeqSyntax.EMPTY_STRING : dataType + SeqSyntax.SPACE)
+        + variable.createString();
   }
 }

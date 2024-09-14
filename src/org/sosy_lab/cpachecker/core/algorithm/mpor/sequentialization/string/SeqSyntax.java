@@ -28,6 +28,8 @@ public class SeqSyntax {
 
   public static final String NEWLINE = "\n";
 
+  public static final String POINTER = "*";
+
   public static final String SEMICOLON = ";";
 
   public static final String SPACE = " ";
