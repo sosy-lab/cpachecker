@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;

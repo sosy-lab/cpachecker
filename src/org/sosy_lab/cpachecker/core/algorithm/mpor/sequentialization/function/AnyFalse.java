@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqValue;
 
+// TODO will probably be unused
 public class AnyFalse implements SeqFunction {
 
   private static final Variable array = new Variable(SeqToken.ARRAY);

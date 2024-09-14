@@ -9,15 +9,21 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.ArrayElement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
@@ -30,7 +36,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution.CSimpleDeclarationSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
@@ -49,6 +55,31 @@ public class SeqUtil {
 
   private static final AssignExpr setExitPc =
       new AssignExpr(pcsNextThread, new Value(Integer.toString(EXIT_PC)));
+
+  public static ImmutableSet<CVariableDeclaration> createReturnPcVarDecs(MPORThread pThread) {
+    ImmutableSet.Builder<CVariableDeclaration> rDecs = ImmutableSet.builder();
+    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
+      if (threadEdge.cfaEdge instanceof FunctionSummaryEdge funcSummaryEdge) {
+        String varName = createReturnPcVarName(pThread.id,
+            funcSummaryEdge.getFunctionEntry().getFunctionName());
+        CVariableDeclaration varDec =
+            new CVariableDeclaration(
+                funcSummaryEdge.getFileLocation(), // not correct, just a placeholder
+                false,
+                CStorageClass.AUTO,
+                ,
+                varName,
+                varName,
+                varName,
+                null);
+      }
+    }
+    return rDecs.build();
+  }
+
+  private static String createReturnPcVarName(int pThreadId, String pFuncName) {
+
+  }
 
   public static String createDeclarations(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pDecSubstitutions) {

@@ -7,4 +7,4 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /** Classes that handle substituting variables and parameters in Expressions. */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.substitution;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
