@@ -90,7 +90,7 @@ public class SeqUtil {
           assert sub != null;
           AssignExpr assign =
               new AssignExpr(
-                  new VariableExpr(Optional.empty(), new Variable(createParamAssignName(sub))),
+                  new VariableExpr(Optional.empty(), new Variable(sub.getName())),
                   new ASTStringExpr(paramExpr.toASTString()));
           assigns.add(assign);
         }
@@ -98,17 +98,6 @@ public class SeqUtil {
       }
     }
     return rAssigns.buildOrThrow();
-  }
-
-  private static String createParamAssignName(CVariableDeclaration pVarDec) {
-    StringBuilder rName = new StringBuilder();
-    CType type = pVarDec.getType();
-    while (type instanceof CPointerType pointerType) {
-      type = pointerType.getType();
-      rName.append(SeqSyntax.POINTER);
-    }
-    rName.append(pVarDec.getName());
-    return rName.toString();
   }
 
   public static ImmutableMap<ThreadNode, AssignExpr> mapPcsToReturnPcAssigns(
@@ -323,5 +312,21 @@ public class SeqUtil {
         + SeqToken.BREAK
         + SeqSyntax.SEMICOLON
         + SeqSyntax.NEWLINE;
+  }
+
+  // TODO unused
+  /**
+   * Returns the name of {@code pVarDec} with the amount of pointers in the declaration. E.g. {@code
+   * int *i;} -> return {@code *i}.
+   */
+  private static String createParamAssignName(CVariableDeclaration pVarDec) {
+    StringBuilder rName = new StringBuilder();
+    CType type = pVarDec.getType();
+    while (type instanceof CPointerType pointerType) {
+      type = pointerType.getType();
+      rName.append(SeqSyntax.POINTER);
+    }
+    rName.append(pVarDec.getName());
+    return rName.toString();
   }
 }
