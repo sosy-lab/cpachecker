@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.util.variableclassification;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -57,16 +55,6 @@ public class Partition implements Comparable<Partition>, Serializable {
     this.varToPartition = checkNotNull(varToPartition);
     this.edgeToPartition = checkNotNull(edgeToPartition);
     index = idGenerator.getFreshId();
-  }
-
-  @JsonCreator
-  private Partition(
-      @JsonProperty("index") int pIndex,
-      @JsonProperty("varToPartition") Map<String, Partition> pVarToPartition,
-      @JsonProperty("edgeToPartition") Table<CFAEdge, Integer, Partition> pEdgeToPartition) {
-    index = pIndex;
-    varToPartition = pVarToPartition;
-    edgeToPartition = pEdgeToPartition;
   }
 
   public NavigableSet<String> getVars() {
