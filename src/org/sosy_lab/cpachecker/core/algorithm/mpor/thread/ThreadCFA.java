@@ -114,7 +114,7 @@ public class ThreadCFA {
     }
   }
 
-  private ThreadNode getThreadNodeByCfaNode(CFANode pCfaNode) {
+  public ThreadNode getThreadNodeByCfaNode(CFANode pCfaNode) {
     for (ThreadNode rThreadNode : threadNodes) {
       if (rThreadNode.cfaNode.equals(pCfaNode)) {
         return rThreadNode;

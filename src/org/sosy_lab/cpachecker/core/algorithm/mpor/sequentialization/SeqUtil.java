@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -20,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -106,6 +109,28 @@ public class SeqUtil {
     }
     rName.append(pVarDec.getName());
     return rName.toString();
+  }
+
+  public static ImmutableMap<ThreadNode, AssignExpr> mapPcsToReturnPcAssigns(
+      MPORThread pThread, ImmutableMap<ThreadEdge, DeclareExpr> pReturnPcDecs) {
+    Map<ThreadNode, AssignExpr> rAssigns = new HashMap<>();
+    for (var entry : pReturnPcDecs.entrySet()) {
+      if (entry.getKey().cfaEdge instanceof FunctionSummaryEdge funcSummaryEdge) {
+        Optional<FunctionExitNode> funcExitNode = funcSummaryEdge.getFunctionEntry().getExitNode();
+        if (funcExitNode.isPresent()) { // reach_error() has no exit, no need to add return_pc
+          ThreadNode threadNode = pThread.cfa.getThreadNodeByCfaNode(funcExitNode.orElseThrow());
+          if (!rAssigns.containsKey(threadNode)) { // only one assign for each function needed
+            AssignExpr assign =
+                new AssignExpr(pcsNextThread, entry.getValue().variableExpr.variable);
+            rAssigns.put(threadNode, assign);
+          }
+        }
+      } else {
+        throw new IllegalArgumentException(
+            "pReturnPcDecs can only contain FunctionSummaryEdge keys");
+      }
+    }
+    return ImmutableMap.copyOf(rAssigns);
   }
 
   public static ImmutableMap<ThreadEdge, DeclareExpr> mapReturnPcDecs(MPORThread pThread) {

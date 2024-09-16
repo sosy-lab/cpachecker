@@ -36,6 +36,7 @@ public class MPORThread {
 
   public final ImmutableSet<MPORJoin> joins;
 
+  // TODO add MPORThread thread variable for all cfas, edges and nodes
   /** The subset of the original CFA executed by the thread. */
   public final ThreadCFA cfa;
 
