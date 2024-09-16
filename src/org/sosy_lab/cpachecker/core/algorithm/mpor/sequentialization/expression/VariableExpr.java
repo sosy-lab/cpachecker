@@ -16,7 +16,7 @@ public class VariableExpr implements SeqExpression {
   private final Optional<String> dataType;
 
   // TODO restrict to ArrayExpr, Variable
-  private final SeqExpression variable;
+  public final SeqExpression variable;
 
   public VariableExpr(Optional<String> pDataType, SeqExpression pVariable) {
     dataType = pDataType;

@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
@@ -107,16 +108,22 @@ public class SeqUtil {
     return rName.toString();
   }
 
-  public static ImmutableMap<FunctionSummaryEdge, DeclareExpr> mapReturnPcDecs(MPORThread pThread) {
-    ImmutableMap.Builder<FunctionSummaryEdge, DeclareExpr> rDecs = ImmutableMap.builder();
+  public static ImmutableMap<ThreadEdge, DeclareExpr> mapReturnPcDecs(MPORThread pThread) {
+    ImmutableMap.Builder<ThreadEdge, DeclareExpr> rDecs = ImmutableMap.builder();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       if (threadEdge.cfaEdge instanceof FunctionSummaryEdge funcSummary) {
         rDecs.put(
-            funcSummary,
+            threadEdge,
             createReturnPcVarDec(pThread.id, funcSummary.getFunctionEntry().getFunctionName()));
       }
     }
     return rDecs.buildOrThrow();
+  }
+
+  public static AssignExpr createReturnPcAssign(ThreadEdge pThreadEdge, DeclareExpr pDecExpr) {
+    assert pThreadEdge.cfaEdge instanceof CFunctionSummaryEdge;
+    return new AssignExpr(
+        pDecExpr.variableExpr.variable, new Value(Integer.toString(pThreadEdge.getSuccessor().pc)));
   }
 
   private static DeclareExpr createReturnPcVarDec(int pThreadId, String pFuncName) {

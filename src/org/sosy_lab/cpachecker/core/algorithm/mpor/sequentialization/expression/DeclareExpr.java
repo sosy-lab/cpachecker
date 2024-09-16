@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 
 public class DeclareExpr implements SeqExpression {
 
-  private final VariableExpr variableExpr;
+  public final VariableExpr variableExpr;
 
   private final Optional<SeqExpression> value;
 
