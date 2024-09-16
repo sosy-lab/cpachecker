@@ -39,7 +39,7 @@ public final class CfaJsonIO {
         .enable(SerializationFeature.INDENT_OUTPUT)
 
         /* Add modules. */
-        .addModule(new CfaJsonModule(pLogger))
+        .addModule(new CfaJsonModule())
         .addModule(new GuavaModule())
         .addModule(new Jdk8Module())
         .build();

@@ -21,16 +21,18 @@ import com.fasterxml.jackson.annotation.ObjectIdResolver;
 import com.fasterxml.jackson.annotation.SimpleObjectIdResolver;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.util.StdConverter;
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -45,6 +47,8 @@ import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -52,10 +56,7 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -113,8 +114,6 @@ public class CfaJsonModule extends SimpleModule {
 
   private static final long serialVersionUID = 1945912240762984485L;
 
-  private static LogManager logger;
-
   /* This record represents the CFA data. */
   final record CfaJsonData(
       TreeMultimap<String, CFANode> nodes,
@@ -124,15 +123,6 @@ public class CfaJsonModule extends SimpleModule {
           @JsonDeserialize(using = PartitionsDeserializer.class)
           Set<Partition> partitions,
       CfaMetadata metadata) {}
-
-  /**
-   * Constructs a new CfaJsonModule with the specified logger.
-   *
-   * @param pLogger The logger to be used by the module.
-   */
-  public CfaJsonModule(LogManager pLogger) {
-    logger = pLogger;
-  }
 
   /**
    * Sets up the module by registering all mixins.
@@ -229,18 +219,8 @@ public class CfaJsonModule extends SimpleModule {
         try {
           /* VarToPartition */
           /* Retrieve field via reflection. */
-          java.lang.reflect.Field varToPartitionField =
-              org.sosy_lab.cpachecker.util.variableclassification.Partition.class.getDeclaredField(
-                  "varToPartition");
-          varToPartitionField.setAccessible(true);
-          @SuppressWarnings("unchecked")
-          java.util.Map<
-                  java.lang.String, org.sosy_lab.cpachecker.util.variableclassification.Partition>
-              varToPartition =
-                  (java.util.Map<
-                          java.lang.String,
-                          org.sosy_lab.cpachecker.util.variableclassification.Partition>)
-                      varToPartitionField.get(partition);
+          Map<String, Partition> varToPartition =
+              PartitionsDeserializer.PartitionBuilder.getField("varToPartition", partition);
 
           /* Write field. */
           pGenerator.writeObjectFieldStart("varToPartition");
@@ -251,21 +231,8 @@ public class CfaJsonModule extends SimpleModule {
 
           /* EdgeToPartition */
           /* Retrieve field via reflection. */
-          java.lang.reflect.Field edgeToPartitionField =
-              org.sosy_lab.cpachecker.util.variableclassification.Partition.class.getDeclaredField(
-                  "edgeToPartition");
-          edgeToPartitionField.setAccessible(true);
-          @SuppressWarnings("unchecked")
-          com.google.common.collect.Table<
-                  org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-                  java.lang.Integer,
-                  org.sosy_lab.cpachecker.util.variableclassification.Partition>
-              edgeToPartition =
-                  (com.google.common.collect.Table<
-                          org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-                          java.lang.Integer,
-                          org.sosy_lab.cpachecker.util.variableclassification.Partition>)
-                      edgeToPartitionField.get(partition);
+          Table<CFAEdge, Integer, Partition> edgeToPartition =
+              PartitionsDeserializer.PartitionBuilder.getField("edgeToPartition", partition);
 
           /* Write field. */
           pGenerator.writeArrayFieldStart("edgeToPartition");
@@ -278,7 +245,7 @@ public class CfaJsonModule extends SimpleModule {
           }
           pGenerator.writeEndArray();
 
-        } catch (NoSuchFieldException | IllegalAccessException e) {
+        } catch (IllegalArgumentException e) {
           throw new java.io.IOException("Error while serializing partition: " + e.getMessage(), e);
         }
 
@@ -289,21 +256,243 @@ public class CfaJsonModule extends SimpleModule {
     }
   }
 
+  /**
+   * The PartitionsDeserializer class is responsible for deserializing JSON data into a set of
+   * {@link Partition}s.
+   *
+   * <p>The deserialization process involves reading the JSON data, constructing PartitionBuilder
+   * objects, and adding variables, values, edges, and mappings to each PartitionBuilder. Finally,
+   * the deserialized Partitions are returned as a set.
+   *
+   * <p>The PartitionsDeserializer class also contains a private inner class called
+   * PartitionBuilder, which is responsible for constructing instances of the Partition class. The
+   * PartitionBuilder class provides methods for adding variables, values, edges, and mappings
+   * between variables and partitions. The build() method returns the constructed Partition object.
+   */
   private static class PartitionsDeserializer extends JsonDeserializer<Set<Partition>> {
+    private static Set<Partition> deserializedPartitions;
 
+    /**
+     * Deserialize a JSON representation of partitions into a set of {@link Partition} objects.
+     *
+     * @param pParser The JSON parser.
+     * @param pContext The deserialization context.
+     * @return The set of deserialized partitions.
+     * @throws IOException If an I/O error occurs during deserialization.
+     */
     @Override
-    public java.util.Set<org.sosy_lab.cpachecker.util.variableclassification.Partition> deserialize(
-        com.fasterxml.jackson.core.JsonParser pParser,
-        com.fasterxml.jackson.databind.DeserializationContext pContext)
-        throws java.io.IOException {
-      // CfaEdgeIdResolver.getEdgeFromId());
+    public Set<Partition> deserialize(JsonParser pParser, DeserializationContext pContext)
+        throws IOException {
 
-      return null;
+      /* Get root node. */
+      ObjectMapper mapper = (ObjectMapper) pParser.getCodec();
+      JsonNode rootNode = mapper.readTree(pParser);
+
+      /* Create a map of PartitionBuilders and a set of Partitions. */
+      Map<Integer, PartitionBuilder> partitionBuilders = new HashMap<>();
+      Set<Partition> partitions = new HashSet<>();
+
+      /* Iterate over the root node and construct PartitionBuilders. */
+      for (JsonNode node : rootNode) {
+        Integer index = node.get("index").asInt();
+
+        /* Retrieve existing builder or create a new one otherwise. */
+        PartitionBuilder builder;
+
+        if (partitionBuilders.containsKey(index)) {
+
+          builder = partitionBuilders.get(index);
+        } else {
+
+          builder = new PartitionBuilder(index);
+          partitionBuilders.put(index, builder);
+        }
+
+        /* Vars */
+        for (JsonNode var : node.get("vars")) {
+          builder.addVar(var.asText());
+        }
+
+        /* Values */
+        for (JsonNode value : node.get("values")) {
+          builder.addValue(value.bigIntegerValue());
+        }
+
+        /* Edges */
+        for (JsonNode edge : node.get("edges")) {
+          CFAEdge cfaEdge = CfaEdgeIdResolver.getEdgeFromId(edge.get("edge").asInt());
+
+          for (JsonNode edgeIndex : edge.get("indices")) {
+            builder.addEdge(cfaEdge, edgeIndex.asInt());
+          }
+        }
+
+        /* VarToPartition */
+        Iterator<Map.Entry<String, JsonNode>> fields = node.get("varToPartition").fields();
+        while (fields.hasNext()) {
+          Map.Entry<String, JsonNode> field = fields.next();
+          // TODO: Implement varToPartition deserialization
+          // builder.varToPartition.put(field.getKey(),
+          // PartitionIdResolver.field.getValue().asInt());
+        }
+
+        /* EdgeToPartition */
+        for (JsonNode etp : node.get("edgeToPartition")) {
+          // TODO: Implement edgeToPartition deserialization
+        }
+
+        partitions.add(builder.build());
+      }
+
+      deserializedPartitions = partitions;
+
+      return partitions;
+    }
+
+    /**
+     * The PartitionBuilder class is responsible for constructing instances of the {@link Partition}
+     * class.
+     *
+     * <p>It provides methods for adding variables, values, edges, and mappings between variables
+     * and partitions.
+     *
+     * <p>The build() method returns the constructed Partition object.
+     */
+    private final class PartitionBuilder {
+      private Partition partition;
+
+      private NavigableSet<String> vars;
+      private NavigableSet<BigInteger> values;
+      private Multimap<CFAEdge, Integer> edges;
+      private final Map<String, Partition> varToPartition = new HashMap<>();
+      private final Table<CFAEdge, Integer, Partition> edgeToPartition = HashBasedTable.create();
+
+      /**
+       * Constructs a new PartitionBuilder with the given index.
+       *
+       * @param pIndex The index of the partition.
+       * @throws IOException If an error occurs during construction.
+       */
+      public PartitionBuilder(int pIndex) throws IOException {
+        try {
+
+          /* Create a new instance of Partition via reflection. */
+          Constructor<?> partitionConstructor =
+              Partition.class.getDeclaredConstructor(Map.class, Table.class);
+
+          partitionConstructor.setAccessible(true);
+
+          this.partition =
+              (Partition)
+                  partitionConstructor.newInstance(this.varToPartition, this.edgeToPartition);
+
+          /* Set builder fields to partition fields. */
+          setIndexField(pIndex);
+          this.vars = getField("vars");
+          this.values = getField("values");
+          this.edges = getField("edges");
+
+        } catch (Exception e) {
+          throw new IOException("Error while constructing PartitionBuilder: " + e.getMessage(), e);
+        }
+      }
+
+      public PartitionBuilder addVar(String pVar) {
+        vars.add(pVar);
+        return this;
+      }
+
+      public PartitionBuilder addValue(BigInteger pValue) {
+        values.add(pValue);
+        return this;
+      }
+
+      public PartitionBuilder addEdge(CFAEdge pEdge, Integer pIndex) {
+        edges.put(pEdge, pIndex);
+        return this;
+      }
+
+      public PartitionBuilder addVarToPartition(String pVar, Partition pPartition) {
+        varToPartition.put(pVar, pPartition);
+        return this;
+      }
+
+      public PartitionBuilder addEdgeToPartition(
+          CFAEdge pEdge, Integer pIndex, Partition pPartition) {
+        edgeToPartition.put(pEdge, pIndex, pPartition);
+        return this;
+      }
+
+      public Partition build() {
+        return this.partition;
+      }
+
+      /**
+       * Sets the index field of the partition.
+       *
+       * @param pIndex The new value for the index field.
+       * @throws NoSuchFieldException If the index field does not exist in the Partition class.
+       */
+      private void setIndexField(int pIndex) throws NoSuchFieldException {
+        try {
+          Field field = Partition.class.getDeclaredField("index");
+
+          field.setAccessible(true);
+
+          field.set(this.partition, pIndex);
+
+        } catch (IllegalAccessException e) {
+          throw new NoSuchFieldException(
+              "Error while attempting to set field index in Partition: " + e.getMessage());
     }
   }
 
   /**
-   * Represents an entry in a {@link com.google.common.collect.Table}.
+       * Retrieves the value of a field with the given name from the {@link Partition}.
+       *
+       * @param pName The name of the field to retrieve.
+       * @param <T> The type of the field value.
+       * @return the value of the field with the given name.
+       * @throws IllegalArgumentException if the field with the given name does not exist.
+       */
+      private <T> T getField(String pName) throws IllegalArgumentException {
+        return getField(pName, this.partition);
+      }
+
+      /**
+       * Retrieves the value of a specified field from a {@link Partition} object.
+       *
+       * @param pName The name of the field to retrieve.
+       * @param pPartition The Partition object from which to retrieve the field.
+       * @param <T> The type of the field.
+       * @return The value of the specified field.
+       * @throws IllegalArgumentException If the specified field does not exist or cannot be
+       *     accessed.
+       */
+      @SuppressWarnings("unchecked")
+      public static <T> T getField(String pName, Partition pPartition)
+          throws IllegalArgumentException {
+        try {
+          Field field = Partition.class.getDeclaredField(pName);
+
+          field.setAccessible(true);
+
+          return (T) field.get(pPartition);
+
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+          throw new IllegalArgumentException(
+              "Error while attempting to retrieve field "
+                  + pName
+                  + " from Partition: "
+                  + e.getMessage(),
+              e);
+        }
+      }
+    }
+  }
+
+  /**
+   * Represents an entry in a {@link Table}.
    *
    * <p>This record encapsulates information about a CFAEdge, an index, and a Partition.
    */
@@ -452,6 +641,41 @@ public class CfaJsonModule extends SimpleModule {
   /**
    * This class is a custom {@link ObjectIdResolver}.
    *
+   * <p>It is used for {@link Partition} objects.
+   */
+  private static class PartitionIdResolver extends SimpleObjectIdResolver {
+
+    /**
+     * Creates a new instance of ObjectIdResolver for deserialization.
+     *
+     * <p>It binds the previously deserialized partitions to their respective IDs.
+     *
+     * @param pContext The context object.
+     * @return The newly created ObjectIdResolver.
+     * @throws IllegalStateException if no partitions are available.
+     */
+    @Override
+    public ObjectIdResolver newForDeserialization(Object pContext) {
+      PartitionIdResolver partitionIdResolver = new PartitionIdResolver();
+
+      if (PartitionsDeserializer.deserializedPartitions == null) {
+        throw new IllegalStateException("No partitions available to bind");
+      }
+
+      /* Bind previously deserialized partitions to their respective IDs. */
+      for (Partition partition : PartitionsDeserializer.deserializedPartitions) {
+        partitionIdResolver.bindItem(
+            new IdKey(Partition.class, Partition.class, Integer.valueOf(partition.hashCode())),
+            partition);
+      }
+
+      return partitionIdResolver;
+    }
+  }
+
+  /**
+   * This class is a custom {@link ObjectIdResolver}.
+   *
    * <p>It is used to retrieve {@link CFAEdge}s from their respective IDs.
    */
   private static class CfaEdgeIdResolver extends SimpleObjectIdResolver {
@@ -561,7 +785,6 @@ public class CfaJsonModule extends SimpleModule {
   private static final class VariableClassificationMixin {
 
     @JsonSerialize(converter = EtpTableToListConverter.class)
-    @JsonDeserialize(converter = ListToEtpTableConverter.class)
     private Table<CFAEdge, Integer, Partition> edgeToPartitions;
 
     @SuppressWarnings("unused")
@@ -1065,6 +1288,7 @@ public class CfaJsonModule extends SimpleModule {
    */
   @JsonIdentityInfo(
       generator = PropertyGenerator.class,
+      resolver = PartitionIdResolver.class,
       scope = Partition.class,
       property = "index")
   @JsonIdentityReference(alwaysAsId = true)
