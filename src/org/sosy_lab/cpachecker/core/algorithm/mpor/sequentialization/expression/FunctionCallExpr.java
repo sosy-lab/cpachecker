@@ -14,9 +14,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 
 public class FunctionCallExpr implements SeqExpression {
 
-  private final String functionName;
+  public final String functionName;
 
-  private final Optional<ImmutableList<SeqExpression>> parameters;
+  public final Optional<ImmutableList<SeqExpression>> parameters;
 
   public FunctionCallExpr(
       String pFunctionName, Optional<ImmutableList<SeqExpression>> pParameters) {

@@ -12,10 +12,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 
 public class IfCodeExpr implements SeqExpression {
 
-  private final IfExpr ifExpr;
+  public final IfExpr ifExpr;
 
   // TODO optional list?
-  private final SeqExpression code;
+  public final SeqExpression code;
 
   public IfCodeExpr(IfExpr pIfExpr, SeqExpression pCode) {
     ifExpr = pIfExpr;

@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 
 public class VariableExpr implements SeqExpression {
 
-  private final Optional<String> dataType;
+  public final Optional<String> dataType;
 
   // TODO restrict to ArrayExpr, Variable
   public final SeqExpression variable;

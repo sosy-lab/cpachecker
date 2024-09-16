@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entit
 
 public class Variable implements SeqDataEntity {
 
-  private final String name;
+  public final String name;
 
   public Variable(String pName) {
     name = pName;

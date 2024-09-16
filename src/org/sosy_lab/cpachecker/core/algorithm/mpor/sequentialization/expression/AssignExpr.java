@@ -14,9 +14,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 public class AssignExpr implements SeqExpression {
 
   // TODO restrictions? create assignable interface?
-  private final SeqExpression preceding;
+  public final SeqExpression preceding;
 
-  private final SeqExpression subsequent;
+  public final SeqExpression subsequent;
 
   public AssignExpr(SeqExpression pPreceding, SeqExpression pSubsequent) {
     preceding = pPreceding;

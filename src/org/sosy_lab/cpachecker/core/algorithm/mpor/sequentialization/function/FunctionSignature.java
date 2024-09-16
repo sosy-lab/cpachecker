@@ -14,9 +14,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 
 public class FunctionSignature implements SeqElement {
 
-  private final String returnType;
+  public final String returnType;
 
-  private final FunctionCallExpr functionCallExpr;
+  public final FunctionCallExpr functionCallExpr;
 
   public FunctionSignature(String pReturnType, FunctionCallExpr pFunctionCallExpr) {
     returnType = pReturnType;

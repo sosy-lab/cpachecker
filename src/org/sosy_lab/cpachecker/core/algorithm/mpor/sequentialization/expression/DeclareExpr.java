@@ -16,7 +16,7 @@ public class DeclareExpr implements SeqExpression {
 
   public final VariableExpr variableExpr;
 
-  private final Optional<SeqExpression> value;
+  public final Optional<SeqExpression> value;
 
   public DeclareExpr(VariableExpr pVariableExpr, Optional<SeqExpression> pValue) {
     variableExpr = pVariableExpr;

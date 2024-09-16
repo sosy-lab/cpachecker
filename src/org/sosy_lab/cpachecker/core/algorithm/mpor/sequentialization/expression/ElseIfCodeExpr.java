@@ -12,10 +12,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
 public class ElseIfCodeExpr implements SeqExpression {
-  private final IfExpr ifExpr;
+
+  public final IfExpr ifExpr;
 
   // TODO optional list?
-  private final SeqExpression code;
+  public final SeqExpression code;
 
   public ElseIfCodeExpr(IfExpr pIfExpr, SeqExpression pCode) {
     ifExpr = pIfExpr;

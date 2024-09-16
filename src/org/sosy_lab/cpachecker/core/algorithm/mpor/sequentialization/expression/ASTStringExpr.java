@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression
 
 public class ASTStringExpr implements SeqExpression {
 
-  private final String astString;
+  public final String astString;
 
   public ASTStringExpr(String pAstString) {
     astString = pAstString;

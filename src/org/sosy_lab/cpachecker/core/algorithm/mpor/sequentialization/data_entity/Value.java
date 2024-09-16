@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entit
 
 public class Value implements SeqDataEntity {
 
-  private final String value;
+  public final String value;
 
   public Value(String pValue) {
     value = pValue;

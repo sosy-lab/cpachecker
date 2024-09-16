@@ -13,11 +13,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 public class BooleanExpr implements SeqExpression {
 
   // TODO this should be restricted to BooleanExpr, Value, Variable, ArrayExpr
-  private final SeqExpression preceding;
+  public final SeqExpression preceding;
 
-  private final String operator;
+  public final String operator;
 
-  private final SeqExpression subsequent;
+  public final SeqExpression subsequent;
 
   public BooleanExpr(SeqExpression pPreceding, String pOperator, SeqExpression pSubsequent) {
     preceding = pPreceding;

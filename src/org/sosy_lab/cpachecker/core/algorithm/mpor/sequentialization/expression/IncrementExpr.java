@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 
 public class IncrementExpr implements SeqExpression {
 
-  private final SeqDataEntity dataEntity;
+  public final SeqDataEntity dataEntity;
 
   public IncrementExpr(SeqDataEntity pDataEntity) {
     dataEntity = pDataEntity;

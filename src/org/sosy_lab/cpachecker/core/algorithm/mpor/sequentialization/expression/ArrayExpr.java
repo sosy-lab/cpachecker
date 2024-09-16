@@ -15,9 +15,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 
 public class ArrayExpr implements SeqExpression {
 
-  private final Variable array;
+  public final Variable array;
 
-  private final Optional<SeqDataEntity> index;
+  public final Optional<SeqDataEntity> index;
 
   public ArrayExpr(Variable pArray, Optional<SeqDataEntity> pIndex) {
     array = pArray;

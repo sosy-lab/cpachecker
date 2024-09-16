@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 
 public class NegationExpr implements SeqExpression {
 
-  private final SeqExpression expression;
+  public final SeqExpression expression;
 
   public NegationExpr(SeqExpression pExpression) {
     expression = pExpression;

@@ -15,9 +15,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqT
 public class SwitchCaseExpr implements SeqExpression {
 
   // TODO restrict to Variable, ArrayExpr
-  private final SeqExpression expression;
+  public final SeqExpression expression;
 
-  private final ImmutableSet<String> cases;
+  public final ImmutableSet<String> cases;
 
   public SwitchCaseExpr(SeqExpression pExpression, ImmutableSet<String> pCases) {
     expression = pExpression;

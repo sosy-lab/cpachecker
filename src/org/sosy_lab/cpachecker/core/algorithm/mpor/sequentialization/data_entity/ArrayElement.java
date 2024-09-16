@@ -12,9 +12,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 
 public class ArrayElement implements SeqDataEntity {
 
-  private final Variable array;
+  public final Variable array;
 
-  private final SeqDataEntity index;
+  public final SeqDataEntity index;
 
   public ArrayElement(Variable pArray, SeqDataEntity pIndex) {
     array = pArray;

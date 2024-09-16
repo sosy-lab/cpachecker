@@ -18,11 +18,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
  */
 public class ArrayInitExpr implements SeqExpression {
 
-  private final String dataType;
+  public final String dataType;
 
-  private final ArrayExpr arrayExpr;
+  public final ArrayExpr arrayExpr;
 
-  private final Value initValue;
+  public final Value initValue;
 
   /**
    * Creates an expression for initializing an array.

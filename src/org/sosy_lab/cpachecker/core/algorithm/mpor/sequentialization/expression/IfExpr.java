@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqT
 
 public class IfExpr implements SeqExpression {
 
-  private final SeqExpression condition;
+  public final SeqExpression condition;
 
   public IfExpr(SeqExpression pCondition) {
     condition = pCondition;

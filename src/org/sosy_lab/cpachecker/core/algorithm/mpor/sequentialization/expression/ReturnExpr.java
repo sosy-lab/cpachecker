@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqT
 
 public class ReturnExpr implements SeqExpression {
 
-  private final SeqDataEntity dataEntity;
+  public final SeqDataEntity dataEntity;
 
   public ReturnExpr(SeqDataEntity pDataEntity) {
     dataEntity = pDataEntity;

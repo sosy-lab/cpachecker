@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class EdgeCodeExpr implements SeqExpression {
 
-  private final CFAEdge edge;
+  public final CFAEdge edge;
 
   public EdgeCodeExpr(CFAEdge pEdge) {
     edge = pEdge;

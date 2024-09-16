@@ -12,8 +12,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
 public class LoopExpr implements SeqExpression {
+
   // TODO restrict to ArrayExpr, BoolenaExpr, FunctionCallExpr, NegationExpr
-  private final SeqExpression condition;
+  public final SeqExpression condition;
 
   public LoopExpr(SeqExpression pCondition) {
     condition = pCondition;
