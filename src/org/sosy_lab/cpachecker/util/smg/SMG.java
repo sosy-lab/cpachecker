@@ -972,7 +972,7 @@ public class SMG {
    *     object. May be 0, a symbolic value or a new unknown symbolic value.
    */
   public SMGAndHasValueEdges readValue(
-      SMGObject object, BigInteger offset, BigInteger sizeInBits, boolean preciseRead) {
+      SMGObject object, BigInteger offset, BigInteger sizeInBits, boolean readMultipleEdges) {
     // let v := H(o, of, t)
     // TODO: Currently getHasValueEdgeByOffsetAndSize returns any edge it finds.
     // Check if multiple edges may exists for the same offset and size! -> There should never be
@@ -989,7 +989,7 @@ public class SMG {
           // if v != undefined then return (smg, v)
           return SMGAndHasValueEdges.of(this, hve);
         }
-        if (preciseRead) {
+        if (readMultipleEdges) {
           BigInteger hveOffset = hve.getOffset();
           BigInteger hveOffsetPlusSize = hve.getSizeInBits().add(hveOffset);
           // Iff we can't find an exact match, we can try to partially read by reading the larger
@@ -1328,7 +1328,25 @@ public class SMG {
    * @return Collection of all SMGPointsToEdges with the specified target.
    */
   public FluentIterable<SMGPointsToEdge> getPTEdgesByTarget(SMGObject pointingTo) {
-    return getPTEdges().filter(ptEdge -> ptEdge.pointsTo().equals(pointingTo));
+    return FluentIterable.from(
+        objectsAndPointersPointingAtThem
+            .getOrDefault(pointingTo, PathCopyingPersistentTreeMap.of())
+            .keySet()
+            .stream()
+            .map(v -> pointsToEdges.get(v))
+            .collect(ImmutableSet.toImmutableSet()));
+  }
+
+  /**
+   * Returns all SMGValues with SMGPointsToEdges that point to a specific given SMGObject.
+   *
+   * @param pointingTo the required target
+   * @return Collection of all SMGValues with SMGPointsToEdges towards the specified target.
+   */
+  public Set<SMGValue> getPointerValuesForTarget(SMGObject pointingTo) {
+    return objectsAndPointersPointingAtThem
+        .getOrDefault(pointingTo, PathCopyingPersistentTreeMap.of())
+        .keySet();
   }
 
   public Map<SMGValue, SMGPointsToEdge> getPTEdgeMapping() {
@@ -1442,6 +1460,7 @@ public class SMG {
 
   /*
    * Checks if there are valid heap objects that point to the given target object and might be lists (== size and fitting nfo).
+   * This obviously fails for looping lists.
    */
   public boolean hasPotentialListObjectsWithPointersToObject(
       SMGObject targetObject, BigInteger suspectedNfo, Collection<SMGObject> heapObjects) {
@@ -1459,8 +1478,7 @@ public class SMG {
                   return false;
                 }
                 // maybePreviousObj -> potentialRoot might be a back pointer, this is fine however
-                // as we
-                // will eliminate those by traversing along the NFOs
+                // as we will eliminate those by traversing along the NFOs
               }
               // TODO: use solver to check for equal size?
             }
@@ -1827,10 +1845,10 @@ public class SMG {
     // The values to change the nesting level are the values from this pointer set
     for (Entry<SMGValue, Integer> pointerValueAndOcc : pointersTowardsOldObj.entrySet()) {
       SMGValue pointerValue = pointerValueAndOcc.getKey();
-      SMGPointsToEdge pointsToEdge = pointsToEdges.get(pointerValue);
+      SMGPointsToEdge pointsToEdge = newSMG.pointsToEdges.get(pointerValue);
       assert pointsToEdge.pointsTo().equals(oldObj);
       // Since we decrement the nesting level afterward, we check for 1 instead of 0
-      int currentNestingLevel = smgValuesAndNestingLvl.get(pointerValue);
+      int currentNestingLevel = newSMG.smgValuesAndNestingLvl.get(pointerValue);
       SMGTargetSpecifier pteSpecifier = pointsToEdge.targetSpecifier();
       if (currentNestingLevel == levelToReplace && specifierToSwitch.contains(pteSpecifier)) {
         SMGTargetSpecifier targetSpec = pointsToEdge.targetSpecifier();
@@ -1845,7 +1863,7 @@ public class SMG {
         // Update nesting level
         newSMG =
             newSMG.copyWithNewValuesAndNestingLvl(
-                smgValuesAndNestingLvl.putAndCopy(pointerValue, newLevel));
+                newSMG.smgValuesAndNestingLvl.putAndCopy(pointerValue, newLevel));
       }
     }
 
@@ -2257,6 +2275,20 @@ public class SMG {
           SMGPointsToEdge pte = pointsToEdges.get(ptr);
           if (pte.targetSpecifier().equals(SMGTargetSpecifier.IS_FIRST_POINTER)
               && getNestingLevel(ptr) != Integer.max(0, sll.getMinLength() - 1)) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  public boolean checkNotAbstractedNestingLevelConsistency() {
+    for (Entry<SMGObject, PersistentMap<SMGValue, Integer>> entry :
+        objectsAndPointersPointingAtThem.entrySet()) {
+      if (!(entry.getKey() instanceof SMGSinglyLinkedListSegment)) {
+        for (SMGValue ptr : entry.getValue().keySet()) {
+          if (getNestingLevel(ptr) != 0) {
             return false;
           }
         }
