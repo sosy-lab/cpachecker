@@ -35,6 +35,8 @@ SPDX-License-Identifier: Apache-2.0
 	<classpathentry kind="lib" path="lib/jsylvan.jar"/>
 	<classpathentry kind="lib" path="lib/apron.jar" sourcepath="lib/apron.jar"/>
 	<classpathentry kind="lib" path="lib/gmp.jar"/>
+	<classpathentry kind="lib" path="lib/jackson-datatype-guava-2.16.2.jar"/>
+  <classpathentry kind="lib" path="lib/jackson-datatype-jdk8-2.17.2.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/guava-testlib.jar" sourcepath="lib/java-contrib/guava-testlib-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/spotbugs-annotations.jar" sourcepath="lib/java-contrib/spotbugs-annotations-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/jsr305.jar" sourcepath="lib/java-contrib/jsr305-sources.jar"/>
