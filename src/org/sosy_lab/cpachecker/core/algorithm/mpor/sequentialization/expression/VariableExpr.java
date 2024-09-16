@@ -25,7 +25,7 @@ public class VariableExpr implements SeqExpression {
 
   @Override
   public String createString() {
-    return (dataType.map(dataType -> dataType + SeqSyntax.SPACE).orElse(SeqSyntax.EMPTY_STRING))
+    return dataType.map(dataType -> dataType + SeqSyntax.SPACE).orElse(SeqSyntax.EMPTY_STRING)
         + variable.createString();
   }
 }

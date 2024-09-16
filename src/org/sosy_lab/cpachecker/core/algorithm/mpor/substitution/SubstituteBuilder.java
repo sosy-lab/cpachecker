@@ -22,31 +22,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SubstituteBuilder {
-
-  private static int varId = 0;
-
-  private static String createVarId() {
-    return SeqSyntax.UNDERSCORE + varId++ + SeqSyntax.UNDERSCORE;
-  }
-
-  public static String substituteVarName(CVariableDeclaration pVarDec, int pThreadId) {
-    String prefix =
-        pVarDec.isGlobal()
-            ? SeqToken.PREFIX_SUBSTITUTE_GLOBAL
-            : SeqToken.PREFIX_SUBSTITUTE_THREAD + pThreadId;
-    return prefix + createVarId() + pVarDec.getName();
-  }
-
-  public static String substituteParamName(CParameterDeclaration pParamDec, int pThreadId) {
-    return SeqToken.PREFIX_SUBSTITUTE_PARAMETER + pThreadId + createVarId() + pParamDec.getName();
-  }
-
-  // TODO createParameterVarSubstituteName
 
   /**
    * Creates a clone of the given CVariableDeclaration with substituted name(s).
@@ -145,7 +124,7 @@ public class SubstituteBuilder {
         ImmutableMap.builder();
     for (CFunctionDeclaration funcDec : pThread.cfa.calledFuncs) {
       for (CParameterDeclaration paramDec : funcDec.getParameters()) {
-        String varName = SubstituteBuilder.substituteParamName(paramDec, pThread.id);
+        String varName = SeqNameBuilder.createParamName(paramDec, pThread.id);
         rThreadSubs.put(
             paramDec,
             SubstituteBuilder.substituteVarDec(paramDec.asVariableDeclaration(), varName));
@@ -169,7 +148,7 @@ public class SubstituteBuilder {
     ImmutableMap.Builder<CVariableDeclaration, CVariableDeclaration> dummyVarSubsB =
         ImmutableMap.builder();
     for (CVariableDeclaration varDec : pVarDecs) {
-      String substituteName = SubstituteBuilder.substituteVarName(varDec, pThreadId);
+      String substituteName = SeqNameBuilder.createVarName(varDec, pThreadId);
       CVariableDeclaration substitute = SubstituteBuilder.substituteVarDec(varDec, substituteName);
       dummyVarSubsB.put(varDec, substitute);
     }
