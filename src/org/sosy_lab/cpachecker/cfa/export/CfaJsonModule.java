@@ -14,33 +14,123 @@ import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerator;
+import com.fasterxml.jackson.annotation.ObjectIdGenerator.IdKey;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators.PropertyGenerator;
+import com.fasterxml.jackson.annotation.ObjectIdResolver;
+import com.fasterxml.jackson.annotation.SimpleObjectIdResolver;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.util.StdConverter;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Table;
+import com.google.common.collect.Table.Cell;
+import com.google.common.collect.TreeMultimap;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.math.BigInteger;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
+import java.util.NavigableSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
+import org.sosy_lab.cpachecker.cfa.CfaMetadata;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.variableclassification.Partition;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /* This class is a Jackson module for serialization and deserialization. */
-public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleModule {
+public class CfaJsonModule extends SimpleModule {
 
   private static final long serialVersionUID = 1945912240762984485L;
 
-  private static org.sosy_lab.common.log.LogManager logger;
+  private static LogManager logger;
 
   /* This record represents the CFA data. */
   final record CfaJsonData(
-      com.google.common.collect.TreeMultimap<String, org.sosy_lab.cpachecker.cfa.model.CFANode>
-          nodes,
-      java.util.Set<org.sosy_lab.cpachecker.cfa.model.CFAEdge> edges,
-      java.util.NavigableMap<String, org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode> functions,
+      TreeMultimap<String, CFANode> nodes,
+      Set<CFAEdge> edges,
+      NavigableMap<String, FunctionEntryNode> functions,
       @JsonSerialize(using = PartitionsSerializer.class)
           @JsonDeserialize(using = PartitionsDeserializer.class)
-          java.util.Set<org.sosy_lab.cpachecker.util.variableclassification.Partition> partitions,
-      org.sosy_lab.cpachecker.cfa.CfaMetadata metadata) {}
+          Set<Partition> partitions,
+      CfaMetadata metadata) {}
 
   /**
    * Constructs a new CfaJsonModule with the specified logger.
    *
    * @param pLogger The logger to be used by the module.
    */
-  public CfaJsonModule(org.sosy_lab.common.log.LogManager pLogger) {
+  public CfaJsonModule(LogManager pLogger) {
     logger = pLogger;
   }
 
@@ -54,98 +144,55 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     super.setupModule(pContext);
 
     /* Register all mixins. */
+    pContext.setMixInAnnotations(CFAEdge.class, CFAEdgeMixin.class);
+    pContext.setMixInAnnotations(CfaMetadata.class, CfaMetadataMixin.class);
+    pContext.setMixInAnnotations(CFANode.class, CFANodeMixin.class);
+    pContext.setMixInAnnotations(CFunctionDeclaration.class, CFunctionDeclarationMixin.class);
+    pContext.setMixInAnnotations(FileLocation.class, FileLocationMixin.class);
+    pContext.setMixInAnnotations(FunctionEntryNode.class, FunctionEntryNodeMixin.class);
+    pContext.setMixInAnnotations(FunctionExitNode.class, FunctionExitNodeMixin.class);
+    pContext.setMixInAnnotations(Partition.class, PartitionMixin.class);
+    pContext.setMixInAnnotations(CFunctionType.class, CFunctionTypeMixin.class);
+    pContext.setMixInAnnotations(Type.class, TypeMixin.class);
+    pContext.setMixInAnnotations(CFunctionTypeWithNames.class, CFunctionTypeWithNamesMixin.class);
+    pContext.setMixInAnnotations(CSimpleType.class, CSimpleTypeMixin.class);
+    pContext.setMixInAnnotations(AAstNode.class, AAstNodeMixin.class);
+    pContext.setMixInAnnotations(CVariableDeclaration.class, CVariableDeclarationMixin.class);
+    pContext.setMixInAnnotations(CInitializerExpression.class, CInitializerExpressionMixin.class);
     pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.model.CFAEdge.class, CFAEdgeMixin.class);
+        CIntegerLiteralExpression.class, CIntegerLiteralExpressionMixin.class);
+    pContext.setMixInAnnotations(CFunctionEntryNode.class, CFunctionEntryNodeMixin.class);
+    pContext.setMixInAnnotations(CIdExpression.class, CIdExpressionMixin.class);
+    pContext.setMixInAnnotations(CFALabelNode.class, CFALabelNodeMixin.class);
+    pContext.setMixInAnnotations(BlankEdge.class, BlankEdgeMixin.class);
+    pContext.setMixInAnnotations(CDeclarationEdge.class, CDeclarationEdgeMixin.class);
+    pContext.setMixInAnnotations(CAssumeEdge.class, CAssumeEdgeMixin.class);
+    pContext.setMixInAnnotations(CBinaryExpression.class, CBinaryExpressionMixin.class);
+    pContext.setMixInAnnotations(CStatementEdge.class, CStatementEdgeMixin.class);
     pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.CfaMetadata.class, CfaMetadataMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.model.CFANode.class, CFANodeMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.class,
-        CFunctionDeclarationMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.ast.FileLocation.class, FileLocationMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode.class, FunctionEntryNodeMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.model.FunctionExitNode.class, FunctionExitNodeMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.util.variableclassification.Partition.class, PartitionMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.types.c.CFunctionType.class, CFunctionTypeMixin.class);
-    pContext.setMixInAnnotations(org.sosy_lab.cpachecker.cfa.types.Type.class, TypeMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames.class,
-        CFunctionTypeWithNamesMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.types.c.CSimpleType.class, CSimpleTypeMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.ast.AAstNode.class, AAstNodeMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration.class,
-        CVariableDeclarationMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression.class,
-        CInitializerExpressionMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.class,
-        CIntegerLiteralExpressionMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode.class,
-        CFunctionEntryNodeMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression.class, CIdExpressionMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.model.CFALabelNode.class, CFALabelNodeMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.model.BlankEdge.class, BlankEdgeMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge.class, CDeclarationEdgeMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge.class, CAssumeEdgeMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.class, CBinaryExpressionMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge.class, CStatementEdgeMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement.class,
-        CExpressionAssignmentStatementMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement.class,
-        CExpressionStatementMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge.class,
-        CReturnStatementEdgeMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement.class, CReturnStatementMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.util.LoopStructure.class, LoopStructureMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.util.variableclassification.VariableClassification.class,
-        VariableClassificationMixin.class);
-    pContext.setMixInAnnotations(
-        org.sosy_lab.cpachecker.util.LoopStructure.Loop.class, LoopMixin.class);
+        CExpressionAssignmentStatement.class, CExpressionAssignmentStatementMixin.class);
+    pContext.setMixInAnnotations(CExpressionStatement.class, CExpressionStatementMixin.class);
+    pContext.setMixInAnnotations(CReturnStatementEdge.class, CReturnStatementEdgeMixin.class);
+    pContext.setMixInAnnotations(CReturnStatement.class, CReturnStatementMixin.class);
+    pContext.setMixInAnnotations(LoopStructure.class, LoopStructureMixin.class);
+    pContext.setMixInAnnotations(VariableClassification.class, VariableClassificationMixin.class);
+    pContext.setMixInAnnotations(Loop.class, LoopMixin.class);
   }
 
   /**
-   * Custom JSON serializer for serializing a set of {@link
-   * org.sosy_lab.cpachecker.util.variableclassification.Partition}s.
+   * Custom JSON serializer for serializing a set of {@link Partition}s.
    *
    * <p>It serializes the partitions as an array of objects. Each object represents a partition.
    */
-  private static class PartitionsSerializer
-      extends com.fasterxml.jackson.databind.JsonSerializer<
-          java.util.Set<org.sosy_lab.cpachecker.util.variableclassification.Partition>> {
+  private static class PartitionsSerializer extends JsonSerializer<Set<Partition>> {
 
     @Override
     public void serialize(
-        java.util.Set<org.sosy_lab.cpachecker.util.variableclassification.Partition> pPartitions,
-        com.fasterxml.jackson.core.JsonGenerator pGenerator,
-        com.fasterxml.jackson.databind.SerializerProvider pProvider)
-        throws java.io.IOException {
+        Set<Partition> pPartitions, JsonGenerator pGenerator, SerializerProvider pProvider)
+        throws IOException {
       pGenerator.writeStartArray();
 
-      for (org.sosy_lab.cpachecker.util.variableclassification.Partition partition : pPartitions) {
+      for (Partition partition : pPartitions) {
         pGenerator.writeStartObject();
 
         /* Index */
@@ -153,27 +200,25 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
 
         /* Vars */
         pGenerator.writeArrayFieldStart("vars");
-        for (java.lang.String var : partition.getVars()) {
+        for (String var : partition.getVars()) {
           pGenerator.writeString(var);
         }
         pGenerator.writeEndArray();
 
         /* Values */
         pGenerator.writeArrayFieldStart("values");
-        for (java.math.BigInteger value : partition.getValues()) {
+        for (BigInteger value : partition.getValues()) {
           pGenerator.writeObject(value);
         }
         pGenerator.writeEndArray();
 
         /* Edges */
         pGenerator.writeArrayFieldStart("edges");
-        for (java.util.Map.Entry<
-                org.sosy_lab.cpachecker.cfa.model.CFAEdge, java.util.Collection<java.lang.Integer>>
-            entry : partition.getEdges().asMap().entrySet()) {
+        for (Entry<CFAEdge, Collection<Integer>> entry : partition.getEdges().asMap().entrySet()) {
           pGenerator.writeStartObject();
           pGenerator.writeNumberField("edge", CfaEdgeIdGenerator.getIdFromEdge(entry.getKey()));
           pGenerator.writeArrayFieldStart("indices");
-          for (java.lang.Integer index : entry.getValue()) {
+          for (Integer index : entry.getValue()) {
             pGenerator.writeObject(index);
           }
           pGenerator.writeEndArray();
@@ -199,9 +244,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
 
           /* Write field. */
           pGenerator.writeObjectFieldStart("varToPartition");
-          for (java.util.Map.Entry<
-                  java.lang.String, org.sosy_lab.cpachecker.util.variableclassification.Partition>
-              entry : varToPartition.entrySet()) {
+          for (Entry<String, Partition> entry : varToPartition.entrySet()) {
             pGenerator.writeObjectField(entry.getKey(), entry.getValue().hashCode());
           }
           pGenerator.writeEndObject();
@@ -226,11 +269,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
 
           /* Write field. */
           pGenerator.writeArrayFieldStart("edgeToPartition");
-          for (com.google.common.collect.Table.Cell<
-                  org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-                  java.lang.Integer,
-                  org.sosy_lab.cpachecker.util.variableclassification.Partition>
-              cell : edgeToPartition.cellSet()) {
+          for (Cell<CFAEdge, Integer, Partition> cell : edgeToPartition.cellSet()) {
             pGenerator.writeStartObject();
             pGenerator.writeNumberField("edge", CfaEdgeIdGenerator.getIdFromEdge(cell.getRowKey()));
             pGenerator.writeNumberField("index", cell.getColumnKey());
@@ -250,9 +289,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     }
   }
 
-  private static class PartitionsDeserializer
-      extends com.fasterxml.jackson.databind.JsonDeserializer<
-          java.util.Set<org.sosy_lab.cpachecker.util.variableclassification.Partition>> {
+  private static class PartitionsDeserializer extends JsonDeserializer<Set<Partition>> {
 
     @Override
     public java.util.Set<org.sosy_lab.cpachecker.util.variableclassification.Partition> deserialize(
@@ -270,51 +307,34 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
    *
    * <p>This record encapsulates information about a CFAEdge, an index, and a Partition.
    */
-  private record TableEntry(
-      org.sosy_lab.cpachecker.cfa.model.CFAEdge edge,
-      java.lang.Integer index,
-      org.sosy_lab.cpachecker.util.variableclassification.Partition partition) {}
+  private record TableEntry(CFAEdge edge, Integer index, Partition partition) {}
 
   /**
-   * A converter class that converts a {@link com.google.common.collect.Table} object to a list of
-   * {@link TableEntry} objects.
+   * A converter class that converts a {@link Table} object to a list of {@link TableEntry} objects.
    *
    * <p>The Table object represents a mapping between CFAEdges, Integers, and Partitions.
    */
   private static final class EtpTableToListConverter
-      extends com.fasterxml.jackson.databind.util.StdConverter<
-          com.google.common.collect.Table<
-              org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-              java.lang.Integer,
-              org.sosy_lab.cpachecker.util.variableclassification.Partition>,
-          java.util.List<TableEntry>> {
+      extends StdConverter<Table<CFAEdge, Integer, Partition>, List<TableEntry>> {
     @Override
-    public java.util.List<TableEntry> convert(
-        com.google.common.collect.Table<
-                org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-                java.lang.Integer,
-                org.sosy_lab.cpachecker.util.variableclassification.Partition>
-            pTable) {
+    public List<TableEntry> convert(Table<CFAEdge, Integer, Partition> pTable) {
       return pTable.cellSet().stream()
           .map(cell -> new TableEntry(cell.getRowKey(), cell.getColumnKey(), cell.getValue()))
-          .collect(java.util.stream.Collectors.toList());
+          .collect(Collectors.toList());
     }
   }
 
   /**
    * A custom generator for generating unique IDs for CFA edges.
    *
-   * <p>It is used to retrieve IDs from their respective {@link
-   * org.sosy_lab.cpachecker.cfa.model.CFAEdge}s.
+   * <p>It is used to retrieve IDs from their respective {@link CFAEdge}s.
    */
-  private static final class CfaEdgeIdGenerator
-      extends com.fasterxml.jackson.annotation.ObjectIdGenerator<java.lang.Integer> {
+  private static final class CfaEdgeIdGenerator extends ObjectIdGenerator<Integer> {
 
     private static final long serialVersionUID = 7470151299045493234L;
     private static CfaEdgeIdGenerator currentGenerator;
 
-    private final java.util.Map<org.sosy_lab.cpachecker.cfa.model.CFAEdge, java.lang.Integer>
-        edgeToIdMap = new java.util.HashMap<>();
+    private final Map<CFAEdge, Integer> edgeToIdMap = new HashMap<>();
     private final Class<?> scope;
     private int nextValue;
 
@@ -347,14 +367,13 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
      * @return True if the generator class and its scope match this generator, false otherwise.
      */
     @Override
-    public boolean canUseFor(com.fasterxml.jackson.annotation.ObjectIdGenerator<?> pGenerator) {
+    public boolean canUseFor(ObjectIdGenerator<?> pGenerator) {
       return pGenerator.getClass() == this.getClass() && pGenerator.getScope() == this.scope;
     }
 
     /* Creates a new instance of CfaEdgeIdGenerator with the given scope. */
     @Override
-    public com.fasterxml.jackson.annotation.ObjectIdGenerator<java.lang.Integer> forScope(
-        Class<?> pScope) {
+    public ObjectIdGenerator<Integer> forScope(Class<?> pScope) {
       return this.scope == pScope ? this : new CfaEdgeIdGenerator(pScope, this.nextValue);
     }
 
@@ -365,12 +384,12 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
      * @return The generated ID.
      */
     @Override
-    public java.lang.Integer generateId(Object pForObject) {
+    public Integer generateId(Object pForObject) {
       if (pForObject == null) {
         return null;
       } else {
         int id = this.nextValue++;
-        edgeToIdMap.put((org.sosy_lab.cpachecker.cfa.model.CFAEdge) pForObject, id);
+        edgeToIdMap.put((CFAEdge) pForObject, id);
         return id;
       }
     }
@@ -393,10 +412,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
      */
     @Override
     public IdKey key(Object pKey) {
-      return pKey == null
-          ? null
-          : new com.fasterxml.jackson.annotation.ObjectIdGenerator.IdKey(
-              this.getClass(), this.scope, pKey);
+      return pKey == null ? null : new ObjectIdGenerator.IdKey(this.getClass(), this.scope, pKey);
     }
 
     /**
@@ -406,25 +422,24 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
      * @return The new instance of the CfaEdgeIdGenerator.
      */
     @Override
-    public com.fasterxml.jackson.annotation.ObjectIdGenerator<java.lang.Integer>
-        newForSerialization(Object pContext) {
+    public ObjectIdGenerator<Integer> newForSerialization(Object pContext) {
       return currentGenerator = new CfaEdgeIdGenerator(this.scope, 1);
     }
 
     /**
-     * Retrieves the ID of a {@link org.sosy_lab.cpachecker.cfa.model.CFAEdge}.
+     * Retrieves the ID of a {@link CFAEdge}.
      *
      * @param pEdge The CFAEdge.
      * @return The ID of the CFAEdge.
      * @throws IllegalStateException If no generator was set.
      * @throws IllegalArgumentException If no ID for the CFAEdge is found.
      */
-    public static java.lang.Integer getIdFromEdge(org.sosy_lab.cpachecker.cfa.model.CFAEdge pEdge) {
+    public static Integer getIdFromEdge(CFAEdge pEdge) {
       if (currentGenerator == null) {
         throw new IllegalStateException("No generator available");
       }
 
-      java.lang.Integer id = currentGenerator.edgeToIdMap.get(pEdge);
+      Integer id = currentGenerator.edgeToIdMap.get(pEdge);
 
       if (id == null) {
         throw new IllegalArgumentException("No ID for edge " + pEdge + " found");
@@ -435,17 +450,14 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
   }
 
   /**
-   * This class is a custom {@link com.fasterxml.jackson.annotation.ObjectIdResolver}.
+   * This class is a custom {@link ObjectIdResolver}.
    *
-   * <p>It is used to retrieve {@link org.sosy_lab.cpachecker.cfa.model.CFAEdge}s from their
-   * respective IDs.
+   * <p>It is used to retrieve {@link CFAEdge}s from their respective IDs.
    */
-  private static class CfaEdgeIdResolver
-      extends com.fasterxml.jackson.annotation.SimpleObjectIdResolver {
+  private static class CfaEdgeIdResolver extends SimpleObjectIdResolver {
     private static CfaEdgeIdResolver currentResolver;
 
-    private final java.util.Map<java.lang.Integer, org.sosy_lab.cpachecker.cfa.model.CFAEdge>
-        idToEdgeMap = new java.util.HashMap<>();
+    private final Map<Integer, CFAEdge> idToEdgeMap = new HashMap<>();
 
     /**
      * Creates a new instance of {@link CfaEdgeIdResolver} for deserialization.
@@ -456,8 +468,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
      * @return The newly created instance.
      */
     @Override
-    public com.fasterxml.jackson.annotation.ObjectIdResolver newForDeserialization(
-        Object pContext) {
+    public ObjectIdResolver newForDeserialization(Object pContext) {
       return currentResolver = new CfaEdgeIdResolver();
     }
 
@@ -470,37 +481,35 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
      * @param pItem The object to bind.
      */
     @Override
-    public void bindItem(
-        com.fasterxml.jackson.annotation.ObjectIdGenerator.IdKey pId, Object pItem) {
-      if (pId.key.getClass() != java.lang.Integer.class) {
+    public void bindItem(IdKey pId, Object pItem) {
+      if (pId.key.getClass() != Integer.class) {
         throw new IllegalArgumentException(
             "Wrong key: " + pId.key.getClass().getSimpleName() + " is not an Integer");
       }
 
-      if (!(pItem instanceof org.sosy_lab.cpachecker.cfa.model.CFAEdge)) {
+      if (!(pItem instanceof CFAEdge)) {
         throw new IllegalArgumentException(
             "Wrong object: " + pItem.getClass().getSimpleName() + " is not a CFAEdge");
       }
 
-      idToEdgeMap.put(
-          (java.lang.Integer) pId.key, (org.sosy_lab.cpachecker.cfa.model.CFAEdge) pItem);
+      idToEdgeMap.put((Integer) pId.key, (CFAEdge) pItem);
       super.bindItem(pId, pItem);
     }
 
     /**
-     * Retrieves a {@link org.sosy_lab.cpachecker.cfa.model.CFAEdge} from its ID.
+     * Retrieves a {@link CFAEdge} from its ID.
      *
      * @param pId The ID of the CFAEdge.
      * @return The CFAEdge with the specified ID.
      * @throws IllegalStateException If no resolver was set.
      * @throws IllegalArgumentException If no CFAEdge with the specified ID is found.
      */
-    public static org.sosy_lab.cpachecker.cfa.model.CFAEdge getEdgeFromId(java.lang.Integer pId) {
+    public static CFAEdge getEdgeFromId(Integer pId) {
       if (currentResolver == null) {
         throw new IllegalStateException("No resolver available");
       }
 
-      org.sosy_lab.cpachecker.cfa.model.CFAEdge edge = currentResolver.idToEdgeMap.get(pId);
+      CFAEdge edge = currentResolver.idToEdgeMap.get(pId);
 
       if (edge == null) {
         throw new IllegalArgumentException("No edge with ID " + pId + " found");
@@ -511,34 +520,24 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
   }
 
   /**
-   * A converter class that converts a list of {@link TableEntry} objects to a {@link
-   * com.google.common.collect.Table} object.
+   * A converter class that converts a list of {@link TableEntry} objects to a {@link Table} object.
    *
    * <p>The Table object represents a mapping between CFAEdges, Integers, and Partitions.
    */
   private static final class ListToEtpTableConverter
-      extends com.fasterxml.jackson.databind.util.StdConverter<
-          java.util.List<TableEntry>,
-          com.google.common.collect.Table<
-              org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-              java.lang.Integer,
-              org.sosy_lab.cpachecker.util.variableclassification.Partition>> {
+      extends StdConverter<List<TableEntry>, Table<CFAEdge, Integer, Partition>> {
     @Override
-    public com.google.common.collect.Table<
-            org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-            java.lang.Integer,
-            org.sosy_lab.cpachecker.util.variableclassification.Partition>
-        convert(java.util.List<TableEntry> pList) {
+    public Table<CFAEdge, Integer, Partition> convert(List<TableEntry> pList) {
       return pList.stream()
           .collect(
-              com.google.common.collect.HashBasedTable::create,
+              HashBasedTable::create,
               (table, entry) -> table.put(entry.edge, entry.index, entry.partition),
-              com.google.common.collect.HashBasedTable::putAll);
+              HashBasedTable::putAll);
     }
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.util.LoopStructure.Loop}.
+   * This class is a mixin for {@link Loop}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -547,14 +546,12 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     private LoopMixin(
-        @JsonProperty("loopHeads")
-            java.util.Set<org.sosy_lab.cpachecker.cfa.model.CFANode> pLoopHeads,
-        @JsonProperty("nodes") java.util.Set<org.sosy_lab.cpachecker.cfa.model.CFANode> pNodes) {}
+        @JsonProperty("loopHeads") Set<CFANode> pLoopHeads,
+        @JsonProperty("nodes") Set<CFANode> pNodes) {}
   }
 
   /**
-   * This class is a mixin for {@link
-   * org.sosy_lab.cpachecker.util.variableclassification.VariableClassification}.
+   * This class is a mixin for {@link VariableClassification}.
    *
    * <p>It converts the edgeToPartitions field to a list of TableEntry objects during serialization
    * and back to a Table object during deserialization.
@@ -565,56 +562,31 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
 
     @JsonSerialize(converter = EtpTableToListConverter.class)
     @JsonDeserialize(converter = ListToEtpTableConverter.class)
-    private com.google.common.collect.Table<
-            org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-            java.lang.Integer,
-            org.sosy_lab.cpachecker.util.variableclassification.Partition>
-        edgeToPartitions;
+    private Table<CFAEdge, Integer, Partition> edgeToPartitions;
 
     @SuppressWarnings("unused")
     @JsonCreator
     VariableClassificationMixin(
         @JsonProperty("hasRelevantNonIntAddVars") boolean pHasRelevantNonIntAddVars,
-        @JsonProperty("intBoolVars") java.util.Set<java.lang.String> pIntBoolVars,
-        @JsonProperty("intEqualVars") java.util.Set<java.lang.String> pIntEqualVars,
-        @JsonProperty("intAddVars") java.util.Set<java.lang.String> pIntAddVars,
-        @JsonProperty("intOverflowVars") java.util.Set<java.lang.String> pIntOverflowVars,
-        @JsonProperty("relevantVariables") java.util.Set<java.lang.String> pRelevantVariables,
-        @JsonProperty("addressedVariables") java.util.Set<java.lang.String> pAddressedVariables,
-        @JsonProperty("relevantFields")
-            com.google.common.collect.Multimap<
-                    org.sosy_lab.cpachecker.cfa.types.c.CCompositeType, java.lang.String>
-                pRelevantFields,
-        @JsonProperty("addressedFields")
-            com.google.common.collect.Multimap<
-                    org.sosy_lab.cpachecker.cfa.types.c.CCompositeType, java.lang.String>
-                pAddressedFields,
-        @JsonProperty("partitions")
-            java.util.Collection<org.sosy_lab.cpachecker.util.variableclassification.Partition>
-                pPartitions,
-        @JsonProperty("intBoolPartitions")
-            java.util.Set<org.sosy_lab.cpachecker.util.variableclassification.Partition>
-                pIntBoolPartitions,
-        @JsonProperty("intEqualPartitions")
-            java.util.Set<org.sosy_lab.cpachecker.util.variableclassification.Partition>
-                pIntEqualPartitions,
-        @JsonProperty("intAddPartitions")
-            java.util.Set<org.sosy_lab.cpachecker.util.variableclassification.Partition>
-                pIntAddPartitions,
-        @JsonProperty("edgeToPartitions")
-            com.google.common.collect.Table<
-                    org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-                    java.lang.Integer,
-                    org.sosy_lab.cpachecker.util.variableclassification.Partition>
-                pEdgeToPartitions,
-        @JsonProperty("assumedVariables")
-            com.google.common.collect.Multiset<java.lang.String> pAssumedVariables,
-        @JsonProperty("assignedVariables")
-            com.google.common.collect.Multiset<java.lang.String> pAssignedVariables) {}
+        @JsonProperty("intBoolVars") Set<String> pIntBoolVars,
+        @JsonProperty("intEqualVars") Set<String> pIntEqualVars,
+        @JsonProperty("intAddVars") Set<String> pIntAddVars,
+        @JsonProperty("intOverflowVars") Set<String> pIntOverflowVars,
+        @JsonProperty("relevantVariables") Set<String> pRelevantVariables,
+        @JsonProperty("addressedVariables") Set<String> pAddressedVariables,
+        @JsonProperty("relevantFields") Multimap<CCompositeType, String> pRelevantFields,
+        @JsonProperty("addressedFields") Multimap<CCompositeType, String> pAddressedFields,
+        @JsonProperty("partitions") Collection<Partition> pPartitions,
+        @JsonProperty("intBoolPartitions") Set<Partition> pIntBoolPartitions,
+        @JsonProperty("intEqualPartitions") Set<Partition> pIntEqualPartitions,
+        @JsonProperty("intAddPartitions") Set<Partition> pIntAddPartitions,
+        @JsonProperty("edgeToPartitions") Table<CFAEdge, Integer, Partition> pEdgeToPartitions,
+        @JsonProperty("assumedVariables") Multiset<String> pAssumedVariables,
+        @JsonProperty("assignedVariables") Multiset<String> pAssignedVariables) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.util.LoopStructure}.
+   * This class is a mixin for {@link LoopStructure}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -622,15 +594,11 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
 
     @SuppressWarnings("unused")
     @JsonCreator
-    private LoopStructureMixin(
-        @JsonProperty("loops")
-            com.google.common.collect.ImmutableListMultimap<
-                    java.lang.String, org.sosy_lab.cpachecker.util.LoopStructure.Loop>
-                pLoops) {}
+    private LoopStructureMixin(@JsonProperty("loops") ImmutableListMultimap<String, Loop> pLoops) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement}.
+   * This class is a mixin for {@link CReturnStatement}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -639,15 +607,13 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CReturnStatementMixin(
-        @JsonProperty("fileLocation") org.sosy_lab.cpachecker.cfa.ast.FileLocation pFileLocation,
-        @JsonProperty("expression")
-            java.util.Optional<org.sosy_lab.cpachecker.cfa.ast.c.CExpression> pExpression,
-        @JsonProperty("assignment")
-            java.util.Optional<org.sosy_lab.cpachecker.cfa.ast.c.CAssignment> pAssignment) {}
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("expression") Optional<CExpression> pExpression,
+        @JsonProperty("assignment") Optional<CAssignment> pAssignment) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge}.
+   * This class is a mixin for {@link CReturnStatementEdge}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -656,16 +622,15 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CReturnStatementEdgeMixin(
-        @JsonProperty("rawStatement") java.lang.String pRawStatement,
-        @JsonProperty("returnStatement")
-            org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement pReturnStatement,
-        @JsonProperty("fileLocation") org.sosy_lab.cpachecker.cfa.ast.FileLocation pFileLocation,
-        @JsonProperty("predecessor") org.sosy_lab.cpachecker.cfa.model.CFANode pPredecessor,
-        @JsonProperty("successor") org.sosy_lab.cpachecker.cfa.model.FunctionExitNode pSuccessor) {}
+        @JsonProperty("rawStatement") String pRawStatement,
+        @JsonProperty("returnStatement") CReturnStatement pReturnStatement,
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("predecessor") CFANode pPredecessor,
+        @JsonProperty("successor") FunctionExitNode pSuccessor) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement}.
+   * This class is a mixin for {@link CExpressionStatement}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -674,13 +639,12 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CExpressionStatementMixin(
-        @JsonProperty("fileLocation") org.sosy_lab.cpachecker.cfa.ast.FileLocation pFileLocation,
-        @JsonProperty("expression") org.sosy_lab.cpachecker.cfa.ast.c.CExpression pExpression) {}
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("expression") CExpression pExpression) {}
   }
 
   /**
-   * This class is a mixin for {@link
-   * org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement}.
+   * This class is a mixin for {@link CExpressionAssignmentStatement}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -689,14 +653,13 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CExpressionAssignmentStatementMixin(
-        @JsonProperty("fileLocation") org.sosy_lab.cpachecker.cfa.ast.FileLocation pFileLocation,
-        @JsonProperty("leftHandSide") org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide pLeftHandSide,
-        @JsonProperty("rightHandSide")
-            org.sosy_lab.cpachecker.cfa.ast.c.CExpression pRightHandSide) {}
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("leftHandSide") CLeftHandSide pLeftHandSide,
+        @JsonProperty("rightHandSide") CExpression pRightHandSide) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge}.
+   * This class is a mixin for {@link CStatementEdge}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -705,15 +668,15 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CStatementEdgeMixin(
-        @JsonProperty("rawStatement") java.lang.String pRawStatement,
-        @JsonProperty("statement") org.sosy_lab.cpachecker.cfa.ast.c.CStatement pStatement,
-        @JsonProperty("fileLocation") org.sosy_lab.cpachecker.cfa.ast.FileLocation pFileLocation,
-        @JsonProperty("predecessor") org.sosy_lab.cpachecker.cfa.model.CFANode pPredecessor,
-        @JsonProperty("successor") org.sosy_lab.cpachecker.cfa.model.CFANode pSuccessor) {}
+        @JsonProperty("rawStatement") String pRawStatement,
+        @JsonProperty("statement") CStatement pStatement,
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("predecessor") CFANode pPredecessor,
+        @JsonProperty("successor") CFANode pSuccessor) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression}.
+   * This class is a mixin for {@link CBinaryExpression}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -722,17 +685,16 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CBinaryExpressionMixin(
-        @JsonProperty("fileLocation") org.sosy_lab.cpachecker.cfa.ast.FileLocation pFileLocation,
-        @JsonProperty("type") org.sosy_lab.cpachecker.cfa.types.c.CType pExpressionType,
-        @JsonProperty("calculationType") org.sosy_lab.cpachecker.cfa.types.c.CType pCalculationType,
-        @JsonProperty("operand1") org.sosy_lab.cpachecker.cfa.ast.c.CExpression pOperand1,
-        @JsonProperty("operand2") org.sosy_lab.cpachecker.cfa.ast.c.CExpression pOperand2,
-        @JsonProperty("operator")
-            org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator pOperator) {}
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("type") CType pExpressionType,
+        @JsonProperty("calculationType") CType pCalculationType,
+        @JsonProperty("operand1") CExpression pOperand1,
+        @JsonProperty("operand2") CExpression pOperand2,
+        @JsonProperty("operator") BinaryOperator pOperator) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge}.
+   * This class is a mixin for {@link CAssumeEdge}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -741,18 +703,18 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CAssumeEdgeMixin(
-        @JsonProperty("rawStatement") java.lang.String pRawStatement,
-        @JsonProperty("fileLocation") org.sosy_lab.cpachecker.cfa.ast.FileLocation pFileLocation,
-        @JsonProperty("predecessor") org.sosy_lab.cpachecker.cfa.model.CFANode pPredecessor,
-        @JsonProperty("successor") org.sosy_lab.cpachecker.cfa.model.CFANode pSuccessor,
-        @JsonProperty("expression") org.sosy_lab.cpachecker.cfa.ast.c.CExpression pExpression,
+        @JsonProperty("rawStatement") String pRawStatement,
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("predecessor") CFANode pPredecessor,
+        @JsonProperty("successor") CFANode pSuccessor,
+        @JsonProperty("expression") CExpression pExpression,
         @JsonProperty("truthAssumption") boolean pTruthAssumption,
         @JsonProperty("swapped") boolean pSwapped,
         @JsonProperty("artificialIntermediate") boolean pArtificial) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge}.
+   * This class is a mixin for {@link CDeclarationEdge}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -761,15 +723,15 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CDeclarationEdgeMixin(
-        @JsonProperty("rawStatement") java.lang.String pRawSignature,
-        @JsonProperty("fileLocation") org.sosy_lab.cpachecker.cfa.ast.FileLocation pFileLocation,
-        @JsonProperty("predecessor") org.sosy_lab.cpachecker.cfa.model.CFANode pPredecessor,
-        @JsonProperty("successor") org.sosy_lab.cpachecker.cfa.model.CFANode pSuccessor,
-        @JsonProperty("declaration") org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration pDeclaration) {}
+        @JsonProperty("rawStatement") String pRawSignature,
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("predecessor") CFANode pPredecessor,
+        @JsonProperty("successor") CFANode pSuccessor,
+        @JsonProperty("declaration") CDeclaration pDeclaration) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.model.BlankEdge}.
+   * This class is a mixin for {@link BlankEdge}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -778,15 +740,15 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public BlankEdgeMixin(
-        @JsonProperty("rawStatement") java.lang.String pRawStatement,
-        @JsonProperty("fileLocation") org.sosy_lab.cpachecker.cfa.ast.FileLocation pFileLocation,
-        @JsonProperty("predecessor") org.sosy_lab.cpachecker.cfa.model.CFANode pPredecessor,
-        @JsonProperty("successor") org.sosy_lab.cpachecker.cfa.model.CFANode pSuccessor,
-        @JsonProperty("description") java.lang.String pDescription) {}
+        @JsonProperty("rawStatement") String pRawStatement,
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("predecessor") CFANode pPredecessor,
+        @JsonProperty("successor") CFANode pSuccessor,
+        @JsonProperty("description") String pDescription) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.model.CFALabelNode}.
+   * This class is a mixin for {@link CFALabelNode}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -795,12 +757,12 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CFALabelNodeMixin(
-        @JsonProperty("function") org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration pFunction,
-        @JsonProperty("label") java.lang.String pLabel) {}
+        @JsonProperty("function") AFunctionDeclaration pFunction,
+        @JsonProperty("label") String pLabel) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression}.
+   * This class is a mixin for {@link CIdExpression}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -809,15 +771,14 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CIdExpressionMixin(
-        @JsonProperty("fileLocation") org.sosy_lab.cpachecker.cfa.ast.FileLocation pFileLocation,
-        @JsonProperty("type") org.sosy_lab.cpachecker.cfa.types.c.CType pType,
-        @JsonProperty("name") java.lang.String pName,
-        @JsonProperty("declaration")
-            org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration pDeclaration) {}
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("type") CType pType,
+        @JsonProperty("name") String pName,
+        @JsonProperty("declaration") CSimpleDeclaration pDeclaration) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode}.
+   * This class is a mixin for {@link CFunctionEntryNode}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -826,17 +787,14 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CFunctionEntryNodeMixin(
-        @JsonProperty("location") org.sosy_lab.cpachecker.cfa.ast.FileLocation pFileLocation,
-        @JsonProperty("functionDefinition")
-            org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration pFunctionDefinition,
-        @JsonProperty("exitNode") org.sosy_lab.cpachecker.cfa.model.FunctionExitNode pExitNode,
-        @JsonProperty("returnVariable")
-            java.util.Optional<org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration>
-                pReturnVariable) {}
+        @JsonProperty("location") FileLocation pFileLocation,
+        @JsonProperty("functionDefinition") CFunctionDeclaration pFunctionDefinition,
+        @JsonProperty("exitNode") FunctionExitNode pExitNode,
+        @JsonProperty("returnVariable") Optional<CVariableDeclaration> pReturnVariable) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression}.
+   * This class is a mixin for {@link CIntegerLiteralExpression}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -845,13 +803,13 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CIntegerLiteralExpressionMixin(
-        @JsonProperty("fileLocation") org.sosy_lab.cpachecker.cfa.ast.FileLocation pFileLocation,
-        @JsonProperty("type") org.sosy_lab.cpachecker.cfa.types.c.CType pType,
-        @JsonProperty("value") java.math.BigInteger pValue) {}
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("type") CType pType,
+        @JsonProperty("value") BigInteger pValue) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression}.
+   * This class is a mixin for {@link CInitializerExpression}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -860,12 +818,12 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CInitializerExpressionMixin(
-        @JsonProperty("fileLocation") org.sosy_lab.cpachecker.cfa.ast.FileLocation pFileLocation,
-        @JsonProperty("expression") org.sosy_lab.cpachecker.cfa.ast.c.CExpression pExpression) {}
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("expression") CExpression pExpression) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration}.
+   * This class is a mixin for {@link CVariableDeclaration}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -874,19 +832,18 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CVariableDeclarationMixin(
-        @JsonProperty("fileLocation") org.sosy_lab.cpachecker.cfa.ast.FileLocation pFileLocation,
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
         @JsonProperty("isGlobal") boolean pIsGlobal,
-        @JsonProperty("cStorageClass")
-            org.sosy_lab.cpachecker.cfa.types.c.CStorageClass pCStorageClass,
-        @JsonProperty("type") org.sosy_lab.cpachecker.cfa.types.c.CType pType,
-        @JsonProperty("name") java.lang.String pName,
-        @JsonProperty("origName") java.lang.String pOrigName,
-        @JsonProperty("qualifiedName") java.lang.String pQualifiedName,
-        @JsonProperty("initializer") org.sosy_lab.cpachecker.cfa.ast.c.CInitializer pInitializer) {}
+        @JsonProperty("cStorageClass") CStorageClass pCStorageClass,
+        @JsonProperty("type") CType pType,
+        @JsonProperty("name") String pName,
+        @JsonProperty("origName") String pOrigName,
+        @JsonProperty("qualifiedName") String pQualifiedName,
+        @JsonProperty("initializer") CInitializer pInitializer) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.ast.AAstNode}.
+   * This class is a mixin for {@link AAstNode}.
    *
    * <p>Type information is being serialized to account for subtype polymorphism.
    */
@@ -897,7 +854,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
   private static final class AAstNodeMixin {}
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.types.c.CSimpleType}.
+   * This class is a mixin for {@link CSimpleType}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -908,7 +865,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     public CSimpleTypeMixin(
         @JsonProperty("isConst") boolean pConst,
         @JsonProperty("isVolatile") boolean pVolatile,
-        @JsonProperty("type") org.sosy_lab.cpachecker.cfa.types.c.CBasicType pType,
+        @JsonProperty("type") CBasicType pType,
         @JsonProperty("isLong") boolean pIsLong,
         @JsonProperty("isShort") boolean pIsShort,
         @JsonProperty("isSigned") boolean pIsSigned,
@@ -919,7 +876,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames}.
+   * This class is a mixin for {@link CFunctionTypeWithNames}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -928,14 +885,13 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CFunctionTypeWithNamesMixin(
-        @JsonProperty("returnType") org.sosy_lab.cpachecker.cfa.types.c.CType pReturnType,
-        @JsonProperty("parameters")
-            java.util.List<org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration> pParameters,
+        @JsonProperty("returnType") CType pReturnType,
+        @JsonProperty("parameters") List<CParameterDeclaration> pParameters,
         @JsonProperty("takesVarArgs") boolean pTakesVarArgs) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.types.Type}.
+   * This class is a mixin for {@link Type}.
    *
    * <p>Type information is being serialized to account for subtype polymorphism.
    */
@@ -946,7 +902,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
   private static final class TypeMixin {}
 
   /**
-   * This class is a mixin for {@link org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType}.
+   * This class is a mixin for {@link CFunctionType}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -955,28 +911,27 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CFunctionTypeMixin(
-        @JsonProperty("returnType") org.sosy_lab.cpachecker.cfa.types.c.CType pReturnType,
-        @JsonProperty("parameters")
-            java.util.List<org.sosy_lab.cpachecker.cfa.types.c.CType> pParameters,
+        @JsonProperty("returnType") CType pReturnType,
+        @JsonProperty("parameters") List<CType> pParameters,
         @JsonProperty("takesVarArgs") boolean pTakesVarArgs) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.ast.FileLocation}.
+   * This class is a mixin for {@link FileLocation}.
    *
-   * <p>It forces the serialization of the {@link java.nio.file.Path} fileName field.
+   * <p>It forces the serialization of the {@link Path} fileName field.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
   private static final class FileLocationMixin {
 
-    @JsonProperty private java.nio.file.Path fileName;
+    @JsonProperty private Path fileName;
 
     @SuppressWarnings("unused")
     @JsonCreator
     public FileLocationMixin(
-        @JsonProperty("fileName") java.nio.file.Path pFileName,
-        @JsonProperty("niceFileName") java.lang.String pNiceFileName,
+        @JsonProperty("fileName") Path pFileName,
+        @JsonProperty("niceFileName") String pNiceFileName,
         @JsonProperty("offset") int pOffset,
         @JsonProperty("length") int pLength,
         @JsonProperty("startingLine") int pStartingLine,
@@ -989,7 +944,7 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.model.CFAEdge}.
+   * This class is a mixin for {@link CFAEdge}.
    *
    * <p>Identity information is being serialized to prevent infinite recursion.
    *
@@ -1006,37 +961,32 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
   private static final class CFAEdgeMixin {}
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.CfaMetadata}.
+   * This class is a mixin for {@link CfaMetadata}.
    *
-   * <p>It ensures that the {@link org.sosy_lab.cpachecker.util.ast.AstCfaRelation} is not being
-   * serialized.
+   * <p>It ensures that the {@link AstCfaRelation} is not being serialized.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
   private static final class CfaMetadataMixin {
 
-    @JsonIgnore private org.sosy_lab.cpachecker.util.ast.AstCfaRelation astCFARelation;
+    @JsonIgnore private AstCfaRelation astCFARelation;
 
     @SuppressWarnings("unused")
     @JsonCreator
     private CfaMetadataMixin(
-        @JsonProperty("machineModel") org.sosy_lab.cpachecker.cfa.types.MachineModel pMachineModel,
-        @JsonProperty("language") org.sosy_lab.cpachecker.cfa.Language pLanguage,
-        @JsonProperty("fileNames") java.util.List<java.nio.file.Path> pFileNames,
-        @JsonProperty("mainFunctionEntry")
-            org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode pMainFunctionEntry,
-        @JsonProperty("connectedness") org.sosy_lab.cpachecker.cfa.CfaConnectedness pConnectedness,
-        @JsonProperty("astCFARelation")
-            org.sosy_lab.cpachecker.util.ast.AstCfaRelation pAstCfaRelation,
-        @JsonProperty("loopStructure") org.sosy_lab.cpachecker.util.LoopStructure pLoopStructure,
-        @JsonProperty("variableClassification")
-            org.sosy_lab.cpachecker.util.variableclassification.VariableClassification
-                pVariableClassification,
-        @JsonProperty("liveVariables") org.sosy_lab.cpachecker.util.LiveVariables pLiveVariables) {}
+        @JsonProperty("machineModel") MachineModel pMachineModel,
+        @JsonProperty("language") Language pLanguage,
+        @JsonProperty("fileNames") List<Path> pFileNames,
+        @JsonProperty("mainFunctionEntry") FunctionEntryNode pMainFunctionEntry,
+        @JsonProperty("connectedness") CfaConnectedness pConnectedness,
+        @JsonProperty("astCFARelation") AstCfaRelation pAstCfaRelation,
+        @JsonProperty("loopStructure") LoopStructure pLoopStructure,
+        @JsonProperty("variableClassification") VariableClassification pVariableClassification,
+        @JsonProperty("liveVariables") LiveVariables pLiveVariables) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.model.CFANode}.
+   * This class is a mixin for {@link CFANode}.
    *
    * <p>Identity information is being serialized to prevent infinite recursion.
    *
@@ -1045,8 +995,8 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
    * <p>It specifies the constructor to use during deserialization.
    */
   @JsonIdentityInfo(
-      generator = com.fasterxml.jackson.annotation.ObjectIdGenerators.PropertyGenerator.class,
-      scope = org.sosy_lab.cpachecker.cfa.model.CFANode.class,
+      generator = PropertyGenerator.class,
+      scope = CFANode.class,
       property = "nodeNumber")
   @JsonTypeInfo(
       use = JsonTypeInfo.Id.CLASS,
@@ -1056,12 +1006,11 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
 
     @SuppressWarnings("unused")
     @JsonCreator
-    public CFANodeMixin(
-        @JsonProperty("function") org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration pFunction) {}
+    public CFANodeMixin(@JsonProperty("function") AFunctionDeclaration pFunction) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration}.
+   * This class is a mixin for {@link CFunctionDeclaration}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -1070,62 +1019,53 @@ public class CfaJsonModule extends com.fasterxml.jackson.databind.module.SimpleM
     @SuppressWarnings("unused")
     @JsonCreator
     public CFunctionDeclarationMixin(
-        @JsonProperty("fileLocation") org.sosy_lab.cpachecker.cfa.ast.FileLocation pFileLocation,
-        @JsonProperty("type") org.sosy_lab.cpachecker.cfa.types.c.CFunctionType pType,
-        @JsonProperty("name") java.lang.String pName,
-        @JsonProperty("origName") java.lang.String pOrigName,
-        @JsonProperty("parameters")
-            java.util.List<org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration> parameters,
-        @JsonProperty("attributes")
-            com.google.common.collect.ImmutableSet<
-                    org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute>
-                pAttributes) {}
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("type") CFunctionType pType,
+        @JsonProperty("name") String pName,
+        @JsonProperty("origName") String pOrigName,
+        @JsonProperty("parameters") List<CParameterDeclaration> parameters,
+        @JsonProperty("attributes") ImmutableSet<FunctionAttribute> pAttributes) {}
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode}.
+   * This class is a mixin for {@link FunctionEntryNode}.
    *
-   * <p>It serializes its {@link org.sosy_lab.cpachecker.cfa.model.FunctionExitNode} field as
-   * number.
+   * <p>It serializes its {@link FunctionExitNode} field as number.
    */
   private static final class FunctionEntryNodeMixin {
 
     @JsonIdentityReference(alwaysAsId = true)
-    private org.sosy_lab.cpachecker.cfa.model.FunctionExitNode exitNode;
+    private FunctionExitNode exitNode;
   }
 
   /**
-   * This class is a mixin for {@link org.sosy_lab.cpachecker.cfa.model.FunctionExitNode}.
+   * This class is a mixin for {@link FunctionExitNode}.
    *
-   * <p>It serializes its {@link org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode} field as
-   * number.
+   * <p>It serializes its {@link FunctionEntryNode} field as number.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
   private static final class FunctionExitNodeMixin {
 
     @JsonIdentityReference(alwaysAsId = true)
-    private org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode entryNode;
+    private FunctionEntryNode entryNode;
 
     @SuppressWarnings("unused")
     @JsonCreator
-    public FunctionExitNodeMixin(
-        @JsonProperty("function") org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration pFunction) {}
+    public FunctionExitNodeMixin(@JsonProperty("function") AFunctionDeclaration pFunction) {}
   }
 
   /**
-   * This class is a mixin for {@link
-   * org.sosy_lab.cpachecker.util.variableclassification.Partition}.
+   * This class is a mixin for {@link Partition}.
    *
-   * <p>It prevents cyclic references by serializing the {@link
-   * org.sosy_lab.cpachecker.util.variableclassification.Partition} as index.
+   * <p>It prevents cyclic references by serializing the {@link Partition} as index.
    *
    * <p>Since the first occurrences of partitions are fully serialized by {@link
    * PartitionsSerializer}, partitions are always serialized as their index.
    */
   @JsonIdentityInfo(
-      generator = com.fasterxml.jackson.annotation.ObjectIdGenerators.PropertyGenerator.class,
-      scope = org.sosy_lab.cpachecker.util.variableclassification.Partition.class,
+      generator = PropertyGenerator.class,
+      scope = Partition.class,
       property = "index")
   @JsonIdentityReference(alwaysAsId = true)
   private static final class PartitionMixin {}
