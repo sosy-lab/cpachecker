@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,9 +49,13 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.ValueLiteralsVisitor;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -169,9 +174,15 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
   }
 
   private List<Map<String, Object>> assignments(
-      Solver solver, BooleanFormula pBooleanFormula, boolean pExportAllAssignments)
-      throws SolverException, InterruptedException {
-    BooleanFormula formulaWithModels = pBooleanFormula;
+      Solver solver, PathFormula pPathFormula, boolean pExportAllAssignments)
+      throws SolverException, InterruptedException, InvalidConfigurationException {
+    ValueLiteralsVisitor literalsVisitor =
+        new ValueLiteralsVisitor(
+            AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel()),
+            null,
+            null,
+            ConcreteState.empty());
+    BooleanFormula formulaWithModels = pPathFormula.getFormula();
     BooleanFormulaManagerView bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     ImmutableList.Builder<Map<String, Object>> allIterations = ImmutableList.builder();
     int generatedAssignments = 0;
@@ -185,10 +196,32 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
         generatedAssignments++;
         BooleanFormula assignments = bmgr.makeTrue();
         for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
+          if (modelAssignment.getName().contains("__VERIFIER_nondet")) {
+            continue;
+          }
           BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
+          Object value;
+          try {
+            value =
+                literalsVisitor
+                    .handlePotentialIntegerOverflow(
+                        BigInteger.valueOf(Long.parseLong(modelAssignment.getValue().toString())),
+                        (CSimpleType)
+                            pPathFormula
+                                .getSsa()
+                                .getType(
+                                    Splitter.on("@")
+                                        .limit(2)
+                                        .splitToList(modelAssignment.getName())
+                                        .get(0)))
+                    .getValueLiteral()
+                    .toASTString();
+          } catch (NumberFormatException | ClassCastException e) {
+            value = modelAssignment.getValue();
+          }
           if (formula.toString().contains("__VERIFIER_nondet") || pExportAllAssignments) {
             assignments = bmgr.and(assignments, formula);
-            currentIteration.put(modelAssignment.getName(), modelAssignment.getValue());
+            currentIteration.put(modelAssignment.getName(), value);
           }
         }
         formulaWithModels = bmgr.and(formulaWithModels, bmgr.not(assignments));
@@ -335,7 +368,7 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
       PathAndVariables cexPathAndVariables =
           computeVariablesToEdgeMap(solver, pmgr, counterExample);
       List<Map<String, Object>> assignments =
-          assignments(solver, cexPathAndVariables.path().getFormula(), exportAllAssignments);
+          assignments(solver, cexPathAndVariables.path(), exportAllAssignments);
       Multimap<String, String> variableToValues = ArrayListMultimap.create();
       for (Map<String, Object> assignment : assignments) {
         assignment.forEach((variable, value) -> variableToValues.put(variable, value.toString()));
