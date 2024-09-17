@@ -280,9 +280,7 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
             pObj1.getOffset(),
             pHeadOffset,
             pNextOffset,
-            null,
             pPrevOffset,
-            null,
             minLength);
     destSMG = destSMG.copyAndAddObject(dls);
     return dls;

@@ -1609,6 +1609,7 @@ public class SMGState
    * @param otherState the state to which the other object belongs.
    * @param equalityCache basic value check cache.
    * @return true if the 2 memory sections given are equal. False else.
+   * @throws SMGException for critical errors.
    */
   public boolean checkEqualValuesForTwoStatesWithExemptions(
       SMGObject thisObject,
@@ -1616,7 +1617,8 @@ public class SMGState
       ImmutableList<BigInteger> exemptOffsets,
       SMGState thisState,
       SMGState otherState,
-      EqualityCache<Value> equalityCache) {
+      EqualityCache<Value> equalityCache)
+      throws SMGException {
     return checkEqualValuesForTwoStatesWithExemptions(
         thisObject,
         otherObject,
@@ -1649,10 +1651,6 @@ public class SMGState
       EqualityCache<Value> equalityCache,
       Set<Value> thisPointerValuesAlreadyVisited,
       boolean treatSymbolicsAsEqualWEqualConstrains) {
-    Preconditions.checkArgument(
-        thisState.getMemoryModel().getSmg().getObjects().contains(thisObject));
-    Preconditions.checkArgument(
-        otherState.getMemoryModel().getSmg().getObjects().contains(otherObject));
 
     Map<BigInteger, SMGHasValueEdge> otherOffsetToHVEdgeMap = new HashMap<>();
     for (SMGHasValueEdge hve :
@@ -1668,7 +1666,6 @@ public class SMGState
 
     Map<BigInteger, SMGHasValueEdge> thisOffsetToHVEdgeMap = new HashMap<>();
 
-    // Check all HVEs for this object are present in other object
     for (SMGHasValueEdge hve :
         thisState
             .memoryModel
@@ -2605,12 +2602,12 @@ public class SMGState
   }
 
   /**
-   * Takes a target and offset and tries to find an address (not AddressExpression) that fits them.
+   * Takes a target and offset and tries to find a address (not AddressExpression) that fits them.
    * If none can be found a new address (SMGPointsToEdge) is created and returned as Value (Not
    * AddressExpression).
    *
    * @param targetObject {@link SMGObject} target.
-   * @param offsetInBits Offset in the target as BigInt.
+   * @param offsetInBits Offset as BigInt.
    * @return a {@link Value} (NOT AddressExpression) and state with the address/address added.
    */
   public ValueAndSMGState searchOrCreateAddress(SMGObject targetObject, BigInteger offsetInBits) {
@@ -4251,46 +4248,30 @@ public class SMGState
    * Only abstracts lists with equal values.
    */
   public SMGState abstractIntoDLL(
-      SMGObject root,
-      BigInteger nfo,
-      BigInteger nextPointerTargetOffset,
-      BigInteger pfo,
-      BigInteger prevPointerTargetOffset,
-      Set<SMGObject> alreadyVisited)
+      SMGObject root, BigInteger nfo, BigInteger pfo, Set<SMGObject> alreadyVisited)
       throws SMGException {
     statistics.incrementListAbstractions();
     // Check that the next object exists, is valid, has the same size and the same value in head
     Optional<SMGObject> maybeNext = getValidNextSLL(root, nfo);
 
-    if (maybeNext.isEmpty() || maybeNext.orElseThrow().equals(root)) {
+    if (maybeNext.isEmpty()
+        || maybeNext.orElseThrow().equals(root)
+        || alreadyVisited.contains(maybeNext.orElseThrow())) {
       // TODO: assert specifier
       return this;
     }
     assert this.getMemoryModel().getSmg().checkSMGSanity();
     SMGObject nextObj = maybeNext.orElseThrow();
-    if (alreadyVisited.contains(nextObj)) {
-      // We check for next as this might happen:
-      // list1 -> list2 -> loop1 -> loop to leftmost
-      // We check list1 -> list2, can't merge
-      // We check list2 -> loop1, can't merge
-      // We check list1 -> list1, CAN merge
-      // Now list2 is found again (first next) and abort
-      return this;
-    }
     // Values not equal, continue traverse
     EqualityCache<Value> eqCache = EqualityCache.of();
     if (!checkEqualValuesForTwoStatesWithExemptions(
-            nextObj, root, ImmutableList.of(nfo, pfo), this, this, eqCache, new HashSet<>(), true)
-        || !isPointerTargetOffsetEqualTo(root, nfo, nextPointerTargetOffset)
-        || !isPointerTargetOffsetEqualTo(root, pfo, prevPointerTargetOffset)) {
+        nextObj, root, ImmutableList.of(nfo, pfo), this, this, eqCache, new HashSet<>(), true)) {
       // split lists 3+ -> concrete -> 3+ -> 0
       return abstractIntoDLL(
           nextObj,
           nfo,
-          nextPointerTargetOffset,
           pfo,
-          prevPointerTargetOffset,
-          ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(nextObj).build());
+          ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(root).build());
     }
     // When the equality cache is empty, identical values were found.
     // If it has values, those are equal but not identical.
@@ -4349,9 +4330,7 @@ public class SMGState
               root.getOffset(),
               headOffset,
               nfo,
-              nextPointerTargetOffset,
               pfo,
-              prevPointerTargetOffset,
               newMinLength,
               eqCache);
     }
@@ -4468,9 +4447,7 @@ public class SMGState
     return currentState.abstractIntoDLL(
         newDLL,
         nfo,
-        nextPointerTargetOffset,
         pfo,
-        prevPointerTargetOffset,
         ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newDLL).build());
   }
 
@@ -4480,11 +4457,7 @@ public class SMGState
    * Last pointers are only set for concrete next segments (each ptr towards a concrete next is set to last)
    * First pointers are only set for each concrete root.
    */
-  public SMGState abstractIntoSLL(
-      SMGObject root,
-      BigInteger nfo,
-      BigInteger nextPointerTargetOffset,
-      Set<SMGObject> alreadyVisited)
+  public SMGState abstractIntoSLL(SMGObject root, BigInteger nfo, Set<SMGObject> alreadyVisited)
       throws SMGException {
     statistics.incrementListAbstractions();
     // Check that the next object exists, is valid, has the same size and the same value in head
@@ -4497,27 +4470,13 @@ public class SMGState
     }
     SMGObject nextObj = maybeNext.orElseThrow();
 
-    if (alreadyVisited.contains(nextObj)) {
-      // We check for next as this might happen:
-      // list1 -> list2 -> loop1 -> loop to leftmost
-      // We check list1 -> list2, can't merge
-      // We check list2 -> loop1, can't merge
-      // We check list1 -> list1, CAN merge
-      // Now list2 is found again (first next) and abort
-      return this;
-    }
-
     // Values not equal, continue traverse
     EqualityCache<Value> eqCache = EqualityCache.of();
     if (!checkEqualValuesForTwoStatesWithExemptions(
-            nextObj, root, ImmutableList.of(nfo), this, this, eqCache, new HashSet<>(), true)
-        || !isPointerTargetOffsetEqualTo(root, nfo, nextPointerTargetOffset)) {
-      // split lists, e.g. for 3+, 3+ -> concrete -> 3+ -> 0
+        nextObj, root, ImmutableList.of(nfo), this, this, eqCache, new HashSet<>(), true)) {
+      // split lists 3+ -> concrete -> 3+ -> 0
       return abstractIntoSLL(
-          nextObj,
-          nfo,
-          nextPointerTargetOffset,
-          ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(nextObj).build());
+          nextObj, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(root).build());
     }
     // When the equality cache is empty, identical values were found.
     // If it has values, those are equal but not identical.
@@ -4561,7 +4520,6 @@ public class SMGState
               root.getOffset(),
               headOffset,
               nfo,
-              nextPointerTargetOffset,
               newMinLength,
               eqCache);
     }
@@ -4624,29 +4582,7 @@ public class SMGState
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
 
     return currentState.abstractIntoSLL(
-        newSLL,
-        nfo,
-        nextPointerTargetOffset,
-        ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
-  }
-
-  private boolean isPointerTargetOffsetEqualTo(
-      SMGObject pRoot, BigInteger readOffsetOfPointer, BigInteger pNextPointerTargetOffset) {
-    SMG smg = getMemoryModel().getSmg();
-    List<SMGHasValueEdge> readValues =
-        smg.readValue(pRoot, readOffsetOfPointer, getMemoryModel().getSizeOfPointer(), false)
-            .getHvEdges();
-    if (readValues.size() == 1) {
-      SMGHasValueEdge readValue = readValues.get(0);
-      if (smg.isPointer(readValue.hasValue())
-          && smg.getPTEdge(readValue.hasValue())
-              .orElseThrow()
-              .getOffset()
-              .equals(pNextPointerTargetOffset)) {
-        return true;
-      }
-    }
-    return false;
+        newSLL, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
   }
 
   /**

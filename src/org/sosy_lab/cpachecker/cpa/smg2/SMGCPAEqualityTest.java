@@ -429,11 +429,6 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     SMGCPAAbstractionManager absFinder =
         new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
-    // Check that there is no more abstraction found
-    absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
-    SMGState state2 = absFinder.findAndAbstractLists();
-    assertThat(state2.getMemoryModel().getSmg().getObjects())
-        .isEqualTo(currentState.getMemoryModel().getSmg().getObjects());
     SMGObject smallerAbstractedListObj =
         currentState
             .dereferencePointerWithoutMaterilization(pointersSmallerAbstractedList[0])
@@ -444,11 +439,6 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     addSubListsToList(listLength, pointersAbstractedList, false);
     absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
-    // Check that there is no more abstraction found
-    absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
-    state2 = absFinder.findAndAbstractLists();
-    assertThat(state2.getMemoryModel().getSmg().getObjects())
-        .isEqualTo(currentState.getMemoryModel().getSmg().getObjects());
     SMGObject abstractedListObj =
         currentState
             .dereferencePointerWithoutMaterilization(pointersAbstractedList[0])
@@ -459,11 +449,6 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     addSubListsToList(listLength, pointersAbstractedList2, false);
     absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
     currentState = absFinder.findAndAbstractLists();
-    // Check that there is no more abstraction found
-    absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
-    state2 = absFinder.findAndAbstractLists();
-    assertThat(state2.getMemoryModel().getSmg().getObjects())
-        .isEqualTo(currentState.getMemoryModel().getSmg().getObjects());
     SMGObject abstractedListObj2 =
         currentState
             .dereferencePointerWithoutMaterilization(pointersAbstractedList2[0])

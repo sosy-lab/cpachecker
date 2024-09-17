@@ -176,9 +176,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
         pOffset,
         headOffset,
         nextOffset,
-        null,
         prevOffset,
-        null,
         Integer.min(length1, length2));
   }
 

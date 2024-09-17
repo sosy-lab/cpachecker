@@ -36,8 +36,6 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   private final Optional<String> name;
 
   protected SMGObject(int pNestingLevel, Value pSize, BigInteger pOffset) {
-    Preconditions.checkNotNull(pOffset);
-    Preconditions.checkNotNull(pSize);
     nestingLevel = pNestingLevel;
     size = pSize;
     offset = pOffset;
@@ -47,8 +45,6 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   }
 
   private SMGObject(int pNestingLevel, Value pSize, BigInteger pOffset, String objectName) {
-    Preconditions.checkNotNull(pOffset);
-    Preconditions.checkNotNull(pSize);
     nestingLevel = pNestingLevel;
     size = pSize;
     offset = pOffset;
@@ -58,8 +54,6 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   }
 
   protected SMGObject(int pNestingLevel, Value pSize, BigInteger pOffset, int pId) {
-    Preconditions.checkNotNull(pOffset);
-    Preconditions.checkNotNull(pSize);
     nestingLevel = pNestingLevel;
     size = pSize;
     offset = pOffset;
@@ -75,8 +69,6 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
       int pId,
       boolean pIsConstBinaryString,
       Optional<String> maybeObjectName) {
-    Preconditions.checkNotNull(pOffset);
-    Preconditions.checkNotNull(pSize);
     nestingLevel = pNestingLevel;
     size = pSize;
     offset = pOffset;
