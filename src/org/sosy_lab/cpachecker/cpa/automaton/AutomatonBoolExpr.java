@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -57,7 +56,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
-import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 
@@ -451,23 +449,16 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * Checks if the given edge leaves the condition of an if statement to enter the provided branch
    * of it
    */
-  class CheckEntersIfBranch implements AutomatonBoolExpr {
+  class CheckPassesThroughNodes implements AutomatonBoolExpr {
 
-    private final boolean takeThenBranch;
-    private final ImmutableSet<CFANode> nodesBetweenConditionAndBranch;
+    private final Set<CFANode> edgePredecessorMatch;
 
-    private final ImmutableSet<CFANode> conditionElementPredecessors;
+    private final Set<CFANode> edgeSuccessorMatch;
 
-    public CheckEntersIfBranch(IfElement pIfElement, boolean pTakeThenBranch) {
-      takeThenBranch = pTakeThenBranch;
-      conditionElementPredecessors =
-          transformedImmutableSetCopy(
-              pIfElement.getConditionElement().edges(), CFAEdge::getPredecessor);
-      if (takeThenBranch) {
-        nodesBetweenConditionAndBranch = pIfElement.getNodesBetweenConditionAndThenBranch();
-      } else {
-        nodesBetweenConditionAndBranch = pIfElement.getNodesBetweenConditionAndElseBranch();
-      }
+    public CheckPassesThroughNodes(
+        Set<CFANode> pEdgePredecessorMatch, Set<CFANode> pEdgeSuccessorMatch) {
+      edgePredecessorMatch = pEdgePredecessorMatch;
+      edgeSuccessorMatch = pEdgeSuccessorMatch;
     }
 
     @Override
@@ -477,9 +468,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
       // Sometimes it happens that there are multiple ways of getting to the same node.
       // We only want the edges which went through the condition element. In particular this
-      // happens when there is no else branch.
-      if (nodesBetweenConditionAndBranch.contains(edge.getSuccessor())
-          && conditionElementPredecessors.contains(edge.getPredecessor())) {
+      // happens when there is no else branch in an if statement.
+      if (edgeSuccessorMatch.contains(edge.getSuccessor())
+          && edgePredecessorMatch.contains(edge.getPredecessor())) {
         return CONST_TRUE;
       }
 
@@ -488,19 +479,23 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return "FOLLOW_BRANCH(" + (takeThenBranch ? "IF" : "ELSE") + ")";
+      return "CHECK_PASSES_THROUGH(predecessors="
+          + edgePredecessorMatch
+          + ", successors="
+          + edgeSuccessorMatch
+          + ")";
     }
 
     @Override
     public int hashCode() {
-      return nodesBetweenConditionAndBranch.hashCode();
+      return edgePredecessorMatch.hashCode() * 57 + edgeSuccessorMatch.hashCode();
     }
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof CheckEntersIfBranch checker
-          && nodesBetweenConditionAndBranch.equals(checker.nodesBetweenConditionAndBranch)
-          && takeThenBranch == checker.takeThenBranch;
+      return o instanceof CheckPassesThroughNodes checker
+          && edgePredecessorMatch.equals(checker.edgePredecessorMatch)
+          && edgeSuccessorMatch == checker.edgeSuccessorMatch;
     }
   }
 

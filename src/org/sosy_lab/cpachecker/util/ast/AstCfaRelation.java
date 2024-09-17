@@ -56,6 +56,10 @@ public final class AstCfaRelation {
   @LazyInit
   private ImmutableMap<Pair<Integer, Integer>, IfElement> lineAndStartColumnToIfStructure = null;
 
+  @LazyInit
+  private ImmutableMap<StartingLocation, IterationElement> lineAndStartColumnToIterationStructure =
+      null;
+
   // Static variables are currently not being considered, since it is somewhat unclear how to handle
   // them.
   private final Map<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
@@ -220,6 +224,41 @@ public final class AstCfaRelation {
     Pair<Integer, Integer> key = Pair.of(pColumn, pLine);
     if (lineAndStartColumnToIfStructure.containsKey(key)) {
       return Optional.ofNullable(lineAndStartColumnToIfStructure.get(key));
+    }
+
+    return Optional.empty();
+  }
+
+  private void initializeMapFromLineAndStartColumnToIterationStructure() {
+    if (lineAndStartColumnToIterationStructure != null) {
+      return;
+    }
+    ImmutableMap.Builder<StartingLocation, IterationElement> builder = new ImmutableMap.Builder<>();
+    for (IterationElement structure : iterationStructures) {
+      FileLocation location = structure.getCompleteElement().location();
+      StartingLocation key =
+          new StartingLocation(location.getStartColumnInLine(), location.getStartingLineNumber());
+      builder.put(key, structure);
+    }
+    lineAndStartColumnToIterationStructure = builder.buildOrThrow();
+  }
+
+  /**
+   * Returns the IterationElement that starts at the given column and line.
+   *
+   * @param pColumn the column
+   * @param pLine the line
+   * @return the IterationElement that starts at the given column and line
+   */
+  public Optional<IterationElement> getIterationStructureStartingAtColumn(
+      Integer pColumn, Integer pLine) {
+    if (lineAndStartColumnToIterationStructure == null) {
+      initializeMapFromLineAndStartColumnToIterationStructure();
+    }
+
+    StartingLocation key = new StartingLocation(pColumn, pLine);
+    if (lineAndStartColumnToIterationStructure.containsKey(key)) {
+      return Optional.ofNullable(lineAndStartColumnToIterationStructure.get(key));
     }
 
     return Optional.empty();
