@@ -60,7 +60,10 @@ public class TestTargetReductionSpanningForest {
           }
           // TODO currently only approximation via dominator trees on nodes, not on edges
           if (oracle.subsumes(target, target2)) { // target subsumes target2
-            targetsAsNodes.get(target).addEdgeTo(targetsAsNodes.get(target2));
+            targetsAsNodes
+                .get(target)
+                .addEdgeTo(
+                    targetsAsNodes.get(target2), false); // TODO FIXME consider required input
             visited.add(target2);
           }
         }
@@ -113,7 +116,9 @@ public class TestTargetReductionSpanningForest {
           // target subsumes target2
           if (domTree.isAncestorOf(target2, target)
               || inverseDomTree.isAncestorOf(target2, target)) {
-            forestNodes.get(target).addEdgeTo(forestNodes.get(target2));
+            forestNodes
+                .get(target)
+                .addEdgeTo(forestNodes.get(target2), false); // TODO FIXME consider required input
             visited.add(target2);
           }
         }

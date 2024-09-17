@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.testtargets.reduction;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedFunction;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -30,10 +31,16 @@ import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
@@ -48,11 +55,13 @@ public final class TestTargetReductionUtils {
       final FunctionEntryNode pEntryNode) {
     // a set of nodes that has already been created to prevent duplicates
     Set<CFANode> successorNodes = Sets.newHashSetWithExpectedSize(pTestTargets.size() + 2);
-    Set<CFANode> visited = new HashSet<>();
+    Set<Pair<CFANode, Boolean>> visited = new HashSet<>();
     Map<CFANode, CFANode> origCFANodeToCopyMap = new HashMap<>();
     CFANode currentNode;
+    Pair<CFANode, Boolean> currentNodeInfo;
+    boolean requireInput;
     Set<CFANode> toExplore = Sets.newHashSetWithExpectedSize(pTestTargets.size() + 1);
-    Deque<CFANode> waitlist = new ArrayDeque<>();
+    Deque<Pair<CFANode, Boolean>> waitlist = new ArrayDeque<>();
 
     origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode());
     toExplore.add(pEntryNode);
@@ -76,42 +85,56 @@ public final class TestTargetReductionUtils {
       pCopiedEdgeToTestTargetsMap.put(
           copyAsDummyEdge(
               origCFANodeToCopyMap.get(target.getPredecessor()),
-              origCFANodeToCopyMap.get(target.getSuccessor())),
+              origCFANodeToCopyMap.get(target.getSuccessor()),
+              false),
           target);
     }
 
     for (CFANode predecessor : toExplore) {
       if (!successorNodes.contains(predecessor)) {
         // get next node in the queue
-        waitlist.add(predecessor);
+        waitlist.add(Pair.of(predecessor, false));
         visited.clear();
       }
 
       while (!waitlist.isEmpty()) {
-        currentNode = waitlist.poll();
+        currentNodeInfo = waitlist.poll();
+        currentNode = currentNodeInfo.getFirst();
+
         if (currentNode.getNumLeavingEdges() == 0) {
+          boolean requiredInput = currentNodeInfo.getSecond();
           functionExitNode.ifPresent(
               exitNode -> {
                 if (!origCFANodeToCopyMap
                     .get(predecessor)
                     .hasEdgeTo(origCFANodeToCopyMap.get(exitNode))) {
                   copyAsDummyEdge(
-                      origCFANodeToCopyMap.get(predecessor), origCFANodeToCopyMap.get(exitNode));
+                      origCFANodeToCopyMap.get(predecessor),
+                      origCFANodeToCopyMap.get(exitNode),
+                      requiredInput);
                 }
               });
         }
         for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
+          requireInput = currentNodeInfo.getSecond() || isInputEdge(leaving);
           if (successorNodes.contains(leaving.getSuccessor())) {
             if (!origCFANodeToCopyMap
                 .get(predecessor)
                 .hasEdgeTo(origCFANodeToCopyMap.get(leaving.getSuccessor()))) {
               copyAsDummyEdge(
                   origCFANodeToCopyMap.get(predecessor),
-                  origCFANodeToCopyMap.get(leaving.getSuccessor()));
+                  origCFANodeToCopyMap.get(leaving.getSuccessor()),
+                  requireInput);
+            } else if (requireInput) {
+              ((DummyInputCFAEdge)
+                      origCFANodeToCopyMap
+                          .get(predecessor)
+                          .getEdgeTo(origCFANodeToCopyMap.get(leaving.getSuccessor())))
+                  .addInput();
             }
           } else {
-            if (visited.add(leaving.getSuccessor())) {
-              waitlist.add(leaving.getSuccessor());
+            if (visited.add(Pair.of(leaving.getSuccessor(), requireInput))) {
+              waitlist.add(Pair.of(leaving.getSuccessor(), requireInput));
             }
           }
         }
@@ -206,30 +229,34 @@ public final class TestTargetReductionUtils {
       final CFAEdgeNode pPredecessor,
       final CFAEdgeNode pGraphEndNode,
       final Map<CFAEdge, CFAEdgeNode> pTargetToGoalGraphNode) {
-    Set<CFANode> visited = new HashSet<>();
-    Deque<CFANode> waitlist = new ArrayDeque<>();
-    waitlist.add(pSegmentStartNode);
-    visited.add(pSegmentStartNode);
+    Set<Pair<CFANode, Boolean>> visited = new HashSet<>();
+    Deque<Pair<CFANode, Boolean>> waitlist = new ArrayDeque<>();
+    waitlist.add(Pair.of(pSegmentStartNode, false));
+    visited.add(Pair.of(pSegmentStartNode, false));
 
+    Pair<CFANode, Boolean> currentNodeInfo;
     CFANode currentNode;
+    boolean viaInput;
     boolean reachesEndNode = false;
     while (!waitlist.isEmpty()) {
-      currentNode = waitlist.poll();
+      currentNodeInfo = waitlist.poll();
+      currentNode = currentNodeInfo.getFirst();
       if (currentNode.getNumLeavingEdges() == 0) {
         reachesEndNode = true;
       }
       for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
+        viaInput = currentNodeInfo.getSecond() || isInputEdge(leaving);
         if (pTargetToGoalGraphNode.containsKey(leaving)) {
-          pPredecessor.addEdgeTo(pTargetToGoalGraphNode.get(leaving));
+          pPredecessor.addOrUpdateEdgeTo(pTargetToGoalGraphNode.get(leaving), viaInput);
         } else {
-          if (visited.add(leaving.getSuccessor())) {
-            waitlist.add(leaving.getSuccessor());
+          if (visited.add(Pair.of(leaving.getSuccessor(), viaInput))) {
+            waitlist.add(Pair.of(leaving.getSuccessor(), viaInput));
           }
         }
       }
     }
     if (reachesEndNode) {
-      pPredecessor.addEdgeTo(pGraphEndNode);
+      pPredecessor.addEdgeTo(pGraphEndNode, false);
     }
   }
 
@@ -257,7 +284,12 @@ public final class TestTargetReductionUtils {
   }
 
   public static CFAEdge copyAsDummyEdge(final CFANode pred, final CFANode succ) {
-    CFAEdge newEdge = new DummyCFAEdge(pred, succ);
+    return copyAsDummyEdge(pred, succ, false);
+  }
+
+  public static CFAEdge copyAsDummyEdge(
+      final CFANode pred, final CFANode succ, final boolean withInput) {
+    CFAEdge newEdge = new DummyInputCFAEdge(pred, succ, withInput);
     pred.addLeavingEdge(newEdge);
     succ.addEnteringEdge(newEdge);
     return newEdge;
@@ -272,23 +304,68 @@ public final class TestTargetReductionUtils {
     return FluentIterable.from(pDomTree).filter(node -> !nonLeaves.contains(node)).toSet();
   }
 
+  public static boolean isInputEdge(CFAEdge pEdge) {
+    if (pEdge instanceof DummyInputCFAEdge) {
+      return true;
+    }
+    if (pEdge instanceof AStatementEdge
+        && ((AStatementEdge) pEdge).getStatement() instanceof AFunctionCall functionCall) {
+      AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
+      AFunctionDeclaration functionDeclaration = functionCallExpression.getDeclaration();
+
+      if (!isPredefinedFunction(functionDeclaration)
+          && !(functionCallExpression.getExpressionType() instanceof CVoidType)
+          && (functionCallExpression.getExpressionType() != JSimpleType.getVoid())) {
+        return true;
+      }
+    }
+    // TODO also support extern C variable declaration?
+
+    return false;
+  }
+
+  static class DummyInputCFAEdge extends DummyCFAEdge {
+
+    private boolean providesInput;
+
+    public DummyInputCFAEdge(
+        final CFANode pPredecessor, final CFANode pSuccessor, final boolean pProvidesInput) {
+      super(pPredecessor, pSuccessor);
+      providesInput = pProvidesInput;
+    }
+
+    public boolean providesInput() {
+      return providesInput;
+    }
+
+    public void addInput() {
+      providesInput = true;
+    }
+  }
+
   static class CFAEdgeNode {
     private final CFAEdge representativeTarget;
     private final Collection<CFAEdgeNode> predecessors;
+    private final Collection<CFAEdgeNode> predecessorsViaInputs;
     private final Collection<CFAEdgeNode> successors;
+    private final Collection<CFAEdgeNode> successorsViaInputs;
 
     private CFAEdgeNode(final boolean isStart, final boolean isEnd) {
       Preconditions.checkArgument(isStart || isEnd);
       if (isStart) {
         predecessors = ImmutableList.of();
+        predecessorsViaInputs = ImmutableList.of();
       } else {
         predecessors = new ArrayList<>();
+        predecessorsViaInputs = new ArrayList<>();
       }
 
       if (isEnd) {
         successors = ImmutableList.of();
+        successorsViaInputs = ImmutableList.of();
       } else {
         successors = new ArrayList<>();
+        successorsViaInputs = new ArrayList<>();
       }
       representativeTarget = null;
     }
@@ -297,41 +374,84 @@ public final class TestTargetReductionUtils {
       Preconditions.checkNotNull(pTarget);
       representativeTarget = pTarget;
       predecessors = new ArrayList<>();
+      predecessorsViaInputs = new ArrayList<>();
       successors = new ArrayList<>();
+      successorsViaInputs = new ArrayList<>();
     }
 
-    public void addEdgeTo(final CFAEdgeNode succ) {
-      successors.add(succ);
-      succ.predecessors.add(this);
+    public void addEdgeTo(final CFAEdgeNode succ, final boolean pViaInput) {
+      if (pViaInput) {
+        successorsViaInputs.add(succ);
+        succ.predecessorsViaInputs.add(this);
+      } else {
+        successors.add(succ);
+        succ.predecessors.add(this);
+      }
+    }
+
+    public void addOrUpdateEdgeTo(final CFAEdgeNode succ, final boolean pViaInput) {
+      if (pViaInput) {
+        if (successors.contains(succ)) {
+          successors.remove(succ);
+          succ.predecessors.remove(succ);
+        }
+        successorsViaInputs.add(succ);
+        succ.predecessorsViaInputs.add(this);
+      } else {
+        successors.add(succ);
+        succ.predecessors.add(this);
+      }
     }
 
     public void removeEdgeTo(final CFAEdgeNode succ) {
-      Preconditions.checkArgument(successors.contains(succ));
-      successors.remove(succ);
-      succ.predecessors.remove(succ);
+      Preconditions.checkArgument(successors.contains(succ) || successorsViaInputs.contains(succ));
+      if (successors.contains(succ)) {
+        successors.remove(succ);
+        succ.predecessors.remove(succ);
+      }
+
+      if (successorsViaInputs.contains(succ)) {
+        successorsViaInputs.remove(succ);
+        succ.predecessorsViaInputs.remove(succ);
+      }
+    }
+
+    public void removeEdgeTo(final CFAEdgeNode succ, final boolean pFromNonInputEdges) {
+      if (pFromNonInputEdges) {
+        Preconditions.checkArgument(successors.contains(succ));
+        successors.remove(succ);
+        succ.predecessors.remove(succ);
+      } else {
+        Preconditions.checkArgument(successorsViaInputs.contains(succ));
+        successorsViaInputs.remove(succ);
+        succ.predecessorsViaInputs.remove(succ);
+      }
     }
 
     public void removeDuplicateSuccessors() {
       List<CFAEdgeNode> orderedSuccessors = new ArrayList<>(successors);
+      orderedSuccessors.addAll(successorsViaInputs);
       Collections.sort(orderedSuccessors, Comparator.comparingInt(CFAEdgeNode::hashCode));
       for (int i = 1; i < orderedSuccessors.size(); i++) {
         if (orderedSuccessors.get(i) == orderedSuccessors.get(i - 1)) {
-          removeEdgeTo(orderedSuccessors.get(i));
-          Preconditions.checkState(successors.contains(orderedSuccessors.get(i)));
+          removeEdgeTo(orderedSuccessors.get(i), !successors.contains(orderedSuccessors.get(i)));
+          Preconditions.checkState(
+              successors.contains(orderedSuccessors.get(i))
+                  || successorsViaInputs.contains(orderedSuccessors.get(i)));
         }
       }
     }
 
     public FluentIterable<CFAEdgeNode> edges(final boolean incoming) {
-      return incoming ? FluentIterable.from(predecessors) : FluentIterable.from(successors);
+      return incoming ? allPredecessorsOf(this) : allSuccessorsOf(this);
     }
 
     public boolean isRoot() {
-      return predecessors.isEmpty();
+      return predecessors.isEmpty() && predecessorsViaInputs.isEmpty();
     }
 
     public boolean isLeave() {
-      return successors.isEmpty();
+      return successors.isEmpty() && successorsViaInputs.isEmpty();
     }
 
     public CFAEdge getRepresentedEdge() {
@@ -339,11 +459,11 @@ public final class TestTargetReductionUtils {
     }
 
     public static FluentIterable<CFAEdgeNode> allPredecessorsOf(final CFAEdgeNode node) {
-      return FluentIterable.from(node.predecessors);
+      return FluentIterable.from(node.predecessors).append(node.predecessorsViaInputs);
     }
 
     public static FluentIterable<CFAEdgeNode> allSuccessorsOf(final CFAEdgeNode node) {
-      return FluentIterable.from(node.successors);
+      return FluentIterable.from(node.successors).append(node.successorsViaInputs);
     }
 
     public static CFAEdgeNode makeStartOrEndNode(final boolean isStart) {
@@ -355,25 +475,58 @@ public final class TestTargetReductionUtils {
       CFAEdgeNode superNode = new CFAEdgeNode(pComponent.iterator().next().representativeTarget);
 
       Set<CFAEdgeNode> newPred = new HashSet<>();
+      Set<CFAEdgeNode> newPredVIn = new HashSet<>();
       Set<CFAEdgeNode> newSucc = new HashSet<>();
+      Set<CFAEdgeNode> newSuccVIn = new HashSet<>();
+      Collection<CFAEdgeNode> toRemove = new ArrayList<>();
       for (CFAEdgeNode elem : pComponent) {
         newPred.addAll(elem.predecessors);
+        newPredVIn.addAll(elem.predecessorsViaInputs);
         newSucc.addAll(elem.successors);
+        newSuccVIn.addAll(elem.successorsViaInputs);
+
+        toRemove.clear();
         for (CFAEdgeNode pred : elem.predecessors) {
           pred.successors.remove(pred);
+          if (newPredVIn.contains(pred)) {
+            toRemove.add(pred);
+          }
         }
+        newPred.removeAll(toRemove);
+
+        toRemove.clear();
         for (CFAEdgeNode succ : elem.successors) {
           succ.predecessors.remove(succ);
+          if (newSuccVIn.contains(succ)) {
+            toRemove.add(succ);
+          }
+        }
+        newSucc.removeAll(toRemove);
+
+        for (CFAEdgeNode pred : elem.predecessorsViaInputs) {
+          pred.successorsViaInputs.remove(pred);
+        }
+        for (CFAEdgeNode succ : elem.successorsViaInputs) {
+          succ.predecessorsViaInputs.remove(succ);
         }
       }
 
       newPred.removeAll(pComponent);
+      newPredVIn.removeAll(pComponent);
       newSucc.removeAll(pComponent);
+      newSuccVIn.removeAll(pComponent);
+
       for (CFAEdgeNode pred : newPred) {
-        pred.addEdgeTo(superNode);
+        pred.addEdgeTo(superNode, false);
+      }
+      for (CFAEdgeNode pred : newPredVIn) {
+        pred.addEdgeTo(superNode, true);
       }
       for (CFAEdgeNode succ : newSucc) {
-        superNode.addEdgeTo(succ);
+        superNode.addEdgeTo(succ, false);
+      }
+      for (CFAEdgeNode succ : newSuccVIn) {
+        superNode.addEdgeTo(succ, true);
       }
 
       return superNode;
@@ -384,10 +537,12 @@ public final class TestTargetReductionUtils {
       return representativeTarget
           + "\n predecessors:"
           + from(predecessors)
+              .append(predecessorsViaInputs)
               .transform(edgeNode -> edgeNode.representativeTarget)
               .join(Joiner.on('\t'))
           + "\n successors:"
           + from(successors)
+              .append(successorsViaInputs)
               .transform(edgeNode -> edgeNode.representativeTarget)
               .join(Joiner.on('\t'))
           + "\n";

@@ -82,7 +82,9 @@ public class TestTargetReductionSpanningSet_DominatorGraph {
         }
         // TODO currently only approximation via dominator trees on nodes, not on edges
         if (subOracle.subsumes(targetSucc, targetPred)) {
-          edgeToNode.get(targetPred).addEdgeTo(edgeToNode.get(targetSucc));
+          edgeToNode
+              .get(targetPred)
+              .addEdgeTo(edgeToNode.get(targetSucc), false); // TODO FIXME consider required input
         }
       }
     }
@@ -126,7 +128,9 @@ public class TestTargetReductionSpanningSet_DominatorGraph {
             || inverseDomTree.isAncestorOf(targetPred, targetSucc)) {
           graphNodeToNodeSpanningSet
               .get(targetPred)
-              .addEdgeTo(graphNodeToNodeSpanningSet.get(targetSucc));
+              .addEdgeTo(
+                  graphNodeToNodeSpanningSet.get(targetSucc),
+                  false); // TODO FIXME consider required input
         }
       }
     }

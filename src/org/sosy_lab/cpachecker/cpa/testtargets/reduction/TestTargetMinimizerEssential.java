@@ -22,13 +22,16 @@ import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cpa.testtargets.reduction.TestTargetReductionUtils.DummyInputCFAEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 
 public class TestTargetMinimizerEssential {
 
-  // only works correctly if DummyCFAEdge uses Object equals
+  // TODO consider that properly deals with required inputs
+
+  // only works correctly if DummyInputCFAEdge, DummyCFAEdge uses Object equals
   public Set<CFAEdge> reduceTargets(
       final Set<CFAEdge> pTestTargets, final CFA pCfa, final boolean fullCFACopy) {
     // maps a copied edge to the testTarget that can be removed if its dominated by another
@@ -89,9 +92,10 @@ public class TestTargetMinimizerEssential {
                     origNodesCopied.add(exitNode);
                   }
                   CFAEdge copyEdge =
-                      new DummyCFAEdge(
+                      new DummyInputCFAEdge(
                           origCFANodeToCopyMap.get(currentNodeFinal),
-                          origCFANodeToCopyMap.get(exitNode));
+                          origCFANodeToCopyMap.get(exitNode),
+                          false);
                   origCFANodeToCopyMap.get(currentNodeFinal).addLeavingEdge(copyEdge);
                   origCFANodeToCopyMap.get(exitNode).addEnteringEdge(copyEdge);
                 });
@@ -113,8 +117,12 @@ public class TestTargetMinimizerEssential {
         }
         // create the new Edge and add it to its predecessor and successor nodes aswell as mapping
         // the original to it
+
         CFAEdge copyEdge =
-            new DummyCFAEdge(origCFANodeToCopyMap.get(currentNode), copiedSuccessorNode);
+            new DummyInputCFAEdge(
+                origCFANodeToCopyMap.get(currentNode),
+                copiedSuccessorNode,
+                TestTargetReductionUtils.isInputEdge(currentEdge));
         origCFANodeToCopyMap.get(currentNode).addLeavingEdge(copyEdge);
         copiedSuccessorNode.addEnteringEdge(copyEdge);
 
@@ -148,6 +156,7 @@ public class TestTargetMinimizerEssential {
     return entersNode(pEdge, pFunctionExitNode);
   }
 
+  // TODO use DummyInputCFAEdge, consider hasInput
   private void redirectEdgeToNewPredecessor(
       final CFAEdge edgeToRedirect,
       final CFANode newPredecessor,
@@ -170,6 +179,7 @@ public class TestTargetMinimizerEssential {
     copyTestTargetProperty(edgeToRedirect, redirectedEdge, copiedEdgeToTestTargetsMap);
   }
 
+  // TODO use DummyInputCFAEdge, consider hasInput
   private void redirectEdgeToNewSuccessor(
       CFAEdge edgeToRedirect,
       CFANode newSuccessor,
