@@ -167,7 +167,7 @@ public class SeqUtil {
         + SeqSyntax.NEWLINE;
   }
 
-  // helpers
+  // Helpers =====================================================================================
 
   private static boolean isConstCpaCheckerTMP(CVariableDeclaration pVarDec) {
     return pVarDec.getType().isConst()
@@ -191,12 +191,12 @@ public class SeqUtil {
       return true;
     } else if (pEdge instanceof CDeclarationEdge decEdge) {
       CDeclaration dec = decEdge.getDeclaration();
-      if (dec instanceof CVariableDeclaration varDec) {
+      if (!(dec instanceof CVariableDeclaration varDec)) {
+        return true; // all non vars are declared beforehand
+      } else {
         // code of const int CPAchecker_TMP vars is included in the cases
         // TODO make sure that the two successors code is within the same case
-        if (isConstCpaCheckerTMP(varDec)) {
-          return false;
-        }
+        return !isConstCpaCheckerTMP(varDec);
       }
     }
     return PthreadFuncType.isCallToAnyPthreadFunc(pEdge);

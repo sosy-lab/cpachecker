@@ -10,9 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 
 public class SeqToken {
 
-  public static final String ANY_FALSE = "anyFalse";
-
-  public static final String ANY_NON_NEGATIVE = "anyNonNegative";
+  public static final String ANY_NON_NEGATIVE = "any_non_negative";
 
   public static final String ARRAY = "array";
 
@@ -40,13 +38,13 @@ public class SeqToken {
 
   public static final String MAIN = "main";
 
-  public static final String NEXT_STATEMENT = "nextStatement";
-
-  public static final String NEXT_THREAD = "nextThread";
+  public static final String NEXT_THREAD = "next_thread";
 
   public static final String NON_DET = "nondet";
 
-  public static final String NUM_THREADS = "numThreads";
+  public static final String NUM_THREADS = "num_threads";
+
+  public static final String ORIGINAL_PROGRAM_DECLARATIONS = "original program declarations";
 
   public static final String PARAMETER = "parameter";
 

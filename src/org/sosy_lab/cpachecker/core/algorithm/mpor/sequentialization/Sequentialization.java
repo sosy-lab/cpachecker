@@ -13,12 +13,14 @@ import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Variable;
@@ -115,6 +117,12 @@ public class Sequentialization {
 
     StringBuilder rProgram = new StringBuilder();
 
+    // prepend all function, complex type, typedef declarations
+    rProgram.append(SeqComment.createNonVarDeclarationComment());
+    for (var entry : pSubstitutions.entrySet()) {
+      rProgram.append(createNonVarDecString(entry.getKey()));
+    }
+
     // prepend all var declarations in the order global - local - params - return_pcs
     MPORThread mainThread = MPORAlgorithm.getMainThread(pSubstitutions.keySet());
     rProgram.append(createGlobalVarString(pSubstitutions.get(mainThread)));
@@ -148,6 +156,21 @@ public class Sequentialization {
     }
 
     return rProgram.toString();
+  }
+
+  private String createNonVarDecString(MPORThread pThread) {
+    StringBuilder rDecs = new StringBuilder();
+    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
+      if (threadEdge.cfaEdge instanceof CDeclarationEdge decEdge) {
+        CDeclaration dec = decEdge.getDeclaration();
+        if (!(dec instanceof CVariableDeclaration)) {
+          assert pThread.isMain(); // TODO testing if only the main thread declares non vars
+          rDecs.append(threadEdge.cfaEdge.getCode()).append(SeqSyntax.NEWLINE);
+        }
+      }
+    }
+    rDecs.append(SeqSyntax.NEWLINE);
+    return rDecs.toString();
   }
 
   private String createGlobalVarString(CSimpleDeclarationSubstitution pSubstitution) {

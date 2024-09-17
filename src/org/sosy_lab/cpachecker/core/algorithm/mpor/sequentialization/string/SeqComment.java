@@ -12,6 +12,10 @@ public class SeqComment {
 
   private static final String COMMENT_SINGLE = "// ";
 
+  public static String createNonVarDeclarationComment() {
+    return COMMENT_SINGLE + SeqToken.ORIGINAL_PROGRAM_DECLARATIONS + SeqSyntax.NEWLINE;
+  }
+
   public static String createGlobalVarsComment() {
     return COMMENT_SINGLE
         + SeqToken.GLOBAL

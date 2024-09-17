@@ -101,7 +101,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    
+
     checkForCorrectInitialState(pReachedSet, threads);
 
     // if there is only one element in pReachedSet, it is our initial AbstractState
