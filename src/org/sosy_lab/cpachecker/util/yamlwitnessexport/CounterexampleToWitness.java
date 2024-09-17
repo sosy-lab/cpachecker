@@ -186,31 +186,6 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   /**
-   * Creates a waypoint record which describes which branch should be taken at an iteration
-   * statement
-   *
-   * @param pIterationElement the AST element where the branch taken should be constrained
-   * @param assumeEdge the edge which encodes what branch should be taken
-   * @return a waypoint record constraining the execution to a single branch of this if statement
-   */
-  private static WaypointRecord handleBranchingWaypoint(
-      IterationElement pIterationElement, AssumeEdge assumeEdge) {
-    String branchToFollow =
-        Boolean.toString(
-            pIterationElement
-                .getNodesBetweenConditionAndBody()
-                .contains(assumeEdge.getSuccessor()));
-    return new WaypointRecord(
-        WaypointRecord.WaypointType.BRANCHING,
-        WaypointRecord.WaypointAction.FOLLOW,
-        new InformationRecord(branchToFollow, null, null),
-        LocationRecord.createLocationRecordAtStart(
-            pIterationElement.getCompleteElement().location(),
-            assumeEdge.getFileLocation().getFileName().toString(),
-            assumeEdge.getPredecessor().getFunctionName()));
-  }
-
-  /**
    * Export the given counterexample to the path as a Witness version 2.0
    *
    * @param pCex the counterexample to be exported
