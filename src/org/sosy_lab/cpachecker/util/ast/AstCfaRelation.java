@@ -108,11 +108,14 @@ public final class AstCfaRelation {
    * @param pEdge the edge to look for
    * @return the IfElement that contains the given edge as a condition
    */
-  public IfElement getIfStructureForConditionEdge(CFAEdge pEdge) {
+  public Optional<IfElement> getIfStructureForConditionEdge(CFAEdge pEdge) {
     if (conditionEdgesToIfStructure == null) {
       initializeMapFromConditionEdgesToIfStructures();
     }
-    return conditionEdgesToIfStructure.getOrDefault(pEdge, null);
+
+    IfElement result = conditionEdgesToIfStructure.getOrDefault(pEdge, null);
+
+    return Optional.ofNullable(result);
   }
 
   /**

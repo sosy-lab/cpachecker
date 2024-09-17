@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
@@ -183,6 +184,31 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   /**
+   * Creates a waypoint record which describes which branch should be taken at an iteration
+   * statement
+   *
+   * @param pIterationElement the AST element where the branch taken should be constrained
+   * @param assumeEdge the edge which encodes what branch should be taken
+   * @return a waypoint record constraining the execution to a single branch of this if statement
+   */
+  private static WaypointRecord handleBranchingWaypoint(
+      IterationElement pIterationElement, AssumeEdge assumeEdge) {
+    String branchToFollow =
+        Boolean.toString(
+            pIterationElement
+                .getNodesBetweenConditionAndBody()
+                .contains(assumeEdge.getSuccessor()));
+    return new WaypointRecord(
+        WaypointRecord.WaypointType.BRANCHING,
+        WaypointRecord.WaypointAction.FOLLOW,
+        new InformationRecord(branchToFollow, null, null),
+        LocationRecord.createLocationRecordAtStart(
+            pIterationElement.getCompleteElement().location(),
+            assumeEdge.getFileLocation().getFileName().toString(),
+            assumeEdge.getPredecessor().getFunctionName()));
+  }
+
+  /**
    * Export the given counterexample to the path as a Witness version 2.0
    *
    * @param pCex the counterexample to be exported
@@ -243,24 +269,45 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         // Currently we only export IfStructures, since there is no nice way to say how often a loop
         // should be traversed and exporting this information will quickly make the witness
         // difficult to read
-        // TODO: Also export branches at iteration statements
-        IfElement ifElement = astCFARelation.getIfStructureForConditionEdge(edge);
-        if (ifElement == null) {
-          continue;
+        Optional<IfElement> optionalIfElement = astCFARelation.getIfStructureForConditionEdge(edge);
+        if (optionalIfElement.isPresent()) {
+          IfElement ifElement = optionalIfElement.orElseThrow();
+          Set<CFANode> nodesBetweenConditionAndThenBranch =
+              ifElement.getNodesBetweenConditionAndThenBranch();
+          Set<CFANode> nodesBetweenConditionAndElseBranch =
+              ifElement.getNodesBetweenConditionAndElseBranch();
+          CFANode successor = edge.getSuccessor();
+
+          if (!nodesBetweenConditionAndThenBranch.contains(successor)
+              && !nodesBetweenConditionAndElseBranch.contains(successor)) {
+            continue;
+          }
+
+          waypoints.add(handleBranchingWaypoint(ifElement, assumeEdge));
+        } else {
+          Optional<IterationElement> optionalIterationElement =
+              astCFARelation.getTightestIterationStructureForNode(edge.getPredecessor());
+
+          if (optionalIterationElement.isPresent()) {
+            IterationElement iterationElement = optionalIterationElement.orElseThrow();
+            CFANode successor = edge.getSuccessor();
+            Set<CFANode> nodesBetweenConditionAndBody =
+                iterationElement.getNodesBetweenConditionAndBody();
+            Set<CFANode> nodesBetweenConditionAndExit =
+                iterationElement.getNodesBetweenConditionAndExit();
+
+            if (!nodesBetweenConditionAndBody.contains(successor)
+                && !nodesBetweenConditionAndExit.contains(successor)) {
+              continue;
+            }
+
+            waypoints.add(handleBranchingWaypoint(iterationElement, assumeEdge));
+
+          } else {
+            logger.log(Level.INFO, "Could not find the AST structure for the edge: " + edge);
+          }
         }
 
-        Set<CFANode> nodesBetweenConditionAndThenBranch =
-            ifElement.getNodesBetweenConditionAndThenBranch();
-        Set<CFANode> nodesBetweenConditionAndElseBranch =
-            ifElement.getNodesBetweenConditionAndElseBranch();
-        CFANode successor = edge.getSuccessor();
-
-        if (!nodesBetweenConditionAndThenBranch.contains(successor)
-            && !nodesBetweenConditionAndElseBranch.contains(successor)) {
-          continue;
-        }
-
-        waypoints.add(handleBranchingWaypoint(ifElement, assumeEdge));
       } else if (exportCompleteCounterexample) {
         // Export all other edges which are not absolutely relevant for the counterexample
         Optional<WaypointRecord> assumptionWaypoint =
