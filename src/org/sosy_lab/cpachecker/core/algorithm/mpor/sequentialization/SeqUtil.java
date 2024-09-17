@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
@@ -84,8 +85,9 @@ public class SeqUtil {
   public static String createCodeFromThreadNode(
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs,
+      ImmutableMap<ThreadEdge, AssignExpr> pReturnPcAssigns,
       ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> pParamAssigns,
-      ImmutableMap<ThreadNode, AssignExpr> pReturnPcAssigns) {
+      ImmutableMap<ThreadNode, AssignExpr> pPcsReturnPcAssigns) {
 
     StringBuilder code = new StringBuilder();
 
@@ -96,8 +98,8 @@ public class SeqUtil {
       code.append(SeqExprBuilder.setExitPc.createString());
 
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
-      assert pReturnPcAssigns.containsKey(pThreadNode);
-      AssignExpr assign = pReturnPcAssigns.get(pThreadNode);
+      assert pPcsReturnPcAssigns.containsKey(pThreadNode);
+      AssignExpr assign = pPcsReturnPcAssigns.get(pThreadNode);
       assert assign != null;
       code.append(assign.createString());
 
@@ -126,6 +128,12 @@ public class SeqUtil {
               code.append(SeqSyntax.NEWLINE).append(elseIfCodeExpr.createString());
             }
 
+          } else if (sub instanceof FunctionSummaryEdge) {
+            assert pReturnPcAssigns.containsKey(threadEdge);
+            AssignExpr assign = pReturnPcAssigns.get(threadEdge);
+            assert assign != null;
+            code.append(assign.createString());
+
           } else if (sub instanceof FunctionCallEdge) {
             assert pParamAssigns.containsKey(threadEdge);
             ImmutableList<AssignExpr> assigns = pParamAssigns.get(threadEdge);
@@ -133,6 +141,7 @@ public class SeqUtil {
             for (AssignExpr assign : assigns) {
               code.append(assign.createString());
             }
+            code.append(updatePcsNextThread.createString());
 
           } else {
             code.append(sub.getCode())
