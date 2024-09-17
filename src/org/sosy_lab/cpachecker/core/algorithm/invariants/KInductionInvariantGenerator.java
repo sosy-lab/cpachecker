@@ -231,8 +231,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
               pTargetLocationProvider,
               specification),
           pAggregatedReachedSets);
-    } catch (InvalidWitnessException pE) {
-      throw new InvalidConfigurationException("Invalid witness.", pE);
+    } catch (InvalidWitnessException e) {
+      throw new InvalidConfigurationException("Invalid witness.", e);
     }
   }
 

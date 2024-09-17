@@ -271,10 +271,10 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     } catch (CPAException | InvalidConfigurationException e) {
       logger.logUserException(
           Level.WARNING, e, "Predicate from correctness witness invariants could not be computed");
-    } catch (InvalidWitnessException pE) {
+    } catch (InvalidWitnessException e) {
       logger.logUserException(
           Level.WARNING,
-          pE,
+          e,
           "Could not match witness to CFA. When reading invariants as predicates the semantics of"
               + " the witness need not be strictly followed. If necessary disable the options"
               + " responsible for strictly checking the witness.");
