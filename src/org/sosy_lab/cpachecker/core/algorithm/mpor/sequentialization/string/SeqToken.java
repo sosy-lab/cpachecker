@@ -42,6 +42,8 @@ public class SeqToken {
 
   public static final String NON_DET = "nondet";
 
+  public static final String NON_VARIABLE = "(non-variable)";
+
   public static final String NUM_THREADS = "num_threads";
 
   public static final String ORIGINAL_PROGRAM_DECLARATIONS = "original program declarations";

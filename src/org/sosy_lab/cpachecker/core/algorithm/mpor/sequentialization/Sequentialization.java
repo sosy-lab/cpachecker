@@ -11,14 +11,18 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -58,7 +62,7 @@ public class Sequentialization {
    * <p>E.g. a {@link FunctionSummaryEdge} for the function {@code fib} in thread 0 is mapped to the
    * declaration {@code int t0_{fib}_return_pc;}.
    */
-  public static ImmutableMap<ThreadEdge, DeclareExpr> mapReturnPcDecs(MPORThread pThread) {
+  private static ImmutableMap<ThreadEdge, DeclareExpr> mapReturnPcDecs(MPORThread pThread) {
     ImmutableMap.Builder<ThreadEdge, DeclareExpr> rDecs = ImmutableMap.builder();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       if (threadEdge.cfaEdge instanceof FunctionSummaryEdge funcSummary) {
@@ -111,17 +115,47 @@ public class Sequentialization {
     return rAssigns.buildOrThrow();
   }
 
+  /**
+   * Maps {@link ThreadNode}s whose {@link CFANode}s are {@link FunctionExitNode}s to {@code
+   * return_pc} variable assignments.
+   *
+   * <p>E.g. a {@link FunctionExitNode} for the function {@code fib} in thread 0 is mapped to the
+   * assignment {@code pcs[next_thread] = t0__fib__return_pc;}.
+   */
+  public static ImmutableMap<ThreadNode, AssignExpr> mapReturnPcAssigns(MPORThread pThread) {
+    Map<ThreadNode, AssignExpr> rAssigns = new HashMap<>();
+
+    ImmutableMap<ThreadEdge, DeclareExpr> returnPcDecs = mapReturnPcDecs(pThread);
+    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
+      if (threadEdge.cfaEdge instanceof FunctionSummaryEdge funcSummaryEdge) {
+        Optional<FunctionExitNode> funcExitNode = funcSummaryEdge.getFunctionEntry().getExitNode();
+        if (funcExitNode.isPresent()) {
+          DeclareExpr dec = returnPcDecs.get(threadEdge);
+          ThreadNode threadNode = pThread.cfa.getThreadNodeByCfaNode(funcExitNode.orElseThrow());
+          if (!rAssigns.containsKey(threadNode)) {
+            assert dec != null;
+            AssignExpr assign =
+                new AssignExpr(SeqExprBuilder.pcsNextThread, dec.variableExpr.variable);
+            rAssigns.put(threadNode, assign);
+          }
+        }
+      }
+    }
+    return ImmutableMap.copyOf(rAssigns);
+  }
+
   /** Generates and returns the entire sequentialized program. */
   public String generateProgram(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions) {
 
     StringBuilder rProgram = new StringBuilder();
 
-    // prepend all function, complex type, typedef declarations
+    // prepend all function, complex type, typedef declarations (i.e. non var declarations)
     rProgram.append(SeqComment.createNonVarDeclarationComment());
-    for (var entry : pSubstitutions.entrySet()) {
-      rProgram.append(createNonVarDecString(entry.getKey()));
+    for (MPORThread thread : pSubstitutions.keySet()) {
+      rProgram.append(createNonVarDecString(thread));
     }
+    rProgram.append(SeqSyntax.NEWLINE);
 
     // prepend all var declarations in the order global - local - params - return_pcs
     MPORThread mainThread = MPORAlgorithm.getMainThread(pSubstitutions.keySet());
@@ -144,13 +178,15 @@ public class Sequentialization {
       MPORThread thread = entry.getKey();
       CSimpleDeclarationSubstitution substitution = entry.getValue();
       ImmutableMap<ThreadEdge, CFAEdge> edgeSubs = substitution.substituteEdges(thread);
+      ImmutableMap<ThreadNode, AssignExpr> returnPcAssigns = mapReturnPcAssigns(thread);
+
       rProgram.append(SeqSyntax.NEWLINE);
       rProgram.append("=============== thread ").append(thread.id).append(" ===============");
       rProgram.append(SeqSyntax.NEWLINE).append(SeqSyntax.NEWLINE);
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
         rProgram.append(SeqToken.CASE).append(SeqSyntax.SPACE);
         rProgram.append(threadNode.pc).append(SeqSyntax.COLON).append(SeqSyntax.SPACE);
-        rProgram.append(SeqUtil.createCodeFromThreadNode(threadNode, edgeSubs));
+        rProgram.append(SeqUtil.createCodeFromThreadNode(threadNode, edgeSubs, returnPcAssigns));
         rProgram.append(SeqSyntax.NEWLINE);
       }
     }
@@ -169,7 +205,6 @@ public class Sequentialization {
         }
       }
     }
-    rDecs.append(SeqSyntax.NEWLINE);
     return rDecs.toString();
   }
 

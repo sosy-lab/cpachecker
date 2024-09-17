@@ -16,9 +16,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ASTStringExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
@@ -81,7 +81,9 @@ public class SeqUtil {
   // TODO make sure function parameter names are changed to original calling name
   // TODO test if blank edges can always be safely skipped
   public static String createCodeFromThreadNode(
-      ThreadNode pThreadNode, ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs) {
+      ThreadNode pThreadNode,
+      ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs,
+      ImmutableMap<ThreadNode, AssignExpr> pReturnPcAssigns) {
 
     StringBuilder code = new StringBuilder();
 
@@ -90,6 +92,12 @@ public class SeqUtil {
       // TODO test, remove later
       assert pThreadNode.pc == EXIT_PC;
       code.append(SeqExprBuilder.setExitPc.createString());
+
+    } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
+      assert pReturnPcAssigns.containsKey(pThreadNode);
+      AssignExpr assign = pReturnPcAssigns.get(pThreadNode);
+      assert assign != null;
+      code.append(assign.createString());
 
     } else {
       boolean firstEdge = true;
@@ -122,17 +130,6 @@ public class SeqUtil {
                 .append(updatePcsNextThread.createString());
           }
         }
-
-        // TODO CDeclarationEdge: put them all in front of the loop
-        //  declarationEdges have to be checked for a right hand side. if it is present, the
-        //  declaration is transformed into an assignment in the seq. if it is not present, the
-        //  edge is skipped
-
-        /*} else if (substitute instanceof FunctionCallEdge functionCallEdge) {
-        // TODO map calling parameter name to actual parameter name
-        code.append(substitute.getCode())
-            .append(SeqSyntax.SPACE)
-            .append(updatePcsNextThread.createString()); */
       }
     }
     return code.toString();
@@ -186,7 +183,7 @@ public class SeqUtil {
   }
 
   private static boolean emptyCaseCode(CFAEdge pEdge) {
-    if (pEdge instanceof BlankEdge || pEdge instanceof CFunctionReturnEdge) {
+    if (pEdge instanceof BlankEdge) {
       assert pEdge.getCode().isEmpty(); // TODO test, remove later
       return true;
     } else if (pEdge instanceof CDeclarationEdge decEdge) {

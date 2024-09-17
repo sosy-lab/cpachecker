@@ -25,7 +25,7 @@ public class SeqExprBuilder {
 
   private static final Variable nextThread = new Variable(SeqToken.NEXT_THREAD);
 
-  private static final ArrayElement pcsNextThread = new ArrayElement(pcs, nextThread);
+  public static final ArrayElement pcsNextThread = new ArrayElement(pcs, nextThread);
 
   public static final AssignExpr setExitPc =
       new AssignExpr(pcsNextThread, new Value(Integer.toString(SeqUtil.EXIT_PC)));
