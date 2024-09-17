@@ -112,6 +112,7 @@ import org.sosy_lab.cpachecker.util.ExpressionSubstitution;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.SubstitutionException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -212,23 +213,27 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     KInductionInvariantGeneratorOptions options = new KInductionInvariantGeneratorOptions();
     pConfig.inject(options);
 
-    return new KInductionInvariantGenerator(
-        pConfig,
-        pLogger.withComponentName("KInductionInvariantGenerator"),
-        pShutdownManager,
-        pCFA,
-        specification,
-        pReachedSetFactory,
-        options.async,
-        getCandidateInvariants(
-            options,
-            pConfig,
-            pLogger,
-            pCFA,
-            pShutdownManager,
-            pTargetLocationProvider,
-            specification),
-        pAggregatedReachedSets);
+    try {
+      return new KInductionInvariantGenerator(
+          pConfig,
+          pLogger.withComponentName("KInductionInvariantGenerator"),
+          pShutdownManager,
+          pCFA,
+          specification,
+          pReachedSetFactory,
+          options.async,
+          getCandidateInvariants(
+              options,
+              pConfig,
+              pLogger,
+              pCFA,
+              pShutdownManager,
+              pTargetLocationProvider,
+              specification),
+          pAggregatedReachedSets);
+    } catch (InvalidWitnessException pE) {
+      throw new InvalidConfigurationException("Invalid witness.", pE);
+    }
   }
 
   static KInductionInvariantGenerator create(
@@ -482,7 +487,10 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       final ShutdownManager pShutdownManager,
       TargetLocationProvider pTargetLocationProvider,
       Specification pSpecification)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws InvalidConfigurationException,
+          CPAException,
+          InterruptedException,
+          InvalidWitnessException {
 
     final Set<CandidateInvariant> candidates = new LinkedHashSet<>();
 

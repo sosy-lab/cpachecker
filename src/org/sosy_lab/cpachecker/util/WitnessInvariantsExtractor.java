@@ -92,9 +92,18 @@ public class WitnessInvariantsExtractor {
               + " be used to debug those cases.")
   private boolean checkForMissedInvariants = false;
 
+  @Option(
+      secure = true,
+      name = "failOnUnmatchedInvariants",
+      description =
+          "Fail if invariants in the witness do not match a unique location in the CFA. "
+              + "This is useful to detect errors in the witness file.")
+  private boolean failOnUnmatchedInvariants = false;
+
   // Check whether the witness is a YAML witness or not. Because we need to interpret them
   // differently
   private boolean isYAMLWitness = false;
+
   private Optional<Set<ExpressionTreeLocationInvariant>> potentialCandidatesYAMLWitness =
       Optional.empty();
 
@@ -117,7 +126,10 @@ public class WitnessInvariantsExtractor {
       CFA pCFA,
       ShutdownNotifier pShutdownNotifier,
       Path pPathToWitnessFile)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws InvalidConfigurationException,
+          CPAException,
+          InterruptedException,
+          InvalidWitnessException {
     config = pConfig;
     config.inject(this);
     logger = pLogger;
@@ -211,8 +223,23 @@ public class WitnessInvariantsExtractor {
     }
   }
 
+  /**
+   * Exception that is thrown when the witness is invalid. This can for example happen when there is
+   * an invariant in the witness which cannot be uniquely mapped to a CFA node. Since it is
+   * currently unclear what should happen in case we encounter an invalid witness, we throw an
+   * exception to identify and handle this case in the correct locations.
+   */
+  public static class InvalidWitnessException extends Exception {
+    public InvalidWitnessException(String message) {
+      super(message);
+    }
+  }
+
   private Optional<Set<ExpressionTreeLocationInvariant>> analyzeYAMLWitness(Path pPathToWitnessFile)
-      throws InvalidConfigurationException, InterruptedException, IOException {
+      throws InvalidConfigurationException,
+          InterruptedException,
+          IOException,
+          InvalidWitnessException {
 
     List<AbstractEntry> entries =
         AutomatonWitnessV2ParserUtils.parseYAML(
@@ -257,6 +284,13 @@ public class WitnessInvariantsExtractor {
             invariant.getLine(),
             ":",
             invariant.getColumn());
+        if (failOnUnmatchedInvariants) {
+          throw new InvalidWitnessException(
+              "Could not find node for invariant at location "
+                  + invariant.getLine()
+                  + ":"
+                  + invariant.getColumn());
+        }
       }
     }
 
