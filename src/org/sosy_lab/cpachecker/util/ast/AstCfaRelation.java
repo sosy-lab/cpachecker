@@ -147,6 +147,47 @@ public final class AstCfaRelation {
     return result;
   }
 
+  /**
+   * Returns the node that starts the iteration statement at the given line and column.
+   *
+   * @param line the line at which the iteration statement starts
+   * @param column the column at which the iteration statement starts
+   * @return the node that starts the iteration statement at the given line and column if it could
+   *     be uniquely determined
+   */
+  public Optional<CFANode> getNodeForIterationStatementLocation(int line, int column) {
+    for (IterationElement structure : iterationStructures) {
+      if (structure.getCompleteElement().location().getStartingLineNumber() == line
+          && structure.getCompleteElement().location().getStartColumnInLine() == column) {
+        return structure.getLoopHead();
+      }
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Returns the node that starts the statement at the given line and column.
+   *
+   * @param line the line at which the iteration statement starts
+   * @param column the column at which the iteration statement starts
+   * @return the node that starts the iteration statement at the given line and column if it could
+   *     be uniquely determined
+   */
+  public Optional<CFANode> getNodeForStatementLocation(int line, int column) {
+    ASTElement statement =
+        Objects.requireNonNull(
+                startingLocationToTightestStatement.floorEntry(new StartingLocation(column, line)))
+            .getValue();
+
+    if (statement.location().getStartingLineNumber() != line
+        || statement.location().getStartColumnInLine() != column) {
+      // We only want to match the exact starting location of the statement
+      return Optional.empty();
+    }
+
+    return statement.edges().stream().map(CFAEdge::getPredecessor).findFirst();
+  }
+
   private void initializeMapFromLineAndStartColumnToIfStructure() {
     if (lineAndStartColumnToIfStructure != null) {
       return;

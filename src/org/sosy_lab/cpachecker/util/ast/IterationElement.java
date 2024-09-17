@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public final class IterationElement extends BranchingElement {
 
@@ -57,5 +58,23 @@ public final class IterationElement extends BranchingElement {
 
   public Optional<ASTElement> getIterationExpression() {
     return iterationExpression;
+  }
+
+  public Optional<CFANode> getLoopHead() {
+    if (controllingExpression.isEmpty()) {
+      return Optional.empty();
+    }
+
+    ImmutableSet<CFANode> loopStartNodes =
+        controllingExpression.orElseThrow().edges().stream()
+            .map(CFAEdge::getPredecessor)
+            .filter(CFANode::isLoopStart)
+            .collect(ImmutableSet.toImmutableSet());
+
+    if (loopStartNodes.size() != 1) {
+      return Optional.empty();
+    }
+
+    return Optional.of(loopStartNodes.iterator().next());
   }
 }
