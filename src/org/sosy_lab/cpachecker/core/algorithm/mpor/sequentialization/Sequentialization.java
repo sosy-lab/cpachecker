@@ -20,15 +20,20 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Variable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ASTStringExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.DeclareExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.VariableExpr;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
@@ -102,5 +107,76 @@ public class Sequentialization {
       }
     }
     return rAssigns.buildOrThrow();
+  }
+
+  /** Generates and returns the entire sequentialized program. */
+  public String generateProgram(
+      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions) {
+
+    StringBuilder rProgram = new StringBuilder();
+
+    // prepend all var declarations in the order global - local - params - return_pcs
+    MPORThread mainThread = MPORAlgorithm.getMainThread(pSubstitutions.keySet());
+    rProgram.append(createGlobalVarString(pSubstitutions.get(mainThread)));
+    for (var entry : pSubstitutions.entrySet()) {
+      rProgram.append(createLocalVarString(entry.getKey().id, entry.getValue()));
+    }
+    for (var entry : pSubstitutions.entrySet()) {
+      rProgram.append(createParamVarString(entry.getKey().id, entry.getValue()));
+    }
+    rProgram.append(SeqComment.createReturnPcVarsComment());
+    for (MPORThread thread : pSubstitutions.keySet()) {
+      for (DeclareExpr dec : mapReturnPcDecs(thread).values()) {
+        rProgram.append(dec.createString());
+      }
+    }
+
+    // create while loop with all switch cases
+    for (var entry : pSubstitutions.entrySet()) {
+      MPORThread thread = entry.getKey();
+      CSimpleDeclarationSubstitution substitution = entry.getValue();
+      ImmutableMap<ThreadEdge, CFAEdge> edgeSubs = substitution.substituteEdges(thread);
+      rProgram.append(SeqSyntax.NEWLINE);
+      rProgram.append("=============== thread ").append(thread.id).append(" ===============");
+      rProgram.append(SeqSyntax.NEWLINE).append(SeqSyntax.NEWLINE);
+      for (ThreadNode threadNode : thread.cfa.threadNodes) {
+        rProgram.append(SeqToken.CASE).append(SeqSyntax.SPACE);
+        rProgram.append(threadNode.pc).append(SeqSyntax.COLON).append(SeqSyntax.SPACE);
+        rProgram.append(SeqUtil.createCodeFromThreadNode(threadNode, edgeSubs));
+        rProgram.append(SeqSyntax.NEWLINE);
+      }
+    }
+
+    return rProgram.toString();
+  }
+
+  private String createGlobalVarString(CSimpleDeclarationSubstitution pSubstitution) {
+    StringBuilder rDecs = new StringBuilder();
+    rDecs.append(SeqComment.createGlobalVarsComment());
+    for (ASTStringExpr expr : SeqUtil.createGlobalDeclarations(pSubstitution)) {
+      rDecs.append(expr.createString()).append(SeqSyntax.NEWLINE);
+    }
+    rDecs.append(SeqSyntax.NEWLINE);
+    return rDecs.toString();
+  }
+
+  private String createLocalVarString(int pThreadId, CSimpleDeclarationSubstitution pSubstitution) {
+    StringBuilder rDecs = new StringBuilder();
+    rDecs.append(SeqComment.createLocalVarsComment(pThreadId));
+    for (ASTStringExpr expr : SeqUtil.createLocalDeclarations(pSubstitution)) {
+      rDecs.append(expr.createString()).append(SeqSyntax.NEWLINE);
+    }
+    rDecs.append(SeqSyntax.NEWLINE);
+    return rDecs.toString();
+  }
+
+  private String createParamVarString(int pThreadId, CSimpleDeclarationSubstitution pSubstitution) {
+    StringBuilder rDecs = new StringBuilder();
+    rDecs.append(SeqComment.createParamVarsComment(pThreadId));
+    for (ASTStringExpr expr : SeqUtil.createParamDeclarations(pSubstitution)) {
+      rDecs.append(expr.createString()).append(SeqSyntax.NEWLINE);
+    }
+    rDecs.append(SeqSyntax.NEWLINE);
+    return rDecs.toString();
   }
 }

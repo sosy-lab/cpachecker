@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.tests;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.sosy_lab.common.log.LogManager;
@@ -16,13 +15,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.DirectedGraph;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -113,26 +105,5 @@ public class MPORTests {
     directedGraphC.addEdge(2, 3);
     directedGraphC.addEdge(2, 4);
     assert !directedGraphC.containsCycle();
-  }
-
-  public static String generateProgram(
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pDecSubstitutions) {
-    StringBuilder rProgram = new StringBuilder();
-    rProgram.append(SeqUtil.createDeclarations(pDecSubstitutions));
-    for (var entry : pDecSubstitutions.entrySet()) {
-      MPORThread thread = entry.getKey();
-      CSimpleDeclarationSubstitution substitution = entry.getValue();
-      ImmutableMap<ThreadEdge, CFAEdge> edgeSubs = substitution.substituteEdges(thread);
-      rProgram.append(SeqSyntax.NEWLINE);
-      rProgram.append("=============== thread ").append(thread.id).append(" ===============");
-      rProgram.append(SeqSyntax.NEWLINE).append(SeqSyntax.NEWLINE);
-      for (ThreadNode threadNode : thread.cfa.threadNodes) {
-        rProgram.append(SeqToken.CASE).append(SeqSyntax.SPACE);
-        rProgram.append(threadNode.pc).append(SeqSyntax.COLON).append(SeqSyntax.SPACE);
-        rProgram.append(SeqUtil.createCodeFromThreadNode(threadNode, edgeSubs));
-        rProgram.append(SeqSyntax.NEWLINE);
-      }
-    }
-    return rProgram.toString();
   }
 }

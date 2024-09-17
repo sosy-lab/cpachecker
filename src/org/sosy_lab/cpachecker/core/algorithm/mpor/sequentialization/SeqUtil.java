@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -15,22 +16,20 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ASTStringExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.EdgeCodeExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ElseIfCodeExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.IfCodeExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.IfExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 
@@ -40,35 +39,40 @@ public class SeqUtil {
 
   public static final int EXIT_PC = -1;
 
-  public static String createDeclarations(
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pDecSubstitutions) {
+  public static ImmutableList<ASTStringExpr> createGlobalDeclarations(
+      CSimpleDeclarationSubstitution pSubstitution) {
 
-    StringBuilder rDeclarations = new StringBuilder();
-    for (var entry : pDecSubstitutions.entrySet()) {
-      MPORThread thread = entry.getKey();
-      CSimpleDeclarationSubstitution substitution = entry.getValue();
-      // declare global vars only once (because every thread substitution has every global var)
-      if (thread.isMain()) {
-        assert substitution.globalVarSubs != null; // should always hold, null only used in dummy
-        rDeclarations.append(SeqComment.createGlobalVarsComment());
-        for (CVariableDeclaration globalSub : substitution.globalVarSubs.values()) {
-          rDeclarations.append(globalSub.toASTString()).append(SeqSyntax.NEWLINE);
-        }
-        rDeclarations.append(SeqSyntax.NEWLINE);
-      }
-      rDeclarations.append(SeqComment.createThreadVarsComment(thread.id));
-      for (CVariableDeclaration localSub : substitution.localVarSubs.values()) {
-        // TODO handle const CPAcheckerTMPs as atomics (declared before the loop)
-        if (!isConstCpaCheckerTMP(localSub)) {
-          rDeclarations.append(localSub.toASTString()).append(SeqSyntax.NEWLINE);
-        }
-      }
-      for (CVariableDeclaration paramSub : substitution.paramSubs.values()) {
-        rDeclarations.append(paramSub.toASTString()).append(SeqSyntax.NEWLINE);
-      }
-      rDeclarations.append(SeqSyntax.NEWLINE);
+    ImmutableList.Builder<ASTStringExpr> rGlobalDecs = ImmutableList.builder();
+    assert pSubstitution.globalVarSubs != null;
+    for (CVariableDeclaration sub : pSubstitution.globalVarSubs.values()) {
+      rGlobalDecs.add(new ASTStringExpr(sub.toASTString()));
     }
-    return rDeclarations.toString();
+    return rGlobalDecs.build();
+  }
+
+  public static ImmutableList<ASTStringExpr> createLocalDeclarations(
+      CSimpleDeclarationSubstitution pSubstitution) {
+
+    ImmutableList.Builder<ASTStringExpr> rLocalDecs = ImmutableList.builder();
+    assert pSubstitution.localVarSubs != null;
+    for (CVariableDeclaration sub : pSubstitution.localVarSubs.values()) {
+      // TODO handle const CPAcheckerTMPs as atomics (declared before the loop)
+      if (!isConstCpaCheckerTMP(sub)) {
+        rLocalDecs.add(new ASTStringExpr(sub.toASTString()));
+      }
+    }
+    return rLocalDecs.build();
+  }
+
+  public static ImmutableList<ASTStringExpr> createParamDeclarations(
+      CSimpleDeclarationSubstitution pSubstitution) {
+
+    ImmutableList.Builder<ASTStringExpr> rParamDecs = ImmutableList.builder();
+    assert pSubstitution.paramSubs != null;
+    for (CVariableDeclaration sub : pSubstitution.paramSubs.values()) {
+      rParamDecs.add(new ASTStringExpr(sub.toASTString()));
+    }
+    return rParamDecs.build();
   }
 
   // TODO make sure all pthread_... functions are removed (skip pcs)
@@ -111,8 +115,6 @@ public class SeqUtil {
               ElseIfCodeExpr elseIfCodeExpr = new ElseIfCodeExpr(ifExpr, updatePcsNextThread);
               code.append(SeqSyntax.NEWLINE).append(elseIfCodeExpr.createString());
             }
-
-          } else if (sub instanceof FunctionCallEdge) {
 
           } else {
             code.append(sub.getCode())
@@ -182,7 +184,7 @@ public class SeqUtil {
     }
     return true;
   }
-  
+
   private static boolean emptyCaseCode(CFAEdge pEdge) {
     if (pEdge instanceof BlankEdge || pEdge instanceof CFunctionReturnEdge) {
       assert pEdge.getCode().isEmpty(); // TODO test, remove later

@@ -101,7 +101,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-
+    
     checkForCorrectInitialState(pReachedSet, threads);
 
     // if there is only one element in pReachedSet, it is our initial AbstractState
@@ -607,22 +607,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // (Private) Helpers ===========================================================================
 
   /**
-   * Returns the MPORThread in pThreads whose pthread_t object is null.
-   *
-   * @param pThreads the set of MPORThreads to be searched
-   * @return the main thread in pThreads
-   * @throws IllegalArgumentException if the main thread is not found
-   */
-  private MPORThread getMainThread(ImmutableSet<MPORThread> pThreads) {
-    for (MPORThread thread : pThreads) {
-      if (thread.isMain()) {
-        return thread;
-      }
-    }
-    throw new IllegalArgumentException("pThreads does not contain the main thread");
-  }
-
-  /**
    * Checks if all threads in pState are at a CFANode whose leaving edges contains at least one
    * global access.
    *
@@ -671,5 +655,17 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     return true;
+  }
+
+  // (Public) Helpers ===========================================================================
+
+  /** Returns the MPORThread in pThreads whose pthread_t object is empty. */
+  public static MPORThread getMainThread(ImmutableSet<MPORThread> pThreads) {
+    for (MPORThread thread : pThreads) {
+      if (thread.isMain()) {
+        return thread;
+      }
+    }
+    throw new IllegalArgumentException("pThreads does not contain the main thread");
   }
 }

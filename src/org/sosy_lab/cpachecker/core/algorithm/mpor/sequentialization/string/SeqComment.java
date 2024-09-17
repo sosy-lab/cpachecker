@@ -20,7 +20,7 @@ public class SeqComment {
         + SeqSyntax.NEWLINE;
   }
 
-  public static String createThreadVarsComment(int threadId) {
+  public static String createLocalVarsComment(int threadId) {
     return COMMENT_SINGLE
         + SeqToken.THREAD
         + SeqSyntax.SPACE
@@ -32,7 +32,19 @@ public class SeqComment {
         + SeqSyntax.NEWLINE;
   }
 
-  public static String createReturnPcVarComment() {
+  public static String createParamVarsComment(int threadId) {
+    return COMMENT_SINGLE
+        + SeqToken.THREAD
+        + SeqSyntax.SPACE
+        + threadId
+        + SeqSyntax.SPACE
+        + SeqToken.PARAMETER
+        + SeqSyntax.SPACE
+        + SeqToken.VARIABLES
+        + SeqSyntax.NEWLINE;
+  }
+
+  public static String createReturnPcVarsComment() {
     return COMMENT_SINGLE
         + SeqToken.THREAD
         + SeqSyntax.SPACE

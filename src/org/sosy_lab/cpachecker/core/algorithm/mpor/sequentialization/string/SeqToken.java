@@ -48,6 +48,8 @@ public class SeqToken {
 
   public static final String NUM_THREADS = "numThreads";
 
+  public static final String PARAMETER = "parameter";
+
   public static final String PCS = "pcs";
 
   public static final String PREFIX_SUBSTITUTE_GLOBAL = "__g";
