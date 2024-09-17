@@ -75,6 +75,37 @@ public class Sequentialization {
     return rDecs.buildOrThrow();
   }
 
+  // TODO handle return_pc = funcSummaryEdge target pc (assignExpr)
+
+  /**
+   * Maps {@link ThreadNode}s whose {@link CFANode}s are {@link FunctionExitNode}s to {@code
+   * return_pc} variable assignments.
+   *
+   * <p>E.g. a {@link FunctionExitNode} for the function {@code fib} in thread 0 is mapped to the
+   * assignment {@code pcs[next_thread] = t0__fib__return_pc;}.
+   */
+  private static ImmutableMap<ThreadNode, AssignExpr> mapReturnPcAssigns(MPORThread pThread) {
+    Map<ThreadNode, AssignExpr> rAssigns = new HashMap<>();
+
+    ImmutableMap<ThreadEdge, DeclareExpr> returnPcDecs = mapReturnPcDecs(pThread);
+    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
+      if (threadEdge.cfaEdge instanceof FunctionSummaryEdge funcSummaryEdge) {
+        Optional<FunctionExitNode> funcExitNode = funcSummaryEdge.getFunctionEntry().getExitNode();
+        if (funcExitNode.isPresent()) {
+          DeclareExpr dec = returnPcDecs.get(threadEdge);
+          ThreadNode threadNode = pThread.cfa.getThreadNodeByCfaNode(funcExitNode.orElseThrow());
+          if (!rAssigns.containsKey(threadNode)) {
+            assert dec != null;
+            AssignExpr assign =
+                new AssignExpr(SeqExprBuilder.pcsNextThread, dec.variableExpr.variable);
+            rAssigns.put(threadNode, assign);
+          }
+        }
+      }
+    }
+    return ImmutableMap.copyOf(rAssigns);
+  }
+
   /**
    * Maps {@link ThreadEdge}s whose {@link CFAEdge}s are {@link FunctionCallEdge}s to a list of
    * parameter assignment expressions.
@@ -83,7 +114,7 @@ public class Sequentialization {
    * ;} and {@code __t0_1_paramB = paramB ;}. Both substitution vars are declared in {@link
    * CSimpleDeclarationSubstitution#paramSubs}.
    */
-  public static ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> mapParamAssigns(
+  private static ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> mapParamAssigns(
       MPORThread pThread, CSimpleDeclarationSubstitution pSub) {
 
     ImmutableMap.Builder<ThreadEdge, ImmutableList<AssignExpr>> rAssigns = ImmutableMap.builder();
@@ -113,35 +144,6 @@ public class Sequentialization {
       }
     }
     return rAssigns.buildOrThrow();
-  }
-
-  /**
-   * Maps {@link ThreadNode}s whose {@link CFANode}s are {@link FunctionExitNode}s to {@code
-   * return_pc} variable assignments.
-   *
-   * <p>E.g. a {@link FunctionExitNode} for the function {@code fib} in thread 0 is mapped to the
-   * assignment {@code pcs[next_thread] = t0__fib__return_pc;}.
-   */
-  public static ImmutableMap<ThreadNode, AssignExpr> mapReturnPcAssigns(MPORThread pThread) {
-    Map<ThreadNode, AssignExpr> rAssigns = new HashMap<>();
-
-    ImmutableMap<ThreadEdge, DeclareExpr> returnPcDecs = mapReturnPcDecs(pThread);
-    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (threadEdge.cfaEdge instanceof FunctionSummaryEdge funcSummaryEdge) {
-        Optional<FunctionExitNode> funcExitNode = funcSummaryEdge.getFunctionEntry().getExitNode();
-        if (funcExitNode.isPresent()) {
-          DeclareExpr dec = returnPcDecs.get(threadEdge);
-          ThreadNode threadNode = pThread.cfa.getThreadNodeByCfaNode(funcExitNode.orElseThrow());
-          if (!rAssigns.containsKey(threadNode)) {
-            assert dec != null;
-            AssignExpr assign =
-                new AssignExpr(SeqExprBuilder.pcsNextThread, dec.variableExpr.variable);
-            rAssigns.put(threadNode, assign);
-          }
-        }
-      }
-    }
-    return ImmutableMap.copyOf(rAssigns);
   }
 
   /** Generates and returns the entire sequentialized program. */
@@ -179,6 +181,8 @@ public class Sequentialization {
       CSimpleDeclarationSubstitution substitution = entry.getValue();
       ImmutableMap<ThreadEdge, CFAEdge> edgeSubs = substitution.substituteEdges(thread);
       ImmutableMap<ThreadNode, AssignExpr> returnPcAssigns = mapReturnPcAssigns(thread);
+      ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> paramAssigns =
+          mapParamAssigns(thread, substitution);
 
       rProgram.append(SeqSyntax.NEWLINE);
       rProgram.append("=============== thread ").append(thread.id).append(" ===============");
@@ -186,7 +190,8 @@ public class Sequentialization {
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
         rProgram.append(SeqToken.CASE).append(SeqSyntax.SPACE);
         rProgram.append(threadNode.pc).append(SeqSyntax.COLON).append(SeqSyntax.SPACE);
-        rProgram.append(SeqUtil.createCodeFromThreadNode(threadNode, edgeSubs, returnPcAssigns));
+        rProgram.append(
+            SeqUtil.createCodeFromThreadNode(threadNode, edgeSubs, paramAssigns, returnPcAssigns));
         rProgram.append(SeqSyntax.NEWLINE);
       }
     }

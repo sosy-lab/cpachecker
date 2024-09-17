@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -83,6 +84,7 @@ public class SeqUtil {
   public static String createCodeFromThreadNode(
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs,
+      ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> pParamAssigns,
       ImmutableMap<ThreadNode, AssignExpr> pReturnPcAssigns) {
 
     StringBuilder code = new StringBuilder();
@@ -122,6 +124,14 @@ public class SeqUtil {
             } else {
               ElseIfCodeExpr elseIfCodeExpr = new ElseIfCodeExpr(ifExpr, updatePcsNextThread);
               code.append(SeqSyntax.NEWLINE).append(elseIfCodeExpr.createString());
+            }
+
+          } else if (sub instanceof FunctionCallEdge) {
+            assert pParamAssigns.containsKey(threadEdge);
+            ImmutableList<AssignExpr> assigns = pParamAssigns.get(threadEdge);
+            assert assigns != null;
+            for (AssignExpr assign : assigns) {
+              code.append(assign.createString());
             }
 
           } else {

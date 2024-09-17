@@ -30,6 +30,7 @@ public class AssignExpr implements SeqExpression {
         + SeqOperator.ASSIGN
         + SeqSyntax.SPACE
         + subsequent.createString()
-        + SeqSyntax.SEMICOLON;
+        + SeqSyntax.SEMICOLON
+        + SeqSyntax.SPACE;
   }
 }
