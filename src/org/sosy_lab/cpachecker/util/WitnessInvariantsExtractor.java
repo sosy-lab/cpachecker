@@ -230,6 +230,8 @@ public class WitnessInvariantsExtractor {
    * exception to identify and handle this case in the correct locations.
    */
   public static class InvalidWitnessException extends Exception {
+    private static final long serialVersionUID = -8706221651229799095L;
+
     public InvalidWitnessException(String message) {
       super(message);
     }
