@@ -269,7 +269,8 @@ public final class TestTargetReductionUtils {
     Map<Pair<CFAEdgeNode, CFAEdgeNode>, Boolean> pathsToRequiredInputs = new HashMap<>();
 
     Deque<Pair<CFAEdgeNode, CFAEdgeNode>> waitlist = new ArrayDeque<>();
-    Pair<CFAEdgeNode, CFAEdgeNode> path, newPath;
+    Pair<CFAEdgeNode, CFAEdgeNode> path;
+    Pair<CFAEdgeNode, CFAEdgeNode> newPath;
     boolean viaInput;
 
     for (CFAEdgeNode predTarget : pNodes) {

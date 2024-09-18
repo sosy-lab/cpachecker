@@ -66,7 +66,8 @@ public class SubsumptionOracleForTargetsAsEdges {
 
     CFAEdge succTarget;
     Deque<Pair<CFAEdge, CFAEdge>> waitlist = new ArrayDeque<>();
-    Pair<CFAEdge, CFAEdge> path, newPath;
+    Pair<CFAEdge, CFAEdge> path;
+    Pair<CFAEdge, CFAEdge> newPath;
     boolean viaInput;
 
     for (CFAEdge predTarget : pCopiedTargets) {
@@ -170,18 +171,18 @@ public class SubsumptionOracleForTargetsAsEdges {
                 originalTargetToCopiedTarget.get(origEdgeSubsumed).getSuccessor(),
                 originalTargetToCopiedTarget.get(origEdgeSubsumer).getSuccessor())
             || (inverseDomTree != null
-                    && reachedFromExit.contains(origEdgeSubsumed)
-                    && reachedFromExit.contains(origEdgeSubsumer)
-                    && inverseDomTree.isAncestorOf(
-                        originalTargetToCopiedTarget.get(origEdgeSubsumed).getSuccessor(),
-                        originalTargetToCopiedTarget.get(origEdgeSubsumer).getSuccessor()))
+                && reachedFromExit.contains(origEdgeSubsumed)
+                && reachedFromExit.contains(origEdgeSubsumer)
+                && inverseDomTree.isAncestorOf(
+                    originalTargetToCopiedTarget.get(origEdgeSubsumed).getSuccessor(),
+                    originalTargetToCopiedTarget.get(origEdgeSubsumer).getSuccessor())
                 // check that origEdgeSubsumer is reachable from program entry, TODO required?
                 && reachedFromEntry.contains(origEdgeSubsumer)
                 /* check that no input required on any path from origEdgeSubsumer to origEdgeSubsumed */
                 && !reachableViaInputs.contains(
                     Pair.of(
                         originalTargetToCopiedTarget.get(origEdgeSubsumer),
-                        originalTargetToCopiedTarget.get(origEdgeSubsumed))));
+                        originalTargetToCopiedTarget.get(origEdgeSubsumed)))));
 
     /*
      * Implementation of Arcs subsumes?. An arc e subsumes an arc e’ if every path from the
