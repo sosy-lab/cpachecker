@@ -223,6 +223,7 @@ public class TestTargetMinimizerEssential {
         // if an edge is mapped to a different test target
         if (copiedEdgeToTestTargetsMap.containsKey(domEdgeCandidate)
             && !copiedEdgeToTestTargetsMap.get(domEdgeCandidate).equals(testTargetToBeDominated)) {
+          // TODO need to take into account whether test input is required
           // removed edge is getting dominated by this edge so remove the removed edges
           // testtarget from our list of testtargets
           pTestTargets.remove(testTargetToBeDominated);
@@ -248,12 +249,19 @@ public class TestTargetMinimizerEssential {
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
       final Set<CFAEdge> pTestTargets) {
     CFANode pred = toRemove.getPredecessor();
+    boolean providesInput =
+        toRemove instanceof DummyInputCFAEdge && ((DummyInputCFAEdge) toRemove).providesInput();
     // remove the current nodes leaving edge from its successor and from the current edge
     pred.removeLeavingEdge(toRemove);
     toRemove.getSuccessor().removeEnteringEdge(toRemove);
     // add the exiting edges from the successor to the predecessor to keep the graph intact
     CFANode successorNode = toRemove.getSuccessor();
     while (successorNode.getNumLeavingEdges() > 0) {
+      if (providesInput) {
+        // TODO remember that need to propagate required information
+        // only if not beyond test target?
+        successorNode.getLeavingEdge(0);
+      }
       redirectEdgeToNewPredecessor(
           successorNode.getLeavingEdge(0), pred, copiedEdgeToTestTargetsMap);
     }
@@ -267,6 +275,7 @@ public class TestTargetMinimizerEssential {
           successorNode.getEnteringEdge(0), pred, copiedEdgeToTestTargetsMap);
     }
 
+    // TODO check
     updateTestGoalMappingAfterRemoval(
         toRemove, CFAUtils.enteringEdges(pred), copiedEdgeToTestTargetsMap, pTestTargets);
   }

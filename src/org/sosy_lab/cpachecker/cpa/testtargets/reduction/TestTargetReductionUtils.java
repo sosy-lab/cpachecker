@@ -15,6 +15,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -203,10 +204,11 @@ public final class TestTargetReductionUtils {
     return visited.contains(pExit);
   }
 
-  public static Pair<CFAEdgeNode, CFAEdgeNode> buildNodeBasedTestGoalGraph(
-      final Set<CFAEdge> pTestTargets,
-      final FunctionEntryNode pEntryNode,
-      final Map<CFAEdge, CFAEdgeNode> pTargetToGoalGraphNode) {
+  public static Pair<Pair<CFAEdgeNode, CFAEdgeNode>, ImmutableSet<Pair<CFAEdgeNode, CFAEdgeNode>>>
+      buildNodeBasedTestGoalGraph(
+          final Set<CFAEdge> pTestTargets,
+          final FunctionEntryNode pEntryNode,
+          final Map<CFAEdge, CFAEdgeNode> pTargetToGoalGraphNode) {
     Set<CFAEdge> reachableTargets = getReachableTestGoals(pEntryNode, pTestTargets);
     CFAEdgeNode graphStartNode = CFAEdgeNode.makeStartOrEndNode(true);
     CFAEdgeNode graphEndNode = CFAEdgeNode.makeStartOrEndNode(false);
@@ -221,7 +223,9 @@ public final class TestTargetReductionUtils {
       exploreSegment(target.getSuccessor(), graphStartNode, graphEndNode, pTargetToGoalGraphNode);
     }
 
-    return Pair.of(graphStartNode, graphEndNode);
+    return Pair.of(
+        Pair.of(graphStartNode, graphEndNode),
+        determinePathsWithRequiredInputs(pTargetToGoalGraphNode.values()));
   }
 
   private static void exploreSegment(
@@ -260,6 +264,39 @@ public final class TestTargetReductionUtils {
     }
   }
 
+  private static ImmutableSet<Pair<CFAEdgeNode, CFAEdgeNode>> determinePathsWithRequiredInputs(
+      Collection<CFAEdgeNode> pNodes) {
+    Map<Pair<CFAEdgeNode, CFAEdgeNode>, Boolean> pathsToRequiredInputs = new HashMap<>();
+
+    Deque<Pair<CFAEdgeNode, CFAEdgeNode>> waitlist = new ArrayDeque<>();
+    Pair<CFAEdgeNode, CFAEdgeNode> path, newPath;
+    boolean viaInput;
+
+    for (CFAEdgeNode predTarget : pNodes) {
+      for (CFAEdgeNode succTarget : CFAEdgeNode.allSuccessorsOf(predTarget)) {
+        newPath = Pair.of(predTarget, succTarget);
+        pathsToRequiredInputs.put(newPath, predTarget.mayReachViaInputs(succTarget));
+        waitlist.add(newPath);
+      }
+    }
+
+    while (!waitlist.isEmpty()) {
+      path = waitlist.pop();
+      for (CFAEdgeNode succTarget : CFAEdgeNode.allSuccessorsOf(path.getSecond())) {
+        newPath = Pair.of(path.getFirst(), succTarget);
+        viaInput = path.getFirst().mayReachViaInputs(succTarget);
+        if (!pathsToRequiredInputs.containsKey(newPath)
+            || (!pathsToRequiredInputs.get(newPath) && viaInput)) {
+          pathsToRequiredInputs.put(newPath, viaInput);
+          waitlist.add(newPath);
+        }
+      }
+    }
+    return ImmutableSet.copyOf(
+        FluentIterable.from(pathsToRequiredInputs.keySet())
+            .filter(pathPair -> pathsToRequiredInputs.get(pathPair)));
+  }
+
   public static Set<CFAEdge> getReachableTestGoals(
       final FunctionEntryNode pEntryNode, final Set<CFAEdge> pTargets) {
     Set<CFAEdge> seenTargets = new HashSet<>();
@@ -295,10 +332,18 @@ public final class TestTargetReductionUtils {
     return newEdge;
   }
 
-  public static <E> Set<E> getLeavesOfDomintorTree(final DomTree<E> pDomTree) {
-    Set<E> nonLeaves = Sets.newHashSetWithExpectedSize(pDomTree.getNodeCount());
-    for (E domTreeEntry : pDomTree) {
-      pDomTree.getParent(domTreeEntry).ifPresent(parent -> nonLeaves.add(parent));
+  public static Set<CFAEdgeNode> getLeavesOfDomintorTree(
+      final DomTree<CFAEdgeNode> pDomTree, final boolean isPostDomTree) {
+    Set<CFAEdgeNode> nonLeaves = Sets.newHashSetWithExpectedSize(pDomTree.getNodeCount());
+    for (CFAEdgeNode domTreeEntry : pDomTree) {
+      pDomTree
+          .getParent(domTreeEntry)
+          .ifPresent(
+              parent -> {
+                if (!isPostDomTree || !domTreeEntry.mayReachViaInputs(parent)) {
+                  nonLeaves.add(parent);
+                }
+              });
     }
 
     return FluentIterable.from(pDomTree).filter(node -> !nonLeaves.contains(node)).toSet();
@@ -452,6 +497,14 @@ public final class TestTargetReductionUtils {
 
     public boolean isLeave() {
       return successors.isEmpty() && successorsViaInputs.isEmpty();
+    }
+
+    public boolean mayReachViaInputs(final CFAEdgeNode pSuccessor) {
+      if (successorsViaInputs.contains(pSuccessor)) {
+        return true;
+      }
+      Preconditions.checkState(successors.contains(pSuccessor));
+      return false;
     }
 
     public CFAEdge getRepresentedEdge() {

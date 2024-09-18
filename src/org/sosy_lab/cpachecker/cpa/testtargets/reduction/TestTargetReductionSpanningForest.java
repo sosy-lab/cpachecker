@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.testtargets.reduction;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.Collection;
@@ -60,10 +61,7 @@ public class TestTargetReductionSpanningForest {
           }
           // TODO currently only approximation via dominator trees on nodes, not on edges
           if (oracle.subsumes(target, target2)) { // target subsumes target2
-            targetsAsNodes
-                .get(target)
-                .addEdgeTo(
-                    targetsAsNodes.get(target2), false); // TODO FIXME consider required input
+            targetsAsNodes.get(target).addEdgeTo(targetsAsNodes.get(target2), false);
             visited.add(target2);
           }
         }
@@ -84,9 +82,10 @@ public class TestTargetReductionSpanningForest {
       final Set<CFAEdge> pTargets, final CFA pCfa) {
     Map<CFAEdge, CFAEdgeNode> targetToGoalGraphNode =
         Maps.newHashMapWithExpectedSize(pTargets.size());
-    Pair<CFAEdgeNode, CFAEdgeNode> entryExit =
+    Pair<Pair<CFAEdgeNode, CFAEdgeNode>, ImmutableSet<Pair<CFAEdgeNode, CFAEdgeNode>>> result =
         TestTargetReductionUtils.buildNodeBasedTestGoalGraph(
             pTargets, pCfa.getMainFunction(), targetToGoalGraphNode);
+    Pair<CFAEdgeNode, CFAEdgeNode> entryExit = result.getFirst();
 
     Set<CFAEdgeNode> visited = Sets.newHashSetWithExpectedSize(targetToGoalGraphNode.size());
     Map<CFAEdgeNode, CFAEdgeNode> forestNodes =
@@ -115,10 +114,9 @@ public class TestTargetReductionSpanningForest {
           }
           // target subsumes target2
           if (domTree.isAncestorOf(target2, target)
-              || inverseDomTree.isAncestorOf(target2, target)) {
-            forestNodes
-                .get(target)
-                .addEdgeTo(forestNodes.get(target2), false); // TODO FIXME consider required input
+              || (inverseDomTree.isAncestorOf(target2, target)
+                  && !result.getSecond().contains(Pair.of(target, target2)))) {
+            forestNodes.get(target).addEdgeTo(forestNodes.get(target2), false);
             visited.add(target2);
           }
         }

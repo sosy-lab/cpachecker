@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.testtargets.reduction;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
@@ -82,9 +83,7 @@ public class TestTargetReductionSpanningSet_DominatorGraph {
         }
         // TODO currently only approximation via dominator trees on nodes, not on edges
         if (subOracle.subsumes(targetSucc, targetPred)) {
-          edgeToNode
-              .get(targetPred)
-              .addEdgeTo(edgeToNode.get(targetSucc), false); // TODO FIXME consider required input
+          edgeToNode.get(targetPred).addEdgeTo(edgeToNode.get(targetSucc), false);
         }
       }
     }
@@ -99,8 +98,9 @@ public class TestTargetReductionSpanningSet_DominatorGraph {
     CFAEdgeNode node;
     Map<CFAEdge, CFAEdgeNode> targetToNode = Maps.newHashMapWithExpectedSize(pTargets.size());
 
-    Pair<CFAEdgeNode, CFAEdgeNode> entryExit =
+    Pair<Pair<CFAEdgeNode, CFAEdgeNode>, ImmutableSet<Pair<CFAEdgeNode, CFAEdgeNode>>> result =
         TestTargetReductionUtils.buildNodeBasedTestGoalGraph(pTargets, pStartNode, targetToNode);
+    Pair<CFAEdgeNode, CFAEdgeNode> entryExit = result.getFirst();
     Map<CFAEdgeNode, CFAEdgeNode> graphNodeToNodeSpanningSet =
         Maps.newHashMapWithExpectedSize(targetToNode.size());
 
@@ -125,12 +125,11 @@ public class TestTargetReductionSpanningSet_DominatorGraph {
 
         // targetSucc subsumes targetPred
         if (domTree.isAncestorOf(targetPred, targetSucc)
-            || inverseDomTree.isAncestorOf(targetPred, targetSucc)) {
+            || (inverseDomTree.isAncestorOf(targetPred, targetSucc)
+                && !result.getSecond().contains(Pair.of(targetSucc, targetPred)))) {
           graphNodeToNodeSpanningSet
               .get(targetPred)
-              .addEdgeTo(
-                  graphNodeToNodeSpanningSet.get(targetSucc),
-                  false); // TODO FIXME consider required input
+              .addEdgeTo(graphNodeToNodeSpanningSet.get(targetSucc), false);
         }
       }
     }
