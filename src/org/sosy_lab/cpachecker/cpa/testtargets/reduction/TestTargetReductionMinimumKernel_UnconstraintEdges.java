@@ -95,7 +95,9 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
                 FluentIterable.from(pReverseDomTree.getAncestors(domTreeEntry))
                     .filter(
                         ancestor ->
-                            !pPathsWithInputs.get().contains(Pair.of(domTreeEntry, ancestor)))
+                            !pPathsWithInputs
+                                .orElseThrow()
+                                .contains(Pair.of(domTreeEntry, ancestor)))
                     .toSet(),
                 pLeaves));
 

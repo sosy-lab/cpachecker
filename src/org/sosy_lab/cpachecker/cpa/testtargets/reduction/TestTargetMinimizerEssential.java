@@ -260,7 +260,7 @@ public class TestTargetMinimizerEssential {
       if (providesInput) {
         // TODO remember that need to propagate required information
         // only if not beyond test target?
-        successorNode.getLeavingEdge(0);
+        // successorNode.getLeavingEdge(0);
       }
       redirectEdgeToNewPredecessor(
           successorNode.getLeavingEdge(0), pred, copiedEdgeToTestTargetsMap);
