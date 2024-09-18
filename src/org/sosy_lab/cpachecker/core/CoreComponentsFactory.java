@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummaryAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.error_condition.ErrorConditionCounterexampleExporter;
+import org.sosy_lab.cpachecker.core.algorithm.error_condition.ExportAssumeEdges;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
@@ -69,9 +71,6 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditio
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
-import org.sosy_lab.cpachecker.core.algorithm.tubes.ErrorConditionCounterexampleExporter;
-import org.sosy_lab.cpachecker.core.algorithm.tubes.ExportAssumeEdges;
-import org.sosy_lab.cpachecker.core.algorithm.tubes.TubeInterpolationAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
@@ -390,12 +389,6 @@ public class CoreComponentsFactory {
       name = "algorithm.importFaults",
       description = "Import faults stored in a JSON format.")
   private boolean useImportFaults = false;
-
-  @Option(
-      secure = true,
-      name = "algorithm.tubeInterpolation",
-      description = "Use tube inteprolation.")
-  private boolean useTubeInterpolation = false;
 
   @Option(
       secure = true,
@@ -730,11 +723,6 @@ public class CoreComponentsFactory {
                 cfa,
                 ShutdownManager.createWithParent(shutdownNotifier),
                 specification);
-      }
-
-      if (useTubeInterpolation) {
-        algorithm =
-            new TubeInterpolationAlgorithm(cfa, config, shutdownNotifier, logger, algorithm);
       }
       if (useFaultLocalizationWithCoverage) {
         algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger, config);

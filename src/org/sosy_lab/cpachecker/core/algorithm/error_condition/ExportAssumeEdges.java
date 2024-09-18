@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.tubes;
+package org.sosy_lab.cpachecker.core.algorithm.error_condition;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.ClassVariables;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-@Options(prefix = "tubes")
+@Options(prefix = "error_condition")
 public class ExportAssumeEdges implements Algorithm {
 
   private final CFA cfa;

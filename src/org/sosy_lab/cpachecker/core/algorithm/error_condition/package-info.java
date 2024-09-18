@@ -6,5 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Package for finding tubes. Tubes are precise constraints over all error paths to one location */
-package org.sosy_lab.cpachecker.core.algorithm.tubes;
+/**
+ * Package for finding error_condition. Tubes are precise constraints over all error paths to one
+ * location
+ */
+package org.sosy_lab.cpachecker.core.algorithm.error_condition;

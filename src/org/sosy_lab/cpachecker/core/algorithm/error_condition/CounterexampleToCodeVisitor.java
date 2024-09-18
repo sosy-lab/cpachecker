@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.tubes;
+package org.sosy_lab.cpachecker.core.algorithm.error_condition;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;

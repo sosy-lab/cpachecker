@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.tubes;
+package org.sosy_lab.cpachecker.core.algorithm.error_condition;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -50,12 +51,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.ValueLiteralsVisitor;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -77,7 +77,7 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix = "tubes")
+@Options(prefix = "error_condition")
 public class ErrorConditionCounterexampleExporter implements Algorithm {
 
   enum Action {
@@ -133,6 +133,7 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
 
   private int exportedCounterexamples = 0;
   private int exportedPreciseCounterexamples = 0;
+  private final AssumptionToEdgeAllocator allocator;
 
   record FormulaAndName(Formula formula, String name) {}
 
@@ -151,6 +152,7 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
     logger = pLogger;
     notifier = pNotifier;
     cfa = pCfa;
+    allocator = AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
     if (exportErrorInputs == null) {
       throw new InvalidConfigurationException(
           "Counterexample export path not specified. Please set the option"
@@ -175,13 +177,7 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
 
   private List<Map<String, Object>> assignments(
       Solver solver, PathFormula pPathFormula, boolean pExportAllAssignments)
-      throws SolverException, InterruptedException, InvalidConfigurationException {
-    ValueLiteralsVisitor literalsVisitor =
-        new ValueLiteralsVisitor(
-            AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel()),
-            null,
-            null,
-            ConcreteState.empty());
+      throws SolverException, InterruptedException {
     BooleanFormula formulaWithModels = pPathFormula.getFormula();
     BooleanFormulaManagerView bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     ImmutableList.Builder<Map<String, Object>> allIterations = ImmutableList.builder();
@@ -197,28 +193,22 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
         BooleanFormula assignments = bmgr.makeTrue();
         for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
           if (modelAssignment.getName().contains("__VERIFIER_nondet")) {
+            // we are only interested in real variables
             continue;
           }
-          BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
-          Object value;
-          try {
+          String value = modelAssignment.getValue().toString();
+          String variableName =
+              solver.getFormulaManager().uninstantiate(modelAssignment.getKey()).toString();
+          CType type = pPathFormula.getSsa().getType(variableName);
+          if (Pattern.compile("-?\\d+").matcher(value).matches()
+              && type instanceof CSimpleType simpleType) {
             value =
-                literalsVisitor
-                    .handlePotentialIntegerOverflow(
-                        BigInteger.valueOf(Long.parseLong(modelAssignment.getValue().toString())),
-                        (CSimpleType)
-                            pPathFormula
-                                .getSsa()
-                                .getType(
-                                    Splitter.on("@")
-                                        .limit(2)
-                                        .splitToList(modelAssignment.getName())
-                                        .get(0)))
-                    .getValueLiteral()
-                    .toASTString();
-          } catch (NumberFormatException | ClassCastException e) {
-            value = modelAssignment.getValue();
+                PotentialOverflowHandler.handlePotentialIntegerOverflow(
+                        allocator, new BigInteger(value), simpleType)
+                    .map(v -> v.value().toString())
+                    .orElse("");
           }
+          BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
           if (formula.toString().contains("__VERIFIER_nondet") || pExportAllAssignments) {
             assignments = bmgr.and(assignments, formula);
             currentIteration.put(modelAssignment.getName(), value);
@@ -280,8 +270,10 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
       }
       PathAndVariables cexPathAndVariables = computeVariablesToEdgeMap(z3, manager, counterExample);
       BooleanFormula eliminated =
-          QuantifierElimination.eliminateAllVariablesExceptNondets(
-              cexPathAndVariables.path().getFormula(), z3);
+          QuantifierElimination.eliminate(
+              cexPathAndVariables.path().getFormula(),
+              e -> !e.getKey().startsWith("__VERIFIER_nondet"),
+              z3);
       eliminated =
           getFormulaWithoutNondetVariables(eliminated, cexPathAndVariables.variables(), fmgr);
       conditions.merge(lastNondet, eliminated, bmgr::or);
