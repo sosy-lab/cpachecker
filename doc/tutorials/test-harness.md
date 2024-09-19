@@ -69,12 +69,12 @@ If this is true, the program has a failing assertion.
 
 1. Run CPAchecker on this program, with its default analysis:
     ```
-    scripts/cpa.sh -default doc/examples/example_bug.c
+    bin/cpachecker doc/examples/example_bug.c
     ```
     Expected output:
     ```
-    Running CPAchecker with default heap size (1200M). Specify a larger value with -heap if you have more RAM.
-    Running CPAchecker with default stack size (1024k). Specify a larger value with -stack if needed.
+    Running CPAchecker with default heap size (1200M). Specify a larger value with --heap if you have more RAM.
+    Running CPAchecker with default stack size (1024k). Specify a larger value with --stack if needed.
     Language C detected and set for analysis (CPAMain.detectFrontendLanguageIfNecessary, INFO)
     
     Using the following resource limits: CPU-time limit of 900s (ResourceLimitChecker.fromConfiguration, INFO)

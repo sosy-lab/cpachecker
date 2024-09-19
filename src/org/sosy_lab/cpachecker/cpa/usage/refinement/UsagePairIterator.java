@@ -34,8 +34,7 @@ public class UsagePairIterator
 
   @Override
   protected void init(Pair<UsageInfoSet, UsageInfoSet> pInput) {
-    UsageInfoSet firstUsageInfoSet;
-    firstUsageInfoSet = pInput.getFirst();
+    UsageInfoSet firstUsageInfoSet = pInput.getFirst();
     secondUsageInfoSet = pInput.getSecond();
 
     firstUsageIterator = firstUsageInfoSet.iterator();

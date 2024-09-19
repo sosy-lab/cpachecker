@@ -22,13 +22,16 @@ import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cpa.testtargets.reduction.TestTargetReductionUtils.DummyInputCFAEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 
 public class TestTargetMinimizerEssential {
 
-  // only works correctly if DummyCFAEdge uses Object equals
+  // TODO consider that properly deals with required inputs
+
+  // only works correctly if DummyInputCFAEdge, DummyCFAEdge uses Object equals
   public Set<CFAEdge> reduceTargets(
       final Set<CFAEdge> pTestTargets, final CFA pCfa, final boolean fullCFACopy) {
     // maps a copied edge to the testTarget that can be removed if its dominated by another
@@ -89,9 +92,10 @@ public class TestTargetMinimizerEssential {
                     origNodesCopied.add(exitNode);
                   }
                   CFAEdge copyEdge =
-                      new DummyCFAEdge(
+                      new DummyInputCFAEdge(
                           origCFANodeToCopyMap.get(currentNodeFinal),
-                          origCFANodeToCopyMap.get(exitNode));
+                          origCFANodeToCopyMap.get(exitNode),
+                          false);
                   origCFANodeToCopyMap.get(currentNodeFinal).addLeavingEdge(copyEdge);
                   origCFANodeToCopyMap.get(exitNode).addEnteringEdge(copyEdge);
                 });
@@ -113,8 +117,12 @@ public class TestTargetMinimizerEssential {
         }
         // create the new Edge and add it to its predecessor and successor nodes aswell as mapping
         // the original to it
+
         CFAEdge copyEdge =
-            new DummyCFAEdge(origCFANodeToCopyMap.get(currentNode), copiedSuccessorNode);
+            new DummyInputCFAEdge(
+                origCFANodeToCopyMap.get(currentNode),
+                copiedSuccessorNode,
+                TestTargetReductionUtils.isInputEdge(currentEdge));
         origCFANodeToCopyMap.get(currentNode).addLeavingEdge(copyEdge);
         copiedSuccessorNode.addEnteringEdge(copyEdge);
 
@@ -148,6 +156,7 @@ public class TestTargetMinimizerEssential {
     return entersNode(pEdge, pFunctionExitNode);
   }
 
+  // TODO use DummyInputCFAEdge, consider hasInput
   private void redirectEdgeToNewPredecessor(
       final CFAEdge edgeToRedirect,
       final CFANode newPredecessor,
@@ -170,6 +179,7 @@ public class TestTargetMinimizerEssential {
     copyTestTargetProperty(edgeToRedirect, redirectedEdge, copiedEdgeToTestTargetsMap);
   }
 
+  // TODO use DummyInputCFAEdge, consider hasInput
   private void redirectEdgeToNewSuccessor(
       CFAEdge edgeToRedirect,
       CFANode newSuccessor,
@@ -213,6 +223,7 @@ public class TestTargetMinimizerEssential {
         // if an edge is mapped to a different test target
         if (copiedEdgeToTestTargetsMap.containsKey(domEdgeCandidate)
             && !copiedEdgeToTestTargetsMap.get(domEdgeCandidate).equals(testTargetToBeDominated)) {
+          // TODO need to take into account whether test input is required
           // removed edge is getting dominated by this edge so remove the removed edges
           // testtarget from our list of testtargets
           pTestTargets.remove(testTargetToBeDominated);
@@ -238,12 +249,19 @@ public class TestTargetMinimizerEssential {
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
       final Set<CFAEdge> pTestTargets) {
     CFANode pred = toRemove.getPredecessor();
+    boolean providesInput =
+        toRemove instanceof DummyInputCFAEdge && ((DummyInputCFAEdge) toRemove).providesInput();
     // remove the current nodes leaving edge from its successor and from the current edge
     pred.removeLeavingEdge(toRemove);
     toRemove.getSuccessor().removeEnteringEdge(toRemove);
     // add the exiting edges from the successor to the predecessor to keep the graph intact
     CFANode successorNode = toRemove.getSuccessor();
     while (successorNode.getNumLeavingEdges() > 0) {
+      if (providesInput) {
+        // TODO remember that need to propagate required information
+        // only if not beyond test target?
+        // successorNode.getLeavingEdge(0);
+      }
       redirectEdgeToNewPredecessor(
           successorNode.getLeavingEdge(0), pred, copiedEdgeToTestTargetsMap);
     }
@@ -257,6 +275,7 @@ public class TestTargetMinimizerEssential {
           successorNode.getEnteringEdge(0), pred, copiedEdgeToTestTargetsMap);
     }
 
+    // TODO check
     updateTestGoalMappingAfterRemoval(
         toRemove, CFAUtils.enteringEdges(pred), copiedEdgeToTestTargetsMap, pTestTargets);
   }

@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
+import java.io.Serial;
 import java.util.HashSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -32,23 +33,10 @@ import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
  */
 public final class JClassType extends JClassOrInterfaceType {
 
-  private static final long serialVersionUID = 2051770436134716617L;
+  @Serial private static final long serialVersionUID = 2051770436134716617L;
 
   private static final String NAME_OF_CLASS_OBJECT = "java.lang.Object";
   private static final String SIMPLE_NAME_OF_CLASS_OBJECT = "Object";
-
-  private static final JClassType typeOfObject = new JClassType();
-
-  private static final JClassType UNRESOLVABLE_TYPE =
-      new JClassType(
-          "_unspecified_",
-          "_unspecified_",
-          VisibilityModifier.NONE,
-          false,
-          false,
-          false,
-          JClassType.getTypeOfObject(),
-          new HashSet<>());
 
   private final boolean isFinal;
   private final boolean isAbstract;
@@ -87,7 +75,6 @@ public final class JClassType extends JClassOrInterfaceType {
 
     pSuperClass.registerSubType(this);
     notifyImplementedInterfacesOfThisClass();
-    checkSuperClassConsistency();
   }
 
   JClassType(
@@ -116,23 +103,6 @@ public final class JClassType extends JClassOrInterfaceType {
 
     pSuperClass.registerSubType(this);
     notifyImplementedInterfacesOfThisClass();
-    checkSuperClassConsistency();
-  }
-
-  private void checkSuperClassConsistency() {
-    Set<JClassType> found = new HashSet<>();
-
-    JClassType nextSuperClass = superClass;
-
-    while (nextSuperClass != null) {
-      found.add(nextSuperClass);
-      nextSuperClass = nextSuperClass.getParentClass();
-      checkArgument(
-          !found.contains(this), "Class %s may not be a super class of itself.", getName());
-    }
-
-    checkArgument(
-        found.contains(typeOfObject), "Class %s must be a sub class of Object", getName());
   }
 
   // Creates the object describing java.lang.Object
@@ -148,14 +118,16 @@ public final class JClassType extends JClassOrInterfaceType {
   }
 
   /**
-   * Returns a <code>JClassType</code> instance that describes the class <code>java.lang.Object
-   * </code>.
+   * Returns a new <code>JClassType</code> instance that describes the class <code>java.lang.Object
+   * </code>. The returned instance will be a fresh Object that is not associated with any
+   * subclasses (yet). To get access to the class Object that was initialized with the current
+   * verification run's type hierarchy, use TypeHierarchy#getClassTypeOfObject()
    *
    * @return a <code>JClassType</code> instance that describes the class <code>java.lang.Object
    *     </code>
    */
-  public static JClassType getTypeOfObject() {
-    return typeOfObject;
+  public static JClassType createObjectType() {
+    return new JClassType();
   }
 
   /**
@@ -439,15 +411,6 @@ public final class JClassType extends JClassOrInterfaceType {
     }
 
     return result;
-  }
-
-  /**
-   * Returns a <code>JClassType</code> instance that describes an unresolvable class.
-   *
-   * @return a <code>JClassType</code> instance that describes an unresolvable class
-   */
-  public static JClassType createUnresolvableType() {
-    return UNRESOLVABLE_TYPE;
   }
 
   @Override

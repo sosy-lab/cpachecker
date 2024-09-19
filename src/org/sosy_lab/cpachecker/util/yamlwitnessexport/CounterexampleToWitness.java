@@ -28,6 +28,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
@@ -80,7 +82,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     }
 
     InformationRecord informationRecord =
-        new InformationRecord(statement, null, YAMLWitnessExpressionType.C.toString());
+        new InformationRecord(statement, null, YAMLWitnessExpressionType.C);
     LocationRecord location =
         LocationRecord.createLocationRecordAfterLocation(
             edge.getFileLocation(), edge.getPredecessor().getFunctionName(), pAstCfaRelation);
@@ -123,10 +125,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // Currently, it is unclear what to do with assumptions where the next statement is after a
     // function return. Since the variables for the assumptions may not be in scope.
     // TODO: Add a method to export these assumptions
-    if (!CFAUtils.leavingEdges(pEdge.getSuccessor())
-        .transform(CFAEdge::getSuccessor)
-        .filter(FunctionExitNode.class)
-        .isEmpty()) {
+    if (!CFAUtils.successorsOf(pEdge.getSuccessor()).filter(FunctionExitNode.class).isEmpty()) {
       return Optional.empty();
     }
 
@@ -166,21 +165,22 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   /**
    * Creates a waypoint record which describes which branch should be taken at an if statement
    *
-   * @param pIfElement the AST element where the branch taken should be constrained
+   * @param conditionTruthValue the value the condition should evaluate to. In case of an if
+   *     statement, if true the then branch should be taken, if false the else branch should be
+   *     taken
+   * @param pAstElementLocation the AST element where the branch taken should be constrained
    * @param assumeEdge the edge which encodes what branch should be taken
    * @return a waypoint record constraining the execution to a single branch of this if statement
    */
   private static WaypointRecord handleBranchingWaypoint(
-      IfElement pIfElement, AssumeEdge assumeEdge) {
-    String branchToFollow =
-        Boolean.toString(
-            pIfElement.getNodesBetweenConditionAndThenBranch().contains(assumeEdge.getSuccessor()));
+      boolean conditionTruthValue, FileLocation pAstElementLocation, AssumeEdge assumeEdge) {
+
     return new WaypointRecord(
         WaypointRecord.WaypointType.BRANCHING,
         WaypointRecord.WaypointAction.FOLLOW,
-        new InformationRecord(branchToFollow, null, null),
+        new InformationRecord(Boolean.toString(conditionTruthValue), null, null),
         LocationRecord.createLocationRecordAtStart(
-            pIfElement.getCompleteElement().location(),
+            pAstElementLocation,
             assumeEdge.getFileLocation().getFileName().toString(),
             assumeEdge.getPredecessor().getFunctionName()));
   }
@@ -221,7 +221,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // The syntax of the location of an assumption waypoint states that:
     // 'Assumption
     //  The location has to point to the beginning of a statement.'
-    // Therefore an assumption waypoint needs to point to the beginning of the statement before
+    // Therefore, an assumption waypoint needs to point to the beginning of the statement before
     // which it is valid
     for (CFAEdge edge : edges) {
       // See if the edge contains an assignment of a VerifierNondet call
@@ -246,24 +246,40 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         // Currently we only export IfStructures, since there is no nice way to say how often a loop
         // should be traversed and exporting this information will quickly make the witness
         // difficult to read
-        // TODO: Also export branches at iteration statements
-        IfElement ifElement = astCFARelation.getIfStructureForConditionEdge(edge);
-        if (ifElement == null) {
-          continue;
-        }
+        Optional<IfElement> optionalIfElement = astCFARelation.getIfStructureForConditionEdge(edge);
+        Optional<IterationElement> optionalIterationElement =
+            astCFARelation.getTightestIterationStructureForNode(edge.getPredecessor());
 
-        Set<CFANode> nodesBetweenConditionAndThenBranch =
-            ifElement.getNodesBetweenConditionAndThenBranch();
-        Set<CFANode> nodesBetweenConditionAndElseBranch =
-            ifElement.getNodesBetweenConditionAndElseBranch();
+        Set<CFANode> nodesBetweenConditionAndFirstBranch;
+        Set<CFANode> nodesBetweenConditionAndSecondBranch;
         CFANode successor = edge.getSuccessor();
-
-        if (!nodesBetweenConditionAndThenBranch.contains(successor)
-            && !nodesBetweenConditionAndElseBranch.contains(successor)) {
+        FileLocation astElementLocation = null;
+        if (optionalIfElement.isPresent()) {
+          IfElement ifElement = optionalIfElement.orElseThrow();
+          nodesBetweenConditionAndFirstBranch = ifElement.getNodesBetweenConditionAndThenBranch();
+          nodesBetweenConditionAndSecondBranch = ifElement.getNodesBetweenConditionAndElseBranch();
+          astElementLocation = ifElement.getCompleteElement().location();
+        } else if (optionalIterationElement.isPresent()) {
+          IterationElement iterationElement = optionalIterationElement.orElseThrow();
+          nodesBetweenConditionAndFirstBranch = iterationElement.getNodesBetweenConditionAndBody();
+          nodesBetweenConditionAndSecondBranch = iterationElement.getNodesBetweenConditionAndExit();
+          astElementLocation = iterationElement.getCompleteElement().location();
+        } else {
+          logger.log(Level.INFO, "Could not find the AST structure for the edge: " + edge);
           continue;
         }
 
-        waypoints.add(handleBranchingWaypoint(ifElement, assumeEdge));
+        if (!nodesBetweenConditionAndFirstBranch.contains(successor)
+            && !nodesBetweenConditionAndSecondBranch.contains(successor)) {
+          continue;
+        }
+
+        waypoints.add(
+            handleBranchingWaypoint(
+                nodesBetweenConditionAndFirstBranch.contains(assumeEdge.getSuccessor()),
+                astElementLocation,
+                assumeEdge));
+
       } else if (exportCompleteCounterexample) {
         // Export all other edges which are not absolutely relevant for the counterexample
         Optional<WaypointRecord> assumptionWaypoint =
@@ -320,8 +336,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       Path outputFile = pOutputFileTemplate.getPath(uniqueId, YAMLWitnessVersion.V2.toString());
       switch (witnessVersion) {
         case V2 -> exportWitnessVersion2(pCex, outputFile);
-        case V3 ->
-            logger.log(Level.INFO, "There is currently no version 3 for Violation Witnesses.");
+        case V2d1 ->
+            logger.log(Level.INFO, "There is currently no version 2.1 for Violation Witnesses.");
         default -> throw new AssertionError("Unknown witness version: " + witnessVersion);
       }
     }

@@ -17,6 +17,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -33,9 +34,10 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
 
     Map<CFAEdge, CFAEdgeNode> targetToGoalGraphNode =
         Maps.newHashMapWithExpectedSize(pTargets.size());
-    Pair<CFAEdgeNode, CFAEdgeNode> entryExit =
+    Pair<Pair<CFAEdgeNode, CFAEdgeNode>, ImmutableSet<Pair<CFAEdgeNode, CFAEdgeNode>>> result =
         TestTargetReductionUtils.buildNodeBasedTestGoalGraph(
             pTargets, pCfa.getMainFunction(), targetToGoalGraphNode);
+    Pair<CFAEdgeNode, CFAEdgeNode> entryExit = result.getFirst();
 
     DomTree<CFAEdgeNode> domTree =
         DomTree.forGraph(
@@ -44,9 +46,9 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
         DomTree.forGraph(
             CFAEdgeNode::allSuccessorsOf, CFAEdgeNode::allPredecessorsOf, entryExit.getSecond());
 
-    Set<CFAEdgeNode> domLeaves = TestTargetReductionUtils.getLeavesOfDomintorTree(domTree);
+    Set<CFAEdgeNode> domLeaves = TestTargetReductionUtils.getLeavesOfDomintorTree(domTree, false);
     Set<CFAEdgeNode> postDomLeaves =
-        TestTargetReductionUtils.getLeavesOfDomintorTree(inverseDomTree);
+        TestTargetReductionUtils.getLeavesOfDomintorTree(inverseDomTree, true);
 
     // remove start and end node from graph, ensure that predecessor is considered
     // if it is not the root node of the tree
@@ -57,7 +59,7 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
     domLeaves.remove(entryExit.getFirst());
 
     postDomLeaves.remove(entryExit.getFirst());
-    parent = inverseDomTree.getParent(entryExit.getSecond()).orElse(entryExit.getSecond());
+    parent = inverseDomTree.getParent(entryExit.getFirst()).orElse(entryExit.getSecond());
     postDomLeaves.add(parent);
     postDomLeaves.remove(entryExit.getSecond());
 
@@ -68,9 +70,9 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
 
     if (computeMinimumKernel) {
       if (domLeaves.size() < postDomLeaves.size()) {
-        return findAndSubstractLD(domLeaves, inverseDomTree);
+        return findAndSubstractLD(domLeaves, inverseDomTree, Optional.of(result.getSecond()));
       } else {
-        return findAndSubstractLD(postDomLeaves, domTree);
+        return findAndSubstractLD(postDomLeaves, domTree, Optional.empty());
       }
     } else {
       // Paper unconstraint edges (unconstraint arcs):
@@ -82,12 +84,28 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
   }
 
   private Set<CFAEdge> findAndSubstractLD(
-      Set<CFAEdgeNode> pLeaves, DomTree<CFAEdgeNode> pReverseDomTree) {
+      final Set<CFAEdgeNode> pLeaves,
+      final DomTree<CFAEdgeNode> pReverseDomTree,
+      final Optional<ImmutableSet<Pair<CFAEdgeNode, CFAEdgeNode>>> pPathsWithInputs) {
     Set<CFAEdgeNode> ldSet = Sets.newHashSetWithExpectedSize(pLeaves.size());
     for (CFAEdgeNode domTreeEntry : pReverseDomTree) {
-      ldSet.addAll(Sets.intersection(pReverseDomTree.getAncestors(domTreeEntry), pLeaves));
+      if (pPathsWithInputs.isPresent()) {
+        ldSet.addAll(
+            Sets.intersection(
+                FluentIterable.from(pReverseDomTree.getAncestors(domTreeEntry))
+                    .filter(
+                        ancestor ->
+                            !pPathsWithInputs
+                                .orElseThrow()
+                                .contains(Pair.of(domTreeEntry, ancestor)))
+                    .toSet(),
+                pLeaves));
+
+      } else {
+        ldSet.addAll(Sets.intersection(pReverseDomTree.getAncestors(domTreeEntry), pLeaves));
+      }
     }
-    // return pLeaves/ldSet
+    // return pLeaves\ldSet
     return new HashSet<>(
         FluentIterable.from(pLeaves)
             .filter(node -> !ldSet.contains(node))

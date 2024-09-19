@@ -208,6 +208,7 @@ public class SMGCPA
     return new SMGTransferRelation(
         logger,
         options,
+        precisionAdjustmentOptions,
         exportOptions,
         cfa,
         constraintsStrengthenOperator,

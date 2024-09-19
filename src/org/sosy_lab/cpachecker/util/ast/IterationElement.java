@@ -8,18 +8,27 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
+import static org.sosy_lab.cpachecker.util.ast.AstUtils.computeNodesConditionBoundaryNodes;
+
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.Pair;
 
-public class IterationElement extends BranchingElement {
+public final class IterationElement extends BranchingElement {
 
   private final Optional<ASTElement> clause;
   private final ASTElement body;
   private final Optional<ASTElement> controllingExpression;
   private final Optional<ASTElement> initClause;
   private final Optional<ASTElement> iterationExpression;
+
+  // This considers the body to be as in a while loop, including the iteration expression
+  @LazyInit private ImmutableSet<CFANode> nodesBetweenConditionAndBody = null;
+  @LazyInit private ImmutableSet<CFANode> nodesBetweenConditionAndExit = null;
 
   public IterationElement(
       FileLocation pIterationStatementLocation,
@@ -57,5 +66,47 @@ public class IterationElement extends BranchingElement {
 
   public Optional<ASTElement> getIterationExpression() {
     return iterationExpression;
+  }
+
+  public Optional<CFANode> getLoopHead() {
+    if (controllingExpression.isEmpty()) {
+      return Optional.empty();
+    }
+
+    ImmutableSet<CFANode> loopStartNodes =
+        controllingExpression.orElseThrow().edges().stream()
+            .map(CFAEdge::getPredecessor)
+            .filter(CFANode::isLoopStart)
+            .collect(ImmutableSet.toImmutableSet());
+
+    if (loopStartNodes.size() != 1) {
+      return Optional.empty();
+    }
+
+    return Optional.of(loopStartNodes.iterator().next());
+  }
+
+  private void computeNodesBetweenConditionAndBody() {
+    Pair<ImmutableSet<CFANode>, ImmutableSet<CFANode>> borderElements =
+        computeNodesConditionBoundaryNodes(
+            controllingExpression.orElseThrow().edges(),
+            Optional.of(body.edges()),
+            Optional.empty());
+    nodesBetweenConditionAndBody = borderElements.getFirst();
+    nodesBetweenConditionAndExit = borderElements.getSecond();
+  }
+
+  public ImmutableSet<CFANode> getNodesBetweenConditionAndBody() {
+    if (nodesBetweenConditionAndBody == null) {
+      computeNodesBetweenConditionAndBody();
+    }
+    return nodesBetweenConditionAndBody;
+  }
+
+  public ImmutableSet<CFANode> getNodesBetweenConditionAndExit() {
+    if (nodesBetweenConditionAndExit == null) {
+      computeNodesBetweenConditionAndBody();
+    }
+    return nodesBetweenConditionAndExit;
   }
 }

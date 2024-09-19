@@ -33,10 +33,11 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEntersIfBranch;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckPassesThroughNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesElement;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IsStatementEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
@@ -159,28 +161,47 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
    * @param followLine the line at which the target is
    * @param followColumn the column at which the target is
    * @param pDistanceToViolation the distance to the violation
-   * @param followIfBranch which branch to follow, if true the if branch is followed
+   * @param pBranchToFollow which branch to follow, if true the if branch is followed
    * @return a list of transitions matching the branching waypoint, empty if they could not be
    *     created
    */
-  private Optional<List<AutomatonTransition>> handleFollowWaypointAtIfStatement(
+  private Optional<List<AutomatonTransition>> handleFollowWaypointAtStatement(
       AstCfaRelation pAstCfaRelation,
       String nextStateId,
       Integer followColumn,
       Integer followLine,
       Integer pDistanceToViolation,
-      Boolean followIfBranch) {
+      Boolean pBranchToFollow) {
     Optional<IfElement> optionalIfStructure =
         pAstCfaRelation.getIfStructureStartingAtColumn(followColumn, followLine);
-    if (optionalIfStructure.isEmpty()) {
-      logger.log(Level.FINE, "Could not find IfElement corresponding to the waypoint, skipping it");
+    Optional<IterationElement> optionalIterationStructure =
+        pAstCfaRelation.getIterationStructureStartingAtColumn(followColumn, followLine);
+    if (optionalIfStructure.isEmpty() && optionalIterationStructure.isEmpty()) {
+      logger.log(
+          Level.FINE, "Could not find an element corresponding to the waypoint, skipping it");
       return Optional.empty();
     }
-    IfElement ifElement = optionalIfStructure.orElseThrow();
 
-    if (ifElement
-        .getNodesBetweenConditionAndElseBranch()
-        .equals(ifElement.getNodesBetweenConditionAndThenBranch())) {
+    Set<CFANode> nodesCondition;
+    Set<CFANode> nodesThenBranch;
+    Set<CFANode> nodesElseBranch;
+
+    if (optionalIfStructure.isPresent()) {
+      IfElement ifElement = optionalIfStructure.orElseThrow();
+      nodesCondition = ifElement.getNodesBetweenConditionAndThenBranch();
+      nodesThenBranch = ifElement.getNodesBetweenConditionAndThenBranch();
+      nodesElseBranch = ifElement.getNodesBetweenConditionAndElseBranch();
+
+    } else if (optionalIterationStructure.isPresent()) {
+      IterationElement iterationElement = optionalIterationStructure.orElseThrow();
+      nodesCondition = iterationElement.getNodesBetweenConditionAndBody();
+      nodesThenBranch = iterationElement.getNodesBetweenConditionAndBody();
+      nodesElseBranch = iterationElement.getNodesBetweenConditionAndBody();
+    } else {
+      throw new AssertionError("This should never happen");
+    }
+
+    if (nodesThenBranch.equals(nodesElseBranch)) {
       logger.log(
           Level.FINE,
           "Skipping branching waypoint at if statement since the"
@@ -189,14 +210,18 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       return Optional.empty();
     }
 
-    AutomatonBoolExpr condition = new CheckEntersIfBranch(ifElement, followIfBranch);
+    AutomatonBoolExpr condition =
+        new CheckPassesThroughNodes(
+            nodesCondition, pBranchToFollow ? nodesThenBranch : nodesElseBranch);
     AutomatonTransition followBranchTransition =
         distanceToViolation(
                 new AutomatonTransition.Builder(condition, nextStateId), pDistanceToViolation)
             .build();
 
     // Add break state for the other branch, since we don't want to explore it
-    CheckEntersIfBranch negatedCondition = new CheckEntersIfBranch(ifElement, !followIfBranch);
+    CheckPassesThroughNodes negatedCondition =
+        new CheckPassesThroughNodes(
+            nodesCondition, !pBranchToFollow ? nodesThenBranch : nodesElseBranch);
     AutomatonTransition avoidBranchTransition =
         new AutomatonTransition.Builder(negatedCondition, AutomatonInternalState.BOTTOM).build();
 
@@ -335,7 +360,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
         break;
       } else if (follow.getType().equals(WaypointType.ASSUMPTION)) {
         ASTElement element =
-            cfa.getASTStructure().getTightestStatementForStarting(followLine, followColumn);
+            cfa.getAstCfaRelation().getTightestStatementForStarting(followLine, followColumn);
         transitions.add(
             handleAssumption(
                 nextStateId,
@@ -345,11 +370,11 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                 distance,
                 follow.getConstraint().getValue()));
       } else if (follow.getType().equals(WaypointType.BRANCHING)) {
-        AstCfaRelation astCFARelation = cfa.getASTStructure();
+        AstCfaRelation astCFARelation = cfa.getAstCfaRelation();
         Verify.verifyNotNull(astCFARelation);
 
         Optional<List<AutomatonTransition>> ifStatementTransitions =
-            handleFollowWaypointAtIfStatement(
+            handleFollowWaypointAtStatement(
                 astCFARelation,
                 nextStateId,
                 followColumn,
@@ -357,10 +382,8 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                 distance,
                 Boolean.parseBoolean(follow.getConstraint().getValue()));
 
-        // TODO: Handle branching waypoints at IterationStatements
         if (ifStatementTransitions.isEmpty()) {
-          logger.log(
-              Level.INFO, "Could not handle branching waypoint at if statement, skipping waypoint");
+          logger.log(Level.INFO, "Could not handle branching waypoint, skipping it");
           continue;
         }
 

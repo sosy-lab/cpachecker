@@ -9,20 +9,22 @@
 // testing upper and lower bounds of unsigned long long
 enum e1 {
     // lower bound of llu
-	E1,
+    E1,
     E2,
-    // upper bound of  lld
-    E3 = 9223372036854775807,
-    // excceeding upper bound of lld
+    // upper bound of lld
+    E3 = 9223372036854775807L,
+    // beyond upper bound of lld, enum must become a llu now
     E4,
-    // lower bound of lld
-    E5 = -9223372036854775808,
+    // lower bound of llu
+    E5 = 0,
+    // close to upper bound of llu
+    E6 = 18446744073709551614UL,
     // upper bound of llu
-    E6 = 18446744073709551615,
-    // calculating with upper bound of llu and upper bound of lld
-    E7 = E6 - E3,
+    E7,
+    // calculating with two llus
+    E8 = E7 - E6,
     // moving within space of llu
-    E8 = E6 - 1
+    E9 = E6 - 18446744073709551614UL
 };
 
 int main() {
@@ -33,22 +35,25 @@ int main() {
 	if (E2 != 1) {
 		goto ERROR;
     }
-    if (E3 != 9223372036854775807) {
+    if (E3 != 9223372036854775807UL) {
         goto ERROR;
     }
-    if (E4 != 9223372036854775808) {
+    if (E4 != 9223372036854775808UL) {
         goto ERROR;
     }
-    if (E5 != -9223372036854775808) {
+    if (E5 != 0) {
         goto ERROR;
     }
-    if (E6 != 18446744073709551615){
+    if (E6 != 18446744073709551614UL){
         goto ERROR;
     }
-    if (E7 != 9223372036854775808){
+    if (E7 != 18446744073709551615UL){
         goto ERROR;
     }
-    if (E8 != 18446744073709551614){
+    if (E8 != 1){
+        goto ERROR;
+    }
+    if (E9 != 0){
         goto ERROR;
     }
 

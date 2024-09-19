@@ -18,6 +18,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
   private final int minLength;
   private final BigInteger headOffset;
   private final BigInteger nextOffset;
+  private final BigInteger nextPointerTargetoffset;
 
   // Track the equality cache used in the latest creation of this abstraction.
   // Can be used to argue about whether Values are equal or identical and need
@@ -30,11 +31,16 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
       BigInteger pOffset,
       BigInteger pHeadOffset,
       BigInteger pNextOffset,
+      BigInteger pNextPointerTargetOffset,
       int pMinLength) {
     super(pNestingLevel, pSize, pOffset);
+    Preconditions.checkNotNull(pHeadOffset);
+    Preconditions.checkNotNull(pNextOffset);
+    Preconditions.checkNotNull(pNextPointerTargetOffset);
     minLength = pMinLength;
     headOffset = pHeadOffset;
     nextOffset = pNextOffset;
+    nextPointerTargetoffset = pNextPointerTargetOffset;
     relevantEqualities = EqualityCache.of();
   }
 
@@ -44,17 +50,23 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
       BigInteger pOffset,
       BigInteger pHeadOffset,
       BigInteger pNextOffset,
+      BigInteger pNextPointerTargetoffset,
       int pMinLength,
       EqualityCache<Value> pRelevantEqualities) {
     super(pNestingLevel, pSize, pOffset);
     minLength = pMinLength;
     headOffset = pHeadOffset;
     nextOffset = pNextOffset;
+    nextPointerTargetoffset = pNextPointerTargetoffset;
     relevantEqualities = pRelevantEqualities;
   }
 
   public BigInteger getNextOffset() {
     return nextOffset;
+  }
+
+  public BigInteger getNextPointerTargetOffset() {
+    return nextPointerTargetoffset;
   }
 
   public BigInteger getHeadOffset() {
@@ -89,6 +101,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         objectToCopy.getOffset(),
         objectToCopy.headOffset,
         objectToCopy.nextOffset,
+        objectToCopy.nextPointerTargetoffset,
         objectToCopy.minLength,
         objectToCopy.relevantEqualities);
   }
@@ -97,7 +110,14 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
   public SMGObject copyWithNewLevel(int newLevel) {
     Preconditions.checkArgument(newLevel >= 0);
     return new SMGSinglyLinkedListSegment(
-        newLevel, getSize(), getOffset(), headOffset, nextOffset, minLength, relevantEqualities);
+        newLevel,
+        getSize(),
+        getOffset(),
+        headOffset,
+        nextOffset,
+        nextPointerTargetoffset,
+        minLength,
+        relevantEqualities);
   }
 
   public SMGSinglyLinkedListSegment copyWithNewMinimumLength(int newMinimumLength) {
@@ -108,6 +128,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         getOffset(),
         headOffset,
         nextOffset,
+        nextPointerTargetoffset,
         newMinimumLength,
         relevantEqualities);
   }
@@ -120,6 +141,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         getOffset(),
         headOffset,
         nextOffset,
+        nextPointerTargetoffset,
         minLength,
         pRelevantEqualities);
   }
@@ -136,6 +158,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         getOffset(),
         headOffset,
         nextOffset,
+        nextPointerTargetoffset,
         Integer.max(getMinLength() - 1, 0),
         relevantEqualities);
   }
@@ -148,6 +171,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         getOffset(),
         headOffset,
         nextOffset,
+        nextPointerTargetoffset,
         minLength,
         relevantEqualities);
   }
@@ -162,6 +186,14 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
     return true;
   }
 
+  /**
+   * Returns relevant equalities of values (e.g. pointers) in an equalityCache. Can be used to argue
+   * about 2 values being equal or identical. Values that are identical are not mapped here and need
+   * to be copied (same value). Values in here need replication, so we need a new Value that behaves
+   * the same.
+   *
+   * @return a cache of relevant Values that need replication.
+   */
   public EqualityCache<Value> getRelevantEqualities() {
     return relevantEqualities;
   }

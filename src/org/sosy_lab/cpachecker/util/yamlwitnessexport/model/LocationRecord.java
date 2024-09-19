@@ -35,10 +35,10 @@ public class LocationRecord {
       @JsonProperty("line") int pLine,
       @JsonProperty("column") int pColumn,
       @JsonProperty("function") String pFunction) {
-    this.fileName = pFileName;
-    this.line = pLine;
-    this.column = pColumn;
-    this.function = pFunction;
+    fileName = pFileName;
+    line = pLine;
+    column = pColumn;
+    function = pFunction;
   }
 
   public static LocationRecord createLocationRecordAtStart(

@@ -206,6 +206,13 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path preAnalysisAlgorithmConfig = null;
 
+  @Option(
+      secure = true,
+      description =
+          "If true, the strategy-selection algorithm does not run the selected config, but only"
+              + " produces the statistics that show what config it would run.")
+  private boolean dryRun = false;
+
   @Option(secure = true, description = "Configuration for programs containing recursion.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path recursionConfig;
@@ -326,7 +333,11 @@ public class SelectionAlgorithm extends NestingAlgorithm {
 
     final Path chosenConfig = chooseConfig();
 
-    return run0(pReachedSet, chosenConfig);
+    if (dryRun) {
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    } else {
+      return run0(pReachedSet, chosenConfig);
+    }
   }
 
   /** analyze the CFA and extract useful statistics. */

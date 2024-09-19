@@ -394,7 +394,7 @@ class Scope {
       type =
           classBinding.isInterface()
               ? JInterfaceType.createUnresolvableType()
-              : JClassType.createUnresolvableType();
+              : typeHierarchy.getUnresolvableClassType();
     }
 
     toBeAdded.addAll(type.getAllSubTypesOfType());
@@ -523,7 +523,7 @@ class Scope {
     if (containsClassType(newTypeName)) {
       return getClassType(newTypeName);
     } else {
-      return JClassType.createUnresolvableType();
+      return typeHierarchy.getUnresolvableClassType();
     }
   }
 

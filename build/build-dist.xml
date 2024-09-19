@@ -21,7 +21,7 @@ SPDX-License-Identifier: Apache-2.0
     <target name="dist-windows" depends="jar">
         <property name="namezw" value="CPAchecker-${version}-windows"/>
         <zip destfile="${namezw}.zip" whenempty="fail">
-            <zipfileset dir="." includes="config/** doc/** LICENSES/* scripts/*.bat scripts/*.sh scripts/*.txt cpachecker.jar *.md *.txt LICENSE" prefix="${namezw}/"/>
+            <zipfileset dir="." includes="config/** doc/** LICENSES/* bin/* scripts/*.bat scripts/*.sh scripts/*.txt cpachecker.jar *.md *.txt LICENSE" prefix="${namezw}/"/>
             <zipfileset dir="." includes="lib/*.* lib/java/runtime/*.jar lib/java/runtime/*.dll" excludes="lib/ivy*" prefix="${namezw}/"/>
             <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namezw}/"/>
         </zip>
@@ -42,8 +42,8 @@ SPDX-License-Identifier: Apache-2.0
                 excludes="*.bat *.sh *.py **/*.pyc **/__pycache__"
                 prefix="${namet}/scripts/"/>
             <tarfileset dir="." filemode="755"
-                includes="scripts/*.sh scripts/*.py scripts/post_processing/coverage/generate_coverage.py lib/native/**"
-                excludes="lib/native/source/** lib/native/*win*/**"
+                includes="bin/* scripts/*.sh scripts/*.py scripts/post_processing/coverage/generate_coverage.py lib/native/**"
+                excludes="bin/*.bat lib/native/source/** lib/native/*win*/**"
                 prefix="${namet}/"/>
         </tar>
     </target>
@@ -60,8 +60,8 @@ SPDX-License-Identifier: Apache-2.0
                 excludes="*.bat *.sh *.py **/*.pyc **/__pycache__"
                 prefix="${namez}/scripts/"/>
             <zipfileset dir="." filemode="755"
-                includes="scripts/*.sh scripts/*.py scripts/post_processing/coverage/generate_coverage.py lib/native/**"
-                excludes="lib/native/source/** lib/native/*win*/**"
+                includes="bin/* scripts/*.sh scripts/*.py scripts/post_processing/coverage/generate_coverage.py lib/native/**"
+                excludes="bin/*.bat lib/native/source/** lib/native/*win*/**"
                 prefix="${namez}/"/>
         </zip>
     </target>
@@ -70,11 +70,8 @@ SPDX-License-Identifier: Apache-2.0
         <echo message="Put all solver configurations in a folder called starexec. Solver configurations should be in the style of doc/examples/starexec.sh"/>
         <tar destfile="starexec.tar.gz" compression="gzip">
             <tarfileset dir="."
-                includes="config/** cpachecker.jar lib/*.* lib/java/runtime/*"
+                includes="bin/cpachecker config/** cpachecker.jar lib/*.* lib/java/runtime/*"
                 excludes="lib/ivy*"/>
-            <tarfileset dir="scripts"
-                includes="cpa.sh"
-                prefix="bin"/>
             <tarfileset dir="starexec"
                 includes="*.*"
                 prefix="bin"/>
@@ -84,13 +81,13 @@ SPDX-License-Identifier: Apache-2.0
     </target>
 
     <target name="build-witness-script" description="Build the script for witness validation as single file">
-        <property name="witness-script" value="scripts/witness_validation_web_cloud"/>
+        <property name="witness-script" value="scripts/cpachecker-cloud-web-witness"/>
         <fileset dir="." includes="lib/python-benchmark/sseclient-*.whl" id="sseclient.file"/>
         <fileset dir="." includes="lib/python-benchmark/requests-*.whl" id="requests.file"/>
         <fileset dir="." includes="lib/python-benchmark/six-*.whl" id="six.file"/>
         <!-- Write ZIP archive to witness.zip, write script header to witness.sh, and concatenate. -->
         <zip destfile="${witness-script}.zip" whenempty="fail" duplicate="fail">
-            <zipfileset dir="scripts" includes="witness_validation_web_cloud.py" fullpath="__main__.py" />
+            <zipfileset dir="scripts" includes="cpachecker-cloud-web-witness" fullpath="__main__.py" />
             <zipfileset dir="scripts" includes="benchmark/__init__.py benchmark/webclient.py" />
             <zipfileset src="${toString:sseclient.file}" />
             <zipfileset src="${toString:requests.file}" />

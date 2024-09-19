@@ -45,7 +45,7 @@ def _remove(tag):
 
 # if needed, add a new option for the machinemodel.
 def _addMachineModelOption(option, mmText, mmValue):
-    if mmText is not None and option.attrib["name"] in ["-32", "-64"]:
+    if mmText is not None and option.attrib["name"] in ["--32", "-32", "--64", "-64"]:
         machinemodel = option.attrib["name"][1:]  # CPAchecker-specific!
         option.getparent().append(_option(mmText, mmValue.format(machinemodel)))
 
@@ -87,8 +87,8 @@ def _generate_validation_file(testdef_path, tool, yaml_witness=False):
     assert benchmark.attrib["tool"] == "cpachecker"
     if tool == "CPAchecker":
         benchmark.attrib["tool"] = "cpachecker"
-        rundef.append(_option("-witnessValidation"))
-        rundef.append(_option("-witness", witness_path))
+        rundef.append(_option("--witnessValidation"))
+        rundef.append(_option("--witness", witness_path))
 
     elif tool == "UAutomizer":
         _fixOptions(benchmark, rundef, "--architecture", "{}bit")

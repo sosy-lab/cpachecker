@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
@@ -56,23 +56,26 @@ public class TaskRecord {
   }
 
   private static String getSpecificationAsString(Specification pSpecification) throws IOException {
-    ImmutableList.Builder<String> unifiedSpecificationBuilder = new ImmutableList.Builder<>();
-
-    for (Path specFile : pSpecification.getFiles()) {
-      String contents = Files.readString(specFile, StandardCharsets.UTF_8);
-      ImmutableList.Builder<String> specificationBuilder = new ImmutableList.Builder<>();
-      for (String line : Splitter.on('\n').split(contents)) {
-        // Remove comments and empty lines from specification file
-        if (line.startsWith("//") || line.trim().isEmpty()) {
-          continue;
-        }
-        specificationBuilder.add(line);
-      }
-      unifiedSpecificationBuilder.add(String.join("\n", specificationBuilder.build()));
+    String defaultReturnSpecification = "";
+    if (pSpecification.getFiles().size() != 1) {
+      // Currently there is no semantics for witnesses when multiple properties are checked
+      return defaultReturnSpecification;
     }
 
-    // The unified specification is a conjunction of all specifications
-    return String.join(" && ", unifiedSpecificationBuilder.build());
+    Path specFile = pSpecification.getFiles().asList().get(0);
+    ImmutableList<String> simplifiedSpecification =
+        FluentIterable.from(Files.readAllLines(specFile, StandardCharsets.UTF_8))
+            .transform(String::trim)
+            .filter(line -> !line.isEmpty() && !line.startsWith("//"))
+            .toList();
+
+    if (simplifiedSpecification.size() != 1) {
+      // Currently witnesses only accept SV-COMP specifications as valid. These are all a single
+      // line
+      return defaultReturnSpecification;
+    }
+
+    return simplifiedSpecification.get(0);
   }
 
   public static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)

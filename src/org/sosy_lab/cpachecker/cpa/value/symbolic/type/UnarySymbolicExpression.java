@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -26,7 +27,7 @@ public abstract sealed class UnarySymbolicExpression extends SymbolicExpression
         NegationExpression,
         PointerExpression {
 
-  private static final long serialVersionUID = -2727356523115713518L;
+  @Serial private static final long serialVersionUID = -2727356523115713518L;
 
   private final SymbolicExpression operand;
   private final Type type;

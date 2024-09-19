@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -138,7 +139,7 @@ public class CPAsTest {
                 .build());
     Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
 
-    String cProgram = TestDataTools.getEmptyProgram(tempFolder, false);
+    String cProgram = TestDataTools.getEmptyProgram(tempFolder, Language.C);
 
     config =
         Configuration.builder()

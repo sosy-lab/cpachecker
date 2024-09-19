@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
 
   private final BigInteger prevOffset;
+  private final BigInteger prevPointerTargetOffset;
 
   public SMGDoublyLinkedListSegment(
       int pNestingLevel,
@@ -23,10 +24,22 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
       BigInteger pOffset,
       BigInteger pHeadOffset,
       BigInteger pNextOffset,
+      BigInteger pNextPointerTargetOffset,
       BigInteger pPrevOffset,
+      BigInteger pPrevPointerTargetOffset,
       int pMinLength) {
-    super(pNestingLevel, pSize, pOffset, pHeadOffset, pNextOffset, pMinLength);
+    super(
+        pNestingLevel,
+        pSize,
+        pOffset,
+        pHeadOffset,
+        pNextOffset,
+        pNextPointerTargetOffset,
+        pMinLength);
+    Preconditions.checkNotNull(pPrevOffset);
+    Preconditions.checkNotNull(pPrevPointerTargetOffset);
     prevOffset = pPrevOffset;
+    prevPointerTargetOffset = pPrevPointerTargetOffset;
   }
 
   public SMGDoublyLinkedListSegment(
@@ -35,15 +48,30 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
       BigInteger pOffset,
       BigInteger pHeadOffset,
       BigInteger pNextOffset,
+      BigInteger pNextPointerTargetOffset,
       BigInteger pPrevOffset,
+      BigInteger pPrevPointerTargetOffset,
       int pMinLength,
       EqualityCache<Value> pRelevantEqualities) {
-    super(pNestingLevel, pSize, pOffset, pHeadOffset, pNextOffset, pMinLength, pRelevantEqualities);
+    super(
+        pNestingLevel,
+        pSize,
+        pOffset,
+        pHeadOffset,
+        pNextOffset,
+        pNextPointerTargetOffset,
+        pMinLength,
+        pRelevantEqualities);
     prevOffset = pPrevOffset;
+    prevPointerTargetOffset = pPrevPointerTargetOffset;
   }
 
   public BigInteger getPrevOffset() {
     return prevOffset;
+  }
+
+  public BigInteger getPrevPointerTargetOffset() {
+    return prevPointerTargetOffset;
   }
 
   @Override
@@ -65,7 +93,9 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
         getOffset(),
         getHeadOffset(),
         getNextOffset(),
+        getNextPointerTargetOffset(),
         prevOffset,
+        prevPointerTargetOffset,
         getMinLength(),
         getRelevantEqualities());
   }
@@ -78,7 +108,9 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
         getOffset(),
         getHeadOffset(),
         getNextOffset(),
+        getNextPointerTargetOffset(),
         prevOffset,
+        prevPointerTargetOffset,
         getMinLength(),
         getRelevantEqualities());
   }
@@ -91,7 +123,9 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
         getOffset(),
         getHeadOffset(),
         getNextOffset(),
+        getNextPointerTargetOffset(),
         prevOffset,
+        prevPointerTargetOffset,
         Integer.max(getMinLength() - 1, 0),
         getRelevantEqualities());
   }
@@ -115,7 +149,9 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
         getOffset(),
         getHeadOffset(),
         getNextOffset(),
+        getNextPointerTargetOffset(),
         prevOffset,
+        prevPointerTargetOffset,
         newMinimumLength,
         getRelevantEqualities());
   }
@@ -129,7 +165,9 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
         getOffset(),
         getHeadOffset(),
         getNextOffset(),
+        getNextPointerTargetOffset(),
         prevOffset,
+        prevPointerTargetOffset,
         getMinLength(),
         pRelevantEqualities);
   }
@@ -147,7 +185,9 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
         objectToCopy.getOffset(),
         objectToCopy.getHeadOffset(),
         objectToCopy.getNextOffset(),
+        objectToCopy.getNextPointerTargetOffset(),
         objectToCopy.prevOffset,
+        objectToCopy.prevPointerTargetOffset,
         objectToCopy.getMinLength(),
         objectToCopy.getRelevantEqualities());
   }

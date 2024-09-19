@@ -16,9 +16,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.smg.SMG;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGNode;
@@ -280,7 +280,9 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
             pObj1.getOffset(),
             pHeadOffset,
             pNextOffset,
+            null,
             pPrevOffset,
+            null,
             minLength);
     destSMG = destSMG.copyAndAddObject(dls);
     return dls;

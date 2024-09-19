@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
@@ -62,34 +63,36 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
 
     for (AbstractEntry entry : entries) {
       if (entry instanceof InvariantSetEntry invariantSetEntry) {
-        for (InvariantEntry invariantEntry : invariantSetEntry.content) {
-          Optional<String> resultFunction =
-              Optional.ofNullable(invariantEntry.getLocation().getFunction());
-          String invariantString = invariantEntry.getValue();
-          Integer line = invariantEntry.getLocation().getLine();
-          Integer column = invariantEntry.getLocation().getColumn();
-          Pair<Integer, Integer> position = Pair.of(line, column);
+        for (AbstractInformationRecord entryElement : invariantSetEntry.content) {
+          if (entryElement instanceof InvariantEntry invariantEntry) {
+            Optional<String> resultFunction =
+                Optional.ofNullable(invariantEntry.getLocation().getFunction());
+            String invariantString = invariantEntry.getValue();
+            Integer line = invariantEntry.getLocation().getLine();
+            Integer column = invariantEntry.getLocation().getColumn();
+            Pair<Integer, Integer> position = Pair.of(line, column);
 
-          // Parsing is expensive for long invariants, we therefore try to reduce it
-          Pair<String, String> lookupKey = Pair.of(resultFunction.orElseThrow(), invariantString);
+            // Parsing is expensive for long invariants, we therefore try to reduce it
+            Pair<String, String> lookupKey = Pair.of(resultFunction.orElseThrow(), invariantString);
 
-          if (lineToSeenInvariants.get(position).contains(lookupKey)) {
-            continue;
-          } else {
-            lineToSeenInvariants.get(position).add(lookupKey);
+            if (lineToSeenInvariants.get(position).contains(lookupKey)) {
+              continue;
+            } else {
+              lineToSeenInvariants.get(position).add(lookupKey);
+            }
+
+            ExpressionTree<AExpression> invariant = transformer.parseInvariantEntry(invariantEntry);
+
+            if (invariant.equals(ExpressionTrees.getTrue())) {
+              continue;
+            }
+
+            transitions.add(
+                new AutomatonTransition.Builder(
+                        new CheckCoversLines(ImmutableSet.of(line)), entryStateId)
+                    .withCandidateInvariants(invariant)
+                    .build());
           }
-
-          ExpressionTree<AExpression> invariant = transformer.parseInvariantEntry(invariantEntry);
-
-          if (invariant.equals(ExpressionTrees.getTrue())) {
-            continue;
-          }
-
-          transitions.add(
-              new AutomatonTransition.Builder(
-                      new CheckCoversLines(ImmutableSet.of(line)), entryStateId)
-                  .withCandidateInvariants(invariant)
-                  .build());
         }
         automatonName = invariantSetEntry.metadata.getUuid();
       } else {

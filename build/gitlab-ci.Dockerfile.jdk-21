@@ -20,6 +20,6 @@ RUN apt-get update && apt-get install -y \
   graphviz \
   libgmp10 \
   libgomp1 \
-  python3
-# We would need clang-9 for tests (https://gitlab.com/sosy-lab/software/cpachecker/-/issues/953),
-# but there is no Ubuntu version that provides Java 21 and clang-9.
+  python3 \
+  clang-9 \
+  && rm -rf /var/lib/apt/lists/*
