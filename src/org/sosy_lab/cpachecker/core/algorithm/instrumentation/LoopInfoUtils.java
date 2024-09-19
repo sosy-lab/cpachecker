@@ -112,21 +112,27 @@ public class LoopInfoUtils {
 
       // Determine type of each variable
       for (String variable : liveVariables) {
-        String type = pCProgramScope.lookupVariable(variable).getType().toString();
-        String variableWithoutScope =
-            variable.contains("::")
-                ? Iterables.get(Splitter.on("::").split(variable), 1)
-                : variable;
+        String type =
+            pCProgramScope
+                .lookupVariable(variable)
+                .getType()
+                .toString()
+                .replace("(", "")
+                .replace(")", "");
+        int countOfAsterisk = type.length() - type.replace("*", "").length();
+        type = type.replace("*", "");
+        variable =
+            "*".repeat(countOfAsterisk)
+                + (variable.contains("::")
+                    ? Iterables.get(Splitter.on("::").split(variable), 1)
+                    : variable);
 
-        if (type.startsWith("(")) {
-          type = type.replace("(", "").replace(")", "");
-        } else if (type.startsWith("struct ")) {
+        if (type.startsWith("struct ")) {
           liveVariablesAndTypes.putAll(
-              resolveStructIn(variableWithoutScope, allStructInfos.get(type), allStructInfos));
-          continue;
+              resolveStructIn(variable, allStructInfos.get(type), allStructInfos));
+        } else {
+          liveVariablesAndTypes.put(variable, type);
         }
-
-        liveVariablesAndTypes.put(variableWithoutScope, type);
       }
 
       for (Integer loopLocation : loopLocations) {
