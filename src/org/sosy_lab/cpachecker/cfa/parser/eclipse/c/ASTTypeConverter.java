@@ -74,6 +74,8 @@ class ASTTypeConverter {
     converter = pConverter;
     filePrefix = pFilePrefix;
     parseContext = pParseContext;
+
+    pParseContext.registerTypeMemoizationFilePrefixIfAbsent(filePrefix);
   }
 
   CType convert(IType t) {

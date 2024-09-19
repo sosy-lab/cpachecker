@@ -14,9 +14,9 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
@@ -125,12 +125,11 @@ class ParseContext {
   }
 
   CType getCType(IType type, String filePrefix) {
-    return typeConversions.getOrDefault(filePrefix, ImmutableMap.of()).get(type);
+    return typeConversions.get(filePrefix).get(type);
   }
 
   private IType getTypeFromTypeConversion(CType ourCType, String filePrefix) {
-    for (Entry<IType, CType> entry :
-        typeConversions.getOrDefault(filePrefix, ImmutableMap.of()).entrySet()) {
+    for (Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
       if (ourCType.equals(entry.getValue())) {
         return entry.getKey();
       }
@@ -145,6 +144,10 @@ class ParseContext {
     }
   }
 
+  void registerTypeMemoizationFilePrefixIfAbsent(String prefix) {
+    typeConversions.putIfAbsent(prefix, new IdentityHashMap<>());
+  }
+
   /**
    * Remember a type conversion from Eclipse CDT Types to CPAchecker Types.
    *
@@ -156,7 +159,6 @@ class ParseContext {
    */
   void rememberCType(IType originalType, CType cType, String filePrefix)
       throws IllegalStateException {
-    typeConversions.putIfAbsent(filePrefix, new HashMap<>());
 
     checkState(
         !typeConversions.get(filePrefix).containsKey(originalType),
@@ -170,7 +172,6 @@ class ParseContext {
   }
 
   private void rememberAndOverrideCType(IType originalType, CType cType, String filePrefix) {
-    typeConversions.putIfAbsent(filePrefix, new HashMap<>());
 
     // Override a type if it was previously mapped
     typeConversions.get(filePrefix).put(originalType, cType);
