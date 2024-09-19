@@ -891,7 +891,10 @@ public final class ValueAnalysisState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
-      FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
+      FunctionEntryNode pFunctionScope,
+      CFANode pLocation,
+      AstCfaRelation pAstCfaRelation,
+      boolean useOldKeywordForVariables)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {
@@ -932,14 +935,20 @@ public final class ValueAnalysisState
                 pLocation.getNumEnteringEdges() > 0
                     ? pLocation.getEnteringEdge(0).getFileLocation()
                     : pFunctionScope.getFileLocation();
+
+            String variableName = id;
+            if (useOldKeywordForVariables) {
+              variableName = "\\old(" + id + ")";
+            }
+
             CVariableDeclaration decl =
                 new CVariableDeclaration(
                     loc,
                     false,
                     CStorageClass.AUTO,
                     cType,
-                    id,
-                    id,
+                    variableName,
+                    variableName,
                     memoryLocation.getExtendedQualifiedName(),
                     null);
             CExpression var = new CIdExpression(loc, decl);

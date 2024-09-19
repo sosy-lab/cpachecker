@@ -65,6 +65,9 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * @param pLocation the formula should at least try to approximate variables referenced by
    *     entering edges at this location
    * @param pAstCfaRelation the relation between the AST and the CFA
+   * @param useOldKeywordForVariables whether to use the old keyword for variables or not. For
+   *     example if true the variable `x` should be denoted by `\old(x)` in the produced ACSL
+   *     formula
    * @return the formula approximation
    * @throws InterruptedException if the computation is interrupted
    * @throws ReportingMethodNotImplementedException if the computation is not implemented
@@ -72,7 +75,10 @@ public interface ExpressionTreeReportingState extends AbstractState {
    *     failed
    */
   ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
-      FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
+      FunctionEntryNode pFunctionScope,
+      CFANode pLocation,
+      AstCfaRelation pAstCfaRelation,
+      boolean useOldKeywordForVariables)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException;

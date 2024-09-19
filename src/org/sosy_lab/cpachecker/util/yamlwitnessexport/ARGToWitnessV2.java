@@ -63,7 +63,8 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     // TODO: The original name of the variables should be used here. This requires a visitor to
     // rename them
     ExpressionTreeResult invariantResult =
-        getOverapproximationOfStatesIgnoringReturnVariables(argStates, node);
+        getOverapproximationOfStatesIgnoringReturnVariables(
+            argStates, node, /* useOldKeywordForVariables= */ false);
     LocationRecord locationRecord =
         LocationRecord.createLocationRecordAtStart(
             fileLocation,

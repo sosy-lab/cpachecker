@@ -66,7 +66,8 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
 
     FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
     ExpressionTreeResult invariantResult =
-        getOverapproximationOfStatesIgnoringReturnVariables(argStates, node);
+        getOverapproximationOfStatesIgnoringReturnVariables(
+            argStates, node, /* useOldKeywordForVariables= */ false);
     LocationRecord locationRecord =
         LocationRecord.createLocationRecordAtStart(
             fileLocation,
@@ -108,7 +109,8 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
 
       FileLocation location = functionEntryNode.getFileLocation();
       ExpressionTreeResult requiresClauseResult =
-          getOverapproximationOfStatesIgnoringReturnVariables(requiresArgStates, functionEntryNode);
+          getOverapproximationOfStatesIgnoringReturnVariables(
+              requiresArgStates, functionEntryNode, /* useOldKeywordForVariables= */ false);
       String requiresClause = requiresClauseResult.expressionTree().toString();
       translationSuccessful &= requiresClauseResult.backTranslationSuccessful();
 
@@ -121,7 +123,10 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
           // Get the state of the input of the function
           ExpressionTreeResult stateOfTheInputResult =
               getOverapproximationOfStatesIgnoringReturnVariables(
-                  ImmutableSet.of(pair.entry()), functionEntryNode);
+                  ImmutableSet.of(pair.entry()),
+                  functionEntryNode,
+                  // we need to use the old keyword to reference the variables in the input.
+                  /* useOldKeywordForVariables= */ true);
 
           String stateOfTheInput = stateOfTheInputResult.expressionTree().toString();
           translationSuccessful &= stateOfTheInputResult.backTranslationSuccessful();

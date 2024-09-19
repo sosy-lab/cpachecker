@@ -227,14 +227,14 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
   }
 
   protected ExpressionTreeResult getOverapproximationOfStatesIgnoringReturnVariables(
-      Collection<ARGState> argStates, CFANode node)
+      Collection<ARGState> argStates, CFANode node, boolean useOldKeywordForVariables)
       throws InterruptedException, ReportingMethodNotImplementedException {
     FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
     return getOverapproximationOfStates(
         argStates,
         (ExpressionTreeReportingState x) ->
             x.getFormulaApproximationInputProgramInScopeVariables(
-                entryNode, node, cfa.getAstCfaRelation()));
+                entryNode, node, cfa.getAstCfaRelation(), useOldKeywordForVariables));
   }
 
   protected ExpressionTreeResult getOverapproximationOfStatesWithOnlyReturnVariables(
@@ -253,9 +253,9 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
                   false,
                   CStorageClass.AUTO,
                   cType,
-                  "\result",
-                  "\result",
-                  node.getFunctionName() + "::\result",
+                  "\\result",
+                  "\\result",
+                  node.getFunctionName() + "::\\result",
                   null));
     } else {
       // Currently we do not export witnesses for other programming languages than C, therefore

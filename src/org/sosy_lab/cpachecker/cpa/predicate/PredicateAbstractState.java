@@ -135,24 +135,29 @@ public abstract sealed class PredicateAbstractState
 
     @Override
     public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
-        FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
+        FunctionEntryNode pFunctionScope,
+        CFANode pLocation,
+        AstCfaRelation pAstCfaRelation,
+        boolean useOldKeywordForVariables)
         throws InterruptedException,
             ReportingMethodNotImplementedException,
             TranslationToExpressionTreeFailedException {
-      return super.abstractionFormula.asExpressionTree(
-          name ->
-              (!name.contains(FUNCTION_DELIMITER)
-                      || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER))
-                  && pAstCfaRelation
-                      .getVariablesAndParametersInScope(pLocation)
-                      .anyMatch(
-                          var ->
-                              // For local variables
-                              (pLocation.getFunctionName() + FUNCTION_DELIMITER + var.getName())
-                                      .equals(name)
-                                  // For global variables
-                                  || var.getName().equals(name))
-                  && !name.contains("__CPAchecker_"));
+      ExpressionTree<Object> expressionTree =
+          super.abstractionFormula.asExpressionTree(
+              name ->
+                  (!name.contains(FUNCTION_DELIMITER)
+                          || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER))
+                      && pAstCfaRelation
+                          .getVariablesAndParametersInScope(pLocation)
+                          .anyMatch(
+                              var ->
+                                  // For local variables
+                                  (pLocation.getFunctionName() + FUNCTION_DELIMITER + var.getName())
+                                          .equals(name)
+                                      // For global variables
+                                      || var.getName().equals(name))
+                      && !name.contains("__CPAchecker_"));
+      return expressionTree;
     }
 
     @Override
