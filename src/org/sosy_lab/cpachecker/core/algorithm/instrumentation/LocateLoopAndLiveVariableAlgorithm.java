@@ -10,30 +10,22 @@ package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -73,14 +65,8 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       ImmutableSet<NormalLoopInfo> allNormalLoopInfos =
           LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope);
       ImmutableSet<RecursionInfo> allRecursionInfos = getAllRecursionInfos();
-      ImmutableSet<StructInfo> allLiveStructInfos =
-          getAllLiveStructInfos(allNormalLoopInfos, allRecursionInfos);
 
       StringBuilder allLoopInfos = new StringBuilder();
-      for (StructInfo structInfo : allLiveStructInfos) {
-        allLoopInfos.append(
-            String.format("Struct    %s    %s%n", structInfo.structName(), structInfo.members()));
-      }
       for (NormalLoopInfo loopInfo : allNormalLoopInfos) {
         allLoopInfos.append(
             String.format(
@@ -199,134 +185,6 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
       throw new Error("An unexpected error occurred!");
     }
   }
-
-  private ImmutableSet<StructInfo> getAllLiveStructInfos(
-      ImmutableSet<NormalLoopInfo> pAllNormalLoopInfos,
-      ImmutableSet<RecursionInfo> pAllRecursionInfos) {
-
-    Set<StructInfo> allLiveStructInfos = new HashSet<>();
-    ImmutableSet<StructInfo> allStructInfos = getAllStructInfos();
-    ImmutableSet<String> allLiveStructNames =
-        getAllLiveStructNames(pAllNormalLoopInfos, pAllRecursionInfos);
-
-    for (StructInfo structInfo : allStructInfos) {
-      if (allLiveStructNames.contains(structInfo.structName())) {
-        allLiveStructInfos.add(
-            new StructInfo(
-                structInfo.structName(), resolveStructsIn(structInfo.members(), allStructInfos)));
-      }
-    }
-
-    return ImmutableSet.copyOf(allLiveStructInfos);
-  }
-
-  private ImmutableSet<String> getAllLiveStructNames(
-      ImmutableSet<NormalLoopInfo> pAllNormalLoopInfos,
-      ImmutableSet<RecursionInfo> pAllRecursionInfos) {
-
-    Set<String> allLivestructNames = new HashSet<>();
-
-    for (NormalLoopInfo normalLoopInfo : pAllNormalLoopInfos) {
-      normalLoopInfo.liveVariablesAndTypes().entrySet().stream()
-          .filter(e -> e.getValue().startsWith("struct "))
-          .forEach(
-              e -> allLivestructNames.add(Iterables.get(Splitter.on(' ').split(e.getValue()), 1)));
-    }
-
-    for (RecursionInfo recursionInfo : pAllRecursionInfos) {
-      recursionInfo.parameters().stream()
-          .filter(e -> e.startsWith("struct "))
-          .forEach(e -> allLivestructNames.add(Iterables.get(Splitter.on(' ').split(e), 1)));
-    }
-
-    return ImmutableSet.copyOf(allLivestructNames);
-  }
-
-  private ImmutableSet<StructInfo> getAllStructInfos() {
-    Set<StructInfo> allStructInfos = new HashSet<>();
-
-    for (CFAEdge cfaEdge : cfa.edges()) {
-      Optional<AAstNode> aAstNodeOp = cfaEdge.getRawAST();
-      if (aAstNodeOp.isPresent() && aAstNodeOp.orElseThrow() instanceof CComplexTypeDeclaration) {
-        String cComplexTypeDeclaration =
-            ((CComplexTypeDeclaration) aAstNodeOp.orElseThrow()).toString();
-
-        if (cComplexTypeDeclaration.startsWith(
-            "struct ")) { // A C complex type can also be an enum by definition in CPAchecker
-          String structName;
-          Map<String, String> members = new HashMap<>();
-
-          // Every string representation of an AST node for a struct declaration has the same
-          // format, which the following modification is based on.
-          cComplexTypeDeclaration =
-              cComplexTypeDeclaration
-                  .substring(0, cComplexTypeDeclaration.length() - 4)
-                  .replace(";", "")
-                  .replace("  ", "");
-          List<String> structParts = Splitter.on('\n').splitToList(cComplexTypeDeclaration);
-          structName = Iterables.get(Splitter.on(' ').split(structParts.get(0)), 1);
-          for (int i = 1; i < structParts.size(); i++) {
-            if (structParts.get(i).startsWith("struct ")) {
-              members.put(
-                  Iterables.get(Splitter.on(' ').split(structParts.get(i)), 2),
-                  Iterables.get(Splitter.on(' ').split(structParts.get(i)), 0)
-                      + " "
-                      + Iterables.get(Splitter.on(' ').split(structParts.get(i)), 1));
-            } else {
-              members.put(
-                  Iterables.get(Splitter.on(' ').split(structParts.get(i)), 1),
-                  Iterables.get(Splitter.on(' ').split(structParts.get(i)), 0));
-            }
-          }
-
-          allStructInfos.add(new StructInfo(structName, ImmutableMap.copyOf(members)));
-        }
-      }
-    }
-
-    return ImmutableSet.copyOf(allStructInfos);
-  }
-
-  private ImmutableMap<String, String> resolveStructsIn(
-      ImmutableMap<String, String> pMembers, ImmutableSet<StructInfo> allStructInfos) {
-    Map<String, String> ans = new HashMap<>();
-
-    for (Entry<String, String> member : pMembers.entrySet()) {
-      String name = member.getKey();
-      String type = member.getValue();
-      ans.put(name, type);
-
-      if (type.startsWith("struct ")) {
-        ans.remove(name);
-
-        ImmutableMap<String, String> originalMembersUnderOneLevel =
-            allStructInfos.stream()
-                .filter(e -> type.endsWith(e.structName()))
-                .findFirst()
-                .orElseThrow()
-                .members();
-        Map<String, String> modifiedMembersUnderOneLevel = new HashMap<>();
-
-        for (Entry<String, String> memberUnderOneLevel : originalMembersUnderOneLevel.entrySet()) {
-          String nameUnderOneLevel = memberUnderOneLevel.getKey();
-          String typeUnderOneLevel = memberUnderOneLevel.getValue();
-
-          String nameUnderOneLevelWithoutAsterisk = nameUnderOneLevel.replace("*", "");
-          int countOfAsterisk =
-              nameUnderOneLevel.length() - nameUnderOneLevelWithoutAsterisk.length();
-
-          modifiedMembersUnderOneLevel.put(
-              "*".repeat(countOfAsterisk) + name + "." + nameUnderOneLevelWithoutAsterisk,
-              typeUnderOneLevel);
-        }
-
-        ans.putAll(
-            resolveStructsIn(ImmutableMap.copyOf(modifiedMembersUnderOneLevel), allStructInfos));
-      }
-    }
-
-    return ImmutableMap.copyOf(ans);
-  }
 }
 
 /**
@@ -342,11 +200,3 @@ record RecursionInfo(
     int locationOfDefinition,
     ImmutableSet<Integer> locationOfRecursiveCalls,
     ImmutableList<String> parameters) {}
-
-/**
- * Represents a container for struct information.
- *
- * @param structName the name of the struct
- * @param members a map of member names to their types
- */
-record StructInfo(String structName, ImmutableMap<String, String> members) {}

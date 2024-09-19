@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -27,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -49,10 +51,10 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class LoopInfoUtils {
 
-
   public static ImmutableSet<NormalLoopInfo> getAllNormalLoopInfos(
       CFA pCfa, CProgramScope pCProgramScope) {
     Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>();
+    ImmutableMap<String, ImmutableMap<String, String>> allStructInfos = getAllStructInfos(pCfa);
 
     for (Loop loop : pCfa.getLoopStructure().orElseThrow().getAllLoops()) {
       // Determine loop locations. There may be more than one, as some loops have multiple
@@ -114,12 +116,14 @@ public class LoopInfoUtils {
 
         if (type.startsWith("(")) {
           type = type.substring(1, type.length() - 2) + "*";
+        } else if (type.startsWith("struct ")) {
+          type = type + " " + resolveStructsIn(allStructInfos.get(type), allStructInfos).toString();
         }
 
         liveVariablesAndTypes.put(
             variable.contains("::")
-            ? Iterables.get(Splitter.on("::").split(variable), 1)
-            : variable,
+                ? Iterables.get(Splitter.on("::").split(variable), 1)
+                : variable,
             type);
       }
 
@@ -255,5 +259,88 @@ public class LoopInfoUtils {
     }
 
     return ImmutableSet.copyOf(variables);
+  }
+
+  private static ImmutableMap<String, String> resolveStructsIn(
+      ImmutableMap<String, String> pMembers,
+      ImmutableMap<String, ImmutableMap<String, String>> allStructInfos) {
+    Map<String, String> ans = new HashMap<>();
+
+    for (Entry<String, String> member : pMembers.entrySet()) {
+      String name = member.getKey();
+      String type = member.getValue();
+      ans.put(name, type);
+
+      if (type.startsWith("struct ")) {
+        ans.remove(name);
+
+        ImmutableMap<String, String> originalMembersUnderOneLevel = allStructInfos.get(type);
+        Map<String, String> modifiedMembersUnderOneLevel = new HashMap<>();
+
+        for (Entry<String, String> memberUnderOneLevel : originalMembersUnderOneLevel.entrySet()) {
+          String nameUnderOneLevel = memberUnderOneLevel.getKey();
+          String typeUnderOneLevel = memberUnderOneLevel.getValue();
+
+          String nameUnderOneLevelWithoutAsterisk = nameUnderOneLevel.replace("*", "");
+          int countOfAsterisk =
+              nameUnderOneLevel.length() - nameUnderOneLevelWithoutAsterisk.length();
+
+          modifiedMembersUnderOneLevel.put(
+              "*".repeat(countOfAsterisk) + name + "." + nameUnderOneLevelWithoutAsterisk,
+              typeUnderOneLevel);
+        }
+
+        ans.putAll(
+            resolveStructsIn(ImmutableMap.copyOf(modifiedMembersUnderOneLevel), allStructInfos));
+      }
+    }
+
+    return ImmutableMap.copyOf(ans);
+  }
+
+  private static ImmutableMap<String, ImmutableMap<String, String>> getAllStructInfos(CFA pCfa) {
+    Map<String, ImmutableMap<String, String>> allStructInfos = new HashMap<>();
+
+    for (CFAEdge cfaEdge : pCfa.edges()) {
+      Optional<AAstNode> aAstNodeOp = cfaEdge.getRawAST();
+      if (aAstNodeOp.isPresent() && aAstNodeOp.orElseThrow() instanceof CComplexTypeDeclaration) {
+        String cComplexTypeDeclaration =
+            ((CComplexTypeDeclaration) aAstNodeOp.orElseThrow()).toString();
+
+        if (cComplexTypeDeclaration.startsWith(
+            "struct ")) { // A C complex type can also be an enum by definition in CPAchecker
+          String structName;
+          Map<String, String> members = new HashMap<>();
+
+          // Every string representation of an AST node for a struct declaration has the same
+          // format, which the following modification is based on.
+          cComplexTypeDeclaration =
+              cComplexTypeDeclaration
+                  .substring(0, cComplexTypeDeclaration.length() - 4)
+                  .replace(";", "")
+                  .replace("  ", "")
+                  .replace(" {", "");
+          List<String> structParts = Splitter.on('\n').splitToList(cComplexTypeDeclaration);
+          structName = structParts.get(0);
+          for (int i = 1; i < structParts.size(); i++) {
+            if (structParts.get(i).startsWith("struct ")) {
+              members.put(
+                  Iterables.get(Splitter.on(' ').split(structParts.get(i)), 2),
+                  Iterables.get(Splitter.on(' ').split(structParts.get(i)), 0)
+                      + " "
+                      + Iterables.get(Splitter.on(' ').split(structParts.get(i)), 1));
+            } else {
+              members.put(
+                  Iterables.get(Splitter.on(' ').split(structParts.get(i)), 1),
+                  Iterables.get(Splitter.on(' ').split(structParts.get(i)), 0));
+            }
+          }
+
+          allStructInfos.put(structName, ImmutableMap.copyOf(members));
+        }
+      }
+    }
+
+    return ImmutableMap.copyOf(allStructInfos);
   }
 }
