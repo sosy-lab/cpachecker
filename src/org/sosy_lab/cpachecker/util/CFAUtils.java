@@ -166,8 +166,8 @@ public class CFAUtils {
    * @param pEdge the edge for which the predecessor and successor should be returned
    * @return an {@link Iterable} containing the predecessor and successor of the given edge
    */
-  public static FluentIterable<CFANode> nodes(CFAEdge pEdge) {
-    return FluentIterable.from(ImmutableList.of(pEdge.getPredecessor(), pEdge.getSuccessor()));
+  public static ImmutableList<CFANode> nodes(CFAEdge pEdge) {
+    return ImmutableList.of(pEdge.getPredecessor(), pEdge.getSuccessor());
   }
 
   /**
