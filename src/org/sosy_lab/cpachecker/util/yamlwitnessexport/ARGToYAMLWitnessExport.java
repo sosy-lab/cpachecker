@@ -82,5 +82,12 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
               + " had problems during the translation process. "
               + "This may result in invariants being too large an over approximation.");
     }
+
+    if (!argToWitnessV2.argIsCyclic(pRootState)) {
+      logger.log(
+          Level.INFO,
+          "The ARG contains no cycles. "
+              + "This means that the invariants are likely not inductive or not safe.");
+    }
   }
 }
