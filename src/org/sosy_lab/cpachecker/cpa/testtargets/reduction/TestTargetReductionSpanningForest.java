@@ -64,7 +64,7 @@ public class TestTargetReductionSpanningForest {
         new SubsumptionOracleForTargetsAsEdges(entryExit, copyToTarget);
 
     for (CFAEdge target : pTargets) {
-      if (visited.contains(target)) {
+      if (!visited.contains(target)) {
         for (CFAEdge target2 : pTargets) {
           if (target == target2 || visited.contains(target2)) {
             continue;

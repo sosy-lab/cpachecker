@@ -110,7 +110,6 @@ public final class TestTargetReductionUtils {
               });
         }
         for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
-
           requireInput = currentNodeInfo.getSecond();
           if (pTestTargets.contains(leaving)) {
             if (!predecessor.equals(leaving.getPredecessor())) {
