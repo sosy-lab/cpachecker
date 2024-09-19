@@ -1192,7 +1192,8 @@ public class CfaJsonModule extends SimpleModule {
     @JsonCreator
     private CfaMetadataMixin(
         @JsonProperty("machineModel") MachineModel pMachineModel,
-        @JsonProperty("language") Language pLanguage,
+        @JsonProperty("language") Language pCFALanguage,
+        @JsonProperty("inputLanguage") Language pInputLanguage,
         @JsonProperty("fileNames") List<Path> pFileNames,
         @JsonProperty("mainFunctionEntry") FunctionEntryNode pMainFunctionEntry,
         @JsonProperty("connectedness") CfaConnectedness pConnectedness,
