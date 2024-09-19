@@ -811,9 +811,6 @@ cfa.export = true
 # export CFA as JSON file
 cfa.export.json = "cfa.json"
 
-# Import the CFA from a given JSON file (No source files are parsed).
-cfa.import.json = no default value
-
 # export individual CFAs for function as .dot files
 cfa.exportPerFunction = true
 
@@ -835,6 +832,9 @@ cfa.findLiveVariables = false
 # how often can a function appear in the callstack as a clone of the original
 # function?
 cfa.functionCalls.recursionDepth = 5
+
+# Import the CFA from a given JSON file (No source files are parsed).
+cfa.import.json = no default value
 
 # Also initialize local variables with default values, or leave them
 # uninitialized.

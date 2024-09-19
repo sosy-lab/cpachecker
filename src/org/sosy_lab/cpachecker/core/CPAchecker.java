@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Optionals;
@@ -42,6 +43,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.export.CfaFromJson;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -434,31 +436,17 @@ public class CPAchecker {
   private CFA parse(List<String> fileNames, MainCPAStatistics stats)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
-    logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
-    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
-    stats.setCFACreator(cfaCreator);
-    final CFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
     final CFA cfa;
-    if (serializedCfaFile == null && cfaJsonFile == null) {
-      // parse file and create CFA
+
+    if (cfaJsonFile == null) {
+      // Parse file and create CFA.
       logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
       CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
       stats.setCFACreator(cfaCreator);
       cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
 
-    } else if (cfaJsonFile == null) {
-      // load CFA from serialization file
-      logger.logf(Level.INFO, "Reading CFA from file \"%s\"", serializedCfaFile);
-      try (InputStream inputStream = Files.newInputStream(serializedCfaFile);
-          InputStream gzipInputStream = new GZIPInputStream(inputStream);
-          ObjectInputStream ois = new ObjectInputStream(gzipInputStream)) {
-        cfa = (CFA) ois.readObject();
-      }
-
-      assert CFACheck.check(cfa.getMainFunction(), null, cfa.getMachineModel());
-
     } else {
-      // import CFA from JSON file
+      // Import CFA from JSON file.
       logger.logf(Level.INFO, "Reading CFA from JSON file \"%s\"", cfaJsonFile);
       cfa = CfaFromJson.read(cfaJsonFile, logger).immutableCopy();
 
