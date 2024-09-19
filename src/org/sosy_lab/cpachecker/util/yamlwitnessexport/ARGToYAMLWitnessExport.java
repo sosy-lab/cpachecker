@@ -38,6 +38,40 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
     argToWitnessV2d1 = new ARGToWitnessV2d1(pConfig, pCfa, pSpecification, pLogger);
   }
 
+  /** Export some information to the user about the guarantees provided by the witness. */
+  private void analyzeExportedWitnessQuality(
+      ImmutableMap<YAMLWitnessVersion, WitnessExportResult> pWitnessExportResults,
+      UnmodifiableReachedSet pReachedSet) {
+    if (!FluentIterable.from(pWitnessExportResults.values())
+        .allMatch(WitnessExportResult::translationAlwaysSuccessful)) {
+      // For example occurring for: sv-benchmarks/c/nla-digbench-scaling/hard2_valuebound20.c
+      logger.log(
+          Level.INFO,
+          "Witnesses exported in versions "
+              + String.join(
+                  ", ",
+                  FluentIterable.from(pWitnessExportResults.entrySet())
+                      .filter(entry -> !entry.getValue().translationAlwaysSuccessful())
+                      .transform(entry -> entry.getKey().toString()))
+              + " had problems during the translation process. "
+              + "This may result in invariants being too large an over approximation.");
+    }
+
+    if (FluentIterable.from(pReachedSet)
+        .filter(ARGState.class)
+        // For some reason not all elements being covered are in the reached set, therefore this
+        // workaround is needed
+        // One example program where this happens is:
+        // sv-benchmarks/c/nla-digbench-scaling/hard2_valuebound20.c
+        .allMatch(argState -> argState.getCoveredByThis().isEmpty())) {
+      // For example occurring for: sv-benchmarks/c/loops/n.c40.c
+      logger.log(
+          Level.INFO,
+          "The ARG contains no cycles. "
+              + "This means that the invariants are likely not inductive or not safe.");
+    }
+  }
+
   /**
    * Export the given ARG to a witness file in YAML format. All versions of witnesses will be
    * exported. It also prints output information to the user explaining what guarantees are provided
@@ -69,35 +103,8 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
       witnessExportResults.put(witnessVersion, witnessExportResult);
     }
 
-    // Export some information to the user about the guarantees provided by the witness.
-    ImmutableMap<YAMLWitnessVersion, WitnessExportResult> results = witnessExportResults.build();
-    if (!FluentIterable.from(results.values())
-        .allMatch(WitnessExportResult::translationAlwaysSuccessful)) {
-      // For example occurring for: sv-benchmarks/c/nla-digbench-scaling/hard2_valuebound20.c
-      logger.log(
-          Level.INFO,
-          "Witnesses exported in versions "
-              + String.join(
-                  ", ",
-                  FluentIterable.from(results.entrySet())
-                      .filter(entry -> !entry.getValue().translationAlwaysSuccessful())
-                      .transform(entry -> entry.getKey().toString()))
-              + " had problems during the translation process. "
-              + "This may result in invariants being too large an over approximation.");
-    }
-
-    if (FluentIterable.from(pReachedSet)
-        .filter(ARGState.class)
-        // For some reason not all elements being covered are in the reached set, therefore this
-        // workaround is needed
-        // One example program where this happens is:
-        // sv-benchmarks/c/nla-digbench-scaling/hard2_valuebound20.c
-        .allMatch(argState -> argState.getCoveredByThis().isEmpty())) {
-      // For example occurring for: sv-benchmarks/c/loops/n.c40.c
-      logger.log(
-          Level.INFO,
-          "The ARG contains no cycles. "
-              + "This means that the invariants are likely not inductive or not safe.");
+    if (analyseWitnessQuality) {
+      analyzeExportedWitnessQuality(witnessExportResults.build(), pReachedSet);
     }
   }
 }
