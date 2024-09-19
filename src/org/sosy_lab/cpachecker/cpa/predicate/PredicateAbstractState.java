@@ -166,13 +166,14 @@ public abstract sealed class PredicateAbstractState
         throws InterruptedException, TranslationToExpressionTreeFailedException {
       Verify.verify(pFunctionScope.getExitNode().isPresent());
       FunctionExitNode functionExitNode = pFunctionScope.getExitNode().orElseThrow();
+      String smtNameReturnVariable = "__retval__";
       return super.abstractionFormula.asExpressionTree(
           name ->
               name.startsWith(functionExitNode.getFunctionName() + FUNCTION_DELIMITER)
                   && Splitter.on(FUNCTION_DELIMITER)
                       .splitToList(name)
                       .get(1)
-                      .equals(pFunctionReturnVariable.getName()));
+                      .equals(smtNameReturnVariable));
     }
 
     @Override
