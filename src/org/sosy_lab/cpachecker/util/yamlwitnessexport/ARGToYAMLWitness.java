@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
   private final Map<ARGState, CollectedARGStates> stateToStatesCollector = new HashMap<>();
-  private final Map<ARGState, Boolean> argContainsCycle = new HashMap<>();
 
   public ARGToYAMLWitness(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
