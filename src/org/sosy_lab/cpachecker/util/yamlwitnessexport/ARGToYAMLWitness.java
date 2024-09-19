@@ -12,15 +12,8 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Queues;
-import com.google.common.graph.EndpointPair;
-import com.google.common.graph.GraphBuilder;
-import com.google.common.graph.Graphs;
-import com.google.common.graph.ImmutableGraph;
-import com.google.common.graph.MutableGraph;
 import com.google.common.graph.SuccessorsFunction;
 import com.google.common.graph.Traverser;
 import java.util.ArrayList;
@@ -28,7 +21,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -121,32 +113,6 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
   }
 
   /**
-   * Builds a gauva graph by starting from the given nodes and traversing the graph with a breadth
-   * first traversal
-   *
-   * @param startingNodes the nodes to start the traversal from
-   * @param successorsFunction the function to get the successors of a node
-   * @return the graph built by the traversal
-   * @param <N> the type of the nodes in the graph
-   */
-  public static <N> ImmutableGraph<N> buildGraphWithBreadthFirstTraversal(
-      Iterable<N> startingNodes, SuccessorsFunction<N> successorsFunction) {
-    MutableGraph<N> result = GraphBuilder.directed().allowsSelfLoops(true).build();
-    startingNodes.forEach(result::addNode);
-    Queue<N> nodesRemaining = Queues.newArrayDeque(startingNodes);
-    while (!nodesRemaining.isEmpty()) {
-      N next = nodesRemaining.remove();
-      for (N successor : successorsFunction.successors(next)) {
-        if (!result.edges().contains(EndpointPair.ordered(next, successor))) {
-          nodesRemaining.add(successor);
-          result.putEdge(next, successor);
-        }
-      }
-    }
-    return ImmutableGraph.copyOf(result);
-  }
-
-  /**
    * Analyzes the ARG during its traversal by collecting the states relevant to exporting a witness
    */
   private static class RelevantARGStateCollector {
@@ -232,24 +198,6 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     }
 
     return stateToStatesCollector.get(pRootState);
-  }
-
-  /**
-   * Check if the ARG contains a cycle starting from the given state.
-   *
-   * @param pRootState the state for where the traversal of the ARG should start for the cycle
-   *     detection
-   * @return if the ARG contains a cycle
-   */
-  Boolean argIsCyclic(ARGState pRootState) {
-    if (!argContainsCycle.containsKey(pRootState)) {
-      ImmutableGraph<ARGState> argGraph =
-          buildGraphWithBreadthFirstTraversal(
-              ImmutableSet.of(pRootState), new ARGSuccessorFunction());
-      argContainsCycle.put(pRootState, Graphs.hasCycle(argGraph));
-    }
-
-    return argContainsCycle.get(pRootState);
   }
 
   /**

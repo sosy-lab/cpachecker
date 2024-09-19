@@ -20,6 +20,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitness.WitnessExportResult;
@@ -49,7 +50,8 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
    * @throws InterruptedException If the witness export was interrupted.
    * @throws IOException If the witness could not be written to the file.
    */
-  public void export(ARGState pRootState, PathTemplate pOutputFileTemplate)
+  public void export(
+      ARGState pRootState, UnmodifiableReachedSet pReachedSet, PathTemplate pOutputFileTemplate)
       throws InterruptedException, IOException, ReportingMethodNotImplementedException {
 
     ImmutableMap.Builder<YAMLWitnessVersion, WitnessExportResult> witnessExportResults =
@@ -84,7 +86,13 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
               + "This may result in invariants being too large an over approximation.");
     }
 
-    if (!argToWitnessV2.argIsCyclic(pRootState)) {
+    if (FluentIterable.from(pReachedSet)
+        .filter(ARGState.class)
+        // For some reason not all elements being covered are in the reached set, therefore this
+        // workaround is needed
+        // One example program where this happens is:
+        // sv-benchmarks/c/nla-digbench-scaling/hard2_valuebound20.c
+        .allMatch(argState -> argState.getCoveredByThis().isEmpty())) {
       // For example occurring for: sv-benchmarks/c/loops/n.c40.c
       logger.log(
           Level.INFO,
