@@ -113,18 +113,20 @@ public class LoopInfoUtils {
       // Determine type of each variable
       for (String variable : liveVariables) {
         String type = pCProgramScope.lookupVariable(variable).getType().toString();
+        String variableWithoutScope =
+            variable.contains("::")
+                ? Iterables.get(Splitter.on("::").split(variable), 1)
+                : variable;
 
         if (type.startsWith("(")) {
           type = type.substring(1, type.length() - 2) + "*";
         } else if (type.startsWith("struct ")) {
-          type = type + " " + resolveStructsIn(allStructInfos.get(type), allStructInfos).toString();
+          liveVariablesAndTypes.putAll(
+              resolveStructIn(variableWithoutScope, allStructInfos.get(type), allStructInfos));
+          continue;
         }
 
-        liveVariablesAndTypes.put(
-            variable.contains("::")
-                ? Iterables.get(Splitter.on("::").split(variable), 1)
-                : variable,
-            type);
+        liveVariablesAndTypes.put(variableWithoutScope, type);
       }
 
       for (Integer loopLocation : loopLocations) {
@@ -261,9 +263,31 @@ public class LoopInfoUtils {
     return ImmutableSet.copyOf(variables);
   }
 
-  private static ImmutableMap<String, String> resolveStructsIn(
+  private static ImmutableMap<String, String> resolveStructIn(
+      String pVariable,
       ImmutableMap<String, String> pMembers,
-      ImmutableMap<String, ImmutableMap<String, String>> allStructInfos) {
+      ImmutableMap<String, ImmutableMap<String, String>> pAllStructInfos) {
+
+    // Add pVariable in front of each name of pMembers
+    Map<String, String> membersWithModifiedNames = new HashMap<>();
+    for (String name : pMembers.keySet()) {
+      StringBuilder modifiedName = new StringBuilder(name);
+      int lastIndexOfAsterisk = modifiedName.lastIndexOf("*");
+      if (lastIndexOfAsterisk == -1) {
+        modifiedName.insert(0, pVariable + ".");
+      } else {
+        modifiedName.insert(lastIndexOfAsterisk, pVariable + ".");
+      }
+
+      membersWithModifiedNames.put(modifiedName.toString(), pMembers.get(name));
+    }
+
+    return resolveStructInHf(ImmutableMap.copyOf(membersWithModifiedNames), pAllStructInfos);
+  }
+
+  private static ImmutableMap<String, String> resolveStructInHf(
+      ImmutableMap<String, String> pMembers,
+      ImmutableMap<String, ImmutableMap<String, String>> pAllStructInfos) {
     Map<String, String> ans = new HashMap<>();
 
     for (Entry<String, String> member : pMembers.entrySet()) {
@@ -274,7 +298,7 @@ public class LoopInfoUtils {
       if (type.startsWith("struct ")) {
         ans.remove(name);
 
-        ImmutableMap<String, String> originalMembersUnderOneLevel = allStructInfos.get(type);
+        ImmutableMap<String, String> originalMembersUnderOneLevel = pAllStructInfos.get(type);
         Map<String, String> modifiedMembersUnderOneLevel = new HashMap<>();
 
         for (Entry<String, String> memberUnderOneLevel : originalMembersUnderOneLevel.entrySet()) {
@@ -291,7 +315,7 @@ public class LoopInfoUtils {
         }
 
         ans.putAll(
-            resolveStructsIn(ImmutableMap.copyOf(modifiedMembersUnderOneLevel), allStructInfos));
+            resolveStructInHf(ImmutableMap.copyOf(modifiedMembersUnderOneLevel), pAllStructInfos));
       }
     }
 
