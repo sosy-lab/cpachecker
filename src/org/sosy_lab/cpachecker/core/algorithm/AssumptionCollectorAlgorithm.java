@@ -593,7 +593,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       if (!bmgr.isTrue(assumption)) {
         try {
           ExpressionTree<Object> assumptionTree =
-              ExpressionTrees.fromFormula(assumption, fmgr, pCFANode);
+              ExpressionTrees.fromFormula(assumption, fmgr, pCFANode).expressionTree();
           // At this point, we know that the InterruptedException is not thrown,
           // hence, we can continue
           writer.append("ASSUME {");

@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.logging.Level;
@@ -19,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitness.WitnessExportResult;
 
 public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
 
@@ -35,7 +39,8 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
 
   /**
    * Export the given ARG to a witness file in YAML format. All versions of witnesses will be
-   * exported.
+   * exported. It also prints output information to the user explaining what guarantees are provided
+   * by the witness.
    *
    * @param pRootState The root state of the ARG.
    * @param pOutputFileTemplate The template for the output file. The template will be used to
@@ -46,16 +51,36 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
    */
   public void export(ARGState pRootState, PathTemplate pOutputFileTemplate)
       throws InterruptedException, IOException, ReportingMethodNotImplementedException {
-    for (YAMLWitnessVersion witnessVersion : witnessVersions) {
+
+    ImmutableMap.Builder<YAMLWitnessVersion, WitnessExportResult> witnessExportResults =
+        ImmutableMap.builder();
+    for (YAMLWitnessVersion witnessVersion : ImmutableSet.copyOf(witnessVersions)) {
       Path outputFile = pOutputFileTemplate.getPath(witnessVersion.toString());
-      switch (witnessVersion) {
-        case V2 -> argToWitnessV2.exportWitnesses(pRootState, outputFile);
-        case V2d1 -> {
-          logger.log(Level.INFO, "Exporting witnesses in Version 2.1 is currently WIP.");
-          argToWitnessV2d1.exportWitness(pRootState, outputFile);
-        }
-        default -> throw new AssertionError("Unknown witness version: " + witnessVersion);
-      }
+      WitnessExportResult witnessExportResult =
+          switch (witnessVersion) {
+            case V2 -> argToWitnessV2.exportWitnesses(pRootState, outputFile);
+            case V2d1 -> {
+              logger.log(Level.INFO, "Exporting witnesses in Version 2.1 is currently WIP.");
+              yield argToWitnessV2d1.exportWitness(pRootState, outputFile);
+            }
+          };
+      witnessExportResults.put(witnessVersion, witnessExportResult);
+    }
+
+    // Export some information to the user about the guarantees provided by the witness.
+    ImmutableMap<YAMLWitnessVersion, WitnessExportResult> results = witnessExportResults.build();
+    if (!FluentIterable.from(results.values())
+        .allMatch(WitnessExportResult::translationAlwaysSuccessful)) {
+      logger.log(
+          Level.INFO,
+          "Witnesses exported in versions "
+              + String.join(
+                  ", ",
+                  FluentIterable.from(results.entrySet())
+                      .filter(entry -> !entry.getValue().translationAlwaysSuccessful())
+                      .transform(entry -> entry.getKey().toString()))
+              + " had problems during the translation process. "
+              + "This may result in invariants being too large an over approximation.");
     }
   }
 }

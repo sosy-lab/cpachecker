@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.arg.Splitable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -127,13 +126,13 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
-    public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+    public ExpressionTreeResult getFormulaApproximationAllVariablesInFunctionScope(
         FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException {
       return super.abstractionFormula.asExpressionTree(pLocation);
     }
 
     @Override
-    public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
+    public ExpressionTreeResult getFormulaApproximationInputProgramInScopeVariables(
         FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
         throws InterruptedException, ReportingMethodNotImplementedException {
       return super.abstractionFormula.asExpressionTree(
@@ -153,7 +152,7 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
-    public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
+    public ExpressionTreeResult getFormulaApproximationFunctionReturnVariableOnly(
         FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
         throws InterruptedException {
       Verify.verify(pFunctionScope.getExitNode().isPresent());

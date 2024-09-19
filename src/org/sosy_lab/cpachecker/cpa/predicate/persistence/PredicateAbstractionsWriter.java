@@ -110,7 +110,8 @@ public class PredicateAbstractionsWriter {
         BooleanFormula formula = predicateState.getAbstractionFormula().asFormula();
         if (asExpression) {
           ExpressionTree<Object> tree =
-              ExpressionTrees.fromFormula(formula, fmgr, AbstractStates.extractLocation(state));
+              ExpressionTrees.fromFormula(formula, fmgr, AbstractStates.extractLocation(state))
+                  .expressionTree();
           stateToAssert.put(state, tree.toString());
           done.add(state);
           continue;

@@ -22,7 +22,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ExpressionTreeResult;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -114,7 +114,7 @@ public class AbstractionFormula implements Serializable {
     return pMgr.translateFrom(formula, fMgr);
   }
 
-  public ExpressionTree<Object> asExpressionTree(CFANode pLocation) throws InterruptedException {
+  public ExpressionTreeResult asExpressionTree(CFANode pLocation) throws InterruptedException {
     return ExpressionTrees.fromFormula(
         asFormula(),
         fMgr,
@@ -123,7 +123,7 @@ public class AbstractionFormula implements Serializable {
                 || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER));
   }
 
-  public ExpressionTree<Object> asExpressionTree(Function<String, Boolean> pIncludeVariablesFilter)
+  public ExpressionTreeResult asExpressionTree(Function<String, Boolean> pIncludeVariablesFilter)
       throws InterruptedException {
     return ExpressionTrees.fromFormula(asFormula(), fMgr, pIncludeVariablesFilter);
   }

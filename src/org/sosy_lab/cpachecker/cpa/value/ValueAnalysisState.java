@@ -830,11 +830,11 @@ public final class ValueAnalysisState
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+  public ExpressionTreeResult getFormulaApproximationAllVariablesInFunctionScope(
       FunctionEntryNode pFunctionScope, CFANode pLocation) {
 
     if (machineModel == null) {
-      return ExpressionTrees.getTrue();
+      return new ExpressionTreeResult(ExpressionTrees.getTrue(), false);
     }
 
     List<ExpressionTree<Object>> result = new ArrayList<>();
@@ -885,15 +885,15 @@ public final class ValueAnalysisState
         }
       }
     }
-    return And.of(result);
+    return new ExpressionTreeResult(And.of(result), true);
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
+  public ExpressionTreeResult getFormulaApproximationInputProgramInScopeVariables(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
       throws InterruptedException, ReportingMethodNotImplementedException {
     if (machineModel == null) {
-      return ExpressionTrees.getTrue();
+      return new ExpressionTreeResult(ExpressionTrees.getTrue(), false);
     }
 
     List<ExpressionTree<Object>> result = new ArrayList<>();
@@ -948,14 +948,14 @@ public final class ValueAnalysisState
         }
       }
     }
-    return And.of(result);
+    return new ExpressionTreeResult(And.of(result), true);
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
+  public ExpressionTreeResult getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable) {
     if (machineModel == null) {
-      return ExpressionTrees.getTrue();
+      return new ExpressionTreeResult(ExpressionTrees.getTrue(), false);
     }
 
     ExpressionTree<Object> result = ExpressionTrees.getTrue();
@@ -994,7 +994,7 @@ public final class ValueAnalysisState
       }
     }
 
-    return result;
+    return new ExpressionTreeResult(result, true);
   }
 
   public static class ValueAndType implements Serializable {

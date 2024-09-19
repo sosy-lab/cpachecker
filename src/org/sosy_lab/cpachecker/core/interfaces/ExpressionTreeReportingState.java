@@ -36,6 +36,16 @@ public interface ExpressionTreeReportingState extends AbstractState {
   }
 
   /**
+   * Represents the result of the transformation from a formula to an expression tree.
+   *
+   * @param expressionTree the expression tree representing an over approximation of the formula
+   * @param backTranslationSuccessful indicates whether the translation from an internal state to an
+   *     ExpressionTree was successful or not.
+   */
+  record ExpressionTreeResult(
+      ExpressionTree<Object> expressionTree, boolean backTranslationSuccessful) {}
+
+  /**
    * Returns an ExpressionTree over-approximating the state.
    *
    * @param pFunctionScope the function scope as a function entry node.
@@ -43,7 +53,7 @@ public interface ExpressionTreeReportingState extends AbstractState {
    *     entering edges
    * @throws InterruptedException if the computation is interrupted
    */
-  ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+  ExpressionTreeResult getFormulaApproximationAllVariablesInFunctionScope(
       FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException;
 
   /**
@@ -58,7 +68,7 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * @throws InterruptedException if the computation is interrupted
    * @throws ReportingMethodNotImplementedException if the computation is not implemented
    */
-  ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
+  ExpressionTreeResult getFormulaApproximationInputProgramInScopeVariables(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
       throws InterruptedException, ReportingMethodNotImplementedException;
 
@@ -78,7 +88,7 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * @throws InterruptedException if the computation is interrupted
    * @throws ReportingMethodNotImplementedException if the computation is not implemented
    */
-  ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
+  ExpressionTreeResult getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
       throws InterruptedException, ReportingMethodNotImplementedException;
 }

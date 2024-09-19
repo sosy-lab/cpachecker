@@ -54,14 +54,14 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+  public ExpressionTreeResult getFormulaApproximationAllVariablesInFunctionScope(
       FunctionEntryNode pFunctionScope, CFANode pLocation) {
     return toExpressionTree();
   }
 
-  private ExpressionTree<Object> toExpressionTree() {
+  private ExpressionTreeResult toExpressionTree() {
     if (annotations.isEmpty()) {
-      return ExpressionTrees.getTrue();
+      return new ExpressionTreeResult(ExpressionTrees.getTrue(), true);
     }
     List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());
     for (ACSLAnnotation annotation : annotations) {
@@ -73,11 +73,11 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
       }
     }
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
-    return factory.and(representations);
+    return new ExpressionTreeResult(factory.and(representations), true);
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
+  public ExpressionTreeResult getFormulaApproximationInputProgramInScopeVariables(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
       throws InterruptedException, ReportingMethodNotImplementedException {
     throw new ReportingMethodNotImplementedException(
@@ -86,7 +86,7 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
+  public ExpressionTreeResult getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
       throws InterruptedException, ReportingMethodNotImplementedException {
     throw new ReportingMethodNotImplementedException(
@@ -121,7 +121,7 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
     try {
       @SuppressWarnings("unchecked")
       ExpressionTree<AExpression> exp =
-          (ExpressionTree<AExpression>) ((ExpressionTree<?>) toExpressionTree());
+          (ExpressionTree<AExpression>) ((ExpressionTree<?>) toExpressionTree().expressionTree());
       if (exp.equals(ExpressionTrees.getTrue())) {
         return ImmutableList.of();
       } else if (exp.equals(ExpressionTrees.getFalse())) {

@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ExpressionTreeResult;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
@@ -505,7 +506,7 @@ public final class ExpressionTrees {
    * @param fMgr the formula manger having the formula "in scope"
    * @return the expression tree representing the formula.
    */
-  public static ExpressionTree<Object> fromFormula(
+  public static ExpressionTreeResult fromFormula(
       BooleanFormula formula, FormulaManagerView fMgr, CFANode location)
       throws InterruptedException {
     return fromFormula(
@@ -529,7 +530,7 @@ public final class ExpressionTrees {
    * @param pIncludeVariablesFilter a filter for variable names, which should be considered.
    * @return the expression tree representing the formula.
    */
-  public static ExpressionTree<Object> fromFormula(
+  public static ExpressionTreeResult fromFormula(
       BooleanFormula formula,
       FormulaManagerView fMgr,
       Function<String, Boolean> pIncludeVariablesFilter)
@@ -551,10 +552,13 @@ public final class ExpressionTrees {
 
     FormulaToCVisitor v = new FormulaToCVisitor(fMgr);
     boolean isValid = fMgr.visit(inv, v);
+    ExpressionTree<Object> expressionTree;
     if (isValid) {
-      return LeafExpression.of(v.getString());
+      expressionTree = LeafExpression.of(v.getString());
+    } else {
+      expressionTree = ExpressionTrees.getTrue();
     }
-    return ExpressionTrees.getTrue();
+    return new ExpressionTreeResult(expressionTree, isValid);
   }
 
   /**

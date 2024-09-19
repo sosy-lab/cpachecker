@@ -37,7 +37,7 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+  public ExpressionTreeResult getFormulaApproximationAllVariablesInFunctionScope(
       final FunctionEntryNode pFunctionScope, final CFANode pLocation) throws InterruptedException {
 
     ExpressionTreeFactory<AExpression> factory = ExpressionTrees.newFactory();
@@ -52,11 +52,11 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
         result.add(as.getCandidateInvariants());
       }
     }
-    return ExpressionTrees.cast(factory.or(result));
+    return new ExpressionTreeResult(ExpressionTrees.cast(factory.or(result)), true);
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
+  public ExpressionTreeResult getFormulaApproximationInputProgramInScopeVariables(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
       throws InterruptedException, ReportingMethodNotImplementedException {
     throw new ReportingMethodNotImplementedException(
@@ -65,7 +65,7 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
+  public ExpressionTreeResult getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
       throws InterruptedException, ReportingMethodNotImplementedException {
     throw new ReportingMethodNotImplementedException(
