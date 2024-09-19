@@ -64,7 +64,6 @@ public class SubsumptionOracleForTargetsAsEdges {
       Collection<CFAEdge> pCopiedTargets) {
     Map<Pair<CFAEdge, CFAEdge>, Boolean> pathsToRequiredInputs = new HashMap<>();
 
-    CFAEdge succTarget;
     Deque<Pair<CFAEdge, CFAEdge>> waitlist = new ArrayDeque<>();
     Pair<CFAEdge, CFAEdge> path;
     Pair<CFAEdge, CFAEdge> newPath;
@@ -72,31 +71,48 @@ public class SubsumptionOracleForTargetsAsEdges {
 
     for (CFAEdge predTarget : pCopiedTargets) {
       for (CFAEdge leaving : CFAUtils.allLeavingEdges(predTarget.getSuccessor())) {
-        Preconditions.checkState(leaving.getSuccessor().getNumLeavingEdges() == 1);
-
-        succTarget = leaving.getSuccessor().getLeavingEdge(0);
-        Preconditions.checkState(pCopiedTargets.contains(succTarget));
-
-        newPath = Pair.of(predTarget, succTarget);
-        pathsToRequiredInputs.put(newPath, TestTargetReductionUtils.isInputEdge(leaving));
-        waitlist.add(newPath);
+        if (pCopiedTargets.contains(leaving)) {
+          newPath = Pair.of(predTarget, leaving);
+          pathsToRequiredInputs.put(newPath, false);
+          waitlist.add(newPath);
+        } else {
+          for (CFAEdge secDescend : CFAUtils.allLeavingEdges(leaving.getSuccessor())) {
+            Preconditions.checkState(pCopiedTargets.contains(secDescend));
+            newPath = Pair.of(predTarget, secDescend);
+            pathsToRequiredInputs.put(newPath, TestTargetReductionUtils.isInputEdge(leaving));
+            waitlist.add(newPath);
+          }
+        }
       }
     }
 
     while (!waitlist.isEmpty()) {
       path = waitlist.pop();
       for (CFAEdge leaving : CFAUtils.allLeavingEdges(path.getSecond().getSuccessor())) {
-        Preconditions.checkState(leaving.getSuccessor().getNumLeavingEdges() == 1);
+        if (pCopiedTargets.contains(leaving)) {
+          newPath = Pair.of(path.getFirst(), leaving);
 
-        succTarget = leaving.getSuccessor().getLeavingEdge(0);
-        Preconditions.checkState(pCopiedTargets.contains(succTarget));
-
-        newPath = Pair.of(path.getFirst(), succTarget);
-        viaInput = TestTargetReductionUtils.isInputEdge(leaving);
-        if (!pathsToRequiredInputs.containsKey(newPath)
-            || (!pathsToRequiredInputs.get(newPath) && viaInput)) {
-          pathsToRequiredInputs.put(newPath, viaInput);
+          viaInput = pathsToRequiredInputs.get(path);
+          if (!pathsToRequiredInputs.containsKey(newPath)
+              || (!pathsToRequiredInputs.get(newPath) && viaInput)) {
+            pathsToRequiredInputs.put(newPath, viaInput);
+            waitlist.add(newPath);
+          }
+          pathsToRequiredInputs.put(newPath, TestTargetReductionUtils.isInputEdge(leaving));
           waitlist.add(newPath);
+        } else {
+          for (CFAEdge secDescend : CFAUtils.allLeavingEdges(leaving.getSuccessor())) {
+            Preconditions.checkState(pCopiedTargets.contains(secDescend));
+            newPath = Pair.of(path.getFirst(), secDescend);
+
+            viaInput =
+                pathsToRequiredInputs.get(path) || TestTargetReductionUtils.isInputEdge(leaving);
+            if (!pathsToRequiredInputs.containsKey(newPath)
+                || (!pathsToRequiredInputs.get(newPath) && viaInput)) {
+              pathsToRequiredInputs.put(newPath, viaInput);
+              waitlist.add(newPath);
+            }
+          }
         }
       }
     }

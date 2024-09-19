@@ -15,7 +15,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-/** Only use rule 1 and 2 */
+/*
+ * Based on paper
+ * Takeshi Chusho: Test Data Selection and Quality Estimation Based on the Concept
+ * of Essential Branches for Path Testing. IEEE TSE 13(5): 509-517 (1987)
+ * https://doi.org/10.1109/TSE.1987.233196
+ *
+ * Only use rule 1 and 2
+ */
 public class TestTargetMinimizerBasicEssential {
 
   public Set<CFAEdge> reduceTargets(final Set<CFAEdge> testTargets) {
