@@ -71,6 +71,7 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
     ImmutableMap<YAMLWitnessVersion, WitnessExportResult> results = witnessExportResults.build();
     if (!FluentIterable.from(results.values())
         .allMatch(WitnessExportResult::translationAlwaysSuccessful)) {
+      // For example occurring for: sv-benchmarks/c/nla-digbench-scaling/hard2_valuebound20.c
       logger.log(
           Level.INFO,
           "Witnesses exported in versions "
@@ -84,6 +85,7 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
     }
 
     if (!argToWitnessV2.argIsCyclic(pRootState)) {
+      // For example occurring for: sv-benchmarks/c/loops/n.c40.c
       logger.log(
           Level.INFO,
           "The ARG contains no cycles. "
