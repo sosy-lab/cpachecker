@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.ObjectIdResolver;
 import com.fasterxml.jackson.annotation.SimpleObjectIdResolver;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -219,8 +218,7 @@ public class CfaJsonModule extends SimpleModule {
         try {
           /* VarToPartition */
           /* Retrieve field via reflection. */
-          Map<String, Partition> varToPartition =
-              PartitionsDeserializer.PartitionBuilder.getField("varToPartition", partition);
+          Map<String, Partition> varToPartition = PartitionBuilder.getVarToPartition(partition);
 
           /* Write field. */
           pGenerator.writeObjectFieldStart("varToPartition");
@@ -232,7 +230,7 @@ public class CfaJsonModule extends SimpleModule {
           /* EdgeToPartition */
           /* Retrieve field via reflection. */
           Table<CFAEdge, Integer, Partition> edgeToPartition =
-              PartitionsDeserializer.PartitionBuilder.getField("edgeToPartition", partition);
+              PartitionBuilder.getEdgeToPartition(partition);
 
           /* Write field. */
           pGenerator.writeArrayFieldStart("edgeToPartition");
@@ -263,11 +261,6 @@ public class CfaJsonModule extends SimpleModule {
    * <p>The deserialization process involves reading the JSON data, constructing PartitionBuilder
    * objects, and adding variables, values, edges, and mappings to each PartitionBuilder. Finally,
    * the deserialized Partitions are returned as a set.
-   *
-   * <p>The PartitionsDeserializer class also contains a private inner class called
-   * PartitionBuilder, which is responsible for constructing instances of the Partition class. The
-   * PartitionBuilder class provides methods for adding variables, values, edges, and mappings
-   * between variables and partitions. The build() method returns the constructed Partition object.
    */
   private static class PartitionsDeserializer extends JsonDeserializer<Set<Partition>> {
     private static Set<Partition> deserializedPartitions;
@@ -348,145 +341,159 @@ public class CfaJsonModule extends SimpleModule {
 
       return partitions;
     }
-
-    /**
-     * The PartitionBuilder class is responsible for constructing instances of the {@link Partition}
-     * class.
-     *
-     * <p>It provides methods for adding variables, values, edges, and mappings between variables
-     * and partitions.
-     *
-     * <p>The build() method returns the constructed Partition object.
-     */
-    private final class PartitionBuilder {
-      private Partition partition;
-
-      private NavigableSet<String> vars;
-      private NavigableSet<BigInteger> values;
-      private Multimap<CFAEdge, Integer> edges;
-      private final Map<String, Partition> varToPartition = new HashMap<>();
-      private final Table<CFAEdge, Integer, Partition> edgeToPartition = HashBasedTable.create();
-
-      /**
-       * Constructs a new PartitionBuilder with the given index.
-       *
-       * @param pIndex The index of the partition.
-       * @throws IOException If an error occurs during construction.
-       */
-      public PartitionBuilder(int pIndex) throws IOException {
-        try {
-
-          /* Create a new instance of Partition via reflection. */
-          Constructor<?> partitionConstructor =
-              Partition.class.getDeclaredConstructor(Map.class, Table.class);
-
-          partitionConstructor.setAccessible(true);
-
-          this.partition =
-              (Partition)
-                  partitionConstructor.newInstance(this.varToPartition, this.edgeToPartition);
-
-          /* Set builder fields to partition fields. */
-          setIndexField(pIndex);
-          this.vars = getField("vars");
-          this.values = getField("values");
-          this.edges = getField("edges");
-
-        } catch (Exception e) {
-          throw new IOException("Error while constructing PartitionBuilder: " + e.getMessage(), e);
-        }
-      }
-
-      public PartitionBuilder addVar(String pVar) {
-        vars.add(pVar);
-        return this;
-      }
-
-      public PartitionBuilder addValue(BigInteger pValue) {
-        values.add(pValue);
-        return this;
-      }
-
-      public PartitionBuilder addEdge(CFAEdge pEdge, Integer pIndex) {
-        edges.put(pEdge, pIndex);
-        return this;
-      }
-
-      public PartitionBuilder addVarToPartition(String pVar, Partition pPartition) {
-        varToPartition.put(pVar, pPartition);
-        return this;
-      }
-
-      public PartitionBuilder addEdgeToPartition(
-          CFAEdge pEdge, Integer pIndex, Partition pPartition) {
-        edgeToPartition.put(pEdge, pIndex, pPartition);
-        return this;
-      }
-
-      public Partition build() {
-        return this.partition;
-      }
-
-      /**
-       * Sets the index field of the partition.
-       *
-       * @param pIndex The new value for the index field.
-       * @throws NoSuchFieldException If the index field does not exist in the Partition class.
-       */
-      private void setIndexField(int pIndex) throws NoSuchFieldException {
-        try {
-          Field field = Partition.class.getDeclaredField("index");
-
-          field.setAccessible(true);
-
-          field.set(this.partition, pIndex);
-
-        } catch (IllegalAccessException e) {
-          throw new NoSuchFieldException(
-              "Error while attempting to set field index in Partition: " + e.getMessage());
-    }
   }
 
   /**
-       * Retrieves the value of a field with the given name from the {@link Partition}.
-       *
-       * @param pName The name of the field to retrieve.
-       * @param <T> The type of the field value.
-       * @return the value of the field with the given name.
-       * @throws IllegalArgumentException if the field with the given name does not exist.
-       */
-      private <T> T getField(String pName) throws IllegalArgumentException {
-        return getField(pName, this.partition);
+   * The PartitionBuilder class is responsible for constructing instances of the {@link Partition}
+   * class.
+   *
+   * <p>It provides methods for adding variables, values, edges, and mappings between variables and
+   * partitions.
+   *
+   * <p>The build() method returns the constructed Partition object.
+   */
+  private static final class PartitionBuilder {
+    private Partition partition;
+
+    private NavigableSet<String> vars;
+    private NavigableSet<BigInteger> values;
+    private Multimap<CFAEdge, Integer> edges;
+    private final Map<String, Partition> varToPartition = new HashMap<>();
+    private final Table<CFAEdge, Integer, Partition> edgeToPartition = HashBasedTable.create();
+
+    /**
+     * Constructs a new PartitionBuilder with the given index.
+     *
+     * @param pIndex The index of the partition.
+     * @throws IOException If an error occurs during construction.
+     */
+    public PartitionBuilder(int pIndex) throws IOException {
+      try {
+
+        /* Create a new instance of Partition via reflection. */
+        Constructor<?> partitionConstructor =
+            Partition.class.getDeclaredConstructor(Map.class, Table.class);
+
+        partitionConstructor.setAccessible(true);
+
+        this.partition =
+            (Partition) partitionConstructor.newInstance(this.varToPartition, this.edgeToPartition);
+
+        /* Set builder fields to partition fields. */
+        setIndexField(pIndex);
+        this.vars = getVars();
+        this.values = getValues();
+        this.edges = getEdges();
+
+      } catch (Exception e) {
+        throw new IOException("Error while constructing PartitionBuilder: " + e.getMessage(), e);
       }
+    }
 
-      /**
-       * Retrieves the value of a specified field from a {@link Partition} object.
-       *
-       * @param pName The name of the field to retrieve.
-       * @param pPartition The Partition object from which to retrieve the field.
-       * @param <T> The type of the field.
-       * @return The value of the specified field.
-       * @throws IllegalArgumentException If the specified field does not exist or cannot be
-       *     accessed.
-       */
-      @SuppressWarnings("unchecked")
-      public static <T> T getField(String pName, Partition pPartition)
-          throws IllegalArgumentException {
-        try {
-          Field field = Partition.class.getDeclaredField(pName);
+    public PartitionBuilder addVar(String pVar) {
+      vars.add(pVar);
+      return this;
+    }
 
-          field.setAccessible(true);
+    public PartitionBuilder addValue(BigInteger pValue) {
+      values.add(pValue);
+      return this;
+    }
 
-          return (T) field.get(pPartition);
+    public PartitionBuilder addEdge(CFAEdge pEdge, Integer pIndex) {
+      edges.put(pEdge, pIndex);
+      return this;
+    }
 
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-          throw new IllegalArgumentException(
-              "Error while attempting to retrieve field "
-                  + pName
-                  + " from Partition: "
-                  + e.getMessage(),
-              e);
-        }
+    public PartitionBuilder addVarToPartition(String pVar, Partition pPartition) {
+      varToPartition.put(pVar, pPartition);
+      return this;
+    }
+
+    public PartitionBuilder addEdgeToPartition(
+        CFAEdge pEdge, Integer pIndex, Partition pPartition) {
+      edgeToPartition.put(pEdge, pIndex, pPartition);
+      return this;
+    }
+
+    public Partition build() {
+      return this.partition;
+    }
+
+    /**
+     * Sets the index field of the partition.
+     *
+     * @param pIndex The new value for the index field.
+     * @throws NoSuchFieldException If the index field does not exist in the Partition class.
+     */
+    private void setIndexField(int pIndex) throws NoSuchFieldException {
+      try {
+        Field field = Partition.class.getDeclaredField("index");
+
+        field.setAccessible(true);
+
+        field.set(this.partition, pIndex);
+
+      } catch (IllegalAccessException e) {
+        throw new NoSuchFieldException(
+            "Error while attempting to set field index in Partition: " + e.getMessage());
+      }
+    }
+
+    /* Retrieves the vars field from the partition. */
+    @SuppressWarnings("unchecked")
+    public NavigableSet<String> getVars() {
+      return (NavigableSet<String>) getField("vars", this.partition);
+    }
+
+    /* Retrieves the values field from the partition. */
+    @SuppressWarnings("unchecked")
+    public NavigableSet<BigInteger> getValues() {
+      return (NavigableSet<BigInteger>) getField("values", this.partition);
+    }
+
+    /* Retrieves the edges field from the partition. */
+    @SuppressWarnings("unchecked")
+    public Multimap<CFAEdge, Integer> getEdges() {
+      return (Multimap<CFAEdge, Integer>) getField("edges", this.partition);
+    }
+
+    /* Retrieves the varToPartition field from a Partition object. */
+    @SuppressWarnings("unchecked")
+    public static Map<String, Partition> getVarToPartition(Partition partition) {
+      return (Map<String, Partition>) getField("varToPartition", partition);
+    }
+
+    /* Retrieves the edgeToPartition field from a Partition object. */
+    @SuppressWarnings("unchecked")
+    public static Table<CFAEdge, Integer, Partition> getEdgeToPartition(Partition partition) {
+      return (Table<CFAEdge, Integer, Partition>) getField("edgeToPartition", partition);
+    }
+
+    /**
+     * Retrieves the value of a specified field from a {@link Partition} object.
+     *
+     * @param pName The name of the field to retrieve.
+     * @param pPartition The Partition object from which to retrieve the field.
+     * @return The value of the specified field.
+     * @throws IllegalArgumentException If the specified field does not exist or cannot be accessed.
+     */
+    private static Object getField(String pName, Partition pPartition)
+        throws IllegalArgumentException {
+      try {
+        Field field = Partition.class.getDeclaredField(pName);
+
+        field.setAccessible(true);
+
+        return field.get(pPartition);
+
+      } catch (NoSuchFieldException | IllegalAccessException e) {
+        throw new IllegalArgumentException(
+            "Error while attempting to retrieve field "
+                + pName
+                + " from Partition: "
+                + e.getMessage(),
+            e);
       }
     }
   }
@@ -740,23 +747,6 @@ public class CfaJsonModule extends SimpleModule {
       }
 
       return edge;
-    }
-  }
-
-  /**
-   * A converter class that converts a list of {@link TableEntry} objects to a {@link Table} object.
-   *
-   * <p>The Table object represents a mapping between CFAEdges, Integers, and Partitions.
-   */
-  private static final class ListToEtpTableConverter
-      extends StdConverter<List<TableEntry>, Table<CFAEdge, Integer, Partition>> {
-    @Override
-    public Table<CFAEdge, Integer, Partition> convert(List<TableEntry> pList) {
-      return pList.stream()
-          .collect(
-              HashBasedTable::create,
-              (table, entry) -> table.put(entry.edge, entry.index, entry.partition),
-              HashBasedTable::putAll);
     }
   }
 
