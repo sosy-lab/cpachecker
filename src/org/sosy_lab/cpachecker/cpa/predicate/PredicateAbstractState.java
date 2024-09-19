@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.arg.Splitable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -126,15 +127,18 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
-    public ExpressionTreeResult getFormulaApproximationAllVariablesInFunctionScope(
-        FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException {
+    public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+        FunctionEntryNode pFunctionScope, CFANode pLocation)
+        throws InterruptedException, TranslationToExpressionTreeFailedException {
       return super.abstractionFormula.asExpressionTree(pLocation);
     }
 
     @Override
-    public ExpressionTreeResult getFormulaApproximationInputProgramInScopeVariables(
+    public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
         FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-        throws InterruptedException, ReportingMethodNotImplementedException {
+        throws InterruptedException,
+            ReportingMethodNotImplementedException,
+            TranslationToExpressionTreeFailedException {
       return super.abstractionFormula.asExpressionTree(
           name ->
               (!name.contains(FUNCTION_DELIMITER)
@@ -152,9 +156,9 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
-    public ExpressionTreeResult getFormulaApproximationFunctionReturnVariableOnly(
+    public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
         FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-        throws InterruptedException {
+        throws InterruptedException, TranslationToExpressionTreeFailedException {
       Verify.verify(pFunctionScope.getExitNode().isPresent());
       FunctionExitNode functionExitNode = pFunctionScope.getExitNode().orElseThrow();
       return super.abstractionFormula.asExpressionTree(

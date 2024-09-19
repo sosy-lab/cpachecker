@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -592,8 +593,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           bmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
       if (!bmgr.isTrue(assumption)) {
         try {
-          ExpressionTree<Object> assumptionTree =
-              ExpressionTrees.fromFormula(assumption, fmgr, pCFANode).expressionTree();
+          ExpressionTree<Object> assumptionTree;
+          try {
+            assumptionTree = ExpressionTrees.fromFormula(assumption, fmgr, pCFANode);
+          } catch (TranslationToExpressionTreeFailedException e) {
+            // Keep consistency with the previous implementation
+            assumptionTree = ExpressionTrees.getTrue();
+          }
+
           // At this point, we know that the InterruptedException is not thrown,
           // hence, we can continue
           writer.append("ASSUME {");

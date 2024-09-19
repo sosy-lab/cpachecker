@@ -1117,8 +1117,9 @@ public class InvariantsState
   }
 
   @Override
-  public ExpressionTreeResult getFormulaApproximationAllVariablesInFunctionScope(
-      final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode) {
+  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+      final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode)
+      throws TranslationToExpressionTreeFailedException {
 
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVar =
         pFormula ->
@@ -1191,22 +1192,26 @@ public class InvariantsState
         }
       }
     }
-    return new ExpressionTreeResult(And.of(approximationsAsCode), true);
+    return And.of(approximationsAsCode);
   }
 
   @Override
-  public ExpressionTreeResult getFormulaApproximationInputProgramInScopeVariables(
+  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, ReportingMethodNotImplementedException {
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
     throw new ReportingMethodNotImplementedException(
         "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for"
             + " InvariantsState.");
   }
 
   @Override
-  public ExpressionTreeResult getFormulaApproximationFunctionReturnVariableOnly(
+  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-      throws InterruptedException, ReportingMethodNotImplementedException {
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
     throw new ReportingMethodNotImplementedException(
         "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented for"
             + " InvariantsState.");

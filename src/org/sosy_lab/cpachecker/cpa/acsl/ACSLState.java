@@ -54,14 +54,15 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
   }
 
   @Override
-  public ExpressionTreeResult getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation) {
+  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      throws TranslationToExpressionTreeFailedException {
     return toExpressionTree();
   }
 
-  private ExpressionTreeResult toExpressionTree() {
+  private ExpressionTree<Object> toExpressionTree() {
     if (annotations.isEmpty()) {
-      return new ExpressionTreeResult(ExpressionTrees.getTrue(), true);
+      return ExpressionTrees.getTrue();
     }
     List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());
     for (ACSLAnnotation annotation : annotations) {
@@ -73,22 +74,26 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
       }
     }
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
-    return new ExpressionTreeResult(factory.and(representations), true);
+    return factory.and(representations);
   }
 
   @Override
-  public ExpressionTreeResult getFormulaApproximationInputProgramInScopeVariables(
+  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, ReportingMethodNotImplementedException {
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
     throw new ReportingMethodNotImplementedException(
         "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for"
             + " 'ACSLState'");
   }
 
   @Override
-  public ExpressionTreeResult getFormulaApproximationFunctionReturnVariableOnly(
+  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-      throws InterruptedException, ReportingMethodNotImplementedException {
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
     throw new ReportingMethodNotImplementedException(
         "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented for"
             + " 'ACSLState'");
@@ -121,7 +126,7 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
     try {
       @SuppressWarnings("unchecked")
       ExpressionTree<AExpression> exp =
-          (ExpressionTree<AExpression>) ((ExpressionTree<?>) toExpressionTree().expressionTree());
+          (ExpressionTree<AExpression>) ((ExpressionTree<?>) toExpressionTree());
       if (exp.equals(ExpressionTrees.getTrue())) {
         return ImmutableList.of();
       } else if (exp.equals(ExpressionTrees.getFalse())) {

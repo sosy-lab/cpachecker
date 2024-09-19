@@ -830,11 +830,12 @@ public final class ValueAnalysisState
   }
 
   @Override
-  public ExpressionTreeResult getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation) {
+  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      throws TranslationToExpressionTreeFailedException {
 
     if (machineModel == null) {
-      return new ExpressionTreeResult(ExpressionTrees.getTrue(), false);
+      throw new TranslationToExpressionTreeFailedException("MachineModel is not available.");
     }
 
     List<ExpressionTree<Object>> result = new ArrayList<>();
@@ -885,15 +886,17 @@ public final class ValueAnalysisState
         }
       }
     }
-    return new ExpressionTreeResult(And.of(result), true);
+    return And.of(result);
   }
 
   @Override
-  public ExpressionTreeResult getFormulaApproximationInputProgramInScopeVariables(
+  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, ReportingMethodNotImplementedException {
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
     if (machineModel == null) {
-      return new ExpressionTreeResult(ExpressionTrees.getTrue(), false);
+      throw new TranslationToExpressionTreeFailedException("MachineModel is not available.");
     }
 
     List<ExpressionTree<Object>> result = new ArrayList<>();
@@ -948,14 +951,15 @@ public final class ValueAnalysisState
         }
       }
     }
-    return new ExpressionTreeResult(And.of(result), true);
+    return And.of(result);
   }
 
   @Override
-  public ExpressionTreeResult getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable) {
+  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
+      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
+      throws TranslationToExpressionTreeFailedException {
     if (machineModel == null) {
-      return new ExpressionTreeResult(ExpressionTrees.getTrue(), false);
+      throw new TranslationToExpressionTreeFailedException("MachineModel is not available.");
     }
 
     ExpressionTree<Object> result = ExpressionTrees.getTrue();
@@ -994,7 +998,7 @@ public final class ValueAnalysisState
       }
     }
 
-    return new ExpressionTreeResult(result, true);
+    return result;
   }
 
   public static class ValueAndType implements Serializable {

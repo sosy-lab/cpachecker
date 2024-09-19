@@ -37,8 +37,9 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
   }
 
   @Override
-  public ExpressionTreeResult getFormulaApproximationAllVariablesInFunctionScope(
-      final FunctionEntryNode pFunctionScope, final CFANode pLocation) throws InterruptedException {
+  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+      final FunctionEntryNode pFunctionScope, final CFANode pLocation)
+      throws InterruptedException, TranslationToExpressionTreeFailedException {
 
     ExpressionTreeFactory<AExpression> factory = ExpressionTrees.newFactory();
     List<ExpressionTree<AExpression>> result = new ArrayList<>();
@@ -52,22 +53,26 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
         result.add(as.getCandidateInvariants());
       }
     }
-    return new ExpressionTreeResult(ExpressionTrees.cast(factory.or(result)), true);
+    return ExpressionTrees.cast(factory.or(result));
   }
 
   @Override
-  public ExpressionTreeResult getFormulaApproximationInputProgramInScopeVariables(
+  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
       FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, ReportingMethodNotImplementedException {
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
     throw new ReportingMethodNotImplementedException(
         "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented in"
             + " 'WitnessJoinerState");
   }
 
   @Override
-  public ExpressionTreeResult getFormulaApproximationFunctionReturnVariableOnly(
+  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-      throws InterruptedException, ReportingMethodNotImplementedException {
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
     throw new ReportingMethodNotImplementedException(
         "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented in"
             + " 'WitnessJoinerState'");
