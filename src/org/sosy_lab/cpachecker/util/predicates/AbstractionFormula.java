@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_DELIMITER;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.InvalidObjectException;
@@ -19,6 +18,7 @@ import java.io.ObjectInputStream;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Set;
+import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -122,12 +122,16 @@ public class AbstractionFormula implements Serializable {
         fMgr,
         name ->
             !name.contains(FUNCTION_DELIMITER)
-                || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER));
+                || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER),
+        Function.identity());
   }
 
-  public ExpressionTree<Object> asExpressionTree(Function<String, Boolean> pIncludeVariablesFilter)
+  public ExpressionTree<Object> asExpressionTree(
+      Function<String, Boolean> pIncludeVariablesFilter,
+      Function<String, String> pVariableNameConverter)
       throws InterruptedException, TranslationToExpressionTreeFailedException {
-    return ExpressionTrees.fromFormula(asFormula(), fMgr, pIncludeVariablesFilter);
+    return ExpressionTrees.fromFormula(
+        asFormula(), fMgr, pIncludeVariablesFilter, pVariableNameConverter);
   }
 
   /** Returns the formula representation where all variables DO have SSA indices. */

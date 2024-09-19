@@ -25,6 +25,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
@@ -113,7 +114,8 @@ public class PredicateAbstractionsWriter {
           ExpressionTree<Object> expressionTree;
           try {
             expressionTree =
-                ExpressionTrees.fromFormula(formula, fmgr, AbstractStates.extractLocation(state));
+                ExpressionTrees.fromFormula(
+                    formula, fmgr, AbstractStates.extractLocation(state), Function.identity());
           } catch (TranslationToExpressionTreeFailedException e) {
             // Keep consistency with the previous implementation
             expressionTree = ExpressionTrees.getTrue();

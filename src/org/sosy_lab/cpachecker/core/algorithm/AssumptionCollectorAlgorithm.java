@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -595,7 +596,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         try {
           ExpressionTree<Object> assumptionTree;
           try {
-            assumptionTree = ExpressionTrees.fromFormula(assumption, fmgr, pCFANode);
+            assumptionTree =
+                ExpressionTrees.fromFormula(assumption, fmgr, pCFANode, Function.identity());
           } catch (TranslationToExpressionTreeFailedException e) {
             // Keep consistency with the previous implementation
             assumptionTree = ExpressionTrees.getTrue();
