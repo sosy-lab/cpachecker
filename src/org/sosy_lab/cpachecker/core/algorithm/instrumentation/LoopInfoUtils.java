@@ -119,7 +119,7 @@ public class LoopInfoUtils {
                 : variable;
 
         if (type.startsWith("(")) {
-          type = type.substring(1, type.length() - 2) + "*";
+          type = type.replace("(", "").replace(")", "");
         } else if (type.startsWith("struct ")) {
           liveVariablesAndTypes.putAll(
               resolveStructIn(variableWithoutScope, allStructInfos.get(type), allStructInfos));
