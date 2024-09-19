@@ -46,7 +46,6 @@ import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -218,7 +217,7 @@ public class CfaJsonModule extends SimpleModule {
         try {
           /* VarToPartition */
           /* Retrieve field via reflection. */
-          Map<String, Partition> varToPartition = PartitionBuilder.getVarToPartition(partition);
+          Map<String, Partition> varToPartition = PartitionHandler.getVarToPartition(partition);
 
           /* Write field. */
           pGenerator.writeObjectFieldStart("varToPartition");
@@ -230,7 +229,7 @@ public class CfaJsonModule extends SimpleModule {
           /* EdgeToPartition */
           /* Retrieve field via reflection. */
           Table<CFAEdge, Integer, Partition> edgeToPartition =
-              PartitionBuilder.getEdgeToPartition(partition);
+              PartitionHandler.getEdgeToPartition(partition);
 
           /* Write field. */
           pGenerator.writeArrayFieldStart("edgeToPartition");
@@ -258,12 +257,29 @@ public class CfaJsonModule extends SimpleModule {
    * The PartitionsDeserializer class is responsible for deserializing JSON data into a set of
    * {@link Partition}s.
    *
-   * <p>The deserialization process involves reading the JSON data, constructing PartitionBuilder
-   * objects, and adding variables, values, edges, and mappings to each PartitionBuilder. Finally,
+   * <p>The deserialization process involves reading the JSON data, constructing PartitionHandler
+   * objects, and adding variables, values, edges, and mappings to each PartitionHandler. Finally,
    * the deserialized Partitions are returned as a set.
    */
   private static class PartitionsDeserializer extends JsonDeserializer<Set<Partition>> {
-    private static Set<Partition> deserializedPartitions;
+    private static Map<Integer, Partition> deserializedPartitions = new HashMap<>();
+    private Map<Integer, PartitionHandler> partitionHandlers = new HashMap<>();
+
+    /* Retrieves a existing handler or creates a new one if it does not exist. */
+    private PartitionHandler getPartitionHandler(int pIndex) throws IOException {
+      PartitionHandler handler;
+
+      if (partitionHandlers.containsKey(pIndex)) {
+
+        handler = partitionHandlers.get(pIndex);
+      } else {
+
+        handler = new PartitionHandler(pIndex);
+        partitionHandlers.put(pIndex, handler);
+      }
+
+      return handler;
+    }
 
     /**
      * Deserialize a JSON representation of partitions into a set of {@link Partition} objects.
@@ -281,34 +297,20 @@ public class CfaJsonModule extends SimpleModule {
       ObjectMapper mapper = (ObjectMapper) pParser.getCodec();
       JsonNode rootNode = mapper.readTree(pParser);
 
-      /* Create a map of PartitionBuilders and a set of Partitions. */
-      Map<Integer, PartitionBuilder> partitionBuilders = new HashMap<>();
-      Set<Partition> partitions = new HashSet<>();
-
-      /* Iterate over the root node and construct PartitionBuilders. */
+      /* Iterate over the root node and construct PartitionHandlers. */
       for (JsonNode node : rootNode) {
         Integer index = node.get("index").asInt();
 
-        /* Retrieve existing builder or create a new one otherwise. */
-        PartitionBuilder builder;
-
-        if (partitionBuilders.containsKey(index)) {
-
-          builder = partitionBuilders.get(index);
-        } else {
-
-          builder = new PartitionBuilder(index);
-          partitionBuilders.put(index, builder);
-        }
+        PartitionHandler handler = getPartitionHandler(index);
 
         /* Vars */
         for (JsonNode var : node.get("vars")) {
-          builder.addVar(var.asText());
+          handler.addVar(var.asText());
         }
 
         /* Values */
         for (JsonNode value : node.get("values")) {
-          builder.addValue(value.bigIntegerValue());
+          handler.addValue(value.bigIntegerValue());
         }
 
         /* Edges */
@@ -316,7 +318,7 @@ public class CfaJsonModule extends SimpleModule {
           CFAEdge cfaEdge = CfaEdgeIdResolver.getEdgeFromId(edge.get("edge").asInt());
 
           for (JsonNode edgeIndex : edge.get("indices")) {
-            builder.addEdge(cfaEdge, edgeIndex.asInt());
+            handler.addEdge(cfaEdge, edgeIndex.asInt());
           }
         }
 
@@ -324,35 +326,37 @@ public class CfaJsonModule extends SimpleModule {
         Iterator<Map.Entry<String, JsonNode>> fields = node.get("varToPartition").fields();
         while (fields.hasNext()) {
           Map.Entry<String, JsonNode> field = fields.next();
-          // TODO: Implement varToPartition deserialization
-          // builder.varToPartition.put(field.getKey(),
-          // PartitionIdResolver.field.getValue().asInt());
+
+          Partition partition = getPartitionHandler(field.getValue().asInt()).getReference();
+
+          handler.addVarToPartition(field.getKey(), partition);
         }
 
         /* EdgeToPartition */
         for (JsonNode etp : node.get("edgeToPartition")) {
-          // TODO: Implement edgeToPartition deserialization
+          CFAEdge edge = CfaEdgeIdResolver.getEdgeFromId(etp.get("edge").asInt());
+          Partition partition = getPartitionHandler(etp.get("partition").asInt()).getReference();
+
+          handler.addEdgeToPartition(edge, etp.get("index").asInt(), partition);
         }
 
-        partitions.add(builder.build());
+        deserializedPartitions.put(handler.getReference().hashCode(), handler.getReference());
       }
 
-      deserializedPartitions = partitions;
-
-      return partitions;
+      return deserializedPartitions.values().stream().collect(ImmutableSet.toImmutableSet());
     }
   }
 
   /**
-   * The PartitionBuilder class is responsible for constructing instances of the {@link Partition}
+   * The PartitionHandler class is responsible for constructing instances of the {@link Partition}
    * class.
    *
    * <p>It provides methods for adding variables, values, edges, and mappings between variables and
    * partitions.
    *
-   * <p>The build() method returns the constructed Partition object.
+   * <p>The getReference() method returns the Partition object.
    */
-  private static final class PartitionBuilder {
+  private static final class PartitionHandler {
     private Partition partition;
 
     private NavigableSet<String> vars;
@@ -362,12 +366,12 @@ public class CfaJsonModule extends SimpleModule {
     private final Table<CFAEdge, Integer, Partition> edgeToPartition = HashBasedTable.create();
 
     /**
-     * Constructs a new PartitionBuilder with the given index.
+     * Constructs a new PartitionHandler with the given index.
      *
      * @param pIndex The index of the partition.
      * @throws IOException If an error occurs during construction.
      */
-    public PartitionBuilder(int pIndex) throws IOException {
+    public PartitionHandler(int pIndex) throws IOException {
       try {
 
         /* Create a new instance of Partition via reflection. */
@@ -379,44 +383,44 @@ public class CfaJsonModule extends SimpleModule {
         this.partition =
             (Partition) partitionConstructor.newInstance(this.varToPartition, this.edgeToPartition);
 
-        /* Set builder fields to partition fields. */
+        /* Set handler fields to partition fields. */
         setIndexField(pIndex);
         this.vars = getVars();
         this.values = getValues();
         this.edges = getEdges();
 
       } catch (Exception e) {
-        throw new IOException("Error while constructing PartitionBuilder: " + e.getMessage(), e);
+        throw new IOException("Error while constructing PartitionHandler: " + e.getMessage(), e);
       }
     }
 
-    public PartitionBuilder addVar(String pVar) {
+    public PartitionHandler addVar(String pVar) {
       vars.add(pVar);
       return this;
     }
 
-    public PartitionBuilder addValue(BigInteger pValue) {
+    public PartitionHandler addValue(BigInteger pValue) {
       values.add(pValue);
       return this;
     }
 
-    public PartitionBuilder addEdge(CFAEdge pEdge, Integer pIndex) {
+    public PartitionHandler addEdge(CFAEdge pEdge, Integer pIndex) {
       edges.put(pEdge, pIndex);
       return this;
     }
 
-    public PartitionBuilder addVarToPartition(String pVar, Partition pPartition) {
+    public PartitionHandler addVarToPartition(String pVar, Partition pPartition) {
       varToPartition.put(pVar, pPartition);
       return this;
     }
 
-    public PartitionBuilder addEdgeToPartition(
+    public PartitionHandler addEdgeToPartition(
         CFAEdge pEdge, Integer pIndex, Partition pPartition) {
       edgeToPartition.put(pEdge, pIndex, pPartition);
       return this;
     }
 
-    public Partition build() {
+    public Partition getReference() {
       return this.partition;
     }
 
@@ -658,7 +662,7 @@ public class CfaJsonModule extends SimpleModule {
      * <p>It binds the previously deserialized partitions to their respective IDs.
      *
      * @param pContext The context object.
-     * @return The newly created ObjectIdResolver.
+     * @return The newly created Resolver.
      * @throws IllegalStateException if no partitions are available.
      */
     @Override
@@ -670,7 +674,7 @@ public class CfaJsonModule extends SimpleModule {
       }
 
       /* Bind previously deserialized partitions to their respective IDs. */
-      for (Partition partition : PartitionsDeserializer.deserializedPartitions) {
+      for (Partition partition : PartitionsDeserializer.deserializedPartitions.values()) {
         partitionIdResolver.bindItem(
             new IdKey(Partition.class, Partition.class, Integer.valueOf(partition.hashCode())),
             partition);
