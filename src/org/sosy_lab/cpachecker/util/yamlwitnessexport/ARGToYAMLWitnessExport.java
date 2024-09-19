@@ -104,7 +104,7 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
     }
 
     if (analyseWitnessQuality) {
-      analyzeExportedWitnessQuality(witnessExportResults.build(), pReachedSet);
+      analyzeExportedWitnessQuality(witnessExportResults.buildOrThrow(), pReachedSet);
     }
   }
 }
