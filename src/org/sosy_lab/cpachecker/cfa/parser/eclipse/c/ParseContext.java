@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -156,15 +158,14 @@ class ParseContext {
       throws IllegalStateException {
     typeConversions.putIfAbsent(filePrefix, new HashMap<>());
 
-    // If originalType was already mapped for this file prefix leave it untouched
-    if (typeConversions.get(filePrefix).containsKey(originalType)) {
-      String err =
-          String.format(
-              "Trying to re-remember %s but was already contained for filePrefix %s and CPAchecker"
-                  + " Type %s",
-              originalType, filePrefix, cType);
-      throw new IllegalStateException(err);
-    }
+    checkState(
+        !typeConversions.get(filePrefix).containsKey(originalType),
+        "Trying to re-remember %s but was already contained for filePrefix %s and CPAchecker"
+            + " Type %s",
+        originalType,
+        filePrefix,
+        cType);
+
     typeConversions.get(filePrefix).put(originalType, cType);
   }
 
