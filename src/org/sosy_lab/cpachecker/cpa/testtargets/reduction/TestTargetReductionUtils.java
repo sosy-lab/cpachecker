@@ -49,13 +49,12 @@ public final class TestTargetReductionUtils {
 
   private TestTargetReductionUtils() {}
 
-  // TODO check
+
   public static Pair<CFANode, CFANode> buildEdgeBasedTestGoalGraph(
       final Set<CFAEdge> pTestTargets,
       final Map<CFAEdge, CFAEdge> pCopiedEdgeToTestTargetsMap,
       final FunctionEntryNode pEntryNode) {
     // a set of nodes that has already been created to prevent duplicates
-    Set<CFANode> successorNodes = Sets.newHashSetWithExpectedSize(pTestTargets.size() + 2);
     Set<Pair<CFANode, Boolean>> visited = new HashSet<>();
     Map<CFANode, CFANode> origCFANodeToCopyMap = new HashMap<>();
     CFANode currentNode;
@@ -70,7 +69,6 @@ public final class TestTargetReductionUtils {
     functionExitNode.ifPresent(
         exitNode -> {
           origCFANodeToCopyMap.put(exitNode, CFANode.newDummyCFANode(""));
-          successorNodes.add(exitNode);
         });
     for (CFAEdge target : pTestTargets) {
       toExplore.add(target.getSuccessor());
