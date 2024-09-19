@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.Block
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusAndResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWitnessWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder.Components;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
@@ -349,7 +350,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         // run workers
         for (BlockSummaryActor worker : components.actors()) {
           Thread thread = new Thread(worker, worker.getId());
-          thread.setDaemon(true);
+          thread.setDaemon(!(worker instanceof BlockSummaryWitnessWorker));
           thread.start();
         }
         String observerId = "observer";

@@ -66,6 +66,7 @@ public class BlockSummaryWitnessWorker extends BlockSummaryWorker {
   private static FormulaManagerView view;
   private final CFA cfa;
   private final Path witnessOutput;
+  private boolean shutdown;
 
   BlockSummaryWitnessWorker(
       String pId,
@@ -96,6 +97,7 @@ public class BlockSummaryWitnessWorker extends BlockSummaryWorker {
     initializeView(pcpa);
 
     cfa = pCFA;
+    shutdown = false;
   }
 
   @Override
@@ -104,37 +106,25 @@ public class BlockSummaryWitnessWorker extends BlockSummaryWorker {
 
     // Determine the type of message and process accordingly
     switch (pMessage.getType()) {
-      case BLOCK_POSTCONDITION:
+      case BLOCK_POSTCONDITION -> {
         // Store the latest post-condition message for each block
         BlockSummaryPostConditionMessage postConditionMessage =
             (BlockSummaryPostConditionMessage) pMessage;
-        messages.merge(postConditionMessage.getBlockId(), postConditionMessage, (a, b) -> a.getTimestamp().isBefore(b.getTimestamp()) ? b : a);
-        break;
-
-
-      case ERROR_CONDITION:
-
-
-        break;
-
-      case FOUND_RESULT:
+        messages.merge(postConditionMessage.getBlockId(), postConditionMessage,
+            (a, b) -> a.getTimestamp().isBefore(b.getTimestamp()) ? b : a);
+      }
+      case FOUND_RESULT -> {
         // Process results from the analysis
         BlockSummaryResultMessage msg = (BlockSummaryResultMessage) pMessage;
         Result result = msg.getResult();
         switch (result) {
-          case DONE:
-            break;
-          case FALSE:
+          case FALSE -> {
             // Extract the final node ID from metadata and generate violation witness
             String metadata = msg.getMetadata();
             int finalNodeId = extractFinalNodeIdFromMetadata(metadata);
             generateViolationWitnessFromPath(metadata, finalNodeId);
-            break;
-
-          case NOT_YET_STARTED:
-            break;
-
-          case TRUE:
+          }
+          case TRUE -> {
             // Process and save invariants for true results
             List<Map<String, Object>> invariants = new ArrayList<>();
             Path sourceFilePath = null;
@@ -152,25 +142,14 @@ public class BlockSummaryWitnessWorker extends BlockSummaryWorker {
             if (sourceFilePath != null) {
               saveInvariantsToYaml(invariants, sourceFilePath);
             }
-            break;
-          case UNKNOWN:
-            break;
-          default:
-            break;
+          }
+          default -> {
+          }
         }
-        break;
-
-      case ERROR:
-        break;
-
-      case ERROR_CONDITION_UNREACHABLE:
-        break;
-
-      case STATISTICS:
-        break;
-
-      default:
-        break;
+        shutdown = true;
+      }
+      case ERROR -> shutdown = true;
+      default -> {}
     }
 
     return ImmutableSet.of();
@@ -625,7 +604,7 @@ public class BlockSummaryWitnessWorker extends BlockSummaryWorker {
 
   @Override
   public boolean shutdownRequested() {
-    return false;
+    return shutdown;
 }
 
 }
