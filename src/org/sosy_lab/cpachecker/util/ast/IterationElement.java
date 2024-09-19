@@ -112,13 +112,12 @@ public final class IterationElement extends BranchingElement {
     return nodesBetweenConditionAndExit;
   }
 
-  public ImmutableSet<CFANode> getControllingExpressionNodes() {
+  public FluentIterable<CFANode> getControllingExpressionNodes() {
     if (controllingExpression.isEmpty()) {
-      return ImmutableSet.of();
+      return FluentIterable.of();
     }
 
     return FluentIterable.from(controllingExpression.orElseThrow().edges())
-        .transformAndConcat(CFAUtils::nodes)
-        .toSet();
+        .transformAndConcat(CFAUtils::nodes);
   }
 }

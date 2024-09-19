@@ -114,10 +114,8 @@ public final class IfElement extends StatementElement {
     return nodesBetweenConditionAndElseBranch;
   }
 
-  public ImmutableSet<CFANode> getConditionNodes() {
-    return FluentIterable.from(conditionElement.edges())
-        .transformAndConcat(CFAUtils::nodes)
-        .toSet();
+  public FluentIterable<CFANode> getConditionNodes() {
+    return FluentIterable.from(conditionElement.edges()).transformAndConcat(CFAUtils::nodes);
   }
 
   private ImmutableSet<CFAEdge> findThenEdges() {

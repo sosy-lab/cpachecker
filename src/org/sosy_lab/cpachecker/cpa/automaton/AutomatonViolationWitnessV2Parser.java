@@ -188,12 +188,12 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
 
     if (optionalIfStructure.isPresent()) {
       IfElement ifElement = optionalIfStructure.orElseThrow();
-      nodesCondition = ifElement.getConditionNodes();
+      nodesCondition = ifElement.getConditionNodes().toSet();
       nodesThenBranch = ifElement.getNodesBetweenConditionAndThenBranch();
       nodesElseBranch = ifElement.getNodesBetweenConditionAndElseBranch();
     } else if (optionalIterationStructure.isPresent()) {
       IterationElement iterationElement = optionalIterationStructure.orElseThrow();
-      nodesCondition = iterationElement.getControllingExpressionNodes();
+      nodesCondition = iterationElement.getControllingExpressionNodes().toSet();
       nodesThenBranch = iterationElement.getNodesBetweenConditionAndBody();
       nodesElseBranch = iterationElement.getNodesBetweenConditionAndBody();
     } else {
