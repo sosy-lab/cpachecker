@@ -49,7 +49,6 @@ public final class TestTargetReductionUtils {
 
   private TestTargetReductionUtils() {}
 
-
   public static Pair<CFANode, CFANode> buildEdgeBasedTestGoalGraph(
       final Set<CFAEdge> pTestTargets,
       final Map<CFAEdge, CFAEdge> pCopiedEdgeToTestTargetsMap,
