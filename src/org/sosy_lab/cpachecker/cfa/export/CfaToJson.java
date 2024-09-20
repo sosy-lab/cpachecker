@@ -64,7 +64,7 @@ public final class CfaToJson {
     /* Get partitions. */
     Optional<VariableClassification> varClassification = cfa.getVarClassification();
     Set<Partition> partitions =
-        varClassification.isPresent() ? varClassification.get().getPartitions() : null;
+        varClassification.isPresent() ? varClassification.orElseThrow().getPartitions() : null;
 
     /* Create the CFA JSON data. */
     this.cfaJsonData =

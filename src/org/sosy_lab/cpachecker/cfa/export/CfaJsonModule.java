@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.export;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIdentityReference;
@@ -343,7 +345,7 @@ public class CfaJsonModule extends SimpleModule {
         deserializedPartitions.put(handler.getReference().hashCode(), handler.getReference());
       }
 
-      return deserializedPartitions.values().stream().collect(ImmutableSet.toImmutableSet());
+      return ImmutableSet.copyOf(deserializedPartitions.values());
     }
   }
 
@@ -635,9 +637,7 @@ public class CfaJsonModule extends SimpleModule {
      * @throws IllegalArgumentException If no ID for the CFAEdge is found.
      */
     public static Integer getIdFromEdge(CFAEdge pEdge) {
-      if (currentGenerator == null) {
-        throw new IllegalStateException("No generator available");
-      }
+      checkState(currentGenerator != null, "No generator available");
 
       Integer id = currentGenerator.edgeToIdMap.get(pEdge);
 
@@ -667,11 +667,10 @@ public class CfaJsonModule extends SimpleModule {
      */
     @Override
     public ObjectIdResolver newForDeserialization(Object pContext) {
-      PartitionIdResolver partitionIdResolver = new PartitionIdResolver();
+      checkState(
+          PartitionsDeserializer.deserializedPartitions != null, "No partitions available to bind");
 
-      if (PartitionsDeserializer.deserializedPartitions == null) {
-        throw new IllegalStateException("No partitions available to bind");
-      }
+      PartitionIdResolver partitionIdResolver = new PartitionIdResolver();
 
       /* Bind previously deserialized partitions to their respective IDs. */
       for (Partition partition : PartitionsDeserializer.deserializedPartitions.values()) {
@@ -740,9 +739,7 @@ public class CfaJsonModule extends SimpleModule {
      * @throws IllegalArgumentException If no CFAEdge with the specified ID is found.
      */
     public static CFAEdge getEdgeFromId(Integer pId) {
-      if (currentResolver == null) {
-        throw new IllegalStateException("No resolver available");
-      }
+      checkState(currentResolver != null, "No resolver available");
 
       CFAEdge edge = currentResolver.idToEdgeMap.get(pId);
 
