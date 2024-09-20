@@ -83,12 +83,14 @@ public class SeqUtil {
   // TODO make sure function parameter names are changed to original calling name
   // TODO test if blank edges can always be safely skipped
   public static String createCodeFromThreadNode(
+      Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs,
       ImmutableMap<ThreadEdge, AssignExpr> pReturnPcAssigns,
       ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> pParamAssigns,
       ImmutableMap<ThreadNode, AssignExpr> pPcsReturnPcAssigns) {
 
+    pCoveredNodes.add(pThreadNode);
     StringBuilder code = new StringBuilder();
 
     // no edges -> exit node reached (assert fail or main / start routine exit node)
@@ -107,11 +109,11 @@ public class SeqUtil {
       boolean firstEdge = true;
       for (ThreadEdge threadEdge : pThreadNode.leavingEdges()) {
         CFAEdge sub = pEdgeSubs.get(threadEdge);
-        AssignExpr updatePcsNextThread =
+        AssignExpr pcsUpdate =
             SeqExprBuilder.createPcsNextThreadAssign(threadEdge.getSuccessor().pc);
 
         if (emptyCaseCode(sub)) {
-          code.append(updatePcsNextThread.createString()); // TODO prune empty cases later
+          code.append(pcsUpdate.createString()); // TODO prune empty cases later
 
         } else {
 
@@ -121,10 +123,10 @@ public class SeqUtil {
             IfExpr ifExpr = new IfExpr(new EdgeCodeExpr(sub));
             if (firstEdge) {
               firstEdge = false;
-              IfCodeExpr ifCodeExpr = new IfCodeExpr(ifExpr, updatePcsNextThread);
+              IfCodeExpr ifCodeExpr = new IfCodeExpr(ifExpr, pcsUpdate);
               code.append(ifCodeExpr.createString());
             } else {
-              ElseIfCodeExpr elseIfCodeExpr = new ElseIfCodeExpr(ifExpr, updatePcsNextThread);
+              ElseIfCodeExpr elseIfCodeExpr = new ElseIfCodeExpr(ifExpr, pcsUpdate);
               code.append(SeqSyntax.NEWLINE).append(elseIfCodeExpr.createString());
             }
 
@@ -141,12 +143,28 @@ public class SeqUtil {
             for (AssignExpr assign : assigns) {
               code.append(assign.createString());
             }
-            code.append(updatePcsNextThread.createString());
+            code.append(pcsUpdate.createString());
+
+          } else if (sub instanceof CDeclarationEdge) {
+            // "leftover" declaration: const CPAchecker_TMP var
+            ThreadNode succ = threadEdge.getSuccessor();
+            ThreadEdge succEdge = succ.leavingEdges().iterator().next();
+            ThreadNode succsucc = succEdge.getSuccessor();
+            ThreadEdge succsuccEdge = succsucc.leavingEdges().iterator().next();
+            assert succ.leavingEdges().size() == 1; // TODO test purposes
+            assert succsucc.leavingEdges().size() == 1; // TODO test purposes
+            pCoveredNodes.add(succ);
+            pCoveredNodes.add(succsucc);
+            // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
+            code.append(sub.getCode()).append(SeqSyntax.NEWLINE);
+            code.append(pEdgeSubs.get(succEdge).getCode()).append(SeqSyntax.NEWLINE);
+            code.append(pEdgeSubs.get(succsuccEdge).getCode()).append(SeqSyntax.NEWLINE);
+            AssignExpr skippedPcsUpdate =
+                SeqExprBuilder.createPcsNextThreadAssign(succsuccEdge.getSuccessor().pc);
+            code.append(skippedPcsUpdate.createString());
 
           } else {
-            code.append(sub.getCode())
-                .append(SeqSyntax.SPACE)
-                .append(updatePcsNextThread.createString());
+            code.append(sub.getCode()).append(SeqSyntax.SPACE).append(pcsUpdate.createString());
           }
         }
       }

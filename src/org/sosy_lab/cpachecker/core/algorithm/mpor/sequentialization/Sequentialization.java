@@ -12,9 +12,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -85,6 +87,8 @@ public class Sequentialization {
       }
     }
 
+    Set<ThreadNode> coveredNodes = new HashSet<>();
+
     // create while loop with all switch cases
     for (var entry : pSubstitutions.entrySet()) {
       MPORThread thread = entry.getKey();
@@ -99,12 +103,19 @@ public class Sequentialization {
       rProgram.append("=============== thread ").append(thread.id).append(" ===============");
       rProgram.append(SeqSyntax.NEWLINE).append(SeqSyntax.NEWLINE);
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
-        rProgram.append(SeqToken.CASE).append(SeqSyntax.SPACE);
-        rProgram.append(threadNode.pc).append(SeqSyntax.COLON).append(SeqSyntax.SPACE);
-        rProgram.append(
-            SeqUtil.createCodeFromThreadNode(
-                threadNode, edgeSubs, returnPcAssigns, paramAssigns, pcsReturnPcAssigns));
-        rProgram.append(SeqSyntax.NEWLINE);
+        if (!coveredNodes.contains(threadNode)) {
+          rProgram.append(SeqToken.CASE).append(SeqSyntax.SPACE);
+          rProgram.append(threadNode.pc).append(SeqSyntax.COLON).append(SeqSyntax.SPACE);
+          rProgram.append(
+              SeqUtil.createCodeFromThreadNode(
+                  coveredNodes,
+                  threadNode,
+                  edgeSubs,
+                  returnPcAssigns,
+                  paramAssigns,
+                  pcsReturnPcAssigns));
+          rProgram.append(SeqSyntax.NEWLINE);
+        }
       }
     }
 
