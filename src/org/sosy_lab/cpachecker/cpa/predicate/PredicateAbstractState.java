@@ -157,12 +157,7 @@ public abstract sealed class PredicateAbstractState
                                       // For global variables
                                       || var.getName().equals(name))
                       && !name.contains("__CPAchecker_"),
-              name -> {
-                if (useOldKeywordForVariables) {
-                  return "\\old(" + name + ")";
-                }
-                return name;
-              });
+              name -> useOldKeywordForVariables ? "\\old(" + name + ")" : name);
       return expressionTree;
     }
 
@@ -180,12 +175,7 @@ public abstract sealed class PredicateAbstractState
                       .splitToList(name)
                       .get(1)
                       .equals(smtNameReturnVariable),
-          name -> {
-            if (name.equals(smtNameReturnVariable)) {
-              return pFunctionReturnVariable.getName();
-            }
-            return name;
-          });
+          name -> name.equals(smtNameReturnVariable) ? pFunctionReturnVariable.getName() : name);
     }
 
     @Override
