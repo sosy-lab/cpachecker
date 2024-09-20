@@ -142,23 +142,21 @@ public abstract sealed class PredicateAbstractState
         throws InterruptedException,
             ReportingMethodNotImplementedException,
             TranslationToExpressionTreeFailedException {
-      ExpressionTree<Object> expressionTree =
-          super.abstractionFormula.asExpressionTree(
-              name ->
-                  (!name.contains(FUNCTION_DELIMITER)
-                          || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER))
-                      && pAstCfaRelation
-                          .getVariablesAndParametersInScope(pLocation)
-                          .anyMatch(
-                              var ->
-                                  // For local variables
-                                  (pLocation.getFunctionName() + FUNCTION_DELIMITER + var.getName())
-                                          .equals(name)
-                                      // For global variables
-                                      || var.getName().equals(name))
-                      && !name.contains("__CPAchecker_"),
-              name -> useOldKeywordForVariables ? "\\old(" + name + ")" : name);
-      return expressionTree;
+      return super.abstractionFormula.asExpressionTree(
+          name ->
+              (!name.contains(FUNCTION_DELIMITER)
+                      || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER))
+                  && pAstCfaRelation
+                      .getVariablesAndParametersInScope(pLocation)
+                      .anyMatch(
+                          var ->
+                              // For local variables
+                              (pLocation.getFunctionName() + FUNCTION_DELIMITER + var.getName())
+                                      .equals(name)
+                                  // For global variables
+                                  || var.getName().equals(name))
+                  && !name.contains("__CPAchecker_"),
+          name -> useOldKeywordForVariables ? "\\old(" + name + ")" : name);
     }
 
     @Override
