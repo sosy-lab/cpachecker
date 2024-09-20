@@ -118,6 +118,7 @@ public class PredicateAbstractionsWriter {
                     formula, fmgr, AbstractStates.extractLocation(state), Function.identity());
           } catch (TranslationToExpressionTreeFailedException e) {
             // Keep consistency with the previous implementation
+            logger.logDebugException(e, "Translation to expression tree failed");
             expressionTree = ExpressionTrees.getTrue();
           }
           stateToAssert.put(state, expressionTree.toString());

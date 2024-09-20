@@ -297,6 +297,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
           try {
             expressionTreeResult = new ExpressionTreeResult(pStateToAbstraction.apply(state), true);
           } catch (TranslationToExpressionTreeFailedException e) {
+            logger.logDebugException(e, "Could not translate state to expression tree");
             expressionTreeResult = new ExpressionTreeResult(ExpressionTrees.getTrue(), false);
           }
           expressionsMatchingClass.add(expressionTreeResult);
