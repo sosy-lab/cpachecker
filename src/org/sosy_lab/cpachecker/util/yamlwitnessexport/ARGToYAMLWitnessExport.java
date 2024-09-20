@@ -42,12 +42,17 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
   private void analyzeExportedWitnessQuality(
       ImmutableMap<YAMLWitnessVersion, WitnessExportResult> pWitnessExportResults,
       UnmodifiableReachedSet pReachedSet) {
+    // The common prefix is used to be able to be able to automatically process these messages in
+    // CPAchecker's toolinfo module in BenchExec
+    String commonPrefix = "Witness export warning: ";
+
     if (!FluentIterable.from(pWitnessExportResults.values())
         .allMatch(WitnessExportResult::translationAlwaysSuccessful)) {
       // For example occurring for: sv-benchmarks/c/nla-digbench-scaling/hard2_valuebound20.c
       logger.log(
           Level.INFO,
-          "Witnesses exported in versions "
+          commonPrefix
+              + "Witnesses exported in versions "
               + String.join(
                   ", ",
                   FluentIterable.from(pWitnessExportResults.entrySet())
@@ -67,7 +72,8 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
       // For example occurring for: sv-benchmarks/c/loops/n.c40.c
       logger.log(
           Level.INFO,
-          "The ARG contains no cycles. "
+          commonPrefix
+              + "The ARG contains no cycles. "
               + "This means that the invariants are likely not inductive or not safe.");
     }
   }
