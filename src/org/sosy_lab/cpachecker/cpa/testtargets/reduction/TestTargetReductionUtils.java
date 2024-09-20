@@ -216,7 +216,11 @@ public final class TestTargetReductionUtils {
     exploreSegment(pEntryNode, graphStartNode, graphEndNode, pTargetToGoalGraphNode);
 
     for (CFAEdge target : reachableTargets) {
-      exploreSegment(target.getSuccessor(), graphStartNode, graphEndNode, pTargetToGoalGraphNode);
+      exploreSegment(
+          target.getSuccessor(),
+          pTargetToGoalGraphNode.get(target),
+          graphEndNode,
+          pTargetToGoalGraphNode);
     }
 
     return Pair.of(
@@ -271,6 +275,9 @@ public final class TestTargetReductionUtils {
 
     for (CFAEdgeNode predTarget : pNodes) {
       for (CFAEdgeNode succTarget : CFAEdgeNode.allSuccessorsOf(predTarget)) {
+        if (predTarget == succTarget) {
+          continue;
+        }
         newPath = Pair.of(predTarget, succTarget);
         pathsToRequiredInputs.put(newPath, predTarget.mayReachViaInputs(succTarget));
         waitlist.add(newPath);
@@ -280,8 +287,12 @@ public final class TestTargetReductionUtils {
     while (!waitlist.isEmpty()) {
       path = waitlist.pop();
       for (CFAEdgeNode succTarget : CFAEdgeNode.allSuccessorsOf(path.getSecond())) {
+        if (path.getFirst() == succTarget) {
+          continue;
+        }
         newPath = Pair.of(path.getFirst(), succTarget);
-        viaInput = path.getFirst().mayReachViaInputs(succTarget);
+        viaInput =
+            pathsToRequiredInputs.get(path) || path.getSecond().mayReachViaInputs(succTarget);
         if (!pathsToRequiredInputs.containsKey(newPath)
             || (!pathsToRequiredInputs.get(newPath) && viaInput)) {
           pathsToRequiredInputs.put(newPath, viaInput);
@@ -365,6 +376,7 @@ public final class TestTargetReductionUtils {
   }
 
   static class CFAEdgeNode {
+
     private final CFAEdge representativeTarget;
     private final Collection<CFAEdgeNode> predecessors;
     private final Collection<CFAEdgeNode> predecessorsViaInputs;

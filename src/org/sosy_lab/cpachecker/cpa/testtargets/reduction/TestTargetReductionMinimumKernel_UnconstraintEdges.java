@@ -56,10 +56,13 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
             CFAEdgeNode::allSuccessorsOf, CFAEdgeNode::allPredecessorsOf, entryExit.getSecond());
 
     Set<CFAEdgeNode> domLeaves =
-        new HashSet<>(getLeavesOfDomintorTree(domTree, false, targetToGoalGraphNode.values()));
+        new HashSet<>(
+            getLeavesOfDomintorTree(
+                domTree, false, targetToGoalGraphNode.values(), result.getSecond()));
     Set<CFAEdgeNode> postDomLeaves =
         new HashSet<>(
-            getLeavesOfDomintorTree(inverseDomTree, true, targetToGoalGraphNode.values()));
+            getLeavesOfDomintorTree(
+                inverseDomTree, true, targetToGoalGraphNode.values(), result.getSecond()));
 
     // remove start and end node from graph, ensure that predecessor is considered
     // if it is not the root node of the tree
@@ -97,14 +100,15 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
   private ImmutableSet<CFAEdgeNode> getLeavesOfDomintorTree(
       final DomTree<CFAEdgeNode> pDomTree,
       final boolean isPostDomTree,
-      final Collection<CFAEdgeNode> pAllTargets) {
+      final Collection<CFAEdgeNode> pAllTargets,
+      final ImmutableSet<Pair<CFAEdgeNode, CFAEdgeNode>> pPathsWithInputs) {
     Set<CFAEdgeNode> nonLeaves = Sets.newHashSetWithExpectedSize(pDomTree.getNodeCount());
     for (CFAEdgeNode domTreeEntry : pDomTree) {
       pDomTree
           .getParent(domTreeEntry)
           .ifPresent(
               parent -> {
-                if (!isPostDomTree || !domTreeEntry.mayReachViaInputs(parent)) {
+                if (!isPostDomTree || !pPathsWithInputs.contains(Pair.of(domTreeEntry, parent))) {
                   nonLeaves.add(parent);
                 }
               });

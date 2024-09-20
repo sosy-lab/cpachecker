@@ -72,15 +72,22 @@ public class SubsumptionOracleForTargetsAsEdges {
     for (CFAEdge predTarget : pCopiedTargets) {
       for (CFAEdge leaving : CFAUtils.allLeavingEdges(predTarget.getSuccessor())) {
         if (pCopiedTargets.contains(leaving)) {
+          if (predTarget.equals(leaving)) {
+            continue;
+          }
           newPath = Pair.of(predTarget, leaving);
           pathsToRequiredInputs.put(newPath, false);
           waitlist.add(newPath);
         } else {
           for (CFAEdge secDescend : CFAUtils.allLeavingEdges(leaving.getSuccessor())) {
             Preconditions.checkState(pCopiedTargets.contains(secDescend));
+            if (predTarget.equals(secDescend)) {
+              continue;
+            }
             newPath = Pair.of(predTarget, secDescend);
             pathsToRequiredInputs.put(newPath, TestTargetReductionUtils.isInputEdge(leaving));
             waitlist.add(newPath);
+            assert (!newPath.getFirst().equals(newPath.getSecond()));
           }
         }
       }
@@ -90,6 +97,9 @@ public class SubsumptionOracleForTargetsAsEdges {
       path = waitlist.pop();
       for (CFAEdge leaving : CFAUtils.allLeavingEdges(path.getSecond().getSuccessor())) {
         if (pCopiedTargets.contains(leaving)) {
+          if (path.getFirst().equals(leaving)) {
+            continue;
+          }
           newPath = Pair.of(path.getFirst(), leaving);
 
           viaInput = pathsToRequiredInputs.get(path);
@@ -103,7 +113,11 @@ public class SubsumptionOracleForTargetsAsEdges {
         } else {
           for (CFAEdge secDescend : CFAUtils.allLeavingEdges(leaving.getSuccessor())) {
             Preconditions.checkState(pCopiedTargets.contains(secDescend));
+            if (path.getFirst().equals(secDescend)) {
+              continue;
+            }
             newPath = Pair.of(path.getFirst(), secDescend);
+            assert (!newPath.getFirst().equals(newPath.getSecond()));
 
             viaInput =
                 pathsToRequiredInputs.get(path) || TestTargetReductionUtils.isInputEdge(leaving);
