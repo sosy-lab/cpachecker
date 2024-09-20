@@ -448,7 +448,7 @@ public final class ExpressionTrees {
 
   public static <S, T> ExpressionTree<T> convert(
       ExpressionTree<S> pSource, final Function<? super S, ? extends T> pLeafConverter) {
-    // For some reason the type checking fails if this is a java util Function
+    // Type checking fails if this is a java util Function due to being used in a FluentIterable
     final com.google.common.base.Function<ExpressionTree<S>, ExpressionTree<T>> convert =
         pTree -> convert(pTree, pLeafConverter);
     ExpressionTreeVisitor<S, ExpressionTree<T>, NoException> converter =
