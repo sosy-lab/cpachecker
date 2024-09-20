@@ -778,6 +778,7 @@ public class CfaJsonModule extends SimpleModule {
    */
   private static final class VariableClassificationMixin {
 
+    @SuppressWarnings("unused")
     @JsonSerialize(converter = EtpTableToListConverter.class)
     private Table<CFAEdge, Integer, Partition> edgeToPartitions;
 
@@ -1142,7 +1143,9 @@ public class CfaJsonModule extends SimpleModule {
    */
   private static final class FileLocationMixin {
 
-    @JsonProperty private Path fileName;
+    @SuppressWarnings("unused")
+    @JsonProperty
+    private Path fileName;
 
     @SuppressWarnings("unused")
     @JsonCreator
@@ -1186,7 +1189,9 @@ public class CfaJsonModule extends SimpleModule {
    */
   private static final class CfaMetadataMixin {
 
-    @JsonIgnore private AstCfaRelation astCFARelation;
+    @SuppressWarnings("unused")
+    @JsonIgnore
+    private AstCfaRelation astCFARelation;
 
     @SuppressWarnings("unused")
     @JsonCreator
@@ -1252,6 +1257,7 @@ public class CfaJsonModule extends SimpleModule {
    */
   private static final class FunctionEntryNodeMixin {
 
+    @SuppressWarnings("unused")
     @JsonIdentityReference(alwaysAsId = true)
     private FunctionExitNode exitNode;
   }
@@ -1265,6 +1271,7 @@ public class CfaJsonModule extends SimpleModule {
    */
   private static final class FunctionExitNodeMixin {
 
+    @SuppressWarnings("unused")
     @JsonIdentityReference(alwaysAsId = true)
     private FunctionEntryNode entryNode;
 
