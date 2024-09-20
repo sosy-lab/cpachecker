@@ -32,8 +32,10 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.util.ClassUtil;
 import com.fasterxml.jackson.databind.util.StdConverter;
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -56,7 +58,6 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -380,7 +381,7 @@ public class CfaJsonModule extends SimpleModule {
         Constructor<?> partitionConstructor =
             Partition.class.getDeclaredConstructor(Map.class, Table.class);
 
-        partitionConstructor.setAccessible(true);
+        ClassUtil.checkAndFixAccess(partitionConstructor, true);
 
         this.partition =
             (Partition) partitionConstructor.newInstance(this.varToPartition, this.edgeToPartition);
@@ -436,7 +437,7 @@ public class CfaJsonModule extends SimpleModule {
       try {
         Field field = Partition.class.getDeclaredField("index");
 
-        field.setAccessible(true);
+        ClassUtil.checkAndFixAccess(field, true);
 
         field.set(this.partition, pIndex);
 
@@ -489,7 +490,7 @@ public class CfaJsonModule extends SimpleModule {
       try {
         Field field = Partition.class.getDeclaredField(pName);
 
-        field.setAccessible(true);
+        ClassUtil.checkAndFixAccess(field, true);
 
         return field.get(pPartition);
 
@@ -521,8 +522,9 @@ public class CfaJsonModule extends SimpleModule {
     @Override
     public List<TableEntry> convert(Table<CFAEdge, Integer, Partition> pTable) {
       return pTable.cellSet().stream()
+          .filter(cell -> cell.getValue() != null)
           .map(cell -> new TableEntry(cell.getRowKey(), cell.getColumnKey(), cell.getValue()))
-          .collect(Collectors.toList());
+          .collect(ImmutableList.toImmutableList());
     }
   }
 
