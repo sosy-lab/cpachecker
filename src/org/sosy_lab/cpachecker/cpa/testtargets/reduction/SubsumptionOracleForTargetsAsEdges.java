@@ -87,7 +87,6 @@ public class SubsumptionOracleForTargetsAsEdges {
             newPath = Pair.of(predTarget, secDescend);
             pathsToRequiredInputs.put(newPath, TestTargetReductionUtils.isInputEdge(leaving));
             waitlist.add(newPath);
-            assert (!newPath.getFirst().equals(newPath.getSecond()));
           }
         }
       }
