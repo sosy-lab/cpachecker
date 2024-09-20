@@ -116,7 +116,6 @@ public class SubsumptionOracleForTargetsAsEdges {
               continue;
             }
             newPath = Pair.of(path.getFirst(), secDescend);
-            assert (!newPath.getFirst().equals(newPath.getSecond()));
 
             viaInput =
                 pathsToRequiredInputs.get(path) || TestTargetReductionUtils.isInputEdge(leaving);
