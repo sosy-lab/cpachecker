@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -36,9 +38,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.DeclareExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.VariableExpr;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -87,10 +89,12 @@ public class Sequentialization {
       }
     }
 
-    Set<ThreadNode> coveredNodes = new HashSet<>();
-
-    // create while loop with all switch cases
+    // create all loop cases for all threadNodes
     for (var entry : pSubstitutions.entrySet()) {
+
+      SortedMap<Integer, SeqLoopCase> loopCases = new TreeMap<>();
+      Set<ThreadNode> coveredNodes = new HashSet<>();
+
       MPORThread thread = entry.getKey();
       CSimpleDeclarationSubstitution substitution = entry.getValue();
       ImmutableMap<ThreadEdge, CFAEdge> edgeSubs = substitution.substituteEdges(thread);
@@ -98,24 +102,25 @@ public class Sequentialization {
       ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> paramAssigns =
           mapParamAssigns(thread, substitution);
       ImmutableMap<ThreadNode, AssignExpr> pcsReturnPcAssigns = mapPcsReturnPcAssigns(thread);
-
-      rProgram.append(SeqSyntax.NEWLINE);
-      rProgram.append("=============== thread ").append(thread.id).append(" ===============");
       rProgram.append(SeqSyntax.NEWLINE).append(SeqSyntax.NEWLINE);
+      rProgram.append("====== thread " + thread.id + " ======");
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
         if (!coveredNodes.contains(threadNode)) {
-          rProgram.append(SeqToken.CASE).append(SeqSyntax.SPACE);
-          rProgram.append(threadNode.pc).append(SeqSyntax.COLON).append(SeqSyntax.SPACE);
-          rProgram.append(
-              SeqUtil.createCodeFromThreadNode(
+          SeqLoopCase loopCase =
+              SeqUtil.createCaseFromThreadNode(
                   coveredNodes,
                   threadNode,
                   edgeSubs,
                   returnPcAssigns,
                   paramAssigns,
-                  pcsReturnPcAssigns));
-          rProgram.append(SeqSyntax.NEWLINE);
+                  pcsReturnPcAssigns);
+          if (loopCase != null) {
+            loopCases.put(threadNode.pc, loopCase);
+          }
         }
+      }
+      for (SeqLoopCase loopCase : loopCases.values()) {
+        rProgram.append(loopCase.createString());
       }
     }
 

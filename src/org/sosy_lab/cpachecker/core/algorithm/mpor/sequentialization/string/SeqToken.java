@@ -20,6 +20,8 @@ public class SeqToken {
 
   public static final String CASE = "case";
 
+  public static final String CONTINUE = "continue";
+
   public static final String CPACHECKER_TMP = "__CPAchecker_TMP_";
 
   public static final String ELSE = "else";

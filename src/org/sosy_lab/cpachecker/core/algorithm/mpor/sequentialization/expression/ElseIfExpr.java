@@ -9,27 +9,18 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
-public class IfCodeExpr implements SeqExpression {
+public class ElseIfExpr implements SeqExpression {
 
   public final IfExpr ifExpr;
 
-  // TODO optional list?
-  public final SeqExpression code;
-
-  public IfCodeExpr(IfExpr pIfExpr, SeqExpression pCode) {
+  public ElseIfExpr(IfExpr pIfExpr) {
     ifExpr = pIfExpr;
-    code = pCode;
   }
 
   @Override
   public String createString() {
-    return ifExpr.createString()
-        + SeqSyntax.SPACE
-        + SeqSyntax.CURLY_BRACKET_LEFT
-        + SeqSyntax.SPACE
-        + code.createString()
-        + SeqSyntax.SPACE
-        + SeqSyntax.CURLY_BRACKET_RIGHT;
+    return SeqToken.ELSE + SeqSyntax.SPACE + ifExpr.createString();
   }
 }

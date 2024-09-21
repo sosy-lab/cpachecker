@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Optional;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -25,10 +27,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ASTStringExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.EdgeCodeExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ElseIfCodeExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.IfCodeExpr;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ElseIfExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.IfExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCaseStmt;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
@@ -58,8 +61,7 @@ public class SeqUtil {
     ImmutableList.Builder<ASTStringExpr> rLocalDecs = ImmutableList.builder();
     assert pSubstitution.localVarSubs != null;
     for (CVariableDeclaration sub : pSubstitution.localVarSubs.values()) {
-      // TODO handle const CPAcheckerTMPs as atomics (declared before the loop)
-      if (!isConstCpaCheckerTMP(sub)) {
+      if (!isConstCPAcheckerTMP(sub)) {
         rLocalDecs.add(new ASTStringExpr(sub.toASTString()));
       }
     }
@@ -77,12 +79,12 @@ public class SeqUtil {
     return rParamDecs.build();
   }
 
-  // TODO make sure all pthread_... functions are removed (skip pcs)
-  // TODO make sure all return statements are removed (skip pcs)
-  // TODO make sure all function call statements are removed (skip pcs)
-  // TODO make sure function parameter names are changed to original calling name
-  // TODO test if blank edges can always be safely skipped
-  public static String createCodeFromThreadNode(
+  /**
+   * Returns a {@link SeqLoopCase} which represents case statements in the sequentializations while
+   * loop. Returns null if pThreadNode has no leaving edges i.e. its pc is -1.
+   */
+  @Nullable
+  public static SeqLoopCase createCaseFromThreadNode(
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs,
@@ -91,85 +93,90 @@ public class SeqUtil {
       ImmutableMap<ThreadNode, AssignExpr> pPcsReturnPcAssigns) {
 
     pCoveredNodes.add(pThreadNode);
-    StringBuilder code = new StringBuilder();
+
+    int originPc = pThreadNode.pc;
+    ImmutableList.Builder<SeqLoopCaseStmt> stmts = ImmutableList.builder();
 
     // no edges -> exit node reached (assert fail or main / start routine exit node)
     if (pThreadNode.leavingEdges().isEmpty()) {
-      // TODO test, remove later
-      assert pThreadNode.pc == EXIT_PC;
-      code.append(SeqExprBuilder.setExitPc.createString());
+      assert pThreadNode.pc == EXIT_PC; // TODO test, remove later
+      return null;
 
+      // exiting function: pc not relevant, assign thread and function-specific return pc
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
       assert pPcsReturnPcAssigns.containsKey(pThreadNode);
       AssignExpr assign = pPcsReturnPcAssigns.get(pThreadNode);
       assert assign != null;
-      code.append(assign.createString());
+      stmts.add(new SeqLoopCaseStmt(false, assign.createString(), Optional.empty()));
 
     } else {
       boolean firstEdge = true;
       for (ThreadEdge threadEdge : pThreadNode.leavingEdges()) {
         CFAEdge sub = pEdgeSubs.get(threadEdge);
-        AssignExpr pcsUpdate =
-            SeqExprBuilder.createPcsNextThreadAssign(threadEdge.getSuccessor().pc);
+        Optional<Integer> targetPc = Optional.of(threadEdge.getSuccessor().pc);
 
-        if (emptyCaseCode(sub)) {
-          code.append(pcsUpdate.createString()); // TODO prune empty cases later
-
-        } else {
-
+        if (!emptyCaseCode(sub)) {
           // use (else) if (condition) for assumes, no matter if induced by if, for, while...
           if (sub instanceof CAssumeEdge) {
             assert allEdgesAssume(pThreadNode.leavingEdges()); // TODO test, remove later
             IfExpr ifExpr = new IfExpr(new EdgeCodeExpr(sub));
             if (firstEdge) {
               firstEdge = false;
-              IfCodeExpr ifCodeExpr = new IfCodeExpr(ifExpr, pcsUpdate);
-              code.append(ifCodeExpr.createString());
+              stmts.add(new SeqLoopCaseStmt(true, ifExpr.createString(), targetPc));
             } else {
-              ElseIfCodeExpr elseIfCodeExpr = new ElseIfCodeExpr(ifExpr, pcsUpdate);
-              code.append(SeqSyntax.NEWLINE).append(elseIfCodeExpr.createString());
+              ElseIfExpr elseIfExpr = new ElseIfExpr(ifExpr);
+              stmts.add(new SeqLoopCaseStmt(true, elseIfExpr.createString(), targetPc));
             }
 
           } else if (sub instanceof FunctionSummaryEdge) {
             assert pReturnPcAssigns.containsKey(threadEdge);
             AssignExpr assign = pReturnPcAssigns.get(threadEdge);
             assert assign != null;
-            code.append(assign.createString());
+            stmts.add(new SeqLoopCaseStmt(false, assign.createString(), targetPc));
 
           } else if (sub instanceof FunctionCallEdge) {
             assert pParamAssigns.containsKey(threadEdge);
             ImmutableList<AssignExpr> assigns = pParamAssigns.get(threadEdge);
             assert assigns != null;
-            for (AssignExpr assign : assigns) {
-              code.append(assign.createString());
+            for (int i = 0; i < assigns.size(); i++) {
+              AssignExpr assign = assigns.get(i);
+              // if it is the last param assign, add the targetPc, otherwise empty
+              stmts.add(
+                  new SeqLoopCaseStmt(
+                      false,
+                      assign.createString(),
+                      i == assigns.size() - 1 ? targetPc : Optional.empty()));
             }
-            code.append(pcsUpdate.createString());
 
           } else if (sub instanceof CDeclarationEdge) {
             // "leftover" declaration: const CPAchecker_TMP var
             ThreadNode succ = threadEdge.getSuccessor();
             ThreadEdge succEdge = succ.leavingEdges().iterator().next();
-            ThreadNode succsucc = succEdge.getSuccessor();
-            ThreadEdge succsuccEdge = succsucc.leavingEdges().iterator().next();
+            ThreadNode succSucc = succEdge.getSuccessor();
+            ThreadEdge succSuccEdge = succSucc.leavingEdges().iterator().next();
             assert succ.leavingEdges().size() == 1; // TODO test purposes
-            assert succsucc.leavingEdges().size() == 1; // TODO test purposes
+            assert succSucc.leavingEdges().size() == 1; // TODO test purposes
             pCoveredNodes.add(succ);
-            pCoveredNodes.add(succsucc);
+            pCoveredNodes.add(succSucc);
             // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
-            code.append(sub.getCode()).append(SeqSyntax.NEWLINE);
-            code.append(pEdgeSubs.get(succEdge).getCode()).append(SeqSyntax.NEWLINE);
-            code.append(pEdgeSubs.get(succsuccEdge).getCode()).append(SeqSyntax.NEWLINE);
-            AssignExpr skippedPcsUpdate =
-                SeqExprBuilder.createPcsNextThreadAssign(succsuccEdge.getSuccessor().pc);
-            code.append(skippedPcsUpdate.createString());
+            CFAEdge succSub = pEdgeSubs.get(succEdge);
+            CFAEdge succSuccSub = pEdgeSubs.get(succSuccEdge);
+            assert succSub != null && succSuccSub != null;
+            stmts.add(new SeqLoopCaseStmt(false, sub.getCode(), Optional.empty()));
+            stmts.add(new SeqLoopCaseStmt(false, succSub.getCode(), Optional.empty()));
+            stmts.add(
+                new SeqLoopCaseStmt(
+                    false, succSuccSub.getCode(), Optional.of(succSuccEdge.getSuccessor().pc)));
 
           } else {
-            code.append(sub.getCode()).append(SeqSyntax.SPACE).append(pcsUpdate.createString());
+            assert sub != null;
+            stmts.add(new SeqLoopCaseStmt(false, sub.getCode(), targetPc));
           }
         }
       }
     }
-    return code.toString();
+
+    return new SeqLoopCase(originPc, stmts.build());
   }
 
   public static String createLineOfCode(CFAEdge pEdge) {
@@ -185,6 +192,14 @@ public class SeqUtil {
     } else {
       return pEdge.getCode() + SeqSyntax.SEMICOLON;
     }
+  }
+
+  public static String wrapInCurlyBrackets(SeqExpression pExpression) {
+    return SeqSyntax.CURLY_BRACKET_LEFT
+        + SeqSyntax.SPACE
+        + pExpression.createString()
+        + SeqSyntax.SPACE
+        + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 
   public static String generateCase(String pCaseNumber, String pCodeBlock) {
@@ -203,7 +218,7 @@ public class SeqUtil {
 
   // Helpers =====================================================================================
 
-  private static boolean isConstCpaCheckerTMP(CVariableDeclaration pVarDec) {
+  private static boolean isConstCPAcheckerTMP(CVariableDeclaration pVarDec) {
     return pVarDec.getType().isConst()
         && !pVarDec.isGlobal()
         && pVarDec.getName().contains(SeqToken.CPACHECKER_TMP);
@@ -230,7 +245,7 @@ public class SeqUtil {
       } else {
         // code of const int CPAchecker_TMP vars is included in the cases
         // TODO make sure that the two successors code is within the same case
-        return !isConstCpaCheckerTMP(varDec);
+        return !isConstCPAcheckerTMP(varDec);
       }
     }
     return PthreadFuncType.isCallToAnyPthreadFunc(pEdge);
