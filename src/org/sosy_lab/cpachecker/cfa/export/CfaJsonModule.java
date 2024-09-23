@@ -142,39 +142,196 @@ public class CfaJsonModule extends SimpleModule {
     super.setupModule(pContext);
 
     /* Register all mixins. */
-    pContext.setMixInAnnotations(CFAEdge.class, CFAEdgeMixin.class);
-    pContext.setMixInAnnotations(CfaMetadata.class, CfaMetadataMixin.class);
-    pContext.setMixInAnnotations(CFANode.class, CFANodeMixin.class);
-    pContext.setMixInAnnotations(CFunctionDeclaration.class, CFunctionDeclarationMixin.class);
-    pContext.setMixInAnnotations(FileLocation.class, FileLocationMixin.class);
-    pContext.setMixInAnnotations(FunctionEntryNode.class, FunctionEntryNodeMixin.class);
-    pContext.setMixInAnnotations(FunctionExitNode.class, FunctionExitNodeMixin.class);
-    pContext.setMixInAnnotations(Partition.class, PartitionMixin.class);
-    pContext.setMixInAnnotations(CFunctionType.class, CFunctionTypeMixin.class);
-    pContext.setMixInAnnotations(Type.class, TypeMixin.class);
-    pContext.setMixInAnnotations(CFunctionTypeWithNames.class, CFunctionTypeWithNamesMixin.class);
-    pContext.setMixInAnnotations(CSimpleType.class, CSimpleTypeMixin.class);
     pContext.setMixInAnnotations(AAstNode.class, AAstNodeMixin.class);
-    pContext.setMixInAnnotations(CVariableDeclaration.class, CVariableDeclarationMixin.class);
-    pContext.setMixInAnnotations(CInitializerExpression.class, CInitializerExpressionMixin.class);
-    pContext.setMixInAnnotations(
-        CIntegerLiteralExpression.class, CIntegerLiteralExpressionMixin.class);
-    pContext.setMixInAnnotations(CFunctionEntryNode.class, CFunctionEntryNodeMixin.class);
-    pContext.setMixInAnnotations(CIdExpression.class, CIdExpressionMixin.class);
-    pContext.setMixInAnnotations(CFALabelNode.class, CFALabelNodeMixin.class);
     pContext.setMixInAnnotations(BlankEdge.class, BlankEdgeMixin.class);
-    pContext.setMixInAnnotations(CDeclarationEdge.class, CDeclarationEdgeMixin.class);
     pContext.setMixInAnnotations(CAssumeEdge.class, CAssumeEdgeMixin.class);
     pContext.setMixInAnnotations(CBinaryExpression.class, CBinaryExpressionMixin.class);
-    pContext.setMixInAnnotations(CStatementEdge.class, CStatementEdgeMixin.class);
+    pContext.setMixInAnnotations(CDeclarationEdge.class, CDeclarationEdgeMixin.class);
     pContext.setMixInAnnotations(
         CExpressionAssignmentStatement.class, CExpressionAssignmentStatementMixin.class);
     pContext.setMixInAnnotations(CExpressionStatement.class, CExpressionStatementMixin.class);
-    pContext.setMixInAnnotations(CReturnStatementEdge.class, CReturnStatementEdgeMixin.class);
+    pContext.setMixInAnnotations(CFAEdge.class, CFAEdgeMixin.class);
+    pContext.setMixInAnnotations(CFALabelNode.class, CFALabelNodeMixin.class);
+    pContext.setMixInAnnotations(CfaMetadata.class, CfaMetadataMixin.class);
+    pContext.setMixInAnnotations(CFANode.class, CFANodeMixin.class);
+    pContext.setMixInAnnotations(CFunctionDeclaration.class, CFunctionDeclarationMixin.class);
+    pContext.setMixInAnnotations(CFunctionEntryNode.class, CFunctionEntryNodeMixin.class);
+    pContext.setMixInAnnotations(CFunctionType.class, CFunctionTypeMixin.class);
+    pContext.setMixInAnnotations(CFunctionTypeWithNames.class, CFunctionTypeWithNamesMixin.class);
+    pContext.setMixInAnnotations(CIdExpression.class, CIdExpressionMixin.class);
+    pContext.setMixInAnnotations(CInitializerExpression.class, CInitializerExpressionMixin.class);
+    pContext.setMixInAnnotations(
+        CIntegerLiteralExpression.class, CIntegerLiteralExpressionMixin.class);
     pContext.setMixInAnnotations(CReturnStatement.class, CReturnStatementMixin.class);
-    pContext.setMixInAnnotations(LoopStructure.class, LoopStructureMixin.class);
-    pContext.setMixInAnnotations(VariableClassification.class, VariableClassificationMixin.class);
+    pContext.setMixInAnnotations(CReturnStatementEdge.class, CReturnStatementEdgeMixin.class);
+    pContext.setMixInAnnotations(CSimpleType.class, CSimpleTypeMixin.class);
+    pContext.setMixInAnnotations(CStatementEdge.class, CStatementEdgeMixin.class);
+    pContext.setMixInAnnotations(CVariableDeclaration.class, CVariableDeclarationMixin.class);
+    pContext.setMixInAnnotations(FileLocation.class, FileLocationMixin.class);
+    pContext.setMixInAnnotations(FunctionEntryNode.class, FunctionEntryNodeMixin.class);
+    pContext.setMixInAnnotations(FunctionExitNode.class, FunctionExitNodeMixin.class);
     pContext.setMixInAnnotations(Loop.class, LoopMixin.class);
+    pContext.setMixInAnnotations(LoopStructure.class, LoopStructureMixin.class);
+    pContext.setMixInAnnotations(Partition.class, PartitionMixin.class);
+    pContext.setMixInAnnotations(Type.class, TypeMixin.class);
+    pContext.setMixInAnnotations(VariableClassification.class, VariableClassificationMixin.class);
+  }
+
+  /**
+   * The PartitionHandler class is responsible for constructing instances of the {@link Partition}
+   * class.
+   *
+   * <p>It provides methods for adding variables, values, edges, and mappings between variables and
+   * partitions.
+   *
+   * <p>The getReference() method returns the Partition object.
+   */
+  private static final class PartitionHandler {
+    private Partition partition;
+
+    private NavigableSet<String> vars;
+    private NavigableSet<BigInteger> values;
+    private Multimap<CFAEdge, Integer> edges;
+    private final Map<String, Partition> varToPartition = new HashMap<>();
+    private final Table<CFAEdge, Integer, Partition> edgeToPartition = HashBasedTable.create();
+
+    /**
+     * Constructs a new PartitionHandler with the given index.
+     *
+     * @param pIndex The index of the partition.
+     * @throws IOException If an error occurs during construction.
+     */
+    public PartitionHandler(int pIndex) throws IOException {
+      try {
+
+        /* Create a new instance of Partition via reflection. */
+        Constructor<?> partitionConstructor =
+            Partition.class.getDeclaredConstructor(Map.class, Table.class);
+
+        ClassUtil.checkAndFixAccess(partitionConstructor, true);
+
+        this.partition =
+            (Partition) partitionConstructor.newInstance(this.varToPartition, this.edgeToPartition);
+
+        /* Set the index field of the partition. */
+        writeIndexField(pIndex);
+
+        /* Set handler fields to partition fields. */
+        this.vars = readVars();
+        this.values = readValues();
+        this.edges = readEdges();
+
+      } catch (Exception e) {
+        throw new IOException("Error while constructing PartitionHandler: " + e.getMessage(), e);
+      }
+    }
+
+    public PartitionHandler addVar(String pVar) {
+      vars.add(pVar);
+      return this;
+    }
+
+    public PartitionHandler addValue(BigInteger pValue) {
+      values.add(pValue);
+      return this;
+    }
+
+    public PartitionHandler addEdge(CFAEdge pEdge, Integer pIndex) {
+      edges.put(pEdge, pIndex);
+      return this;
+    }
+
+    public PartitionHandler addVarToPartition(String pVar, Partition pPartition) {
+      varToPartition.put(pVar, pPartition);
+      return this;
+    }
+
+    public PartitionHandler addEdgeToPartition(
+        CFAEdge pEdge, Integer pIndex, Partition pPartition) {
+      edgeToPartition.put(pEdge, pIndex, pPartition);
+      return this;
+    }
+
+    public Partition getReference() {
+      return this.partition;
+    }
+
+    /**
+     * Writes the index field of the partition.
+     *
+     * @param pIndex The new value for the index field.
+     * @throws NoSuchFieldException if the index field does not exist in the Partition class.
+     */
+    private void writeIndexField(int pIndex) throws NoSuchFieldException {
+      try {
+        Field field = Partition.class.getDeclaredField("index");
+
+        ClassUtil.checkAndFixAccess(field, true);
+
+        field.set(this.partition, pIndex);
+
+      } catch (IllegalAccessException e) {
+        throw new NoSuchFieldException(
+            "Error while attempting to set field index in Partition: " + e.getMessage());
+      }
+    }
+
+    /* Retrieves the vars field from the partition. */
+    @SuppressWarnings("unchecked")
+    public NavigableSet<String> readVars() {
+      return (NavigableSet<String>) getField("vars", this.partition);
+    }
+
+    /* Retrieves the values field from the partition. */
+    @SuppressWarnings("unchecked")
+    public NavigableSet<BigInteger> readValues() {
+      return (NavigableSet<BigInteger>) getField("values", this.partition);
+    }
+
+    /* Retrieves the edges field from the partition. */
+    @SuppressWarnings("unchecked")
+    public Multimap<CFAEdge, Integer> readEdges() {
+      return (Multimap<CFAEdge, Integer>) getField("edges", this.partition);
+    }
+
+    /* Retrieves the varToPartition field from a Partition object. */
+    @SuppressWarnings("unchecked")
+    public static Map<String, Partition> readVarToPartition(Partition partition) {
+      return (Map<String, Partition>) getField("varToPartition", partition);
+    }
+
+    /* Retrieves the edgeToPartition field from a Partition object. */
+    @SuppressWarnings("unchecked")
+    public static Table<CFAEdge, Integer, Partition> readEdgeToPartition(Partition partition) {
+      return (Table<CFAEdge, Integer, Partition>) getField("edgeToPartition", partition);
+    }
+
+    /**
+     * Retrieves the value of a specified field from a {@link Partition} object.
+     *
+     * @param pName The name of the field to retrieve.
+     * @param pPartition The Partition object from which to retrieve the field.
+     * @return The value of the specified field.
+     * @throws IllegalArgumentException If the specified field does not exist or cannot be accessed.
+     */
+    private static Object getField(String pName, Partition pPartition)
+        throws IllegalArgumentException {
+      try {
+        Field field = Partition.class.getDeclaredField(pName);
+
+        ClassUtil.checkAndFixAccess(field, true);
+
+        return field.get(pPartition);
+
+      } catch (NoSuchFieldException | IllegalAccessException e) {
+        throw new IllegalArgumentException(
+            "Error while attempting to retrieve field "
+                + pName
+                + " from Partition: "
+                + e.getMessage(),
+            e);
+      }
+    }
   }
 
   /**
@@ -233,7 +390,7 @@ public class CfaJsonModule extends SimpleModule {
         try {
           /* VarToPartition */
           /* Retrieve field via reflection. */
-          Map<String, Partition> varToPartition = PartitionHandler.getVarToPartition(partition);
+          Map<String, Partition> varToPartition = PartitionHandler.readVarToPartition(partition);
 
           /* Write field. */
           pGenerator.writeObjectFieldStart("varToPartition");
@@ -245,7 +402,7 @@ public class CfaJsonModule extends SimpleModule {
           /* EdgeToPartition */
           /* Retrieve field via reflection. */
           Table<CFAEdge, Integer, Partition> edgeToPartition =
-              PartitionHandler.getEdgeToPartition(partition);
+              PartitionHandler.readEdgeToPartition(partition);
 
           /* Write field. */
           pGenerator.writeArrayFieldStart("edgeToPartition");
@@ -375,161 +532,6 @@ public class CfaJsonModule extends SimpleModule {
   }
 
   /**
-   * The PartitionHandler class is responsible for constructing instances of the {@link Partition}
-   * class.
-   *
-   * <p>It provides methods for adding variables, values, edges, and mappings between variables and
-   * partitions.
-   *
-   * <p>The getReference() method returns the Partition object.
-   */
-  private static final class PartitionHandler {
-    private Partition partition;
-
-    private NavigableSet<String> vars;
-    private NavigableSet<BigInteger> values;
-    private Multimap<CFAEdge, Integer> edges;
-    private final Map<String, Partition> varToPartition = new HashMap<>();
-    private final Table<CFAEdge, Integer, Partition> edgeToPartition = HashBasedTable.create();
-
-    /**
-     * Constructs a new PartitionHandler with the given index.
-     *
-     * @param pIndex The index of the partition.
-     * @throws IOException If an error occurs during construction.
-     */
-    public PartitionHandler(int pIndex) throws IOException {
-      try {
-
-        /* Create a new instance of Partition via reflection. */
-        Constructor<?> partitionConstructor =
-            Partition.class.getDeclaredConstructor(Map.class, Table.class);
-
-        ClassUtil.checkAndFixAccess(partitionConstructor, true);
-
-        this.partition =
-            (Partition) partitionConstructor.newInstance(this.varToPartition, this.edgeToPartition);
-
-        /* Set handler fields to partition fields. */
-        setIndexField(pIndex);
-        this.vars = getVars();
-        this.values = getValues();
-        this.edges = getEdges();
-
-      } catch (Exception e) {
-        throw new IOException("Error while constructing PartitionHandler: " + e.getMessage(), e);
-      }
-    }
-
-    public PartitionHandler addVar(String pVar) {
-      vars.add(pVar);
-      return this;
-    }
-
-    public PartitionHandler addValue(BigInteger pValue) {
-      values.add(pValue);
-      return this;
-    }
-
-    public PartitionHandler addEdge(CFAEdge pEdge, Integer pIndex) {
-      edges.put(pEdge, pIndex);
-      return this;
-    }
-
-    public PartitionHandler addVarToPartition(String pVar, Partition pPartition) {
-      varToPartition.put(pVar, pPartition);
-      return this;
-    }
-
-    public PartitionHandler addEdgeToPartition(
-        CFAEdge pEdge, Integer pIndex, Partition pPartition) {
-      edgeToPartition.put(pEdge, pIndex, pPartition);
-      return this;
-    }
-
-    public Partition getReference() {
-      return this.partition;
-    }
-
-    /**
-     * Sets the index field of the partition.
-     *
-     * @param pIndex The new value for the index field.
-     * @throws NoSuchFieldException If the index field does not exist in the Partition class.
-     */
-    private void setIndexField(int pIndex) throws NoSuchFieldException {
-      try {
-        Field field = Partition.class.getDeclaredField("index");
-
-        ClassUtil.checkAndFixAccess(field, true);
-
-        field.set(this.partition, pIndex);
-
-      } catch (IllegalAccessException e) {
-        throw new NoSuchFieldException(
-            "Error while attempting to set field index in Partition: " + e.getMessage());
-      }
-    }
-
-    /* Retrieves the vars field from the partition. */
-    @SuppressWarnings("unchecked")
-    public NavigableSet<String> getVars() {
-      return (NavigableSet<String>) getField("vars", this.partition);
-    }
-
-    /* Retrieves the values field from the partition. */
-    @SuppressWarnings("unchecked")
-    public NavigableSet<BigInteger> getValues() {
-      return (NavigableSet<BigInteger>) getField("values", this.partition);
-    }
-
-    /* Retrieves the edges field from the partition. */
-    @SuppressWarnings("unchecked")
-    public Multimap<CFAEdge, Integer> getEdges() {
-      return (Multimap<CFAEdge, Integer>) getField("edges", this.partition);
-    }
-
-    /* Retrieves the varToPartition field from a Partition object. */
-    @SuppressWarnings("unchecked")
-    public static Map<String, Partition> getVarToPartition(Partition partition) {
-      return (Map<String, Partition>) getField("varToPartition", partition);
-    }
-
-    /* Retrieves the edgeToPartition field from a Partition object. */
-    @SuppressWarnings("unchecked")
-    public static Table<CFAEdge, Integer, Partition> getEdgeToPartition(Partition partition) {
-      return (Table<CFAEdge, Integer, Partition>) getField("edgeToPartition", partition);
-    }
-
-    /**
-     * Retrieves the value of a specified field from a {@link Partition} object.
-     *
-     * @param pName The name of the field to retrieve.
-     * @param pPartition The Partition object from which to retrieve the field.
-     * @return The value of the specified field.
-     * @throws IllegalArgumentException If the specified field does not exist or cannot be accessed.
-     */
-    private static Object getField(String pName, Partition pPartition)
-        throws IllegalArgumentException {
-      try {
-        Field field = Partition.class.getDeclaredField(pName);
-
-        ClassUtil.checkAndFixAccess(field, true);
-
-        return field.get(pPartition);
-
-      } catch (NoSuchFieldException | IllegalAccessException e) {
-        throw new IllegalArgumentException(
-            "Error while attempting to retrieve field "
-                + pName
-                + " from Partition: "
-                + e.getMessage(),
-            e);
-      }
-    }
-  }
-
-  /**
    * Represents an entry in a {@link Table}.
    *
    * <p>This record encapsulates information about a CFAEdge, an index, and a Partition.
@@ -539,9 +541,10 @@ public class CfaJsonModule extends SimpleModule {
   /**
    * A converter class that converts a {@link Table} object to a list of {@link TableEntry} objects.
    *
-   * <p>The Table object represents a mapping between CFAEdges, Integers, and Partitions.
+   * <p>The Table object represents a mapping between CFAEdges, Integers, and Partitions
+   * (EdgeToPartitions).
    */
-  private static final class EtpTableToListConverter
+  private static final class EdgeToPartitionsTableToListConverter
       extends StdConverter<Table<CFAEdge, Integer, Partition>, List<TableEntry>> {
     @Override
     public List<TableEntry> convert(Table<CFAEdge, Integer, Partition> pTable) {
@@ -737,48 +740,6 @@ public class CfaJsonModule extends SimpleModule {
   /**
    * This class is a custom {@link ObjectIdResolver}.
    *
-   * <p>It is used for {@link Partition} objects.
-   */
-  private static class PartitionIdResolver extends SimpleObjectIdResolver {
-
-    /**
-     * Resolves an object based on the given {@link
-     * com.fasterxml.jackson.annotation.ObjectIdGenerator.IdKey}.
-     *
-     * <p>If the object is not already present in the internal map, it attempts to retrieve it using
-     * the {@link PartitionsDeserializer#getPartitionHandler(int)} method and then binds it to the
-     * map.
-     *
-     * @param pId The {@link com.fasterxml.jackson.annotation.ObjectIdGenerator.IdKey} to resolve.
-     * @return the resolved object, or null if it cannot be resolved.
-     */
-    @Override
-    public Object resolveId(ObjectIdGenerator.IdKey pId) {
-      if (this._items == null) {
-        this._items = new HashMap<>();
-      }
-
-      /* Check if the object is already present in the map. */
-      Object resolved = this._items.get(pId);
-
-      /* If not, try to retrieve it using the PartitionHandler. */
-      if (resolved == null) {
-        try {
-          resolved = PartitionsDeserializer.getPartitionHandler((Integer) pId.key).getReference();
-          this.bindItem(pId, resolved);
-
-        } catch (IOException e) {
-          return null;
-        }
-      }
-
-      return resolved;
-    }
-  }
-
-  /**
-   * This class is a custom {@link ObjectIdResolver}.
-   *
    * <p>It is used to retrieve {@link CFAEdge}s from their respective IDs.
    */
   private static class CfaEdgeIdResolver extends SimpleObjectIdResolver {
@@ -845,6 +806,48 @@ public class CfaJsonModule extends SimpleModule {
   }
 
   /**
+   * This class is a custom {@link ObjectIdResolver}.
+   *
+   * <p>It is used for {@link Partition} objects.
+   */
+  private static class PartitionIdResolver extends SimpleObjectIdResolver {
+
+    /**
+     * Resolves an object based on the given {@link
+     * com.fasterxml.jackson.annotation.ObjectIdGenerator.IdKey}.
+     *
+     * <p>If the object is not already present in the internal map, it attempts to retrieve it using
+     * the {@link PartitionsDeserializer#getPartitionHandler(int)} method and then binds it to the
+     * map.
+     *
+     * @param pId The {@link com.fasterxml.jackson.annotation.ObjectIdGenerator.IdKey} to resolve.
+     * @return the resolved object, or null if it cannot be resolved.
+     */
+    @Override
+    public Object resolveId(ObjectIdGenerator.IdKey pId) {
+      if (this._items == null) {
+        this._items = new HashMap<>();
+      }
+
+      /* Check if the object is already present in the map. */
+      Object resolved = this._items.get(pId);
+
+      /* If not, try to retrieve it using the PartitionHandler. */
+      if (resolved == null) {
+        try {
+          resolved = PartitionsDeserializer.getPartitionHandler((Integer) pId.key).getReference();
+          this.bindItem(pId, resolved);
+
+        } catch (IOException e) {
+          return null;
+        }
+      }
+
+      return resolved;
+    }
+  }
+
+  /**
    * A converter that removes the leading and trailing brackets from a given string.
    *
    * <p>If the input string starts with "[" and ends with "]", the brackets are removed. Otherwise,
@@ -887,179 +890,31 @@ public class CfaJsonModule extends SimpleModule {
   }
 
   /**
-   * This class is a mixin for {@link Loop}.
+   * This class is a mixin for {@link AAstNode}.
    *
-   * <p>It specifies the constructor to use during deserialization.
+   * <p>Type information is being serialized to account for subtype polymorphism.
    */
-  private static final class LoopMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    private LoopMixin(
-        @JsonProperty("loopHeads") Set<CFANode> pLoopHeads,
-        @JsonProperty("nodes") Set<CFANode> pNodes) {}
-  }
+  @JsonTypeInfo(
+      use = JsonTypeInfo.Id.CLASS,
+      include = JsonTypeInfo.As.PROPERTY,
+      property = "typeOfAAstNode")
+  private static final class AAstNodeMixin {}
 
   /**
-   * This class is a mixin for {@link VariableClassification}.
-   *
-   * <p>It sets the {@link PartitionsDeserializer} for all Set<Partition> fields.
-   *
-   * <p>It converts the edgeToPartitions field to a list of TableEntry objects during serialization
-   * and back to a Table object during deserialization.
+   * This class is a mixin for {@link BlankEdge}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
-  private static final class VariableClassificationMixin {
-
-    @SuppressWarnings("unused")
-    @JsonDeserialize(using = PartitionsDeserializer.class)
-    private Set<Partition> partitions;
-
-    @SuppressWarnings("unused")
-    @JsonDeserialize(using = PartitionsDeserializer.class)
-    private Set<Partition> intBoolPartitions;
-
-    @SuppressWarnings("unused")
-    @JsonDeserialize(using = PartitionsDeserializer.class)
-    private Set<Partition> intEqualPartitions;
-
-    @SuppressWarnings("unused")
-    @JsonDeserialize(using = PartitionsDeserializer.class)
-    private Set<Partition> intAddPartitions;
-
-    @SuppressWarnings("unused")
-    @JsonSerialize(converter = EtpTableToListConverter.class)
-    @JsonDeserialize(using = EdgeToPartitionsDeserializer.class)
-    private Table<CFAEdge, Integer, Partition> edgeToPartitions;
+  private static final class BlankEdgeMixin {
 
     @SuppressWarnings("unused")
     @JsonCreator
-    VariableClassificationMixin(
-        @JsonProperty("hasRelevantNonIntAddVars") boolean pHasRelevantNonIntAddVars,
-        @JsonProperty("intBoolVars") Set<String> pIntBoolVars,
-        @JsonProperty("intEqualVars") Set<String> pIntEqualVars,
-        @JsonProperty("intAddVars") Set<String> pIntAddVars,
-        @JsonProperty("intOverflowVars") Set<String> pIntOverflowVars,
-        @JsonProperty("relevantVariables") Set<String> pRelevantVariables,
-        @JsonProperty("addressedVariables") Set<String> pAddressedVariables,
-        @JsonProperty("relevantFields") Multimap<CCompositeType, String> pRelevantFields,
-        @JsonProperty("addressedFields") Multimap<CCompositeType, String> pAddressedFields,
-        @JsonProperty("partitions") Collection<Partition> pPartitions,
-        @JsonProperty("intBoolPartitions") Set<Partition> pIntBoolPartitions,
-        @JsonProperty("intEqualPartitions") Set<Partition> pIntEqualPartitions,
-        @JsonProperty("intAddPartitions") Set<Partition> pIntAddPartitions,
-        @JsonProperty("edgeToPartitions") Table<CFAEdge, Integer, Partition> pEdgeToPartitions,
-        @JsonProperty("assumedVariables") Multiset<String> pAssumedVariables,
-        @JsonProperty("assignedVariables") Multiset<String> pAssignedVariables) {}
-  }
-
-  /**
-   * This class is a mixin for {@link LoopStructure}.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  private static final class LoopStructureMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    private LoopStructureMixin(@JsonProperty("loops") ImmutableListMultimap<String, Loop> pLoops) {}
-  }
-
-  /**
-   * This class is a mixin for {@link CReturnStatement}.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  private static final class CReturnStatementMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public CReturnStatementMixin(
-        @JsonProperty("fileLocation") FileLocation pFileLocation,
-        @JsonProperty("expression") Optional<CExpression> pExpression,
-        @JsonProperty("assignment") Optional<CAssignment> pAssignment) {}
-  }
-
-  /**
-   * This class is a mixin for {@link CReturnStatementEdge}.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  private static final class CReturnStatementEdgeMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public CReturnStatementEdgeMixin(
+    public BlankEdgeMixin(
         @JsonProperty("rawStatement") String pRawStatement,
-        @JsonProperty("returnStatement") CReturnStatement pReturnStatement,
         @JsonProperty("fileLocation") FileLocation pFileLocation,
         @JsonProperty("predecessor") CFANode pPredecessor,
-        @JsonProperty("successor") FunctionExitNode pSuccessor) {}
-  }
-
-  /**
-   * This class is a mixin for {@link CExpressionStatement}.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  private static final class CExpressionStatementMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public CExpressionStatementMixin(
-        @JsonProperty("fileLocation") FileLocation pFileLocation,
-        @JsonProperty("expression") CExpression pExpression) {}
-  }
-
-  /**
-   * This class is a mixin for {@link CExpressionAssignmentStatement}.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  private static final class CExpressionAssignmentStatementMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public CExpressionAssignmentStatementMixin(
-        @JsonProperty("fileLocation") FileLocation pFileLocation,
-        @JsonProperty("leftHandSide") CLeftHandSide pLeftHandSide,
-        @JsonProperty("rightHandSide") CExpression pRightHandSide) {}
-  }
-
-  /**
-   * This class is a mixin for {@link CStatementEdge}.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  private static final class CStatementEdgeMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public CStatementEdgeMixin(
-        @JsonProperty("rawStatement") String pRawStatement,
-        @JsonProperty("statement") CStatement pStatement,
-        @JsonProperty("fileLocation") FileLocation pFileLocation,
-        @JsonProperty("predecessor") CFANode pPredecessor,
-        @JsonProperty("successor") CFANode pSuccessor) {}
-  }
-
-  /**
-   * This class is a mixin for {@link CBinaryExpression}.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  private static final class CBinaryExpressionMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public CBinaryExpressionMixin(
-        @JsonProperty("fileLocation") FileLocation pFileLocation,
-        @JsonProperty("type") CType pExpressionType,
-        @JsonProperty("calculationType") CType pCalculationType,
-        @JsonProperty("operand1") CExpression pOperand1,
-        @JsonProperty("operand2") CExpression pOperand2,
-        @JsonProperty("operator") BinaryOperator pOperator) {}
+        @JsonProperty("successor") CFANode pSuccessor,
+        @JsonProperty("description") String pDescription) {}
   }
 
   /**
@@ -1089,6 +944,24 @@ public class CfaJsonModule extends SimpleModule {
   }
 
   /**
+   * This class is a mixin for {@link CBinaryExpression}.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class CBinaryExpressionMixin {
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    public CBinaryExpressionMixin(
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("type") CType pExpressionType,
+        @JsonProperty("calculationType") CType pCalculationType,
+        @JsonProperty("operand1") CExpression pOperand1,
+        @JsonProperty("operand2") CExpression pOperand2,
+        @JsonProperty("operator") BinaryOperator pOperator) {}
+  }
+
+  /**
    * This class is a mixin for {@link CDeclarationEdge}.
    *
    * <p>It specifies the constructor to use during deserialization.
@@ -1106,233 +979,32 @@ public class CfaJsonModule extends SimpleModule {
   }
 
   /**
-   * This class is a mixin for {@link BlankEdge}.
+   * This class is a mixin for {@link CExpressionAssignmentStatement}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
-  private static final class BlankEdgeMixin {
+  private static final class CExpressionAssignmentStatementMixin {
 
     @SuppressWarnings("unused")
     @JsonCreator
-    public BlankEdgeMixin(
-        @JsonProperty("rawStatement") String pRawStatement,
+    public CExpressionAssignmentStatementMixin(
         @JsonProperty("fileLocation") FileLocation pFileLocation,
-        @JsonProperty("predecessor") CFANode pPredecessor,
-        @JsonProperty("successor") CFANode pSuccessor,
-        @JsonProperty("description") String pDescription) {}
+        @JsonProperty("leftHandSide") CLeftHandSide pLeftHandSide,
+        @JsonProperty("rightHandSide") CExpression pRightHandSide) {}
   }
 
   /**
-   * This class is a mixin for {@link CFALabelNode}.
+   * This class is a mixin for {@link CExpressionStatement}.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
-  private static final class CFALabelNodeMixin {
+  private static final class CExpressionStatementMixin {
 
     @SuppressWarnings("unused")
     @JsonCreator
-    public CFALabelNodeMixin(
-        @JsonProperty("function") AFunctionDeclaration pFunction,
-        @JsonProperty("label") String pLabel) {}
-  }
-
-  /**
-   * This class is a mixin for {@link CIdExpression}.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  private static final class CIdExpressionMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public CIdExpressionMixin(
-        @JsonProperty("fileLocation") FileLocation pFileLocation,
-        @JsonProperty("type") CType pType,
-        @JsonProperty("name") String pName,
-        @JsonProperty("declaration") CSimpleDeclaration pDeclaration) {}
-  }
-
-  /**
-   * This class is a mixin for {@link CFunctionEntryNode}.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  private static final class CFunctionEntryNodeMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public CFunctionEntryNodeMixin(
-        @JsonProperty("location") FileLocation pFileLocation,
-        @JsonProperty("functionDefinition") CFunctionDeclaration pFunctionDefinition,
-        @JsonProperty("exitNode") FunctionExitNode pExitNode,
-        @JsonProperty("returnVariable") Optional<CVariableDeclaration> pReturnVariable) {}
-  }
-
-  /**
-   * This class is a mixin for {@link CIntegerLiteralExpression}.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  private static final class CIntegerLiteralExpressionMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public CIntegerLiteralExpressionMixin(
-        @JsonProperty("fileLocation") FileLocation pFileLocation,
-        @JsonProperty("type") CType pType,
-        @JsonProperty("value") BigInteger pValue) {}
-  }
-
-  /**
-   * This class is a mixin for {@link CInitializerExpression}.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  private static final class CInitializerExpressionMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public CInitializerExpressionMixin(
+    public CExpressionStatementMixin(
         @JsonProperty("fileLocation") FileLocation pFileLocation,
         @JsonProperty("expression") CExpression pExpression) {}
-  }
-
-  /**
-   * This class is a mixin for {@link CVariableDeclaration}.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  private static final class CVariableDeclarationMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public CVariableDeclarationMixin(
-        @JsonProperty("fileLocation") FileLocation pFileLocation,
-        @JsonProperty("isGlobal") boolean pIsGlobal,
-        @JsonProperty("cStorageClass") CStorageClass pCStorageClass,
-        @JsonProperty("type") CType pType,
-        @JsonProperty("name") String pName,
-        @JsonProperty("origName") String pOrigName,
-        @JsonProperty("qualifiedName") String pQualifiedName,
-        @JsonProperty("initializer") CInitializer pInitializer) {}
-  }
-
-  /**
-   * This class is a mixin for {@link AAstNode}.
-   *
-   * <p>Type information is being serialized to account for subtype polymorphism.
-   */
-  @JsonTypeInfo(
-      use = JsonTypeInfo.Id.CLASS,
-      include = JsonTypeInfo.As.PROPERTY,
-      property = "typeOfAAstNode")
-  private static final class AAstNodeMixin {}
-
-  /**
-   * This class is a mixin for {@link CSimpleType}.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  private static final class CSimpleTypeMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public CSimpleTypeMixin(
-        @JsonProperty("isConst") boolean pConst,
-        @JsonProperty("isVolatile") boolean pVolatile,
-        @JsonProperty("type") CBasicType pType,
-        @JsonProperty("isLong") boolean pIsLong,
-        @JsonProperty("isShort") boolean pIsShort,
-        @JsonProperty("isSigned") boolean pIsSigned,
-        @JsonProperty("isUnsigned") boolean pIsUnsigned,
-        @JsonProperty("isComplex") boolean pIsComplex,
-        @JsonProperty("isImaginary") boolean pIsImaginary,
-        @JsonProperty("isLongLong") boolean pIsLongLong) {}
-  }
-
-  /**
-   * This class is a mixin for {@link CFunctionTypeWithNames}.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  private static final class CFunctionTypeWithNamesMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public CFunctionTypeWithNamesMixin(
-        @JsonProperty("returnType") CType pReturnType,
-        @JsonProperty("parameters") List<CParameterDeclaration> pParameters,
-        @JsonProperty("takesVarArgs") boolean pTakesVarArgs) {}
-  }
-
-  /**
-   * This class is a mixin for {@link Type}.
-   *
-   * <p>Type information is being serialized to account for subtype polymorphism.
-   */
-  @JsonTypeInfo(
-      use = JsonTypeInfo.Id.CLASS,
-      include = JsonTypeInfo.As.PROPERTY,
-      property = "typeOfType")
-  private static final class TypeMixin {}
-
-  /**
-   * This class is a mixin for {@link CFunctionType}.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  private static final class CFunctionTypeMixin {
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public CFunctionTypeMixin(
-        @JsonProperty("returnType") CType pReturnType,
-        @JsonProperty("parameters") List<CType> pParameters,
-        @JsonProperty("takesVarArgs") boolean pTakesVarArgs) {}
-  }
-
-  /**
-   * This class is a mixin for {@link FileLocation}.
-   *
-   * <p>It sets the order of the fields to ensure deterministic serialization.
-   *
-   * <p>It forces the serialization of the {@link Path} fileName field.
-   *
-   * <p>It specifies the constructor to use during deserialization.
-   */
-  @JsonPropertyOrder({
-    "fileName",
-    "niceFileName",
-    "offset",
-    "length",
-    "startingLine",
-    "endingLine",
-    "startColumnInLine",
-    "endColumnInLine",
-    "startingLineInOrigin",
-    "endingLineInOrigin",
-    "offsetRelatedToOrigin"
-  })
-  private static final class FileLocationMixin {
-
-    @SuppressWarnings("unused")
-    @JsonProperty
-    private Path fileName;
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public FileLocationMixin(
-        @JsonProperty("fileName") Path pFileName,
-        @JsonProperty("niceFileName") String pNiceFileName,
-        @JsonProperty("offset") int pOffset,
-        @JsonProperty("length") int pLength,
-        @JsonProperty("startingLine") int pStartingLine,
-        @JsonProperty("endingLine") int pEndingLine,
-        @JsonProperty("startColumnInLine") int pStartColumnInLine,
-        @JsonProperty("endColumnInLine") int pEndColumnInLine,
-        @JsonProperty("startingLineInOrigin") int pStartingLineInOrigin,
-        @JsonProperty("endingLineInOrigin") int pEndingLineInOrigin,
-        @JsonProperty("offsetRelatedToOrigin") boolean pOffsetRelatedToOrigin) {}
   }
 
   /**
@@ -1351,6 +1023,20 @@ public class CfaJsonModule extends SimpleModule {
       include = JsonTypeInfo.As.PROPERTY,
       property = "typeOfCFAEdge")
   private static final class CFAEdgeMixin {}
+
+  /**
+   * This class is a mixin for {@link CFALabelNode}.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class CFALabelNodeMixin {
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    public CFALabelNodeMixin(
+        @JsonProperty("function") AFunctionDeclaration pFunction,
+        @JsonProperty("label") String pLabel) {}
+  }
 
   /**
    * This class is a mixin for {@link CfaMetadata}.
@@ -1423,6 +1109,232 @@ public class CfaJsonModule extends SimpleModule {
   }
 
   /**
+   * This class is a mixin for {@link CFunctionEntryNode}.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class CFunctionEntryNodeMixin {
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    public CFunctionEntryNodeMixin(
+        @JsonProperty("location") FileLocation pFileLocation,
+        @JsonProperty("functionDefinition") CFunctionDeclaration pFunctionDefinition,
+        @JsonProperty("exitNode") FunctionExitNode pExitNode,
+        @JsonProperty("returnVariable") Optional<CVariableDeclaration> pReturnVariable) {}
+  }
+
+  /**
+   * This class is a mixin for {@link CFunctionType}.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class CFunctionTypeMixin {
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    public CFunctionTypeMixin(
+        @JsonProperty("returnType") CType pReturnType,
+        @JsonProperty("parameters") List<CType> pParameters,
+        @JsonProperty("takesVarArgs") boolean pTakesVarArgs) {}
+  }
+
+  /**
+   * This class is a mixin for {@link CFunctionTypeWithNames}.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class CFunctionTypeWithNamesMixin {
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    public CFunctionTypeWithNamesMixin(
+        @JsonProperty("returnType") CType pReturnType,
+        @JsonProperty("parameters") List<CParameterDeclaration> pParameters,
+        @JsonProperty("takesVarArgs") boolean pTakesVarArgs) {}
+  }
+
+  /**
+   * This class is a mixin for {@link CIdExpression}.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class CIdExpressionMixin {
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    public CIdExpressionMixin(
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("type") CType pType,
+        @JsonProperty("name") String pName,
+        @JsonProperty("declaration") CSimpleDeclaration pDeclaration) {}
+  }
+
+  /**
+   * This class is a mixin for {@link CInitializerExpression}.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class CInitializerExpressionMixin {
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    public CInitializerExpressionMixin(
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("expression") CExpression pExpression) {}
+  }
+
+  /**
+   * This class is a mixin for {@link CIntegerLiteralExpression}.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class CIntegerLiteralExpressionMixin {
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    public CIntegerLiteralExpressionMixin(
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("type") CType pType,
+        @JsonProperty("value") BigInteger pValue) {}
+  }
+
+  /**
+   * This class is a mixin for {@link CReturnStatement}.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class CReturnStatementMixin {
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    public CReturnStatementMixin(
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("expression") Optional<CExpression> pExpression,
+        @JsonProperty("assignment") Optional<CAssignment> pAssignment) {}
+  }
+
+  /**
+   * This class is a mixin for {@link CReturnStatementEdge}.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class CReturnStatementEdgeMixin {
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    public CReturnStatementEdgeMixin(
+        @JsonProperty("rawStatement") String pRawStatement,
+        @JsonProperty("returnStatement") CReturnStatement pReturnStatement,
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("predecessor") CFANode pPredecessor,
+        @JsonProperty("successor") FunctionExitNode pSuccessor) {}
+  }
+
+  /**
+   * This class is a mixin for {@link CSimpleType}.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class CSimpleTypeMixin {
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    public CSimpleTypeMixin(
+        @JsonProperty("isConst") boolean pConst,
+        @JsonProperty("isVolatile") boolean pVolatile,
+        @JsonProperty("type") CBasicType pType,
+        @JsonProperty("isLong") boolean pIsLong,
+        @JsonProperty("isShort") boolean pIsShort,
+        @JsonProperty("isSigned") boolean pIsSigned,
+        @JsonProperty("isUnsigned") boolean pIsUnsigned,
+        @JsonProperty("isComplex") boolean pIsComplex,
+        @JsonProperty("isImaginary") boolean pIsImaginary,
+        @JsonProperty("isLongLong") boolean pIsLongLong) {}
+  }
+
+  /**
+   * This class is a mixin for {@link CStatementEdge}.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class CStatementEdgeMixin {
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    public CStatementEdgeMixin(
+        @JsonProperty("rawStatement") String pRawStatement,
+        @JsonProperty("statement") CStatement pStatement,
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("predecessor") CFANode pPredecessor,
+        @JsonProperty("successor") CFANode pSuccessor) {}
+  }
+
+  /**
+   * This class is a mixin for {@link CVariableDeclaration}.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class CVariableDeclarationMixin {
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    public CVariableDeclarationMixin(
+        @JsonProperty("fileLocation") FileLocation pFileLocation,
+        @JsonProperty("isGlobal") boolean pIsGlobal,
+        @JsonProperty("cStorageClass") CStorageClass pCStorageClass,
+        @JsonProperty("type") CType pType,
+        @JsonProperty("name") String pName,
+        @JsonProperty("origName") String pOrigName,
+        @JsonProperty("qualifiedName") String pQualifiedName,
+        @JsonProperty("initializer") CInitializer pInitializer) {}
+  }
+
+  /**
+   * This class is a mixin for {@link FileLocation}.
+   *
+   * <p>It sets the order of the fields to ensure deterministic serialization.
+   *
+   * <p>It forces the serialization of the {@link Path} fileName field.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  @JsonPropertyOrder({
+    "fileName",
+    "niceFileName",
+    "offset",
+    "length",
+    "startingLine",
+    "endingLine",
+    "startColumnInLine",
+    "endColumnInLine",
+    "startingLineInOrigin",
+    "endingLineInOrigin",
+    "offsetRelatedToOrigin"
+  })
+  private static final class FileLocationMixin {
+
+    @SuppressWarnings("unused")
+    @JsonProperty
+    private Path fileName;
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    public FileLocationMixin(
+        @JsonProperty("fileName") Path pFileName,
+        @JsonProperty("niceFileName") String pNiceFileName,
+        @JsonProperty("offset") int pOffset,
+        @JsonProperty("length") int pLength,
+        @JsonProperty("startingLine") int pStartingLine,
+        @JsonProperty("endingLine") int pEndingLine,
+        @JsonProperty("startColumnInLine") int pStartColumnInLine,
+        @JsonProperty("endColumnInLine") int pEndColumnInLine,
+        @JsonProperty("startingLineInOrigin") int pStartingLineInOrigin,
+        @JsonProperty("endingLineInOrigin") int pEndingLineInOrigin,
+        @JsonProperty("offsetRelatedToOrigin") boolean pOffsetRelatedToOrigin) {}
+  }
+
+  /**
    * This class is a mixin for {@link FunctionEntryNode}.
    *
    * <p>It serializes its {@link FunctionExitNode} field as number.
@@ -1453,6 +1365,32 @@ public class CfaJsonModule extends SimpleModule {
   }
 
   /**
+   * This class is a mixin for {@link Loop}.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class LoopMixin {
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    private LoopMixin(
+        @JsonProperty("loopHeads") Set<CFANode> pLoopHeads,
+        @JsonProperty("nodes") Set<CFANode> pNodes) {}
+  }
+
+  /**
+   * This class is a mixin for {@link LoopStructure}.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class LoopStructureMixin {
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    private LoopStructureMixin(@JsonProperty("loops") ImmutableListMultimap<String, Loop> pLoops) {}
+  }
+
+  /**
    * This class is a mixin for {@link Partition}.
    *
    * <p>It prevents cyclic references by serializing the {@link Partition} as index.
@@ -1467,4 +1405,69 @@ public class CfaJsonModule extends SimpleModule {
       property = "index")
   @JsonIdentityReference(alwaysAsId = true)
   private static final class PartitionMixin {}
+
+  /**
+   * This class is a mixin for {@link Type}.
+   *
+   * <p>Type information is being serialized to account for subtype polymorphism.
+   */
+  @JsonTypeInfo(
+      use = JsonTypeInfo.Id.CLASS,
+      include = JsonTypeInfo.As.PROPERTY,
+      property = "typeOfType")
+  private static final class TypeMixin {}
+
+  /**
+   * This class is a mixin for {@link VariableClassification}.
+   *
+   * <p>It sets the {@link PartitionsDeserializer} for all Set<Partition> fields.
+   *
+   * <p>It converts the edgeToPartitions field to a list of TableEntry objects during serialization
+   * and back to a Table object during deserialization.
+   *
+   * <p>It specifies the constructor to use during deserialization.
+   */
+  private static final class VariableClassificationMixin {
+
+    @SuppressWarnings("unused")
+    @JsonDeserialize(using = PartitionsDeserializer.class)
+    private Set<Partition> partitions;
+
+    @SuppressWarnings("unused")
+    @JsonDeserialize(using = PartitionsDeserializer.class)
+    private Set<Partition> intBoolPartitions;
+
+    @SuppressWarnings("unused")
+    @JsonDeserialize(using = PartitionsDeserializer.class)
+    private Set<Partition> intEqualPartitions;
+
+    @SuppressWarnings("unused")
+    @JsonDeserialize(using = PartitionsDeserializer.class)
+    private Set<Partition> intAddPartitions;
+
+    @SuppressWarnings("unused")
+    @JsonSerialize(converter = EdgeToPartitionsTableToListConverter.class)
+    @JsonDeserialize(using = EdgeToPartitionsDeserializer.class)
+    private Table<CFAEdge, Integer, Partition> edgeToPartitions;
+
+    @SuppressWarnings("unused")
+    @JsonCreator
+    VariableClassificationMixin(
+        @JsonProperty("hasRelevantNonIntAddVars") boolean pHasRelevantNonIntAddVars,
+        @JsonProperty("intBoolVars") Set<String> pIntBoolVars,
+        @JsonProperty("intEqualVars") Set<String> pIntEqualVars,
+        @JsonProperty("intAddVars") Set<String> pIntAddVars,
+        @JsonProperty("intOverflowVars") Set<String> pIntOverflowVars,
+        @JsonProperty("relevantVariables") Set<String> pRelevantVariables,
+        @JsonProperty("addressedVariables") Set<String> pAddressedVariables,
+        @JsonProperty("relevantFields") Multimap<CCompositeType, String> pRelevantFields,
+        @JsonProperty("addressedFields") Multimap<CCompositeType, String> pAddressedFields,
+        @JsonProperty("partitions") Collection<Partition> pPartitions,
+        @JsonProperty("intBoolPartitions") Set<Partition> pIntBoolPartitions,
+        @JsonProperty("intEqualPartitions") Set<Partition> pIntEqualPartitions,
+        @JsonProperty("intAddPartitions") Set<Partition> pIntAddPartitions,
+        @JsonProperty("edgeToPartitions") Table<CFAEdge, Integer, Partition> pEdgeToPartitions,
+        @JsonProperty("assumedVariables") Multiset<String> pAssumedVariables,
+        @JsonProperty("assignedVariables") Multiset<String> pAssignedVariables) {}
+  }
 }
