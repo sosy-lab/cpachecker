@@ -149,17 +149,28 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
 
   @Override
   public String visit(CElaboratedType pElaboratedType) {
-    return "ElaboratedType("
-        + pElaboratedType.isConst()
-        + ", "
-        + pElaboratedType.isVolatile()
-        + ", "
-        + pElaboratedType.getKind()
-        + ", "
-        + pElaboratedType.getName()
-        + ", "
-        + pElaboratedType.getOrigName()
-        + ")";
+    StringBuilder serializedElaboratedType = new StringBuilder();
+    serializedElaboratedType
+        .append("ElaboratedType(")
+        .append(pElaboratedType.isConst())
+        .append(", ")
+        .append(pElaboratedType.isVolatile())
+        .append(", ")
+        .append(pElaboratedType.getKind())
+        .append(", ")
+        .append(pElaboratedType.getName())
+        .append(", ")
+        .append(pElaboratedType.getOrigName());
+
+    CComplexType realType = pElaboratedType.getRealType();
+    if (realType != null) {
+      serializedElaboratedType.append(", ").append(realType.accept(this));
+    } else {
+      serializedElaboratedType.append(", unknownType");
+    }
+
+    serializedElaboratedType.append(")");
+    return serializedElaboratedType.toString();
   }
 
   @Override

@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -221,12 +222,26 @@ public class DCPAAlgorithm {
             Objects.requireNonNull(
                 AbstractStates.extractStateByType(makeStartState(), PredicateAbstractState.class)));
 
+    // Create new invariantsState which sotres a disjunction of all invariants states formulas
+    InvariantsCPA invariantsCPA = CPAs.retrieveCPA(dcpa.getCPA(), InvariantsCPA.class);
+    InvariantsState joinedInvariantsState =
+        (InvariantsState)
+            invariantsCPA.getInitialState(
+                block.getLast(), StateSpacePartition.getDefaultPartition());
+    for (InvariantsState invariantState :
+        FluentIterable.from(blockEnds)
+            .transform(b -> AbstractStates.extractStateByType(b, InvariantsState.class))) {
+      joinedInvariantsState = joinedInvariantsState.join(invariantState);
+    }
+
     List<AbstractState> curr = new ArrayList<>();
     for (AbstractState wrappedState :
         Objects.requireNonNull(AbstractStates.extractStateByType(start, CompositeState.class))
             .getWrappedStates()) {
       if (wrappedState instanceof PredicateAbstractState) {
         curr.add(state);
+      } else if (wrappedState instanceof InvariantsState) {
+        curr.add(joinedInvariantsState);
       } else {
         curr.add(wrappedState);
       }

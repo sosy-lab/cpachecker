@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.List;
-
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
