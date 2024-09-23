@@ -5325,6 +5325,10 @@ witness.validation.termination.terminatingStatements = "config/specification/Ter
 # the current one.
 witness.validation.violation.config = no default value
 
+# when enabled we also provide an analysis in form of logging output of the
+# likely quality of the produced witnesses
+witness.yamlexporter.analyseWitnessQuality = false
+
 # Export all information contained in the counterexample as a witness.
 witness.yamlexporter.exportCompleteCounterexample = false
 

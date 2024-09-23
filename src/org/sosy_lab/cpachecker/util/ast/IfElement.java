@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.ast;
 
 import static org.sosy_lab.cpachecker.util.ast.AstUtils.computeNodesConditionBoundaryNodes;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Collection;
@@ -111,6 +112,10 @@ public final class IfElement extends StatementElement {
       computeNodesBetweenConditionAndBranches();
     }
     return nodesBetweenConditionAndElseBranch;
+  }
+
+  public FluentIterable<CFANode> getConditionNodes() {
+    return FluentIterable.from(conditionElement.edges()).transformAndConcat(CFAUtils::nodes);
   }
 
   private ImmutableSet<CFAEdge> findThenEdges() {

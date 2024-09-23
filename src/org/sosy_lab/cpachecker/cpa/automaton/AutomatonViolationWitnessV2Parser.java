@@ -188,20 +188,19 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
 
     if (optionalIfStructure.isPresent()) {
       IfElement ifElement = optionalIfStructure.orElseThrow();
-      nodesCondition = ifElement.getNodesBetweenConditionAndThenBranch();
+      nodesCondition = ifElement.getConditionNodes().toSet();
       nodesThenBranch = ifElement.getNodesBetweenConditionAndThenBranch();
       nodesElseBranch = ifElement.getNodesBetweenConditionAndElseBranch();
-
     } else if (optionalIterationStructure.isPresent()) {
       IterationElement iterationElement = optionalIterationStructure.orElseThrow();
-      nodesCondition = iterationElement.getNodesBetweenConditionAndBody();
+      nodesCondition = iterationElement.getControllingExpressionNodes().toSet();
       nodesThenBranch = iterationElement.getNodesBetweenConditionAndBody();
       nodesElseBranch = iterationElement.getNodesBetweenConditionAndBody();
     } else {
       throw new AssertionError("This should never happen");
     }
 
-    if (nodesThenBranch.equals(nodesElseBranch)) {
+    if (nodesThenBranch.equals(nodesElseBranch) || nodesCondition.isEmpty()) {
       logger.log(
           Level.FINE,
           "Skipping branching waypoint at if statement since the"

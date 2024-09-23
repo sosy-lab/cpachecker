@@ -399,13 +399,14 @@ public class ARGStatistics implements Statistics {
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
 
     for (ARGState rootState : rootStates) {
-      exportARG0(rootState, BiPredicates.pairIn(allTargetPathEdges), pResult);
+      exportARG0(rootState, pReached, BiPredicates.pairIn(allTargetPathEdges), pResult);
     }
   }
 
   @SuppressWarnings("try")
   private void exportARG0(
       final ARGState rootState,
+      final UnmodifiableReachedSet pReached,
       final BiPredicate<ARGState, ARGState> isTargetPathEdge,
       Result pResult) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation =
@@ -425,7 +426,7 @@ public class ARGStatistics implements Statistics {
         if (cfa.getMetadata().getInputLanguage() == Language.C) {
           if (yamlWitnessOutputFileTemplate != null && argToWitnessWriter != null) {
             try {
-              argToWitnessWriter.export(rootState, yamlWitnessOutputFileTemplate);
+              argToWitnessWriter.export(rootState, pReached, yamlWitnessOutputFileTemplate);
             } catch (IOException | ReportingMethodNotImplementedException e) {
               logger.logUserException(
                   Level.WARNING,

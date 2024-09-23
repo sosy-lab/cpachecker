@@ -10,12 +10,14 @@ package org.sosy_lab.cpachecker.util.ast;
 
 import static org.sosy_lab.cpachecker.util.ast.AstUtils.computeNodesConditionBoundaryNodes;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public final class IterationElement extends BranchingElement {
@@ -108,5 +110,14 @@ public final class IterationElement extends BranchingElement {
       computeNodesBetweenConditionAndBody();
     }
     return nodesBetweenConditionAndExit;
+  }
+
+  public FluentIterable<CFANode> getControllingExpressionNodes() {
+    if (controllingExpression.isEmpty()) {
+      return FluentIterable.of();
+    }
+
+    return FluentIterable.from(controllingExpression.orElseThrow().edges())
+        .transformAndConcat(CFAUtils::nodes);
   }
 }

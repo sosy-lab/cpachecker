@@ -831,10 +831,11 @@ public final class ValueAnalysisState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation) {
+      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      throws TranslationToExpressionTreeFailedException {
 
     if (machineModel == null) {
-      return ExpressionTrees.getTrue();
+      throw new TranslationToExpressionTreeFailedException("MachineModel is not available.");
     }
 
     List<ExpressionTree<Object>> result = new ArrayList<>();
@@ -890,10 +891,15 @@ public final class ValueAnalysisState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
-      FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, ReportingMethodNotImplementedException {
+      FunctionEntryNode pFunctionScope,
+      CFANode pLocation,
+      AstCfaRelation pAstCfaRelation,
+      boolean useOldKeywordForVariables)
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
     if (machineModel == null) {
-      return ExpressionTrees.getTrue();
+      throw new TranslationToExpressionTreeFailedException("MachineModel is not available.");
     }
 
     List<ExpressionTree<Object>> result = new ArrayList<>();
@@ -929,14 +935,20 @@ public final class ValueAnalysisState
                 pLocation.getNumEnteringEdges() > 0
                     ? pLocation.getEnteringEdge(0).getFileLocation()
                     : pFunctionScope.getFileLocation();
+
+            String variableName = id;
+            if (useOldKeywordForVariables) {
+              variableName = "\\old(" + id + ")";
+            }
+
             CVariableDeclaration decl =
                 new CVariableDeclaration(
                     loc,
                     false,
                     CStorageClass.AUTO,
                     cType,
-                    id,
-                    id,
+                    variableName,
+                    variableName,
                     memoryLocation.getExtendedQualifiedName(),
                     null);
             CExpression var = new CIdExpression(loc, decl);
@@ -953,9 +965,10 @@ public final class ValueAnalysisState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable) {
+      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
+      throws TranslationToExpressionTreeFailedException {
     if (machineModel == null) {
-      return ExpressionTrees.getTrue();
+      throw new TranslationToExpressionTreeFailedException("MachineModel is not available.");
     }
 
     ExpressionTree<Object> result = ExpressionTrees.getTrue();
