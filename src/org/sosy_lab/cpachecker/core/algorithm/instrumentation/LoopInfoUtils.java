@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -39,12 +38,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -55,6 +54,7 @@ public class LoopInfoUtils {
       CFA pCfa, CProgramScope pCProgramScope) {
     Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>();
     ImmutableMap<String, ImmutableMap<String, String>> allStructInfos = getAllStructInfos(pCfa);
+    ImmutableSet<String> allGlobalVariables = getAllGlobalVariables(pCfa);
 
     for (Loop loop : pCfa.getLoopStructure().orElseThrow().getAllLoops()) {
       // Determine loop locations. There may be more than one, as some loops have multiple
@@ -68,39 +68,18 @@ public class LoopInfoUtils {
                 .getFileLocation()
                 .getStartingLineInOrigin());
       }
-      Integer maxLoopLocation = Collections.max(loopLocations);
 
       // Determine the names of all variables used except those declared inside the loop
       Set<String> liveVariables = new HashSet<>();
       Set<String> variablesDeclaredInsideLoop = new HashSet<>();
       Map<String, String> liveVariablesAndTypes = new HashMap<>();
-      List<CFAEdge> notChecked = new ArrayList<>(loop.getIncomingEdges());
-      Set<CFAEdge> checked = new HashSet<>();
-      while (!notChecked.isEmpty()) {
-        CFAEdge cfaEdge = notChecked.remove(notChecked.size() - 1);
-        checked.add(cfaEdge);
+      for (CFAEdge cfaEdge : loop.getInnerLoopEdges()) {
         if (cfaEdge.getRawAST().isPresent()) {
           AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
-          if (aAstNode instanceof CSimpleDeclaration
-              && cfaEdge.getFileLocation().getStartingLineInOrigin() > maxLoopLocation) {
+          if (aAstNode instanceof CSimpleDeclaration) {
             variablesDeclaredInsideLoop.add(((CSimpleDeclaration) aAstNode).getQualifiedName());
           } else {
-            if (aAstNode instanceof CFunctionCallStatement) {
-              for (CParameterDeclaration parameter :
-                  ((CFunctionCallStatement) aAstNode)
-                      .getFunctionCallExpression()
-                      .getDeclaration()
-                      .getParameters()) {
-                variablesDeclaredInsideLoop.add(parameter.getQualifiedName());
-              }
-            } else {
-              liveVariables.addAll(getVariablesFromAAstNode(cfaEdge.getRawAST().orElseThrow()));
-            }
-          }
-        }
-        for (int i = 0; i < cfaEdge.getSuccessor().getNumLeavingEdges(); i++) {
-          if (!checked.contains(cfaEdge.getSuccessor().getLeavingEdge(i))) {
-            notChecked.add(cfaEdge.getSuccessor().getLeavingEdge(i));
+            liveVariables.addAll(getVariablesFromAAstNode(cfaEdge.getRawAST().orElseThrow()));
           }
         }
       }
@@ -109,6 +88,7 @@ public class LoopInfoUtils {
           e ->
               e.contains("::")
                   && Iterables.get(Splitter.on("::").split(e), 1).startsWith("__CPAchecker_TMP_"));
+      liveVariables.addAll(allGlobalVariables);
 
       // Determine type of each variable
       for (String variable : liveVariables) {
@@ -372,5 +352,31 @@ public class LoopInfoUtils {
     }
 
     return ImmutableMap.copyOf(allStructInfos);
+  }
+
+  private static ImmutableSet<String> getAllGlobalVariables(CFA pCfa) {
+    Set<String> allGlobalVariables = new HashSet<>();
+    Set<CFAEdge> internalEdges =
+        new HashSet<>(); // only include edges that occur in the source code, exclude those of
+                         // imported files.
+    pCfa.edges().stream()
+        .filter(e -> !e.toString().startsWith("/"))
+        .forEach(e -> internalEdges.add(e));
+
+    for (CFAEdge cfaEdge : internalEdges) {
+      if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+        AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
+        if (aAstNode instanceof CVariableDeclaration) {
+          CVariableDeclaration cVariableDeclaration = (CVariableDeclaration) aAstNode;
+          if (cVariableDeclaration.isGlobal()) {
+            String globalVariable = cVariableDeclaration.getQualifiedName();
+            if (!globalVariable.startsWith("static__")) {
+              allGlobalVariables.add(globalVariable);
+            }
+          }
+        }
+      }
+    }
+    return ImmutableSet.copyOf(allGlobalVariables);
   }
 }
