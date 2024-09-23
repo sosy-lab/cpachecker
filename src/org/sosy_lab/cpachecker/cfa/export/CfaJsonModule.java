@@ -1214,6 +1214,8 @@ public class CfaJsonModule extends SimpleModule {
    *
    * <p>Type information is being serialized to account for subtype polymorphism.
    *
+   * <p>Edges are serialized as IDs.
+   *
    * <p>It specifies the constructor to use during deserialization.
    */
   @JsonIdentityInfo(
@@ -1225,6 +1227,14 @@ public class CfaJsonModule extends SimpleModule {
       include = JsonTypeInfo.As.PROPERTY,
       property = "typeOfCFANode")
   private static final class CFANodeMixin {
+
+    @SuppressWarnings("unused")
+    @JsonIdentityReference(alwaysAsId = true)
+    private List<CFAEdge> leavingEdges;
+
+    @SuppressWarnings("unused")
+    @JsonIdentityReference(alwaysAsId = true)
+    private List<CFAEdge> enteringEdges;
 
     @SuppressWarnings("unused")
     @JsonCreator
