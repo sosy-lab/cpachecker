@@ -67,6 +67,24 @@ public final class CfaMetadata {
   }
 
   /**
+   * This constructor is required for JSON deserialization with Jackson.
+   *
+   * <p>It should not be used in any other context!
+   */
+  private CfaMetadata() {
+    machineModel = null;
+    cfaLanguage = null;
+    inputLanguage = null;
+    fileNames = null;
+    mainFunctionEntry = null;
+    connectedness = null;
+    astCFARelation = null;
+    loopStructure = null;
+    variableClassification = null;
+    liveVariables = null;
+  }
+
+  /**
    * Returns a new CFA metadata instance for the specified parameters (only mandatory attributes).
    *
    * <p>The returned CFA metadata instance doesn't contain any optional attributes.

@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -40,17 +39,14 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  */
 public final class CfaToJson {
   private final CfaJsonModule.CfaJsonData cfaJsonData;
-  private final LogManager logger;
 
   /**
    * Constructs the {@link CfaJsonModule.CfaJsonData} field with the given {@link CFA}.
    *
    * @param pCfa The Control Flow Automaton (CFA) to be converted to JSON.
-   * @param pLogger The logger to use for logging.
    */
-  public CfaToJson(CFA pCfa, LogManager pLogger) {
+  public CfaToJson(CFA pCfa) {
     CFA cfa = checkNotNull(pCfa);
-    this.logger = pLogger;
 
     /* Create a mapping of function names to nodes of the corresponding function.
     This collection is needed for the creation of a MutableCFA during deserialization.*/
@@ -89,8 +85,7 @@ public final class CfaToJson {
         JsonGenerator jsonGenerator =
             new JsonFactory().createGenerator(bufferedOutputStream, JsonEncoding.UTF8); ) {
 
-      CfaJsonIO.provideConfiguredCfaObjectMapper(logger)
-          .writeValue(jsonGenerator, this.cfaJsonData);
+      CfaJsonIO.getBasicCfaObjectMapper().writeValue(jsonGenerator, this.cfaJsonData);
     }
   }
 }

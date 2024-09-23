@@ -13,8 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
@@ -118,10 +116,8 @@ public final class LoopStructure {
       nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).add(loopHead).build();
     }
 
-    @JsonCreator
-    private Loop(
-        @JsonProperty("loopHeads") Set<CFANode> pLoopHeads,
-        @JsonProperty("nodes") Set<CFANode> pNodes) {
+    /* This constructor is required for JSON deserialization with Jackson. */
+    private Loop(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.copyOf(pLoopHeads);
       nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).addAll(pLoopHeads).build();
     }

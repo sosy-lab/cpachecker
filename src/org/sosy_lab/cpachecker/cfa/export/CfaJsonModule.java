@@ -15,6 +15,7 @@ import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerator;
 import com.fasterxml.jackson.annotation.ObjectIdGenerator.IdKey;
@@ -23,6 +24,7 @@ import com.fasterxml.jackson.annotation.ObjectIdResolver;
 import com.fasterxml.jackson.annotation.SimpleObjectIdResolver;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -48,8 +50,12 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -58,9 +64,7 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -94,7 +98,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -103,14 +106,18 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-/* This class is a Jackson module for serialization and deserialization. */
+/**
+ * This class is a Jackson module for serialization and deserialization.
+ *
+ * <p>Important: The {@link AstCfaRelation} in {@link CfaMetadata} is not serialized or
+ * deserialized.
+ */
 public class CfaJsonModule extends SimpleModule {
 
   private static final long serialVersionUID = 1945912240762984485L;
@@ -203,9 +210,15 @@ public class CfaJsonModule extends SimpleModule {
         }
         pGenerator.writeEndArray();
 
-        /* Edges */
+        /* Edges (sorted) */
+        List<Entry<CFAEdge, Collection<Integer>>> entries =
+            new ArrayList<>(partition.getEdges().asMap().entrySet());
+        Collections.sort(
+            entries,
+            Comparator.comparingInt(entry -> CfaEdgeIdGenerator.getIdFromEdge(entry.getKey())));
+
         pGenerator.writeArrayFieldStart("edges");
-        for (Entry<CFAEdge, Collection<Integer>> entry : partition.getEdges().asMap().entrySet()) {
+        for (Entry<CFAEdge, Collection<Integer>> entry : entries) {
           pGenerator.writeStartObject();
           pGenerator.writeNumberField("edge", CfaEdgeIdGenerator.getIdFromEdge(entry.getKey()));
           pGenerator.writeArrayFieldStart("indices");
@@ -265,18 +278,16 @@ public class CfaJsonModule extends SimpleModule {
    * the deserialized Partitions are returned as a set.
    */
   private static class PartitionsDeserializer extends JsonDeserializer<Set<Partition>> {
-    private static Map<Integer, Partition> deserializedPartitions = new HashMap<>();
-    private Map<Integer, PartitionHandler> partitionHandlers = new HashMap<>();
+    private static Map<Integer, PartitionHandler> partitionHandlers = new HashMap<>();
 
-    /* Retrieves a existing handler or creates a new one if it does not exist. */
-    private PartitionHandler getPartitionHandler(int pIndex) throws IOException {
+    /* Retrieves an existing PartitionHandler or creates a new one if it does not exist. */
+    public static PartitionHandler getPartitionHandler(int pIndex) throws IOException {
       PartitionHandler handler;
 
       if (partitionHandlers.containsKey(pIndex)) {
-
         handler = partitionHandlers.get(pIndex);
-      } else {
 
+      } else {
         handler = new PartitionHandler(pIndex);
         partitionHandlers.put(pIndex, handler);
       }
@@ -289,12 +300,14 @@ public class CfaJsonModule extends SimpleModule {
      *
      * @param pParser The JSON parser.
      * @param pContext The deserialization context.
-     * @return The set of deserialized partitions.
-     * @throws IOException If an I/O error occurs during deserialization.
+     * @return the set of deserialized partitions.
+     * @throws IOException if an I/O error occurs during deserialization.
      */
     @Override
     public Set<Partition> deserialize(JsonParser pParser, DeserializationContext pContext)
         throws IOException {
+
+      Set<Partition> deserializedPartitions = new HashSet<>();
 
       /* Get root node. */
       ObjectMapper mapper = (ObjectMapper) pParser.getCodec();
@@ -302,51 +315,62 @@ public class CfaJsonModule extends SimpleModule {
 
       /* Iterate over the root node and construct PartitionHandlers. */
       for (JsonNode node : rootNode) {
-        Integer index = node.get("index").asInt();
 
-        PartitionHandler handler = getPartitionHandler(index);
+        PartitionHandler handler;
 
-        /* Vars */
-        for (JsonNode var : node.get("vars")) {
-          handler.addVar(var.asText());
-        }
+        if (node.isObject()) {
+          /* Node is an object: Full size deserialization. */
 
-        /* Values */
-        for (JsonNode value : node.get("values")) {
-          handler.addValue(value.bigIntegerValue());
-        }
+          /* Get handler. */
+          Integer index = node.get("index").asInt();
+          handler = getPartitionHandler(index);
 
-        /* Edges */
-        for (JsonNode edge : node.get("edges")) {
-          CFAEdge cfaEdge = CfaEdgeIdResolver.getEdgeFromId(edge.get("edge").asInt());
-
-          for (JsonNode edgeIndex : edge.get("indices")) {
-            handler.addEdge(cfaEdge, edgeIndex.asInt());
+          /* Vars */
+          for (JsonNode var : node.get("vars")) {
+            handler.addVar(var.asText());
           }
+
+          /* Values */
+          for (JsonNode value : node.get("values")) {
+            handler.addValue(value.bigIntegerValue());
+          }
+
+          /* Edges */
+          for (JsonNode edge : node.get("edges")) {
+            CFAEdge cfaEdge = CfaEdgeIdResolver.getEdgeFromId(edge.get("edge").asInt());
+
+            for (JsonNode edgeIndex : edge.get("indices")) {
+              handler.addEdge(cfaEdge, edgeIndex.asInt());
+            }
+          }
+
+          /* VarToPartition */
+          Iterator<Map.Entry<String, JsonNode>> fields = node.get("varToPartition").fields();
+          while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+
+            Partition partition = getPartitionHandler(field.getValue().asInt()).getReference();
+
+            handler.addVarToPartition(field.getKey(), partition);
+          }
+
+          /* EdgeToPartition */
+          for (JsonNode etp : node.get("edgeToPartition")) {
+            TableEntry tableEntry = EdgeToPartitionsDeserializer.deserializeTableEntry(etp);
+            handler.addEdgeToPartition(
+                tableEntry.edge(), tableEntry.index(), tableEntry.partition());
+          }
+
+        } else {
+
+          /* Node is an integer: Deserialization from object id. */
+          handler = getPartitionHandler(node.asInt());
         }
 
-        /* VarToPartition */
-        Iterator<Map.Entry<String, JsonNode>> fields = node.get("varToPartition").fields();
-        while (fields.hasNext()) {
-          Map.Entry<String, JsonNode> field = fields.next();
-
-          Partition partition = getPartitionHandler(field.getValue().asInt()).getReference();
-
-          handler.addVarToPartition(field.getKey(), partition);
-        }
-
-        /* EdgeToPartition */
-        for (JsonNode etp : node.get("edgeToPartition")) {
-          CFAEdge edge = CfaEdgeIdResolver.getEdgeFromId(etp.get("edge").asInt());
-          Partition partition = getPartitionHandler(etp.get("partition").asInt()).getReference();
-
-          handler.addEdgeToPartition(edge, etp.get("index").asInt(), partition);
-        }
-
-        deserializedPartitions.put(handler.getReference().hashCode(), handler.getReference());
+        deserializedPartitions.add(handler.getReference());
       }
 
-      return ImmutableSet.copyOf(deserializedPartitions.values());
+      return ImmutableSet.copyOf(deserializedPartitions);
     }
   }
 
@@ -529,6 +553,65 @@ public class CfaJsonModule extends SimpleModule {
   }
 
   /**
+   * EdgeToPartitionsDeserializer is a custom deserializer for converting JSON representations of
+   * tables (lists of {@link TableEntry} objects) into {@link Table} objects with keys of type
+   * {@link CFAEdge} and {@link Integer}, and values of type {@link Partition}.
+   *
+   * <p>This deserializer provides methods to deserialize individual {@link TableEntry} objects as
+   * well as entire tables.
+   */
+  private static class EdgeToPartitionsDeserializer
+      extends JsonDeserializer<Table<CFAEdge, Integer, Partition>> {
+
+    /**
+     * Deserializes a JSON node into a {@link TableEntry} object.
+     *
+     * @param pNode The JSON node to deserialize.
+     * @return a TableEntry object containing the deserialized data.
+     * @throws IOException if an I/O error occurs during deserialization.
+     */
+    public static TableEntry deserializeTableEntry(JsonNode pNode) throws IOException {
+
+      CFAEdge edge = CfaEdgeIdResolver.getEdgeFromId(pNode.get("edge").asInt());
+      Integer index = pNode.get("index").asInt();
+      Partition partition =
+          PartitionsDeserializer.getPartitionHandler(pNode.get("partition").asInt()).getReference();
+
+      return new TableEntry(edge, index, partition);
+    }
+
+    /**
+     * Deserializes a JSON representation of a table (list of {@link TableEntry} objects) into a
+     * Table<CFAEdge, Integer, Partition> object.
+     *
+     * @param pParser The JsonParser used to parse the JSON content.
+     * @param pContext The DeserializationContext.
+     * @return a Table containing the deserialized table.
+     * @throws IOException if an I/O error occurs during parsing.
+     * @throws JsonProcessingException if a processing error occurs during parsing.
+     */
+    @Override
+    public Table<CFAEdge, Integer, Partition> deserialize(
+        JsonParser pParser, DeserializationContext pContext)
+        throws IOException, JsonProcessingException {
+
+      /* Get root node. */
+      ObjectMapper mapper = (ObjectMapper) pParser.getCodec();
+      JsonNode rootNode = mapper.readTree(pParser);
+
+      Table<CFAEdge, Integer, Partition> table = HashBasedTable.create();
+
+      /* Iterate over the root node and add TableEntry objects to the table. */
+      for (JsonNode node : rootNode) {
+        TableEntry tableEntry = deserializeTableEntry(node);
+        table.put(tableEntry.edge(), tableEntry.index(), tableEntry.partition());
+      }
+
+      return table;
+    }
+  }
+
+  /**
    * A custom generator for generating unique IDs for CFA edges.
    *
    * <p>It is used to retrieve IDs from their respective {@link CFAEdge}s.
@@ -659,29 +742,37 @@ public class CfaJsonModule extends SimpleModule {
   private static class PartitionIdResolver extends SimpleObjectIdResolver {
 
     /**
-     * Creates a new instance of ObjectIdResolver for deserialization.
+     * Resolves an object based on the given {@link
+     * com.fasterxml.jackson.annotation.ObjectIdGenerator.IdKey}.
      *
-     * <p>It binds the previously deserialized partitions to their respective IDs.
+     * <p>If the object is not already present in the internal map, it attempts to retrieve it using
+     * the {@link PartitionsDeserializer#getPartitionHandler(int)} method and then binds it to the
+     * map.
      *
-     * @param pContext The context object.
-     * @return The newly created Resolver.
-     * @throws IllegalStateException if no partitions are available.
+     * @param pId The {@link com.fasterxml.jackson.annotation.ObjectIdGenerator.IdKey} to resolve.
+     * @return the resolved object, or null if it cannot be resolved.
      */
     @Override
-    public ObjectIdResolver newForDeserialization(Object pContext) {
-      checkState(
-          PartitionsDeserializer.deserializedPartitions != null, "No partitions available to bind");
-
-      PartitionIdResolver partitionIdResolver = new PartitionIdResolver();
-
-      /* Bind previously deserialized partitions to their respective IDs. */
-      for (Partition partition : PartitionsDeserializer.deserializedPartitions.values()) {
-        partitionIdResolver.bindItem(
-            new IdKey(Partition.class, Partition.class, Integer.valueOf(partition.hashCode())),
-            partition);
+    public Object resolveId(ObjectIdGenerator.IdKey pId) {
+      if (this._items == null) {
+        this._items = new HashMap<>();
       }
 
-      return partitionIdResolver;
+      /* Check if the object is already present in the map. */
+      Object resolved = this._items.get(pId);
+
+      /* If not, try to retrieve it using the PartitionHandler. */
+      if (resolved == null) {
+        try {
+          resolved = PartitionsDeserializer.getPartitionHandler((Integer) pId.key).getReference();
+          this.bindItem(pId, resolved);
+
+        } catch (IOException e) {
+          return null;
+        }
+      }
+
+      return resolved;
     }
   }
 
@@ -754,6 +845,48 @@ public class CfaJsonModule extends SimpleModule {
   }
 
   /**
+   * A converter that removes the leading and trailing brackets from a given string.
+   *
+   * <p>If the input string starts with "[" and ends with "]", the brackets are removed. Otherwise,
+   * the input string is returned as is.
+   *
+   * <p>If the input string is null, null is returned.
+   */
+  private static final class BracketRemoverConverter extends StdConverter<String, String> {
+
+    @Override
+    public String convert(String pInput) {
+      if (pInput == null) {
+        return null;
+      }
+
+      if (pInput.startsWith("[") && pInput.endsWith("]")) {
+        return pInput.substring(1, pInput.length() - 1);
+      } else {
+        return pInput;
+      }
+    }
+  }
+
+  /**
+   * A converter that transforms a set of {@link CSimpleDeclaration} objects into a sorted list of
+   * {@link CSimpleDeclaration} objects.
+   *
+   * <p>The sorting is based on the hash code of the {@link CSimpleDeclaration} objects.
+   */
+  private static final class OutOfScopeToSortedListConverter
+      extends StdConverter<Set<CSimpleDeclaration>, List<CSimpleDeclaration>> {
+
+    @Override
+    public List<CSimpleDeclaration> convert(Set<CSimpleDeclaration> pSet) {
+      List<CSimpleDeclaration> list = new ArrayList<>(pSet);
+      list.sort(Comparator.comparing(CSimpleDeclaration::hashCode));
+
+      return list;
+    }
+  }
+
+  /**
    * This class is a mixin for {@link Loop}.
    *
    * <p>It specifies the constructor to use during deserialization.
@@ -770,6 +903,8 @@ public class CfaJsonModule extends SimpleModule {
   /**
    * This class is a mixin for {@link VariableClassification}.
    *
+   * <p>It sets the {@link PartitionsDeserializer} for all Set<Partition> fields.
+   *
    * <p>It converts the edgeToPartitions field to a list of TableEntry objects during serialization
    * and back to a Table object during deserialization.
    *
@@ -778,7 +913,24 @@ public class CfaJsonModule extends SimpleModule {
   private static final class VariableClassificationMixin {
 
     @SuppressWarnings("unused")
+    @JsonDeserialize(using = PartitionsDeserializer.class)
+    private Set<Partition> partitions;
+
+    @SuppressWarnings("unused")
+    @JsonDeserialize(using = PartitionsDeserializer.class)
+    private Set<Partition> intBoolPartitions;
+
+    @SuppressWarnings("unused")
+    @JsonDeserialize(using = PartitionsDeserializer.class)
+    private Set<Partition> intEqualPartitions;
+
+    @SuppressWarnings("unused")
+    @JsonDeserialize(using = PartitionsDeserializer.class)
+    private Set<Partition> intAddPartitions;
+
+    @SuppressWarnings("unused")
     @JsonSerialize(converter = EtpTableToListConverter.class)
+    @JsonDeserialize(using = EdgeToPartitionsDeserializer.class)
     private Table<CFAEdge, Integer, Partition> edgeToPartitions;
 
     @SuppressWarnings("unused")
@@ -913,9 +1065,15 @@ public class CfaJsonModule extends SimpleModule {
   /**
    * This class is a mixin for {@link CAssumeEdge}.
    *
+   * <p>rawStatement is deserialized using {@link BracketRemoverConverter}.
+   *
    * <p>It specifies the constructor to use during deserialization.
    */
   private static final class CAssumeEdgeMixin {
+
+    @SuppressWarnings("unused")
+    @JsonDeserialize(converter = BracketRemoverConverter.class)
+    private String rawStatement;
 
     @SuppressWarnings("unused")
     @JsonCreator
@@ -1136,10 +1294,25 @@ public class CfaJsonModule extends SimpleModule {
   /**
    * This class is a mixin for {@link FileLocation}.
    *
+   * <p>It sets the order of the fields to ensure deterministic serialization.
+   *
    * <p>It forces the serialization of the {@link Path} fileName field.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
+  @JsonPropertyOrder({
+    "fileName",
+    "niceFileName",
+    "offset",
+    "length",
+    "startingLine",
+    "endingLine",
+    "startColumnInLine",
+    "endColumnInLine",
+    "startingLineInOrigin",
+    "endingLineInOrigin",
+    "offsetRelatedToOrigin"
+  })
   private static final class FileLocationMixin {
 
     @SuppressWarnings("unused")
@@ -1183,28 +1356,12 @@ public class CfaJsonModule extends SimpleModule {
    * This class is a mixin for {@link CfaMetadata}.
    *
    * <p>It ensures that the {@link AstCfaRelation} is not being serialized.
-   *
-   * <p>It specifies the constructor to use during deserialization.
    */
   private static final class CfaMetadataMixin {
 
     @SuppressWarnings("unused")
     @JsonIgnore
     private AstCfaRelation astCFARelation;
-
-    @SuppressWarnings("unused")
-    @JsonCreator
-    private CfaMetadataMixin(
-        @JsonProperty("machineModel") MachineModel pMachineModel,
-        @JsonProperty("language") Language pCFALanguage,
-        @JsonProperty("inputLanguage") Language pInputLanguage,
-        @JsonProperty("fileNames") List<Path> pFileNames,
-        @JsonProperty("mainFunctionEntry") FunctionEntryNode pMainFunctionEntry,
-        @JsonProperty("connectedness") CfaConnectedness pConnectedness,
-        @JsonProperty("astCFARelation") AstCfaRelation pAstCfaRelation,
-        @JsonProperty("loopStructure") LoopStructure pLoopStructure,
-        @JsonProperty("variableClassification") VariableClassification pVariableClassification,
-        @JsonProperty("liveVariables") LiveVariables pLiveVariables) {}
   }
 
   /**
@@ -1215,6 +1372,8 @@ public class CfaJsonModule extends SimpleModule {
    * <p>Type information is being serialized to account for subtype polymorphism.
    *
    * <p>Edges are serialized as IDs.
+   *
+   * <p>outOfScopeVariables are sorted to ensure deterministic serialization.
    *
    * <p>It specifies the constructor to use during deserialization.
    */
@@ -1235,6 +1394,10 @@ public class CfaJsonModule extends SimpleModule {
     @SuppressWarnings("unused")
     @JsonIdentityReference(alwaysAsId = true)
     private List<CFAEdge> enteringEdges;
+
+    @SuppressWarnings("unused")
+    @JsonSerialize(converter = OutOfScopeToSortedListConverter.class)
+    private Set<CSimpleDeclaration> outOfScopeVariables;
 
     @SuppressWarnings("unused")
     @JsonCreator
