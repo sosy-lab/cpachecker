@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.export;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIdentityReference;
@@ -622,14 +624,14 @@ public class CfaJsonModule extends SimpleModule {
     private static final long serialVersionUID = 7470151299045493234L;
     private static ThreadLocal<CfaEdgeIdGenerator> currentGenerator = new ThreadLocal<>();
 
-    private final transient Map<CFAEdge, Integer> edgeToIdMap = new HashMap<>();
+    private final HashMap<CFAEdge, Integer> edgeToIdMap = new HashMap<>();
     private final Class<?> scope;
     private int nextValue;
 
     /**
      * Constructs a new CfaEdgeIdGenerator.
      *
-     * <p>It is being used by Jackson.
+     * <p>This constructor is being used by Jackson.
      */
     @SuppressWarnings("unused")
     public CfaEdgeIdGenerator() {
@@ -729,9 +731,7 @@ public class CfaJsonModule extends SimpleModule {
     public static Integer getIdFromEdge(CFAEdge pEdge) {
       CfaEdgeIdGenerator generator = currentGenerator.get();
 
-      if (generator == null) {
-        throw new IllegalStateException("No generator available");
-      }
+      checkNotNull(generator, "No generator available");
 
       Integer id = generator.edgeToIdMap.get(pEdge);
 
@@ -751,7 +751,7 @@ public class CfaJsonModule extends SimpleModule {
   private static class CfaEdgeIdResolver extends SimpleObjectIdResolver {
     private static final ThreadLocal<CfaEdgeIdResolver> currentResolver = new ThreadLocal<>();
 
-    private final Map<Integer, CFAEdge> idToEdgeMap = new HashMap<>();
+    private final HashMap<Integer, CFAEdge> idToEdgeMap = new HashMap<>();
 
     /**
      * Creates a new instance of {@link CfaEdgeIdResolver} for deserialization.
@@ -803,9 +803,7 @@ public class CfaJsonModule extends SimpleModule {
     public static CFAEdge getEdgeFromId(Integer pId) {
       CfaEdgeIdResolver resolver = currentResolver.get();
 
-      if (resolver == null) {
-        throw new IllegalStateException("No resolver available");
-      }
+      checkNotNull(resolver, "No resolver available");
 
       CFAEdge edge = resolver.idToEdgeMap.get(pId);
 
