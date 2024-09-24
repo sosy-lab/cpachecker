@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.export;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIdentityReference;
@@ -622,9 +620,9 @@ public class CfaJsonModule extends SimpleModule {
   private static final class CfaEdgeIdGenerator extends ObjectIdGenerator<Integer> {
 
     private static final long serialVersionUID = 7470151299045493234L;
-    private static CfaEdgeIdGenerator currentGenerator;
+    private static ThreadLocal<CfaEdgeIdGenerator> currentGenerator = new ThreadLocal<>();
 
-    private final Map<CFAEdge, Integer> edgeToIdMap = new HashMap<>();
+    private final transient Map<CFAEdge, Integer> edgeToIdMap = new HashMap<>();
     private final Class<?> scope;
     private int nextValue;
 
@@ -708,12 +706,16 @@ public class CfaJsonModule extends SimpleModule {
     /**
      * Creates a new instance of the CfaEdgeIdGenerator for serialization.
      *
+     * <p>It also sets the currentGenerator field to the newly created instance for later use.
+     *
      * @param pContext The context object.
      * @return The new instance of the CfaEdgeIdGenerator.
      */
     @Override
     public ObjectIdGenerator<Integer> newForSerialization(Object pContext) {
-      return currentGenerator = new CfaEdgeIdGenerator(this.scope, 1);
+      CfaEdgeIdGenerator generator = new CfaEdgeIdGenerator(this.scope, 1);
+      currentGenerator.set(generator);
+      return generator;
     }
 
     /**
@@ -725,9 +727,13 @@ public class CfaJsonModule extends SimpleModule {
      * @throws IllegalArgumentException If no ID for the CFAEdge is found.
      */
     public static Integer getIdFromEdge(CFAEdge pEdge) {
-      checkState(currentGenerator != null, "No generator available");
+      CfaEdgeIdGenerator generator = currentGenerator.get();
 
-      Integer id = currentGenerator.edgeToIdMap.get(pEdge);
+      if (generator == null) {
+        throw new IllegalStateException("No generator available");
+      }
+
+      Integer id = generator.edgeToIdMap.get(pEdge);
 
       if (id == null) {
         throw new IllegalArgumentException("No ID for edge " + pEdge + " found");
@@ -743,7 +749,7 @@ public class CfaJsonModule extends SimpleModule {
    * <p>It is used to retrieve {@link CFAEdge}s from their respective IDs.
    */
   private static class CfaEdgeIdResolver extends SimpleObjectIdResolver {
-    private static CfaEdgeIdResolver currentResolver;
+    private static final ThreadLocal<CfaEdgeIdResolver> currentResolver = new ThreadLocal<>();
 
     private final Map<Integer, CFAEdge> idToEdgeMap = new HashMap<>();
 
@@ -757,7 +763,9 @@ public class CfaJsonModule extends SimpleModule {
      */
     @Override
     public ObjectIdResolver newForDeserialization(Object pContext) {
-      return currentResolver = new CfaEdgeIdResolver();
+      CfaEdgeIdResolver resolver = new CfaEdgeIdResolver();
+      currentResolver.set(resolver);
+      return resolver;
     }
 
     /**
@@ -793,9 +801,13 @@ public class CfaJsonModule extends SimpleModule {
      * @throws IllegalArgumentException If no CFAEdge with the specified ID is found.
      */
     public static CFAEdge getEdgeFromId(Integer pId) {
-      checkState(currentResolver != null, "No resolver available");
+      CfaEdgeIdResolver resolver = currentResolver.get();
 
-      CFAEdge edge = currentResolver.idToEdgeMap.get(pId);
+      if (resolver == null) {
+        throw new IllegalStateException("No resolver available");
+      }
+
+      CFAEdge edge = resolver.idToEdgeMap.get(pId);
 
       if (edge == null) {
         throw new IllegalArgumentException("No edge with ID " + pId + " found");
