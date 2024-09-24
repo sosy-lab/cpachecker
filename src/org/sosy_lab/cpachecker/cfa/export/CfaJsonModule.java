@@ -46,6 +46,9 @@ import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import com.google.common.collect.TreeMultimap;
 import java.io.IOException;
+import java.io.NotSerializableException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
@@ -624,7 +627,7 @@ public class CfaJsonModule extends SimpleModule {
     private static final long serialVersionUID = 7470151299045493234L;
     private static ThreadLocal<CfaEdgeIdGenerator> currentGenerator = new ThreadLocal<>();
 
-    private final HashMap<CFAEdge, Integer> edgeToIdMap = new HashMap<>();
+    private final Map<CFAEdge, Integer> edgeToIdMap = new HashMap<>();
     private final Class<?> scope;
     private int nextValue;
 
@@ -741,6 +744,18 @@ public class CfaJsonModule extends SimpleModule {
 
       return id;
     }
+
+    /* Custom serialization method to prevent serialization of the generator (ObjectIdGenerator implements Serializable). */
+    @SuppressWarnings("unused")
+    private void writeObject(ObjectOutputStream pStream) throws IOException {
+      throw new NotSerializableException(getClass().getName());
+    }
+
+    /* Custom deserialization method to prevent deserialization of the generator (ObjectIdGenerator implements Serializable). */
+    @SuppressWarnings("unused")
+    private void readObject(ObjectInputStream pStream) throws IOException {
+      throw new NotSerializableException(getClass().getName());
+    }
   }
 
   /**
@@ -751,7 +766,7 @@ public class CfaJsonModule extends SimpleModule {
   private static class CfaEdgeIdResolver extends SimpleObjectIdResolver {
     private static final ThreadLocal<CfaEdgeIdResolver> currentResolver = new ThreadLocal<>();
 
-    private final HashMap<Integer, CFAEdge> idToEdgeMap = new HashMap<>();
+    private final Map<Integer, CFAEdge> idToEdgeMap = new HashMap<>();
 
     /**
      * Creates a new instance of {@link CfaEdgeIdResolver} for deserialization.
