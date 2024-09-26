@@ -438,18 +438,23 @@ public class CfaJsonModule extends SimpleModule {
    * the deserialized Partitions are returned as a set.
    */
   private static class PartitionsDeserializer extends JsonDeserializer<Set<Partition>> {
-    private static Map<Integer, PartitionHandler> partitionHandlers = new HashMap<>();
+    private static ThreadLocal<Map<Integer, PartitionHandler>> partitionHandlers =
+        ThreadLocal.withInitial(HashMap::new);
 
     /* Retrieves an existing PartitionHandler or creates a new one if it does not exist. */
     public static PartitionHandler getPartitionHandler(int pIndex) throws IOException {
       PartitionHandler handler;
 
-      if (partitionHandlers.containsKey(pIndex)) {
-        handler = partitionHandlers.get(pIndex);
+      Map<Integer, PartitionHandler> handlers = partitionHandlers.get();
+
+      checkNotNull(handlers, "No partitionHandlers available");
+
+      if (handlers.containsKey(pIndex)) {
+        handler = handlers.get(pIndex);
 
       } else {
         handler = new PartitionHandler(pIndex);
-        partitionHandlers.put(pIndex, handler);
+        handlers.put(pIndex, handler);
       }
 
       return handler;
