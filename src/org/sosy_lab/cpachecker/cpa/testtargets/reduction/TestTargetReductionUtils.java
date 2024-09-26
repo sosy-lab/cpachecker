@@ -332,7 +332,7 @@ public final class TestTargetReductionUtils {
 
   public static boolean isInputEdge(CFAEdge pEdge) {
     if (pEdge instanceof DummyInputCFAEdge) {
-      return true;
+      return ((DummyInputCFAEdge) pEdge).providesInput();
     }
     if (pEdge instanceof AStatementEdge
         && ((AStatementEdge) pEdge).getStatement() instanceof AFunctionCall functionCall) {
