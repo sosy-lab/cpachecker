@@ -673,6 +673,10 @@ public class CfaJsonModule extends SimpleModule {
     /**
      * Generates an ID for the given object.
      *
+     * <p>If the object is not a {@link CFAEdge}, an {@link IllegalArgumentException} is thrown.
+     *
+     * <p>The ID is generated and stored in the edgeToIdMap together with the object.
+     *
      * @param pForObject The object for which to generate the ID.
      * @return The generated ID.
      */
@@ -681,6 +685,11 @@ public class CfaJsonModule extends SimpleModule {
       if (pForObject == null) {
         return null;
       } else {
+        if (!(pForObject instanceof CFAEdge)) {
+          throw new IllegalArgumentException(
+              "Wrong object: " + pForObject.getClass().getSimpleName() + " is not a CFAEdge");
+        }
+
         int id = this.nextValue++;
         edgeToIdMap.put((CFAEdge) pForObject, id);
         return id;
