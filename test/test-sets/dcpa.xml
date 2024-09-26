@@ -13,15 +13,18 @@ SPDX-License-Identifier: Apache-2.0
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="8">
 <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz"/>
+<resultfiles>**/witness.*</resultfiles>
 
-  <rundefinition name="DCPA8">
-		<option name="-heap">13000M</option>
-		<option name="-noout"/>
-		<option name="-benchmark"/>
-	  <option name="-disable-java-assertions"/>
-		<option name="-predicateAnalysis-block"/>
-		<option name="-stats"/>
-	  <option name="-setprop">distributedSummaries.decompositionType=BRIDGE_DECOMPOSITION</option>
+  <rundefinition name="DCPA-Block-Safe">
+    <option name="-heap">13000M</option>
+    <option name="-noout"/>
+    <option name="-benchmark"/>
+    <option name="-disable-java-assertions"/>
+    <option name="-predicateAnalysis-block"/>
+    <option name="-stats"/>
+    <option name="-setprop">distributedSummaries.decompositionType=MERGE_DECOMPOSITION</option>
+    <option name="-setprop">distributedSummaries.spawnUtilWorkers=false</option>
+    <option name="-setprop">distributedSummaries.worker.witnessOutput=witness.yml</option>
 
 	  <tasks name="ReachSafety-BitVectors">
 		  <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
