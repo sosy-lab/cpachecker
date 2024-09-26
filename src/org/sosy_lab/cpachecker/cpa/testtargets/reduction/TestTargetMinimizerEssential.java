@@ -276,6 +276,12 @@ public class TestTargetMinimizerEssential {
     pred.removeLeavingEdge(toRemove);
     succ.removeEnteringEdge(toRemove);
 
+    updateTestGoalMappingAfterRemoval(
+        toRemove,
+        isLeaving ? CFAUtils.enteringEdges(pred) : CFAUtils.leavingEdges(succ),
+        copiedEdgeToTestTargetsMap,
+        pTestTargets);
+
     // add the exiting edges from the successor to the predecessor to keep the graph intact
     while (succ.getNumLeavingEdges() > 0) {
       redirectEdgeToNewPredecessor(
@@ -289,12 +295,6 @@ public class TestTargetMinimizerEssential {
       }*/
       redirectEdgeToNewSuccessor(succ.getEnteringEdge(0), pred, copiedEdgeToTestTargetsMap);
     }
-
-    updateTestGoalMappingAfterRemoval(
-        toRemove,
-        isLeaving ? CFAUtils.enteringEdges(pred) : CFAUtils.leavingEdges(succ),
-        copiedEdgeToTestTargetsMap,
-        pTestTargets);
   }
 
   /** Remove edges from copied graph according to first rule. */
