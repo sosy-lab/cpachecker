@@ -246,13 +246,14 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         // Currently we only export IfStructures, since there is no nice way to say how often a loop
         // should be traversed and exporting this information will quickly make the witness
         // difficult to read
-        Optional<IfElement> optionalIfElement = astCFARelation.getIfStructureForConditionEdge(edge);
+        Optional<IfElement> optionalIfElement =
+            astCFARelation.getIfStructureForConditionEdge(assumeEdge);
         Optional<IterationElement> optionalIterationElement =
-            astCFARelation.getTightestIterationStructureForNode(edge.getPredecessor());
+            astCFARelation.getTightestIterationStructureForNode(assumeEdge.getPredecessor());
 
         Set<CFANode> nodesBetweenConditionAndFirstBranch;
         Set<CFANode> nodesBetweenConditionAndSecondBranch;
-        CFANode successor = edge.getSuccessor();
+        CFANode successor = assumeEdge.getSuccessor();
         FileLocation astElementLocation = null;
         if (optionalIfElement.isPresent()) {
           IfElement ifElement = optionalIfElement.orElseThrow();
@@ -276,7 +277,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
         waypoints.add(
             handleBranchingWaypoint(
-                nodesBetweenConditionAndFirstBranch.contains(assumeEdge.getSuccessor()),
+                nodesBetweenConditionAndFirstBranch.contains(successor),
                 astElementLocation,
                 assumeEdge));
 
