@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckMatchesColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckPassesThroughNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesElement;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IsStatementEdge;
@@ -99,10 +100,10 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       String nextStateId, Integer followLine, Integer followColumn, Integer pDistanceToViolation) {
     // For target nodes it sometimes does not make sense to evaluate them at the last possible
     // sequence point as with assumptions. For example, a reach_error call will usually not have
-    // any successors in the ARG, since the verification stops there. Therefore handling targets
+    // any successors in the ARG, since the verification stops there. Therefore, handling targets
     // the same way as with assumptions would not work. As an overapproximation we use the
     // covers to present the desired functionality.
-    AutomatonBoolExpr expr = new CheckCoversColumnAndLine(followColumn, followLine);
+    AutomatonBoolExpr expr = new CheckMatchesColumnAndLine(followColumn, followLine);
 
     AutomatonTransition.Builder transitionBuilder =
         new AutomatonTransition.Builder(expr, nextStateId);
