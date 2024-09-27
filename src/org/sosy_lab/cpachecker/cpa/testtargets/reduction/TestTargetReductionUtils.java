@@ -275,9 +275,6 @@ public final class TestTargetReductionUtils {
 
     for (CFAEdgeNode predTarget : pNodes) {
       for (CFAEdgeNode succTarget : CFAEdgeNode.allSuccessorsOf(predTarget)) {
-        if (predTarget == succTarget) {
-          continue;
-        }
         newPath = Pair.of(predTarget, succTarget);
         pathsToRequiredInputs.put(newPath, predTarget.mayReachViaInputs(succTarget));
         waitlist.add(newPath);
@@ -287,9 +284,6 @@ public final class TestTargetReductionUtils {
     while (!waitlist.isEmpty()) {
       path = waitlist.pop();
       for (CFAEdgeNode succTarget : CFAEdgeNode.allSuccessorsOf(path.getSecond())) {
-        if (path.getFirst() == succTarget) {
-          continue;
-        }
         newPath = Pair.of(path.getFirst(), succTarget);
         viaInput =
             pathsToRequiredInputs.get(path) || path.getSecond().mayReachViaInputs(succTarget);
@@ -338,7 +332,7 @@ public final class TestTargetReductionUtils {
 
   public static boolean isInputEdge(CFAEdge pEdge) {
     if (pEdge instanceof DummyInputCFAEdge) {
-      return true;
+      return ((DummyInputCFAEdge) pEdge).providesInput();
     }
     if (pEdge instanceof AStatementEdge
         && ((AStatementEdge) pEdge).getStatement() instanceof AFunctionCall functionCall) {

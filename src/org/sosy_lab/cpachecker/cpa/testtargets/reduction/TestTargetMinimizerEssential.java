@@ -9,8 +9,10 @@
 package org.sosy_lab.cpachecker.cpa.testtargets.reduction;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -276,6 +278,12 @@ public class TestTargetMinimizerEssential {
     pred.removeLeavingEdge(toRemove);
     succ.removeEnteringEdge(toRemove);
 
+    updateTestGoalMappingAfterRemoval(
+        toRemove,
+        isLeaving ? CFAUtils.enteringEdges(pred) : CFAUtils.leavingEdges(succ),
+        copiedEdgeToTestTargetsMap,
+        pTestTargets);
+
     // add the exiting edges from the successor to the predecessor to keep the graph intact
     while (succ.getNumLeavingEdges() > 0) {
       redirectEdgeToNewPredecessor(
@@ -289,12 +297,6 @@ public class TestTargetMinimizerEssential {
       }*/
       redirectEdgeToNewSuccessor(succ.getEnteringEdge(0), pred, copiedEdgeToTestTargetsMap);
     }
-
-    updateTestGoalMappingAfterRemoval(
-        toRemove,
-        isLeaving ? CFAUtils.enteringEdges(pred) : CFAUtils.leavingEdges(succ),
-        copiedEdgeToTestTargetsMap,
-        pTestTargets);
   }
 
   /** Remove edges from copied graph according to first rule. */
@@ -323,8 +325,7 @@ public class TestTargetMinimizerEssential {
             || entersProgramEnd(leaving, pCopiedFunctionEntryExit.getSecond())
             || isSelfLoop(leaving)
             || (copiedEdgeToTestTargetsMap.containsKey(leaving)
-                && leaving instanceof DummyInputCFAEdge
-                && ((DummyInputCFAEdge) leaving).providesInput())) {
+                && TestTargetReductionUtils.isInputEdge(leaving))) {
           break;
         }
 
@@ -381,6 +382,47 @@ public class TestTargetMinimizerEssential {
     }
   }
 
+  private ImmutableSet<Pair<CFANode, CFANode>> determinePathsWithRequiredInputs(
+      final CFANode pEntryNode) {
+    Map<Pair<CFANode, CFANode>, Boolean> pathsToRequiredInputs = new HashMap<>();
+
+    Deque<Pair<CFANode, CFANode>> waitlist = new ArrayDeque<>();
+    Pair<CFANode, CFANode> path;
+    Pair<CFANode, CFANode> newPath;
+    boolean viaInput;
+
+    for (CFAEdge leaving : CFAUtils.allLeavingEdges(pEntryNode)) {
+      newPath = Pair.of(pEntryNode, leaving.getSuccessor());
+      pathsToRequiredInputs.put(newPath, TestTargetReductionUtils.isInputEdge(leaving));
+      waitlist.add(newPath);
+    }
+
+    while (!waitlist.isEmpty()) {
+      path = waitlist.pop();
+      for (CFAEdge leaving : CFAUtils.allLeavingEdges(path.getSecond())) {
+        newPath = Pair.of(leaving.getPredecessor(), leaving.getSuccessor());
+        viaInput = TestTargetReductionUtils.isInputEdge(leaving);
+        if (!pathsToRequiredInputs.containsKey(newPath)
+            || (!pathsToRequiredInputs.get(newPath) && viaInput)) {
+          pathsToRequiredInputs.put(newPath, viaInput);
+          waitlist.add(newPath);
+        }
+
+        newPath = Pair.of(path.getFirst(), leaving.getSuccessor());
+
+        viaInput = pathsToRequiredInputs.get(path) || TestTargetReductionUtils.isInputEdge(leaving);
+        if (!pathsToRequiredInputs.containsKey(newPath)
+            || (!pathsToRequiredInputs.get(newPath) && viaInput)) {
+          pathsToRequiredInputs.put(newPath, viaInput);
+          waitlist.add(newPath);
+        }
+      }
+    }
+    return ImmutableSet.copyOf(
+        FluentIterable.from(pathsToRequiredInputs.keySet())
+            .filter(pathPair -> pathsToRequiredInputs.get(pathPair)));
+  }
+
   private void applyRule3(
       final Set<CFAEdge> pTestTargets,
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
@@ -404,6 +446,9 @@ public class TestTargetMinimizerEssential {
             CFAUtils::allPredecessorsOf,
             pCopiedFunctionEntryExit.getSecond());
 
+    ImmutableSet<Pair<CFANode, CFANode>> pathsWithInput =
+        determinePathsWithRequiredInputs(pCopiedFunctionEntryExit.getFirst());
+
     waitlist.add(pCopiedFunctionEntryExit.getFirst());
     visitedNodes.add(pCopiedFunctionEntryExit.getFirst());
     while (!waitlist.isEmpty()) {
@@ -411,7 +456,8 @@ public class TestTargetMinimizerEssential {
       ruleApplicable = currentNode.getNumEnteringEdges() > 0;
       removedEdge = null;
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
-        if (!inverseDomTree.isAncestorOf(leavingEdge.getSuccessor(), currentNode)) {
+        if (!inverseDomTree.isAncestorOf(leavingEdge.getSuccessor(), currentNode)
+            || pathsWithInput.contains(Pair.of(currentNode, leavingEdge.getSuccessor()))) {
           if (removedEdge == null) {
             removedEdge = leavingEdge;
             if (entersProgramStart(removedEdge, pCopiedFunctionEntryExit.getFirst())
@@ -427,7 +473,7 @@ public class TestTargetMinimizerEssential {
             ruleApplicable = false;
             break;
           }
-        } // TODO do we need to check to ancestors do not require inputs
+        }
       }
 
       if (ruleApplicable && removedEdge != null && !isSelfLoop(removedEdge)) {
