@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -265,13 +267,17 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
         FluentIterable.from(startLineToCFAEdge.get(followLine)).filter(AStatementEdge.class)) {
       // The syntax of the witness V2 describes that the return statement must point to the
       // closing bracket of the function whose return statement is being considered
-      int columnEndOfEdge = edge.getFileLocation().getEndColumnInLine();
-      if (columnEndOfEdge != followColumn
+      AStatement statement = edge.getStatement();
+      FileLocation statementLocation = statement.getFileLocation();
+      int columnStartOfStatement = statementLocation.getStartColumnInLine();
+      int columnOfClosingBracketInFunctionCall =
+          columnStartOfStatement + statement.toString().lastIndexOf(")");
+      if (columnOfClosingBracketInFunctionCall != followColumn
           || edge.getFileLocation().getEndingLineInOrigin() != followLine) {
         continue;
       }
 
-      if (edge.getStatement() instanceof AFunctionCallAssignmentStatement statement) {
+      if (statement instanceof AFunctionCallAssignmentStatement functionCallStatement) {
         Set<String> constraints = new HashSet<>();
         if (constraint != null) {
           constraints.add(constraint);
@@ -290,7 +296,10 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                   CParserUtils.parseStatements(
                       constraints,
                       Optional.ofNullable(
-                          statement.getRightHandSide().getFunctionNameExpression().toString()),
+                          functionCallStatement
+                              .getRightHandSide()
+                              .getFunctionNameExpression()
+                              .toString()),
                       cparser,
                       scope,
                       parserTools),
