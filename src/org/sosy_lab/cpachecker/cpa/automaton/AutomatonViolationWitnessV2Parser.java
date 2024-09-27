@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesEleme
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IsStatementEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
@@ -201,18 +202,18 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       throw new AssertionError("This should never happen");
     }
 
-    if (nodesThenBranch.equals(nodesElseBranch) || nodesCondition.isEmpty()) {
-      logger.log(
-          Level.FINE,
-          "Skipping branching waypoint at if statement since the"
-              + " then and else branch are both empty,"
-              + " and currently there is no way to distinguish them.");
-      return Optional.empty();
-    }
+    // When the condition is empty we still want to be able to pass the waypoint
+    Set<CFANode> adaptedNodesCondition =
+        nodesCondition.isEmpty()
+            ? FluentIterable.from(nodesThenBranch)
+                .append(nodesElseBranch)
+                .transformAndConcat(CFAUtils::allPredecessorsOf)
+                .toSet()
+            : nodesCondition;
 
     AutomatonBoolExpr condition =
         new CheckPassesThroughNodes(
-            nodesCondition, pBranchToFollow ? nodesThenBranch : nodesElseBranch);
+            adaptedNodesCondition, pBranchToFollow ? nodesThenBranch : nodesElseBranch);
     AutomatonTransition followBranchTransition =
         distanceToViolation(
                 new AutomatonTransition.Builder(condition, nextStateId), pDistanceToViolation)
@@ -221,7 +222,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     // Add break state for the other branch, since we don't want to explore it
     CheckPassesThroughNodes negatedCondition =
         new CheckPassesThroughNodes(
-            nodesCondition, !pBranchToFollow ? nodesThenBranch : nodesElseBranch);
+            adaptedNodesCondition, !pBranchToFollow ? nodesThenBranch : nodesElseBranch);
     AutomatonTransition avoidBranchTransition =
         new AutomatonTransition.Builder(negatedCondition, AutomatonInternalState.BOTTOM).build();
 
