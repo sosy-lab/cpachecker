@@ -183,17 +183,6 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
       }
     }
 
-    // Handle the location invariants
-    for (CFANode node : functionCallInvariants.keySet()) {
-      Collection<ARGState> argStates = functionCallInvariants.get(node);
-      InvariantCreationResult locationInvariant =
-          createInvariant(argStates, node, InvariantRecordType.LOCATION_INVARIANT.getKeyword());
-      if (locationInvariant != null) {
-        entries.add(locationInvariant.invariantEntry());
-        translationAlwaysSuccessful &= locationInvariant.translationSuccessful();
-      }
-    }
-
     // If we are exporting to witness version 3.0 then we want to include function contracts
     ImmutableList<FunctionContractCreationResult> functionContractCreationResult =
         handleFunctionContract(
