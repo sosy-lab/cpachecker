@@ -81,6 +81,7 @@ public class SeqUtil {
     return rParamDecs.build();
   }
 
+  // TODO create CaseBuilder class
   /**
    * Returns a {@link SeqLoopCase} which represents case statements in the sequentializations while
    * loop. Returns null if pThreadNode has no leaving edges i.e. its pc is -1.
@@ -216,12 +217,22 @@ public class SeqUtil {
     }
   }
 
-  public static String wrapInCurlyBrackets(SeqExpression pExpression) {
+  /** Returns { pExpression } */
+  public static String wrapInCurlyInwards(SeqExpression pExpression) {
     return SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.SPACE
         + pExpression.createString()
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_RIGHT;
+  }
+
+  /** Returns } pExpression { */
+  public static String wrapInCurlyOutwards(SeqExpression pExpression) {
+    return SeqSyntax.CURLY_BRACKET_RIGHT
+        + SeqSyntax.SPACE
+        + pExpression.createString()
+        + SeqSyntax.SPACE
+        + SeqSyntax.CURLY_BRACKET_LEFT;
   }
 
   public static String generateCase(String pCaseNumber, String pCodeBlock) {

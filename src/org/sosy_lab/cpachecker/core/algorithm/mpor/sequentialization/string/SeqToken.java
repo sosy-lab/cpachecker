@@ -26,6 +26,8 @@ public class SeqToken {
 
   public static final String ELSE = "else";
 
+  public static final String EXECUTE = "execute";
+
   public static final String GLOBAL = "global";
 
   public static final String GOTO = "goto";
@@ -46,7 +48,8 @@ public class SeqToken {
 
   public static final String NON_VARIABLE = "(non-variable)";
 
-  public static final String NUM_THREADS = "num_threads";
+  /** Constant, hence uppercase. */
+  public static final String NUM_THREADS = "NUM_THREADS";
 
   public static final String ORIGINAL_PROGRAM_DECLARATIONS = "original program declarations";
 
@@ -73,6 +76,10 @@ public class SeqToken {
   public static final String THREAD = "thread";
 
   public static final String VARIABLES = "variables";
+
+  public static final String VERIFIER_NONDET_INT = "__VERIFIER_nondet_int";
+
+  public static final String VOID = "void";
 
   public static final String WHILE = "while";
 }

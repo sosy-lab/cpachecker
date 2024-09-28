@@ -12,20 +12,18 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.ArrayElement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Variable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqDataType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class SeqExprBuilder {
 
-  private static final Variable pcs = new Variable(SeqToken.PCS);
-
-  private static final Variable nextThread = new Variable(SeqToken.NEXT_THREAD);
-
-  public static final ArrayElement pcsNextThread = new ArrayElement(pcs, nextThread);
+  // TODO replace this with pc[0] etc. in the seq? should look cleaner
+  public static final ArrayElement pcsNextThread =
+      new ArrayElement(SeqVars.pcs, SeqVars.nextThread);
 
   public static final AssignExpr setExitPc =
       new AssignExpr(pcsNextThread, new Value(Integer.toString(SeqUtil.EXIT_PC)));

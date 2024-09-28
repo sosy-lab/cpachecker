@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
@@ -17,9 +17,9 @@ public class SwitchCaseExpr implements SeqExpression {
   // TODO restrict to Variable, ArrayExpr
   public final SeqExpression expression;
 
-  public final ImmutableSet<String> cases;
+  public final ImmutableList<String> cases;
 
-  public SwitchCaseExpr(SeqExpression pExpression, ImmutableSet<String> pCases) {
+  public SwitchCaseExpr(SeqExpression pExpression, ImmutableList<String> pCases) {
     expression = pExpression;
     cases = pCases;
   }

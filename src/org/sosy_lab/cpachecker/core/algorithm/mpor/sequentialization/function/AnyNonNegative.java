@@ -37,20 +37,15 @@ public class AnyNonNegative implements SeqFunction {
 
   private static final Variable index = new Variable(SeqToken.INDEX);
 
-  private static final FunctionSignature functionSignature =
-      new FunctionSignature(
-          SeqDataType.BOOL,
-          new FunctionCallExpr(SeqToken.ANY_NON_NEGATIVE, Optional.of(initParameters())));
-
-  private static final DeclareExpr declareExpr =
+  private static final DeclareExpr declareIndex =
       new DeclareExpr(
           new VariableExpr(Optional.of(SeqDataType.INT), index),
           Optional.of(new Value(SeqValue.ZERO)));
 
-  private static final LoopExpr loopExpr =
+  private static final LoopExpr loopIndexLessSize =
       new LoopExpr(new BooleanExpr(index, SeqOperator.LESS, size));
 
-  private static final IfExpr ifExpr =
+  private static final IfExpr ifElemGeqZero =
       new IfExpr(
           new BooleanExpr(
               new ArrayElement(array, index),
@@ -59,35 +54,27 @@ public class AnyNonNegative implements SeqFunction {
 
   private static final ReturnExpr returnTrue = new ReturnExpr(new Value(SeqValue.TRUE));
 
-  private static final IncrementExpr incrementExpr = new IncrementExpr(index);
+  private static final IncrementExpr incrementIndex = new IncrementExpr(index);
 
   private static final ReturnExpr returnFalse = new ReturnExpr(new Value(SeqValue.FALSE));
 
-  private static ImmutableList<SeqExpression> initParameters() {
-    ImmutableList.Builder<SeqExpression> rParameters = ImmutableList.builder();
-    rParameters.add(
-        new VariableExpr(Optional.of(SeqDataType.INT), new ArrayExpr(array, Optional.empty())));
-    rParameters.add(new VariableExpr(Optional.of(SeqDataType.INT), size));
-    return rParameters.build();
-  }
-
   @Override
   public String createString() {
-    return functionSignature.createString()
+    return getSignature().createString()
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.NEWLINE
         + SeqSyntax.TAB
-        + declareExpr.createString()
+        + declareIndex.createString()
         + SeqSyntax.NEWLINE
         + SeqSyntax.TAB
-        + loopExpr.createString()
+        + loopIndexLessSize.createString()
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.NEWLINE
         + SeqSyntax.TAB
         + SeqSyntax.TAB
-        + ifExpr.createString()
+        + ifElemGeqZero.createString()
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.NEWLINE
@@ -102,7 +89,7 @@ public class AnyNonNegative implements SeqFunction {
         + SeqSyntax.NEWLINE
         + SeqSyntax.TAB
         + SeqSyntax.TAB
-        + incrementExpr.createString()
+        + incrementIndex.createString()
         + SeqSyntax.NEWLINE
         + SeqSyntax.TAB
         + SeqSyntax.CURLY_BRACKET_RIGHT
@@ -111,5 +98,30 @@ public class AnyNonNegative implements SeqFunction {
         + returnFalse.createString()
         + SeqSyntax.NEWLINE
         + SeqSyntax.CURLY_BRACKET_RIGHT;
+  }
+
+  @Override
+  public String getReturnType() {
+    return SeqDataType.BOOL;
+  }
+
+  @Override
+  public String getName() {
+    return SeqToken.ANY_NON_NEGATIVE;
+  }
+
+  @Override
+  public ImmutableList<SeqExpression> getParameters() {
+    ImmutableList.Builder<SeqExpression> rParameters = ImmutableList.builder();
+    rParameters.add(
+        new VariableExpr(Optional.of(SeqDataType.INT), new ArrayExpr(array, Optional.empty())));
+    rParameters.add(new VariableExpr(Optional.of(SeqDataType.INT), size));
+    return rParameters.build();
+  }
+
+  @Override
+  public FunctionSignature getSignature() {
+    return new FunctionSignature(
+        getReturnType(), new FunctionCallExpr(getName(), Optional.of(getParameters())));
   }
 }

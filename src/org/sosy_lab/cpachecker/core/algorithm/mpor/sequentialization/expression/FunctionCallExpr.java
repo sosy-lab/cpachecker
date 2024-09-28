@@ -16,6 +16,7 @@ public class FunctionCallExpr implements SeqExpression {
 
   public final String functionName;
 
+  // TODO make this not optional and check if the list contains any elements
   public final Optional<ImmutableList<SeqExpression>> parameters;
 
   public FunctionCallExpr(

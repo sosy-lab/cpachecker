@@ -53,7 +53,7 @@ public class SeqLoopCaseStmt implements SeqElement {
             : null;
     String pcsUpdateString =
         isAssume && pcsUpdate != null
-            ? SeqUtil.wrapInCurlyBrackets(pcsUpdate)
+            ? SeqUtil.wrapInCurlyInwards(pcsUpdate)
             : targetPc.isPresent() ? pcsUpdate.createString() : SeqSyntax.EMPTY_STRING;
     if (statement.isEmpty()) {
       return pcsUpdateString;

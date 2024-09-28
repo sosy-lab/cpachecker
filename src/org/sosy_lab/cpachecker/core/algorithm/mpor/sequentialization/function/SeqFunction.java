@@ -8,6 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function;
 
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqElement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExpression;
 
-public interface SeqFunction extends SeqElement {}
+public interface SeqFunction extends SeqElement {
+
+  String getReturnType();
+
+  String getName();
+
+  ImmutableList<SeqExpression> getParameters();
+
+  FunctionSignature getSignature();
+}

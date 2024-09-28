@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.DeclareExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.VariableExpr;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.MainMethod;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCaseStmt;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
@@ -88,24 +89,19 @@ public class Sequentialization {
     rProgram.append(SeqComment.createReturnPcVarsComment());
     for (MPORThread thread : pSubstitutions.keySet()) {
       for (DeclareExpr dec : mapReturnPcDecs(thread).values()) {
-        rProgram.append(dec.createString());
+        rProgram.append(dec.createString()).append(SeqSyntax.NEWLINE);
       }
     }
 
     ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> loopCases = mapLoopCases(pSubstitutions);
-    for (var entry : loopCases.entrySet()) {
-      rProgram.append(SeqSyntax.NEWLINE).append(SeqSyntax.NEWLINE);
-      rProgram.append("===== thread " + entry.getKey().id + " =====");
-      for (SeqLoopCase loopCase : entry.getValue()) {
-        rProgram.append(loopCase.createString());
-      }
-    }
+    MainMethod main = new MainMethod(loopCases);
+    rProgram.append(main.createString());
 
     // TODO prune empty cases
-    rProgram.append("===== pruned main thread =====");
+    /*rProgram.append("===== pruned main thread =====");
     for (SeqLoopCase loopCase : pruneLoopCases(loopCases.get(mainThread))) {
       rProgram.append(loopCase.createString());
-    }
+    }*/
 
     return rProgram.toString();
   }
