@@ -266,6 +266,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
           nodesBetweenConditionAndSecondBranch = iterationElement.getNodesBetweenConditionAndExit();
           astElementLocation = iterationElement.getCompleteElement().location();
         } else {
+          // TODO: Handle conditional expressions. This would need to be added at the parser level
+          // and then added to the AstCfaRelation. The problem is that this occurs at the expression
+          // level and we currently only consider statements. The relevant parser expression type is
+          // IASTConditionalExpression.
           logger.log(Level.INFO, "Could not find the AST structure for the edge: " + edge);
           continue;
         }
