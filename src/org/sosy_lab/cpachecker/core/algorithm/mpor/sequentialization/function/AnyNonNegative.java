@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.ArrayElement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Variable;
@@ -59,44 +60,20 @@ public class AnyNonNegative implements SeqFunction {
   private static final ReturnExpr returnFalse = new ReturnExpr(new Value(SeqValue.FALSE));
 
   @Override
-  public String createString() {
-    return getSignature().createString()
+  public String toString() {
+    return getSignature().toString()
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.NEWLINE
-        + SeqSyntax.TAB
-        + declareIndex.createString()
-        + SeqSyntax.NEWLINE
-        + SeqSyntax.TAB
-        + loopIndexLessSize.createString()
-        + SeqSyntax.SPACE
-        + SeqSyntax.CURLY_BRACKET_LEFT
-        + SeqSyntax.NEWLINE
-        + SeqSyntax.TAB
-        + SeqSyntax.TAB
-        + ifElemGeqZero.createString()
-        + SeqSyntax.SPACE
-        + SeqSyntax.CURLY_BRACKET_LEFT
-        + SeqSyntax.NEWLINE
-        + SeqSyntax.TAB
-        + SeqSyntax.TAB
-        + SeqSyntax.TAB
-        + returnTrue.createString()
-        + SeqSyntax.NEWLINE
-        + SeqSyntax.TAB
-        + SeqSyntax.TAB
-        + SeqSyntax.CURLY_BRACKET_RIGHT
-        + SeqSyntax.NEWLINE
-        + SeqSyntax.TAB
-        + SeqSyntax.TAB
-        + incrementIndex.createString()
-        + SeqSyntax.NEWLINE
-        + SeqSyntax.TAB
-        + SeqSyntax.CURLY_BRACKET_RIGHT
-        + SeqSyntax.NEWLINE
-        + SeqSyntax.TAB
-        + returnFalse.createString()
-        + SeqSyntax.NEWLINE
+        + SeqUtil.prependTabsWithNewline(1, declareIndex.toString())
+        + SeqUtil.prependTabsWithNewline(
+            1, SeqUtil.appendOpeningCurly(loopIndexLessSize.toString()))
+        + SeqUtil.prependTabsWithNewline(2, SeqUtil.appendOpeningCurly(ifElemGeqZero.toString()))
+        + SeqUtil.prependTabsWithNewline(3, returnTrue.toString())
+        + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
+        + SeqUtil.prependTabsWithNewline(2, incrementIndex.toString())
+        + SeqUtil.prependTabsWithNewline(1, SeqSyntax.CURLY_BRACKET_RIGHT)
+        + SeqUtil.prependTabsWithNewline(1, returnFalse.toString())
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 

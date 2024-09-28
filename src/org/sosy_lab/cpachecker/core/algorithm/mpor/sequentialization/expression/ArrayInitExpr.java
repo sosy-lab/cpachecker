@@ -38,16 +38,16 @@ public class ArrayInitExpr implements SeqExpression {
   }
 
   @Override
-  public String createString() {
+  public String toString() {
     return dataType
         + SeqSyntax.SPACE
-        + arrayExpr.createString()
+        + arrayExpr.toString()
         + SeqSyntax.SPACE
         + SeqOperator.ASSIGN
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.SPACE
-        + initValue.createString()
+        + initValue.toString()
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_RIGHT
         + SeqSyntax.SEMICOLON;

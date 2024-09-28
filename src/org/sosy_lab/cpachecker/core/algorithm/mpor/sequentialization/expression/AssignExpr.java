@@ -24,12 +24,12 @@ public class AssignExpr implements SeqExpression {
   }
 
   @Override
-  public String createString() {
-    return preceding.createString()
+  public String toString() {
+    return preceding.toString()
         + SeqSyntax.SPACE
         + SeqOperator.ASSIGN
         + SeqSyntax.SPACE
-        + subsequent.createString()
+        + subsequent.toString()
         + SeqSyntax.SEMICOLON
         + SeqSyntax.SPACE;
   }

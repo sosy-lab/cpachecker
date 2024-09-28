@@ -9,9 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 public interface SeqElement {
-  // TODO remove this function and create custom string create functions
-  //  this way we can specify stuff like addSemicolon, tab, newline, etc.
-  //  OR: just override toString method
-  //  one option is to include an int tab parameter
-  String createString();
+  @Override
+  String toString();
 }

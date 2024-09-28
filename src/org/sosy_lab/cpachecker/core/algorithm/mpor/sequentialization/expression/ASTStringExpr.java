@@ -17,7 +17,7 @@ public class ASTStringExpr implements SeqExpression {
   }
 
   @Override
-  public String createString() {
+  public String toString() {
     return astString;
   }
 }

@@ -26,11 +26,11 @@ public class BooleanExpr implements SeqExpression {
   }
 
   @Override
-  public String createString() {
-    return preceding.createString()
+  public String toString() {
+    return preceding.toString()
         + SeqSyntax.SPACE
         + operator
         + SeqSyntax.SPACE
-        + subsequent.createString();
+        + subsequent.toString();
   }
 }

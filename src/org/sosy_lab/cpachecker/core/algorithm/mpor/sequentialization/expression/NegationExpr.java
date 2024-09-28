@@ -20,10 +20,10 @@ public class NegationExpr implements SeqExpression {
   }
 
   @Override
-  public String createString() {
+  public String toString() {
     return SeqOperator.NOT
         + SeqSyntax.BRACKET_LEFT
-        + expression.createString()
+        + expression.toString()
         + SeqSyntax.BRACKET_RIGHT;
   }
 }

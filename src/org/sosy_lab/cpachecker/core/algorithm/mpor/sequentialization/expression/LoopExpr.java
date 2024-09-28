@@ -21,11 +21,11 @@ public class LoopExpr implements SeqExpression {
   }
 
   @Override
-  public String createString() {
+  public String toString() {
     return SeqToken.WHILE
         + SeqSyntax.SPACE
         + SeqSyntax.BRACKET_LEFT
-        + condition.createString()
+        + condition.toString()
         + SeqSyntax.BRACKET_RIGHT;
   }
 }

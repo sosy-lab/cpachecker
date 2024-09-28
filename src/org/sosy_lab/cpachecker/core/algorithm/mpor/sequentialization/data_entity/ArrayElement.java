@@ -22,10 +22,10 @@ public class ArrayElement implements SeqDataEntity {
   }
 
   @Override
-  public String createString() {
-    return array.createString()
+  public String toString() {
+    return array.toString()
         + SeqSyntax.SQUARE_BRACKET_LEFT
-        + index.createString()
+        + index.toString()
         + SeqSyntax.SQUARE_BRACKET_RIGHT;
   }
 }

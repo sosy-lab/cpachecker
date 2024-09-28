@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqElement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
@@ -51,12 +52,14 @@ public class SeqLoopCase implements SeqElement {
   }
 
   @Override
-  public String createString() {
+  public String toString() {
     StringBuilder stmts = new StringBuilder();
     for (SeqLoopCaseStmt stmt : statements) {
-      stmts.append(stmt.createString());
+      stmts.append(stmt.toString());
     }
-    return SeqToken.CASE
+    // TODO hardcoded value...
+    return SeqUtil.repeat(SeqSyntax.TAB, 4)
+        + SeqToken.CASE
         + SeqSyntax.SPACE
         + originPc
         + SeqSyntax.COLON

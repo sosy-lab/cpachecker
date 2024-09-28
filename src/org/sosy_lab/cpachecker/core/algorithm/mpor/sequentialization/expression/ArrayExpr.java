@@ -25,10 +25,10 @@ public class ArrayExpr implements SeqExpression {
   }
 
   @Override
-  public String createString() {
-    return array.createString()
+  public String toString() {
+    return array.toString()
         + SeqSyntax.SQUARE_BRACKET_LEFT
-        + (index.isPresent() ? index.orElseThrow().createString() : SeqSyntax.EMPTY_STRING)
+        + (index.isPresent() ? index.orElseThrow().toString() : SeqSyntax.EMPTY_STRING)
         + SeqSyntax.SQUARE_BRACKET_RIGHT;
   }
 }

@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.DeclareExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.VariableExpr;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.AnyNonNegative;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.MainMethod;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCaseStmt;
@@ -56,7 +57,7 @@ public class Sequentialization {
 
   // TODO create LineOfCode class with multiple constructors where we define tab amount, semicolon
   //  curly left / right brackets, newlines, etc.
-  public static final int TAB_SIZE = 3;
+  public static final int TAB_SIZE = 2;
 
   protected final int numThreads;
 
@@ -89,15 +90,20 @@ public class Sequentialization {
     rProgram.append(SeqComment.createReturnPcVarsComment());
     for (MPORThread thread : pSubstitutions.keySet()) {
       for (DeclareExpr dec : mapReturnPcDecs(thread).values()) {
-        rProgram.append(dec.createString()).append(SeqSyntax.NEWLINE);
+        rProgram.append(dec.toString()).append(SeqSyntax.NEWLINE);
       }
     }
+    rProgram.append(SeqSyntax.NEWLINE);
 
+    // TODO probably have to declare this function
+    AnyNonNegative anyNonNegative = new AnyNonNegative();
+    rProgram.append(anyNonNegative).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
+
+    // TODO prune empty loop cases
     ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> loopCases = mapLoopCases(pSubstitutions);
-    MainMethod main = new MainMethod(loopCases);
-    rProgram.append(main.createString());
+    MainMethod mainMethod = new MainMethod(loopCases);
+    rProgram.append(mainMethod);
 
-    // TODO prune empty cases
     /*rProgram.append("===== pruned main thread =====");
     for (SeqLoopCase loopCase : pruneLoopCases(loopCases.get(mainThread))) {
       rProgram.append(loopCase.createString());
@@ -369,7 +375,7 @@ public class Sequentialization {
     StringBuilder rDecs = new StringBuilder();
     rDecs.append(SeqComment.createGlobalVarsComment());
     for (ASTStringExpr expr : SeqUtil.createGlobalDeclarations(pSubstitution)) {
-      rDecs.append(expr.createString()).append(SeqSyntax.NEWLINE);
+      rDecs.append(expr.toString()).append(SeqSyntax.NEWLINE);
     }
     rDecs.append(SeqSyntax.NEWLINE);
     return rDecs.toString();
@@ -379,7 +385,7 @@ public class Sequentialization {
     StringBuilder rDecs = new StringBuilder();
     rDecs.append(SeqComment.createLocalVarsComment(pThreadId));
     for (ASTStringExpr expr : SeqUtil.createLocalDeclarations(pSubstitution)) {
-      rDecs.append(expr.createString()).append(SeqSyntax.NEWLINE);
+      rDecs.append(expr.toString()).append(SeqSyntax.NEWLINE);
     }
     rDecs.append(SeqSyntax.NEWLINE);
     return rDecs.toString();
@@ -389,7 +395,7 @@ public class Sequentialization {
     StringBuilder rDecs = new StringBuilder();
     rDecs.append(SeqComment.createParamVarsComment(pThreadId));
     for (ASTStringExpr expr : SeqUtil.createParamDeclarations(pSubstitution)) {
-      rDecs.append(expr.createString()).append(SeqSyntax.NEWLINE);
+      rDecs.append(expr.toString()).append(SeqSyntax.NEWLINE);
     }
     rDecs.append(SeqSyntax.NEWLINE);
     return rDecs.toString();

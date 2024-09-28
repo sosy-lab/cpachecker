@@ -221,7 +221,7 @@ public class SeqUtil {
   public static String wrapInCurlyInwards(SeqExpression pExpression) {
     return SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.SPACE
-        + pExpression.createString()
+        + pExpression.toString()
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
@@ -230,9 +230,27 @@ public class SeqUtil {
   public static String wrapInCurlyOutwards(SeqExpression pExpression) {
     return SeqSyntax.CURLY_BRACKET_RIGHT
         + SeqSyntax.SPACE
-        + pExpression.createString()
+        + pExpression.toString()
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT;
+  }
+
+  public static String appendOpeningCurly(String pString) {
+    return pString + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT;
+  }
+
+  /** Returns pString with the specified amount of tabs as prefix and adds a new line \n. */
+  public static String prependTabsWithNewline(int pTabs, String pString) {
+    return prependTabsWithoutNewline(pTabs, pString) + SeqSyntax.NEWLINE;
+  }
+
+  /** Returns pString with the specified amount of tabs as prefix. */
+  public static String prependTabsWithoutNewline(int pTabs, String pString) {
+    return repeat(SeqSyntax.TAB, pTabs) + pString;
+  }
+
+  public static String repeat(String pString, int pAmount) {
+    return pString.repeat(Math.max(0, pAmount));
   }
 
   public static String generateCase(String pCaseNumber, String pCodeBlock) {

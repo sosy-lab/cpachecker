@@ -19,7 +19,7 @@ public class EdgeCodeExpr implements SeqExpression {
   }
 
   @Override
-  public String createString() {
+  public String toString() {
     return edge.getCode();
   }
 }

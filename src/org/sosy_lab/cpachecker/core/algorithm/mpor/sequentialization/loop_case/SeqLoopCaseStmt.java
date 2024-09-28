@@ -46,7 +46,7 @@ public class SeqLoopCaseStmt implements SeqElement {
   }
 
   @Override
-  public String createString() {
+  public String toString() {
     AssignExpr pcsUpdate =
         targetPc.isPresent()
             ? SeqExprBuilder.createPcsNextThreadAssign(targetPc.orElseThrow())
@@ -54,11 +54,11 @@ public class SeqLoopCaseStmt implements SeqElement {
     String pcsUpdateString =
         isAssume && pcsUpdate != null
             ? SeqUtil.wrapInCurlyInwards(pcsUpdate)
-            : targetPc.isPresent() ? pcsUpdate.createString() : SeqSyntax.EMPTY_STRING;
+            : targetPc.isPresent() ? pcsUpdate.toString() : SeqSyntax.EMPTY_STRING;
     if (statement.isEmpty()) {
       return pcsUpdateString;
     } else {
-      return statement.orElseThrow().createString() + SeqSyntax.SPACE + pcsUpdateString;
+      return statement.orElseThrow().toString() + SeqSyntax.SPACE + pcsUpdateString;
     }
   }
 }

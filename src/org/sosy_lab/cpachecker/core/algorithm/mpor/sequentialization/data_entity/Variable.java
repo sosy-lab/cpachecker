@@ -17,7 +17,7 @@ public class Variable implements SeqDataEntity {
   }
 
   @Override
-  public String createString() {
+  public String toString() {
     return name;
   }
 }

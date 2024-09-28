@@ -20,11 +20,11 @@ public class InitializerListExpr implements SeqExpression {
   }
 
   @Override
-  public String createString() {
+  public String toString() {
     StringBuilder inits = new StringBuilder();
     String suffix = SeqSyntax.COMMA + SeqSyntax.SPACE;
     for (int i = 0; i < initializers.size(); i++) {
-      inits.append(initializers.get(i).createString());
+      inits.append(initializers.get(i).toString());
       if (i != initializers.size() - 1) {
         inits.append(suffix);
       }

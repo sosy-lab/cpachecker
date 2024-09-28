@@ -87,70 +87,59 @@ public class MainMethod implements SeqFunction {
   }
 
   @Override
-  public String createString() {
+  public String toString() {
     StringBuilder switchCases = new StringBuilder();
 
-    boolean firstEntry = true;
+    int i = 0;
     for (var entry : loopCases.entrySet()) {
       Value threadId = new Value(Integer.toString(entry.getKey().id));
       IfExpr ifExpr = new IfExpr(new BooleanExpr(SeqVars.nextThread, SeqOperator.EQUAL, threadId));
-      if (firstEntry) {
-        firstEntry = false;
-        switchCases
-            .append(ifExpr.createString())
-            .append(SeqSyntax.SPACE)
-            .append(SeqSyntax.CURLY_BRACKET_LEFT);
+
+      // first switch case: use if, otherwise else-if
+      if (i == 0) {
+        switchCases.append(
+            SeqUtil.prependTabsWithoutNewline(2, SeqUtil.appendOpeningCurly(ifExpr.toString())));
       } else {
         ElseIfExpr elseIfExpr = new ElseIfExpr(ifExpr);
-        switchCases.append(SeqUtil.wrapInCurlyOutwards(elseIfExpr));
+        switchCases.append(
+            SeqUtil.prependTabsWithoutNewline(2, SeqUtil.wrapInCurlyOutwards(elseIfExpr)));
       }
       switchCases.append(SeqSyntax.NEWLINE);
       ImmutableList.Builder<String> cases = ImmutableList.builder();
       for (SeqLoopCase loopCase : entry.getValue()) {
-        cases.add(loopCase.createString());
+        cases.add(loopCase.toString());
       }
       ArrayElement arrayElem = new ArrayElement(SeqVars.pcs, threadId);
       SwitchCaseExpr switchCaseExpr = new SwitchCaseExpr(arrayElem, cases.build());
-      switchCases
-          .append(switchCaseExpr.createString())
-          .append(SeqSyntax.NEWLINE)
-          .append(SeqSyntax.NEWLINE);
+      switchCases.append(SeqUtil.prependTabsWithNewline(3, switchCaseExpr.toString()));
+
+      // append newline, except for last switch case
+      if (i != loopCases.size() - 1) {
+        switchCases.append(SeqSyntax.NEWLINE);
+      }
+      i++;
     }
 
-    return getSignature().createString()
+    return getSignature().toString()
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
+        + SeqUtil.repeat(SeqSyntax.NEWLINE, 2)
+        + SeqUtil.prependTabsWithNewline(1, declareNumThreads.toString())
+        + SeqUtil.prependTabsWithNewline(1, declarePcs.toString())
+        + SeqUtil.prependTabsWithNewline(1, declareExecute.toString())
         + SeqSyntax.NEWLINE
-        + declareNumThreads.createString()
+        + SeqUtil.prependTabsWithNewline(1, SeqUtil.appendOpeningCurly(whileExecute.toString()))
+        + SeqUtil.prependTabsWithNewline(2, declareNextThread.toString())
+        + SeqUtil.prependTabsWithNewline(2, assumeNextThread.toString())
         + SeqSyntax.NEWLINE
-        + declarePcs.createString()
-        + SeqSyntax.NEWLINE
-        + declareExecute.createString()
-        + SeqSyntax.NEWLINE
-        + whileExecute.createString()
-        + SeqSyntax.SPACE
-        + SeqSyntax.CURLY_BRACKET_LEFT
-        + SeqSyntax.NEWLINE
-        + declareNextThread.createString()
-        + SeqSyntax.NEWLINE
-        + assumeNextThread.createString()
-        + SeqSyntax.NEWLINE
-        + exitPcCheck.createString()
-        + SeqSyntax.SPACE
-        + SeqSyntax.CURLY_BRACKET_LEFT
-        + SeqSyntax.NEWLINE
-        + executeUpdate.createString()
-        + SeqSyntax.NEWLINE
-        + SeqToken.CONTINUE
-        + SeqSyntax.SEMICOLON
-        + SeqSyntax.NEWLINE
-        + SeqSyntax.CURLY_BRACKET_RIGHT
+        + SeqUtil.prependTabsWithNewline(2, SeqUtil.appendOpeningCurly(exitPcCheck.toString()))
+        + SeqUtil.prependTabsWithNewline(3, executeUpdate.toString())
+        + SeqUtil.prependTabsWithNewline(3, SeqToken.CONTINUE + SeqSyntax.SEMICOLON)
+        + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
         + SeqSyntax.NEWLINE
         + switchCases
-        + SeqSyntax.CURLY_BRACKET_RIGHT
-        + SeqSyntax.NEWLINE
-        + SeqSyntax.CURLY_BRACKET_RIGHT
-        + SeqSyntax.NEWLINE
+        + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
+        + SeqUtil.prependTabsWithNewline(1, SeqSyntax.CURLY_BRACKET_RIGHT)
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 

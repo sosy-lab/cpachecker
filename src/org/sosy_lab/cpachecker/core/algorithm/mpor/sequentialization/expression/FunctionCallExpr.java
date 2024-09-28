@@ -27,13 +27,13 @@ public class FunctionCallExpr implements SeqExpression {
   }
 
   @Override
-  public String createString() {
+  public String toString() {
     StringBuilder parametersString = new StringBuilder(SeqSyntax.EMPTY_STRING);
     if (!parameters.isEmpty()) {
       String separator = SeqSyntax.COMMA + SeqSyntax.SPACE;
       for (int i = 0; i < parameters.size(); i++) {
         parametersString
-            .append(parameters.get(i).createString())
+            .append(parameters.get(i).toString())
             .append(i == parameters.size() - 1 ? SeqSyntax.EMPTY_STRING : separator);
       }
     }

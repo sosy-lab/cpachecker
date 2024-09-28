@@ -21,7 +21,7 @@ public class ReturnExpr implements SeqExpression {
   }
 
   @Override
-  public String createString() {
-    return SeqToken.RETURN + SeqSyntax.SPACE + dataEntity.createString() + SeqSyntax.SEMICOLON;
+  public String toString() {
+    return SeqToken.RETURN + SeqSyntax.SPACE + dataEntity.toString() + SeqSyntax.SEMICOLON;
   }
 }

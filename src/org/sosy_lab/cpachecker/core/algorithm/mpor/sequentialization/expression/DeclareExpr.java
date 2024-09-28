@@ -24,14 +24,14 @@ public class DeclareExpr implements SeqExpression {
   }
 
   @Override
-  public String createString() {
+  public String toString() {
     String assignment =
         value.isEmpty()
             ? SeqSyntax.EMPTY_STRING
             : SeqSyntax.SPACE
                 + SeqOperator.ASSIGN
                 + SeqSyntax.SPACE
-                + value.orElseThrow().createString();
-    return variableExpr.createString() + assignment + SeqSyntax.SEMICOLON;
+                + value.orElseThrow().toString();
+    return variableExpr.toString() + assignment + SeqSyntax.SEMICOLON;
   }
 }

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
@@ -25,7 +26,7 @@ public class SwitchCaseExpr implements SeqExpression {
   }
 
   @Override
-  public String createString() {
+  public String toString() {
     StringBuilder casesString = new StringBuilder(SeqSyntax.EMPTY_STRING);
     for (String caseString : cases) {
       casesString.append(caseString);
@@ -33,13 +34,14 @@ public class SwitchCaseExpr implements SeqExpression {
     return SeqToken.SWITCH
         + SeqSyntax.SPACE
         + SeqSyntax.BRACKET_LEFT
-        + expression.createString()
+        + expression.toString()
         + SeqSyntax.BRACKET_RIGHT
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.NEWLINE
         + casesString
-        + SeqSyntax.TAB
+        // TODO hardcoded value...
+        + SeqUtil.repeat(SeqSyntax.TAB, 3)
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 }
