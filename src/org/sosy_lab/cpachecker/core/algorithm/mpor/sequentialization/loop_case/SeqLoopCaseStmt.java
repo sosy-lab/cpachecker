@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqElement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 /** Represents a single case statement in the sequentialization while loop. */
@@ -23,7 +24,7 @@ public class SeqLoopCaseStmt implements SeqElement {
   /** True if this is an if, else-if or else statement (extra curly brackets required). */
   public final boolean isAssume;
 
-  public final String statement;
+  public final Optional<SeqExpression> statement;
 
   /**
    * The next pc of the current thread after this statement is executed. Can be empty if there are
@@ -31,12 +32,17 @@ public class SeqLoopCaseStmt implements SeqElement {
    */
   public final Optional<Integer> targetPc;
 
-  public SeqLoopCaseStmt(boolean pIsAssume, String pStatement, Optional<Integer> pTargetPc) {
+  public SeqLoopCaseStmt(
+      boolean pIsAssume, Optional<SeqExpression> pStatement, Optional<Integer> pTargetPc) {
     // if isAssume, then targetPc has to be present
     checkArgument(!pIsAssume || pTargetPc.isPresent());
     isAssume = pIsAssume;
     statement = pStatement;
     targetPc = pTargetPc;
+  }
+
+  protected SeqLoopCaseStmt cloneWithTargetPc(int pTargetPc) {
+    return new SeqLoopCaseStmt(isAssume, statement, Optional.of(pTargetPc));
   }
 
   @Override
@@ -49,6 +55,10 @@ public class SeqLoopCaseStmt implements SeqElement {
         isAssume && pcsUpdate != null
             ? SeqUtil.wrapInCurlyBrackets(pcsUpdate)
             : targetPc.isPresent() ? pcsUpdate.createString() : SeqSyntax.EMPTY_STRING;
-    return statement + SeqSyntax.SPACE + pcsUpdateString;
+    if (statement.isEmpty()) {
+      return pcsUpdateString;
+    } else {
+      return statement.orElseThrow().createString() + SeqSyntax.SPACE + pcsUpdateString;
+    }
   }
 }

@@ -401,7 +401,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * The map of thread specific variable declaration substitutions. The main thread (0) handles
    * global variables.
    */
-  private final ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> decSubstitutions;
+  private final ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> substitutions;
 
   public MPORAlgorithm(
       ConfigurableProgramAnalysis pCpa,
@@ -437,7 +437,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     globalVars = getGlobalVars(INPUT_CFA);
     threads = getThreads(INPUT_CFA, funcCallMap);
 
-    decSubstitutions = SubstituteBuilder.getDecSubstitutions(globalVars, threads, binExprBuilder);
+    substitutions = SubstituteBuilder.getDecSubstitutions(globalVars, threads, binExprBuilder);
 
     SEQ = new Sequentialization(threads.size());
   }

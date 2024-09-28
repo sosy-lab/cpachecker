@@ -102,12 +102,12 @@ public class SeqUtil {
       assert pThreadNode.pc == EXIT_PC; // TODO test, remove later
       return null;
 
-      // exiting function: pc not relevant, assign thread and function-specific return pc
+      // handle all CFunctionReturnEdges: exiting function -> pc not relevant, assign return pc
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
       assert pPcsReturnPcAssigns.containsKey(pThreadNode);
       AssignExpr assign = pPcsReturnPcAssigns.get(pThreadNode);
       assert assign != null;
-      stmts.add(new SeqLoopCaseStmt(false, assign.createString(), Optional.empty()));
+      stmts.add(new SeqLoopCaseStmt(false, Optional.of(assign), Optional.empty()));
 
     } else {
       boolean firstEdge = true;
@@ -115,24 +115,28 @@ public class SeqUtil {
         CFAEdge sub = pEdgeSubs.get(threadEdge);
         Optional<Integer> targetPc = Optional.of(threadEdge.getSuccessor().pc);
 
-        if (!emptyCaseCode(sub)) {
+        if (emptyCaseCode(sub)) {
+          assert pThreadNode.leavingEdges().size() == 1; // TODO test, remove later
+          stmts.add(new SeqLoopCaseStmt(false, Optional.empty(), targetPc));
+
+        } else {
           // use (else) if (condition) for assumes, no matter if induced by if, for, while...
           if (sub instanceof CAssumeEdge) {
             assert allEdgesAssume(pThreadNode.leavingEdges()); // TODO test, remove later
             IfExpr ifExpr = new IfExpr(new EdgeCodeExpr(sub));
             if (firstEdge) {
               firstEdge = false;
-              stmts.add(new SeqLoopCaseStmt(true, ifExpr.createString(), targetPc));
+              stmts.add(new SeqLoopCaseStmt(true, Optional.of(ifExpr), targetPc));
             } else {
               ElseIfExpr elseIfExpr = new ElseIfExpr(ifExpr);
-              stmts.add(new SeqLoopCaseStmt(true, elseIfExpr.createString(), targetPc));
+              stmts.add(new SeqLoopCaseStmt(true, Optional.of(elseIfExpr), targetPc));
             }
 
           } else if (sub instanceof FunctionSummaryEdge) {
             assert pReturnPcAssigns.containsKey(threadEdge);
             AssignExpr assign = pReturnPcAssigns.get(threadEdge);
             assert assign != null;
-            stmts.add(new SeqLoopCaseStmt(false, assign.createString(), targetPc));
+            stmts.add(new SeqLoopCaseStmt(false, Optional.of(assign), Optional.empty()));
 
           } else if (sub instanceof FunctionCallEdge) {
             assert pParamAssigns.containsKey(threadEdge);
@@ -144,7 +148,7 @@ public class SeqUtil {
               stmts.add(
                   new SeqLoopCaseStmt(
                       false,
-                      assign.createString(),
+                      Optional.of(assign),
                       i == assigns.size() - 1 ? targetPc : Optional.empty()));
             }
 
@@ -162,15 +166,24 @@ public class SeqUtil {
             CFAEdge succSub = pEdgeSubs.get(succEdge);
             CFAEdge succSuccSub = pEdgeSubs.get(succSuccEdge);
             assert succSub != null && succSuccSub != null;
-            stmts.add(new SeqLoopCaseStmt(false, sub.getCode(), Optional.empty()));
-            stmts.add(new SeqLoopCaseStmt(false, succSub.getCode(), Optional.empty()));
+            stmts.add(
+                new SeqLoopCaseStmt(false, Optional.of(new EdgeCodeExpr(sub)), Optional.empty()));
             stmts.add(
                 new SeqLoopCaseStmt(
-                    false, succSuccSub.getCode(), Optional.of(succSuccEdge.getSuccessor().pc)));
+                    false, Optional.of(new EdgeCodeExpr(succSub)), Optional.empty()));
+            stmts.add(
+                new SeqLoopCaseStmt(
+                    false,
+                    Optional.of(new EdgeCodeExpr(succSuccSub)),
+                    Optional.of(succSuccEdge.getSuccessor().pc)));
+
+            // TODO CReturnStatementEdge
+            //  map CFunctionSummaryEdge(s) to CReturnStatementEdge(s). depending on the return_pc,
+            //  assign return value to CPAchecker_TMP var
 
           } else {
             assert sub != null;
-            stmts.add(new SeqLoopCaseStmt(false, sub.getCode(), targetPc));
+            stmts.add(new SeqLoopCaseStmt(false, Optional.of(new EdgeCodeExpr(sub)), targetPc));
           }
         }
       }

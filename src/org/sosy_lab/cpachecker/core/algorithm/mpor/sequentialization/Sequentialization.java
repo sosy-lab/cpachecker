@@ -17,8 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -39,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.VariableExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCaseStmt;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
@@ -89,21 +88,42 @@ public class Sequentialization {
       }
     }
 
-    // create all loop cases for all threadNodes
-    for (var entry : pSubstitutions.entrySet()) {
+    ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> loopCases = mapLoopCases(pSubstitutions);
+    for (var entry : loopCases.entrySet()) {
+      rProgram.append(SeqSyntax.NEWLINE).append(SeqSyntax.NEWLINE);
+      rProgram.append("===== thread " + entry.getKey().id + " =====");
+      for (SeqLoopCase loopCase : entry.getValue()) {
+        rProgram.append(loopCase.createString());
+      }
+    }
 
-      SortedMap<Integer, SeqLoopCase> loopCases = new TreeMap<>();
+    // TODO prune empty cases
+    rProgram.append("===== pruned main thread =====");
+    for (SeqLoopCase loopCase : pruneLoopCases(loopCases.get(mainThread))) {
+      rProgram.append(loopCase.createString());
+    }
+
+    return rProgram.toString();
+  }
+
+  /** Maps threads to their SeqLoopCases. */
+  private static ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> mapLoopCases(
+      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions) {
+    ImmutableMap.Builder<MPORThread, ImmutableList<SeqLoopCase>> rLoopCases =
+        ImmutableMap.builder();
+    for (var entry : pSubstitutions.entrySet()) {
+      ImmutableList.Builder<SeqLoopCase> loopCases = ImmutableList.builder();
       Set<ThreadNode> coveredNodes = new HashSet<>();
 
       MPORThread thread = entry.getKey();
       CSimpleDeclarationSubstitution substitution = entry.getValue();
+
       ImmutableMap<ThreadEdge, CFAEdge> edgeSubs = substitution.substituteEdges(thread);
       ImmutableMap<ThreadEdge, AssignExpr> returnPcAssigns = mapReturnPcAssigns(thread);
       ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> paramAssigns =
           mapParamAssigns(thread, substitution);
       ImmutableMap<ThreadNode, AssignExpr> pcsReturnPcAssigns = mapPcsReturnPcAssigns(thread);
-      rProgram.append(SeqSyntax.NEWLINE).append(SeqSyntax.NEWLINE);
-      rProgram.append("====== thread " + thread.id + " ======");
+
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
         if (!coveredNodes.contains(threadNode)) {
           SeqLoopCase loopCase =
@@ -115,16 +135,65 @@ public class Sequentialization {
                   paramAssigns,
                   pcsReturnPcAssigns);
           if (loopCase != null) {
-            loopCases.put(threadNode.pc, loopCase);
+            loopCases.add(loopCase);
           }
         }
       }
-      for (SeqLoopCase loopCase : loopCases.values()) {
-        rProgram.append(loopCase.createString());
+      rLoopCases.put(thread, loopCases.build());
+    }
+    return rLoopCases.buildOrThrow();
+  }
+
+  /** Prunes empty loop cases i.e. loop cases without any statements other than pc adjustments. */
+  private static ImmutableList<SeqLoopCase> pruneLoopCases(ImmutableList<SeqLoopCase> pCases) {
+    ImmutableMap<Integer, SeqLoopCase> originPcs = mapOriginPcToCases(pCases);
+
+    Set<SeqLoopCase> skippedCases = new HashSet<>();
+    ImmutableList.Builder<SeqLoopCase> rNewCases = ImmutableList.builder();
+    for (SeqLoopCase loopCase : pCases) {
+      if (!skippedCases.contains(loopCase)) {
+        for (SeqLoopCaseStmt caseStmt : loopCase.statements) {
+          if (caseStmt.statement.isEmpty()) {
+            rNewCases.add(handleCasePrune(originPcs, loopCase, skippedCases, loopCase));
+          }
+        }
       }
     }
+    return rNewCases.build();
+  }
 
-    return rProgram.toString();
+  private static ImmutableMap<Integer, SeqLoopCase> mapOriginPcToCases(
+      ImmutableList<SeqLoopCase> pCases) {
+    ImmutableMap.Builder<Integer, SeqLoopCase> rOriginPcs = ImmutableMap.builder();
+    for (SeqLoopCase loopCase : pCases) {
+      rOriginPcs.put(loopCase.originPc, loopCase);
+    }
+    return rOriginPcs.buildOrThrow();
+  }
+
+  // TODO refactor this
+  private static SeqLoopCase handleCasePrune(
+      final ImmutableMap<Integer, SeqLoopCase> pOriginPcs,
+      final SeqLoopCase pInitCase,
+      Set<SeqLoopCase> pSkipped,
+      SeqLoopCase pCurrentCase) {
+
+    assert !pCurrentCase.statements.isEmpty();
+
+    for (SeqLoopCaseStmt caseStmt : pCurrentCase.statements) {
+      if (caseStmt.statement.isEmpty()) {
+        assert pCurrentCase.statements.size() == 1;
+        pSkipped.add(pCurrentCase);
+        SeqLoopCase nextCase = pOriginPcs.get(caseStmt.targetPc.orElseThrow());
+        assert nextCase != null;
+        // do not visit exit nodes of the threads cfa
+        if (!nextCase.statements.isEmpty()) {
+          handleCasePrune(pOriginPcs, pInitCase, pSkipped, nextCase);
+        }
+      }
+      return pInitCase.cloneWithTargetPc(pCurrentCase.originPc);
+    }
+    throw new IllegalStateException();
   }
 
   /**
