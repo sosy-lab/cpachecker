@@ -9,18 +9,19 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 public class FunctionCallExpr implements SeqExpression {
 
   public final String functionName;
 
-  // TODO make this not optional and check if the list contains any elements
-  public final Optional<ImmutableList<SeqExpression>> parameters;
+  public final ImmutableList<SeqExpression> parameters;
 
-  public FunctionCallExpr(
-      String pFunctionName, Optional<ImmutableList<SeqExpression>> pParameters) {
+  /**
+   * Returns a new {@link FunctionCallExpr}. Use ImmutableList.of() for pParameters if there are no
+   * parameters.
+   */
+  public FunctionCallExpr(String pFunctionName, ImmutableList<SeqExpression> pParameters) {
     functionName = pFunctionName;
     parameters = pParameters;
   }
@@ -28,12 +29,12 @@ public class FunctionCallExpr implements SeqExpression {
   @Override
   public String createString() {
     StringBuilder parametersString = new StringBuilder(SeqSyntax.EMPTY_STRING);
-    if (parameters.isPresent()) {
+    if (!parameters.isEmpty()) {
       String separator = SeqSyntax.COMMA + SeqSyntax.SPACE;
-      for (int i = 0; i < parameters.orElseThrow().size(); i++) {
+      for (int i = 0; i < parameters.size(); i++) {
         parametersString
-            .append(parameters.orElseThrow().get(i).createString())
-            .append(i == parameters.orElseThrow().size() - 1 ? SeqSyntax.EMPTY_STRING : separator);
+            .append(parameters.get(i).createString())
+            .append(i == parameters.size() - 1 ? SeqSyntax.EMPTY_STRING : separator);
       }
     }
     return functionName + SeqSyntax.BRACKET_LEFT + parametersString + SeqSyntax.BRACKET_RIGHT;

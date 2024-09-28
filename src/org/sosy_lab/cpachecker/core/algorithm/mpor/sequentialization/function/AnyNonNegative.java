@@ -121,7 +121,6 @@ public class AnyNonNegative implements SeqFunction {
 
   @Override
   public FunctionSignature getSignature() {
-    return new FunctionSignature(
-        getReturnType(), new FunctionCallExpr(getName(), Optional.of(getParameters())));
+    return new FunctionSignature(getReturnType(), new FunctionCallExpr(getName(), getParameters()));
   }
 }

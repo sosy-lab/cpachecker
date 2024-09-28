@@ -49,10 +49,10 @@ public class MainMethod implements SeqFunction {
   private static final DeclareExpr declareNextThread =
       new DeclareExpr(
           new VariableExpr(Optional.of(SeqDataType.INT), SeqVars.nextThread),
-          Optional.of(new FunctionCallExpr(SeqToken.VERIFIER_NONDET_INT, Optional.empty())));
+          Optional.of(new FunctionCallExpr(SeqToken.VERIFIER_NONDET_INT, ImmutableList.of())));
 
   private static final FunctionCallExpr assumeNextThread =
-      new FunctionCallExpr(SeqToken.ASSUME, Optional.of(assumeNextThreadParams()));
+      new FunctionCallExpr(SeqToken.ASSUME, assumeNextThreadParams());
 
   private static final IfExpr exitPcCheck =
       new IfExpr(
@@ -63,8 +63,7 @@ public class MainMethod implements SeqFunction {
 
   private static final AssignExpr executeUpdate =
       new AssignExpr(
-          SeqVars.execute,
-          new FunctionCallExpr(SeqToken.ANY_NON_NEGATIVE, Optional.of(anyNonNegativeParams())));
+          SeqVars.execute, new FunctionCallExpr(SeqToken.ANY_NON_NEGATIVE, anyNonNegativeParams()));
 
   /** The thread-specific cases in the main while loop. */
   private final ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> loopCases;
@@ -174,8 +173,7 @@ public class MainMethod implements SeqFunction {
 
   @Override
   public FunctionSignature getSignature() {
-    return new FunctionSignature(
-        getReturnType(), new FunctionCallExpr(getName(), Optional.of(getParameters())));
+    return new FunctionSignature(getReturnType(), new FunctionCallExpr(getName(), getParameters()));
   }
 
   private InitializerListExpr pcsInitializerList(int pNumThreads) {
