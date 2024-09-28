@@ -137,8 +137,9 @@ public class Sequentialization {
                   coveredNodes,
                   threadNode,
                   edgeSubs,
-                  returnPcAssigns,
                   paramAssigns,
+                  returnStmts,
+                  returnPcAssigns,
                   pcsReturnPcAssigns);
           if (loopCase != null) {
             loopCases.add(loopCase);

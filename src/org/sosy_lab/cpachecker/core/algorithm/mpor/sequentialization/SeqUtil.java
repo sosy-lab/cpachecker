@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -23,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ASTStringExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
@@ -88,8 +90,9 @@ public class SeqUtil {
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs,
-      ImmutableMap<ThreadEdge, AssignExpr> pReturnPcAssigns,
       ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> pParamAssigns,
+      ImmutableMap<ThreadEdge, ImmutableSet<AssignExpr>> pReturnStmts,
+      ImmutableMap<ThreadEdge, AssignExpr> pReturnPcAssigns,
       ImmutableMap<ThreadNode, AssignExpr> pPcsReturnPcAssigns) {
 
     pCoveredNodes.add(pThreadNode);
@@ -177,9 +180,15 @@ public class SeqUtil {
                     Optional.of(new EdgeCodeExpr(succSuccSub)),
                     Optional.of(succSuccEdge.getSuccessor().pc)));
 
-            // TODO CReturnStatementEdge
-            //  map CFunctionSummaryEdge(s) to CReturnStatementEdge(s). depending on the return_pc,
-            //  assign return value to CPAchecker_TMP var
+          } else if (sub instanceof CReturnStatementEdge) {
+            // TODO it would be cleaner to create a switch statement for the return_pc
+            //  and only assign the relevant CPAchecker_TMP var. but this solution works
+            assert pReturnStmts.containsKey(threadEdge);
+            ImmutableSet<AssignExpr> assigns = pReturnStmts.get(threadEdge);
+            assert assigns != null;
+            for (AssignExpr assign : assigns) {
+              stmts.add(new SeqLoopCaseStmt(false, Optional.of(assign), targetPc));
+            }
 
           } else {
             assert sub != null;
