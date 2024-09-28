@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -179,7 +180,16 @@ public class CSimpleDeclarationSubstitution implements Substitution {
           substitute =
               SubstituteBuilder.substituteStatementEdge(
                   stmtEdge, substitute(stmtEdge.getStatement()));
+
+        } else if (edge instanceof FunctionSummaryEdge funcSummEdge) {
+          // only substitute assignments (e.g. CPAchecker_TMP = func();)
+          if (funcSummEdge.getExpression() instanceof CFunctionCallAssignmentStatement assignStmt) {
+            substitute =
+                SubstituteBuilder.substituteFunctionSummaryEdge(
+                    funcSummEdge, substitute(assignStmt));
+          }
         }
+
         rSubstitutes.put(threadEdge, substitute == null ? edge : substitute);
       }
     }

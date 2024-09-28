@@ -18,7 +18,7 @@ public class FunctionSummaryEdge extends AbstractCFAEdge {
   private final AFunctionCall expression;
   private final FunctionEntryNode functionEntry;
 
-  protected FunctionSummaryEdge(
+  public FunctionSummaryEdge(
       String pRawStatement,
       FileLocation pFileLocation,
       CFANode pPredecessor,
