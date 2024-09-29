@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -21,18 +23,22 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -80,9 +86,10 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     CType exprType = pExpression.getExpressionType();
 
     if (pExpression instanceof CIdExpression idExpr) {
-      CVariableDeclaration sub = getVarSub(idExpr.getDeclaration());
-      assert sub != null; // all CIdExpressions must be substituted
-      return new CIdExpression(fl, exprType, sub.getName(), sub);
+      if (shouldSubstitute(idExpr.getDeclaration())) {
+        CVariableDeclaration sub = getVarSub(idExpr.getDeclaration());
+        return new CIdExpression(fl, exprType, sub.getName(), sub);
+      }
 
     } else if (pExpression instanceof CBinaryExpression binExpr) {
       // recursively substitute operands of binary expressions
@@ -119,6 +126,13 @@ public class CSimpleDeclarationSubstitution implements Substitution {
             ownerSub,
             fieldRef.isPointerDereference());
       }
+
+    } else if (pExpression instanceof CUnaryExpression unaryExpr) {
+      return new CUnaryExpression(
+          unaryExpr.getFileLocation(),
+          unaryExpr.getExpressionType(),
+          substitute(unaryExpr.getOperand()),
+          unaryExpr.getOperator());
     }
 
     return pExpression;
@@ -128,15 +142,18 @@ public class CSimpleDeclarationSubstitution implements Substitution {
 
     FileLocation fl = pCStmt.getFileLocation();
 
-    if (pCStmt instanceof CFunctionCallAssignmentStatement cFuncCallAssignStmt) {
-      if (cFuncCallAssignStmt.getLeftHandSide() instanceof CIdExpression cIdExpr) {
-        CExpression substitute = substitute(cIdExpr);
-        if (substitute instanceof CIdExpression cIdExprSub) {
-          CFunctionCallExpression rhs = cFuncCallAssignStmt.getRightHandSide();
-          // TODO test if CFuncCallExpr has to be substituted (so far: no)
-          return new CFunctionCallAssignmentStatement(fl, cIdExprSub, rhs);
+    if (pCStmt instanceof CFunctionCallAssignmentStatement funcCallAssignStmt) {
+      if (funcCallAssignStmt.getLeftHandSide() instanceof CIdExpression cIdExpr) {
+        CExpression lhsSub = substitute(cIdExpr);
+        if (lhsSub instanceof CIdExpression cIdExprSub) {
+          CFunctionCallExpression rhs = funcCallAssignStmt.getRightHandSide();
+          return new CFunctionCallAssignmentStatement(fl, cIdExprSub, substitute(rhs));
         }
       }
+
+    } else if (pCStmt instanceof CFunctionCallStatement funcCallStmt) {
+      return new CFunctionCallStatement(
+          funcCallStmt.getFileLocation(), substitute(funcCallStmt.getFunctionCallExpression()));
 
     } else if (pCStmt instanceof CExpressionAssignmentStatement exprAssignStmt) {
       CLeftHandSide lhs = exprAssignStmt.getLeftHandSide();
@@ -153,6 +170,15 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     return pCStmt;
   }
 
+  public CFunctionCallExpression substitute(CFunctionCallExpression pFuncCallExpr) {
+    // substitute all params in the function call expression
+    List<CExpression> params = new ArrayList<>();
+    for (CExpression expr : pFuncCallExpr.getParameterExpressions()) {
+      params.add(substitute(expr));
+    }
+    return SubstituteBuilder.substituteFunctionCallExpr(pFuncCallExpr, params);
+  }
+
   public ImmutableMap<ThreadEdge, CFAEdge> substituteEdges(MPORThread pThread) {
     Map<ThreadEdge, CFAEdge> rSubstitutes = new HashMap<>();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
@@ -161,33 +187,37 @@ public class CSimpleDeclarationSubstitution implements Substitution {
         CFAEdge edge = threadEdge.cfaEdge;
         CFAEdge substitute = null;
 
-        if (edge instanceof CDeclarationEdge decEdge) {
+        if (edge instanceof CDeclarationEdge decl) {
           // TODO what about structs?
-          CDeclaration dec = decEdge.getDeclaration();
+          CDeclaration dec = decl.getDeclaration();
           if (dec instanceof CVariableDeclaration) {
             CVariableDeclaration varSub = getVarSub(dec);
             if (varSub != null) {
-              substitute = SubstituteBuilder.substituteDeclarationEdge(decEdge, varSub);
+              substitute = SubstituteBuilder.substituteDeclarationEdge(decl, varSub);
             }
           }
 
-        } else if (edge instanceof CAssumeEdge assumeEdge) {
+        } else if (edge instanceof CAssumeEdge assume) {
           substitute =
-              SubstituteBuilder.substituteAssumeEdge(
-                  assumeEdge, substitute(assumeEdge.getExpression()));
+              SubstituteBuilder.substituteAssumeEdge(assume, substitute(assume.getExpression()));
 
-        } else if (edge instanceof CStatementEdge stmtEdge) {
+        } else if (edge instanceof CStatementEdge stmt) {
           substitute =
-              SubstituteBuilder.substituteStatementEdge(
-                  stmtEdge, substitute(stmtEdge.getStatement()));
+              SubstituteBuilder.substituteStatementEdge(stmt, substitute(stmt.getStatement()));
 
-        } else if (edge instanceof FunctionSummaryEdge funcSummEdge) {
+          // TODO uniformly use CFunctionSummaryEdge and CFunctionCallEdge
+        } else if (edge instanceof FunctionSummaryEdge funcSumm) {
           // only substitute assignments (e.g. CPAchecker_TMP = func();)
-          if (funcSummEdge.getExpression() instanceof CFunctionCallAssignmentStatement assignStmt) {
+          if (funcSumm.getExpression() instanceof CFunctionCallAssignmentStatement assignStmt) {
             substitute =
-                SubstituteBuilder.substituteFunctionSummaryEdge(
-                    funcSummEdge, substitute(assignStmt));
+                SubstituteBuilder.substituteFunctionSummaryEdge(funcSumm, substitute(assignStmt));
           }
+
+        } else if (edge instanceof CFunctionCallEdge funcCall) {
+          // FunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here too
+          substitute =
+              SubstituteBuilder.substituteFunctionCallEdge(
+                  funcCall, (CFunctionCall) substitute(funcCall.getFunctionCall()));
         }
 
         rSubstitutes.put(threadEdge, substitute == null ? edge : substitute);
@@ -214,5 +244,10 @@ public class CSimpleDeclarationSubstitution implements Substitution {
       }
     }
     throw new IllegalArgumentException("pSimpleDec must be CVariable- or CParameterDeclaration");
+  }
+
+  private boolean shouldSubstitute(CSimpleDeclaration pSimpleDec) {
+    return pSimpleDec instanceof CVariableDeclaration
+        || pSimpleDec instanceof CParameterDeclaration;
   }
 }

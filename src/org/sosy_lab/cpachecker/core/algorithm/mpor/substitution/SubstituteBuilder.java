@@ -10,10 +10,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -23,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -109,6 +113,27 @@ public class SubstituteBuilder {
         pOriginal.getSuccessor(),
         (AFunctionCall) pFuncCall,
         pOriginal.getFunctionEntry());
+  }
+
+  public static CFunctionCallEdge substituteFunctionCallEdge(
+      CFunctionCallEdge pOriginal, CFunctionCall pFuncCall) {
+    return new CFunctionCallEdge(
+        pOriginal.getRawStatement(),
+        pOriginal.getFileLocation(),
+        pOriginal.getPredecessor(),
+        pOriginal.getSuccessor(),
+        pFuncCall,
+        pOriginal.getSummaryEdge());
+  }
+
+  public static CFunctionCallExpression substituteFunctionCallExpr(
+      CFunctionCallExpression pOriginal, List<CExpression> pParams) {
+    return new CFunctionCallExpression(
+        pOriginal.getFileLocation(),
+        pOriginal.getExpressionType(),
+        pOriginal.getFunctionNameExpression(),
+        pParams,
+        pOriginal.getDeclaration());
   }
 
   public static ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> getDecSubstitutions(

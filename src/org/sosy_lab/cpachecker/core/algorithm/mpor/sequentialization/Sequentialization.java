@@ -126,7 +126,7 @@ public class Sequentialization {
 
       ImmutableMap<ThreadEdge, CFAEdge> edgeSubs = substitution.substituteEdges(thread);
       ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> paramAssigns =
-          mapParamAssigns(thread, substitution);
+          mapParamAssigns(thread, edgeSubs, substitution);
       ImmutableMap<ThreadEdge, ImmutableSet<AssignExpr>> returnStmts =
           mapReturnStmts(thread, edgeSubs);
       ImmutableMap<ThreadEdge, AssignExpr> returnPcAssigns = mapReturnPcAssigns(thread);
@@ -215,12 +215,15 @@ public class Sequentialization {
    * CSimpleDeclarationSubstitution#paramSubs}.
    */
   private static ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> mapParamAssigns(
-      MPORThread pThread, CSimpleDeclarationSubstitution pSub) {
+      MPORThread pThread,
+      ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs,
+      CSimpleDeclarationSubstitution pSub) {
 
     ImmutableMap.Builder<ThreadEdge, ImmutableList<AssignExpr>> rAssigns = ImmutableMap.builder();
 
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (threadEdge.cfaEdge instanceof CFunctionCallEdge funcCall) {
+      CFAEdge subEdge = pEdgeSubs.get(threadEdge);
+      if (subEdge instanceof CFunctionCallEdge funcCall) {
 
         ImmutableList.Builder<AssignExpr> assigns = ImmutableList.builder();
         List<CParameterDeclaration> paramDecs =

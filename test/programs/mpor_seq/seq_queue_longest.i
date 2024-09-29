@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // original program declarations (non-variable)
 int __VERIFIER_nondet_int();
 void abort();
@@ -1162,9 +1170,9 @@ int main(void) {
         case 437: pc[0] = 438; continue;
         case 438: __g_16_enqueue_flag = 1; pc[0] = 439; continue;
         case 439: __g_17_dequeue_flag = 0; pc[0] = 440; continue;
-        case 440: __p0_20_q = &queue;  pc[0] = 462; t0__init__return_pc = 441;  continue;
+        case 440: __p0_20_q = &__g_18_queue;  pc[0] = 462; t0__init__return_pc = 441;  continue;
         case 441: pc[0] = 442; continue;
-        case 442: t0__empty__return_pc = 443;  __p0_19_q = &queue;  pc[0] = 456; continue;
+        case 442: t0__empty__return_pc = 443;  __p0_19_q = &__g_18_queue;  pc[0] = 456; continue;
         case 443: if ((0 == __t0_23___CPAchecker_TMP_0) == -1) { pc[0] = 444;  }else if (!((0 == __t0_23___CPAchecker_TMP_0) == -1)) { pc[0] = 450;  }continue;
         case 444: pc[0] = 445; continue;
         case 445: t0__reach_error__return_pc = -1;  continue;
@@ -1200,11 +1208,11 @@ int main(void) {
         case 3: pc[1] = 4; continue;
         case 4: __t1_27_value = __VERIFIER_nondet_int(); pc[1] = 5; continue;
         case 5: pc[1] = 6; continue;
-        case 6: t1__enqueue__return_pc = 7;  __p1_24_q = &queue;  __p1_25_x = value;  pc[1] = 27; continue;
+        case 6: t1__enqueue__return_pc = 7;  __p1_24_q = &__g_18_queue;  __p1_25_x = __t1_27_value;  pc[1] = 27; continue;
         case 7: if (__t1_29___CPAchecker_TMP_0 == 0) { pc[1] = 8;  }else if (!(__t1_29___CPAchecker_TMP_0 == 0)) { pc[1] = 55;  }continue;
         case 8: __g_15_stored_elements[0] = __t1_27_value; pc[1] = 9; continue;
         case 9: pc[1] = 10; continue;
-        case 10: t1__empty__return_pc = 11;  __p1_26_q = &queue;  pc[1] = 49; continue;
+        case 10: t1__empty__return_pc = 11;  __p1_26_q = &__g_18_queue;  pc[1] = 49; continue;
         case 11: if (__t1_30___CPAchecker_TMP_1 == 0) { pc[1] = 12;  }else if (!(__t1_30___CPAchecker_TMP_1 == 0)) { pc[1] = 42;  }continue;
         case 12: pc[1] = 13; continue;
         case 13: pc[1] = 14; continue;
@@ -1216,7 +1224,7 @@ int main(void) {
         case 19: pc[1] = 20; continue;
         case 20: __t1_28_i = __t1_28_i + 1; pc[1] = 15; continue;
         case 21: __t1_27_value = __VERIFIER_nondet_int(); pc[1] = 22; continue;
-        case 22: __p1_24_q = &queue;  __p1_25_x = value;  pc[1] = 27; t1__enqueue__return_pc = 23;  continue;
+        case 22: __p1_24_q = &__g_18_queue;  __p1_25_x = __t1_27_value;  pc[1] = 27; t1__enqueue__return_pc = 23;  continue;
         case 23: __g_15_stored_elements[__t1_28_i + 1] = __t1_27_value; pc[1] = 24; continue;
         case 24: __g_16_enqueue_flag = 0; pc[1] = 25; continue;
         case 25: __g_17_dequeue_flag = 1; pc[1] = 26; continue;
@@ -1261,7 +1269,7 @@ int main(void) {
         case 8: pc[2] = 9; continue;
         case 9: __t2_34_i = __t2_34_i + 1; pc[2] = 4; continue;
         case 10: pc[2] = 11; continue;
-        case 11: t2__dequeue__return_pc = 12;  __p2_33_q = &queue;  pc[2] = 22; continue;
+        case 11: t2__dequeue__return_pc = 12;  __p2_33_q = &__g_18_queue;  pc[2] = 22; continue;
         case 12: if ((0 == __t2_35___CPAchecker_TMP_0) == (__g_15_stored_elements[__t2_34_i])) { pc[2] = 13;  }else if (!((0 == __t2_35___CPAchecker_TMP_0) == (__g_15_stored_elements[__t2_34_i]))) { pc[2] = 19;  }continue;
         case 13: pc[2] = 14; continue;
         case 14: t2__reach_error__return_pc = -1;  continue;
