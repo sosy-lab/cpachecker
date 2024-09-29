@@ -1168,7 +1168,6 @@ public class CFACreator {
         // Export CFA to JSON file.
         logger.logf(Level.INFO, "Writing CFA to JSON file \"%s\"", exportCfaJsonFile);
         new CfaToJson(cfa).write(exportCfaJsonFile);
-        logger.logf(Level.INFO, "Successfully wrote CFA to JSON file \"%s\"", exportCfaJsonFile);
 
       } catch (IOException e) {
         logger.logUserException(
