@@ -10,9 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 
 public class SeqValue {
 
-  public static final String FALSE = "false";
-
-  public static final String TRUE = "true";
+  public static final String ONE = "1";
 
   public static final String ZERO = "0";
 }

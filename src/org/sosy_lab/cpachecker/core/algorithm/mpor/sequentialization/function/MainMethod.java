@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqValues;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.ArrayElement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
@@ -33,14 +32,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqD
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqValue;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class MainMethod implements SeqFunction {
 
   private static final DeclareExpr declareExecute =
       new DeclareExpr(
-          new VariableExpr(Optional.of(SeqDataType.BOOL), SeqVars.execute),
-          Optional.of(SeqValues.boolTrue));
+          new VariableExpr(Optional.of(SeqDataType.INT), SeqVars.execute),
+          Optional.of(new Value(SeqValue.ONE)));
 
   private static final LoopExpr whileExecute = new LoopExpr(SeqVars.execute);
 
@@ -164,7 +164,7 @@ public class MainMethod implements SeqFunction {
   private InitializerListExpr pcInitializerList(int pNumThreads) {
     ImmutableList.Builder<SeqExpression> rInitializers = ImmutableList.builder();
     for (int i = 0; i < pNumThreads; i++) {
-      rInitializers.add(SeqValues.zero);
+      rInitializers.add(new Value(SeqValue.ZERO));
     }
     return new InitializerListExpr(rInitializers.build());
   }
@@ -173,7 +173,8 @@ public class MainMethod implements SeqFunction {
     ImmutableList.Builder<SeqExpression> rParams = ImmutableList.builder();
     rParams.add(
         new BooleanExpr(
-            new BooleanExpr(SeqValues.zero, SeqOperator.LESS_OR_EQUAL, SeqVars.nextThread),
+            new BooleanExpr(
+                new Value(SeqValue.ZERO), SeqOperator.LESS_OR_EQUAL, SeqVars.nextThread),
             SeqOperator.AND,
             new BooleanExpr(SeqVars.nextThread, SeqOperator.LESS, SeqVars.numThreads)));
     return rParams.build();

@@ -34,17 +34,15 @@ public class SeqToken {
 
   public static final String FUNCTION = "function";
 
-  public static final String IF = "if";
+  public static final String I = "i";
 
-  public static final String INDEX = "index";
+  public static final String IF = "if";
 
   public static final String LOCAL = "local";
 
   public static final String MAIN = "main";
 
   public static final String NEXT_THREAD = "next_thread";
-
-  public static final String NON_DET = "nondet";
 
   public static final String NON_VARIABLE = "(non-variable)";
 

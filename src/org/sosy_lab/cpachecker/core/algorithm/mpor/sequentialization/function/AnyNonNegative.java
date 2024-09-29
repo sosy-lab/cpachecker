@@ -36,28 +36,25 @@ public class AnyNonNegative implements SeqFunction {
 
   private static final Variable size = new Variable(SeqToken.SIZE);
 
-  private static final Variable index = new Variable(SeqToken.INDEX);
+  private static final Variable i = new Variable(SeqToken.I);
 
   private static final DeclareExpr declareIndex =
       new DeclareExpr(
-          new VariableExpr(Optional.of(SeqDataType.INT), index),
-          Optional.of(new Value(SeqValue.ZERO)));
+          new VariableExpr(Optional.of(SeqDataType.INT), i), Optional.of(new Value(SeqValue.ZERO)));
 
   private static final LoopExpr loopIndexLessSize =
-      new LoopExpr(new BooleanExpr(index, SeqOperator.LESS, size));
+      new LoopExpr(new BooleanExpr(i, SeqOperator.LESS, size));
 
   private static final IfExpr ifElemGeqZero =
       new IfExpr(
           new BooleanExpr(
-              new ArrayElement(array, index),
-              SeqOperator.GREATER_OR_EQUAL,
-              new Value(SeqValue.ZERO)));
+              new ArrayElement(array, i), SeqOperator.GREATER_OR_EQUAL, new Value(SeqValue.ZERO)));
 
-  private static final ReturnExpr returnTrue = new ReturnExpr(new Value(SeqValue.TRUE));
+  private static final ReturnExpr returnOne = new ReturnExpr(new Value(SeqValue.ONE));
 
-  private static final IncrementExpr incrementIndex = new IncrementExpr(index);
+  private static final IncrementExpr incrementI = new IncrementExpr(i);
 
-  private static final ReturnExpr returnFalse = new ReturnExpr(new Value(SeqValue.FALSE));
+  private static final ReturnExpr returnZero = new ReturnExpr(new Value(SeqValue.ZERO));
 
   @Override
   public String toString() {
@@ -69,17 +66,17 @@ public class AnyNonNegative implements SeqFunction {
         + SeqUtil.prependTabsWithNewline(
             1, SeqUtil.appendOpeningCurly(loopIndexLessSize.toString()))
         + SeqUtil.prependTabsWithNewline(2, SeqUtil.appendOpeningCurly(ifElemGeqZero.toString()))
-        + SeqUtil.prependTabsWithNewline(3, returnTrue.toString())
+        + SeqUtil.prependTabsWithNewline(3, returnOne.toString())
         + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
-        + SeqUtil.prependTabsWithNewline(2, incrementIndex.toString())
+        + SeqUtil.prependTabsWithNewline(2, incrementI.toString())
         + SeqUtil.prependTabsWithNewline(1, SeqSyntax.CURLY_BRACKET_RIGHT)
-        + SeqUtil.prependTabsWithNewline(1, returnFalse.toString())
+        + SeqUtil.prependTabsWithNewline(1, returnZero.toString())
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 
   @Override
   public String getReturnType() {
-    return SeqDataType.BOOL;
+    return SeqDataType.INT;
   }
 
   @Override
