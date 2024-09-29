@@ -25,11 +25,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
@@ -207,7 +206,7 @@ public class Sequentialization {
   }
 
   /**
-   * Maps {@link ThreadEdge}s whose {@link CFAEdge}s are {@link FunctionCallEdge}s to a list of
+   * Maps {@link ThreadEdge}s whose {@link CFAEdge}s are {@link CFunctionCallEdge}s to a list of
    * parameter assignment expressions.
    *
    * <p>E.g. {@code func(&paramA, paramB);} in thread 0 is linked to {@code __t0_0_paramA = &paramA
@@ -254,7 +253,7 @@ public class Sequentialization {
    * AssignExpr} where the CPAchecker_TMP vars are assigned the return value.
    *
    * <p>Note that {@code main} functions and start routines of threads oftentimes do not have
-   * corresponding {@link FunctionSummaryEdge}s.
+   * corresponding {@link CFunctionSummaryEdge}s.
    */
   private static ImmutableMap<ThreadEdge, ImmutableSet<AssignExpr>> mapReturnStmts(
       MPORThread pThread, ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs) {
@@ -266,7 +265,7 @@ public class Sequentialization {
         ImmutableSet.Builder<AssignExpr> assigns = ImmutableSet.builder();
         for (ThreadEdge bThreadEdge : pThread.cfa.threadEdges) {
           CFAEdge sub = pEdgeSubs.get(bThreadEdge);
-          if (sub instanceof FunctionSummaryEdge funcSumm) {
+          if (sub instanceof CFunctionSummaryEdge funcSumm) {
             // if the summary edge is of the form CPAchecker_TMP = func(); (i.e. an assignment)
             if (funcSumm.getExpression() instanceof CFunctionCallAssignmentStatement assignStmt) {
               AFunctionType bFunc = funcSumm.getFunctionEntry().getFunction().getType();
@@ -286,16 +285,16 @@ public class Sequentialization {
   }
 
   /**
-   * Maps {@link ThreadEdge}s whose {@link CFAEdge}s are {@link FunctionSummaryEdge}s to {@code
+   * Maps {@link ThreadEdge}s whose {@link CFAEdge}s are {@link CFunctionSummaryEdge}s to {@code
    * return_pc} declarations.
    *
-   * <p>E.g. a {@link FunctionSummaryEdge} for the function {@code fib} in thread 0 is mapped to the
-   * declaration {@code int t0_fib_return_pc;}.
+   * <p>E.g. a {@link CFunctionSummaryEdge} for the function {@code fib} in thread 0 is mapped to
+   * the declaration {@code int t0_fib_return_pc;}.
    */
   private static ImmutableMap<ThreadEdge, DeclareExpr> mapReturnPcDecs(MPORThread pThread) {
     ImmutableMap.Builder<ThreadEdge, DeclareExpr> rDecs = ImmutableMap.builder();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (threadEdge.cfaEdge instanceof FunctionSummaryEdge funcSummary) {
+      if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
         rDecs.put(
             threadEdge,
             SeqExprBuilder.createReturnPcDec(
@@ -306,10 +305,10 @@ public class Sequentialization {
   }
 
   /**
-   * Maps {@link ThreadEdge}s whose {@link CFAEdge}s are {@link FunctionSummaryEdge}s to {@code
+   * Maps {@link ThreadEdge}s whose {@link CFAEdge}s are {@link CFunctionSummaryEdge}s to {@code
    * return_pc} assignments.
    *
-   * <p>E.g. a {@link FunctionSummaryEdge} going from pc 5 to 10 for the function {@code fib} in
+   * <p>E.g. a {@link CFunctionSummaryEdge} going from pc 5 to 10 for the function {@code fib} in
    * thread 0 is mapped to the assignment {@code t0_fib_return_pc = 10;}.
    */
   private static ImmutableMap<ThreadEdge, AssignExpr> mapReturnPcAssigns(MPORThread pThread) {
@@ -317,7 +316,7 @@ public class Sequentialization {
 
     ImmutableMap<ThreadEdge, DeclareExpr> returnPcDecs = mapReturnPcDecs(pThread);
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (threadEdge.cfaEdge instanceof FunctionSummaryEdge) {
+      if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge) {
         DeclareExpr dec = returnPcDecs.get(threadEdge);
         assert dec != null;
         AssignExpr assign =
@@ -342,7 +341,7 @@ public class Sequentialization {
 
     ImmutableMap<ThreadEdge, DeclareExpr> returnPcDecs = mapReturnPcDecs(pThread);
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (threadEdge.cfaEdge instanceof FunctionSummaryEdge funcSummaryEdge) {
+      if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummaryEdge) {
         Optional<FunctionExitNode> funcExitNode = funcSummaryEdge.getFunctionEntry().getExitNode();
         if (funcExitNode.isPresent()) {
           DeclareExpr dec = returnPcDecs.get(threadEdge);

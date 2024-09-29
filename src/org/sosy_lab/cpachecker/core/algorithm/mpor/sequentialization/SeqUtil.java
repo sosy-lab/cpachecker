@@ -19,11 +19,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ASTStringExpr;
@@ -137,13 +137,13 @@ public class SeqUtil {
               stmts.add(new SeqLoopCaseStmt(pThreadId, true, Optional.of(elseIfExpr), targetPc));
             }
 
-          } else if (sub instanceof FunctionSummaryEdge) {
+          } else if (sub instanceof CFunctionSummaryEdge) {
             assert pReturnPcAssigns.containsKey(threadEdge);
             AssignExpr assign = pReturnPcAssigns.get(threadEdge);
             assert assign != null;
             stmts.add(new SeqLoopCaseStmt(pThreadId, false, Optional.of(assign), Optional.empty()));
 
-          } else if (sub instanceof FunctionCallEdge) {
+          } else if (sub instanceof CFunctionCallEdge) {
             assert pParamAssigns.containsKey(threadEdge);
             ImmutableList<AssignExpr> assigns = pParamAssigns.get(threadEdge);
             assert assigns != null;

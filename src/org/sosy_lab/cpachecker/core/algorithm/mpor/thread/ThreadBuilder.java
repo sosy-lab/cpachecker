@@ -17,12 +17,10 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -142,7 +140,7 @@ public class ThreadBuilder {
           // the original, same-thread successor is included due to the FuncSummaryEdge
           if (!(cfaEdge instanceof CFunctionReturnEdge)) {
             if (cfaEdge instanceof CFunctionCallEdge funcCallEdge) {
-              pCalledFuncs.add(extractFuncDec(funcCallEdge));
+              pCalledFuncs.add(funcCallEdge.getFunctionCallExpression().getDeclaration());
             }
             initThreadVariables(
                 pExitNode,
@@ -388,13 +386,6 @@ public class ThreadBuilder {
   }
 
   // (Private) Helpers =============================================================================
-
-  private CFunctionDeclaration extractFuncDec(FunctionCallEdge pEdge) {
-    if (pEdge.getFunctionCallExpression() instanceof CFunctionCallExpression funcCallExpr) {
-      return funcCallExpr.getDeclaration();
-    }
-    throw new IllegalArgumentException("cannot extract CFunctionDeclaration from pEdge");
-  }
 
   private Optional<CFANode> updateFuncReturnNode(
       CFANode pCurrentNode, Optional<CFANode> pPrevFuncReturnNode) {

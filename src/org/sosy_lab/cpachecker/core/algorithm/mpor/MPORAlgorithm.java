@@ -32,10 +32,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -375,8 +375,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private final Sequentialization SEQ;
 
   /**
-   * A map from FunctionCallEdge Predecessors to Return Nodes. Needs to be initialized before {@link
-   * MPORAlgorithm#threads}.
+   * A map from {@link CFunctionCallEdge} Predecessors to Return Nodes. Needs to be initialized
+   * before {@link MPORAlgorithm#threads}.
    */
   private final ImmutableMap<CFANode, CFANode> funcCallMap;
 
@@ -502,8 +502,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // Variable Initializers =======================================================================
 
   /**
-   * Searches all CFAEdges in pCfa for FunctionCallEdges and maps the predecessor CFANodes to their
-   * ReturnNodes so that context-sensitive algorithms can be performed on the CFA.
+   * Searches all CFAEdges in pCfa for {@link CFunctionCallEdge} and maps the predecessor CFANodes
+   * to their ReturnNodes so that context-sensitive algorithms can be performed on the CFA.
    *
    * <p>E.g. a FunctionExitNode may have several leaving Edges, one for each time the function is
    * called. With the Map, extracting only the leaving Edge resulting in the ReturnNode is possible.
@@ -511,13 +511,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * function call) is lost, which is why keys are not FunctionEntryNodes.
    *
    * @param pCfa the CFA to be analyzed
-   * @return A Map of CFANodes before a FunctionCallEdge (keys) to the CFANodes where a function
-   *     continues (values, i.e. the ReturnNode) after going through the CFA of the function called.
+   * @return A Map of CFANodes before a {@link CFunctionCallEdge} (keys) to the CFANodes where a
+   *     function continues (values, i.e. the ReturnNode) after going through the CFA of the
+   *     function called.
    */
   private ImmutableMap<CFANode, CFANode> getFunctionCallMap(CFA pCfa) {
     ImmutableMap.Builder<CFANode, CFANode> rFunctionCallMap = ImmutableMap.builder();
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
-      if (cfaEdge instanceof FunctionCallEdge functionCallEdge) {
+      if (cfaEdge instanceof CFunctionCallEdge functionCallEdge) {
         rFunctionCallMap.put(functionCallEdge.getPredecessor(), functionCallEdge.getReturnNode());
       }
     }
@@ -571,7 +572,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * the calling context of each thread.
    *
    * @param pCfa the CFA to be analyzed
-   * @param pFunctionCallMap map from CFANodes before FunctionCallEdges to FunctionReturnNodes
+   * @param pFunctionCallMap map from CFANodes before {@link CFunctionCallEdge} to
+   *     FunctionReturnNodes
    * @return the set of threads
    */
   private ImmutableSet<MPORThread> getThreads(

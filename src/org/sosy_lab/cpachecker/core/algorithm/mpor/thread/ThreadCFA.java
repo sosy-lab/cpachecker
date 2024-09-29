@@ -37,10 +37,6 @@ public class ThreadCFA {
 
   public final ImmutableSet<CFunctionDeclaration> calledFuncs;
 
-  // TODO for each FunctionCallEdge, map the original CVariableDeclaration to the
-  //  CParameterDeclaration. if a parameter declaration is a key, search for it in the values and
-  //  replace the parameter declaration
-
   protected ThreadCFA(
       FunctionEntryNode pEntryNode,
       FunctionExitNode pExitNode,

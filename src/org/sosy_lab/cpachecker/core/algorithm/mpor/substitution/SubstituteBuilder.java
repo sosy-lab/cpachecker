@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -23,10 +22,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -103,15 +102,14 @@ public class SubstituteBuilder {
         pOriginal.getSuccessor());
   }
 
-  public static FunctionSummaryEdge substituteFunctionSummaryEdge(
-      FunctionSummaryEdge pOriginal, CStatement pFuncCall) {
-    assert pFuncCall instanceof AFunctionCall;
-    return new FunctionSummaryEdge(
+  public static CFunctionSummaryEdge substituteFunctionSummaryEdge(
+      CFunctionSummaryEdge pOriginal, CStatement pFuncCall) {
+    return new CFunctionSummaryEdge(
         pOriginal.getRawStatement(),
         pOriginal.getFileLocation(),
         pOriginal.getPredecessor(),
         pOriginal.getSuccessor(),
-        (AFunctionCall) pFuncCall,
+        (CFunctionCall) pFuncCall,
         pOriginal.getFunctionEntry());
   }
 

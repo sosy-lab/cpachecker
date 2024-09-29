@@ -35,10 +35,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -205,8 +205,7 @@ public class CSimpleDeclarationSubstitution implements Substitution {
           substitute =
               SubstituteBuilder.substituteStatementEdge(stmt, substitute(stmt.getStatement()));
 
-          // TODO uniformly use CFunctionSummaryEdge and CFunctionCallEdge
-        } else if (edge instanceof FunctionSummaryEdge funcSumm) {
+        } else if (edge instanceof CFunctionSummaryEdge funcSumm) {
           // only substitute assignments (e.g. CPAchecker_TMP = func();)
           if (funcSumm.getExpression() instanceof CFunctionCallAssignmentStatement assignStmt) {
             substitute =
@@ -214,7 +213,7 @@ public class CSimpleDeclarationSubstitution implements Substitution {
           }
 
         } else if (edge instanceof CFunctionCallEdge funcCall) {
-          // FunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here too
+          // CFunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here too
           substitute =
               SubstituteBuilder.substituteFunctionCallEdge(
                   funcCall, (CFunctionCall) substitute(funcCall.getFunctionCall()));

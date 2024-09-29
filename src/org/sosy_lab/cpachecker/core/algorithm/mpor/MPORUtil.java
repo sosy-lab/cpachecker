@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -86,7 +86,7 @@ public final class MPORUtil {
   }
 
   // TODO use to sequentialize summaryEdges
-  public static CVariableDeclaration getVarDeclarationFromSummaryEdge(FunctionSummaryEdge pEdge) {
+  public static CVariableDeclaration getVarDeclarationFromSummaryEdge(CFunctionSummaryEdge pEdge) {
     if (pEdge.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
       if (assignment.getLeftHandSide() instanceof CIdExpression cIdExpression) {
         if (cIdExpression.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration) {
@@ -99,7 +99,7 @@ public final class MPORUtil {
 
   // TODO use to sequentialize summaryEdges
   public static CFunctionCallExpression getFunctionCallExprFromSummaryEdge(
-      FunctionSummaryEdge pEdge) {
+      CFunctionSummaryEdge pEdge) {
     if (pEdge.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
       return assignment.getRightHandSide();
     }
@@ -132,7 +132,7 @@ public final class MPORUtil {
 
   /**
    * Equivalent to {@link MPORUtil#returnLeavingEdges(CFANode, Optional)} except that it includes
-   * {@link FunctionSummaryEdge}s.
+   * {@link CFunctionSummaryEdge}s.
    */
   public static ImmutableSet<CFAEdge> allReturnLeavingEdges(
       CFANode pCurrentNode, Optional<CFANode> pFuncReturnNode) {
