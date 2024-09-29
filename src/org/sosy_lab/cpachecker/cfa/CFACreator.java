@@ -53,10 +53,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.export.CFAToPixelsWriter;
-import org.sosy_lab.cpachecker.cfa.export.CfaToJson;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 import org.sosy_lab.cpachecker.cfa.export.FunctionCallDumper;
+import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonExport;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -1167,7 +1167,7 @@ public class CFACreator {
       try {
         // Export CFA to JSON file.
         logger.logf(Level.INFO, "Writing CFA to JSON file \"%s\"", exportCfaJsonFile);
-        new CfaToJson(cfa).write(exportCfaJsonFile);
+        new CfaJsonExport(cfa).write(exportCfaJsonFile);
 
       } catch (IOException e) {
         logger.logUserException(

@@ -45,7 +45,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.export.CfaFromJson;
+import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonImport;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cmdline.CPAMain;
@@ -448,7 +448,7 @@ public class CPAchecker {
     } else {
       // Import CFA from JSON file.
       logger.logf(Level.INFO, "Reading CFA from JSON file \"%s\"", cfaJsonFile);
-      cfa = CfaFromJson.read(cfaJsonFile).immutableCopy();
+      cfa = CfaJsonImport.read(cfaJsonFile).immutableCopy();
 
       assert CFACheck.check(cfa.getMainFunction(), null, cfa.getMachineModel());
     }

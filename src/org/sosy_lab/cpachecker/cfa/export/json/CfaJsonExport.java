@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.export;
+package org.sosy_lab.cpachecker.cfa.export.json;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -35,17 +35,17 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  *
  * <p>The export format is JSON.
  *
- * <p>It uses the {@link CfaJsonModule.CfaJsonData} record to store the {@link CFA} data.
+ * <p>It uses the {@link CfaJsonData} record to store the {@link CFA} data.
  */
-public final class CfaToJson {
-  private final CfaJsonModule.CfaJsonData cfaJsonData;
+public final class CfaJsonExport {
+  private final CfaJsonData cfaJsonData;
 
   /**
-   * Constructs the {@link CfaJsonModule.CfaJsonData} field with the given {@link CFA}.
+   * Constructs the {@link CfaJsonData} field with the given {@link CFA}.
    *
    * @param pCfa The Control Flow Automaton (CFA) to be converted to JSON.
    */
-  public CfaToJson(CFA pCfa) {
+  public CfaJsonExport(CFA pCfa) {
     CFA cfa = checkNotNull(pCfa);
 
     /* Create a mapping of function names to nodes of the corresponding function.
@@ -64,8 +64,7 @@ public final class CfaToJson {
 
     /* Create the CFA JSON data. */
     this.cfaJsonData =
-        new CfaJsonModule.CfaJsonData(
-            nodes, cfa.edges(), cfa.getAllFunctions(), partitions, cfa.getMetadata());
+        new CfaJsonData(nodes, cfa.edges(), cfa.getAllFunctions(), partitions, cfa.getMetadata());
   }
 
   /**

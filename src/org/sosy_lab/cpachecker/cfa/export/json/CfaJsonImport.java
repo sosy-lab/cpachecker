@@ -6,21 +6,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.export;
+package org.sosy_lab.cpachecker.cfa.export.json;
 
 import static com.google.common.base.Preconditions.checkState;
 
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.KeyDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableSortedSet;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -28,7 +22,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
-import org.sosy_lab.cpachecker.cfa.export.CfaJsonModule.CfaJsonData;
+import org.sosy_lab.cpachecker.cfa.export.json.deserialization.UnusedImmutableSortedSetDeserializer;
+import org.sosy_lab.cpachecker.cfa.export.json.deserialization.UnusedKeyDeserializer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -42,22 +37,20 @@ import org.sosy_lab.cpachecker.util.variableclassification.Partition;
  *
  * <p>The import format is JSON.
  *
- * <p>It imports the {@link CFA} data from a JSON file containing a {@link
- * CfaJsonModule.CfaJsonData} record.
+ * <p>It imports the {@link CFA} data from a JSON file containing a {@link CfaJsonData} record.
  */
-public final class CfaFromJson {
+public final class CfaJsonImport {
   private static final String STARTING_LOCATION_RECORD_PATH =
       "org.sosy_lab.cpachecker.util.ast.AstCfaRelation$StartingLocation";
 
   /**
    * Reads a {@link MutableCFA} from a JSON file.
    *
-   * @param pCfaJsonFile The path to the JSON file containing the {@link CfaJsonModule.CfaJsonData}
-   *     record.
+   * @param pCfaJsonFile The path to the JSON file containing the {@link CfaJsonData} record.
    * @return The {@link MutableCFA} object read from the JSON file.
    * @throws JsonParseException If there is an error parsing the JSON file.
    * @throws JsonMappingException If there is an error mapping the JSON data to the {@link
-   *     CfaJsonModule.CfaJsonData} record.
+   *     CfaJsonData} record.
    * @throws IOException If there is an error reading the JSON file.
    */
   public static MutableCFA read(@Nullable Path pCfaJsonFile)
@@ -67,8 +60,7 @@ public final class CfaFromJson {
 
     /* Read CfaJsonData from file. */
     CfaJsonData cfaJsonData =
-        getImportingObjectMapper()
-            .readValue(pCfaJsonFile.toFile(), CfaJsonModule.CfaJsonData.class);
+        getImportingObjectMapper().readValue(pCfaJsonFile.toFile(), CfaJsonData.class);
 
     return new MutableCFA(cfaJsonData.functions(), cfaJsonData.nodes(), cfaJsonData.metadata());
   }
@@ -140,37 +132,5 @@ public final class CfaFromJson {
     objectMapper.registerModule(simpleModule);
 
     return objectMapper;
-  }
-
-  /**
-   * A deserializer for {@link ImmutableSortedSet} that is not intended to be called.
-   *
-   * <p>This class throws an {@link UnsupportedOperationException} when the deserialize method is
-   * called.
-   */
-  private static class UnusedImmutableSortedSetDeserializer
-      extends JsonDeserializer<ImmutableSortedSet<Equivalence.Wrapper<?>>> {
-
-    @Override
-    public ImmutableSortedSet<Equivalence.Wrapper<?>> deserialize(
-        JsonParser pParser, DeserializationContext pContext) throws IOException {
-      throw new UnsupportedOperationException("Not implemented");
-    }
-  }
-
-  /**
-   * A deserializer for keys that is not intended to be called.
-   *
-   * <p>This class throws an {@link UnsupportedOperationException} when the deserializeKey method is
-   * called.
-   */
-  private static class UnusedKeyDeserializer extends KeyDeserializer {
-
-    @Override
-    public Object deserializeKey(
-        final String pKey, final DeserializationContext pDeserializationContext)
-        throws IOException, JsonProcessingException {
-      throw new UnsupportedOperationException("Not implemented");
-    }
   }
 }
