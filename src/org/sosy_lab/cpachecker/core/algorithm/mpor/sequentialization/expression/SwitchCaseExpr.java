@@ -20,18 +20,22 @@ public class SwitchCaseExpr implements SeqExpression {
 
   public final ImmutableList<String> cases;
 
-  public SwitchCaseExpr(SeqExpression pExpression, ImmutableList<String> pCases) {
+  private final int tabs;
+
+  public SwitchCaseExpr(SeqExpression pExpression, ImmutableList<String> pCases, int pTabs) {
     expression = pExpression;
     cases = pCases;
+    tabs = pTabs;
   }
 
   @Override
   public String toString() {
     StringBuilder casesString = new StringBuilder(SeqSyntax.EMPTY_STRING);
     for (String caseString : cases) {
-      casesString.append(caseString);
+      casesString.append(SeqUtil.prependTabsWithoutNewline(tabs + 1, caseString));
     }
-    return SeqToken.SWITCH
+    return SeqUtil.repeat(SeqSyntax.TAB, tabs)
+        + SeqToken.SWITCH
         + SeqSyntax.SPACE
         + SeqSyntax.BRACKET_LEFT
         + expression
@@ -40,8 +44,7 @@ public class SwitchCaseExpr implements SeqExpression {
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.NEWLINE
         + casesString
-        // TODO hardcoded value...
-        + SeqUtil.repeat(SeqSyntax.TAB, 3)
+        + SeqUtil.repeat(SeqSyntax.TAB, tabs)
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 }

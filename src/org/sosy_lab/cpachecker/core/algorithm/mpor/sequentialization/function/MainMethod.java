@@ -109,27 +109,25 @@ public class MainMethod implements SeqFunction {
         cases.add(loopCase.toString());
       }
       ArrayElement arrayElem = new ArrayElement(SeqVars.pcs, threadId);
-      SwitchCaseExpr switchCaseExpr = new SwitchCaseExpr(arrayElem, cases.build());
-      switchCases.append(SeqUtil.prependTabsWithNewline(3, switchCaseExpr.toString()));
+      SwitchCaseExpr switchCaseExpr = new SwitchCaseExpr(arrayElem, cases.build(), 3);
+      switchCases.append(switchCaseExpr);
 
-      // append newline, except for last switch case
-      if (i != loopCases.size() - 1) {
-        switchCases.append(SeqSyntax.NEWLINE);
-      }
+      // append 2 newlines, except for last switch case (1 only)
+      switchCases.append(SeqUtil.repeat(SeqSyntax.NEWLINE, i == loopCases.size() - 1 ? 1 : 2));
       i++;
     }
 
     return getSignature().toString()
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
-        + SeqUtil.repeat(SeqSyntax.NEWLINE, 2)
+        + SeqSyntax.NEWLINE
         + SeqUtil.prependTabsWithNewline(1, declareNumThreads.toString())
         + SeqUtil.prependTabsWithNewline(1, declarePcs.toString())
         + SeqUtil.prependTabsWithNewline(1, declareExecute.toString())
         + SeqSyntax.NEWLINE
         + SeqUtil.prependTabsWithNewline(1, SeqUtil.appendOpeningCurly(whileExecute.toString()))
         + SeqUtil.prependTabsWithNewline(2, declareNextThread.toString())
-        + SeqUtil.prependTabsWithNewline(2, assumeNextThread.toString())
+        + SeqUtil.prependTabsWithNewline(2, assumeNextThread.toString() + SeqSyntax.SEMICOLON)
         + SeqSyntax.NEWLINE
         + SeqUtil.prependTabsWithNewline(2, SeqUtil.appendOpeningCurly(exitPcCheck.toString()))
         + SeqUtil.prependTabsWithNewline(3, executeUpdate.toString())
