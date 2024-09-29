@@ -306,9 +306,7 @@ public class CFASecondPassBuilder {
     } else {
 
       FunctionExitNode exitNode = fExitNode.orElseThrow();
-      FunctionReturnEdge returnEdge;
-
-      returnEdge =
+      FunctionReturnEdge returnEdge =
           switch (language) {
             case C ->
                 new CFunctionReturnEdge(

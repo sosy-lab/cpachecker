@@ -1,19 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<!--
-This file is part of CPAchecker,
-a tool for configurable software verification:
-https://cpachecker.sosy-lab.org
-
-SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-
-SPDX-License-Identifier: Apache-2.0
--->
-
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/CPAchecker.iml" filepath="$PROJECT_DIR$/.idea/CPAchecker.iml" />
+      <module fileurl="file://$PROJECT_DIR$/test/programs/java/TryCatch/TryCatch.iml" filepath="$PROJECT_DIR$/test/programs/java/TryCatch/TryCatch.iml" />
+      <module fileurl="file://$PROJECT_DIR$/test/programs/java/programs.iml" filepath="$PROJECT_DIR$/test/programs/java/programs.iml" />
+      <module fileurl="file://$PROJECT_DIR$/test/test.iml" filepath="$PROJECT_DIR$/test/test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tube-cpa.iml" filepath="$PROJECT_DIR$/tube-cpa.iml" />
     </modules>
   </component>
 </project>

@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -24,6 +25,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -66,6 +68,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -92,7 +95,7 @@ public final class ValueAnalysisState
         LatticeAbstractState<ValueAnalysisState>,
         PseudoPartitionable {
 
-  private static final long serialVersionUID = -3152134511524554358L;
+  @Serial private static final long serialVersionUID = -3152134511524554358L;
 
   private static final Set<MemoryLocation> blacklist = new HashSet<>();
 
@@ -785,8 +788,8 @@ public final class ValueAnalysisState
     CExpression val = null;
     if (pCType instanceof CSimpleType simpleType) {
       if (simpleType.getType().isIntegerType()) {
-        long value = pNum.getNumber().longValue();
-        val = new CIntegerLiteralExpression(loc, simpleType, BigInteger.valueOf(value));
+        BigInteger value = getBigIntFromIntegerNumber(pNum.getNumber());
+        val = new CIntegerLiteralExpression(loc, simpleType, value);
       } else if (simpleType.getType().isFloatingPointType()) {
         double value = pNum.getNumber().doubleValue();
         if (Double.isNaN(value) || Double.isInfinite(value)) {
@@ -798,15 +801,15 @@ public final class ValueAnalysisState
         throw new AssertionError("Unexpected type: " + simpleType);
       }
     } else if (pCType instanceof CEnumType enumType) {
-      long value = pNum.getNumber().longValue();
+      BigInteger value = getBigIntFromIntegerNumber(pNum.getNumber());
       for (CEnumerator enumerator : enumType.getEnumerators()) {
-        if (value == enumerator.getValue()) {
+        if (value.equals(enumerator.getValue())) {
           val = new CIdExpression(loc, enumerator);
           break;
         }
       }
       if (val == null) {
-        val = new CIntegerLiteralExpression(loc, enumType, BigInteger.valueOf(value));
+        val = new CIntegerLiteralExpression(loc, enumType, value);
       }
     } else {
       // disabled since this blocks too many programs for which plenty other information
@@ -819,14 +822,22 @@ public final class ValueAnalysisState
     return Optional.of(builder.buildBinaryExpressionUnchecked(pVar, val, BinaryOperator.EQUALS));
   }
 
-  @Override
-  public ExpressionTree<Object> getFormulaApproximation(
+  private BigInteger getBigIntFromIntegerNumber(Number pNum) {
+    if (pNum instanceof BigInteger) {
+      return (BigInteger) pNum;
+    } else {
+      return BigInteger.valueOf(pNum.longValue());
+    }
+  }
+
+  private ExpressionTree<Object> getFormulaApproximation(
       FunctionEntryNode pFunctionScope,
       CFANode pLocation,
-      Optional<AIdExpression> pFunctionReturnVariable) {
-
+      Function<String, Boolean> variableNameIScope,
+      Function<String, String> variableRenamingFunction)
+      throws TranslationToExpressionTreeFailedException {
     if (machineModel == null) {
-      return ExpressionTrees.getTrue();
+      throw new TranslationToExpressionTreeFailedException("MachineModel is not available.");
     }
 
     List<ExpressionTree<Object>> result = new ArrayList<>();
@@ -852,32 +863,23 @@ public final class ValueAnalysisState
           }
           assert cType != null && CTypes.isArithmeticType(cType);
           String id = memoryLocation.getIdentifier();
-          if (!pFunctionScope.getReturnVariable().isPresent()
-              || !id.equals(pFunctionScope.getReturnVariable().get().getName())) {
+          if (variableNameIScope.apply(id)) {
             FileLocation loc =
                 pLocation.getNumEnteringEdges() > 0
                     ? pLocation.getEnteringEdge(0).getFileLocation()
                     : pFunctionScope.getFileLocation();
+            String newVariableName = variableRenamingFunction.apply(id);
             CVariableDeclaration decl =
                 new CVariableDeclaration(
                     loc,
                     false,
                     CStorageClass.AUTO,
                     cType,
-                    id,
-                    id,
+                    newVariableName,
+                    newVariableName,
                     memoryLocation.getExtendedQualifiedName(),
                     null);
             CExpression var = new CIdExpression(loc, decl);
-            Optional<CExpression> constraint = buildConstraint(var, cType, num);
-            if (constraint.isPresent()) {
-              result.add(LeafExpression.of(constraint.orElseThrow()));
-            }
-
-          } else if (pFunctionScope.getReturnVariable().isPresent()
-              && id.equals(pFunctionScope.getReturnVariable().orElseThrow().getName())
-              && pFunctionReturnVariable.isPresent()
-              && pFunctionReturnVariable.orElseThrow() instanceof CIdExpression var) {
             Optional<CExpression> constraint = buildConstraint(var, cType, num);
             if (constraint.isPresent()) {
               result.add(LeafExpression.of(constraint.orElseThrow()));
@@ -889,8 +891,91 @@ public final class ValueAnalysisState
     return And.of(result);
   }
 
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      throws TranslationToExpressionTreeFailedException {
+    return getFormulaApproximation(
+        pFunctionScope,
+        pLocation,
+        varName ->
+            pFunctionScope.getReturnVariable().isEmpty()
+                || !varName.equals(pFunctionScope.getReturnVariable().get().getName()),
+        Function.identity());
+  }
+
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
+      FunctionEntryNode pFunctionScope,
+      CFANode pLocation,
+      AstCfaRelation pAstCfaRelation,
+      boolean useOldKeywordForVariables)
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
+
+    return getFormulaApproximation(
+        pFunctionScope,
+        pLocation,
+        varName ->
+            (pFunctionScope.getReturnVariable().isEmpty()
+                    || !varName.equals(pFunctionScope.getReturnVariable().get().getName()))
+                && pAstCfaRelation
+                    .getVariablesAndParametersInScope(pLocation)
+                    .anyMatch(v -> v.getName().equals(varName))
+                && !varName.contains("__CPAchecker_"),
+        varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName);
+  }
+
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
+      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
+      throws TranslationToExpressionTreeFailedException {
+    if (machineModel == null) {
+      throw new TranslationToExpressionTreeFailedException("MachineModel is not available.");
+    }
+
+    ExpressionTree<Object> result = ExpressionTrees.getTrue();
+
+    for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
+      Value valueOfEntry = entry.getValue().getValue();
+      if (valueOfEntry instanceof EnumConstantValue) {
+        continue;
+      }
+      NumericValue num = valueOfEntry.asNumericValue();
+      if (num != null) {
+        MemoryLocation memoryLocation = entry.getKey();
+        Type type = entry.getValue().getType();
+        if (!memoryLocation.isReference()
+            && memoryLocation.isOnFunctionStack(pFunctionScope.getFunctionName())
+            && type instanceof CType cType
+            && CTypes.isArithmeticType((CType) type)) {
+          if (cType instanceof CBitFieldType) {
+            cType = ((CBitFieldType) cType).getType();
+          }
+          if (cType instanceof CElaboratedType) {
+            cType = ((CElaboratedType) cType).getRealType();
+          }
+          assert cType != null && CTypes.isArithmeticType(cType);
+          String id = memoryLocation.getIdentifier();
+          if (pFunctionScope.getReturnVariable().isPresent()
+              && id.equals(pFunctionScope.getReturnVariable().orElseThrow().getName())
+              && pFunctionReturnVariable instanceof CIdExpression var) {
+            Optional<CExpression> constraint = buildConstraint(var, cType, num);
+            if (constraint.isPresent()) {
+              result = LeafExpression.of(constraint.orElseThrow());
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    return result;
+  }
+
   public static class ValueAndType implements Serializable {
-    private static final long serialVersionUID = 1L;
+    @Serial private static final long serialVersionUID = 1L;
     private final Value value;
     private final Type type;
 

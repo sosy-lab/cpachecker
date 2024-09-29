@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
@@ -82,7 +83,7 @@ public class BDDBooleanExpressionVisitor extends DefaultCExpressionVisitor<Regio
 
   @Override
   public Region visit(CIntegerLiteralExpression pE) {
-    return getNum(pE.asLong());
+    return getNum(pE.getValue());
   }
 
   @Override
@@ -118,6 +119,17 @@ public class BDDBooleanExpressionVisitor extends DefaultCExpressionVisitor<Regio
       return rmgr.makeTrue();
     } else {
       throw new AssertionError("no boolean value: " + num);
+    }
+  }
+
+  private Region getNum(BigInteger num) {
+    try {
+      long value = num.longValueExact();
+      return getNum(value);
+    } catch (ArithmeticException e) {
+      // big integer does not fit into long value. But we actually expect a boolean value of 0 or 1,
+      // so this should not happen.
+      throw new AssertionError("no boolean value: " + num, e);
     }
   }
 }

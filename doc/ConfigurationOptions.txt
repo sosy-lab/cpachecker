@@ -336,7 +336,11 @@ analysis.initialStatesFor = {InitialStatesFor.ENTRY}
 # run interprocedural analysis
 analysis.interprocedural = true
 
-# the machine model, which determines the sizes of types like int
+# the machine model, which determines the sizes of types like int:
+# - LINUX32: ILP32 for Linux on 32-bit x86
+# - LINUX64: LP64 for Linux on 64-bit x86
+# - ARM: ILP32 for Linux on 32-bit ARM
+# - ARM64: LP64 for Linux on 64-bit ARM
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64, ARM, ARM64]
 
@@ -387,10 +391,6 @@ analysis.restartAfterUnknown = false
 
 # Use heuristics to select the analysis
 analysis.selectAnalysisHeuristically = false
-
-# if this option is used, the CFA will be loaded from the given file instead
-# of parsed from sourcefile.
-analysis.serializedCfaFile = no default value
 
 # Split program in subprograms which can be analyzed separately afterwards
 analysis.split.program = false
@@ -650,8 +650,9 @@ bdd.pjbdd.tableParallelism = 10000
 # default
 bdd.pjbdd.threads = Runtime.getRuntime().availableProcessors()
 
-# Use bdd chaining.
-bdd.pjbdd.useChainedBDD = false
+# Type of BDD used in PJBDD.
+bdd.pjbdd.useBDDType = "BDD"
+  allowed values: [BDD, ChainedBDD]
 
 # Use internal a int based bdd representation.
 bdd.pjbdd.useInts = false
@@ -847,10 +848,6 @@ cfa.nonReturningFunctions = {"abort", "exit"}
 # corresponding to the value of option pixelgraphic.export.formatIf set to
 # 'null', no pixel graphic is exported.
 cfa.pixelGraphicFile = "cfaPixel"
-
-# export CFA as .ser file (dump Java objects)
-cfa.serialize = false
-cfa.serializeFile = "cfa.ser.gz"
 
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true
@@ -1152,6 +1149,9 @@ counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
 # number. The string %d is replace with the number of the counterexample.
 counterexample.export.yaml = "Counterexample.%d.witness-%s.yml"
 
+# deprecated name for counterexample.export.presenceCondition
+counterexample.presenceConditionFile = "Counterexample.%d.presenceCondition.txt"
+
 # If continueAfterInfeasibleError is true, remove the error state that is
 # proven to be unreachable before continuing. Set this to false if
 # analyis.collectAssumptions=true is also set.
@@ -1280,6 +1280,79 @@ cpa.arg.dumpAfterIteration = false
 # cache-hit-rate for BAM and a faster sub-analysis for blocks.
 cpa.arg.enableStateReduction = true
 
+# deprecated name for counterexample.export.automaton
+cpa.arg.errorPath.automaton = "Counterexample.%d.spc"
+
+# deprecated name for counterexample.export.codeStyle
+cpa.arg.errorPath.codeStyle = CBMC
+  enum:     [CBMC, CONCRETE_EXECUTION]
+
+# deprecated name for counterexample.export.compressWitness
+cpa.arg.errorPath.compressWitness = true
+
+# deprecated name for counterexample.export.core
+cpa.arg.errorPath.core = "Counterexample.%d.core.txt"
+
+# deprecated name for counterexample.export.enabled
+cpa.arg.errorPath.export = true
+
+# deprecated name for counterexample.export.exportAllFoundErrorPaths
+cpa.arg.errorPath.exportAllFoundErrorPaths = false
+
+# deprecated name for counterexample.export.exportAsSource
+cpa.arg.errorPath.exportAsSource = true
+
+# deprecated name for counterexample.export.exportCounterexampleCoverage
+cpa.arg.errorPath.exportCounterexampleCoverage = false
+
+# deprecated name for counterexample.export.exportExtendedWitness
+cpa.arg.errorPath.exportExtendedWitness = false
+
+# deprecated name for counterexample.export.exportFaults
+cpa.arg.errorPath.exportFaults = true
+
+# deprecated name for counterexample.export.exportHarness
+cpa.arg.errorPath.exportHarness = true
+
+# deprecated name for counterexample.export.exportImmediately
+cpa.arg.errorPath.exportImmediately = false
+
+# deprecated name for counterexample.export.exportTestCase
+cpa.arg.errorPath.exportTestCase = false
+
+# deprecated name for counterexample.export.exportWitness
+cpa.arg.errorPath.exportWitness = true
+
+# deprecated name for counterexample.export.extendedWitnessFile
+cpa.arg.errorPath.extendedWitnessFile = "extendedWitness.%d.graphml"
+
+# deprecated name for counterexample.export.file
+cpa.arg.errorPath.file = "Counterexample.%d.txt"
+
+# deprecated name for counterexample.export.filters
+cpa.arg.errorPath.filters = no default value
+
+# deprecated name for counterexample.export.graph
+cpa.arg.errorPath.graph = "Counterexample.%d.dot"
+
+# deprecated name for counterexample.export.graphml
+cpa.arg.errorPath.graphml = "Counterexample.%d.graphml"
+
+# deprecated name for counterexample.export.harness
+cpa.arg.errorPath.harness = "Counterexample.%d.harness.c"
+
+# deprecated name for counterexample.export.prefixCoverageFile
+cpa.arg.errorPath.prefixCoverageFile = "Counterexample.%d.aa-prefix.coverage-info"
+
+# deprecated name for counterexample.export.source
+cpa.arg.errorPath.source = "Counterexample.%d.c"
+
+# deprecated name for counterexample.export.witnessGraph
+cpa.arg.errorPath.witnessGraph = "Counterexample.%d.witness.dot"
+
+# deprecated name for counterexample.export.yaml
+cpa.arg.errorPath.yaml = "Counterexample.%d.witness-%s.yml"
+
 # export final ARG as .dot file
 cpa.arg.export = true
 
@@ -1306,6 +1379,9 @@ cpa.arg.export.code.metadataOutput = no default value
 
 # when enabled also write invariant true to correctness-witness automata
 cpa.arg.exportTrueInvariants = false
+
+# export correctness witness in YAML format
+cpa.arg.exportYamlCorrectnessWitness = true
 
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
@@ -1614,14 +1690,6 @@ cpa.callstack.unsupportedFunctions = {
           "__builtin_va_arg",
           "atexit"}
 
-# firing relation to be used in the precision adjustment operator
-cpa.chc.firingRelation = "Always"
-  allowed values: [Always, Maxcoeff, Sumcoeff, Homeocoeff]
-
-# generalization operator to be used in the precision adjustment operator
-cpa.chc.generalizationOperator = "Widen"
-  allowed values: [Top, Widen, WidenMax, WidenSum]
-
 # By enabling this option the CompositeTransferRelation will compute abstract
 # successors for as many edges as possible in one call. For any chain of
 # edges in the CFA which does not have more than one outgoing or leaving edge
@@ -1924,20 +1992,22 @@ cpa.loopbound.cyclicStopModulus = -1
 # equivalent to no limit.
 cpa.loopbound.loopIterationsBeforeAbstraction = 0
 
-# this option controls how the maxLoopIterations condition is adjusted when a
+# This option controls how the maxLoopIterations condition is adjusted when a
 # condition adjustment is invoked.
 cpa.loopbound.maxLoopIterationAdjusterFactory = STATIC
   enum:     [STATIC, INCREMENT, DOUBLE]
 
-# threshold for unrolling loops of the program (0 is infinite)
-# works only if assumption storage CPA is enabled, because otherwise it would
-# be unsound
+# Bound for the number of complete loop unrollings
+# of the program (0 is used for no bound).
+# Works only if assumption storage CPA is enabled, because otherwise it would
+# be unsound.
 cpa.loopbound.maxLoopIterations = 0
 
-# threshold for adjusting the threshold for unrolling loops of the program (0
-# is infinite).
-# only relevant in combination with a non-static maximum loop iteration
-# adjuster.
+# Maximum for adjusting the bound for the number of complete loop unrollings
+# of the
+#  program (0 is used for no maximum).
+# Only relevant in combination with a non-static adjuster for the bound for
+# loop-head visits.
 cpa.loopbound.maxLoopIterationsUpperBound = 0
 
 # Only checks for error after loops were unrolled at least this amount of
@@ -1950,6 +2020,9 @@ cpa.loopbound.trackStack = false
 # Where to perform abstraction
 cpa.lpi.abstractionLocations = LOOPHEAD
   enum:     [ALL, LOOPHEAD, MERGE]
+
+# deprecated name for precision.template.allowedCoefficients
+cpa.lpi.allowedCoefficients = {Rational.NEG_ONE, Rational.ONE}
 
 # Attach extra invariant from other CPAs during the value determination
 # computation
@@ -1971,11 +2044,29 @@ cpa.lpi.delayAbstractionUntilStrengthen = false
 # Value to substitute for the epsilon
 cpa.lpi.epsilon = Rational.ONE
 
+# deprecated name for precision.template.generateDifferences
+cpa.lpi.generateDifferences = false
+
+# deprecated name for precision.template.generateFromAsserts
+cpa.lpi.generateFromAsserts = true
+
+# deprecated name for precision.template.generateFromStatements
+cpa.lpi.generateFromStatements = false
+
 # Generate new templates using polyhedra convex hull
 cpa.lpi.generateTemplatesUsingConvexHull = false
 
+# deprecated name for precision.template.includeFunctionParameters
+cpa.lpi.includeFunctionParameters = false
+
 # Remove UFs and ITEs from policies.
 cpa.lpi.linearizePolicy = true
+
+# deprecated name for precision.template.maxExpressionSize
+cpa.lpi.maxExpressionSize = 1
+
+# deprecated name for precision.template.performEnumerativeRefinement
+cpa.lpi.performEnumerativeRefinement = true
 
 # Attempt to weaken interpolants in order to make them more general
 cpa.lpi.refinement.generalizeInterpolants = true
@@ -1985,6 +2076,9 @@ cpa.lpi.runHopefulValueDetermination = true
 
 # Remove redundant items when abstract values.
 cpa.lpi.simplifyDotOutput = false
+
+# deprecated name for precision.template.templateConstantThreshold
+cpa.lpi.templateConstantThreshold = 100
 
 # Algorithm for converting a formula to a set of lemmas
 cpa.lpi.toLemmasAlgorithm = "RCNF"
@@ -1999,6 +2093,10 @@ cpa.lpi.useCachingPathFormulaManager = true
 
 # Syntactically pre-compute dependencies for value determination
 cpa.lpi.valDetSyntacticCheck = true
+
+# deprecated name for precision.template.varFiltering
+cpa.lpi.varFiltering = ALL_LIVE
+  enum:     [INTERPOLATION_BASED, ALL_LIVE, ONE_LIVE, ALL]
 
 # Number of value determination steps allowed before widening is run. Value
 # of '-1' runs value determination until convergence.
@@ -2120,10 +2218,22 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
 
+# deprecated name for cpa.predicate.invariants.addToPrecision
+cpa.predicate.addToPrecision = false
+
+# deprecated name for counterexample.export.allowImpreciseCounterexamples
+cpa.predicate.allowImpreciseCounterexamples = false
+
 # Allow the given extern functions and interpret them as pure functions
 # although the predicate analysis does not support their semantics and this
 # can produce wrong results.
 cpa.predicate.allowedUnsupportedFunctions = {}
+
+# deprecated name for counterexample.export.alwaysUseImpreciseCounterexamples
+cpa.predicate.alwaysUseImpreciseCounterexamples = false
+
+# deprecated name for cpa.predicate.invariants.appendToAbstractionFormula
+cpa.predicate.appendToAbstractionFormula = false
 
 # Check satisfiability for plain conjunction of edge and assumptions.
 cpa.predicate.assumptionStrengtheningSatCheck = false
@@ -2212,6 +2322,20 @@ cpa.predicate.deferUntypedAllocations = true
 cpa.predicate.direction = FORWARD
   enum:     [FORWARD, BACKWARD]
 
+# deprecated name for counterexample.export.formula
+cpa.predicate.dumpCounterexampleFormula = "Counterexample.%d.smt2"
+
+# deprecated name for counterexample.export.model
+cpa.predicate.dumpCounterexampleModel = "Counterexample.%d.assignment.txt"
+
+# deprecated name for
+# cpa.predicate.invariants.dumpInvariantGenerationAutomata
+cpa.predicate.dumpInvariantGenerationAutomata = false
+
+# deprecated name for
+# cpa.predicate.invariants.dumpInvariantGenerationAutomataFile
+cpa.predicate.dumpInvariantGenerationAutomataFile = "invgen.%d.spc"
+
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
@@ -2261,6 +2385,9 @@ cpa.predicate.externModelFunctionName = "__VERIFIER_externModelSatisfied"
 
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
+
+# deprecated name for cpa.predicate.invariants.generationStrategy
+cpa.predicate.generationStrategy = []
 
 # Handle field access via extract and concat instead of new variables.
 cpa.predicate.handleFieldAccess = false
@@ -2333,7 +2460,7 @@ cpa.predicate.invariants.file = "invariants.txt"
 # Which strategy should be used for generating invariants, a comma separated
 # list can be specified. Usually later specified strategies serve as fallback
 # for earlier ones. (default is no invariant generation at all)
-cpa.predicate.invariants.generationStrategy = new ArrayList<>()
+cpa.predicate.invariants.generationStrategy = []
 
 # How often should generating invariants from sliced prefixes with
 # k-induction be tried?
@@ -2361,6 +2488,9 @@ cpa.predicate.invariants.useGlobalInvariants = true
 # analysis, however, the found invariants may also be better for loops as
 # interpolation.)
 cpa.predicate.invariants.useStrongInvariantsOnly = true
+
+# deprecated name for cpa.predicate.invariants.kInductionTries
+cpa.predicate.kInductionTries = 3
 
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
@@ -2671,6 +2801,23 @@ cpa.predicate.slicingabstractions.optimizeslicing = true
 # Whether to remove parts fo the ARG from which no target state is reachable
 cpa.predicate.slicingabstractions.removeSafeRegions = true
 
+# deprecated name for solver.cacheUnsatCores
+cpa.predicate.solver.cacheUnsatCores = true
+
+# deprecated name for solver.checkUFs
+cpa.predicate.solver.checkUFs = false
+
+# deprecated name for solver.enableLoggingInSolver
+cpa.predicate.solver.enableLoggingInSolver = false
+
+# deprecated name for solver.interpolationSolver
+cpa.predicate.solver.interpolationSolver = no default value
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
+
+# deprecated name for solver.solver
+cpa.predicate.solver.solver = MATHSAT5
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
+
 # C99 only defines the overflow of unsigned integer type.
 cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
 
@@ -2708,8 +2855,14 @@ cpa.predicate.symbolicCoverageCheck = false
 # check satisfiability when a target state has been found
 cpa.predicate.targetStateSatCheck = false
 
+# deprecated name for cpa.predicate.invariants.timeForInvariantGeneration
+cpa.predicate.timeForInvariantGeneration = 10s
+
 # Whether to track values stored in variables of function-pointer type.
 cpa.predicate.trackFunctionPointers = true
+
+# deprecated name for cpa.predicate.invariants.useAllStrategies
+cpa.predicate.useAllStrategies = false
 
 # Use SMT arrays for encoding heap memory instead of uninterpreted function
 # (ignored if useByteArrayForHeap=true). This is more precise but may lead to
@@ -2729,9 +2882,15 @@ cpa.predicate.useByteArrayForHeap = false
 # Use an optimisation for constraint generation
 cpa.predicate.useConstraintOptimization = true
 
+# deprecated name for cpa.predicate.invariants.useGlobalInvariants
+cpa.predicate.useGlobalInvariants = true
+
 # For multithreaded programs this is an overapproximation of possible values
 # of shared variables.
 cpa.predicate.useHavocAbstraction = false
+
+# deprecated name for cpa.predicate.invariants.appendToPathFormula
+cpa.predicate.useInvariantsForAbstraction = false
 
 # Use regions for pointer analysis. So called Burstall&Bornat (BnB) memory
 # regions will be used for pointer analysis. BnB regions are based not only
@@ -2753,6 +2912,9 @@ cpa.predicate.useParameterVariablesForGlobals = false
 # Use quantifiers when encoding heap accesses. This requires an SMT solver
 # that is capable of quantifiers (e.g. Z3 or PRINCESS).
 cpa.predicate.useQuantifiersOnArrays = false
+
+# deprecated name for cpa.predicate.invariants.useStrongInvariantsOnly
+cpa.predicate.useStrongInvariantsOnly = true
 
 # Do not follow states which can not syntactically lead to a target location
 cpa.property_reachability.noFollowBackwardsUnreachable = true
@@ -3018,17 +3180,31 @@ cpa.smg2.abstraction.alwaysAtLoop = false
 # computations are performed (and iteration threshold was reached)
 cpa.smg2.abstraction.determinismThreshold = 85
 
-# toggle liveness abstraction
-cpa.smg2.abstraction.doLivenessAbstraction = false
+# toggle liveness abstraction if liveness abstraction is supposed to simply
+# abstract all variables away (invalidating memory) when unused, even if
+# there is valid outside pointers on them.
+cpa.smg2.abstraction.doEnforcePointerInsensitiveLiveness = true
+
+# toggle liveness abstraction. Is independent of CEGAR, but dependent on the
+# CFAs liveness variables being tracked.
+cpa.smg2.abstraction.doLivenessAbstraction = true
 
 # skip abstraction computations until the given number of iterations are
 # reached, after that decision is based on then current level of determinism,
 # setting the option to -1 always performs abstraction computations
 cpa.smg2.abstraction.iterationThreshold = -1
 
+# The minimum list segments that are needed for abstraction may be increased
+# during the analysis based on a heuristic in fixed sized loops. This is the
+# maximum increase that is allowed. E.g. all lists with the length given here
+# are abstracted in any case. If you want to prevent dynamic increase of list
+# abstraction min threshold set this to the same value as
+# listAbstractionMinimumLengthThreshold.
+cpa.smg2.abstraction.listAbstractionMaximumIncreaseLengthThreshold = 6
+
 # The minimum list segments directly following each other with the same value
 # needed to abstract them.Minimum is 2.
-cpa.smg2.abstraction.listAbstractionMinimumLengthThreshhold = 12
+cpa.smg2.abstraction.listAbstractionMinimumLengthThreshold = 4
 
 # restrict liveness abstractions to nodes with more than one entering and/or
 # leaving edge
@@ -3490,6 +3666,10 @@ cpa.value.allowedUnsupportedFunctions = {}
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.value.assignEqualityAssumptions = true
 
+# configure when to export loop invariants
+cpa.value.exportLoopInvariants = IF_TRUE
+  enum:     [ALWAYS, IF_NOT_FALSE, IF_TRUE]
+
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
 cpa.value.functionValuesForRandom = no default value
@@ -3526,6 +3706,34 @@ cpa.value.interpolation.applyUnsatSuffixOptimization = true
 
 # whether or not to manage the callstack, which is needed for BAM
 cpa.value.interpolation.manageCallstack = true
+
+# Enable invariants that use  an arithmetic operator(linear invariants are
+# enabled separately)
+cpa.value.invExport.exportArithmetic = true
+
+# Enable to export invariants that include two variables
+cpa.value.invExport.exportBinary = true
+
+# Enable invariants that use a bit operator
+cpa.value.invExport.exportBitops = true
+
+# Enable to export linear equalities or inequalities over variables, e.g., ax
+# + by + c = 0, ax + bx + c <= 0, ax + bx + c >= 0, or ax + by + cy + d = 0
+cpa.value.invExport.exportLinear = true
+
+# Enable invariants that use a shift operator, note that additionally
+# exportBitops must be enabled
+cpa.value.invExport.exportShiftops = true
+
+# Enable to export invariants that include three variables, currently only
+# effective if exportLinear is enabled, too
+cpa.value.invExport.exportTernary = true
+
+# enable if loop invariant export should consider context
+cpa.value.invExport.invariantsContextSensitive = true
+
+# target file to hold the exported loop invariants
+cpa.value.loopInvariantsFile = no default value
 
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
@@ -3948,6 +4156,10 @@ heuristicSelection.complexLoopConfig = no default value
 
 # Configuration for programs containing composite types.
 heuristicSelection.compositeTypeConfig = no default value
+
+# If true, the strategy-selection algorithm does not run the selected config,
+# but only produces the statistics that show what config it would run.
+heuristicSelection.dryRun = false
 
 # Configuration for programs with loops.
 heuristicSelection.loopConfig = no default value
@@ -5030,6 +5242,10 @@ witness.considerAssumptions = true
 # the witness, so this options can be used to debug those cases.
 witness.debug.checkForMissedInvariants = false
 
+# Fail if invariants in the witness do not match a unique location in the
+# CFA. This is useful to detect errors in the witness file.
+witness.failOnUnmatchedInvariants = false
+
 # Validate correctness witness by specifying an invariants specification
 # automaton
 witness.invariantsSpecificationAutomaton = NO_ISA
@@ -5105,6 +5321,10 @@ witness.validation.termination.terminatingStatements = "config/specification/Ter
 # When validating a violation witness, use this configuration file instead of
 # the current one.
 witness.validation.violation.config = no default value
+
+# when enabled we also provide an analysis in form of logging output of the
+# likely quality of the produced witnesses
+witness.yamlexporter.analyseWitnessQuality = false
 
 # Export all information contained in the counterexample as a witness.
 witness.yamlexporter.exportCompleteCounterexample = false

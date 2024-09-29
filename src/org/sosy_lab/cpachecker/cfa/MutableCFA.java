@@ -147,8 +147,8 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
     return Collections.unmodifiableNavigableSet(allNodes.get(pName));
   }
 
-  public void setASTStructure(AstCfaRelation pAstCfaRelation) {
-    metadata = metadata.withASTStructure(pAstCfaRelation);
+  public void setAstCfaRelation(AstCfaRelation pAstCfaRelation) {
+    metadata = metadata.withAstCfaRelation(pAstCfaRelation);
   }
 
   public void setLoopStructure(LoopStructure pLoopStructure) {

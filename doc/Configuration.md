@@ -20,70 +20,62 @@ A configuration file specify a set of options in `key=value` format.
 All valid configuration options and their default values
 are listed in the file [`ConfigurationOptions.txt`](ConfigurationOptions.txt).
 In most cases, the standard configuration files
-in the directory `config/` should be sufficient.
+in the directory [`config/`](../config/) should be sufficient.
 A detailed format description can be found in the section below.
 
 
-Command-line options
---------------------
+Command-line arguments
+----------------------
 Several configuration options can also be specified as command-line arguments.
 If an option appears on the command line as well as in the configuration file,
 the value from the command line overrides the one from the file.
 The following command-line arguments are allowed:
 
- - `-help`			print list of command-line argumments and exit
- - `-config <FILE>`		sets configuration file name
- - `-cmc <FILE>`		enables conditional model checking and adds one configuration
- - `-cpas <CPAS>`		sets `cpa = cpa.composite.CompositeCPA` and `CompositeCPA.cpas = <CPAS>`
- - `-spec <FILE>`		sets `specification = <FILE>`
- - `-outputpath <DIR>`		sets `output.path = <DIR>`
- - `-logfile <FILE>`		sets `log.file = <FILE>`
- - `-benchmark`			sets `coverage.enabled = true`, `output.disable = true`, `statistics.memory = false`, and disables assertions in CPAchecker for improved performance
- - `-nolog`			sets `log.level = OFF` and `log.consoleLevel = OFF`
- - `-noout`			sets `output.disable=true`
- - `-stats`			sets `statistics.print = true`
- - `-entryfunction <FUNC>`	sets `analysis.entryFunction = <FUNC>`
- - `-cbmc`  			sets `analysis.checkCounterexamples = true` and `counterexample.checker=CBMC`
- - `-timelimit <TIME>`		sets `limits.time.cpu = <TIME>`
- - `-32`			sets `analysis.machineModel = Linux32` (this is the default)
- - `-64`			sets `analysis.machineModel = Linux64`
- - `-skipRecursion`		sets `cpa.callstack.skipRecursion = true` and `analysis.summaryEdges = true`
- - `-preprocess`		sets `parser.usePreprocessor = true`
- - `-clang`			sets `parser.useClang = true`
- - `-java`  			sets `language = JAVA`
- - `-secureMode`		enables a secure mode which forbids some configuration options that would allow arbitrary code execution
- - `-debug` 			enables the JVM debug interface on TCP port 5005 for remote debugging
- - `-disable-java-assertions`	disables assertions in CPAchecker for improved performance (recommended for benchmarking)
- - `-heap HEAP_SIZE`		sets the heap size of the JVM
- - `-stack STACK_SIZE`		sets the stack size of the JVM
- - `-setprop <KEY>=<VALUE>`	sets any option: `KEY = VALUE`
+ - `--help`			print list of command-line argumments and exit
+ - `--config <FILE>`		sets configuration file name
+ - `--cpas <CPAS>`		sets `cpa = cpa.composite.CompositeCPA` and `CompositeCPA.cpas = <CPAS>`
+ - `--spec <FILE>`		sets `specification = <FILE>`
+ - `--output-path <DIR>`	sets `output.path = <DIR>`
+ - `--benchmark`		sets `coverage.enabled = false`, `output.disable = true`, `statistics.memory = false`, and disables assertions in CPAchecker for improved performance
+ - `--no-output-files`		sets `output.disable=true`
+ - `--stats`			sets `statistics.print = true`
+ - `--entry-function <FUNC>`	sets `analysis.entryFunction = <FUNC>`
+ - `--timelimit <TIME>`		sets `limits.time.cpu = <TIME>`
+ - `--32`			sets `analysis.machineModel = LINUX32` (this is the default and suitable for 32-bit Linux on x86, i.e. ILP32)
+ - `--64`			sets `analysis.machineModel = LINUX64` (this is suitable for 64-bit Linux on x86, i.e., LP64)
+ - `--skip-recursion`		sets `cpa.callstack.skipRecursion = true` and `analysis.summaryEdges = true`
+ - `--preprocess`		sets `parser.usePreprocessor = true`
+ - `--java`  			sets `language = JAVA`
+ - `--secure-mode`		enables a secure mode which forbids some configuration options that would allow arbitrary code execution
+ - `--jvm-debug` 		enables the JVM debug interface on TCP port 5005 for remote debugging
+ - `--disable-java-assertions`	disables assertions in CPAchecker for improved performance (recommended for benchmarking)
+ - `--heap HEAP_SIZE`		sets the heap size of the JVM
+ - `--stack STACK_SIZE`		sets the stack size of the JVM
+ - `--option <KEY>=<VALUE>`	sets any option: `KEY = VALUE`
 
-The file [doc/ConfigurationOptions.txt](ConfigurationOptions.txt) contains an explanation
+The file [`ConfigurationOptions.txt`](ConfigurationOptions.txt) contains an explanation
 of these options.
-The arguments `-config config/CONFIGFILE.properties` can be
-abbreviated to `-CONFIGFILE`. In other words, if CPAchecker finds an
-unknown command-line option, it checks if a file with this name
-and the ending `.properties` exists in the directory `config`
+The arguments `--config config/CONFIGFILE.properties` can be
+abbreviated to `--CONFIGFILE`. In other words, if CPAchecker finds an
+unknown command-line argument, it checks if a file with this name
+and the ending `.properties` exists in the directory [`config/`](../config)
 and uses it as the configuration file.
 
-For conditional model checking, use `-cmc` several times
-with the configurations to use (they will be executed in the given order).
-The `-config` flag is not needed in this case
-(but may be given to define options for the global analysis).
-A similar form of abbreviation can be used for `-cmc`
-as described above for `-config`:
-`-cmc CONFIGFILE` is equivalent to `-cmc config/CONFIGFILE.properties`.
-
-Either `-help`, `-config`, `-cmc`, or `-cpas` has to be specified.
-
 All other arguments to CPAchecker are interpreted as code files that should be
-analyzed (option `analysis.programNames`). However, currently only one such file may
-be specified.
+analyzed (option `analysis.programNames`).
 
-The usual command line for running CPAchecker is to specify a configuration file
-(either with `-config FILE` or `-CONFIGFILE`) and a program file. Examples:
-`scripts/cpa.sh -default doc/examples/example.c` and
-`scripts/cpa.sh -config config/default.properties doc/examples/example.c`
+If neither `--cpas` nor a configuration file is specified,
+CPAchecker will use a default configuration
+that is recommended for most use cases.
+Typical command lines for CPAchecker are thus for example:
+- `bin/cpachecker doc/examples/example.c` (uses default analysis, which can also explicitly be requested with `--default`)
+- `bin/cpachecker --kInduction doc/examples/example.c` (chooses configuration `kInduction`)
+- `bin/cpachecker --config config/kInduction.properties doc/examples/example.c` (same as previous example)
+
+Note that before version 2.4 CPAchecker supported only
+a different set of command-line arguments, each starting with a single dash.
+These still work but are deprecated, and CPAchecker will print warnings
+informing about how to replace them when they are used.
 
 
 Specifying the CPA(s)
@@ -96,16 +88,16 @@ options that should be used for only one instance of a CPA can be prefixed
 with "alias.". Their values override the options without this prefix.
 
 For example, to set the solver logfile in the PredicateCPA, you can use
-"PredicateCPA.solver.logfile=predicate.%03d.smt2", even if the real option is
-"solver.logfile" and there is no such option in the PredicateCPA.
+`PredicateCPA.solver.logfile=predicate.%03d.smt2`, even if the real option is
+`solver.logfile` and there is no such option in the PredicateCPA.
 The configuration framework will automatically remove the prefix alias and
-apply the renamed option for all classes that are build with the instance of
-ConfigurationOptions given as parameter to PredicateCPA.
+apply the renamed option for all classes that are instantiated
+as part of the PredicateCPA.
 
 If the package name starts with `org.sosy_lab.cpachecker.`, this prefix can be
 omitted.
 
-Wrapper CPAs like ARGCPA and CompositeCPA take one option "cpa" or "cpas"
+Wrapper CPAs like ARGCPA and CompositeCPA take one option `cpa` or `cpas`
 to specify the wrapped CPA, depending whether this CPA wraps one or
 several other CPAs (the latter is only used for CompositeCPA). This option
 has to be prefixed with the identifier of the CPA as described above.
@@ -128,7 +120,7 @@ ErrorLabelAutomaton.cpa.automaton.inputFile = config/specification/ErrorLabel.sp
 ```
 
 Note that instead of manually specifying an `ObserverAutomatonCPA`, you can
-use the option `specification` (or the equivalent command-line argument `-spec`).
+use the option `specification` (or the equivalent command-line argument `--spec`).
 The following example is identical to the last one:
 
 ```

@@ -312,14 +312,12 @@ public class FaultLocalizationWithTraceFormula
 
   private FaultScoring getScoring(TraceFormula pTraceFormula) {
     return switch (algorithmType) {
-        // fall-through
       case MAXORG, MAXSAT ->
           FaultRankingUtils.concatHeuristics(
               new VariableCountScoring(),
               new SetSizeScoring(),
               new MinimalLineDistanceScoring(
                   pTraceFormula.getPostCondition().getEdgesForPostCondition().get(0)));
-        // fall-through
       case ERRINV, UNSAT ->
           FaultRankingUtils.concatHeuristics(
               new EdgeTypeScoring(),

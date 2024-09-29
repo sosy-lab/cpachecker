@@ -10,41 +10,20 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
-import java.io.Console;
 import java.io.PrintStream;
 import org.checkerframework.dataflow.qual.TerminatesExecution;
 import org.sosy_lab.common.annotations.SuppressForbidden;
+import org.sosy_lab.common.io.IO;
 
 /** Utilities for output while we do not yet have a logger */
 @SuppressForbidden("System.out in this class is ok")
 final class Output {
 
-  /**
-   * Check whether {@link System#console()} represents a terminal. Java <= 21 and Java >= 22
-   * represent this differently.
-   *
-   * <p>Cf. the <a href="https://errorprone.info/bugpattern/SystemConsoleNull">Error Prone docs</a>,
-   * where this code is taken from.
-   */
-  @SuppressWarnings("SystemConsoleNull")
-  private static boolean systemConsoleIsTerminal() {
-    Console systemConsole = System.console();
-    if (Runtime.version().feature() < 22) {
-      return systemConsole != null;
-    }
-    try {
-      return (Boolean) Console.class.getMethod("isTerminal").invoke(systemConsole);
-    } catch (ReflectiveOperationException e) {
-      throw new LinkageError(e.getMessage(), e);
-    }
-  }
-
   private Output() {}
 
   private static final PrintStream ERROR_OUTPUT = System.err;
 
-  private static final boolean USE_COLORS =
-      systemConsoleIsTerminal() && !System.getProperty("os.name", "").startsWith("Windows");
+  private static final boolean USE_COLORS = IO.mayUseColorForOutput();
   private static final String ERROR_COLOR = "\033[31;1m"; // bold red
   private static final String WARNING_COLOR = "\033[1m"; // bold
   private static final String REGULAR_COLOR = "\033[m";

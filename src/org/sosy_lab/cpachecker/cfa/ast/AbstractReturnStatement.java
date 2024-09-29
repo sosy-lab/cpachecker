@@ -8,13 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.io.Serial;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public abstract class AbstractReturnStatement extends AbstractAstNode implements AReturnStatement {
 
-  private static final long serialVersionUID = 2672685167471010046L;
+  @Serial private static final long serialVersionUID = 2672685167471010046L;
   private final @Nullable AExpression expression;
   private final @Nullable AAssignment assignment;
 
@@ -28,11 +29,9 @@ public abstract class AbstractReturnStatement extends AbstractAstNode implements
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "return"
-        + (expression != null
-            ? " " + expression.toASTString(pQualified, pOriginalVariableNames)
-            : "")
+        + (expression != null ? " " + expression.toASTString(pAAstNodeRepresentation) : "")
         + ";";
   }
 

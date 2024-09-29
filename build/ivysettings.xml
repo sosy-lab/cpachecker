@@ -10,7 +10,6 @@ SPDX-FileCopyrightText: 2018-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-<!DOCTYPE ivysettings> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
 <ivysettings>
     <!-- DO NOT EDIT LOCALLY!
          Keep this file synchronized with

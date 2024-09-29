@@ -8,6 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -24,7 +28,6 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -75,17 +78,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult.Satisfiability;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintAndSMGState;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -115,10 +115,10 @@ public class SMGTransferRelation
 
   private final SMGOptions options;
 
+  private final PrecAdjustmentOptions precisionAdjustmentOptions;
+
   @SuppressWarnings("unused")
   private final SMGCPAExportOptions exportSMGOptions;
-
-  private final MachineModel machineModel;
 
   private final LogManagerWithoutDuplicates logger;
 
@@ -141,6 +141,7 @@ public class SMGTransferRelation
   public SMGTransferRelation(
       LogManager pLogger,
       SMGOptions pOptions,
+      PrecAdjustmentOptions pPrecisionAdjustmentOptions,
       SMGCPAExportOptions pExportSMGOptions,
       CFA pCfa,
       ConstraintsStrengthenOperator pConstraintsStrengthenOperator,
@@ -150,8 +151,8 @@ public class SMGTransferRelation
     cfa = pCfa;
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
+    precisionAdjustmentOptions = pPrecisionAdjustmentOptions;
     exportSMGOptions = pExportSMGOptions;
-    machineModel = pCfa.getMachineModel();
     solver = pSolver;
 
     if (pCfa.getVarClassification().isPresent()) {
@@ -169,6 +170,7 @@ public class SMGTransferRelation
   protected SMGTransferRelation(
       LogManager pLogger,
       SMGOptions pOptions,
+      PrecAdjustmentOptions pPrecisionAdjustmentOptions,
       SMGCPAExportOptions pExportSMGOptions,
       MachineModel pMachineModel,
       Collection<String> pBooleanVariables,
@@ -177,8 +179,8 @@ public class SMGTransferRelation
       throws InvalidConfigurationException {
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
+    precisionAdjustmentOptions = pPrecisionAdjustmentOptions;
     exportSMGOptions = pExportSMGOptions;
-    machineModel = pMachineModel;
     booleanVariables = pBooleanVariables;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
     stats = null;
@@ -824,6 +826,18 @@ public class SMGTransferRelation
         return null;
       }
       return handledAssumptions;
+    } catch (SMGSolverException e) {
+      if (e.isSolverException()) {
+        throw new CPATransferException(
+            "Error while computing the constraint for "
+                + expression
+                + ". With: \n"
+                + e.getSolverException());
+      } else if (e.isInterruptedException()) {
+        throw e.getInterruptedException();
+      } else {
+        throw e.getUnrecognizedCodeException();
+      }
     } catch (SolverException e) {
       throw new CPATransferException(
           "Error while computing the constraint for " + expression + ".");
@@ -843,6 +857,19 @@ public class SMGTransferRelation
     CExpression cExpression = (CExpression) simplifiedExpression.getFirst();
     truthValue = simplifiedExpression.getSecond();
 
+    if (expression instanceof CBinaryExpression binEx
+        && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound) {
+      if (binEx.getOperator().equals(LESS_THAN) || binEx.getOperator().equals(LESS_EQUAL)) {
+        // Concrete loop of the form x < 5, increment abstraction bound to 1 larger than loop
+        if (precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
+                <= loopBound.getValue().intValueExact()
+            && precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
+                < precisionAdjustmentOptions.getListAbstractionMaximumIncreaseLengthThreshold()) {
+          precisionAdjustmentOptions.incListAbstractionMinimumLengthThreshold();
+        }
+      }
+    }
+
     ImmutableList.Builder<SMGState> resultStateBuilder = ImmutableList.builder();
     // Get the value of the expression (either true[1L], false[0L], or unknown[null])
     SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options);
@@ -857,56 +884,37 @@ public class SMGTransferRelation
       }
 
       if (!value.isExplicitlyKnown()) {
-        // Use the Explicit Value Analysis assigning value visitor,
-        // as we might be able to deterministically assume values (for example 0 == x -> x = 0).
-        // If this fails, revert to symbolic execution if possible.
+        // Use the assigning value visitor, we might be able to deterministically assume values (for
+        // example 0 == x -> x = 0).
+        // This utilizes symbolic execution if enabled and adds constraints accordingly. Might
+        // return null if a path is infeasible.
         SMGCPAAssigningValueVisitor avv =
             new SMGCPAAssigningValueVisitor(
-                evaluator, currentState, cfaEdge, logger, truthValue, options, booleanVariables);
-
-        for (ValueAndSMGState maybeUpdatedValueAndUpdatedState : cExpression.accept(avv)) {
-          SMGState maybeUpdatedState = maybeUpdatedValueAndUpdatedState.getState();
-          Value maybeUpdatedValue = maybeUpdatedValueAndUpdatedState.getValue();
-
-          if (maybeUpdatedValue.isExplicitlyKnown()) {
-            if (representsBoolean(maybeUpdatedValue, truthValue)) {
-              // We know more than before, and the assumption is fulfilled, so return the state
-              // from the value visitor
-              resultStateBuilder.add(maybeUpdatedState);
-              break;
-            }
+                evaluator,
+                solver,
+                currentState,
+                cfaEdge,
+                logger,
+                truthValue,
+                options,
+                booleanVariables,
+                functionName);
+        try {
+          List<ValueAndSMGState> maybeFeasiblePaths = cExpression.accept(avv);
+          if (maybeFeasiblePaths == null) {
+            // Infeasible
+            return null;
           }
-
-          if (options.trackPredicates()) {
-
-            // Symbolic Execution for assumption edges, use previous state and values
-            Collection<SMGState> statesWithConstraints =
-                computeNewStateByCreatingConstraint(currentState, cExpression, truthValue, cfaEdge);
-
-            for (SMGState stateWithConstraint : statesWithConstraints) {
-              if (options.isSatCheckStrategyAtAssume()) {
-                SolverResult solverResult =
-                    solver.checkUnsat(stateWithConstraint.getConstraints(), functionName);
-                if (solverResult.satisfiability().equals(Satisfiability.SAT)) {
-                  resultStateBuilder.add(
-                      stateWithConstraint.replaceModelAndDefAssignmentAndCopy(
-                          solverResult.definiteAssignments(), solverResult.model()));
-                }
-                // We might add/return nothing here if the check was UNSAT
-              } else {
-                // If either we don't check SAT or the path is SAT we return the state
-                resultStateBuilder.add(stateWithConstraint);
-              }
-            }
-
+          return transformedImmutableListCopy(maybeFeasiblePaths, ValueAndSMGState::getState);
+        } catch (SMGSolverException e) {
+          if (e.isSolverException()) {
+            throw e.getSolverException();
           } else {
-
-            // Explicit Value Analysis; if unknown,
-            // try to assign a (boolean) value and maybe split into multiple states
-            // (already done above)
-            resultStateBuilder.add(maybeUpdatedState);
+            Preconditions.checkArgument(e.isInterruptedException());
+            throw e.getInterruptedException();
           }
         }
+
       } else if (representsBoolean(value, truthValue)) {
         // We do not know more than before, and the assumption is fulfilled, so return the state
         // from the value visitor (we don't need a copy as every state operation generates a new
@@ -953,41 +961,34 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> handleStatementEdge(CStatementEdge pCfaEdge, CStatement cStmt)
       throws CPATransferException {
-    try {
-      // Either assignments a = b; or function calls foo(..);
-      if (cStmt instanceof CAssignment cAssignment) {
-        // Assignments, evaluate the right hand side value using the value visitor and write it into
-        // the address returned by the address evaluator for the left hand side.
-        CExpression lValue = cAssignment.getLeftHandSide();
-        CRightHandSide rValue = cAssignment.getRightHandSide();
-        ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
-        for (SMGState currentState : createVariableOnTheSpot(lValue, state)) {
-          stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
-        }
-        return stateBuilder.build();
-
-      } else if (cStmt instanceof CFunctionCallStatement cFCall) {
-        // Check the arguments for the function, then simply execute the function
-        CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
-        CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
-        String calledFunctionName = fileNameExpression.toASTString();
-
-        ImmutableList.Builder<SMGState> resultStatesBuilder = ImmutableList.builder();
-
-        // function calls without assignments
-        resultStatesBuilder.addAll(
-            handleFunctionCallWithoutBody(state, pCfaEdge, cFCExpression, calledFunctionName));
-
-        return resultStatesBuilder.build();
-      } else {
-        // Fall through for unneeded cases
-        return ImmutableList.of(state);
+    // Either assignments a = b; or function calls foo(..);
+    if (cStmt instanceof CAssignment cAssignment) {
+      // Assignments, evaluate the right hand side value using the value visitor and write it into
+      // the address returned by the address evaluator for the left hand side.
+      CExpression lValue = cAssignment.getLeftHandSide();
+      CRightHandSide rValue = cAssignment.getRightHandSide();
+      ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
+      for (SMGState currentState : createVariableOnTheSpot(lValue, state)) {
+        stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
       }
-    } catch (SolverException e) {
-      throw new CPATransferException("Solver error handling a statement with SMG analysis: ", e);
-    } catch (InterruptedException e) {
-      throw new CPATransferException(
-          "Solver interrupted handling a statement with SMG analysis: ", e);
+      return stateBuilder.build();
+
+    } else if (cStmt instanceof CFunctionCallStatement cFCall) {
+      // Check the arguments for the function, then simply execute the function
+      CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
+      CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
+      String calledFunctionName = fileNameExpression.toASTString();
+
+      ImmutableList.Builder<SMGState> resultStatesBuilder = ImmutableList.builder();
+
+      // function calls without assignments
+      resultStatesBuilder.addAll(
+          handleFunctionCallWithoutBody(state, pCfaEdge, cFCExpression, calledFunctionName));
+
+      return resultStatesBuilder.build();
+    } else {
+      // Fall through for unneeded cases
+      return ImmutableList.of(state);
     }
   }
 
@@ -1000,7 +1001,7 @@ public class SMGTransferRelation
       CStatementEdge pCfaEdge,
       CFunctionCallExpression cFCExpression,
       String calledFunctionName)
-      throws CPATransferException, SolverException, InterruptedException {
+      throws CPATransferException {
     SMGCPABuiltins builtins = evaluator.getBuiltinFunctionHandler();
     List<ValueAndSMGState> uselessValuesAndStates;
     if (builtins.isABuiltIn(calledFunctionName)) {
@@ -1031,8 +1032,7 @@ public class SMGTransferRelation
       uselessValuesAndStates =
           builtins.handleUnknownFunction(pCfaEdge, cFCExpression, calledFunctionName, pState);
     }
-    return Collections3.transformedImmutableListCopy(
-        uselessValuesAndStates, ValueAndSMGState::getState);
+    return transformedImmutableListCopy(uselessValuesAndStates, ValueAndSMGState::getState);
   }
 
   @Override
@@ -1313,9 +1313,7 @@ public class SMGTransferRelation
           // Offset known but not 0, search for/create the correct address
           List<ValueAndSMGState> newAddressesAndStates =
               evaluator.findOrcreateNewPointer(
-                  addressInValue.getMemoryAddress(),
-                  addressInValue.getOffset().asNumericValue().bigIntegerValue(),
-                  currentState);
+                  addressInValue.getMemoryAddress(), addressInValue.getOffset(), currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here
           Preconditions.checkArgument(newAddressesAndStates.size() == 1);
@@ -1350,13 +1348,11 @@ public class SMGTransferRelation
             && addressInValue.getOffset().asNumericValue().longValue() == 0) {
           // offset == 0 -> write the value directly (known pointer)
           valueToWrite = addressInValue.getMemoryAddress();
-        } else if (addressInValue.getOffset().isNumericValue()) {
+        } else if (addressInValue.getOffset().isNumericValue() || options.trackPredicates()) {
           // Offset known but not 0, search for/create the correct address
           List<ValueAndSMGState> newAddressesAndStates =
               evaluator.findOrcreateNewPointer(
-                  addressInValue.getMemoryAddress(),
-                  addressInValue.getOffset().asNumericValue().bigIntegerValue(),
-                  currentState);
+                  addressInValue.getMemoryAddress(), addressInValue.getOffset(), currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here
           Preconditions.checkArgument(newAddressesAndStates.size() == 1);
@@ -1385,93 +1381,5 @@ public class SMGTransferRelation
       return currentState.writeValueWithChecks(
           addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType, edge);
     }
-  }
-
-  // ######### Constraint creation for Symbolic Execution #########
-  private Collection<SMGState> computeNewStateByCreatingConstraint(
-      final SMGState pOldState,
-      final AExpression pExpression,
-      final boolean pTruthAssumption,
-      CFAEdge pEdge)
-      throws CPATransferException, SolverException, InterruptedException {
-
-    final ConstraintFactory constraintFactory =
-        ConstraintFactory.getInstance(pOldState, machineModel, logger, options, evaluator, pEdge);
-
-    // final String functionName = pEdge.getPredecessor().getFunctionName();
-    // The constraints are not yet in the state here!
-    Collection<ConstraintAndSMGState> newConstraintsAndStates =
-        createConstraint(pExpression, constraintFactory, pTruthAssumption);
-
-    ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
-    for (ConstraintAndSMGState newConstraintAndState : newConstraintsAndStates) {
-      final Constraint newConstraint = newConstraintAndState.getConstraint();
-      SMGState currentState = newConstraintAndState.getState();
-
-      // If a constraint is trivial, its satisfiability is not influenced by other constraints.
-      // So to evade more expensive SAT checks, we just check the constraint on its own.
-      // TODO: is this still correct for more than one returned constraint? I.e. can a trivial
-      // constraint be non-trivial with a second constraint?
-      if (newConstraint.isTrivial()) {
-        if (solver.checkUnsat(newConstraint, functionName).equals(Satisfiability.SAT)) {
-          // Iff SAT -> we go that path with this state
-          // We don't add the constraint as it is trivial
-          stateBuilder.add(currentState);
-        }
-      } else {
-        stateBuilder.add(currentState.addConstraint(newConstraint));
-      }
-    }
-    ImmutableList<SMGState> newStates = stateBuilder.build();
-
-    if (newStates.isEmpty()) {
-      return null;
-    }
-
-    return newStates;
-  }
-
-  private Collection<ConstraintAndSMGState> createConstraint(
-      AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption)
-      throws CPATransferException {
-
-    if (pExpression instanceof CBinaryExpression) {
-      return createConstraint((CBinaryExpression) pExpression, pFactory, pTruthAssumption);
-
-    } else if (pExpression instanceof CIdExpression) {
-      // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
-      return createConstraint((CIdExpression) pExpression, pFactory, pTruthAssumption);
-
-    } else {
-      throw new AssertionError("Unhandled expression type " + pExpression.getClass());
-    }
-  }
-
-  private Collection<ConstraintAndSMGState> createConstraint(
-      CBinaryExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption)
-      throws CPATransferException {
-
-    if (pTruthAssumption) {
-      return pFactory.createPositiveConstraint(pExpression);
-    } else {
-      return pFactory.createNegativeConstraint(pExpression);
-    }
-  }
-
-  // Unneeded/Useless constraints have already been filtered out.
-  // The Constraints only need to be combined with the states now
-  private Collection<ConstraintAndSMGState> createConstraint(
-      CIdExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption)
-      throws CPATransferException {
-    Collection<ConstraintAndSMGState> constraint;
-
-    if (pTruthAssumption) {
-      constraint = pFactory.createPositiveConstraint(pExpression);
-    } else {
-      constraint = pFactory.createNegativeConstraint(pExpression);
-    }
-    return constraint.stream()
-        .filter(cas -> cas.getConstraint() != null)
-        .collect(ImmutableList.toImmutableList());
   }
 }

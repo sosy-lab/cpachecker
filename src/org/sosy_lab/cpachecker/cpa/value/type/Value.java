@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import java.io.Serializable;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -43,7 +44,7 @@ public interface Value extends Serializable {
   /** Singleton class used to signal that the value is unknown (could be anything). */
   public static final class UnknownValue implements Value, Serializable {
 
-    private static final long serialVersionUID = -300842115868319184L;
+    @Serial private static final long serialVersionUID = -300842115868319184L;
     private static final UnknownValue instance = new UnknownValue();
 
     @Override
@@ -86,7 +87,8 @@ public interface Value extends Serializable {
       return false;
     }
 
-    Object readResolve() {
+    @Serial
+    private Object readResolve() {
       return instance;
     }
   }

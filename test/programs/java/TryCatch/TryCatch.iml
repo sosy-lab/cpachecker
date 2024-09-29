@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/pack6/TryCatch" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pack6/TryCatch10" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pack6/TryCatch11" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pack6/TryCatch12" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pack6/TryCatch13" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pack6/TryCatch14" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pack6/TryCatch2" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pack6/TryCatch3" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pack6/TryCatch4" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pack6/TryCatch5" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pack6/TryCatch6" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pack6/TryCatch7" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pack6/TryCatch8" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pack6/TryCatch9" isTestSource="false" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

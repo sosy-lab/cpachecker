@@ -49,8 +49,8 @@ public interface CFA extends CfaNetwork {
     return getMetadata().getMainFunctionEntry();
   }
 
-  default AstCfaRelation getASTStructure() {
-    return getMetadata().getASTStructure();
+  default AstCfaRelation getAstCfaRelation() {
+    return getMetadata().getAstCfaRelation();
   }
 
   default Optional<LoopStructure> getLoopStructure() {
