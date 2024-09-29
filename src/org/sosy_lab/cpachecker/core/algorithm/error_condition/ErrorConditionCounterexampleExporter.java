@@ -377,6 +377,14 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
         for (Entry<String, Object> variableValue : assignment.entrySet()) {
           String variable = variableValue.getKey();
           String value = variableValue.getValue().toString();
+          if (lines.get(variable) == null) {
+            logger.logf(
+                Level.WARNING,
+                "Variable %s does not appear in 'lines', skipping assignment %s",
+                variable,
+                value);
+            continue;
+          }
           CFAEdge cfaEdge = Objects.requireNonNull(lines.get(variable));
           if (variable.contains("::")) {
             variable = Splitter.on("::").limit(2).splitToList(variable).get(1);
