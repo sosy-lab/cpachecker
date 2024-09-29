@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -39,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -138,11 +141,11 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     return pExpression;
   }
 
-  public CStatement substitute(CStatement pCStmt) {
+  public CStatement substitute(CStatement pStmt) {
 
-    FileLocation fl = pCStmt.getFileLocation();
+    FileLocation fl = pStmt.getFileLocation();
 
-    if (pCStmt instanceof CFunctionCallAssignmentStatement funcCallAssignStmt) {
+    if (pStmt instanceof CFunctionCallAssignmentStatement funcCallAssignStmt) {
       if (funcCallAssignStmt.getLeftHandSide() instanceof CIdExpression cIdExpr) {
         CExpression lhsSub = substitute(cIdExpr);
         if (lhsSub instanceof CIdExpression cIdExprSub) {
@@ -151,11 +154,11 @@ public class CSimpleDeclarationSubstitution implements Substitution {
         }
       }
 
-    } else if (pCStmt instanceof CFunctionCallStatement funcCallStmt) {
+    } else if (pStmt instanceof CFunctionCallStatement funcCallStmt) {
       return new CFunctionCallStatement(
           funcCallStmt.getFileLocation(), substitute(funcCallStmt.getFunctionCallExpression()));
 
-    } else if (pCStmt instanceof CExpressionAssignmentStatement exprAssignStmt) {
+    } else if (pStmt instanceof CExpressionAssignmentStatement exprAssignStmt) {
       CLeftHandSide lhs = exprAssignStmt.getLeftHandSide();
       CExpression rhs = exprAssignStmt.getRightHandSide();
       CExpression sub = substitute(lhs);
@@ -163,11 +166,11 @@ public class CSimpleDeclarationSubstitution implements Substitution {
         return new CExpressionAssignmentStatement(fl, lhsSub, substitute(rhs));
       }
 
-    } else if (pCStmt instanceof CExpressionStatement cExprStmt) {
+    } else if (pStmt instanceof CExpressionStatement cExprStmt) {
       return new CExpressionStatement(fl, substitute(cExprStmt.getExpression()));
     }
 
-    return pCStmt;
+    return pStmt;
   }
 
   public CFunctionCallExpression substitute(CFunctionCallExpression pFuncCallExpr) {
@@ -177,6 +180,18 @@ public class CSimpleDeclarationSubstitution implements Substitution {
       params.add(substitute(expr));
     }
     return SubstituteBuilder.substituteFunctionCallExpr(pFuncCallExpr, params);
+  }
+
+  public CReturnStatement substitute(CReturnStatement pRetStmt) {
+    if (pRetStmt.getReturnValue().isEmpty()) {
+      // return as-is if there is no expression to substitute
+      return pRetStmt;
+    } else {
+      CExpression expr = pRetStmt.getReturnValue().orElseThrow();
+      // TODO it would be cleaner to also substitute the assignment...
+      return new CReturnStatement(
+          pRetStmt.getFileLocation(), Optional.of(substitute(expr)), pRetStmt.asAssignment());
+    }
   }
 
   public ImmutableMap<ThreadEdge, CFAEdge> substituteEdges(MPORThread pThread) {
@@ -217,6 +232,11 @@ public class CSimpleDeclarationSubstitution implements Substitution {
           substitute =
               SubstituteBuilder.substituteFunctionCallEdge(
                   funcCall, (CFunctionCall) substitute(funcCall.getFunctionCall()));
+
+        } else if (edge instanceof CReturnStatementEdge retStmt) {
+          substitute =
+              SubstituteBuilder.substituteReturnStatementEdge(
+                  retStmt, substitute(retStmt.getReturnStatement()));
         }
 
         rSubstitutes.put(threadEdge, substitute == null ? edge : substitute);

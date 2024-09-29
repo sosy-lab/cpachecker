@@ -260,12 +260,13 @@ public class Sequentialization {
 
     ImmutableMap.Builder<ThreadEdge, ImmutableSet<AssignExpr>> rRetStmts = ImmutableMap.builder();
     for (ThreadEdge aThreadEdge : pThread.cfa.threadEdges) {
-      if (aThreadEdge.cfaEdge instanceof CReturnStatementEdge retStmt) {
+      CFAEdge aSub = pEdgeSubs.get(aThreadEdge);
+      if (aSub instanceof CReturnStatementEdge retStmt) {
         AFunctionType aFunc = retStmt.getSuccessor().getFunction().getType();
         ImmutableSet.Builder<AssignExpr> assigns = ImmutableSet.builder();
         for (ThreadEdge bThreadEdge : pThread.cfa.threadEdges) {
-          CFAEdge sub = pEdgeSubs.get(bThreadEdge);
-          if (sub instanceof CFunctionSummaryEdge funcSumm) {
+          CFAEdge bSub = pEdgeSubs.get(bThreadEdge);
+          if (bSub instanceof CFunctionSummaryEdge funcSumm) {
             // if the summary edge is of the form CPAchecker_TMP = func(); (i.e. an assignment)
             if (funcSumm.getExpression() instanceof CFunctionCallAssignmentStatement assignStmt) {
               AFunctionType bFunc = funcSumm.getFunctionEntry().getFunction().getType();

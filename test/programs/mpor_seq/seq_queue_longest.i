@@ -1287,7 +1287,7 @@ int main(void) {
         case 28: if (!((__p2_33_q->head) == 800)) { pc[2] = 33;  }else if ((__p2_33_q->head) == 800) { pc[2] = 29;  }continue;
         case 29: __p2_33_q->head = 1; pc[2] = 30; continue;
         case 30: pc[2] = 31; continue;
-        case 31: __t2_35___CPAchecker_TMP_0 = x;  pc[2] = 32; continue;
+        case 31: __t2_35___CPAchecker_TMP_0 = __t2_36_x;  pc[2] = 32; continue;
         case 32: pc[2] = t2__dequeue__return_pc;  continue;
         case 33: const int __t2_38___CPAchecker_TMP_1 = __p2_33_q->head; __p2_33_q->head = (__p2_33_q->head) + 1; __t2_38___CPAchecker_TMP_1; pc[2] = 36; continue;
         case 36: pc[2] = 31; continue;

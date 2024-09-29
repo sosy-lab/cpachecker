@@ -20,12 +20,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -122,6 +124,16 @@ public class SubstituteBuilder {
         pOriginal.getSuccessor(),
         pFuncCall,
         pOriginal.getSummaryEdge());
+  }
+
+  public static CReturnStatementEdge substituteReturnStatementEdge(
+      CReturnStatementEdge pOriginal, CReturnStatement pRetStmt) {
+    return new CReturnStatementEdge(
+        pOriginal.getRawStatement(),
+        pRetStmt,
+        pOriginal.getFileLocation(),
+        pOriginal.getPredecessor(),
+        pOriginal.getSuccessor());
   }
 
   public static CFunctionCallExpression substituteFunctionCallExpr(
