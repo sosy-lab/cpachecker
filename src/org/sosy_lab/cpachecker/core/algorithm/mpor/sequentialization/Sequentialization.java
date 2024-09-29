@@ -78,7 +78,7 @@ public class Sequentialization {
     }
     rProgram.append(SeqSyntax.NEWLINE);
 
-    // prepend all var declarations in the order global - local - params - return_pcs
+    // prepend all var declarations in the order global - local - params - return_pc
     MPORThread mainThread = MPORAlgorithm.getMainThread(pSubstitutions.keySet());
     rProgram.append(createGlobalVarString(pSubstitutions.get(mainThread)));
     for (var entry : pSubstitutions.entrySet()) {
@@ -130,19 +130,20 @@ public class Sequentialization {
       ImmutableMap<ThreadEdge, ImmutableSet<AssignExpr>> returnStmts =
           mapReturnStmts(thread, edgeSubs);
       ImmutableMap<ThreadEdge, AssignExpr> returnPcAssigns = mapReturnPcAssigns(thread);
-      ImmutableMap<ThreadNode, AssignExpr> pcsReturnPcAssigns = mapPcsReturnPcAssigns(thread);
+      ImmutableMap<ThreadNode, AssignExpr> pcReturnPcAssigns = mapPcsReturnPcAssigns(thread);
 
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
         if (!coveredNodes.contains(threadNode)) {
           SeqLoopCase loopCase =
               SeqUtil.createCaseFromThreadNode(
+                  thread.id,
                   coveredNodes,
                   threadNode,
                   edgeSubs,
                   paramAssigns,
                   returnStmts,
                   returnPcAssigns,
-                  pcsReturnPcAssigns);
+                  pcReturnPcAssigns);
           if (loopCase != null) {
             loopCases.add(loopCase);
           }
@@ -331,7 +332,7 @@ public class Sequentialization {
    * return_pc} variable assignments.
    *
    * <p>E.g. a {@link FunctionExitNode} for the function {@code fib} in thread 0 is mapped to the
-   * assignment {@code pcs[next_thread] = t0__fib__return_pc;}.
+   * assignment {@code pc[next_thread] = t0__fib__return_pc;}.
    */
   private static ImmutableMap<ThreadNode, AssignExpr> mapPcsReturnPcAssigns(MPORThread pThread) {
     Map<ThreadNode, AssignExpr> rAssigns = new HashMap<>();
@@ -346,7 +347,8 @@ public class Sequentialization {
           if (!rAssigns.containsKey(threadNode)) {
             assert dec != null;
             AssignExpr assign =
-                new AssignExpr(SeqExprBuilder.pcsNextThread, dec.variableExpr.variable);
+                new AssignExpr(
+                    SeqExprBuilder.createPcUpdate(pThread.id), dec.variableExpr.variable);
             rAssigns.put(threadNode, assign);
           }
         }

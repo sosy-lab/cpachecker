@@ -15,7 +15,7 @@ public class SeqVars {
 
   public static final Variable numThreads = new Variable(SeqToken.NUM_THREADS);
 
-  public static final Variable pcs = new Variable(SeqToken.PCS);
+  public static final Variable pc = new Variable(SeqToken.PC);
 
   public static final Variable execute = new Variable(SeqToken.EXECUTE);
 

@@ -21,6 +21,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 /** Represents a single case statement in the sequentialization while loop. */
 public class SeqLoopCaseStmt implements SeqElement {
 
+  private final int threadId;
+
   /** True if this is an if, else-if or else statement (extra curly brackets required). */
   public final boolean isAssume;
 
@@ -33,32 +35,36 @@ public class SeqLoopCaseStmt implements SeqElement {
   public final Optional<Integer> targetPc;
 
   public SeqLoopCaseStmt(
-      boolean pIsAssume, Optional<SeqExpression> pStatement, Optional<Integer> pTargetPc) {
+      int pThreadId,
+      boolean pIsAssume,
+      Optional<SeqExpression> pStatement,
+      Optional<Integer> pTargetPc) {
     // if isAssume, then targetPc has to be present
     checkArgument(!pIsAssume || pTargetPc.isPresent());
+    threadId = pThreadId;
     isAssume = pIsAssume;
     statement = pStatement;
     targetPc = pTargetPc;
   }
 
   protected SeqLoopCaseStmt cloneWithTargetPc(int pTargetPc) {
-    return new SeqLoopCaseStmt(isAssume, statement, Optional.of(pTargetPc));
+    return new SeqLoopCaseStmt(threadId, isAssume, statement, Optional.of(pTargetPc));
   }
 
   @Override
   public String toString() {
-    Optional<AssignExpr> pcsUpdate =
+    Optional<AssignExpr> pcUpdate =
         targetPc.isPresent()
-            ? Optional.of(SeqExprBuilder.createPcsNextThreadAssign(targetPc.orElseThrow()))
+            ? Optional.of(SeqExprBuilder.createPcNextThreadAssign(threadId, targetPc.orElseThrow()))
             : Optional.empty();
-    String pcsUpdateString =
-        isAssume && pcsUpdate.isPresent()
-            ? SeqUtil.wrapInCurlyInwards(pcsUpdate.orElseThrow())
-            : targetPc.isPresent() ? pcsUpdate.orElseThrow().toString() : SeqSyntax.EMPTY_STRING;
+    String pcUpdateString =
+        isAssume && pcUpdate.isPresent()
+            ? SeqUtil.wrapInCurlyInwards(pcUpdate.orElseThrow())
+            : targetPc.isPresent() ? pcUpdate.orElseThrow().toString() : SeqSyntax.EMPTY_STRING;
     if (statement.isEmpty()) {
-      return pcsUpdateString;
+      return pcUpdateString;
     } else {
-      return statement.orElseThrow() + SeqSyntax.SPACE + pcsUpdateString;
+      return statement.orElseThrow() + SeqSyntax.SPACE + pcUpdateString;
     }
   }
 }

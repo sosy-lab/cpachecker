@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.IfExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.InitializerListExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.LoopExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SwitchCaseExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.VariableExpr;
@@ -56,7 +55,7 @@ public class MainMethod implements SeqFunction {
   private static final IfExpr exitPcCheck =
       new IfExpr(
           new BooleanExpr(
-              SeqExprBuilder.pcsNextThread,
+              new ArrayElement(SeqVars.pc, SeqVars.nextThread),
               SeqOperator.EQUAL,
               new Value(Integer.toString(SeqUtil.EXIT_PC))));
 
@@ -81,8 +80,8 @@ public class MainMethod implements SeqFunction {
         new DeclareExpr(
             new VariableExpr(
                 Optional.of(SeqDataType.INT),
-                new ArrayExpr(SeqVars.pcs, Optional.of(SeqVars.numThreads))),
-            Optional.of(pcsInitializerList(pLoopCases.size())));
+                new ArrayExpr(SeqVars.pc, Optional.of(SeqVars.numThreads))),
+            Optional.of(pcInitializerList(pLoopCases.size())));
   }
 
   @Override
@@ -108,7 +107,7 @@ public class MainMethod implements SeqFunction {
       for (SeqLoopCase loopCase : entry.getValue()) {
         cases.add(loopCase.toString());
       }
-      ArrayElement arrayElem = new ArrayElement(SeqVars.pcs, threadId);
+      ArrayElement arrayElem = new ArrayElement(SeqVars.pc, threadId);
       SwitchCaseExpr switchCaseExpr = new SwitchCaseExpr(arrayElem, cases.build(), 3);
       switchCases.append(switchCaseExpr);
 
@@ -162,7 +161,7 @@ public class MainMethod implements SeqFunction {
     return new FunctionSignature(getReturnType(), new FunctionCallExpr(getName(), getParameters()));
   }
 
-  private InitializerListExpr pcsInitializerList(int pNumThreads) {
+  private InitializerListExpr pcInitializerList(int pNumThreads) {
     ImmutableList.Builder<SeqExpression> rInitializers = ImmutableList.builder();
     for (int i = 0; i < pNumThreads; i++) {
       rInitializers.add(SeqValues.zero);
@@ -182,7 +181,7 @@ public class MainMethod implements SeqFunction {
 
   private static ImmutableList<SeqExpression> anyNonNegativeParams() {
     ImmutableList.Builder<SeqExpression> rParams = ImmutableList.builder();
-    rParams.add(SeqVars.pcs);
+    rParams.add(SeqVars.pc);
     rParams.add(SeqVars.numThreads);
     return rParams.build();
   }

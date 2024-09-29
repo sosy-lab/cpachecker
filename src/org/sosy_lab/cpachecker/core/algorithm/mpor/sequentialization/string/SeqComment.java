@@ -62,7 +62,7 @@ public class SeqComment {
         + SeqSyntax.SPACE
         + SeqToken.RETURN
         + SeqSyntax.SPACE
-        + SeqToken.PCS
+        + SeqToken.PC
         + SeqSyntax.NEWLINE;
   }
 }

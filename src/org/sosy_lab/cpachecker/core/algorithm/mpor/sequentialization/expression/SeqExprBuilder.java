@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.ArrayElement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
@@ -21,12 +20,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class SeqExprBuilder {
 
-  // TODO replace this with pc[0] etc. in the seq? should look cleaner
-  public static final ArrayElement pcsNextThread =
-      new ArrayElement(SeqVars.pcs, SeqVars.nextThread);
-
-  public static final AssignExpr setExitPc =
-      new AssignExpr(pcsNextThread, new Value(Integer.toString(SeqUtil.EXIT_PC)));
+  public static ArrayElement createPcUpdate(int pThreadId) {
+    return new ArrayElement(SeqVars.pc, new Value(Integer.toString(pThreadId)));
+  }
 
   /**
    * Creates an expression assigning the {@code pc} of {@code pThreadEdge}s successor node to the
@@ -47,7 +43,7 @@ public class SeqExprBuilder {
         new VariableExpr(Optional.of(SeqDataType.INT), new Variable(varName)), Optional.empty());
   }
 
-  public static AssignExpr createPcsNextThreadAssign(int pPc) {
-    return new AssignExpr(pcsNextThread, new Value(Integer.toString(pPc)));
+  public static AssignExpr createPcNextThreadAssign(int pThreadId, int pPc) {
+    return new AssignExpr(createPcUpdate(pThreadId), new Value(Integer.toString(pPc)));
   }
 }
