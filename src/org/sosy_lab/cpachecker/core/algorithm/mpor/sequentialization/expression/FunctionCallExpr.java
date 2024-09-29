@@ -33,7 +33,7 @@ public class FunctionCallExpr implements SeqExpression {
       String separator = SeqSyntax.COMMA + SeqSyntax.SPACE;
       for (int i = 0; i < parameters.size(); i++) {
         parametersString
-            .append(parameters.get(i).toString())
+            .append(parameters.get(i))
             .append(i == parameters.size() - 1 ? SeqSyntax.EMPTY_STRING : separator);
       }
     }

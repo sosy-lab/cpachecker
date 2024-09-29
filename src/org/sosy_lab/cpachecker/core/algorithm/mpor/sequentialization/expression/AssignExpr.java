@@ -25,11 +25,11 @@ public class AssignExpr implements SeqExpression {
 
   @Override
   public String toString() {
-    return preceding.toString()
+    return preceding
         + SeqSyntax.SPACE
         + SeqOperator.ASSIGN
         + SeqSyntax.SPACE
-        + subsequent.toString()
+        + subsequent
         + SeqSyntax.SEMICOLON
         + SeqSyntax.SPACE;
   }

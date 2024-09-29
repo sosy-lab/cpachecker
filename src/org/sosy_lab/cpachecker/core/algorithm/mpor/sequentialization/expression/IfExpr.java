@@ -24,7 +24,7 @@ public class IfExpr implements SeqExpression {
     return SeqToken.IF
         + SeqSyntax.SPACE
         + SeqSyntax.BRACKET_LEFT
-        + condition.toString()
+        + condition
         + SeqSyntax.BRACKET_RIGHT;
   }
 }

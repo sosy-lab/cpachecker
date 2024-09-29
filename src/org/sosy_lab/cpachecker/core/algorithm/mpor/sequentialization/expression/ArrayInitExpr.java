@@ -41,13 +41,13 @@ public class ArrayInitExpr implements SeqExpression {
   public String toString() {
     return dataType
         + SeqSyntax.SPACE
-        + arrayExpr.toString()
+        + arrayExpr
         + SeqSyntax.SPACE
         + SeqOperator.ASSIGN
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.SPACE
-        + initValue.toString()
+        + initValue
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_RIGHT
         + SeqSyntax.SEMICOLON;

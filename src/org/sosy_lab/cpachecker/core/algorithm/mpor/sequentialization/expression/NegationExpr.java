@@ -21,9 +21,6 @@ public class NegationExpr implements SeqExpression {
 
   @Override
   public String toString() {
-    return SeqOperator.NOT
-        + SeqSyntax.BRACKET_LEFT
-        + expression.toString()
-        + SeqSyntax.BRACKET_RIGHT;
+    return SeqOperator.NOT + SeqSyntax.BRACKET_LEFT + expression + SeqSyntax.BRACKET_RIGHT;
   }
 }

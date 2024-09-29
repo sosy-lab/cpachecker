@@ -34,7 +34,7 @@ public class SwitchCaseExpr implements SeqExpression {
     return SeqToken.SWITCH
         + SeqSyntax.SPACE
         + SeqSyntax.BRACKET_LEFT
-        + expression.toString()
+        + expression
         + SeqSyntax.BRACKET_RIGHT
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT

@@ -25,6 +25,6 @@ public class FunctionSignature implements SeqElement {
 
   @Override
   public String toString() {
-    return returnType + SeqSyntax.SPACE + functionCallExpr.toString();
+    return returnType + SeqSyntax.SPACE + functionCallExpr;
   }
 }

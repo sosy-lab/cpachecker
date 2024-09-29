@@ -23,9 +23,6 @@ public class ArrayElement implements SeqDataEntity {
 
   @Override
   public String toString() {
-    return array.toString()
-        + SeqSyntax.SQUARE_BRACKET_LEFT
-        + index.toString()
-        + SeqSyntax.SQUARE_BRACKET_RIGHT;
+    return array + SeqSyntax.SQUARE_BRACKET_LEFT + index + SeqSyntax.SQUARE_BRACKET_RIGHT;
   }
 }

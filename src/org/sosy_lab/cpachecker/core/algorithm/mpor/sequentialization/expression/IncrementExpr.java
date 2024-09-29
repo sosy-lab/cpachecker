@@ -22,6 +22,6 @@ public class IncrementExpr implements SeqExpression {
 
   @Override
   public String toString() {
-    return dataEntity.toString() + SeqOperator.INCREMENT + SeqSyntax.SEMICOLON;
+    return dataEntity + SeqOperator.INCREMENT + SeqSyntax.SEMICOLON;
   }
 }

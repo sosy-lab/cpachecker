@@ -21,6 +21,6 @@ public class ElseIfExpr implements SeqExpression {
 
   @Override
   public String toString() {
-    return SeqToken.ELSE + SeqSyntax.SPACE + ifExpr.toString();
+    return SeqToken.ELSE + SeqSyntax.SPACE + ifExpr;
   }
 }

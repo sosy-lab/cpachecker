@@ -270,7 +270,7 @@ public class Sequentialization {
                 assigns.add(
                     new AssignExpr(
                         new Variable(assignStmt.getLeftHandSide().toASTString()),
-                        new Variable(retStmt.getExpression().get().toASTString())));
+                        new Variable(retStmt.getExpression().orElseThrow().toASTString())));
               }
             }
           }

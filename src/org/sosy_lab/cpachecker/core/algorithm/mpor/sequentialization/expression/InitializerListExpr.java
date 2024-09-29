@@ -24,7 +24,7 @@ public class InitializerListExpr implements SeqExpression {
     StringBuilder inits = new StringBuilder();
     String suffix = SeqSyntax.COMMA + SeqSyntax.SPACE;
     for (int i = 0; i < initializers.size(); i++) {
-      inits.append(initializers.get(i).toString());
+      inits.append(initializers.get(i));
       if (i != initializers.size() - 1) {
         inits.append(suffix);
       }

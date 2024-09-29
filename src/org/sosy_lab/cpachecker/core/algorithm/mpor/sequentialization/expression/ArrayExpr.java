@@ -26,9 +26,9 @@ public class ArrayExpr implements SeqExpression {
 
   @Override
   public String toString() {
-    return array.toString()
+    return array
         + SeqSyntax.SQUARE_BRACKET_LEFT
-        + (index.isPresent() ? index.orElseThrow().toString() : SeqSyntax.EMPTY_STRING)
+        + (index.isPresent() ? index.orElseThrow() : SeqSyntax.EMPTY_STRING)
         + SeqSyntax.SQUARE_BRACKET_RIGHT;
   }
 }

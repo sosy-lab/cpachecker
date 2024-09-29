@@ -221,7 +221,7 @@ public class SeqUtil {
   public static String wrapInCurlyInwards(SeqExpression pExpression) {
     return SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.SPACE
-        + pExpression.toString()
+        + pExpression
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
@@ -230,7 +230,7 @@ public class SeqUtil {
   public static String wrapInCurlyOutwards(SeqExpression pExpression) {
     return SeqSyntax.CURLY_BRACKET_RIGHT
         + SeqSyntax.SPACE
-        + pExpression.toString()
+        + pExpression
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT;
   }

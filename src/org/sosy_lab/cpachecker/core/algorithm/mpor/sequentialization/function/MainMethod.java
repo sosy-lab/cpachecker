@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
@@ -174,7 +173,7 @@ public class MainMethod implements SeqFunction {
   }
 
   private static ImmutableList<SeqExpression> assumeNextThreadParams() {
-    Builder<SeqExpression> rParams = ImmutableList.builder();
+    ImmutableList.Builder<SeqExpression> rParams = ImmutableList.builder();
     rParams.add(
         new BooleanExpr(
             new BooleanExpr(SeqValues.zero, SeqOperator.LESS_OR_EQUAL, SeqVars.nextThread),

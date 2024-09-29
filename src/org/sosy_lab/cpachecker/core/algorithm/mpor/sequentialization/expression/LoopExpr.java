@@ -25,7 +25,7 @@ public class LoopExpr implements SeqExpression {
     return SeqToken.WHILE
         + SeqSyntax.SPACE
         + SeqSyntax.BRACKET_LEFT
-        + condition.toString()
+        + condition
         + SeqSyntax.BRACKET_RIGHT;
   }
 }

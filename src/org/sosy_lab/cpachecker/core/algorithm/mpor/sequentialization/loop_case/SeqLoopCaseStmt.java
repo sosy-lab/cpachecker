@@ -47,18 +47,18 @@ public class SeqLoopCaseStmt implements SeqElement {
 
   @Override
   public String toString() {
-    AssignExpr pcsUpdate =
+    Optional<AssignExpr> pcsUpdate =
         targetPc.isPresent()
-            ? SeqExprBuilder.createPcsNextThreadAssign(targetPc.orElseThrow())
-            : null;
+            ? Optional.of(SeqExprBuilder.createPcsNextThreadAssign(targetPc.orElseThrow()))
+            : Optional.empty();
     String pcsUpdateString =
-        isAssume && pcsUpdate != null
-            ? SeqUtil.wrapInCurlyInwards(pcsUpdate)
-            : targetPc.isPresent() ? pcsUpdate.toString() : SeqSyntax.EMPTY_STRING;
+        isAssume && pcsUpdate.isPresent()
+            ? SeqUtil.wrapInCurlyInwards(pcsUpdate.orElseThrow())
+            : targetPc.isPresent() ? pcsUpdate.orElseThrow().toString() : SeqSyntax.EMPTY_STRING;
     if (statement.isEmpty()) {
       return pcsUpdateString;
     } else {
-      return statement.orElseThrow().toString() + SeqSyntax.SPACE + pcsUpdateString;
+      return statement.orElseThrow() + SeqSyntax.SPACE + pcsUpdateString;
     }
   }
 }

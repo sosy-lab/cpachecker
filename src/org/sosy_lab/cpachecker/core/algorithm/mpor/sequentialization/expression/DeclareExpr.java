@@ -28,10 +28,7 @@ public class DeclareExpr implements SeqExpression {
     String assignment =
         value.isEmpty()
             ? SeqSyntax.EMPTY_STRING
-            : SeqSyntax.SPACE
-                + SeqOperator.ASSIGN
-                + SeqSyntax.SPACE
-                + value.orElseThrow().toString();
+            : SeqSyntax.SPACE + SeqOperator.ASSIGN + SeqSyntax.SPACE + value.orElseThrow();
     return variableExpr.toString() + assignment + SeqSyntax.SEMICOLON;
   }
 }
