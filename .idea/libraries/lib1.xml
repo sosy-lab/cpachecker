@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="lib1">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/gmp.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/apron.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/jsylvan.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

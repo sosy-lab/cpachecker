@@ -2,10 +2,18 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/test/programs/java/TryCatch/TryCatch.iml" filepath="$PROJECT_DIR$/test/programs/java/TryCatch/TryCatch.iml" />
-      <module fileurl="file://$PROJECT_DIR$/test/programs/java/programs.iml" filepath="$PROJECT_DIR$/test/programs/java/programs.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tube-cpa/test/programs/java/TryCatch/TryCatch.iml" filepath="$PROJECT_DIR$/tube-cpa/test/programs/java/TryCatch/TryCatch.iml" />
+      <module fileurl="file://$PROJECT_DIR$/test/programs/java/TryCatch/TryCatch1.iml" filepath="$PROJECT_DIR$/test/programs/java/TryCatch/TryCatch1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/cpachecker/test/programs/java/TryCatch/TryCatch2.iml" filepath="$PROJECT_DIR$/cpachecker/test/programs/java/TryCatch/TryCatch2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/cpachecker/cpachecker.iml" filepath="$PROJECT_DIR$/cpachecker/cpachecker.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tube-cpa/test/programs/java/programs.iml" filepath="$PROJECT_DIR$/tube-cpa/test/programs/java/programs.iml" />
+      <module fileurl="file://$PROJECT_DIR$/cpachecker/test/programs/java/programs1.iml" filepath="$PROJECT_DIR$/cpachecker/test/programs/java/programs1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/test/programs/java/programs2.iml" filepath="$PROJECT_DIR$/test/programs/java/programs2.iml" />
       <module fileurl="file://$PROJECT_DIR$/test/test.iml" filepath="$PROJECT_DIR$/test/test.iml" />
-      <module fileurl="file://$PROJECT_DIR$/tube-cpa.iml" filepath="$PROJECT_DIR$/tube-cpa.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tube-cpa/test/test1.iml" filepath="$PROJECT_DIR$/tube-cpa/test/test1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/cpachecker/test/test2.iml" filepath="$PROJECT_DIR$/cpachecker/test/test2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tube-cpa/tube-cpa.iml" filepath="$PROJECT_DIR$/tube-cpa/tube-cpa.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tube-cpa1.iml" filepath="$PROJECT_DIR$/tube-cpa1.iml" />
     </modules>
   </component>
 </project>

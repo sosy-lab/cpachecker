@@ -1,0 +1,16 @@
+<component name="libraryTable">
+  <library name="format-source">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/java/format-source/listenablefuture.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/format-source/jsr305.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/format-source/error_prone_annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/format-source/j2objc-annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/format-source/guava.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/format-source/google-java-format.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/format-source/failureaccess.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/format-source/checker-qual.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

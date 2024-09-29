@@ -1,10 +1,9 @@
 <component name="libraryTable">
   <library name="lib">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/lib/jpl.jar!/" />
-      <root url="jar://$PROJECT_DIR$/lib/gmp.jar!/" />
-      <root url="jar://$PROJECT_DIR$/lib/apron.jar!/" />
-      <root url="jar://$PROJECT_DIR$/lib/jsylvan.jar!/" />
+      <root url="jar://$PROJECT_DIR$/cpachecker/lib/gmp.jar!/" />
+      <root url="jar://$PROJECT_DIR$/cpachecker/lib/jsylvan.jar!/" />
+      <root url="jar://$PROJECT_DIR$/cpachecker/lib/apron.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

@@ -1,0 +1,50 @@
+<component name="libraryTable">
+  <library name="build">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/java/build/guice.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/aopalliance.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/jflex.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/software-and-algorithms.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/guava.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/ivy.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/auto-common.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/javax.json.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/checker-qual.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/javax.inject.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/error_prone_core.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/antlr4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/pcollections.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/ant-junit.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/error_prone_type_annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/java-diff-utils.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/error_prone_annotation.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/protobuf-java.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/mockito-core.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/j2objc-annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/caffeine.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/byte-buddy.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/mockito-errorprone.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/ant-junit4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/listenablefuture.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/icu4j.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/auto-service-annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/jsr305.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/dataflow-errorprone.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/error_prone_annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/forbiddenapis.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/objenesis.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/antlr-runtime.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/ecj.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/auto-value-annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/error_prone_check_api.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/org.abego.treelayout.core.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/java-cup.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/ST4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/failureaccess.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/byte-buddy-agent.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/build/antlr4-runtime.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

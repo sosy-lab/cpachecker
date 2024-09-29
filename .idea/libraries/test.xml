@@ -1,0 +1,25 @@
+<component name="libraryTable">
+  <library name="test">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/java/test/byte-buddy-agent.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/junit.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/auto-value-annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/mockito-core.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/hamcrest-core.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/error_prone_annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/jsr305.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/objenesis.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/byte-buddy.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/j2objc-annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/asm.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/guava-testlib.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/truth.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/checker-qual.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/failureaccess.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/guava.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/test/listenablefuture.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

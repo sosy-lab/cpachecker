@@ -1,0 +1,73 @@
+<component name="libraryTable">
+  <library name="runtime">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/jdd.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/org.eclipse.core.runtime.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/commons-io.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/jhoafparser.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/org.eclipse.osgi.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/princess_2.13.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/CVC4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/ultimate-java-cup.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/java-smt.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/org.eclipse.cdt.core.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/batik-svggen.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/llvm-j.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/error_prone_annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/princess-smt-parser_2.13.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/batik-i18n.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/ultimate-core.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/ultimate-model.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/org.eclipse.jdt.core.compiler.batch.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/ultimate-smt-solver-bridge.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/snakeyaml.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/j2objc-annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/javabdd.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/jackson-core.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/ultimate-model-checker-utils.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/batik-xml.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/animal-sniffer-annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/jackson-databind.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/checker-qual.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/pjbdd.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/org.osgi.service.prefs.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/org.eclipse.core.contenttype.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/org.eclipse.core.resources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/jackson-annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/spotbugs-annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/org.eclipse.core.jobs.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/ultimate-library-smtlib.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/batik-awt-util.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/org.eclipse.jdt.core.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/ultimate-core-rcp.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/ultimate-icfg-transformer.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/failureaccess.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/jna.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/scala-library.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/java-cup-runtime.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/icu4j.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/jsr305.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/guava.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/ultimate-library-smtlib-utils.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/lasso-ranker.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/cvc5.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/listenablefuture.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/antlr4-runtime.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/ultimate-util.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/com.microsoft.z3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/org.eclipse.equinox.common.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/batik-dom.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/common.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/batik-ext.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/jackson-dataformat-yaml.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/batik-constants.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/org.eclipse.equinox.preferences.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/scala-parser-combinators_2.13.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/princess-parser_2.13.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/batik-util.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/runtime/smtinterpol.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

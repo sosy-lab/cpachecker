@@ -1,0 +1,33 @@
+<component name="libraryTable">
+  <library name="spotbugs">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/commons-lang3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/dom4j.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/jsr305.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/bcel.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/jcip-annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/spotbugs-annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/httpclient5.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/commons-text.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/spotbugs-ant.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/Saxon-HE.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/log4j-api.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/jaxen.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/asm.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/log4j-core.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/asm-util.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/asm-tree.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/xmlresolver-data.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/slf4j-api.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/asm-analysis.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/gson.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/asm-commons.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/httpcore5.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/spotbugs.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/commons-codec.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/spotbugs/httpcore5-h2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

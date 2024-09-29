@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="lib2">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/tube-cpa/lib/jpl.jar!/" />
+      <root url="jar://$PROJECT_DIR$/tube-cpa/lib/apron.jar!/" />
+      <root url="jar://$PROJECT_DIR$/tube-cpa/lib/jsylvan.jar!/" />
+      <root url="jar://$PROJECT_DIR$/tube-cpa/lib/gmp.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -118,10 +118,10 @@ public class TubeCPA extends AbstractCPA {
         int lineNumber = Integer.parseInt(field.getKey());
         String formulaString = field.getValue().asText();
         CExpression statements =
-            (CExpression) CParserUtils.parseSingleStatement(formulaString, null,null); //should get CExpression and i call converter.covert on it and it should work
+                (CExpression) CParserUtils.parseSingleStatement(formulaString, null,null); //should get CExpression and i call converter.covert on it and it should work
 
         Formula formula = (Formula) converter.buildTermForTubes(
-            statements, dummyEdge, formulaString, ssaMapBuilder, ptsBuilder, new Constraints(formulaManager.getBooleanFormulaManager()), ErrorConditions.dummyInstance(formulaManager.getBooleanFormulaManager()));
+                statements, dummyEdge, formulaString, ssaMapBuilder, ptsBuilder, new Constraints(formulaManager.getBooleanFormulaManager()), ErrorConditions.dummyInstance(formulaManager.getBooleanFormulaManager()));
         //BooleanFormula pBooleanFormula = formulaManagerView.parse(formulaString);
 
         FormulaType<?> formulaType = formulaManager.getFormulaType((BitvectorFormula) formula);
@@ -149,7 +149,7 @@ public class TubeCPA extends AbstractCPA {
 
   private final FormulaManagerView formulaManagerView;
   public TubeCPA(Configuration config, LogManager logger,ShutdownNotifier pShutdownNotifier, CFA pCfa) {
-    super("sep", "sep", new FlatLatticeDomain(), new TubeTransferRelation());
+    super("sep", "sep", new FlatLatticeDomain(), new org.sosy_lab.cpachecker.cpa.tube_cpa.TubeTransferRelation());
     try {
       solver = Solver.create(config,logger,pShutdownNotifier);
       //Solver solver = Solver.create(Configuration.defaultConfiguration(), LogManager.createNullLogManager(),
@@ -159,15 +159,15 @@ public class TubeCPA extends AbstractCPA {
       FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       this.typeHandler = new CtoFormulaTypeHandler(logger, pCfa.getMachineModel());
       this.converter =
-          new CtoFormulaConverter(
-              options,
-              formulaManager,
-              pCfa.getMachineModel(),
-              pCfa.getVarClassification(),
-              logger,
-              pShutdownNotifier,
-              typeHandler,
-              AnalysisDirection.FORWARD);
+              new CtoFormulaConverter(
+                      options,
+                      formulaManager,
+                      pCfa.getMachineModel(),
+                      pCfa.getVarClassification(),
+                      logger,
+                      pShutdownNotifier,
+                      typeHandler,
+                      AnalysisDirection.FORWARD);
 
       this.cfa = pCfa;
     } catch (InvalidConfigurationException pE) {
@@ -177,7 +177,7 @@ public class TubeCPA extends AbstractCPA {
 
 
   public static CPAFactory factory() {
-    return new TubeCPAFactory(AnalysisDirection.FORWARD);
+    return new org.sosy_lab.cpachecker.cpa.tube_cpa.TubeCPAFactory(AnalysisDirection.FORWARD);
   }
 
   public static TubeCPA create() {
@@ -186,9 +186,9 @@ public class TubeCPA extends AbstractCPA {
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
-      throws InterruptedException, IOException {
+          throws InterruptedException, IOException {
     CFAEdge edge = node.getLeavingEdge(0);
     asserts = parse(path);
-    return new TubeState(edge, asserts,null,0,formulaManagerView);
+    return new org.sosy_lab.cpachecker.cpa.tube_cpa.TubeState(edge, asserts,null,0,formulaManagerView);
   }
 }

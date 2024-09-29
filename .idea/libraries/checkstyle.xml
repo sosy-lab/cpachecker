@@ -1,0 +1,46 @@
+<component name="libraryTable">
+  <library name="checkstyle">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/plexus-component-annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/doxia-core.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/commons-beanutils.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/antlr4-runtime.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/commons-text.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/xbean-reflect.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/jsr305.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/doxia-module-xdoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/plexus-classworlds.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/commons-logging.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/httpclient.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/j2objc-annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/checkstyle.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/xmlresolver-data.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/httpcore.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/sevntu-checks.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/commons-collections.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/javassist.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/plexus-utils.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/slf4j-api.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/failureaccess.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/jcip-annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/error_prone_annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/httpcore5.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/httpcore5-h2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/checker-qual.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/commons-lang3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/listenablefuture.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/picocli.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/doxia-logging-api.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/Saxon-HE.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/annotations.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/reflections.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/doxia-sink-api.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/plexus-container-default.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/commons-codec.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/guava.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java/checkstyle/httpclient5.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
