@@ -809,7 +809,7 @@ cfa.expandFunctionPointerArrayAssignments = false
 cfa.export = true
 
 # export CFA as JSON file
-cfa.export.json = "cfa.json"
+cfa.export.json = no default value
 
 # export individual CFAs for function as .dot files
 cfa.exportPerFunction = true

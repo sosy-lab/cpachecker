@@ -226,7 +226,7 @@ public class CFACreator {
 
   @Option(secure = true, name = "cfa.export.json", description = "export CFA as JSON file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportCfaJsonFile = Path.of("cfa.json");
+  private Path exportCfaJsonFile = null;
 
   @Option(
       secure = true,
