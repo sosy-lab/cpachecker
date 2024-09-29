@@ -8,6 +8,20 @@
 
 package org.sosy_lab.cpachecker.cpa.tube_cpa;
 
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -88,8 +102,7 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 
 public class TubeCPA extends AbstractCPA {
-  private ImmutableMap<Integer,BooleanFormula> asserts;
-  ObjectMapper om = new ObjectMapper();
+    ObjectMapper om = new ObjectMapper();
   String path = "C:\\Users\\ozkat\\Desktop/jsonT.json";
   private final FormulaManagerView formulaManager;
 
@@ -149,7 +162,7 @@ public class TubeCPA extends AbstractCPA {
 
   private final FormulaManagerView formulaManagerView;
   public TubeCPA(Configuration config, LogManager logger,ShutdownNotifier pShutdownNotifier, CFA pCfa) {
-    super("sep", "sep", new FlatLatticeDomain(), new org.sosy_lab.cpachecker.cpa.tube_cpa.TubeTransferRelation());
+    super("sep", "sep", new FlatLatticeDomain(), new TubeTransferRelation());
     try {
       solver = Solver.create(config,logger,pShutdownNotifier);
       //Solver solver = Solver.create(Configuration.defaultConfiguration(), LogManager.createNullLogManager(),
@@ -177,7 +190,7 @@ public class TubeCPA extends AbstractCPA {
 
 
   public static CPAFactory factory() {
-    return new org.sosy_lab.cpachecker.cpa.tube_cpa.TubeCPAFactory(AnalysisDirection.FORWARD);
+    return new TubeCPAFactory(AnalysisDirection.FORWARD);
   }
 
   public static TubeCPA create() {
@@ -186,9 +199,15 @@ public class TubeCPA extends AbstractCPA {
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
-          throws InterruptedException, IOException {
+          throws InterruptedException {
     CFAEdge edge = node.getLeavingEdge(0);
-    asserts = parse(path);
-    return new org.sosy_lab.cpachecker.cpa.tube_cpa.TubeState(edge, asserts,null,0,formulaManagerView);
+      ImmutableMap<Integer, BooleanFormula> asserts = null;
+      try {
+          asserts = parse(path);
+      } catch (IOException e) {
+          throw new RuntimeException(e);
+      }
+      return new TubeState(edge, asserts,null,0,formulaManagerView);
   }
 }
+
