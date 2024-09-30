@@ -25,6 +25,8 @@ public class SeqToken {
 
   public static final String COND = "cond";
 
+  public static final String CONST = "const";
+
   public static final String CONTINUE = "continue";
 
   public static final String CPACHECKER_TMP = "__CPAchecker_TMP_";

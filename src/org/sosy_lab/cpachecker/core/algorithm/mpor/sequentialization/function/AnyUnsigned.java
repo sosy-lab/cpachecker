@@ -41,7 +41,9 @@ public class AnyUnsigned implements SeqFunction {
 
   private static final DeclareExpr declareIndex =
       new DeclareExpr(
-          new VariableExpr(Optional.of(SeqDataType.INT), i), Optional.of(new Value(SeqValue.ZERO)));
+          false,
+          new VariableExpr(Optional.of(SeqDataType.INT), i),
+          Optional.of(new Value(SeqValue.ZERO)));
 
   private static final LoopExpr loopIndexLessSize =
       new LoopExpr(new BooleanExpr(i, SeqOperator.LESS, size));

@@ -40,6 +40,7 @@ public class MainMethod implements SeqFunction {
 
   private static final DeclareExpr declareExecute =
       new DeclareExpr(
+          false,
           new VariableExpr(Optional.of(SeqDataType.INT), SeqVars.execute),
           Optional.of(new Value(SeqValue.ONE)));
 
@@ -47,6 +48,7 @@ public class MainMethod implements SeqFunction {
 
   private static final DeclareExpr declareNextThread =
       new DeclareExpr(
+          false,
           new VariableExpr(Optional.of(SeqDataType.INT), SeqVars.nextThread),
           Optional.of(new FunctionCallExpr(SeqToken.VERIFIER_NONDET_INT, ImmutableList.of())));
 
@@ -72,16 +74,18 @@ public class MainMethod implements SeqFunction {
 
   private final DeclareExpr declareNumThreads;
 
-  private final DeclareExpr declarePcs;
+  private final DeclareExpr declarePc;
 
   public MainMethod(ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> pLoopCases) {
     loopCases = pLoopCases;
     declareNumThreads =
         new DeclareExpr(
+            true,
             new VariableExpr(Optional.of(SeqDataType.INT), SeqVars.numThreads),
             Optional.of(new Value(Integer.toString(pLoopCases.size()))));
-    declarePcs =
+    declarePc =
         new DeclareExpr(
+            false,
             new VariableExpr(
                 Optional.of(SeqDataType.INT),
                 new ArrayExpr(SeqVars.pc, Optional.of(SeqVars.numThreads))),
@@ -125,7 +129,7 @@ public class MainMethod implements SeqFunction {
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.NEWLINE
         + SeqUtil.prependTabsWithNewline(1, declareNumThreads.toString())
-        + SeqUtil.prependTabsWithNewline(1, declarePcs.toString())
+        + SeqUtil.prependTabsWithNewline(1, declarePc.toString())
         + SeqUtil.prependTabsWithNewline(1, declareExecute.toString())
         + SeqSyntax.NEWLINE
         + SeqUtil.prependTabsWithNewline(1, SeqUtil.appendOpeningCurly(whileExecute.toString()))

@@ -725,7 +725,7 @@ int __f_any_unsigned(int array[], int size) {
 }
 
 int main(void) {
-  int NUM_THREADS = 3;
+  const int NUM_THREADS = 3;
   int pc[NUM_THREADS] = { 0, 0, 0 };
   int execute = 1;
 

@@ -40,7 +40,9 @@ public class SeqExprBuilder {
   public static DeclareExpr createReturnPcDec(int pThreadId, String pFuncName) {
     String varName = SeqNameBuilder.createReturnPcName(pThreadId, pFuncName);
     return new DeclareExpr(
-        new VariableExpr(Optional.of(SeqDataType.INT), new Variable(varName)), Optional.empty());
+        false,
+        new VariableExpr(Optional.of(SeqDataType.INT), new Variable(varName)),
+        Optional.empty());
   }
 
   public static AssignExpr createPcNextThreadAssign(int pThreadId, int pPc) {
