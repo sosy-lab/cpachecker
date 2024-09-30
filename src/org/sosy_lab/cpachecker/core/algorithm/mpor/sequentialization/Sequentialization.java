@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.DeclareExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.VariableExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.AnyNonNegative;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.AnyUnsigned;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.MainMethod;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCaseStmt;
@@ -77,6 +77,12 @@ public class Sequentialization {
     }
     rProgram.append(SeqSyntax.NEWLINE);
 
+    // prepend all custom function declarations
+    AnyUnsigned anyUnsigned = new AnyUnsigned();
+    rProgram.append(SeqComment.createFuncDeclarationComment());
+    rProgram.append(anyUnsigned.getDeclaration()).append(SeqSyntax.NEWLINE);
+    rProgram.append(SeqSyntax.NEWLINE);
+
     // prepend all var declarations in the order global - local - params - return_pc
     MPORThread mainThread = MPORAlgorithm.getMainThread(pSubstitutions.keySet());
     rProgram.append(createGlobalVarString(pSubstitutions.get(mainThread)));
@@ -94,9 +100,8 @@ public class Sequentialization {
     }
     rProgram.append(SeqSyntax.NEWLINE);
 
-    // TODO probably have to declare this function
-    AnyNonNegative anyNonNegative = new AnyNonNegative();
-    rProgram.append(anyNonNegative).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
+    // prepend non main() methods
+    rProgram.append(anyUnsigned).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
     // TODO prune empty loop cases
     ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> loopCases = mapLoopCases(pSubstitutions);

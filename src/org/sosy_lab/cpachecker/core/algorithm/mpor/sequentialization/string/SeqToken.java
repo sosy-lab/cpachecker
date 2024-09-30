@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 
 public class SeqToken {
 
-  public static final String ANY_NON_NEGATIVE = "any_non_negative";
+  // TODO move comment stuff to SeqComment
+  public static final String ANY_UNSIGNED = "any_unsigned";
 
   public static final String ARRAY = "array";
 
@@ -23,6 +24,10 @@ public class SeqToken {
   public static final String CONTINUE = "continue";
 
   public static final String CPACHECKER_TMP = "__CPAchecker_TMP_";
+
+  public static final String CUSTOM = "custom";
+
+  public static final String DECLARATIONS = "declarations";
 
   public static final String ELSE = "else";
 
@@ -49,11 +54,14 @@ public class SeqToken {
   /** Constant, hence uppercase. */
   public static final String NUM_THREADS = "NUM_THREADS";
 
-  public static final String ORIGINAL_PROGRAM_DECLARATIONS = "original program declarations";
+  public static final String ORIGINAL_PROGRAM = "original program";
 
   public static final String PARAMETER = "parameter";
 
   public static final String PC = "pc";
+
+  // TODO create SeqPrefix class?
+  public static final String PREFIX_FUNCTION = "__f";
 
   public static final String PREFIX_SUBSTITUTE_GLOBAL = "__g";
 

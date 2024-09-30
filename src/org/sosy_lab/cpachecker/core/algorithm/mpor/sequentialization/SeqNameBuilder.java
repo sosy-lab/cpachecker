@@ -23,6 +23,10 @@ public class SeqNameBuilder {
     return SeqSyntax.UNDERSCORE + varId++ + SeqSyntax.UNDERSCORE;
   }
 
+  public static String createFuncName(String pFuncName) {
+    return SeqToken.PREFIX_FUNCTION + SeqSyntax.UNDERSCORE + pFuncName;
+  }
+
   /**
    * Returns a var name of the form {@code __g_{varId}_{pVarDec.getName()}} for global variables and
    * {@code __t{threadId}_{varId}_{varName}} for thread local variables.

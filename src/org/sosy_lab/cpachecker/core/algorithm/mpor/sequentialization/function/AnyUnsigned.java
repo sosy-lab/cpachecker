@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.ArrayElement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
@@ -30,7 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqValue;
 
-public class AnyNonNegative implements SeqFunction {
+public class AnyUnsigned implements SeqFunction {
 
   private static final Variable array = new Variable(SeqToken.ARRAY);
 
@@ -81,7 +82,7 @@ public class AnyNonNegative implements SeqFunction {
 
   @Override
   public String getName() {
-    return SeqToken.ANY_NON_NEGATIVE;
+    return SeqNameBuilder.createFuncName(SeqToken.ANY_UNSIGNED);
   }
 
   @Override

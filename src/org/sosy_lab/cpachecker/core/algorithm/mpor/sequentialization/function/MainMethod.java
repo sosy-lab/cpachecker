@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.ArrayElement;
@@ -61,7 +62,9 @@ public class MainMethod implements SeqFunction {
 
   private static final AssignExpr executeUpdate =
       new AssignExpr(
-          SeqVars.execute, new FunctionCallExpr(SeqToken.ANY_NON_NEGATIVE, anyNonNegativeParams()));
+          SeqVars.execute,
+          new FunctionCallExpr(
+              SeqNameBuilder.createFuncName(SeqToken.ANY_UNSIGNED), anyNonNegativeParams()));
 
   /** The thread-specific cases in the main while loop. */
   private final ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> loopCases;

@@ -643,6 +643,9 @@ void *t1(void *arg);
 void *t2(void *arg);
 int main();
 
+// custom function declarations
+int __f_any_unsigned(int array[], int size);
+
 // global variables
 extern char *__g_0___tzname[2];
 extern int __g_1___daylight;
@@ -703,7 +706,7 @@ int t1__reach_error__return_pc;
 int t2__dequeue__return_pc;
 int t2__reach_error__return_pc;
 
-int any_non_negative(int array[], int size) {
+int __f_any_unsigned(int array[], int size) {
   int i = 0;
   while (i < size) {
     if (array[i] >= 0) {
@@ -724,7 +727,7 @@ int main(void) {
     assume(0 <= next_thread && next_thread < NUM_THREADS);
 
     if (pc[next_thread] == -1) {
-      execute = any_non_negative(pc, NUM_THREADS); 
+      execute = __f_any_unsigned(pc, NUM_THREADS); 
       continue;
     }
 

@@ -14,9 +14,21 @@ public class SeqComment {
 
   public static String createNonVarDeclarationComment() {
     return COMMENT_SINGLE
-        + SeqToken.ORIGINAL_PROGRAM_DECLARATIONS
+        + SeqToken.ORIGINAL_PROGRAM
+        + SeqSyntax.SPACE
+        + SeqToken.DECLARATIONS
         + SeqSyntax.SPACE
         + SeqToken.NON_VARIABLE
+        + SeqSyntax.NEWLINE;
+  }
+
+  public static String createFuncDeclarationComment() {
+    return COMMENT_SINGLE
+        + SeqToken.CUSTOM
+        + SeqSyntax.SPACE
+        + SeqToken.FUNCTION
+        + SeqSyntax.SPACE
+        + SeqToken.DECLARATIONS
         + SeqSyntax.NEWLINE;
   }
 
