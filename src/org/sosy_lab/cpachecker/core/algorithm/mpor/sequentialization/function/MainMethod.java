@@ -164,11 +164,6 @@ public class MainMethod implements SeqFunction {
     return rParameters.build();
   }
 
-  @Override
-  public FunctionSignature getSignature() {
-    return new FunctionSignature(getReturnType(), new FunctionCallExpr(getName(), getParameters()));
-  }
-
   private InitializerListExpr pcInitializerList(int pNumThreads) {
     ImmutableList.Builder<SeqExpression> rInitializers = ImmutableList.builder();
     for (int i = 0; i < pNumThreads; i++) {

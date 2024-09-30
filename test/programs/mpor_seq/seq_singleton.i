@@ -1,18 +1,49 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
 
 // original program declarations (non-variable)
-int __VERIFIER_nondet_int();
 void abort();
 void __assert_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function);
 void __assert_perror_fail(int __errnum, const char *__file, unsigned int __line, const char *__function);
 void __assert(const char *__assertion, const char *__file, int __line);
 void reach_error();
+typedef unsigned int size_t;
+typedef long int wchar_t;
+enum __anon_type_0 {
+  P_ALL = 0,
+  P_PID = 1,
+  P_PGID = 2
+} ;
+typedef enum __anon_type_0 idtype_t;
+struct __anon_type_div_t {
+  int quot;
+  int rem;
+} ;
+typedef struct __anon_type_div_t div_t;
+struct __anon_type_ldiv_t {
+  long int quot;
+  long int rem;
+} ;
+typedef struct __anon_type_ldiv_t ldiv_t;
+struct __anon_type_lldiv_t {
+  long long int quot;
+  long long int rem;
+} ;
+typedef struct __anon_type_lldiv_t lldiv_t;
+size_t __ctype_get_mb_cur_max();
+double atof(const char *__nptr);
+int atoi(const char *__nptr);
+long int atol(const char *__nptr);
+long long int atoll(const char *__nptr);
+double strtod(const char *__nptr, char **__endptr);
+float strtof(const char *__nptr, char **__endptr);
+long double strtold(const char *__nptr, char **__endptr);
+long int strtol(const char *__nptr, char **__endptr, int __base);
+unsigned long int strtoul(const char *__nptr, char **__endptr, int __base);
+long long int strtoq(const char *__nptr, char **__endptr, int __base);
+unsigned long long int strtouq(const char *__nptr, char **__endptr, int __base);
+long long int strtoll(const char *__nptr, char **__endptr, int __base);
+unsigned long long int strtoull(const char *__nptr, char **__endptr, int __base);
+char *l64a(long int __n);
+long int a64l(const char *__s);
 typedef unsigned char __u_char;
 typedef unsigned short int __u_short;
 typedef unsigned int __u_int;
@@ -25,19 +56,27 @@ typedef signed int __int32_t;
 typedef unsigned int __uint32_t;
 typedef signed long long int __int64_t;
 typedef unsigned long long int __uint64_t;
+typedef __int8_t __int_least8_t;
+typedef __uint8_t __uint_least8_t;
+typedef __int16_t __int_least16_t;
+typedef __uint16_t __uint_least16_t;
+typedef __int32_t __int_least32_t;
+typedef __uint32_t __uint_least32_t;
+typedef __int64_t __int_least64_t;
+typedef __uint64_t __uint_least64_t;
 typedef long long int __quad_t;
 typedef unsigned long long int __u_quad_t;
 typedef long long int __intmax_t;
 typedef unsigned long long int __uintmax_t;
-typedef __u_quad_t __dev_t;
+typedef __uint64_t __dev_t;
 typedef unsigned int __uid_t;
 typedef unsigned int __gid_t;
 typedef unsigned long int __ino_t;
-typedef __u_quad_t __ino64_t;
+typedef __uint64_t __ino64_t;
 typedef unsigned int __mode_t;
 typedef unsigned int __nlink_t;
 typedef long int __off_t;
-typedef __quad_t __off64_t;
+typedef __int64_t __off64_t;
 typedef int __pid_t;
 struct __anon_type___fsid_t {
   int __val[2];
@@ -45,7 +84,7 @@ struct __anon_type___fsid_t {
 typedef struct __anon_type___fsid_t __fsid_t;
 typedef long int __clock_t;
 typedef unsigned long int __rlim_t;
-typedef __u_quad_t __rlim64_t;
+typedef __uint64_t __rlim64_t;
 typedef unsigned int __id_t;
 typedef long int __time_t;
 typedef unsigned int __useconds_t;
@@ -56,11 +95,11 @@ typedef int __clockid_t;
 typedef void *__timer_t;
 typedef long int __blksize_t;
 typedef long int __blkcnt_t;
-typedef __quad_t __blkcnt64_t;
+typedef __int64_t __blkcnt64_t;
 typedef unsigned long int __fsblkcnt_t;
-typedef __u_quad_t __fsblkcnt64_t;
+typedef __uint64_t __fsblkcnt64_t;
 typedef unsigned long int __fsfilcnt_t;
-typedef __u_quad_t __fsfilcnt64_t;
+typedef __uint64_t __fsfilcnt64_t;
 typedef int __fsword_t;
 typedef int __ssize_t;
 typedef long int __syscall_slong_t;
@@ -70,98 +109,76 @@ typedef char *__caddr_t;
 typedef int __intptr_t;
 typedef unsigned int __socklen_t;
 typedef int __sig_atomic_t;
-unsigned int __bswap_32(unsigned int __bsx);
+typedef __int64_t __time64_t;
+typedef __u_char u_char;
+typedef __u_short u_short;
+typedef __u_int u_int;
+typedef __u_long u_long;
+typedef __quad_t quad_t;
+typedef __u_quad_t u_quad_t;
+typedef __fsid_t fsid_t;
+typedef __loff_t loff_t;
+typedef __ino_t ino_t;
+typedef __dev_t dev_t;
+typedef __gid_t gid_t;
+typedef __mode_t mode_t;
+typedef __nlink_t nlink_t;
+typedef __uid_t uid_t;
+typedef __off_t off_t;
+typedef __pid_t pid_t;
+typedef __id_t id_t;
+typedef __ssize_t ssize_t;
+typedef __daddr_t daddr_t;
+typedef __caddr_t caddr_t;
+typedef __key_t key_t;
+typedef __clock_t clock_t;
+typedef __clockid_t clockid_t;
+typedef __time_t time_t;
+typedef __timer_t timer_t;
+typedef unsigned long int ulong;
+typedef unsigned short int ushort;
+typedef unsigned int uint;
+typedef __int8_t int8_t;
+typedef __int16_t int16_t;
+typedef __int32_t int32_t;
+typedef __int64_t int64_t;
+typedef __uint8_t u_int8_t;
+typedef __uint16_t u_int16_t;
+typedef __uint32_t u_int32_t;
+typedef __uint64_t u_int64_t;
+typedef signed int register_t;
+__uint16_t __bswap_16(__uint16_t __bsx);
+__uint32_t __bswap_32(__uint32_t __bsx);
 __uint64_t __bswap_64(__uint64_t __bsx);
 __uint16_t __uint16_identity(__uint16_t __x);
 __uint32_t __uint32_identity(__uint32_t __x);
 __uint64_t __uint64_identity(__uint64_t __x);
-typedef unsigned int size_t;
-typedef __time_t time_t;
+struct __anon_type___sigset_t {
+  unsigned long int __val[32UL];
+} ;
+typedef struct __anon_type___sigset_t __sigset_t;
+typedef __sigset_t sigset_t;
+struct timeval {
+  __time_t tv_sec;
+  __suseconds_t tv_usec;
+} ;
 struct timespec {
   __time_t tv_sec;
   __syscall_slong_t tv_nsec;
 } ;
-typedef __pid_t pid_t;
-struct sched_param {
-  int sched_priority;
+typedef __suseconds_t suseconds_t;
+typedef long int __fd_mask;
+struct __anon_type_fd_set {
+  __fd_mask __fds_bits[32];
 } ;
-typedef unsigned long int __cpu_mask;
-struct __anon_type_cpu_set_t {
-  __cpu_mask __bits[32UL];
-} ;
-typedef struct __anon_type_cpu_set_t cpu_set_t;
-int __sched_cpucount(size_t __setsize, const cpu_set_t *__setp);
-cpu_set_t *__sched_cpualloc(size_t __count);
-void __sched_cpufree(cpu_set_t *__set);
-int sched_setparam(__pid_t __pid, const struct sched_param *__param);
-int sched_getparam(__pid_t __pid, struct sched_param *__param);
-int sched_setscheduler(__pid_t __pid, int __policy, const struct sched_param *__param);
-int sched_getscheduler(__pid_t __pid);
-int sched_yield();
-int sched_get_priority_max(int __algorithm);
-int sched_get_priority_min(int __algorithm);
-int sched_rr_get_interval(__pid_t __pid, struct timespec *__t);
-typedef __clock_t clock_t;
-struct tm {
-  int tm_sec;
-  int tm_min;
-  int tm_hour;
-  int tm_mday;
-  int tm_mon;
-  int tm_year;
-  int tm_wday;
-  int tm_yday;
-  int tm_isdst;
-  long int tm_gmtoff;
-  const char *tm_zone;
-} ;
-typedef __clockid_t clockid_t;
-typedef __timer_t timer_t;
-struct itimerspec {
-  struct timespec it_interval;
-  struct timespec it_value;
-} ;
-struct sigevent ;
-struct __locale_struct {
-  struct __locale_data *__locales[13];
-  const unsigned short int *__ctype_b;
-  const int *__ctype_tolower;
-  const int *__ctype_toupper;
-  const char *__names[13];
-} ;
-typedef struct __locale_struct *__locale_t;
-typedef __locale_t locale_t;
-clock_t clock();
-time_t time(time_t *__timer);
-double difftime(time_t __time1, time_t __time0);
-time_t mktime(struct tm *__tp);
-size_t strftime(char *__s, size_t __maxsize, const char *__format, const struct tm *__tp);
-size_t strftime_l(char *__s, size_t __maxsize, const char *__format, const struct tm *__tp, locale_t __loc);
-struct tm *gmtime(const time_t *__timer);
-struct tm *localtime(const time_t *__timer);
-struct tm *gmtime_r(const time_t *__timer, struct tm *__tp);
-struct tm *localtime_r(const time_t *__timer, struct tm *__tp);
-char *asctime(const struct tm *__tp);
-char *ctime(const time_t *__timer);
-char *asctime_r(const struct tm *__tp, char *__buf);
-char *ctime_r(const time_t *__timer, char *__buf);
-void tzset();
-int stime(const time_t *__when);
-time_t timegm(struct tm *__tp);
-time_t timelocal(struct tm *__tp);
-int dysize(int __year);
-int nanosleep(const struct timespec *__requested_time, struct timespec *__remaining);
-int clock_getres(clockid_t __clock_id, struct timespec *__res);
-int clock_gettime(clockid_t __clock_id, struct timespec *__tp);
-int clock_settime(clockid_t __clock_id, const struct timespec *__tp);
-int clock_nanosleep(clockid_t __clock_id, int __flags, const struct timespec *__req, struct timespec *__rem);
-int clock_getcpuclockid(pid_t __pid, clockid_t *__clock_id);
-int timer_create(clockid_t __clock_id, struct sigevent *__evp, timer_t *__timerid);
-int timer_delete(timer_t __timerid);
-int timer_settime(timer_t __timerid, int __flags, const struct itimerspec *__value, struct itimerspec *__ovalue);
-int timer_gettime(timer_t __timerid, struct itimerspec *__value);
-int timer_getoverrun(timer_t __timerid);
-int timespec_get(struct timespec *__ts, int __base);
+typedef struct __anon_type_fd_set fd_set;
+typedef __fd_mask fd_mask;
+int select(int __nfds, fd_set *__readfds, fd_set *__writefds, fd_set *__exceptfds, struct timeval *__timeout);
+int pselect(int __nfds, fd_set *__readfds, fd_set *__writefds, fd_set *__exceptfds, const struct timespec *__timeout, const __sigset_t *__sigmask);
+typedef __blksize_t blksize_t;
+typedef __blkcnt_t blkcnt_t;
+typedef __fsblkcnt_t fsblkcnt_t;
+typedef __fsfilcnt_t fsfilcnt_t;
 struct __pthread_rwlock_arch_t {
   unsigned int __readers;
   unsigned int __writers;
@@ -179,12 +196,12 @@ struct __pthread_internal_slist {
   struct __pthread_internal_slist *__next;
 } ;
 typedef struct __pthread_internal_slist __pthread_slist_t;
-struct __anon_type_0 {
+struct __anon_type_1 {
   short __espins;
   short __eelision;
 } ;
-union __anon_type_1 {
-  struct __anon_type_0 __elision_data;
+union __anon_type_2 {
+  struct __anon_type_1 __elision_data;
   __pthread_slist_t __list;
 } ;
 struct __pthread_mutex_s {
@@ -193,27 +210,27 @@ struct __pthread_mutex_s {
   int __owner;
   int __kind;
   unsigned int __nusers;
-  union __anon_type_1 __anon_type_member_5;
+  union __anon_type_2 __anon_type_member_5;
 } ;
-struct __anon_type_2 {
+struct __anon_type_3 {
   unsigned int __low;
   unsigned int __high;
 } ;
-union __anon_type_3 {
+union __anon_type_4 {
   unsigned long long int __wseq;
-  struct __anon_type_2 __wseq32;
+  struct __anon_type_3 __wseq32;
 } ;
-struct __anon_type_4 {
+struct __anon_type_5 {
   unsigned int __low;
   unsigned int __high;
 } ;
-union __anon_type_5 {
+union __anon_type_6 {
   unsigned long long int __g1_start;
-  struct __anon_type_4 __g1_start32;
+  struct __anon_type_5 __g1_start32;
 } ;
 struct __pthread_cond_s {
-  union __anon_type_3 __anon_type_member_0;
-  union __anon_type_5 __anon_type_member_1;
+  union __anon_type_4 __anon_type_member_0;
+  union __anon_type_6 __anon_type_member_1;
   unsigned int __g_refs[2];
   unsigned int __g_size[2];
   unsigned int __g1_orig_size;
@@ -272,12 +289,187 @@ union __anon_type_pthread_barrierattr_t {
   int __align;
 } ;
 typedef union __anon_type_pthread_mutexattr_t pthread_barrierattr_t;
+long int random();
+void srandom(unsigned int __seed);
+char *initstate(unsigned int __seed, char *__statebuf, size_t __statelen);
+char *setstate(char *__statebuf);
+struct random_data {
+  int32_t *fptr;
+  int32_t *rptr;
+  int32_t *state;
+  int rand_type;
+  int rand_deg;
+  int rand_sep;
+  int32_t *end_ptr;
+} ;
+int random_r(struct random_data *__buf, int32_t *__result);
+int srandom_r(unsigned int __seed, struct random_data *__buf);
+int initstate_r(unsigned int __seed, char *__statebuf, size_t __statelen, struct random_data *__buf);
+int setstate_r(char *__statebuf, struct random_data *__buf);
+int rand();
+void srand(unsigned int __seed);
+int rand_r(unsigned int *__seed);
+double drand48();
+double erand48(unsigned short int __xsubi[3]);
+long int lrand48();
+long int nrand48(unsigned short int __xsubi[3]);
+long int mrand48();
+long int jrand48(unsigned short int __xsubi[3]);
+void srand48(long int __seedval);
+unsigned short int *seed48(unsigned short int __seed16v[3]);
+void lcong48(unsigned short int __param[7]);
+struct drand48_data {
+  unsigned short int __x[3];
+  unsigned short int __old_x[3];
+  unsigned short int __c;
+  unsigned short int __init;
+  unsigned long long int __a;
+} ;
+int drand48_r(struct drand48_data *__buffer, double *__result);
+int erand48_r(unsigned short int __xsubi[3], struct drand48_data *__buffer, double *__result);
+int lrand48_r(struct drand48_data *__buffer, long int *__result);
+int nrand48_r(unsigned short int __xsubi[3], struct drand48_data *__buffer, long int *__result);
+int mrand48_r(struct drand48_data *__buffer, long int *__result);
+int jrand48_r(unsigned short int __xsubi[3], struct drand48_data *__buffer, long int *__result);
+int srand48_r(long int __seedval, struct drand48_data *__buffer);
+int seed48_r(unsigned short int __seed16v[3], struct drand48_data *__buffer);
+int lcong48_r(unsigned short int __param[7], struct drand48_data *__buffer);
+void *malloc(size_t __size);
+void *calloc(size_t __nmemb, size_t __size);
+void *realloc(void *__ptr, size_t __size);
+void *reallocarray(void *__ptr, size_t __nmemb, size_t __size);
+void free(void *__ptr);
+void *alloca(size_t __size);
+void *valloc(size_t __size);
+int posix_memalign(void **__memptr, size_t __alignment, size_t __size);
+void *aligned_alloc(size_t __alignment, size_t __size);
+int atexit(void (*__func)());
+int at_quick_exit(void (*__func)());
+int on_exit(void (*__func)(int __status, void *__arg), void *__arg);
+void exit(int __status);
+void quick_exit(int __status);
+void _Exit(int __status);
+char *getenv(const char *__name);
+int putenv(char *__string);
+int setenv(const char *__name, const char *__value, int __replace);
+int unsetenv(const char *__name);
+int clearenv();
+char *mktemp(char *__template);
+int mkstemp(char *__template);
+int mkstemps(char *__template, int __suffixlen);
+char *mkdtemp(char *__template);
+int system(const char *__command);
+char *realpath(const char *__name, char *__resolved);
+typedef int (*__compar_fn_t)(const void *, const void *);
+void *bsearch(const void *__key, const void *__base, size_t __nmemb, size_t __size, __compar_fn_t __compar);
+void qsort(void *__base, size_t __nmemb, size_t __size, __compar_fn_t __compar);
+int abs(int __x);
+long int labs(long int __x);
+long long int llabs(long long int __x);
+div_t div(int __numer, int __denom);
+ldiv_t ldiv(long int __numer, long int __denom);
+lldiv_t lldiv(long long int __numer, long long int __denom);
+char *ecvt(double __value, int __ndigit, int *__decpt, int *__sign);
+char *fcvt(double __value, int __ndigit, int *__decpt, int *__sign);
+char *gcvt(double __value, int __ndigit, char *__buf);
+char *qecvt(long double __value, int __ndigit, int *__decpt, int *__sign);
+char *qfcvt(long double __value, int __ndigit, int *__decpt, int *__sign);
+char *qgcvt(long double __value, int __ndigit, char *__buf);
+int ecvt_r(double __value, int __ndigit, int *__decpt, int *__sign, char *__buf, size_t __len);
+int fcvt_r(double __value, int __ndigit, int *__decpt, int *__sign, char *__buf, size_t __len);
+int qecvt_r(long double __value, int __ndigit, int *__decpt, int *__sign, char *__buf, size_t __len);
+int qfcvt_r(long double __value, int __ndigit, int *__decpt, int *__sign, char *__buf, size_t __len);
+int mblen(const char *__s, size_t __n);
+int mbtowc(wchar_t *__pwc, const char *__s, size_t __n);
+int wctomb(char *__s, wchar_t __wchar);
+size_t mbstowcs(wchar_t *__pwcs, const char *__s, size_t __n);
+size_t wcstombs(char *__s, const wchar_t *__pwcs, size_t __n);
+int rpmatch(const char *__response);
+int getsubopt(char **__optionp, char * const *__tokens, char **__valuep);
+int getloadavg(double __loadavg[], int __nelem);
+struct sched_param {
+  int sched_priority;
+} ;
+typedef unsigned long int __cpu_mask;
+struct __anon_type_cpu_set_t {
+  __cpu_mask __bits[32UL];
+} ;
+typedef struct __anon_type_cpu_set_t cpu_set_t;
+int __sched_cpucount(size_t __setsize, const cpu_set_t *__setp);
+cpu_set_t *__sched_cpualloc(size_t __count);
+void __sched_cpufree(cpu_set_t *__set);
+int sched_setparam(__pid_t __pid, const struct sched_param *__param);
+int sched_getparam(__pid_t __pid, struct sched_param *__param);
+int sched_setscheduler(__pid_t __pid, int __policy, const struct sched_param *__param);
+int sched_getscheduler(__pid_t __pid);
+int sched_yield();
+int sched_get_priority_max(int __algorithm);
+int sched_get_priority_min(int __algorithm);
+int sched_rr_get_interval(__pid_t __pid, struct timespec *__t);
+struct tm {
+  int tm_sec;
+  int tm_min;
+  int tm_hour;
+  int tm_mday;
+  int tm_mon;
+  int tm_year;
+  int tm_wday;
+  int tm_yday;
+  int tm_isdst;
+  long int tm_gmtoff;
+  const char *tm_zone;
+} ;
+struct itimerspec {
+  struct timespec it_interval;
+  struct timespec it_value;
+} ;
+struct sigevent ;
+struct __locale_struct {
+  struct __locale_data *__locales[13];
+  const unsigned short int *__ctype_b;
+  const int *__ctype_tolower;
+  const int *__ctype_toupper;
+  const char *__names[13];
+} ;
+typedef struct __locale_struct *__locale_t;
+typedef __locale_t locale_t;
+clock_t clock();
+time_t time(time_t *__timer);
+double difftime(time_t __time1, time_t __time0);
+time_t mktime(struct tm *__tp);
+size_t strftime(char *__s, size_t __maxsize, const char *__format, const struct tm *__tp);
+size_t strftime_l(char *__s, size_t __maxsize, const char *__format, const struct tm *__tp, locale_t __loc);
+struct tm *gmtime(const time_t *__timer);
+struct tm *localtime(const time_t *__timer);
+struct tm *gmtime_r(const time_t *__timer, struct tm *__tp);
+struct tm *localtime_r(const time_t *__timer, struct tm *__tp);
+char *asctime(const struct tm *__tp);
+char *ctime(const time_t *__timer);
+char *asctime_r(const struct tm *__tp, char *__buf);
+char *ctime_r(const time_t *__timer, char *__buf);
+void tzset();
+int stime(const time_t *__when);
+time_t timegm(struct tm *__tp);
+time_t timelocal(struct tm *__tp);
+int dysize(int __year);
+int nanosleep(const struct timespec *__requested_time, struct timespec *__remaining);
+int clock_getres(clockid_t __clock_id, struct timespec *__res);
+int clock_gettime(clockid_t __clock_id, struct timespec *__tp);
+int clock_settime(clockid_t __clock_id, const struct timespec *__tp);
+int clock_nanosleep(clockid_t __clock_id, int __flags, const struct timespec *__req, struct timespec *__rem);
+int clock_getcpuclockid(pid_t __pid, clockid_t *__clock_id);
+int timer_create(clockid_t __clock_id, struct sigevent *__evp, timer_t *__timerid);
+int timer_delete(timer_t __timerid);
+int timer_settime(timer_t __timerid, int __flags, const struct itimerspec *__value, struct itimerspec *__ovalue);
+int timer_gettime(timer_t __timerid, struct itimerspec *__value);
+int timer_getoverrun(timer_t __timerid);
+int timespec_get(struct timespec *__ts, int __base);
 typedef int __jmp_buf[6];
-enum __anon_type_6 {
+enum __anon_type_7 {
   PTHREAD_CREATE_JOINABLE = 0,
   PTHREAD_CREATE_DETACHED = 1
 } ;
-enum __anon_type_7 {
+enum __anon_type_8 {
   PTHREAD_MUTEX_TIMED_NP = 0,
   PTHREAD_MUTEX_RECURSIVE_NP = 1,
   PTHREAD_MUTEX_ERRORCHECK_NP = 2,
@@ -287,32 +479,32 @@ enum __anon_type_7 {
   PTHREAD_MUTEX_ERRORCHECK = 2,
   PTHREAD_MUTEX_DEFAULT = 0
 } ;
-enum __anon_type_8 {
+enum __anon_type_9 {
   PTHREAD_MUTEX_STALLED = 0,
   PTHREAD_MUTEX_STALLED_NP = 0,
   PTHREAD_MUTEX_ROBUST = 1,
   PTHREAD_MUTEX_ROBUST_NP = 1
 } ;
-enum __anon_type_9 {
+enum __anon_type_10 {
   PTHREAD_PRIO_NONE = 0,
   PTHREAD_PRIO_INHERIT = 1,
   PTHREAD_PRIO_PROTECT = 2
 } ;
-enum __anon_type_10 {
+enum __anon_type_11 {
   PTHREAD_RWLOCK_PREFER_READER_NP = 0,
   PTHREAD_RWLOCK_PREFER_WRITER_NP = 1,
   PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP = 2,
   PTHREAD_RWLOCK_DEFAULT_NP = 0
 } ;
-enum __anon_type_11 {
+enum __anon_type_12 {
   PTHREAD_INHERIT_SCHED = 0,
   PTHREAD_EXPLICIT_SCHED = 1
 } ;
-enum __anon_type_12 {
+enum __anon_type_13 {
   PTHREAD_SCOPE_SYSTEM = 0,
   PTHREAD_SCOPE_PROCESS = 1
 } ;
-enum __anon_type_13 {
+enum __anon_type_14 {
   PTHREAD_PROCESS_PRIVATE = 0,
   PTHREAD_PROCESS_SHARED = 1
 } ;
@@ -322,11 +514,11 @@ struct _pthread_cleanup_buffer {
   int __canceltype;
   struct _pthread_cleanup_buffer *__prev;
 } ;
-enum __anon_type_14 {
+enum __anon_type_15 {
   PTHREAD_CANCEL_ENABLE = 0,
   PTHREAD_CANCEL_DISABLE = 1
 } ;
-enum __anon_type_15 {
+enum __anon_type_16 {
   PTHREAD_CANCEL_DEFERRED = 0,
   PTHREAD_CANCEL_ASYNCHRONOUS = 1
 } ;
@@ -364,12 +556,12 @@ int pthread_setcancelstate(int __state, int *__oldstate);
 int pthread_setcanceltype(int __type, int *__oldtype);
 int pthread_cancel(pthread_t __th);
 void pthread_testcancel();
-struct __anon_type_16 {
+struct __anon_type_17 {
   __jmp_buf __cancel_jmp_buf;
   int __mask_was_saved;
 } ;
 struct __anon_type___pthread_unwind_buf_t {
-  struct __anon_type_16 __cancel_jmp_buf[1];
+  struct __anon_type_17 __cancel_jmp_buf[1];
   void *__pad[4];
 } ;
 typedef struct __anon_type___pthread_unwind_buf_t __pthread_unwind_buf_t;
@@ -450,197 +642,64 @@ void *pthread_getspecific(pthread_key_t __key);
 int pthread_setspecific(pthread_key_t __key, const void *__pointer);
 int pthread_getcpuclockid(pthread_t __thread_id, __clockid_t *__clock_id);
 int pthread_atfork(void (*__prepare)(), void (*__parent)(), void (*__child)());
-struct _IO_FILE ;
-typedef struct _IO_FILE __FILE;
-typedef struct _IO_FILE FILE;
-union __anon_type_17 {
-  unsigned int __wch;
-  char __wchb[4];
-} ;
-struct __anon_type___mbstate_t {
-  int __count;
-  union __anon_type_17 __value;
-} ;
-typedef struct __anon_type___mbstate_t __mbstate_t;
-struct __anon_type__G_fpos_t {
-  __off_t __pos;
-  __mbstate_t __state;
-} ;
-typedef struct __anon_type__G_fpos_t _G_fpos_t;
-struct __anon_type__G_fpos64_t {
-  __off64_t __pos;
-  __mbstate_t __state;
-} ;
-typedef struct __anon_type__G_fpos64_t _G_fpos64_t;
-typedef __builtin_va_list __gnuc_va_list;
-struct _IO_jump_t ;
-typedef void _IO_lock_t;
-struct _IO_marker {
-  struct _IO_marker *_next;
-  struct _IO_FILE *_sbuf;
-  int _pos;
-} ;
-enum __codecvt_result {
-  __codecvt_ok = 0,
-  __codecvt_partial = 1,
-  __codecvt_error = 2,
-  __codecvt_noconv = 3
-} ;
-struct _IO_FILE {
-  int _flags;
-  char *_IO_read_ptr;
-  char *_IO_read_end;
-  char *_IO_read_base;
-  char *_IO_write_base;
-  char *_IO_write_ptr;
-  char *_IO_write_end;
-  char *_IO_buf_base;
-  char *_IO_buf_end;
-  char *_IO_save_base;
-  char *_IO_backup_base;
-  char *_IO_save_end;
-  struct _IO_marker *_markers;
-  struct _IO_FILE *_chain;
-  int _fileno;
-  int _flags2;
-  __off_t _old_offset;
-  unsigned short _cur_column;
-  signed char _vtable_offset;
-  char _shortbuf[1];
-  _IO_lock_t *_lock;
-  __off64_t _offset;
-  void *__pad1;
-  void *__pad2;
-  void *__pad3;
-  void *__pad4;
-  size_t __pad5;
-  int _mode;
-  char _unused2[40UL];
-} ;
-typedef struct _IO_FILE _IO_FILE;
-struct _IO_FILE_plus ;
-typedef __ssize_t __io_read_fn(void *__cookie, char *__buf, size_t __nbytes);
-typedef __ssize_t __io_write_fn(void *__cookie, const char *__buf, size_t __n);
-typedef int __io_seek_fn(void *__cookie, __off64_t *__pos, int __w);
-typedef int __io_close_fn(void *__cookie);
-int __underflow(_IO_FILE *);
-int __uflow(_IO_FILE *);
-int __overflow(_IO_FILE *, int);
-int _IO_getc(_IO_FILE *__fp);
-int _IO_putc(int __c, _IO_FILE *__fp);
-int _IO_feof(_IO_FILE *__fp);
-int _IO_ferror(_IO_FILE *__fp);
-int _IO_peekc_locked(_IO_FILE *__fp);
-void _IO_flockfile(_IO_FILE *);
-void _IO_funlockfile(_IO_FILE *);
-int _IO_ftrylockfile(_IO_FILE *);
-int _IO_vfscanf(_IO_FILE *, const char *, __gnuc_va_list , int *);
-int _IO_vfprintf(_IO_FILE *, const char *, __gnuc_va_list );
-__ssize_t _IO_padn(_IO_FILE *, int, __ssize_t );
-size_t _IO_sgetn(_IO_FILE *, void *, size_t );
-__off64_t _IO_seekoff(_IO_FILE *, __off64_t , int, int);
-__off64_t _IO_seekpos(_IO_FILE *, __off64_t , int);
-void _IO_free_backup_area(_IO_FILE *);
-typedef __gnuc_va_list va_list;
-typedef __off_t off_t;
-typedef __ssize_t ssize_t;
-typedef _G_fpos_t fpos_t;
-int remove(const char *__filename);
-int rename(const char *__old, const char *__new);
-int renameat(int __oldfd, const char *__old, int __newfd, const char *__new);
-FILE *tmpfile();
-char *tmpnam(char *__s);
-char *tmpnam_r(char *__s);
-char *tempnam(const char *__dir, const char *__pfx);
-int fclose(FILE *__stream);
-int fflush(FILE *__stream);
-int fflush_unlocked(FILE *__stream);
-FILE *fopen(const char *__filename, const char *__modes);
-FILE *freopen(const char *__filename, const char *__modes, FILE *__stream);
-FILE *fdopen(int __fd, const char *__modes);
-FILE *fmemopen(void *__s, size_t __len, const char *__modes);
-FILE *open_memstream(char **__bufloc, size_t *__sizeloc);
-void setbuf(FILE *__stream, char *__buf);
-int setvbuf(FILE *__stream, char *__buf, int __modes, size_t __n);
-void setbuffer(FILE *__stream, char *__buf, size_t __size);
-void setlinebuf(FILE *__stream);
-int fprintf(FILE *__stream, const char *__format, ...);
-int printf(const char *__format, ...);
-int sprintf(char *__s, const char *__format, ...);
-int vfprintf(FILE *__s, const char *__format, __gnuc_va_list __arg);
-int vprintf(const char *__format, __gnuc_va_list __arg);
-int vsprintf(char *__s, const char *__format, __gnuc_va_list __arg);
-int snprintf(char *__s, size_t __maxlen, const char *__format, ...);
-int vsnprintf(char *__s, size_t __maxlen, const char *__format, __gnuc_va_list __arg);
-int vdprintf(int __fd, const char *__fmt, __gnuc_va_list __arg);
-int dprintf(int __fd, const char *__fmt, ...);
-int fscanf(FILE *__stream, const char *__format, ...);
-int scanf(const char *__format, ...);
-int sscanf(const char *__s, const char *__format, ...);
-int vfscanf(FILE *__s, const char *__format, __gnuc_va_list __arg);
-int vscanf(const char *__format, __gnuc_va_list __arg);
-int vsscanf(const char *__s, const char *__format, __gnuc_va_list __arg);
-int fgetc(FILE *__stream);
-int getc(FILE *__stream);
-int getchar();
-int getc_unlocked(FILE *__stream);
-int getchar_unlocked();
-int fgetc_unlocked(FILE *__stream);
-int fputc(int __c, FILE *__stream);
-int putc(int __c, FILE *__stream);
-int putchar(int __c);
-int fputc_unlocked(int __c, FILE *__stream);
-int putc_unlocked(int __c, FILE *__stream);
-int putchar_unlocked(int __c);
-int getw(FILE *__stream);
-int putw(int __w, FILE *__stream);
-char *fgets(char *__s, int __n, FILE *__stream);
-__ssize_t __getdelim(char **__lineptr, size_t *__n, int __delimiter, FILE *__stream);
-__ssize_t getdelim(char **__lineptr, size_t *__n, int __delimiter, FILE *__stream);
-__ssize_t getline(char **__lineptr, size_t *__n, FILE *__stream);
-int fputs(const char *__s, FILE *__stream);
-int puts(const char *__s);
-int ungetc(int __c, FILE *__stream);
-size_t fread(void *__ptr, size_t __size, size_t __n, FILE *__stream);
-size_t fwrite(const void *__ptr, size_t __size, size_t __n, FILE *__s);
-size_t fread_unlocked(void *__ptr, size_t __size, size_t __n, FILE *__stream);
-size_t fwrite_unlocked(const void *__ptr, size_t __size, size_t __n, FILE *__stream);
-int fseek(FILE *__stream, long int __off, int __whence);
-long int ftell(FILE *__stream);
-void rewind(FILE *__stream);
-int fseeko(FILE *__stream, __off_t __off, int __whence);
-__off_t ftello(FILE *__stream);
-int fgetpos(FILE *__stream, fpos_t *__pos);
-int fsetpos(FILE *__stream, const fpos_t *__pos);
-void clearerr(FILE *__stream);
-int feof(FILE *__stream);
-int ferror(FILE *__stream);
-void clearerr_unlocked(FILE *__stream);
-int feof_unlocked(FILE *__stream);
-int ferror_unlocked(FILE *__stream);
-void perror(const char *__s);
-int fileno(FILE *__stream);
-int fileno_unlocked(FILE *__stream);
-FILE *popen(const char *__command, const char *__modes);
-int pclose(FILE *__stream);
-char *ctermid(char *__s);
-void flockfile(FILE *__stream);
-int ftrylockfile(FILE *__stream);
-void funlockfile(FILE *__stream);
-struct __anon_type_QType {
-  int element[800];
-  int head;
-  int tail;
-  int amount;
-} ;
-typedef struct __anon_type_QType QType;
-void init(QType *q);
-int empty(QType *q);
-int full(QType *q);
-int enqueue(QType *q, int x);
-int dequeue(QType *q);
-void *t1(void *arg);
-void *t2(void *arg);
+void *memcpy(void *__dest, const void *__src, size_t __n);
+void *memmove(void *__dest, const void *__src, size_t __n);
+void *memccpy(void *__dest, const void *__src, int __c, size_t __n);
+void *memset(void *__s, int __c, size_t __n);
+int memcmp(const void *__s1, const void *__s2, size_t __n);
+void *memchr(const void *__s, int __c, size_t __n);
+char *strcpy(char *__dest, const char *__src);
+char *strncpy(char *__dest, const char *__src, size_t __n);
+char *strcat(char *__dest, const char *__src);
+char *strncat(char *__dest, const char *__src, size_t __n);
+int strcmp(const char *__s1, const char *__s2);
+int strncmp(const char *__s1, const char *__s2, size_t __n);
+int strcoll(const char *__s1, const char *__s2);
+size_t strxfrm(char *__dest, const char *__src, size_t __n);
+int strcoll_l(const char *__s1, const char *__s2, locale_t __l);
+size_t strxfrm_l(char *__dest, const char *__src, size_t __n, locale_t __l);
+char *strdup(const char *__s);
+char *strndup(const char *__string, size_t __n);
+char *strchr(const char *__s, int __c);
+char *strrchr(const char *__s, int __c);
+size_t strcspn(const char *__s, const char *__reject);
+size_t strspn(const char *__s, const char *__accept);
+char *strpbrk(const char *__s, const char *__accept);
+char *strstr(const char *__haystack, const char *__needle);
+char *strtok(char *__s, const char *__delim);
+char *__strtok_r(char *__s, const char *__delim, char **__save_ptr);
+char *strtok_r(char *__s, const char *__delim, char **__save_ptr);
+size_t strlen(const char *__s);
+size_t strnlen(const char *__string, size_t __maxlen);
+char *strerror(int __errnum);
+int strerror_r(int __errnum, char *__buf, size_t __buflen);
+char *strerror_l(int __errnum, locale_t __l);
+int bcmp(const void *__s1, const void *__s2, size_t __n);
+void bcopy(const void *__src, void *__dest, size_t __n);
+void bzero(void *__s, size_t __n);
+char *index(const char *__s, int __c);
+char *rindex(const char *__s, int __c);
+int ffs(int __i);
+int ffsl(long int __l);
+int ffsll(long long int __ll);
+int strcasecmp(const char *__s1, const char *__s2);
+int strncasecmp(const char *__s1, const char *__s2, size_t __n);
+int strcasecmp_l(const char *__s1, const char *__s2, locale_t __loc);
+int strncasecmp_l(const char *__s1, const char *__s2, size_t __n, locale_t __loc);
+void explicit_bzero(void *__s, size_t __n);
+char *strsep(char **__stringp, const char *__delim);
+char *strsignal(int __sig);
+char *__stpcpy(char *__dest, const char *__src);
+char *stpcpy(char *__dest, const char *__src);
+char *__stpncpy(char *__dest, const char *__src, size_t __n);
+char *stpncpy(char *__dest, const char *__src, size_t __n);
+void __VERIFIER_atomic_begin();
+void __VERIFIER_atomic_end();
+void __VERIFIER_assert(int expression);
+void *thread1(void *arg);
+void *thread2(void *arg);
+void *thread3(void *arg);
+void *thread0(void *arg);
 int main();
 
 // custom function declarations
@@ -655,58 +714,46 @@ extern long int __g_2___timezone;
 extern char *__g_3_tzname[2];
 extern int __g_4_daylight;
 extern long int __g_5_timezone;
-extern struct _IO_FILE_plus __g_6__IO_2_1_stdin_;
-extern struct _IO_FILE_plus __g_7__IO_2_1_stdout_;
-extern struct _IO_FILE_plus __g_8__IO_2_1_stderr_;
-extern struct _IO_FILE *__g_9_stdin;
-extern struct _IO_FILE *__g_10_stdout;
-extern struct _IO_FILE *__g_11_stderr;
-extern int __g_12_sys_nerr;
-extern const char * const __g_13_sys_errlist[];
-pthread_mutex_t __g_14_m = {  };
-int __g_15_stored_elements[800] = {  };
-_Bool __g_16_enqueue_flag = 0;
-_Bool __g_17_dequeue_flag = 0;
-QType __g_18_queue = {  };
+char *__g_6_v = 0;
 
 // thread 0 local variables
-pthread_t __t0_21_id1;
-pthread_t __t0_22_id2;
-int __t0_23___CPAchecker_TMP_0;
+pthread_t __t0_8_t;
 
 // thread 1 local variables
-int __t1_27_value;
-int __t1_28_i;
-int __t1_29___CPAchecker_TMP_0;
-int __t1_30___CPAchecker_TMP_1;
 
 // thread 2 local variables
-int __t2_34_i;
-int __t2_35___CPAchecker_TMP_0;
-int __t2_36_x;
+
+// thread 3 local variables
+
+// thread 4 local variables
+
+// thread 5 local variables
+
+// thread 6 local variables
+pthread_t __t6_9_t1;
+pthread_t __t6_10_t2;
+pthread_t __t6_11_t3;
+pthread_t __t6_12_t4;
+pthread_t __t6_13_t5;
 
 // thread 0 parameter variables
-QType *__p0_19_q;
-QType *__p0_20_q;
+int __p0_7_expression;
 
 // thread 1 parameter variables
-QType *__p1_24_q;
-int __p1_25_x;
-QType *__p1_26_q;
 
 // thread 2 parameter variables
-QType *__p2_33_q;
+
+// thread 3 parameter variables
+
+// thread 4 parameter variables
+
+// thread 5 parameter variables
+
+// thread 6 parameter variables
 
 // thread local function return pc
-int t0__init__return_pc;
-int t0__empty__return_pc;
+int t0____VERIFIER_assert__return_pc;
 int t0__reach_error__return_pc;
-int t1__enqueue__return_pc;
-int t1__empty__return_pc;
-int t1__enqueue__return_pc;
-int t1__reach_error__return_pc;
-int t2__dequeue__return_pc;
-int t2__reach_error__return_pc;
 
 void __f_assume(int cond) {
   if (!(cond)) {
@@ -726,8 +773,8 @@ int __f_any_unsigned(int array[], int size) {
 }
 
 int main(void) {
-  const int NUM_THREADS = 3;
-  int pc[NUM_THREADS] = { 0, 0, 0 };
+  const int NUM_THREADS = 7;
+  int pc[NUM_THREADS] = { 0, 0, 0, 0, 0, 0, 0 };
   int execute = 1;
 
   while (execute) {
@@ -1179,130 +1226,159 @@ int main(void) {
         case 435: pc[0] = 436; continue;
         case 436: pc[0] = 437; continue;
         case 437: pc[0] = 438; continue;
-        case 438: __g_16_enqueue_flag = 1; pc[0] = 439; continue;
-        case 439: __g_17_dequeue_flag = 0; pc[0] = 440; continue;
-        case 440: __p0_20_q = &__g_18_queue;  pc[0] = 462; t0__init__return_pc = 441;  continue;
+        case 438: pc[0] = 439; continue;
+        case 439: pc[0] = 440; continue;
+        case 440: pc[0] = 441; continue;
         case 441: pc[0] = 442; continue;
-        case 442: t0__empty__return_pc = 443;  __p0_19_q = &__g_18_queue;  pc[0] = 456; continue;
-        case 443: if ((0 == __t0_23___CPAchecker_TMP_0) == -1) { pc[0] = 444;  }else if (!((0 == __t0_23___CPAchecker_TMP_0) == -1)) { pc[0] = 450;  }continue;
+        case 442: pc[0] = 443; continue;
+        case 443: pc[0] = 444; continue;
         case 444: pc[0] = 445; continue;
-        case 445: t0__reach_error__return_pc = -1;  continue;
+        case 445: pc[0] = 446; continue;
         case 446: pc[0] = 447; continue;
-        case 447: 4UL; pc[0] = 448; continue;
+        case 447: pc[0] = 448; continue;
         case 448: pc[0] = 449; continue;
-        case 449: __assert_fail("0", "queue_longest.c", 4, "__PRETTY_FUNCTION__"); pc[0] = -1; continue;
+        case 449: pc[0] = 450; continue;
         case 450: pc[0] = 451; continue;
         case 451: pc[0] = 452; continue;
         case 452: pc[0] = 453; continue;
         case 453: pc[0] = 454; continue;
         case 454: pc[0] = 455; continue;
-        case 455: continue;
+        case 455: pc[0] = 456; continue;
         case 456: pc[0] = 457; continue;
-        case 457: if (!((__p0_19_q->head) == (__p0_19_q->tail))) { pc[0] = 461;  }else if ((__p0_19_q->head) == (__p0_19_q->tail)) { pc[0] = 458;  }continue;
-        case 458: printf("queue is empty\n"); pc[0] = 459; continue;
-        case 459: __t0_23___CPAchecker_TMP_0 = -1;  pc[0] = 460; continue;
-        case 460: pc[0] = t0__empty__return_pc;  continue;
-        case 461: __t0_23___CPAchecker_TMP_0 = 0;  pc[0] = 460; continue;
+        case 457: pc[0] = 458; continue;
+        case 458: pc[0] = 459; continue;
+        case 459: pc[0] = 460; continue;
+        case 460: pc[0] = 461; continue;
+        case 461: pc[0] = 462; continue;
         case 462: pc[0] = 463; continue;
-        case 463: __p0_20_q->head = 0; pc[0] = 464; continue;
-        case 464: __p0_20_q->tail = 0; pc[0] = 465; continue;
-        case 465: __p0_20_q->amount = 0; pc[0] = 466; continue;
+        case 463: pc[0] = 464; continue;
+        case 464: pc[0] = 465; continue;
+        case 465: pc[0] = 466; continue;
         case 466: pc[0] = 467; continue;
-        case 467: pc[0] = t0__init__return_pc;  continue;
+        case 467: pc[0] = 468; continue;
+        case 468: pc[0] = 469; continue;
+        case 469: pc[0] = 470; continue;
+        case 470: pc[0] = 471; continue;
+        case 471: pc[0] = 472; continue;
+        case 472: pc[0] = 473; continue;
+        case 473: pc[0] = 474; continue;
+        case 474: pc[0] = 475; continue;
+        case 475: pc[0] = 476; continue;
+        case 476: pc[0] = 477; continue;
+        case 477: pc[0] = 478; continue;
+        case 478: pc[0] = 479; continue;
+        case 479: pc[0] = 480; continue;
+        case 480: pc[0] = 481; continue;
+        case 481: pc[0] = 482; continue;
+        case 482: pc[0] = 483; continue;
+        case 483: pc[0] = 484; continue;
+        case 484: pc[0] = 485; continue;
+        case 485: pc[0] = 486; continue;
+        case 486: pc[0] = 487; continue;
+        case 487: pc[0] = 488; continue;
+        case 488: pc[0] = 489; continue;
+        case 489: pc[0] = 490; continue;
+        case 490: pc[0] = 491; continue;
+        case 491: pc[0] = 492; continue;
+        case 492: pc[0] = 493; continue;
+        case 493: pc[0] = 494; continue;
+        case 494: pc[0] = 495; continue;
+        case 495: pc[0] = 496; continue;
+        case 496: pc[0] = 497; continue;
+        case 497: pc[0] = 498; continue;
+        case 498: pc[0] = 499; continue;
+        case 499: pc[0] = 500; continue;
+        case 500: pc[0] = 501; continue;
+        case 501: pc[0] = 502; continue;
+        case 502: pc[0] = 503; continue;
+        case 503: pc[0] = 504; continue;
+        case 504: pc[0] = 505; continue;
+        case 505: pc[0] = 506; continue;
+        case 506: pc[0] = 507; continue;
+        case 507: pc[0] = 508; continue;
+        case 508: pc[0] = 509; continue;
+        case 509: pc[0] = 510; continue;
+        case 510: pc[0] = 511; continue;
+        case 511: pc[0] = 512; continue;
+        case 512: pc[0] = 513; continue;
+        case 513: pc[0] = 514; continue;
+        case 514: pc[0] = 515; continue;
+        case 515: __p0_7_expression = (__g_6_v[0]) == 'X';  pc[0] = 517; t0____VERIFIER_assert__return_pc = 516;  continue;
+        case 516: continue;
+        case 517: pc[0] = 518; continue;
+        case 518: if (__p0_7_expression == 0) { pc[0] = 519;  }else if (!(__p0_7_expression == 0)) { pc[0] = 525;  }continue;
+        case 519: pc[0] = 520; continue;
+        case 520: t0__reach_error__return_pc = -1;  continue;
+        case 521: pc[0] = 522; continue;
+        case 522: 4UL; pc[0] = 523; continue;
+        case 523: pc[0] = 524; continue;
+        case 524: __assert_fail("0", "singleton.c", 3, "__PRETTY_FUNCTION__"); pc[0] = -1; continue;
+        case 525: continue;
+        case 526: pc[0] = t0____VERIFIER_assert__return_pc;  continue;
       }
 
     } else if (next_thread == 1) {
       switch (pc[1]) {
         case 0: pc[1] = 1; continue;
-        case 1: pc[1] = 2; continue;
-        case 2: pc[1] = 3; continue;
-        case 3: pc[1] = 4; continue;
-        case 4: __t1_27_value = __VERIFIER_nondet_int(); pc[1] = 5; continue;
-        case 5: pc[1] = 6; continue;
-        case 6: t1__enqueue__return_pc = 7;  __p1_24_q = &__g_18_queue;  __p1_25_x = __t1_27_value;  pc[1] = 27; continue;
-        case 7: if (__t1_29___CPAchecker_TMP_0 == 0) { pc[1] = 8;  }else if (!(__t1_29___CPAchecker_TMP_0 == 0)) { pc[1] = 55;  }continue;
-        case 8: __g_15_stored_elements[0] = __t1_27_value; pc[1] = 9; continue;
-        case 9: pc[1] = 10; continue;
-        case 10: t1__empty__return_pc = 11;  __p1_26_q = &__g_18_queue;  pc[1] = 49; continue;
-        case 11: if (__t1_30___CPAchecker_TMP_1 == 0) { pc[1] = 12;  }else if (!(__t1_30___CPAchecker_TMP_1 == 0)) { pc[1] = 42;  }continue;
-        case 12: pc[1] = 13; continue;
-        case 13: pc[1] = 14; continue;
-        case 14: __t1_28_i = 0; pc[1] = 15; continue;
-        case 15: if (__t1_28_i < 799) { pc[1] = 16;  }else if (!(__t1_28_i < 799)) { pc[1] = 41;  }continue;
-        case 16: pc[1] = 17; continue;
-        case 17: if (__g_16_enqueue_flag == 0) { pc[1] = 18;  }else if (!(__g_16_enqueue_flag == 0)) { pc[1] = 21;  }continue;
-        case 18: pc[1] = 19; continue;
-        case 19: pc[1] = 20; continue;
-        case 20: __t1_28_i = __t1_28_i + 1; pc[1] = 15; continue;
-        case 21: __t1_27_value = __VERIFIER_nondet_int(); pc[1] = 22; continue;
-        case 22: __p1_24_q = &__g_18_queue;  __p1_25_x = __t1_27_value;  pc[1] = 27; t1__enqueue__return_pc = 23;  continue;
-        case 23: __g_15_stored_elements[__t1_28_i + 1] = __t1_27_value; pc[1] = 24; continue;
-        case 24: __g_16_enqueue_flag = 0; pc[1] = 25; continue;
-        case 25: __g_17_dequeue_flag = 1; pc[1] = 26; continue;
-        case 26: pc[1] = 18; continue;
-        case 27: pc[1] = 28; continue;
-        case 28: (__p1_24_q->element)[__p1_24_q->tail] = __p1_25_x; pc[1] = 29; continue;
-        case 29: const int __t1_31___CPAchecker_TMP_0 = __p1_24_q->amount; __p1_24_q->amount = (__p1_24_q->amount) + 1; __t1_31___CPAchecker_TMP_0; pc[1] = 32; continue;
-        case 32: if (!((__p1_24_q->tail) == 800)) { pc[1] = 37;  }else if ((__p1_24_q->tail) == 800) { pc[1] = 33;  }continue;
-        case 33: __p1_24_q->tail = 1; pc[1] = 34; continue;
-        case 34: pc[1] = 35; continue;
-        case 35: __t1_29___CPAchecker_TMP_0 = 0;  pc[1] = 36; continue;
-        case 36: pc[1] = t1__enqueue__return_pc;  continue;
-        case 37: const int __t1_32___CPAchecker_TMP_1 = __p1_24_q->tail; __p1_24_q->tail = (__p1_24_q->tail) + 1; __t1_32___CPAchecker_TMP_1; pc[1] = 40; continue;
-        case 40: pc[1] = 35; continue;
-        case 41: continue;
-        case 42: pc[1] = 43; continue;
-        case 43: pc[1] = 44; continue;
-        case 44: t1__reach_error__return_pc = -1;  continue;
-        case 45: pc[1] = 46; continue;
-        case 46: 4UL; pc[1] = 47; continue;
-        case 47: pc[1] = 48; continue;
-        case 48: __assert_fail("0", "queue_longest.c", 4, "__PRETTY_FUNCTION__"); pc[1] = -1; continue;
-        case 49: pc[1] = 50; continue;
-        case 50: if ((__p1_26_q->head) == (__p1_26_q->tail)) { pc[1] = 51;  }else if (!((__p1_26_q->head) == (__p1_26_q->tail))) { pc[1] = 54;  }continue;
-        case 51: printf("queue is empty\n"); pc[1] = 52; continue;
-        case 52: __t1_30___CPAchecker_TMP_1 = -1;  pc[1] = 53; continue;
-        case 53: pc[1] = t1__empty__return_pc;  continue;
-        case 54: __t1_30___CPAchecker_TMP_1 = 0;  pc[1] = 53; continue;
-        case 55: pc[1] = 43; continue;
+        case 1: __g_6_v = malloc(1UL); pc[1] = 2; continue;
+        case 2: continue;
       }
 
     } else if (next_thread == 2) {
       switch (pc[2]) {
         case 0: pc[2] = 1; continue;
-        case 1: pc[2] = 2; continue;
-        case 2: pc[2] = 3; continue;
-        case 3: __t2_34_i = 0; pc[2] = 4; continue;
-        case 4: if (__t2_34_i < 800) { pc[2] = 5;  }else if (!(__t2_34_i < 800)) { pc[2] = 37;  }continue;
-        case 5: pc[2] = 6; continue;
-        case 6: if (!(__g_17_dequeue_flag == 0)) { pc[2] = 10;  }else if (__g_17_dequeue_flag == 0) { pc[2] = 7;  }continue;
-        case 7: pc[2] = 8; continue;
-        case 8: pc[2] = 9; continue;
-        case 9: __t2_34_i = __t2_34_i + 1; pc[2] = 4; continue;
-        case 10: pc[2] = 11; continue;
-        case 11: t2__dequeue__return_pc = 12;  __p2_33_q = &__g_18_queue;  pc[2] = 22; continue;
-        case 12: if ((0 == __t2_35___CPAchecker_TMP_0) == (__g_15_stored_elements[__t2_34_i])) { pc[2] = 13;  }else if (!((0 == __t2_35___CPAchecker_TMP_0) == (__g_15_stored_elements[__t2_34_i]))) { pc[2] = 19;  }continue;
-        case 13: pc[2] = 14; continue;
-        case 14: t2__reach_error__return_pc = -1;  continue;
-        case 15: pc[2] = 16; continue;
-        case 16: 4UL; pc[2] = 17; continue;
-        case 17: pc[2] = 18; continue;
-        case 18: __assert_fail("0", "queue_longest.c", 4, "__PRETTY_FUNCTION__"); pc[2] = -1; continue;
-        case 19: __g_17_dequeue_flag = 0; pc[2] = 20; continue;
-        case 20: __g_16_enqueue_flag = 1; pc[2] = 21; continue;
-        case 21: pc[2] = 7; continue;
-        case 22: pc[2] = 23; continue;
-        case 23: pc[2] = 24; continue;
-        case 24: __t2_36_x = (__p2_33_q->element)[__p2_33_q->head]; pc[2] = 25; continue;
-        case 25: const int __t2_37___CPAchecker_TMP_0 = __p2_33_q->amount; __p2_33_q->amount = (__p2_33_q->amount) - 1; __t2_37___CPAchecker_TMP_0; pc[2] = 28; continue;
-        case 28: if (!((__p2_33_q->head) == 800)) { pc[2] = 33;  }else if ((__p2_33_q->head) == 800) { pc[2] = 29;  }continue;
-        case 29: __p2_33_q->head = 1; pc[2] = 30; continue;
-        case 30: pc[2] = 31; continue;
-        case 31: __t2_35___CPAchecker_TMP_0 = __t2_36_x;  pc[2] = 32; continue;
-        case 32: pc[2] = t2__dequeue__return_pc;  continue;
-        case 33: const int __t2_38___CPAchecker_TMP_1 = __p2_33_q->head; __p2_33_q->head = (__p2_33_q->head) + 1; __t2_38___CPAchecker_TMP_1; pc[2] = 36; continue;
-        case 36: pc[2] = 31; continue;
-        case 37: continue;
+        case 1: __VERIFIER_atomic_begin(); pc[2] = 2; continue;
+        case 2: __g_6_v[0] = 'X'; pc[2] = 3; continue;
+        case 3: __VERIFIER_atomic_end(); pc[2] = 4; continue;
+        case 4: continue;
+      }
+
+    } else if (next_thread == 3) {
+      switch (pc[3]) {
+        case 0: pc[3] = 1; continue;
+        case 1: __VERIFIER_atomic_begin(); pc[3] = 2; continue;
+        case 2: __g_6_v[0] = 'Y'; pc[3] = 3; continue;
+        case 3: __VERIFIER_atomic_end(); pc[3] = 4; continue;
+        case 4: continue;
+      }
+
+    } else if (next_thread == 4) {
+      switch (pc[4]) {
+        case 0: pc[4] = 1; continue;
+        case 1: __VERIFIER_atomic_begin(); pc[4] = 2; continue;
+        case 2: __g_6_v[0] = 'X'; pc[4] = 3; continue;
+        case 3: __VERIFIER_atomic_end(); pc[4] = 4; continue;
+        case 4: continue;
+      }
+
+    } else if (next_thread == 5) {
+      switch (pc[5]) {
+        case 0: pc[5] = 1; continue;
+        case 1: __VERIFIER_atomic_begin(); pc[5] = 2; continue;
+        case 2: __g_6_v[0] = 'X'; pc[5] = 3; continue;
+        case 3: __VERIFIER_atomic_end(); pc[5] = 4; continue;
+        case 4: continue;
+      }
+
+    } else if (next_thread == 6) {
+      switch (pc[6]) {
+        case 0: pc[6] = 1; continue;
+        case 1: pc[6] = 2; continue;
+        case 2: pc[6] = 3; continue;
+        case 3: pc[6] = 4; continue;
+        case 4: pc[6] = 5; continue;
+        case 5: pc[6] = 6; continue;
+        case 6: pc[6] = 7; continue;
+        case 7: pc[6] = 8; continue;
+        case 8: pc[6] = 9; continue;
+        case 9: pc[6] = 10; continue;
+        case 10: pc[6] = 11; continue;
+        case 11: pc[6] = 12; continue;
+        case 12: pc[6] = 13; continue;
+        case 13: pc[6] = 14; continue;
+        case 14: pc[6] = 15; continue;
+        case 15: pc[6] = 16; continue;
+        case 16: continue;
       }
     }
   }

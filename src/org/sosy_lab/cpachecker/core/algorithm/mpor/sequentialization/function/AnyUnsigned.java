@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ArrayExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.BooleanExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.DeclareExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.FunctionCallExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.IfExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.IncrementExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.LoopExpr;
@@ -94,10 +93,5 @@ public class AnyUnsigned implements SeqFunction {
         new VariableExpr(Optional.of(SeqDataType.INT), new ArrayExpr(array, Optional.empty())));
     rParameters.add(new VariableExpr(Optional.of(SeqDataType.INT), size));
     return rParameters.build();
-  }
-
-  @Override
-  public FunctionSignature getSignature() {
-    return new FunctionSignature(getReturnType(), new FunctionCallExpr(getName(), getParameters()));
   }
 }

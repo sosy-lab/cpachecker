@@ -59,9 +59,4 @@ public class Assume implements SeqFunction {
     rParameters.add(new VariableExpr(Optional.of(SeqDataType.INT), new Variable(SeqToken.COND)));
     return rParameters.build();
   }
-
-  @Override
-  public FunctionSignature getSignature() {
-    return new FunctionSignature(getReturnType(), new FunctionCallExpr(getName(), getParameters()));
-  }
 }

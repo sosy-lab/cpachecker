@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.AnyUnsigned;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.Assume;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.MainMethod;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.VerifierNonDetInt;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCaseStmt;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
@@ -79,9 +80,12 @@ public class Sequentialization {
     rProgram.append(SeqSyntax.NEWLINE);
 
     // prepend all custom function declarations
+    VerifierNonDetInt verifierNonDetInt = new VerifierNonDetInt();
     Assume assume = new Assume();
     AnyUnsigned anyUnsigned = new AnyUnsigned();
     rProgram.append(SeqComment.createFuncDeclarationComment());
+    // this declaration may be duplicate depending on the input program, but that's fine in C
+    rProgram.append(verifierNonDetInt.getDeclaration()).append(SeqSyntax.NEWLINE);
     rProgram.append(assume.getDeclaration()).append(SeqSyntax.NEWLINE);
     rProgram.append(anyUnsigned.getDeclaration()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqSyntax.NEWLINE);

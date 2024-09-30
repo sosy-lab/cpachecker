@@ -7,7 +7,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // original program declarations (non-variable)
-int __VERIFIER_nondet_int();
 void abort();
 void __assert_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function);
 void __assert_perror_fail(int __errnum, const char *__file, unsigned int __line, const char *__function);
@@ -450,197 +449,9 @@ void *pthread_getspecific(pthread_key_t __key);
 int pthread_setspecific(pthread_key_t __key, const void *__pointer);
 int pthread_getcpuclockid(pthread_t __thread_id, __clockid_t *__clock_id);
 int pthread_atfork(void (*__prepare)(), void (*__parent)(), void (*__child)());
-struct _IO_FILE ;
-typedef struct _IO_FILE __FILE;
-typedef struct _IO_FILE FILE;
-union __anon_type_17 {
-  unsigned int __wch;
-  char __wchb[4];
-} ;
-struct __anon_type___mbstate_t {
-  int __count;
-  union __anon_type_17 __value;
-} ;
-typedef struct __anon_type___mbstate_t __mbstate_t;
-struct __anon_type__G_fpos_t {
-  __off_t __pos;
-  __mbstate_t __state;
-} ;
-typedef struct __anon_type__G_fpos_t _G_fpos_t;
-struct __anon_type__G_fpos64_t {
-  __off64_t __pos;
-  __mbstate_t __state;
-} ;
-typedef struct __anon_type__G_fpos64_t _G_fpos64_t;
-typedef __builtin_va_list __gnuc_va_list;
-struct _IO_jump_t ;
-typedef void _IO_lock_t;
-struct _IO_marker {
-  struct _IO_marker *_next;
-  struct _IO_FILE *_sbuf;
-  int _pos;
-} ;
-enum __codecvt_result {
-  __codecvt_ok = 0,
-  __codecvt_partial = 1,
-  __codecvt_error = 2,
-  __codecvt_noconv = 3
-} ;
-struct _IO_FILE {
-  int _flags;
-  char *_IO_read_ptr;
-  char *_IO_read_end;
-  char *_IO_read_base;
-  char *_IO_write_base;
-  char *_IO_write_ptr;
-  char *_IO_write_end;
-  char *_IO_buf_base;
-  char *_IO_buf_end;
-  char *_IO_save_base;
-  char *_IO_backup_base;
-  char *_IO_save_end;
-  struct _IO_marker *_markers;
-  struct _IO_FILE *_chain;
-  int _fileno;
-  int _flags2;
-  __off_t _old_offset;
-  unsigned short _cur_column;
-  signed char _vtable_offset;
-  char _shortbuf[1];
-  _IO_lock_t *_lock;
-  __off64_t _offset;
-  void *__pad1;
-  void *__pad2;
-  void *__pad3;
-  void *__pad4;
-  size_t __pad5;
-  int _mode;
-  char _unused2[40UL];
-} ;
-typedef struct _IO_FILE _IO_FILE;
-struct _IO_FILE_plus ;
-typedef __ssize_t __io_read_fn(void *__cookie, char *__buf, size_t __nbytes);
-typedef __ssize_t __io_write_fn(void *__cookie, const char *__buf, size_t __n);
-typedef int __io_seek_fn(void *__cookie, __off64_t *__pos, int __w);
-typedef int __io_close_fn(void *__cookie);
-int __underflow(_IO_FILE *);
-int __uflow(_IO_FILE *);
-int __overflow(_IO_FILE *, int);
-int _IO_getc(_IO_FILE *__fp);
-int _IO_putc(int __c, _IO_FILE *__fp);
-int _IO_feof(_IO_FILE *__fp);
-int _IO_ferror(_IO_FILE *__fp);
-int _IO_peekc_locked(_IO_FILE *__fp);
-void _IO_flockfile(_IO_FILE *);
-void _IO_funlockfile(_IO_FILE *);
-int _IO_ftrylockfile(_IO_FILE *);
-int _IO_vfscanf(_IO_FILE *, const char *, __gnuc_va_list , int *);
-int _IO_vfprintf(_IO_FILE *, const char *, __gnuc_va_list );
-__ssize_t _IO_padn(_IO_FILE *, int, __ssize_t );
-size_t _IO_sgetn(_IO_FILE *, void *, size_t );
-__off64_t _IO_seekoff(_IO_FILE *, __off64_t , int, int);
-__off64_t _IO_seekpos(_IO_FILE *, __off64_t , int);
-void _IO_free_backup_area(_IO_FILE *);
-typedef __gnuc_va_list va_list;
-typedef __off_t off_t;
-typedef __ssize_t ssize_t;
-typedef _G_fpos_t fpos_t;
-int remove(const char *__filename);
-int rename(const char *__old, const char *__new);
-int renameat(int __oldfd, const char *__old, int __newfd, const char *__new);
-FILE *tmpfile();
-char *tmpnam(char *__s);
-char *tmpnam_r(char *__s);
-char *tempnam(const char *__dir, const char *__pfx);
-int fclose(FILE *__stream);
-int fflush(FILE *__stream);
-int fflush_unlocked(FILE *__stream);
-FILE *fopen(const char *__filename, const char *__modes);
-FILE *freopen(const char *__filename, const char *__modes, FILE *__stream);
-FILE *fdopen(int __fd, const char *__modes);
-FILE *fmemopen(void *__s, size_t __len, const char *__modes);
-FILE *open_memstream(char **__bufloc, size_t *__sizeloc);
-void setbuf(FILE *__stream, char *__buf);
-int setvbuf(FILE *__stream, char *__buf, int __modes, size_t __n);
-void setbuffer(FILE *__stream, char *__buf, size_t __size);
-void setlinebuf(FILE *__stream);
-int fprintf(FILE *__stream, const char *__format, ...);
-int printf(const char *__format, ...);
-int sprintf(char *__s, const char *__format, ...);
-int vfprintf(FILE *__s, const char *__format, __gnuc_va_list __arg);
-int vprintf(const char *__format, __gnuc_va_list __arg);
-int vsprintf(char *__s, const char *__format, __gnuc_va_list __arg);
-int snprintf(char *__s, size_t __maxlen, const char *__format, ...);
-int vsnprintf(char *__s, size_t __maxlen, const char *__format, __gnuc_va_list __arg);
-int vdprintf(int __fd, const char *__fmt, __gnuc_va_list __arg);
-int dprintf(int __fd, const char *__fmt, ...);
-int fscanf(FILE *__stream, const char *__format, ...);
-int scanf(const char *__format, ...);
-int sscanf(const char *__s, const char *__format, ...);
-int vfscanf(FILE *__s, const char *__format, __gnuc_va_list __arg);
-int vscanf(const char *__format, __gnuc_va_list __arg);
-int vsscanf(const char *__s, const char *__format, __gnuc_va_list __arg);
-int fgetc(FILE *__stream);
-int getc(FILE *__stream);
-int getchar();
-int getc_unlocked(FILE *__stream);
-int getchar_unlocked();
-int fgetc_unlocked(FILE *__stream);
-int fputc(int __c, FILE *__stream);
-int putc(int __c, FILE *__stream);
-int putchar(int __c);
-int fputc_unlocked(int __c, FILE *__stream);
-int putc_unlocked(int __c, FILE *__stream);
-int putchar_unlocked(int __c);
-int getw(FILE *__stream);
-int putw(int __w, FILE *__stream);
-char *fgets(char *__s, int __n, FILE *__stream);
-__ssize_t __getdelim(char **__lineptr, size_t *__n, int __delimiter, FILE *__stream);
-__ssize_t getdelim(char **__lineptr, size_t *__n, int __delimiter, FILE *__stream);
-__ssize_t getline(char **__lineptr, size_t *__n, FILE *__stream);
-int fputs(const char *__s, FILE *__stream);
-int puts(const char *__s);
-int ungetc(int __c, FILE *__stream);
-size_t fread(void *__ptr, size_t __size, size_t __n, FILE *__stream);
-size_t fwrite(const void *__ptr, size_t __size, size_t __n, FILE *__s);
-size_t fread_unlocked(void *__ptr, size_t __size, size_t __n, FILE *__stream);
-size_t fwrite_unlocked(const void *__ptr, size_t __size, size_t __n, FILE *__stream);
-int fseek(FILE *__stream, long int __off, int __whence);
-long int ftell(FILE *__stream);
-void rewind(FILE *__stream);
-int fseeko(FILE *__stream, __off_t __off, int __whence);
-__off_t ftello(FILE *__stream);
-int fgetpos(FILE *__stream, fpos_t *__pos);
-int fsetpos(FILE *__stream, const fpos_t *__pos);
-void clearerr(FILE *__stream);
-int feof(FILE *__stream);
-int ferror(FILE *__stream);
-void clearerr_unlocked(FILE *__stream);
-int feof_unlocked(FILE *__stream);
-int ferror_unlocked(FILE *__stream);
-void perror(const char *__s);
-int fileno(FILE *__stream);
-int fileno_unlocked(FILE *__stream);
-FILE *popen(const char *__command, const char *__modes);
-int pclose(FILE *__stream);
-char *ctermid(char *__s);
-void flockfile(FILE *__stream);
-int ftrylockfile(FILE *__stream);
-void funlockfile(FILE *__stream);
-struct __anon_type_QType {
-  int element[800];
-  int head;
-  int tail;
-  int amount;
-} ;
-typedef struct __anon_type_QType QType;
-void init(QType *q);
-int empty(QType *q);
-int full(QType *q);
-int enqueue(QType *q, int x);
-int dequeue(QType *q);
-void *t1(void *arg);
-void *t2(void *arg);
+void *thread1(void *arg);
+void *thread2(void *arg);
+void *thread3(void *arg);
 int main();
 
 // custom function declarations
@@ -655,58 +466,30 @@ extern long int __g_2___timezone;
 extern char *__g_3_tzname[2];
 extern int __g_4_daylight;
 extern long int __g_5_timezone;
-extern struct _IO_FILE_plus __g_6__IO_2_1_stdin_;
-extern struct _IO_FILE_plus __g_7__IO_2_1_stdout_;
-extern struct _IO_FILE_plus __g_8__IO_2_1_stderr_;
-extern struct _IO_FILE *__g_9_stdin;
-extern struct _IO_FILE *__g_10_stdout;
-extern struct _IO_FILE *__g_11_stderr;
-extern int __g_12_sys_nerr;
-extern const char * const __g_13_sys_errlist[];
-pthread_mutex_t __g_14_m = {  };
-int __g_15_stored_elements[800] = {  };
-_Bool __g_16_enqueue_flag = 0;
-_Bool __g_17_dequeue_flag = 0;
-QType __g_18_queue = {  };
+pthread_mutex_t __g_6_mutex = {  };
+int __g_7_data = 0;
 
 // thread 0 local variables
-pthread_t __t0_21_id1;
-pthread_t __t0_22_id2;
-int __t0_23___CPAchecker_TMP_0;
+pthread_t __t0_8_t1;
+pthread_t __t0_9_t2;
+pthread_t __t0_10_t3;
 
 // thread 1 local variables
-int __t1_27_value;
-int __t1_28_i;
-int __t1_29___CPAchecker_TMP_0;
-int __t1_30___CPAchecker_TMP_1;
 
 // thread 2 local variables
-int __t2_34_i;
-int __t2_35___CPAchecker_TMP_0;
-int __t2_36_x;
+
+// thread 3 local variables
 
 // thread 0 parameter variables
-QType *__p0_19_q;
-QType *__p0_20_q;
 
 // thread 1 parameter variables
-QType *__p1_24_q;
-int __p1_25_x;
-QType *__p1_26_q;
 
 // thread 2 parameter variables
-QType *__p2_33_q;
+
+// thread 3 parameter variables
 
 // thread local function return pc
-int t0__init__return_pc;
-int t0__empty__return_pc;
-int t0__reach_error__return_pc;
-int t1__enqueue__return_pc;
-int t1__empty__return_pc;
-int t1__enqueue__return_pc;
-int t1__reach_error__return_pc;
-int t2__dequeue__return_pc;
-int t2__reach_error__return_pc;
+int t3__reach_error__return_pc;
 
 void __f_assume(int cond) {
   if (!(cond)) {
@@ -726,8 +509,8 @@ int __f_any_unsigned(int array[], int size) {
 }
 
 int main(void) {
-  const int NUM_THREADS = 3;
-  int pc[NUM_THREADS] = { 0, 0, 0 };
+  const int NUM_THREADS = 4;
+  int pc[NUM_THREADS] = { 0, 0, 0, 0 };
   int execute = 1;
 
   while (execute) {
@@ -1043,266 +826,40 @@ int main(void) {
         case 299: pc[0] = 300; continue;
         case 300: pc[0] = 301; continue;
         case 301: pc[0] = 302; continue;
-        case 302: pc[0] = 303; continue;
-        case 303: pc[0] = 304; continue;
-        case 304: pc[0] = 305; continue;
-        case 305: pc[0] = 306; continue;
-        case 306: pc[0] = 307; continue;
-        case 307: pc[0] = 308; continue;
-        case 308: pc[0] = 309; continue;
-        case 309: pc[0] = 310; continue;
-        case 310: pc[0] = 311; continue;
-        case 311: pc[0] = 312; continue;
-        case 312: pc[0] = 313; continue;
-        case 313: pc[0] = 314; continue;
-        case 314: pc[0] = 315; continue;
-        case 315: pc[0] = 316; continue;
-        case 316: pc[0] = 317; continue;
-        case 317: pc[0] = 318; continue;
-        case 318: pc[0] = 319; continue;
-        case 319: pc[0] = 320; continue;
-        case 320: pc[0] = 321; continue;
-        case 321: pc[0] = 322; continue;
-        case 322: pc[0] = 323; continue;
-        case 323: pc[0] = 324; continue;
-        case 324: pc[0] = 325; continue;
-        case 325: pc[0] = 326; continue;
-        case 326: pc[0] = 327; continue;
-        case 327: pc[0] = 328; continue;
-        case 328: pc[0] = 329; continue;
-        case 329: pc[0] = 330; continue;
-        case 330: pc[0] = 331; continue;
-        case 331: pc[0] = 332; continue;
-        case 332: pc[0] = 333; continue;
-        case 333: pc[0] = 334; continue;
-        case 334: pc[0] = 335; continue;
-        case 335: pc[0] = 336; continue;
-        case 336: pc[0] = 337; continue;
-        case 337: pc[0] = 338; continue;
-        case 338: pc[0] = 339; continue;
-        case 339: pc[0] = 340; continue;
-        case 340: pc[0] = 341; continue;
-        case 341: pc[0] = 342; continue;
-        case 342: pc[0] = 343; continue;
-        case 343: pc[0] = 344; continue;
-        case 344: pc[0] = 345; continue;
-        case 345: pc[0] = 346; continue;
-        case 346: pc[0] = 347; continue;
-        case 347: pc[0] = 348; continue;
-        case 348: pc[0] = 349; continue;
-        case 349: pc[0] = 350; continue;
-        case 350: pc[0] = 351; continue;
-        case 351: pc[0] = 352; continue;
-        case 352: pc[0] = 353; continue;
-        case 353: pc[0] = 354; continue;
-        case 354: pc[0] = 355; continue;
-        case 355: pc[0] = 356; continue;
-        case 356: pc[0] = 357; continue;
-        case 357: pc[0] = 358; continue;
-        case 358: pc[0] = 359; continue;
-        case 359: pc[0] = 360; continue;
-        case 360: pc[0] = 361; continue;
-        case 361: pc[0] = 362; continue;
-        case 362: pc[0] = 363; continue;
-        case 363: pc[0] = 364; continue;
-        case 364: pc[0] = 365; continue;
-        case 365: pc[0] = 366; continue;
-        case 366: pc[0] = 367; continue;
-        case 367: pc[0] = 368; continue;
-        case 368: pc[0] = 369; continue;
-        case 369: pc[0] = 370; continue;
-        case 370: pc[0] = 371; continue;
-        case 371: pc[0] = 372; continue;
-        case 372: pc[0] = 373; continue;
-        case 373: pc[0] = 374; continue;
-        case 374: pc[0] = 375; continue;
-        case 375: pc[0] = 376; continue;
-        case 376: pc[0] = 377; continue;
-        case 377: pc[0] = 378; continue;
-        case 378: pc[0] = 379; continue;
-        case 379: pc[0] = 380; continue;
-        case 380: pc[0] = 381; continue;
-        case 381: pc[0] = 382; continue;
-        case 382: pc[0] = 383; continue;
-        case 383: pc[0] = 384; continue;
-        case 384: pc[0] = 385; continue;
-        case 385: pc[0] = 386; continue;
-        case 386: pc[0] = 387; continue;
-        case 387: pc[0] = 388; continue;
-        case 388: pc[0] = 389; continue;
-        case 389: pc[0] = 390; continue;
-        case 390: pc[0] = 391; continue;
-        case 391: pc[0] = 392; continue;
-        case 392: pc[0] = 393; continue;
-        case 393: pc[0] = 394; continue;
-        case 394: pc[0] = 395; continue;
-        case 395: pc[0] = 396; continue;
-        case 396: pc[0] = 397; continue;
-        case 397: pc[0] = 398; continue;
-        case 398: pc[0] = 399; continue;
-        case 399: pc[0] = 400; continue;
-        case 400: pc[0] = 401; continue;
-        case 401: pc[0] = 402; continue;
-        case 402: pc[0] = 403; continue;
-        case 403: pc[0] = 404; continue;
-        case 404: pc[0] = 405; continue;
-        case 405: pc[0] = 406; continue;
-        case 406: pc[0] = 407; continue;
-        case 407: pc[0] = 408; continue;
-        case 408: pc[0] = 409; continue;
-        case 409: pc[0] = 410; continue;
-        case 410: pc[0] = 411; continue;
-        case 411: pc[0] = 412; continue;
-        case 412: pc[0] = 413; continue;
-        case 413: pc[0] = 414; continue;
-        case 414: pc[0] = 415; continue;
-        case 415: pc[0] = 416; continue;
-        case 416: pc[0] = 417; continue;
-        case 417: pc[0] = 418; continue;
-        case 418: pc[0] = 419; continue;
-        case 419: pc[0] = 420; continue;
-        case 420: pc[0] = 421; continue;
-        case 421: pc[0] = 422; continue;
-        case 422: pc[0] = 423; continue;
-        case 423: pc[0] = 424; continue;
-        case 424: pc[0] = 425; continue;
-        case 425: pc[0] = 426; continue;
-        case 426: pc[0] = 427; continue;
-        case 427: pc[0] = 428; continue;
-        case 428: pc[0] = 429; continue;
-        case 429: pc[0] = 430; continue;
-        case 430: pc[0] = 431; continue;
-        case 431: pc[0] = 432; continue;
-        case 432: pc[0] = 433; continue;
-        case 433: pc[0] = 434; continue;
-        case 434: pc[0] = 435; continue;
-        case 435: pc[0] = 436; continue;
-        case 436: pc[0] = 437; continue;
-        case 437: pc[0] = 438; continue;
-        case 438: __g_16_enqueue_flag = 1; pc[0] = 439; continue;
-        case 439: __g_17_dequeue_flag = 0; pc[0] = 440; continue;
-        case 440: __p0_20_q = &__g_18_queue;  pc[0] = 462; t0__init__return_pc = 441;  continue;
-        case 441: pc[0] = 442; continue;
-        case 442: t0__empty__return_pc = 443;  __p0_19_q = &__g_18_queue;  pc[0] = 456; continue;
-        case 443: if ((0 == __t0_23___CPAchecker_TMP_0) == -1) { pc[0] = 444;  }else if (!((0 == __t0_23___CPAchecker_TMP_0) == -1)) { pc[0] = 450;  }continue;
-        case 444: pc[0] = 445; continue;
-        case 445: t0__reach_error__return_pc = -1;  continue;
-        case 446: pc[0] = 447; continue;
-        case 447: 4UL; pc[0] = 448; continue;
-        case 448: pc[0] = 449; continue;
-        case 449: __assert_fail("0", "queue_longest.c", 4, "__PRETTY_FUNCTION__"); pc[0] = -1; continue;
-        case 450: pc[0] = 451; continue;
-        case 451: pc[0] = 452; continue;
-        case 452: pc[0] = 453; continue;
-        case 453: pc[0] = 454; continue;
-        case 454: pc[0] = 455; continue;
-        case 455: continue;
-        case 456: pc[0] = 457; continue;
-        case 457: if (!((__p0_19_q->head) == (__p0_19_q->tail))) { pc[0] = 461;  }else if ((__p0_19_q->head) == (__p0_19_q->tail)) { pc[0] = 458;  }continue;
-        case 458: printf("queue is empty\n"); pc[0] = 459; continue;
-        case 459: __t0_23___CPAchecker_TMP_0 = -1;  pc[0] = 460; continue;
-        case 460: pc[0] = t0__empty__return_pc;  continue;
-        case 461: __t0_23___CPAchecker_TMP_0 = 0;  pc[0] = 460; continue;
-        case 462: pc[0] = 463; continue;
-        case 463: __p0_20_q->head = 0; pc[0] = 464; continue;
-        case 464: __p0_20_q->tail = 0; pc[0] = 465; continue;
-        case 465: __p0_20_q->amount = 0; pc[0] = 466; continue;
-        case 466: pc[0] = 467; continue;
-        case 467: pc[0] = t0__init__return_pc;  continue;
+        case 302: continue;
       }
 
     } else if (next_thread == 1) {
       switch (pc[1]) {
         case 0: pc[1] = 1; continue;
         case 1: pc[1] = 2; continue;
-        case 2: pc[1] = 3; continue;
-        case 3: pc[1] = 4; continue;
-        case 4: __t1_27_value = __VERIFIER_nondet_int(); pc[1] = 5; continue;
+        case 2: const int __t1_11___CPAchecker_TMP_0 = __g_7_data; __g_7_data = __g_7_data + 1; __t1_11___CPAchecker_TMP_0; pc[1] = 5; continue;
         case 5: pc[1] = 6; continue;
-        case 6: t1__enqueue__return_pc = 7;  __p1_24_q = &__g_18_queue;  __p1_25_x = __t1_27_value;  pc[1] = 27; continue;
-        case 7: if (__t1_29___CPAchecker_TMP_0 == 0) { pc[1] = 8;  }else if (!(__t1_29___CPAchecker_TMP_0 == 0)) { pc[1] = 55;  }continue;
-        case 8: __g_15_stored_elements[0] = __t1_27_value; pc[1] = 9; continue;
-        case 9: pc[1] = 10; continue;
-        case 10: t1__empty__return_pc = 11;  __p1_26_q = &__g_18_queue;  pc[1] = 49; continue;
-        case 11: if (__t1_30___CPAchecker_TMP_1 == 0) { pc[1] = 12;  }else if (!(__t1_30___CPAchecker_TMP_1 == 0)) { pc[1] = 42;  }continue;
-        case 12: pc[1] = 13; continue;
-        case 13: pc[1] = 14; continue;
-        case 14: __t1_28_i = 0; pc[1] = 15; continue;
-        case 15: if (__t1_28_i < 799) { pc[1] = 16;  }else if (!(__t1_28_i < 799)) { pc[1] = 41;  }continue;
-        case 16: pc[1] = 17; continue;
-        case 17: if (__g_16_enqueue_flag == 0) { pc[1] = 18;  }else if (!(__g_16_enqueue_flag == 0)) { pc[1] = 21;  }continue;
-        case 18: pc[1] = 19; continue;
-        case 19: pc[1] = 20; continue;
-        case 20: __t1_28_i = __t1_28_i + 1; pc[1] = 15; continue;
-        case 21: __t1_27_value = __VERIFIER_nondet_int(); pc[1] = 22; continue;
-        case 22: __p1_24_q = &__g_18_queue;  __p1_25_x = __t1_27_value;  pc[1] = 27; t1__enqueue__return_pc = 23;  continue;
-        case 23: __g_15_stored_elements[__t1_28_i + 1] = __t1_27_value; pc[1] = 24; continue;
-        case 24: __g_16_enqueue_flag = 0; pc[1] = 25; continue;
-        case 25: __g_17_dequeue_flag = 1; pc[1] = 26; continue;
-        case 26: pc[1] = 18; continue;
-        case 27: pc[1] = 28; continue;
-        case 28: (__p1_24_q->element)[__p1_24_q->tail] = __p1_25_x; pc[1] = 29; continue;
-        case 29: const int __t1_31___CPAchecker_TMP_0 = __p1_24_q->amount; __p1_24_q->amount = (__p1_24_q->amount) + 1; __t1_31___CPAchecker_TMP_0; pc[1] = 32; continue;
-        case 32: if (!((__p1_24_q->tail) == 800)) { pc[1] = 37;  }else if ((__p1_24_q->tail) == 800) { pc[1] = 33;  }continue;
-        case 33: __p1_24_q->tail = 1; pc[1] = 34; continue;
-        case 34: pc[1] = 35; continue;
-        case 35: __t1_29___CPAchecker_TMP_0 = 0;  pc[1] = 36; continue;
-        case 36: pc[1] = t1__enqueue__return_pc;  continue;
-        case 37: const int __t1_32___CPAchecker_TMP_1 = __p1_24_q->tail; __p1_24_q->tail = (__p1_24_q->tail) + 1; __t1_32___CPAchecker_TMP_1; pc[1] = 40; continue;
-        case 40: pc[1] = 35; continue;
-        case 41: continue;
-        case 42: pc[1] = 43; continue;
-        case 43: pc[1] = 44; continue;
-        case 44: t1__reach_error__return_pc = -1;  continue;
-        case 45: pc[1] = 46; continue;
-        case 46: 4UL; pc[1] = 47; continue;
-        case 47: pc[1] = 48; continue;
-        case 48: __assert_fail("0", "queue_longest.c", 4, "__PRETTY_FUNCTION__"); pc[1] = -1; continue;
-        case 49: pc[1] = 50; continue;
-        case 50: if ((__p1_26_q->head) == (__p1_26_q->tail)) { pc[1] = 51;  }else if (!((__p1_26_q->head) == (__p1_26_q->tail))) { pc[1] = 54;  }continue;
-        case 51: printf("queue is empty\n"); pc[1] = 52; continue;
-        case 52: __t1_30___CPAchecker_TMP_1 = -1;  pc[1] = 53; continue;
-        case 53: pc[1] = t1__empty__return_pc;  continue;
-        case 54: __t1_30___CPAchecker_TMP_1 = 0;  pc[1] = 53; continue;
-        case 55: pc[1] = 43; continue;
+        case 6: continue;
       }
 
     } else if (next_thread == 2) {
       switch (pc[2]) {
         case 0: pc[2] = 1; continue;
         case 1: pc[2] = 2; continue;
-        case 2: pc[2] = 3; continue;
-        case 3: __t2_34_i = 0; pc[2] = 4; continue;
-        case 4: if (__t2_34_i < 800) { pc[2] = 5;  }else if (!(__t2_34_i < 800)) { pc[2] = 37;  }continue;
-        case 5: pc[2] = 6; continue;
-        case 6: if (!(__g_17_dequeue_flag == 0)) { pc[2] = 10;  }else if (__g_17_dequeue_flag == 0) { pc[2] = 7;  }continue;
-        case 7: pc[2] = 8; continue;
-        case 8: pc[2] = 9; continue;
-        case 9: __t2_34_i = __t2_34_i + 1; pc[2] = 4; continue;
-        case 10: pc[2] = 11; continue;
-        case 11: t2__dequeue__return_pc = 12;  __p2_33_q = &__g_18_queue;  pc[2] = 22; continue;
-        case 12: if ((0 == __t2_35___CPAchecker_TMP_0) == (__g_15_stored_elements[__t2_34_i])) { pc[2] = 13;  }else if (!((0 == __t2_35___CPAchecker_TMP_0) == (__g_15_stored_elements[__t2_34_i]))) { pc[2] = 19;  }continue;
-        case 13: pc[2] = 14; continue;
-        case 14: t2__reach_error__return_pc = -1;  continue;
-        case 15: pc[2] = 16; continue;
-        case 16: 4UL; pc[2] = 17; continue;
-        case 17: pc[2] = 18; continue;
-        case 18: __assert_fail("0", "queue_longest.c", 4, "__PRETTY_FUNCTION__"); pc[2] = -1; continue;
-        case 19: __g_17_dequeue_flag = 0; pc[2] = 20; continue;
-        case 20: __g_16_enqueue_flag = 1; pc[2] = 21; continue;
-        case 21: pc[2] = 7; continue;
-        case 22: pc[2] = 23; continue;
-        case 23: pc[2] = 24; continue;
-        case 24: __t2_36_x = (__p2_33_q->element)[__p2_33_q->head]; pc[2] = 25; continue;
-        case 25: const int __t2_37___CPAchecker_TMP_0 = __p2_33_q->amount; __p2_33_q->amount = (__p2_33_q->amount) - 1; __t2_37___CPAchecker_TMP_0; pc[2] = 28; continue;
-        case 28: if (!((__p2_33_q->head) == 800)) { pc[2] = 33;  }else if ((__p2_33_q->head) == 800) { pc[2] = 29;  }continue;
-        case 29: __p2_33_q->head = 1; pc[2] = 30; continue;
-        case 30: pc[2] = 31; continue;
-        case 31: __t2_35___CPAchecker_TMP_0 = __t2_36_x;  pc[2] = 32; continue;
-        case 32: pc[2] = t2__dequeue__return_pc;  continue;
-        case 33: const int __t2_38___CPAchecker_TMP_1 = __p2_33_q->head; __p2_33_q->head = (__p2_33_q->head) + 1; __t2_38___CPAchecker_TMP_1; pc[2] = 36; continue;
-        case 36: pc[2] = 31; continue;
-        case 37: continue;
+        case 2: __g_7_data = __g_7_data + 2; pc[2] = 3; continue;
+        case 3: pc[2] = 4; continue;
+        case 4: continue;
+      }
+
+    } else if (next_thread == 3) {
+      switch (pc[3]) {
+        case 0: pc[3] = 1; continue;
+        case 1: pc[3] = 2; continue;
+        case 2: if (__g_7_data >= 3) { pc[3] = 3;  }else if (!(__g_7_data >= 3)) { pc[3] = 9;  }continue;
+        case 3: pc[3] = 4; continue;
+        case 4: t3__reach_error__return_pc = -1;  continue;
+        case 5: pc[3] = 6; continue;
+        case 6: 4UL; pc[3] = 7; continue;
+        case 7: pc[3] = 8; continue;
+        case 8: __assert_fail("0", "lazy01.c", 3, "__PRETTY_FUNCTION__"); pc[3] = -1; continue;
+        case 9: pc[3] = 10; continue;
+        case 10: continue;
       }
     }
   }
