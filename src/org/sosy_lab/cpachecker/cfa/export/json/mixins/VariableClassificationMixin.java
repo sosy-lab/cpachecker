@@ -20,6 +20,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.export.json.deserialization.EdgeToPartitionsDeserializer;
 import org.sosy_lab.cpachecker.cfa.export.json.deserialization.PartitionsDeserializer;
 import org.sosy_lab.cpachecker.cfa.export.json.serialization.EdgeToPartitionsTableToListConverter;
+import org.sosy_lab.cpachecker.cfa.export.json.serialization.PartitionSetToSortedListConverter;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
@@ -27,6 +28,9 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 
 /**
  * This class is a mixin for {@link VariableClassification}.
+ *
+ * <p>It converts the Set<Partition> fields to sorted lists of Partition objects during
+ * serialization with the help of {@link PartitionSetToSortedListConverter}.
  *
  * <p>It sets the {@link PartitionsDeserializer} for all Set<Partition> fields.
  *
@@ -38,18 +42,22 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 public final class VariableClassificationMixin {
 
   @SuppressWarnings("unused")
+  @JsonSerialize(converter = PartitionSetToSortedListConverter.class)
   @JsonDeserialize(using = PartitionsDeserializer.class)
   private Set<Partition> partitions;
 
   @SuppressWarnings("unused")
+  @JsonSerialize(converter = PartitionSetToSortedListConverter.class)
   @JsonDeserialize(using = PartitionsDeserializer.class)
   private Set<Partition> intBoolPartitions;
 
   @SuppressWarnings("unused")
+  @JsonSerialize(converter = PartitionSetToSortedListConverter.class)
   @JsonDeserialize(using = PartitionsDeserializer.class)
   private Set<Partition> intEqualPartitions;
 
   @SuppressWarnings("unused")
+  @JsonSerialize(converter = PartitionSetToSortedListConverter.class)
   @JsonDeserialize(using = PartitionsDeserializer.class)
   private Set<Partition> intAddPartitions;
 

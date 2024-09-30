@@ -19,9 +19,10 @@ import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.export.json.serialization.OutOfScopeToSortedListConverter;
+import org.sosy_lab.cpachecker.cfa.export.json.serialization.CSimpleDeclarationSetToSortedListConverter;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
  * This class is a mixin for {@link CFANode}.
@@ -55,7 +56,15 @@ public final class CFANodeMixin {
   private List<CFAEdge> enteringEdges;
 
   @SuppressWarnings("unused")
-  @JsonSerialize(converter = OutOfScopeToSortedListConverter.class)
+  @JsonIdentityReference(alwaysAsId = true)
+  private FunctionSummaryEdge leavingSummaryEdge;
+
+  @SuppressWarnings("unused")
+  @JsonIdentityReference(alwaysAsId = true)
+  private FunctionSummaryEdge enteringSummaryEdge;
+
+  @SuppressWarnings("unused")
+  @JsonSerialize(converter = CSimpleDeclarationSetToSortedListConverter.class)
   private Set<CSimpleDeclaration> outOfScopeVariables;
 
   @SuppressWarnings("unused")

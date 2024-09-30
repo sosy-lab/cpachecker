@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
  *
  * <p>The sorting is based on the hash code of the {@link CSimpleDeclaration} objects.
  */
-public final class OutOfScopeToSortedListConverter
+public final class CSimpleDeclarationSetToSortedListConverter
     extends StdConverter<Set<CSimpleDeclaration>, List<CSimpleDeclaration>> {
 
   @Override

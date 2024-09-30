@@ -28,6 +28,9 @@ import org.sosy_lab.cpachecker.util.variableclassification.Partition;
  *
  * <p>This deserializer provides methods to deserialize individual {@link TableEntry} objects as
  * well as entire tables.
+ *
+ * <p>It is necessary since as of september 2024, jackson-datatype-guava does not support
+ * deserializing tables directly.
  */
 public final class EdgeToPartitionsDeserializer
     extends JsonDeserializer<Table<CFAEdge, Integer, Partition>> {

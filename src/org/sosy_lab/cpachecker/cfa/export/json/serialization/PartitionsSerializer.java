@@ -38,9 +38,14 @@ public final class PartitionsSerializer extends JsonSerializer<Set<Partition>> {
   public void serialize(
       Set<Partition> pPartitions, JsonGenerator pGenerator, SerializerProvider pProvider)
       throws IOException {
+
+    /* Sort partitions by their hash code. */
+    List<Partition> partitions = new ArrayList<>(pPartitions);
+    Collections.sort(partitions, Comparator.comparingInt(Partition::hashCode));
+
     pGenerator.writeStartArray();
 
-    for (Partition partition : pPartitions) {
+    for (Partition partition : partitions) {
       pGenerator.writeStartObject();
 
       /* Index */
