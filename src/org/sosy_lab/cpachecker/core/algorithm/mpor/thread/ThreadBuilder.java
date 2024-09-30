@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
@@ -97,8 +98,11 @@ public class ThreadBuilder {
 
     // TODO searchThreadForBarriers
 
+    assert pEntryNode.getFunction().getType() instanceof CFunctionType;
+
     return new MPORThread(
         currentId++,
+        (CFunctionType) pEntryNode.getFunction().getType(),
         pThreadObject,
         localVars,
         creates.build(),

@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORCreate;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORJoin;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORMutex;
@@ -26,6 +27,9 @@ public class MPORThread {
 
   /** The pthread_t object. Set to empty for the main thread. */
   public final Optional<CExpression> threadObject;
+
+  /** The {@link CFunctionType} of the startRoutine (pthreads) or main function (main thread). */
+  public final CFunctionType startRoutine;
 
   /** The set of local variable declarations of this thread, used to identify variables. */
   public final ImmutableSet<CVariableDeclaration> localVars;
@@ -42,6 +46,7 @@ public class MPORThread {
 
   protected MPORThread(
       int pId,
+      CFunctionType pStartRoutine,
       Optional<CExpression> pThreadObject,
       ImmutableSet<CVariableDeclaration> pLocalVars,
       ImmutableSet<MPORCreate> pCreates,
@@ -49,6 +54,7 @@ public class MPORThread {
       ImmutableSet<MPORJoin> pJoins,
       ThreadCFA pCfa) {
     id = pId;
+    startRoutine = pStartRoutine;
     threadObject = pThreadObject;
     localVars = pLocalVars;
     creates = pCreates;

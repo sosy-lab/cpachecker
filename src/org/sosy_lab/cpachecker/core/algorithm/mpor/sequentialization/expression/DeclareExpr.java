@@ -35,6 +35,6 @@ public class DeclareExpr implements SeqExpression {
         value.isEmpty()
             ? SeqSyntax.EMPTY_STRING
             : SeqSyntax.SPACE + SeqOperator.ASSIGN + SeqSyntax.SPACE + value.orElseThrow();
-    return qualifier + variableExpr.toString() + assignment + SeqSyntax.SEMICOLON;
+    return qualifier + variableExpr + assignment + SeqSyntax.SEMICOLON;
   }
 }

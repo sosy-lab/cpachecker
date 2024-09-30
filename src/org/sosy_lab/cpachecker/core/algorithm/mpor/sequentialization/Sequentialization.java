@@ -148,7 +148,7 @@ public class Sequentialization {
         if (!coveredNodes.contains(threadNode)) {
           SeqLoopCase loopCase =
               SeqUtil.createCaseFromThreadNode(
-                  thread.id,
+                  thread,
                   coveredNodes,
                   threadNode,
                   edgeSubs,

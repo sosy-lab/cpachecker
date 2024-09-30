@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.S
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 
@@ -88,7 +89,7 @@ public class SeqUtil {
    */
   @Nullable
   public static SeqLoopCase createCaseFromThreadNode(
-      final int pThreadId,
+      final MPORThread pThread,
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs,
@@ -112,7 +113,7 @@ public class SeqUtil {
       assert pPcsReturnPcAssigns.containsKey(pThreadNode);
       AssignExpr assign = pPcsReturnPcAssigns.get(pThreadNode);
       assert assign != null;
-      stmts.add(new SeqLoopCaseStmt(pThreadId, false, Optional.of(assign), Optional.empty()));
+      stmts.add(new SeqLoopCaseStmt(pThread.id, false, Optional.of(assign), Optional.empty()));
 
     } else {
       boolean firstEdge = true;
@@ -122,7 +123,7 @@ public class SeqUtil {
 
         if (emptyCaseCode(sub)) {
           assert pThreadNode.leavingEdges().size() == 1; // TODO test, remove later
-          stmts.add(new SeqLoopCaseStmt(pThreadId, false, Optional.empty(), targetPc));
+          stmts.add(new SeqLoopCaseStmt(pThread.id, false, Optional.empty(), targetPc));
 
         } else {
           // use (else) if (condition) for assumes, no matter if induced by if, for, while...
@@ -131,17 +132,18 @@ public class SeqUtil {
             IfExpr ifExpr = new IfExpr(new EdgeCodeExpr(sub));
             if (firstEdge) {
               firstEdge = false;
-              stmts.add(new SeqLoopCaseStmt(pThreadId, true, Optional.of(ifExpr), targetPc));
+              stmts.add(new SeqLoopCaseStmt(pThread.id, true, Optional.of(ifExpr), targetPc));
             } else {
               ElseIfExpr elseIfExpr = new ElseIfExpr(ifExpr);
-              stmts.add(new SeqLoopCaseStmt(pThreadId, true, Optional.of(elseIfExpr), targetPc));
+              stmts.add(new SeqLoopCaseStmt(pThread.id, true, Optional.of(elseIfExpr), targetPc));
             }
 
           } else if (sub instanceof CFunctionSummaryEdge) {
             assert pReturnPcAssigns.containsKey(threadEdge);
             AssignExpr assign = pReturnPcAssigns.get(threadEdge);
             assert assign != null;
-            stmts.add(new SeqLoopCaseStmt(pThreadId, false, Optional.of(assign), Optional.empty()));
+            stmts.add(
+                new SeqLoopCaseStmt(pThread.id, false, Optional.of(assign), Optional.empty()));
 
           } else if (sub instanceof CFunctionCallEdge) {
             assert pParamAssigns.containsKey(threadEdge);
@@ -152,7 +154,7 @@ public class SeqUtil {
               // if it is the last param assign, add the targetPc, otherwise empty
               stmts.add(
                   new SeqLoopCaseStmt(
-                      pThreadId,
+                      pThread.id,
                       false,
                       Optional.of(assign),
                       i == assigns.size() - 1 ? targetPc : Optional.empty()));
@@ -174,37 +176,42 @@ public class SeqUtil {
             assert succSub != null && succSuccSub != null;
             stmts.add(
                 new SeqLoopCaseStmt(
-                    pThreadId, false, Optional.of(new EdgeCodeExpr(sub)), Optional.empty()));
+                    pThread.id, false, Optional.of(new EdgeCodeExpr(sub)), Optional.empty()));
             stmts.add(
                 new SeqLoopCaseStmt(
-                    pThreadId, false, Optional.of(new EdgeCodeExpr(succSub)), Optional.empty()));
+                    pThread.id, false, Optional.of(new EdgeCodeExpr(succSub)), Optional.empty()));
             stmts.add(
                 new SeqLoopCaseStmt(
-                    pThreadId,
+                    pThread.id,
                     false,
                     Optional.of(new EdgeCodeExpr(succSuccSub)),
                     Optional.of(succSuccEdge.getSuccessor().pc)));
 
-          } else if (sub instanceof CReturnStatementEdge) {
+          } else if (sub instanceof CReturnStatementEdge retStmt) {
             // TODO it would be cleaner to create a switch statement for the return_pc
             //  and only assign the relevant CPAchecker_TMP var. but this solution works
             assert pReturnStmts.containsKey(threadEdge);
-            ImmutableSet<AssignExpr> assigns = pReturnStmts.get(threadEdge);
-            assert assigns != null;
-            for (AssignExpr assign : assigns) {
-              stmts.add(new SeqLoopCaseStmt(pThreadId, false, Optional.of(assign), targetPc));
+            if (retStmt.getSuccessor().getFunction().getType().equals(pThread.startRoutine)) {
+              // exiting thread -> no assigns, just set exit pc
+              stmts.add(
+                  new SeqLoopCaseStmt(pThread.id, false, Optional.empty(), Optional.of(EXIT_PC)));
+            } else {
+              ImmutableSet<AssignExpr> assigns = pReturnStmts.get(threadEdge);
+              assert assigns != null;
+              for (AssignExpr assign : assigns) {
+                stmts.add(new SeqLoopCaseStmt(pThread.id, false, Optional.of(assign), targetPc));
+              }
             }
 
           } else {
             assert sub != null;
             stmts.add(
                 new SeqLoopCaseStmt(
-                    pThreadId, false, Optional.of(new EdgeCodeExpr(sub)), targetPc));
+                    pThread.id, false, Optional.of(new EdgeCodeExpr(sub)), targetPc));
           }
         }
       }
     }
-
     return new SeqLoopCase(originPc, stmts.build());
   }
 

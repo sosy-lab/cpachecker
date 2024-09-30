@@ -1196,7 +1196,7 @@ int main(void) {
         case 452: pc[0] = 453; continue;
         case 453: pc[0] = 454; continue;
         case 454: pc[0] = 455; continue;
-        case 455: continue;
+        case 455: pc[0] = -1; continue;
         case 456: pc[0] = 457; continue;
         case 457: if (!((__p0_19_q->head) == (__p0_19_q->tail))) { pc[0] = 461;  }else if ((__p0_19_q->head) == (__p0_19_q->tail)) { pc[0] = 458;  }continue;
         case 458: printf("queue is empty\n"); pc[0] = 459; continue;
@@ -1250,7 +1250,7 @@ int main(void) {
         case 36: pc[1] = t1__enqueue__return_pc;  continue;
         case 37: const int __t1_32___CPAchecker_TMP_1 = __p1_24_q->tail; __p1_24_q->tail = (__p1_24_q->tail) + 1; __t1_32___CPAchecker_TMP_1; pc[1] = 40; continue;
         case 40: pc[1] = 35; continue;
-        case 41: continue;
+        case 41: pc[1] = -1; continue;
         case 42: pc[1] = 43; continue;
         case 43: pc[1] = 44; continue;
         case 44: t1__reach_error__return_pc = -1;  continue;
@@ -1302,7 +1302,7 @@ int main(void) {
         case 32: pc[2] = t2__dequeue__return_pc;  continue;
         case 33: const int __t2_38___CPAchecker_TMP_1 = __p2_33_q->head; __p2_33_q->head = (__p2_33_q->head) + 1; __t2_38___CPAchecker_TMP_1; pc[2] = 36; continue;
         case 36: pc[2] = 31; continue;
-        case 37: continue;
+        case 37: pc[2] = -1; continue;
       }
     }
   }
