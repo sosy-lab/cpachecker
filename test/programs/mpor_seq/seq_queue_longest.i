@@ -644,6 +644,7 @@ void *t2(void *arg);
 int main();
 
 // custom function declarations
+void __f_assume(int cond);
 int __f_any_unsigned(int array[], int size);
 
 // global variables
@@ -706,6 +707,12 @@ int t1__reach_error__return_pc;
 int t2__dequeue__return_pc;
 int t2__reach_error__return_pc;
 
+void __f_assume(int cond) {
+  if (!(cond)) {
+    abort();
+  }
+}
+
 int __f_any_unsigned(int array[], int size) {
   int i = 0;
   while (i < size) {
@@ -724,7 +731,7 @@ int main(void) {
 
   while (execute) {
     int next_thread = __VERIFIER_nondet_int();
-    assume(0 <= next_thread && next_thread < NUM_THREADS);
+    __f_assume(0 <= next_thread && next_thread < NUM_THREADS);
 
     if (pc[next_thread] == -1) {
       execute = __f_any_unsigned(pc, NUM_THREADS); 

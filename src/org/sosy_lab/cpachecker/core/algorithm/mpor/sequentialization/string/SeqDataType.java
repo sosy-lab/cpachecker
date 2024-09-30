@@ -11,4 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 public class SeqDataType {
 
   public static final String INT = "int";
+
+  public static final String VOID = "void";
 }

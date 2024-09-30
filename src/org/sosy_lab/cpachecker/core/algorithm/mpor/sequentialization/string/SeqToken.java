@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 public class SeqToken {
 
   // TODO move comment stuff to SeqComment
+  public static final String ABORT = "abort";
+
   public static final String ANY_UNSIGNED = "any_unsigned";
 
   public static final String ARRAY = "array";
@@ -20,6 +22,8 @@ public class SeqToken {
   public static final String BREAK = "break";
 
   public static final String CASE = "case";
+
+  public static final String COND = "cond";
 
   public static final String CONTINUE = "continue";
 

@@ -51,7 +51,8 @@ public class MainMethod implements SeqFunction {
           Optional.of(new FunctionCallExpr(SeqToken.VERIFIER_NONDET_INT, ImmutableList.of())));
 
   private static final FunctionCallExpr assumeNextThread =
-      new FunctionCallExpr(SeqToken.ASSUME, assumeNextThreadParams());
+      new FunctionCallExpr(
+          SeqNameBuilder.createFuncName(SeqToken.ASSUME), assumeNextThreadParams());
 
   private static final IfExpr exitPcCheck =
       new IfExpr(

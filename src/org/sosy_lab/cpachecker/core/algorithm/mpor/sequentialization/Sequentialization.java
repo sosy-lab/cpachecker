@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.VariableExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.AnyUnsigned;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.Assume;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.MainMethod;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCaseStmt;
@@ -78,8 +79,10 @@ public class Sequentialization {
     rProgram.append(SeqSyntax.NEWLINE);
 
     // prepend all custom function declarations
+    Assume assume = new Assume();
     AnyUnsigned anyUnsigned = new AnyUnsigned();
     rProgram.append(SeqComment.createFuncDeclarationComment());
+    rProgram.append(assume.getDeclaration()).append(SeqSyntax.NEWLINE);
     rProgram.append(anyUnsigned.getDeclaration()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqSyntax.NEWLINE);
 
@@ -101,6 +104,7 @@ public class Sequentialization {
     rProgram.append(SeqSyntax.NEWLINE);
 
     // prepend non main() methods
+    rProgram.append(assume).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
     rProgram.append(anyUnsigned).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
     // TODO prune empty loop cases
