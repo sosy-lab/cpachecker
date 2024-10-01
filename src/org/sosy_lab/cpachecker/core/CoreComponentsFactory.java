@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.TubeAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
@@ -198,6 +199,12 @@ public class CoreComponentsFactory {
       name = "restartAfterUnknown",
       description = "restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
+
+  @Option(
+      secure = true,
+      description = "start the tube Algorithm to validate Tubes")
+  private boolean useTubeAlgorithm = false;
+
 
   @Option(
       secure = true,
@@ -722,6 +729,9 @@ public class CoreComponentsFactory {
       if (useImportFaults) {
         algorithm = new FaultLocalizationByImport(config, algorithm, cfa, logger);
       }
+      if (useTubeAlgorithm){
+        algorithm = new TubeAlgorithm(algorithm, logger);
+      }
     }
 
     return algorithm;
@@ -773,6 +783,7 @@ public class CoreComponentsFactory {
         || constructProgramSlice
         || useFaultLocalizationWithDistanceMetrics
         || useArrayAbstraction
+        || useTubeAlgorithm
         || useRandomTestCaseGeneratorAlgorithm) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
