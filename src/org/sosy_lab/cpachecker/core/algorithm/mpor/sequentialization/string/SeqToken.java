@@ -12,6 +12,8 @@ public class SeqToken {
 
   public static final String ABORT = "abort";
 
+  public static final String ACTIVE = "active";
+
   public static final String ANY_UNSIGNED = "any_unsigned";
 
   public static final String ARRAY = "array";
@@ -40,6 +42,8 @@ public class SeqToken {
 
   public static final String IF = "if";
 
+  public static final String LOCKED = "locked";
+
   public static final String MAIN = "main";
 
   public static final String NEXT_THREAD = "next_thread";
@@ -50,8 +54,6 @@ public class SeqToken {
   public static final String PC = "pc";
 
   public static final String RETURN = "return";
-
-  public static final String RETURN_PC = "return_pc";
 
   public static final String SIZE = "size";
 

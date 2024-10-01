@@ -17,11 +17,17 @@ public class SeqCommentToken {
 
   public static final String LOCAL = "local";
 
+  public static final String METHOD = "method";
+
   public static final String NON_VARIABLE = "(non-variable)";
 
   public static final String ORIGINAL_PROGRAM = "original program";
 
   public static final String PARAMETER = "parameter";
+
+  public static final String PTHREAD = "pthread";
+
+  public static final String REPLACEMENTS = "replacements";
 
   public static final String THREAD = "thread";
 

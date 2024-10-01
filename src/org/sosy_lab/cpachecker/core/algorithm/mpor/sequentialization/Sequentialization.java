@@ -21,6 +21,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Variable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ASTStringExpr;
@@ -51,6 +53,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarati
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
@@ -72,25 +75,14 @@ public class Sequentialization {
 
     StringBuilder rProgram = new StringBuilder();
 
-    // prepend all function, complex type, typedef declarations (i.e. non var declarations)
+    // prepend all original program declarations that are not substituted
     rProgram.append(SeqComment.createNonVarDeclarationComment());
     for (MPORThread thread : pSubstitutions.keySet()) {
       rProgram.append(createNonVarDecString(thread));
     }
     rProgram.append(SeqSyntax.NEWLINE);
 
-    // prepend all custom function declarations
-    VerifierNonDetInt verifierNonDetInt = new VerifierNonDetInt();
-    Assume assume = new Assume();
-    AnyUnsigned anyUnsigned = new AnyUnsigned();
-    rProgram.append(SeqComment.createFuncDeclarationComment());
-    // this declaration may be duplicate depending on the input program, but that's fine in C
-    rProgram.append(verifierNonDetInt.getDeclaration()).append(SeqSyntax.NEWLINE);
-    rProgram.append(assume.getDeclaration()).append(SeqSyntax.NEWLINE);
-    rProgram.append(anyUnsigned.getDeclaration()).append(SeqSyntax.NEWLINE);
-    rProgram.append(SeqSyntax.NEWLINE);
-
-    // prepend all var declarations in the order global - local - params - return_pc
+    // prepend all var substitute declarations in the order global - local - params - return_pc
     MPORThread mainThread = MPORAlgorithm.getMainThread(pSubstitutions.keySet());
     rProgram.append(createGlobalVarString(pSubstitutions.get(mainThread)));
     for (var entry : pSubstitutions.entrySet()) {
@@ -105,6 +97,27 @@ public class Sequentialization {
         rProgram.append(dec.toString()).append(SeqSyntax.NEWLINE);
       }
     }
+    rProgram.append(SeqSyntax.NEWLINE);
+
+    // prepend pthread control vars
+    rProgram.append(SeqComment.createPthreadReplacementVarsComment());
+    for (var entry : mapThreadActiveVars(pSubstitutions.keySet()).entrySet()) {
+      CIdExpression idExpr = entry.getValue();
+      assert idExpr.getDeclaration() instanceof CVariableDeclaration;
+      CVariableDeclaration varDec = (CVariableDeclaration) idExpr.getDeclaration();
+      rProgram.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
+    }
+    rProgram.append(SeqSyntax.NEWLINE);
+
+    // prepend all custom function declarations
+    VerifierNonDetInt verifierNonDetInt = new VerifierNonDetInt();
+    Assume assume = new Assume();
+    AnyUnsigned anyUnsigned = new AnyUnsigned();
+    rProgram.append(SeqComment.createFuncDeclarationComment());
+    // this declaration may be duplicate depending on the input program, but that's fine in C
+    rProgram.append(verifierNonDetInt.getDeclaration()).append(SeqSyntax.NEWLINE);
+    rProgram.append(assume.getDeclaration()).append(SeqSyntax.NEWLINE);
+    rProgram.append(anyUnsigned.getDeclaration()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqSyntax.NEWLINE);
 
     // prepend non main() methods
@@ -142,7 +155,9 @@ public class Sequentialization {
       ImmutableMap<ThreadEdge, ImmutableSet<AssignExpr>> returnStmts =
           mapReturnStmts(thread, edgeSubs);
       ImmutableMap<ThreadEdge, AssignExpr> returnPcAssigns = mapReturnPcAssigns(thread);
-      ImmutableMap<ThreadNode, AssignExpr> pcReturnPcAssigns = mapPcsReturnPcAssigns(thread);
+      ImmutableMap<ThreadNode, AssignExpr> pcToReturnPcAssigns = mapPcToReturnPcAssigns(thread);
+      ImmutableMap<MPORThread, CIdExpression> threadActiveVars =
+          mapThreadActiveVars(pSubstitutions.keySet());
 
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
         if (!coveredNodes.contains(threadNode)) {
@@ -155,7 +170,8 @@ public class Sequentialization {
                   paramAssigns,
                   returnStmts,
                   returnPcAssigns,
-                  pcReturnPcAssigns);
+                  pcToReturnPcAssigns,
+                  threadActiveVars);
           if (loopCase != null) {
             loopCases.add(loopCase);
           }
@@ -350,7 +366,7 @@ public class Sequentialization {
    * <p>E.g. a {@link FunctionExitNode} for the function {@code fib} in thread 0 is mapped to the
    * assignment {@code pc[next_thread] = t0__fib__return_pc;}.
    */
-  private static ImmutableMap<ThreadNode, AssignExpr> mapPcsReturnPcAssigns(MPORThread pThread) {
+  private static ImmutableMap<ThreadNode, AssignExpr> mapPcToReturnPcAssigns(MPORThread pThread) {
     Map<ThreadNode, AssignExpr> rAssigns = new HashMap<>();
 
     ImmutableMap<ThreadEdge, DeclareExpr> returnPcDecs = mapReturnPcDecs(pThread);
@@ -371,6 +387,22 @@ public class Sequentialization {
       }
     }
     return ImmutableMap.copyOf(rAssigns);
+  }
+
+  private static ImmutableMap<MPORThread, CIdExpression> mapThreadActiveVars(
+      ImmutableSet<MPORThread> pThreads) {
+    ImmutableMap.Builder<MPORThread, CIdExpression> rVars = ImmutableMap.builder();
+    for (MPORThread thread : pThreads) {
+      for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
+        CFAEdge cfaEdge = threadEdge.cfaEdge;
+        if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
+          MPORThread createdThread = ThreadUtil.extractThreadFromPthreadCreate(pThreads, cfaEdge);
+          String varName = SeqNameBuilder.createThreadActiveName(createdThread.id);
+          rVars.put(createdThread, SeqUtil.createThreadActiveVar(varName));
+        }
+      }
+    }
+    return rVars.buildOrThrow();
   }
 
   // String Creators =============================================================================

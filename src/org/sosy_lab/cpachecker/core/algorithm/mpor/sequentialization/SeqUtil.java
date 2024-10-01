@@ -11,10 +11,18 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -25,6 +33,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ASTStringExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
@@ -40,12 +51,29 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarati
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 
 public class SeqUtil {
 
   public static final int INIT_PC = 0;
 
   public static final int EXIT_PC = -1;
+
+  // TODO create separate Util / class for these pre build instances?
+  public static final CSimpleType intType =
+      new CSimpleType(
+          false, false, CBasicType.INT, false, false, false, false, false, false, false);
+
+  public static final CIntegerLiteralExpression intZero =
+      new CIntegerLiteralExpression(FileLocation.DUMMY, intType, BigInteger.ZERO);
+
+  public static final CIntegerLiteralExpression intOne =
+      new CIntegerLiteralExpression(FileLocation.DUMMY, intType, BigInteger.ONE);
+
+  public static final CInitializer initializerZero =
+      new CInitializerExpression(FileLocation.DUMMY, intZero);
+
+  public static final CExpression valueOne = intOne;
 
   public static ImmutableList<ASTStringExpr> createGlobalDeclarations(
       CSimpleDeclarationSubstitution pSubstitution) {
@@ -96,7 +124,8 @@ public class SeqUtil {
       ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> pParamAssigns,
       ImmutableMap<ThreadEdge, ImmutableSet<AssignExpr>> pReturnStmts,
       ImmutableMap<ThreadEdge, AssignExpr> pReturnPcAssigns,
-      ImmutableMap<ThreadNode, AssignExpr> pPcsReturnPcAssigns) {
+      ImmutableMap<ThreadNode, AssignExpr> pPcToReturnPcAssigns,
+      ImmutableMap<MPORThread, CIdExpression> pThreadActiveVars) {
 
     pCoveredNodes.add(pThreadNode);
 
@@ -110,10 +139,11 @@ public class SeqUtil {
 
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
       // handle all CFunctionReturnEdges: exiting function -> pc not relevant, assign return pc
-      assert pPcsReturnPcAssigns.containsKey(pThreadNode);
-      AssignExpr assign = pPcsReturnPcAssigns.get(pThreadNode);
+      assert pPcToReturnPcAssigns.containsKey(pThreadNode);
+      AssignExpr assign = pPcToReturnPcAssigns.get(pThreadNode);
       assert assign != null;
-      stmts.add(new SeqLoopCaseStmt(pThread.id, false, Optional.of(assign), Optional.empty()));
+      stmts.add(
+          new SeqLoopCaseStmt(pThread.id, false, Optional.of(assign.toString()), Optional.empty()));
 
     } else {
       boolean firstEdge = true;
@@ -133,10 +163,13 @@ public class SeqUtil {
             IfExpr ifExpr = new IfExpr(new EdgeCodeExpr(sub));
             if (firstEdge) {
               firstEdge = false;
-              stmts.add(new SeqLoopCaseStmt(pThread.id, true, Optional.of(ifExpr), targetPc));
+              stmts.add(
+                  new SeqLoopCaseStmt(pThread.id, true, Optional.of(ifExpr.toString()), targetPc));
             } else {
               ElseIfExpr elseIfExpr = new ElseIfExpr(ifExpr);
-              stmts.add(new SeqLoopCaseStmt(pThread.id, true, Optional.of(elseIfExpr), targetPc));
+              stmts.add(
+                  new SeqLoopCaseStmt(
+                      pThread.id, true, Optional.of(elseIfExpr.toString()), targetPc));
             }
 
           } else if (sub instanceof CFunctionSummaryEdge) {
@@ -144,7 +177,8 @@ public class SeqUtil {
             AssignExpr assign = pReturnPcAssigns.get(threadEdge);
             assert assign != null;
             stmts.add(
-                new SeqLoopCaseStmt(pThread.id, false, Optional.of(assign), Optional.empty()));
+                new SeqLoopCaseStmt(
+                    pThread.id, false, Optional.of(assign.toString()), Optional.empty()));
 
           } else if (sub instanceof CFunctionCallEdge) {
             assert pParamAssigns.containsKey(threadEdge);
@@ -157,7 +191,7 @@ public class SeqUtil {
                   new SeqLoopCaseStmt(
                       pThread.id,
                       false,
-                      Optional.of(assign),
+                      Optional.of(assign.toString()),
                       i == assigns.size() - 1 ? targetPc : Optional.empty()));
             }
 
@@ -177,15 +211,21 @@ public class SeqUtil {
             assert succSub != null && succSuccSub != null;
             stmts.add(
                 new SeqLoopCaseStmt(
-                    pThread.id, false, Optional.of(new EdgeCodeExpr(sub)), Optional.empty()));
-            stmts.add(
-                new SeqLoopCaseStmt(
-                    pThread.id, false, Optional.of(new EdgeCodeExpr(succSub)), Optional.empty()));
+                    pThread.id,
+                    false,
+                    Optional.of(new EdgeCodeExpr(sub).toString()),
+                    Optional.empty()));
             stmts.add(
                 new SeqLoopCaseStmt(
                     pThread.id,
                     false,
-                    Optional.of(new EdgeCodeExpr(succSuccSub)),
+                    Optional.of(new EdgeCodeExpr(succSub).toString()),
+                    Optional.empty()));
+            stmts.add(
+                new SeqLoopCaseStmt(
+                    pThread.id,
+                    false,
+                    Optional.of(new EdgeCodeExpr(succSuccSub).toString()),
                     Optional.of(succSuccEdge.getSuccessor().pc)));
 
           } else if (sub instanceof CReturnStatementEdge retStmt) {
@@ -193,22 +233,47 @@ public class SeqUtil {
             //  and only assign the relevant CPAchecker_TMP var. but this solution works
             assert pReturnStmts.containsKey(threadEdge);
             if (retStmt.getSuccessor().getFunction().getType().equals(pThread.startRoutine)) {
-              // exiting thread -> no assigns, just set exit pc
-              stmts.add(
-                  new SeqLoopCaseStmt(pThread.id, false, Optional.empty(), Optional.of(EXIT_PC)));
+              // exiting thread -> assign 0 to thread_active var if possible and set exit pc
+              if (pThreadActiveVars.containsKey(pThread)) {
+                CExpressionAssignmentStatement exprAssign =
+                    new CExpressionAssignmentStatement(
+                        FileLocation.DUMMY, pThreadActiveVars.get(pThread), intZero);
+                stmts.add(
+                    new SeqLoopCaseStmt(
+                        pThread.id,
+                        false,
+                        Optional.of(exprAssign.toASTString()),
+                        Optional.of(EXIT_PC)));
+              } else {
+                stmts.add(
+                    new SeqLoopCaseStmt(pThread.id, false, Optional.empty(), Optional.of(EXIT_PC)));
+              }
             } else {
+              // returning from any other function: assign return value to all CPAchecker_TMP vars
               ImmutableSet<AssignExpr> assigns = pReturnStmts.get(threadEdge);
               assert assigns != null;
               for (AssignExpr assign : assigns) {
-                stmts.add(new SeqLoopCaseStmt(pThread.id, false, Optional.of(assign), targetPc));
+                stmts.add(
+                    new SeqLoopCaseStmt(
+                        pThread.id, false, Optional.of(assign.toString()), targetPc));
               }
             }
 
-          } else {
-            assert sub != null;
+          } else if (PthreadFuncType.isCallToPthreadFunc(sub, PthreadFuncType.PTHREAD_CREATE)) {
+            MPORThread createdThread =
+                ThreadUtil.extractThreadFromPthreadCreate(
+                    pThreadActiveVars.keySet(), threadEdge.cfaEdge);
+            CExpressionAssignmentStatement exprAssign =
+                new CExpressionAssignmentStatement(
+                    FileLocation.DUMMY, pThreadActiveVars.get(createdThread), intOne);
             stmts.add(
                 new SeqLoopCaseStmt(
-                    pThread.id, false, Optional.of(new EdgeCodeExpr(sub)), targetPc));
+                    pThread.id, false, Optional.of(exprAssign.toASTString()), targetPc));
+
+          } else {
+            stmts.add(
+                new SeqLoopCaseStmt(
+                    pThread.id, false, Optional.of(new EdgeCodeExpr(sub).toString()), targetPc));
           }
         }
       }
@@ -313,6 +378,20 @@ public class SeqUtil {
         return !isConstCPAcheckerTMP(varDec);
       }
     }
-    return PthreadFuncType.isCallToAnyPthreadFunc(pEdge);
+    return false;
+  }
+
+  public static CIdExpression createThreadActiveVar(String pVarName) {
+    CVariableDeclaration varDec =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            true,
+            CStorageClass.AUTO,
+            SeqUtil.intType,
+            pVarName,
+            pVarName,
+            SeqNameBuilder.createQualifiedName(SeqToken.MAIN, pVarName),
+            SeqUtil.initializerZero);
+    return new CIdExpression(FileLocation.DUMMY, varDec);
   }
 }

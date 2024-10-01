@@ -25,6 +25,7 @@ public class MPORThread {
 
   public final int id;
 
+  // TODO make this CIdExpression
   /** The pthread_t object. Set to empty for the main thread. */
   public final Optional<CExpression> threadObject;
 

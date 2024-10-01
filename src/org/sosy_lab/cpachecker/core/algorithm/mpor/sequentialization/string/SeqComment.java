@@ -22,16 +22,6 @@ public class SeqComment {
         + SeqSyntax.NEWLINE;
   }
 
-  public static String createFuncDeclarationComment() {
-    return COMMENT_SINGLE
-        + SeqCommentToken.CUSTOM
-        + SeqSyntax.SPACE
-        + SeqToken.FUNCTION
-        + SeqSyntax.SPACE
-        + SeqCommentToken.DECLARATIONS
-        + SeqSyntax.NEWLINE;
-  }
-
   public static String createGlobalVarsComment() {
     return COMMENT_SINGLE
         + SeqCommentToken.GLOBAL
@@ -75,6 +65,26 @@ public class SeqComment {
         + SeqToken.RETURN
         + SeqSyntax.SPACE
         + SeqToken.PC
+        + SeqSyntax.NEWLINE;
+  }
+
+  public static String createPthreadReplacementVarsComment() {
+    return COMMENT_SINGLE
+        + SeqCommentToken.PTHREAD
+        + SeqSyntax.SPACE
+        + SeqCommentToken.METHOD
+        + SeqSyntax.SPACE
+        + SeqCommentToken.REPLACEMENTS
+        + SeqSyntax.NEWLINE;
+  }
+
+  public static String createFuncDeclarationComment() {
+    return COMMENT_SINGLE
+        + SeqCommentToken.CUSTOM
+        + SeqSyntax.SPACE
+        + SeqToken.FUNCTION
+        + SeqSyntax.SPACE
+        + SeqCommentToken.DECLARATIONS
         + SeqSyntax.NEWLINE;
   }
 }

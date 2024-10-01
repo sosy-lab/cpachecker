@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqElement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 /** Represents a single case statement in the sequentialization while loop. */
@@ -26,7 +25,8 @@ public class SeqLoopCaseStmt implements SeqElement {
   /** True if this is an if, else-if or else statement (extra curly brackets required). */
   public final boolean isAssume;
 
-  public final Optional<SeqExpression> statement;
+  // TODO replace String with CExpression or CStatement later?
+  public final Optional<String> statement;
 
   /**
    * The next pc of the current thread after this statement is executed. Can be empty if there are
@@ -35,10 +35,7 @@ public class SeqLoopCaseStmt implements SeqElement {
   public final Optional<Integer> targetPc;
 
   public SeqLoopCaseStmt(
-      int pThreadId,
-      boolean pIsAssume,
-      Optional<SeqExpression> pStatement,
-      Optional<Integer> pTargetPc) {
+      int pThreadId, boolean pIsAssume, Optional<String> pStatement, Optional<Integer> pTargetPc) {
     // if isAssume, then targetPc has to be present
     checkArgument(!pIsAssume || pTargetPc.isPresent());
     threadId = pThreadId;

@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqPrefix;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
 public class SeqNameBuilder {
 
@@ -42,9 +43,18 @@ public class SeqNameBuilder {
     return SeqPrefix.VAR_SUB_PARAMETER + pThreadId + createVarId() + pParamDec.getName();
   }
 
-  /** Returns a var name of the form {@code t{pThreadId}_{pFuncName}_return_pc}. */
+  /** Returns a var name of the form {@code __return_pc_t{pThreadId}_{pFuncName}}. */
   public static String createReturnPcName(int pThreadId, String pFuncName) {
     return SeqPrefix.RETURN_PC_THREAD + pThreadId + SeqSyntax.UNDERSCORE + pFuncName;
+  }
+
+  /** Returns a var name of the form {@code __t{pThreadId}_active} */
+  public static String createThreadActiveName(int pThreadId) {
+    return SeqPrefix.THREAD_ACTIVE + pThreadId + SeqSyntax.UNDERSCORE + SeqToken.ACTIVE;
+  }
+
+  public static String createQualifiedName(String pFuncName, String pVarName) {
+    return pFuncName + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
   }
 
   // TODO unused
