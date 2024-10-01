@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.Ma
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.VerifierNonDetInt;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCaseStmt;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements.SeqExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
@@ -101,8 +102,7 @@ public class Sequentialization {
 
     // prepend pthread control vars
     rProgram.append(SeqComment.createPthreadReplacementVarsComment());
-    for (var entry : mapThreadActiveVars(pSubstitutions.keySet()).entrySet()) {
-      CIdExpression idExpr = entry.getValue();
+    for (CIdExpression idExpr : mapThreadActiveVars(pSubstitutions.keySet()).values()) {
       assert idExpr.getDeclaration() instanceof CVariableDeclaration;
       CVariableDeclaration varDec = (CVariableDeclaration) idExpr.getDeclaration();
       rProgram.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
@@ -398,7 +398,7 @@ public class Sequentialization {
         if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
           MPORThread createdThread = ThreadUtil.extractThreadFromPthreadCreate(pThreads, cfaEdge);
           String varName = SeqNameBuilder.createThreadActiveName(createdThread.id);
-          rVars.put(createdThread, SeqUtil.createThreadActiveVar(varName));
+          rVars.put(createdThread, SeqExpressions.buildThreadActiveVar(varName));
         }
       }
     }

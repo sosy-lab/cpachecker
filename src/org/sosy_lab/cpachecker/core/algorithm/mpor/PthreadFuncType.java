@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -46,11 +48,7 @@ public enum PthreadFuncType {
    */
   public static boolean isCallToPthreadFunc(CFAEdge pCfaEdge, PthreadFuncType pFuncType) {
     return CFAUtils.isCfaEdgeCFunctionCallStatement(pCfaEdge)
-        && CFAUtils.getCFunctionCallStatementFromCfaEdge(pCfaEdge)
-            .getFunctionCallExpression()
-            .getFunctionNameExpression()
-            .toASTString()
-            .equals(pFuncType.name);
+        && CFAUtils.getFunctionNameFromCfaEdge(pCfaEdge).equals(pFuncType.name);
   }
 
   public static boolean isCallToAnyPthreadFunc(CFAEdge pCfaEdge) {
@@ -60,5 +58,16 @@ public enum PthreadFuncType {
       }
     }
     return false;
+  }
+
+  public static PthreadFuncType getPthreadFuncType(CFAEdge pEdge) {
+    checkArgument(CFAUtils.isCfaEdgeCFunctionCallStatement(pEdge));
+    String funcName = CFAUtils.getFunctionNameFromCfaEdge(pEdge);
+    for (PthreadFuncType funcType : PthreadFuncType.values()) {
+      if (funcType.name.equals(funcName)) {
+        return funcType;
+      }
+    }
+    throw new IllegalArgumentException("unrecognized pthread method: " + pEdge.getRawAST());
   }
 }

@@ -709,6 +709,14 @@ public class CFAUtils {
     return (CFunctionCallStatement) pCfaEdge.getRawAST().orElseThrow();
   }
 
+  public static String getFunctionNameFromCfaEdge(CFAEdge pCfaEdge) {
+    checkArgument(CFAUtils.isCfaEdgeCFunctionCallStatement(pCfaEdge));
+    return CFAUtils.getCFunctionCallStatementFromCfaEdge(pCfaEdge)
+        .getFunctionCallExpression()
+        .getFunctionNameExpression()
+        .toASTString();
+  }
+
   /**
    * Extracts and returns the value from the given pointer. E.g. if pPointer is &id1 from
    * pthread_create(&id1, ...), then this function returns id1.
