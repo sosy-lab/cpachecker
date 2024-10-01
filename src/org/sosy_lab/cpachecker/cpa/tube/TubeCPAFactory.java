@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.block.BlockCPAFactory;
+
 
 /**
  * A factory class for creating instances of TubeCPA.
@@ -31,7 +31,9 @@ class TubeCPAFactory extends AbstractCPAFactory {
   /**
    * This variable represents a Control Flow Automaton (CFA).
    */
-  private AnalysisDirection analysisDirection;
+
+  private final AnalysisDirection analysisDirection;
+
   private CFA cfa;
 
 
@@ -49,7 +51,7 @@ class TubeCPAFactory extends AbstractCPAFactory {
    */
   @CanIgnoreReturnValue
   @Override
-  public <T> org.sosy_lab.cpachecker.cpa.tube.TubeCPAFactory set(T pObject, Class<T> pClass) {
+  public <T> TubeCPAFactory set(T pObject, Class<T> pClass) {
     if (CFA.class.isAssignableFrom(pClass)) {
       cfa = (CFA) pObject;
     } else {
@@ -62,6 +64,7 @@ class TubeCPAFactory extends AbstractCPAFactory {
     return new TubeCPAFactory(AnalysisDirection.FORWARD);
   }
 
+
   /**
    * Creates an instance of ConfigurableProgramAnalysis using TubeCPA implementation.
    *
@@ -71,6 +74,11 @@ class TubeCPAFactory extends AbstractCPAFactory {
   @Override
   public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
     checkNotNull(cfa, "CFA instance needed to create LocationCPA");
-    return TubeCPA.create(getConfiguration(), getLogger(), getShutdownNotifier(), cfa);
+    return switch (analysisDirection){
+      case FORWARD ->  TubeCPA.create(getConfiguration(), getLogger(), getShutdownNotifier(), cfa);
+      case BACKWARD -> null;
+      default ->
+          throw new AssertionError("AnalysisDirection " + analysisDirection + "does not exist");
+    };
   }
 }
