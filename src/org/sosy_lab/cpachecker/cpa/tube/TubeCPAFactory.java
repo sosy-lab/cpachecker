@@ -1,5 +1,13 @@
 
 
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.tube;
 
 
@@ -11,7 +19,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.block.BlockCPAFactory;
 
 /**
  * A factory class for creating instances of TubeCPA.
@@ -21,19 +31,12 @@ class TubeCPAFactory extends AbstractCPAFactory {
   /**
    * This variable represents a Control Flow Automaton (CFA).
    */
+  private AnalysisDirection analysisDirection;
   private CFA cfa;
-  /**
-   * Represents the analysis direction for a configurable program analysis (CPA).
-   *
-   * <p>The analysis direction can either be FORWARD or BACKWARD.
-   */
-  private final AnalysisDirection analysisDirection;
 
 
-
-
-  public TubeCPAFactory(AnalysisDirection pAnalysisDirection) {
-    analysisDirection = pAnalysisDirection;
+  public TubeCPAFactory(AnalysisDirection direction) {
+    this.analysisDirection = direction;
   }
 
   /**
@@ -53,6 +56,10 @@ class TubeCPAFactory extends AbstractCPAFactory {
       super.set(pObject, pClass);
     }
     return this;
+  }
+
+  public static TubeCPAFactory factory() {
+    return new TubeCPAFactory(AnalysisDirection.FORWARD);
   }
 
   /**
