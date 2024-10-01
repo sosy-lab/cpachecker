@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 
 public class SeqToken {
 
-  // TODO move comment stuff to SeqComment
   public static final String ABORT = "abort";
 
   public static final String ANY_UNSIGNED = "any_unsigned";
@@ -31,17 +30,9 @@ public class SeqToken {
 
   public static final String CPACHECKER_TMP = "__CPAchecker_TMP_";
 
-  public static final String CUSTOM = "custom";
-
-  public static final String DECLARATIONS = "declarations";
-
   public static final String ELSE = "else";
 
   public static final String EXECUTE = "execute";
-
-  public static final String GLOBAL = "global";
-
-  public static final String GOTO = "goto";
 
   public static final String FUNCTION = "function";
 
@@ -49,33 +40,14 @@ public class SeqToken {
 
   public static final String IF = "if";
 
-  public static final String LOCAL = "local";
-
   public static final String MAIN = "main";
 
   public static final String NEXT_THREAD = "next_thread";
 
-  public static final String NON_VARIABLE = "(non-variable)";
-
   /** Constant, hence uppercase. */
   public static final String NUM_THREADS = "NUM_THREADS";
 
-  public static final String ORIGINAL_PROGRAM = "original program";
-
-  public static final String PARAMETER = "parameter";
-
   public static final String PC = "pc";
-
-  // TODO create SeqPrefix class?
-  public static final String PREFIX_FUNCTION = "__f";
-
-  public static final String PREFIX_SUBSTITUTE_GLOBAL = "__g";
-
-  public static final String PREFIX_SUBSTITUTE_PARAMETER = "__p";
-
-  public static final String PREFIX_SUBSTITUTE_THREAD = "__t";
-
-  public static final String PREFIX_THREAD = "t";
 
   public static final String RETURN = "return";
 
@@ -85,13 +57,7 @@ public class SeqToken {
 
   public static final String SWITCH = "switch";
 
-  public static final String THREAD = "thread";
-
-  public static final String VARIABLES = "variables";
-
   public static final String VERIFIER_NONDET_INT = "__VERIFIER_nondet_int";
-
-  public static final String VOID = "void";
 
   public static final String WHILE = "while";
 }

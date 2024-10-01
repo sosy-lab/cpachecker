@@ -108,8 +108,8 @@ public class SeqUtil {
       assert pThreadNode.pc == EXIT_PC; // TODO test, remove later
       return null;
 
-      // handle all CFunctionReturnEdges: exiting function -> pc not relevant, assign return pc
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
+      // handle all CFunctionReturnEdges: exiting function -> pc not relevant, assign return pc
       assert pPcsReturnPcAssigns.containsKey(pThreadNode);
       AssignExpr assign = pPcsReturnPcAssigns.get(pThreadNode);
       assert assign != null;
@@ -119,6 +119,7 @@ public class SeqUtil {
       boolean firstEdge = true;
       for (ThreadEdge threadEdge : pThreadNode.leavingEdges()) {
         CFAEdge sub = pEdgeSubs.get(threadEdge);
+        assert sub != null;
         Optional<Integer> targetPc = Optional.of(threadEdge.getSuccessor().pc);
 
         if (emptyCaseCode(sub)) {

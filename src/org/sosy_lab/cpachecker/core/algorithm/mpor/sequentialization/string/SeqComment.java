@@ -14,61 +14,61 @@ public class SeqComment {
 
   public static String createNonVarDeclarationComment() {
     return COMMENT_SINGLE
-        + SeqToken.ORIGINAL_PROGRAM
+        + SeqCommentToken.ORIGINAL_PROGRAM
         + SeqSyntax.SPACE
-        + SeqToken.DECLARATIONS
+        + SeqCommentToken.DECLARATIONS
         + SeqSyntax.SPACE
-        + SeqToken.NON_VARIABLE
+        + SeqCommentToken.NON_VARIABLE
         + SeqSyntax.NEWLINE;
   }
 
   public static String createFuncDeclarationComment() {
     return COMMENT_SINGLE
-        + SeqToken.CUSTOM
+        + SeqCommentToken.CUSTOM
         + SeqSyntax.SPACE
         + SeqToken.FUNCTION
         + SeqSyntax.SPACE
-        + SeqToken.DECLARATIONS
+        + SeqCommentToken.DECLARATIONS
         + SeqSyntax.NEWLINE;
   }
 
   public static String createGlobalVarsComment() {
     return COMMENT_SINGLE
-        + SeqToken.GLOBAL
+        + SeqCommentToken.GLOBAL
         + SeqSyntax.SPACE
-        + SeqToken.VARIABLES
+        + SeqCommentToken.VARIABLES
         + SeqSyntax.NEWLINE;
   }
 
   public static String createLocalVarsComment(int threadId) {
     return COMMENT_SINGLE
-        + SeqToken.THREAD
+        + SeqCommentToken.THREAD
         + SeqSyntax.SPACE
         + threadId
         + SeqSyntax.SPACE
-        + SeqToken.LOCAL
+        + SeqCommentToken.LOCAL
         + SeqSyntax.SPACE
-        + SeqToken.VARIABLES
+        + SeqCommentToken.VARIABLES
         + SeqSyntax.NEWLINE;
   }
 
   public static String createParamVarsComment(int threadId) {
     return COMMENT_SINGLE
-        + SeqToken.THREAD
+        + SeqCommentToken.THREAD
         + SeqSyntax.SPACE
         + threadId
         + SeqSyntax.SPACE
-        + SeqToken.PARAMETER
+        + SeqCommentToken.PARAMETER
         + SeqSyntax.SPACE
-        + SeqToken.VARIABLES
+        + SeqCommentToken.VARIABLES
         + SeqSyntax.NEWLINE;
   }
 
   public static String createReturnPcVarsComment() {
     return COMMENT_SINGLE
-        + SeqToken.THREAD
+        + SeqCommentToken.THREAD
         + SeqSyntax.SPACE
-        + SeqToken.LOCAL
+        + SeqCommentToken.LOCAL
         + SeqSyntax.SPACE
         + SeqToken.FUNCTION
         + SeqSyntax.SPACE

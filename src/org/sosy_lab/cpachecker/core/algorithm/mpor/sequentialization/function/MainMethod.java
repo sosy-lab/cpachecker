@@ -160,7 +160,7 @@ public class MainMethod implements SeqFunction {
   @Override
   public ImmutableList<SeqExpression> getParameters() {
     ImmutableList.Builder<SeqExpression> rParameters = ImmutableList.builder();
-    rParameters.add(new Value(SeqToken.VOID));
+    rParameters.add(new Value(SeqDataType.VOID));
     return rParameters.build();
   }
 

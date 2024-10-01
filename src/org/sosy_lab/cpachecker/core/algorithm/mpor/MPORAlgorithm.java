@@ -71,17 +71,17 @@ import org.sosy_lab.cpachecker.util.CPAs;
  * paper "Sound Sequentialization for Concurrent Program Verification". This algorithm aims at
  * producing a reduced sequentialization of a parallel C program. The reduced sequentialization can
  * be given to an existing verifier capable of verifying sequential C programs. The POR and the
- * verifier serve as modules, hence MPOR (Modular Partial Order Reduction).
+ * verifier serve as modules, hence Modular POR (MPOR).
  *
  * <p>Restrictions:
  *
  * <ul>
- *   <li>Using an unbounded number of threads (i.e. any loop for, while { pthread_create... }) is
+ *   <li>Using an unbounded number of threads (i.e. any loop with a {@code pthread_create} call) is
  *       undefined
- *   <li>The input program must be a C program
- *   <li>The input program uses POSIX threads (pthreads)
  *   <li>The start routines / main function of all pthreads / the main thread must contain a
- *       FunctionExitNode
+ *       FunctionExitNode (i.e. even if their return type is {@code void}, they must contain at
+ *       least one return statement).
+ *   <li>Recursive functions, either direct or indirect, are undefined.
  * </ul>
  */
 @SuppressWarnings("unused")
