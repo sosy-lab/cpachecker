@@ -521,6 +521,9 @@ analysis.useRandomTestCaseGeneratorAlgorithm = false
 # generate test cases for covered test targets
 analysis.useTestCaseGeneratorAlgorithm = false
 
+# start the tube Algorithm to validate Tubes
+analysis.useTubeAlgorithm = false
+
 # converts a witness to an ACSL annotated program
 analysis.useWitnessToACSLAlgorithm = false
 
