@@ -39,6 +39,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.ExecutionTrace;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.MPORState;
@@ -591,9 +593,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     for (CFAEdge cfaEdge : CFAUtils.allUniqueEdges(pCfa)) {
       if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         // extract the first parameter of pthread_create, i.e. the pthread_t value
-        CExpression pthreadT =
-            CFAUtils.getValueFromAddress(CFAUtils.getParameterAtIndex(cfaEdge, 0));
+        CExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
         // extract the third parameter of pthread_create which points to the start routine function
+        // TODO replace hardcoded value
         CFunctionType startRoutine =
             CFAUtils.getCFunctionTypeFromCExpression(CFAUtils.getParameterAtIndex(cfaEdge, 2));
         FunctionEntryNode entryNode =

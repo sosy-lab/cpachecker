@@ -29,7 +29,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORCreate;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORJoin;
@@ -203,8 +204,7 @@ public class ThreadBuilder {
         for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
           if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
             pEdgesTrace.add(cfaEdge);
-            CExpression pthreadT =
-                CFAUtils.getValueFromAddress(CFAUtils.getParameterAtIndex(cfaEdge, 0));
+            CExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
             pCreates.add(new MPORCreate(pthreadT, ImmutableSet.copyOf(pEdgesTrace)));
           }
           pEdgesTrace.add(cfaEdge);
@@ -243,7 +243,7 @@ public class ThreadBuilder {
       if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
         for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
           if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_MUTEX_LOCK)) {
-            CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
+            CExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(cfaEdge);
             // the successor node of mutex_lock is the first inside the lock
             CFANode initialNode = cfaEdge.getSuccessor();
             Set<CFANode> mutexNodes = new HashSet<>(); // using a set so that we can use .contains
@@ -301,7 +301,7 @@ public class ThreadBuilder {
       for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
         pMutexEdges.add(cfaEdge);
         if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_MUTEX_UNLOCK)) {
-          CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
+          CExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(cfaEdge);
           if (pthreadMutexT.equals(pPthreadMutexT)) {
             pMutexExitNodes.add(pCurrentNode);
           }
@@ -340,7 +340,7 @@ public class ThreadBuilder {
       if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
         for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
           if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_JOIN)) {
-            CExpression pthreadT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
+            CExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
             MPORJoin join = new MPORJoin(pthreadT, pCurrentNode, cfaEdge);
             pJoins.add(join);
           }

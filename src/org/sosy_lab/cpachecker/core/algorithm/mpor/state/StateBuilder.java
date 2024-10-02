@@ -24,7 +24,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORCreate;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORJoin;
@@ -265,9 +266,10 @@ public class StateBuilder {
           if (!lockingThread.equals(pThreadInMutex)) {
             CFANode otherNode = entry.getValue();
             for (CFAEdge cfaEdge : CFAUtils.leavingEdges(otherNode)) {
+
               if (PthreadFuncType.isCallToPthreadFunc(
                   cfaEdge, PthreadFuncType.PTHREAD_MUTEX_LOCK)) {
-                CExpression pthreadMutexT = CFAUtils.getParameterAtIndex(cfaEdge, 0);
+                CExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(cfaEdge);
                 if (pthreadMutexT.equals(mutex.pthreadMutexT)) {
 
                   // extract all CFAEdges inside mutex excluding the leaving edges of exitNodes
@@ -307,7 +309,7 @@ public class StateBuilder {
     // if pJoiningThread is right before a pthread_join call
     for (MPORJoin join : pJoiningThread.joins) {
       if (pJoiningNode.equals(join.preJoinNode)) {
-        CExpression pthreadT = CFAUtils.getParameterAtIndex(join.joinEdge, 0);
+        CExpression pthreadT = PthreadUtil.extractPthreadT(join.joinEdge);
         MPORThread targetThread = getThreadByPthreadT(pThreadNodes, pthreadT);
         // if the thread specified as pthread_t in the pthread_join call has not yet terminated
         CFANode targetThreadNode = pThreadNodes.get(targetThread);

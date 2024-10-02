@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -18,16 +18,16 @@ public enum PthreadFuncType {
   // TODO decide which of these are actually relevant for us
   // TODO create barrier logic, see e.g. pthread-divine/barrier_2t.i
 
-  BARRIER_INIT("pthread_barrier_init"),
-  BARRIER_WAIT("pthread_barrier_wait"),
-  CANCEL("pthread_cancel", Optional.of(0), Optional.of(false)),
-  DETACH("pthread_detach", Optional.of(0), Optional.of(false)),
-  EXIT("pthread_exit"),
-  PTHREAD_CREATE("pthread_create", Optional.of(0), Optional.of(true)),
-  PTHREAD_JOIN("pthread_join", Optional.of(0), Optional.of(false)),
-  PTHREAD_MUTEX_INIT("pthread_mutex_init"),
-  PTHREAD_MUTEX_LOCK("pthread_mutex_lock"),
-  PTHREAD_MUTEX_UNLOCK("pthread_mutex_unlock");
+  BARRIER_INIT("pthread_barrier_init", Optional.empty(), Optional.empty(), Optional.empty()),
+  BARRIER_WAIT("pthread_barrier_wait", Optional.empty(), Optional.empty(), Optional.empty()),
+  CANCEL("pthread_cancel", Optional.of(0), Optional.of(false), Optional.empty()),
+  DETACH("pthread_detach", Optional.of(0), Optional.of(false), Optional.empty()),
+  EXIT("pthread_exit", Optional.empty(), Optional.empty(), Optional.empty()),
+  PTHREAD_CREATE("pthread_create", Optional.of(0), Optional.of(true), Optional.empty()),
+  PTHREAD_JOIN("pthread_join", Optional.of(0), Optional.of(false), Optional.empty()),
+  PTHREAD_MUTEX_INIT("pthread_mutex_init", Optional.empty(), Optional.empty(), Optional.of(0)),
+  PTHREAD_MUTEX_LOCK("pthread_mutex_lock", Optional.empty(), Optional.empty(), Optional.of(0)),
+  PTHREAD_MUTEX_UNLOCK("pthread_mutex_unlock", Optional.empty(), Optional.empty(), Optional.of(0));
 
   // TODO unsure about yield, mutex_destroy
   //  pthread_mutex_t amutex = PTHREAD_MUTEX_INITIALIZER; // also used instead of mutex init
@@ -37,22 +37,41 @@ public enum PthreadFuncType {
 
   public final String name;
 
-  /** The index of the pthread_t parameter, can be empty. */
-  public final Optional<Integer> pthreadTIndex;
+  /** The index of the pthread_t param if present. */
+  private final Optional<Integer> pthreadTIndex;
 
-  public final Optional<Boolean> isPthreadTPointer;
+  private final Optional<Boolean> isPthreadTPointer;
+
+  /** The index of the pthread_mutex_t param if present. */
+  private final Optional<Integer> pthreadMutexTIndex;
 
   PthreadFuncType(
-      String pName, Optional<Integer> pPthreadTIndex, Optional<Boolean> pIsPthreadTPointer) {
+      String pName,
+      Optional<Integer> pPthreadTIndex,
+      Optional<Boolean> pIsPthreadTPointer,
+      Optional<Integer> pPthreadMutexTIndex) {
+    // pPthreadTIndex and pIsPthreadTPointer have to be equivalent (both empty or both present)
+    checkArgument(pPthreadTIndex.isEmpty() || pIsPthreadTPointer.isPresent());
+    checkArgument(pIsPthreadTPointer.isEmpty() || pPthreadTIndex.isPresent());
     name = pName;
     pthreadTIndex = pPthreadTIndex;
     isPthreadTPointer = pIsPthreadTPointer;
+    pthreadMutexTIndex = pPthreadMutexTIndex;
   }
 
-  PthreadFuncType(String pName) {
-    name = pName;
-    pthreadTIndex = Optional.empty();
-    isPthreadTPointer = Optional.empty();
+  public int getPthreadTIndex() {
+    checkArgument(pthreadTIndex.isPresent(), "this PthreadFuncType has no pthread_t param");
+    return pthreadTIndex.orElseThrow();
+  }
+
+  public boolean isPthreadTPointer() {
+    checkArgument(pthreadTIndex.isPresent(), "this PthreadFuncType has no pthread_t param");
+    return isPthreadTPointer.orElseThrow();
+  }
+
+  public int getPthreadMutexTIndex() {
+    checkArgument(pthreadMutexTIndex.isPresent(), "this PthreadFuncType has no pthread_t param");
+    return pthreadMutexTIndex.orElseThrow();
   }
 
   /**
@@ -80,6 +99,17 @@ public enum PthreadFuncType {
   public static boolean isCallToAnyPthreadFuncWithPthreadTParam(CFAEdge pCfaEdge) {
     for (PthreadFuncType funcType : PthreadFuncType.values()) {
       if (funcType.pthreadTIndex.isPresent()) {
+        if (isCallToPthreadFunc(pCfaEdge, funcType)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public static boolean isCallToAnyPthreadFuncWithPthreadMutexTParam(CFAEdge pCfaEdge) {
+    for (PthreadFuncType funcType : PthreadFuncType.values()) {
+      if (funcType.pthreadMutexTIndex.isPresent()) {
         if (isCallToPthreadFunc(pCfaEdge, funcType)) {
           return true;
         }

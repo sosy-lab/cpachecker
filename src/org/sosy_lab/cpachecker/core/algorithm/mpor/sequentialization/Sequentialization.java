@@ -33,7 +33,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Variable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ASTStringExpr;
@@ -54,8 +55,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarati
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
@@ -430,9 +429,9 @@ public class Sequentialization {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
         if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
-          MPORThread createdThread = ThreadUtil.extractThreadFromPthreadCall(pThreads, cfaEdge);
+          MPORThread createdThread = PthreadUtil.extractThread(pThreads, cfaEdge);
           String varName = SeqNameBuilder.createThreadActiveName(createdThread.id);
-          CExpression pthreadT = ThreadUtil.extractPthreadTFromPthreadCall(cfaEdge);
+          CExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
           assert pthreadT instanceof CIdExpression;
           rVars.put((CIdExpression) pthreadT, SeqExpressions.buildIntVar(varName));
         }
@@ -453,9 +452,9 @@ public class Sequentialization {
         CFAEdge sub = edgeSubs.get(threadEdge);
         // TODO mutexes can also be init with pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
         if (PthreadFuncType.isCallToPthreadFunc(sub, PthreadFuncType.PTHREAD_MUTEX_INIT)) {
-          CExpression expr = CFAUtils.getValueFromAddress(CFAUtils.getParameterAtIndex(sub, 0));
-          assert expr instanceof CIdExpression;
-          CIdExpression idExpr = (CIdExpression) expr;
+          CExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
+          assert pthreadMutexT instanceof CIdExpression;
+          CIdExpression idExpr = (CIdExpression) pthreadMutexT;
           String varName = SeqNameBuilder.createMutexLockedName(idExpr.getName());
           // TODO it should be wiser to use the original idExpr as the key and not the substitute...
           rVars.put(idExpr, SeqExpressions.buildIntVar(varName));
@@ -476,13 +475,13 @@ public class Sequentialization {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
         if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_JOIN)) {
-          CExpression expr = CFAUtils.getParameterAtIndex(cfaEdge, 0);
-          MPORThread targetThread = ThreadUtil.extractThreadFromPthreadCall(pThreads, cfaEdge);
+          CExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
+          MPORThread targetThread = PthreadUtil.extractThread(pThreads, cfaEdge);
 
           // multiple join calls within one thread to the same thread are possible -> only need one
           if (!targetThreads.containsKey(targetThread)) {
-            assert expr instanceof CIdExpression;
-            CIdExpression idExpr = (CIdExpression) expr;
+            assert pthreadT instanceof CIdExpression;
+            CIdExpression idExpr = (CIdExpression) pthreadT;
             String varName = SeqNameBuilder.createThreadJoiningName(thread.id, targetThread.id);
             targetThreads.put(targetThread, SeqExpressions.buildIntVar(varName));
           }

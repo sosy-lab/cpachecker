@@ -29,7 +29,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.PthreadFuncType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ASTStringExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.EdgeCodeExpr;
@@ -46,8 +47,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarati
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SeqUtil {
 
@@ -251,46 +250,37 @@ public class SeqUtil {
             PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(edge);
             switch (funcType) {
               case PTHREAD_CREATE:
-                CExpression aPthreadT = ThreadUtil.extractPthreadTFromPthreadCall(edge);
+                CExpression aPthreadT = PthreadUtil.extractPthreadT(edge);
                 assert aPthreadT instanceof CIdExpression;
                 CExpressionAssignmentStatement activeAssign =
                     SeqStatements.buildExprAssign(
-                        pThreadActiveVars.get((CIdExpression) aPthreadT), SeqExpressions.INT_ONE);
+                        pThreadActiveVars.get(aPthreadT), SeqExpressions.INT_ONE);
                 stmts.add(
                     new SeqLoopCaseStmt(
                         pThread.id, false, Optional.of(activeAssign.toASTString()), targetPc));
                 break;
 
               case PTHREAD_MUTEX_LOCK:
-                CExpression exprA =
-                    CFAUtils.getValueFromAddress(CFAUtils.getParameterAtIndex(sub, 0));
-                assert exprA instanceof CIdExpression;
-                CIdExpression idExprA = (CIdExpression) exprA;
-                assert pMutexLockedVars.containsKey(idExprA);
-                CExpressionAssignmentStatement lockedTrueAssign =
-                    SeqStatements.buildExprAssign(
-                        pMutexLockedVars.get(idExprA), SeqExpressions.INT_ONE);
-                stmts.add(
-                    new SeqLoopCaseStmt(
-                        pThread.id, false, Optional.of(lockedTrueAssign.toASTString()), targetPc));
-                break;
-
               case PTHREAD_MUTEX_UNLOCK:
-                CExpression exprB =
-                    CFAUtils.getValueFromAddress(CFAUtils.getParameterAtIndex(sub, 0));
-                assert exprB instanceof CIdExpression;
-                CIdExpression idExprB = (CIdExpression) exprB;
-                CExpressionAssignmentStatement lockedFalseAssign =
-                    SeqStatements.buildExprAssign(
-                        pMutexLockedVars.get(idExprB), SeqExpressions.INT_ZERO);
+                CExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
+                assert pthreadMutexT instanceof CIdExpression;
+                CIdExpression idExpr = (CIdExpression) pthreadMutexT;
+                assert pMutexLockedVars.containsKey(idExpr);
+                // if lock -> assign 1 to locked, otherwise 0
+                CExpression value =
+                    funcType.equals(PthreadFuncType.PTHREAD_MUTEX_LOCK)
+                        ? SeqExpressions.INT_ONE
+                        : SeqExpressions.INT_ZERO;
+                CExpressionAssignmentStatement lockedAssign =
+                    SeqStatements.buildExprAssign(pMutexLockedVars.get(idExpr), value);
                 stmts.add(
                     new SeqLoopCaseStmt(
-                        pThread.id, false, Optional.of(lockedFalseAssign.toASTString()), targetPc));
+                        pThread.id, false, Optional.of(lockedAssign.toASTString()), targetPc));
                 break;
 
               case PTHREAD_JOIN:
                 MPORThread targetThread =
-                    ThreadUtil.extractThreadFromPthreadCall(pThreadJoiningVars.keySet(), edge);
+                    PthreadUtil.extractThread(pThreadJoiningVars.keySet(), edge);
                 CExpressionAssignmentStatement joiningTrueAssign =
                     SeqStatements.buildExprAssign(
                         pThreadJoiningVars.get(pThread).get(targetThread), SeqExpressions.INT_ONE);
