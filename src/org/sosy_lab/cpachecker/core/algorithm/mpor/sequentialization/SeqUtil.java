@@ -401,7 +401,7 @@ public class SeqUtil {
         // TODO make sure that the two successors code is within the same case
         return !isConstCPAcheckerTMP(varDec);
       }
-    } else if (PthreadFuncType.isCallToAnyPthreadFunc(pEdge)) {
+    } else if (PthreadFuncType.callsAnyPthreadFunc(pEdge)) {
       return !isRelevantPthreadFunc(pEdge);
     }
     return false;
@@ -412,9 +412,9 @@ public class SeqUtil {
    * sequentialization.
    */
   private static boolean isRelevantPthreadFunc(CFAEdge pEdge) {
-    return PthreadFuncType.isCallToPthreadFunc(pEdge, PthreadFuncType.PTHREAD_CREATE)
-        || PthreadFuncType.isCallToPthreadFunc(pEdge, PthreadFuncType.PTHREAD_JOIN)
-        || PthreadFuncType.isCallToPthreadFunc(pEdge, PthreadFuncType.PTHREAD_MUTEX_LOCK)
-        || PthreadFuncType.isCallToPthreadFunc(pEdge, PthreadFuncType.PTHREAD_MUTEX_UNLOCK);
+    return PthreadFuncType.callsPthreadFunc(pEdge, PthreadFuncType.PTHREAD_CREATE)
+        || PthreadFuncType.callsPthreadFunc(pEdge, PthreadFuncType.PTHREAD_JOIN)
+        || PthreadFuncType.callsPthreadFunc(pEdge, PthreadFuncType.PTHREAD_MUTEX_LOCK)
+        || PthreadFuncType.callsPthreadFunc(pEdge, PthreadFuncType.PTHREAD_MUTEX_UNLOCK);
   }
 }

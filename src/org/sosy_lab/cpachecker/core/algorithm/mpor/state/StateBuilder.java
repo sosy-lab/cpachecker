@@ -267,8 +267,7 @@ public class StateBuilder {
             CFANode otherNode = entry.getValue();
             for (CFAEdge cfaEdge : CFAUtils.leavingEdges(otherNode)) {
 
-              if (PthreadFuncType.isCallToPthreadFunc(
-                  cfaEdge, PthreadFuncType.PTHREAD_MUTEX_LOCK)) {
+              if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_MUTEX_LOCK)) {
                 CExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(cfaEdge);
                 if (pthreadMutexT.equals(mutex.pthreadMutexT)) {
 

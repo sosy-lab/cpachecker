@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -21,7 +22,7 @@ public class PthreadUtil {
 
   public static MPORThread extractThread(ImmutableSet<MPORThread> pThreads, CFAEdge pEdge) {
     checkArgument(
-        PthreadFuncType.isCallToAnyPthreadFuncWithPthreadTParam(pEdge),
+        PthreadFuncType.callsAnyPthreadFuncWithPthreadT(pEdge),
         "pEdge must be call to a pthread method with a pthread_t param");
 
     PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(pEdge);
@@ -36,7 +37,7 @@ public class PthreadUtil {
 
   public static CExpression extractPthreadT(CFAEdge pEdge) {
     checkArgument(
-        PthreadFuncType.isCallToAnyPthreadFuncWithPthreadTParam(pEdge),
+        PthreadFuncType.callsAnyPthreadFuncWithPthreadT(pEdge),
         "pEdge must be call to a pthread method with a pthread_t param");
 
     PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(pEdge);
@@ -51,7 +52,7 @@ public class PthreadUtil {
 
   public static CExpression extractPthreadMutexT(CFAEdge pEdge) {
     checkArgument(
-        PthreadFuncType.isCallToAnyPthreadFuncWithPthreadMutexTParam(pEdge),
+        PthreadFuncType.callsAnyPthreadFuncWithPthreadMutexT(pEdge),
         "pEdge must be call to a pthread method with a pthread_mutex_t param");
 
     PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(pEdge);
@@ -61,9 +62,20 @@ public class PthreadUtil {
     return CFAUtils.getValueFromAddress(pthreadMutexT);
   }
 
+  public static CFunctionType extractStartRoutine(CFAEdge pEdge) {
+    checkArgument(
+        PthreadFuncType.callsAnyPthreadFuncWithStartRoutine(pEdge),
+        "pEdge must be call to a pthread method with a start_routine param");
+
+    PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(pEdge);
+    return CFAUtils.getCFunctionTypeFromCExpression(
+        CFAUtils.getParameterAtIndex(pEdge, funcType.getStartRoutineIndex()));
+  }
+
   /** Searches the given map of MPORThreads for the given thread object. */
   private static MPORThread getThreadByObject(
       ImmutableSet<MPORThread> pThreads, Optional<CExpression> pThreadObject) {
+
     for (MPORThread rThread : pThreads) {
       if (rThread.threadObject.equals(pThreadObject)) {
         return rThread;

@@ -731,11 +731,8 @@ public class CFAUtils {
   }
 
   /**
-   * Extracts the CFunctionType of pCExpression which points to a function.
-   *
-   * @param pCExpression the CExpression pointing to a function (e.g. &main)
-   * @return the CFunctionType that pCExpression points to
-   * @throws IllegalArgumentException if pCExpression is not a pointer to a function
+   * Extracts and returns the {@link CFunctionType} of pCExpression which points to a function and
+   * throws an {@link IllegalArgumentException} if it can't be extracted.
    */
   public static CFunctionType getCFunctionTypeFromCExpression(CExpression pCExpression) {
     if (pCExpression instanceof CUnaryExpression cUnaryExpression) {

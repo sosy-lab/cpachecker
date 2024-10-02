@@ -428,7 +428,7 @@ public class Sequentialization {
     for (MPORThread thread : pThreads) {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
-        if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
+        if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
           MPORThread createdThread = PthreadUtil.extractThread(pThreads, cfaEdge);
           String varName = SeqNameBuilder.createThreadActiveName(createdThread.id);
           CExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
@@ -451,7 +451,7 @@ public class Sequentialization {
         assert edgeSubs.containsKey(threadEdge);
         CFAEdge sub = edgeSubs.get(threadEdge);
         // TODO mutexes can also be init with pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
-        if (PthreadFuncType.isCallToPthreadFunc(sub, PthreadFuncType.PTHREAD_MUTEX_INIT)) {
+        if (PthreadFuncType.callsPthreadFunc(sub, PthreadFuncType.PTHREAD_MUTEX_INIT)) {
           CExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
           assert pthreadMutexT instanceof CIdExpression;
           CIdExpression idExpr = (CIdExpression) pthreadMutexT;
@@ -474,7 +474,7 @@ public class Sequentialization {
       Map<MPORThread, CIdExpression> targetThreads = new HashMap<>();
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
-        if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_JOIN)) {
+        if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_JOIN)) {
           CExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
           MPORThread targetThread = PthreadUtil.extractThread(pThreads, cfaEdge);
 

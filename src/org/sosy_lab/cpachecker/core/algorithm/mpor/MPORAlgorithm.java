@@ -459,7 +459,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private void checkForParallelProgram(CFA pCfa) {
     boolean isParallel = false;
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
-      if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
+      if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         isParallel = true;
         break;
       }
@@ -591,13 +591,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     // search the CFA for pthread_create calls
     for (CFAEdge cfaEdge : CFAUtils.allUniqueEdges(pCfa)) {
-      if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
+      if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         // extract the first parameter of pthread_create, i.e. the pthread_t value
         CExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
         // extract the third parameter of pthread_create which points to the start routine function
-        // TODO replace hardcoded value
-        CFunctionType startRoutine =
-            CFAUtils.getCFunctionTypeFromCExpression(CFAUtils.getParameterAtIndex(cfaEdge, 2));
+        CFunctionType startRoutine = PthreadUtil.extractStartRoutine(cfaEdge);
         FunctionEntryNode entryNode =
             CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, startRoutine);
         FunctionExitNode exitNode = MPORUtil.getFunctionExitNode(entryNode);
