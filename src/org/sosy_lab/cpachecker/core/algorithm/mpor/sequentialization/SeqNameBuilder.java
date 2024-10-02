@@ -53,6 +53,11 @@ public class SeqNameBuilder {
     return SeqPrefix.THREAD_ACTIVE + pThreadId + SeqSyntax.UNDERSCORE + SeqToken.ACTIVE;
   }
 
+  /** Returns a var name of the form {@code {pMutexName}_locked} */
+  public static String createMutexLockedName(String pMutexName) {
+    return pMutexName + SeqSyntax.UNDERSCORE + SeqToken.LOCKED;
+  }
+
   public static String createQualifiedName(String pFuncName, String pVarName) {
     return pFuncName + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
   }

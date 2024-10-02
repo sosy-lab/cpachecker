@@ -706,6 +706,7 @@ int __return_pc_t2_reach_error;
 // pthread method replacements
 int __t1_active = 0;
 int __t2_active = 0;
+int __g_14_m_locked = 0;
 
 // custom function declarations
 int __VERIFIER_nondet_int();
@@ -1195,11 +1196,11 @@ int main(void) {
         case 447: 4UL; pc[0] = 448; continue;
         case 448: pc[0] = 449; continue;
         case 449: __assert_fail("0", "queue_longest.c", 4, "__PRETTY_FUNCTION__"); pc[0] = -1; continue;
-        case 450: pthread_mutex_init(&__g_14_m, 0); pc[0] = 451; continue;
+        case 450: pc[0] = 451; continue;
         case 451: __t1_active = 1; pc[0] = 452; continue;
         case 452: __t2_active = 1; pc[0] = 453; continue;
-        case 453: pthread_join(__t0_21_id1, (void *)0); pc[0] = 454; continue;
-        case 454: pthread_join(__t0_22_id2, (void *)0); pc[0] = 455; continue;
+        case 453: continue;
+        case 454: continue;
         case 455: pc[0] = -1; continue;
         case 456: pc[0] = 457; continue;
         case 457: if (!((__p0_19_q->head) == (__p0_19_q->tail))) { pc[0] = 461;  }else if ((__p0_19_q->head) == (__p0_19_q->tail)) { pc[0] = 458;  }continue;
@@ -1220,7 +1221,7 @@ int main(void) {
         case 0: pc[1] = 1; continue;
         case 1: pc[1] = 2; continue;
         case 2: pc[1] = 3; continue;
-        case 3: pthread_mutex_lock(&__g_14_m); pc[1] = 4; continue;
+        case 3: __g_14_m_locked = 1; pc[1] = 4; continue;
         case 4: __t1_27_value = __VERIFIER_nondet_int(); pc[1] = 5; continue;
         case 5: pc[1] = 6; continue;
         case 6: __return_pc_t1_enqueue = 7;  __p1_24_q = &__g_18_queue;  __p1_25_x = __t1_27_value;  pc[1] = 27; continue;
@@ -1229,13 +1230,13 @@ int main(void) {
         case 9: pc[1] = 10; continue;
         case 10: __return_pc_t1_empty = 11;  __p1_26_q = &__g_18_queue;  pc[1] = 49; continue;
         case 11: if (__t1_30___CPAchecker_TMP_1 == 0) { pc[1] = 12;  }else if (!(__t1_30___CPAchecker_TMP_1 == 0)) { pc[1] = 42;  }continue;
-        case 12: pthread_mutex_unlock(&__g_14_m); pc[1] = 13; continue;
+        case 12: __g_14_m_locked = 0; pc[1] = 13; continue;
         case 13: pc[1] = 14; continue;
         case 14: __t1_28_i = 0; pc[1] = 15; continue;
         case 15: if (__t1_28_i < 799) { pc[1] = 16;  }else if (!(__t1_28_i < 799)) { pc[1] = 41;  }continue;
-        case 16: pthread_mutex_lock(&__g_14_m); pc[1] = 17; continue;
+        case 16: __g_14_m_locked = 1; pc[1] = 17; continue;
         case 17: if (__g_16_enqueue_flag == 0) { pc[1] = 18;  }else if (!(__g_16_enqueue_flag == 0)) { pc[1] = 21;  }continue;
-        case 18: pthread_mutex_unlock(&__g_14_m); pc[1] = 19; continue;
+        case 18: __g_14_m_locked = 0; pc[1] = 19; continue;
         case 19: pc[1] = 20; continue;
         case 20: __t1_28_i = __t1_28_i + 1; pc[1] = 15; continue;
         case 21: __t1_27_value = __VERIFIER_nondet_int(); pc[1] = 22; continue;
@@ -1278,9 +1279,9 @@ int main(void) {
         case 2: pc[2] = 3; continue;
         case 3: __t2_34_i = 0; pc[2] = 4; continue;
         case 4: if (__t2_34_i < 800) { pc[2] = 5;  }else if (!(__t2_34_i < 800)) { pc[2] = 37;  }continue;
-        case 5: pthread_mutex_lock(&__g_14_m); pc[2] = 6; continue;
+        case 5: __g_14_m_locked = 1; pc[2] = 6; continue;
         case 6: if (!(__g_17_dequeue_flag == 0)) { pc[2] = 10;  }else if (__g_17_dequeue_flag == 0) { pc[2] = 7;  }continue;
-        case 7: pthread_mutex_unlock(&__g_14_m); pc[2] = 8; continue;
+        case 7: __g_14_m_locked = 0; pc[2] = 8; continue;
         case 8: pc[2] = 9; continue;
         case 9: __t2_34_i = __t2_34_i + 1; pc[2] = 4; continue;
         case 10: pc[2] = 11; continue;

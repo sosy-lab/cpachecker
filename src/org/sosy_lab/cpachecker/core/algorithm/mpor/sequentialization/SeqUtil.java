@@ -16,6 +16,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SeqUtil {
 
@@ -103,7 +105,8 @@ public class SeqUtil {
       ImmutableMap<ThreadEdge, ImmutableSet<AssignExpr>> pReturnStmts,
       ImmutableMap<ThreadEdge, AssignExpr> pReturnPcAssigns,
       ImmutableMap<ThreadNode, AssignExpr> pPcToReturnPcAssigns,
-      ImmutableMap<MPORThread, CIdExpression> pThreadActiveVars) {
+      ImmutableMap<MPORThread, CIdExpression> pThreadActiveVars,
+      ImmutableMap<CIdExpression, CIdExpression> pMutexLockedVars) {
 
     pCoveredNodes.add(pThreadNode);
 
@@ -241,17 +244,17 @@ public class SeqUtil {
             }
 
           } else if (isRelevantPthreadFunc(edge)) {
-            PthreadFuncType pthreadFunc = PthreadFuncType.getPthreadFuncType(edge);
-            switch (pthreadFunc) {
+            PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(edge);
+            switch (funcType) {
               case PTHREAD_CREATE:
                 MPORThread createdThread =
                     ThreadUtil.extractThreadFromPthreadCreate(pThreadActiveVars.keySet(), edge);
-                CExpressionAssignmentStatement exprAssign =
+                CExpressionAssignmentStatement activeAssign =
                     SeqStatements.buildExprAssign(
                         pThreadActiveVars.get(createdThread), SeqExpressions.INT_ONE);
                 stmts.add(
                     new SeqLoopCaseStmt(
-                        pThread.id, false, Optional.of(exprAssign.toASTString()), targetPc));
+                        pThread.id, false, Optional.of(activeAssign.toASTString()), targetPc));
                 break;
 
               case PTHREAD_JOIN:
@@ -259,11 +262,30 @@ public class SeqUtil {
                 break;
 
               case PTHREAD_MUTEX_LOCK:
-                // TODO
+                CExpression exprA =
+                    CFAUtils.getValueFromPointer(CFAUtils.getParameterAtIndex(sub, 0));
+                assert exprA instanceof CIdExpression;
+                CIdExpression idExprA = (CIdExpression) exprA;
+                assert pMutexLockedVars.containsKey(idExprA);
+                CExpressionAssignmentStatement lockedTrueAssign =
+                    SeqStatements.buildExprAssign(
+                        pMutexLockedVars.get(idExprA), SeqExpressions.INT_ONE);
+                stmts.add(
+                    new SeqLoopCaseStmt(
+                        pThread.id, false, Optional.of(lockedTrueAssign.toASTString()), targetPc));
                 break;
 
               case PTHREAD_MUTEX_UNLOCK:
-                // TODO
+                CExpression exprB =
+                    CFAUtils.getValueFromPointer(CFAUtils.getParameterAtIndex(sub, 0));
+                assert exprB instanceof CIdExpression;
+                CIdExpression idExprB = (CIdExpression) exprB;
+                CExpressionAssignmentStatement lockedFalseAssign =
+                    SeqStatements.buildExprAssign(
+                        pMutexLockedVars.get(idExprB), SeqExpressions.INT_ZERO);
+                stmts.add(
+                    new SeqLoopCaseStmt(
+                        pThread.id, false, Optional.of(lockedFalseAssign.toASTString()), targetPc));
                 break;
 
               default:
@@ -378,7 +400,7 @@ public class SeqUtil {
         return !isConstCPAcheckerTMP(varDec);
       }
     } else if (PthreadFuncType.isCallToAnyPthreadFunc(pEdge)) {
-      return isRelevantPthreadFunc(pEdge);
+      return !isRelevantPthreadFunc(pEdge);
     }
     return false;
   }

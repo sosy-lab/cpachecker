@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
@@ -102,7 +103,16 @@ public class Sequentialization {
 
     // prepend pthread control vars
     rProgram.append(SeqComment.createPthreadReplacementVarsComment());
+    // TODO the functions are called here separately -> separate maps
+    //  make sure to use the same maps
+    // thread active vars
     for (CIdExpression idExpr : mapThreadActiveVars(pSubstitutions.keySet()).values()) {
+      assert idExpr.getDeclaration() instanceof CVariableDeclaration;
+      CVariableDeclaration varDec = (CVariableDeclaration) idExpr.getDeclaration();
+      rProgram.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
+    }
+    // mutex locked vars
+    for (CIdExpression idExpr : mapMutexLockedVars(pSubstitutions).values()) {
       assert idExpr.getDeclaration() instanceof CVariableDeclaration;
       CVariableDeclaration varDec = (CVariableDeclaration) idExpr.getDeclaration();
       rProgram.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
@@ -149,6 +159,8 @@ public class Sequentialization {
       MPORThread thread = entry.getKey();
       CSimpleDeclarationSubstitution substitution = entry.getValue();
 
+      // TODO with so many vars used as params, its best to create a separate class for better
+      //  overview
       ImmutableMap<ThreadEdge, CFAEdge> edgeSubs = substitution.substituteEdges(thread);
       ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> paramAssigns =
           mapParamAssigns(thread, edgeSubs, substitution);
@@ -156,8 +168,11 @@ public class Sequentialization {
           mapReturnStmts(thread, edgeSubs);
       ImmutableMap<ThreadEdge, AssignExpr> returnPcAssigns = mapReturnPcAssigns(thread);
       ImmutableMap<ThreadNode, AssignExpr> pcToReturnPcAssigns = mapPcToReturnPcAssigns(thread);
+      // TODO we could (and should) map C(Id)Expressions i.e. threadObjects to CIdExpressions here
       ImmutableMap<MPORThread, CIdExpression> threadActiveVars =
           mapThreadActiveVars(pSubstitutions.keySet());
+      ImmutableMap<CIdExpression, CIdExpression> mutexLockedVars =
+          mapMutexLockedVars(pSubstitutions);
 
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
         if (!coveredNodes.contains(threadNode)) {
@@ -171,7 +186,8 @@ public class Sequentialization {
                   returnStmts,
                   returnPcAssigns,
                   pcToReturnPcAssigns,
-                  threadActiveVars);
+                  threadActiveVars,
+                  mutexLockedVars);
           if (loopCase != null) {
             loopCases.add(loopCase);
           }
@@ -402,6 +418,29 @@ public class Sequentialization {
         }
       }
     }
+    return rVars.buildOrThrow();
+  }
+
+  private static ImmutableMap<CIdExpression, CIdExpression> mapMutexLockedVars(
+      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions) {
+    ImmutableMap.Builder<CIdExpression, CIdExpression> rVars = ImmutableMap.builder();
+    for (var entry : pSubstitutions.entrySet()) {
+      MPORThread thread = entry.getKey();
+      ImmutableMap<ThreadEdge, CFAEdge> edgeSubs = entry.getValue().substituteEdges(thread);
+      for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
+        assert edgeSubs.containsKey(threadEdge);
+        CFAEdge sub = edgeSubs.get(threadEdge);
+        // TODO mutexes can also be init with pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+        if (PthreadFuncType.isCallToPthreadFunc(sub, PthreadFuncType.PTHREAD_MUTEX_INIT)) {
+          CExpression expr = CFAUtils.getValueFromPointer(CFAUtils.getParameterAtIndex(sub, 0));
+          assert expr instanceof CIdExpression;
+          CIdExpression idExpr = (CIdExpression) expr;
+          String varName = SeqNameBuilder.createMutexLockedName(idExpr.getName());
+          rVars.put(idExpr, SeqExpressions.buildMutexLockedVar(varName));
+        }
+      }
+    }
+    // if the same mutex is init twice (i.e. undefined behavior), this throws an exception
     return rVars.buildOrThrow();
   }
 

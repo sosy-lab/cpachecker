@@ -39,4 +39,18 @@ public class SeqExpressions {
             SeqInitializers.INT_ZERO);
     return new CIdExpression(FileLocation.DUMMY, varDec);
   }
+
+  public static CIdExpression buildMutexLockedVar(String pVarName) {
+    CVariableDeclaration varDec =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            true,
+            CStorageClass.AUTO,
+            SeqSimpleTypes.INT,
+            pVarName,
+            pVarName,
+            SeqNameBuilder.createQualifiedName(SeqToken.MAIN, pVarName),
+            SeqInitializers.INT_ZERO);
+    return new CIdExpression(FileLocation.DUMMY, varDec);
+  }
 }
