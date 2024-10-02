@@ -19,14 +19,21 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class ThreadUtil {
 
-  public static MPORThread extractThreadFromPthreadCreate(
+  public static MPORThread extractThreadFromPthreadCall(
       ImmutableSet<MPORThread> pThreads, CFAEdge pEdge) {
     checkArgument(
-        PthreadFuncType.isCallToPthreadFunc(pEdge, PthreadFuncType.PTHREAD_CREATE),
-        "pEdge must be call to pthread_create");
-    CExpression pthreadTParam = CFAUtils.getParameterAtIndex(pEdge, 0);
-    CExpression pthreadT = CFAUtils.getValueFromPointer(pthreadTParam);
-    return getThreadByObject(pThreads, Optional.of(pthreadT));
+        PthreadFuncType.isCallToAnyPthreadFuncWithPthreadTParam(pEdge),
+        "pEdge must be call to a pthread method with a pthread_t param");
+
+    PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(pEdge);
+    CExpression pthreadTParam =
+        CFAUtils.getParameterAtIndex(pEdge, funcType.pthreadTIndex.orElseThrow());
+
+    if (funcType.isPthreadTPointer.orElseThrow()) {
+      return getThreadByObject(pThreads, Optional.of(CFAUtils.getValueFromAddress(pthreadTParam)));
+    } else {
+      return getThreadByObject(pThreads, Optional.of(pthreadTParam));
+    }
   }
 
   /** Searches the given map of MPORThreads for the given thread object. */

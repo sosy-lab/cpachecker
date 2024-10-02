@@ -204,7 +204,7 @@ public class ThreadBuilder {
           if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
             pEdgesTrace.add(cfaEdge);
             CExpression pthreadT =
-                CFAUtils.getValueFromPointer(CFAUtils.getParameterAtIndex(cfaEdge, 0));
+                CFAUtils.getValueFromAddress(CFAUtils.getParameterAtIndex(cfaEdge, 0));
             pCreates.add(new MPORCreate(pthreadT, ImmutableSet.copyOf(pEdgesTrace)));
           }
           pEdgesTrace.add(cfaEdge);

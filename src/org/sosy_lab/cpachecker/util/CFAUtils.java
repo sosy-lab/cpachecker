@@ -718,20 +718,16 @@ public class CFAUtils {
   }
 
   /**
-   * Extracts and returns the value from the given pointer. E.g. if pPointer is &id1 from
-   * pthread_create(&id1, ...), then this function returns id1.
-   *
-   * @param pPointer the pointer as a CExpression
-   * @return the value from the pointer
-   * @throws IllegalArgumentException if pPointer is not a pointer
+   * Extracts and returns the value from the given address. E.g. if pAddress is &id1 from
+   * pthread_create(&id1, ...), then this function returns id1's expression.
    */
-  public static CExpression getValueFromPointer(CExpression pPointer) {
-    if (pPointer instanceof CUnaryExpression cUnaryExpression) {
-      if (cUnaryExpression.getExpressionType() instanceof CPointerType) {
-        return cUnaryExpression.getOperand();
+  public static CExpression getValueFromAddress(CExpression pAddress) {
+    if (pAddress instanceof CUnaryExpression unaryExpr) {
+      if (unaryExpr.getExpressionType() instanceof CPointerType) {
+        return unaryExpr.getOperand();
       }
     }
-    throw new IllegalArgumentException("pPointer is not a pointer");
+    throw new IllegalArgumentException("cannot extract value from pAddress");
   }
 
   /**

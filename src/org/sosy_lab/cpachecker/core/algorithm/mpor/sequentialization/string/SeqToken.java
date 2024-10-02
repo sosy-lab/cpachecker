@@ -42,6 +42,8 @@ public class SeqToken {
 
   public static final String IF = "if";
 
+  public static final String JOINING = "joining";
+
   public static final String LOCKED = "locked";
 
   public static final String MAIN = "main";
@@ -58,6 +60,8 @@ public class SeqToken {
   public static final String SIZE = "size";
 
   public static final String SWITCH = "switch";
+
+  public static final String T = "t";
 
   public static final String VERIFIER_NONDET_INT = "__VERIFIER_nondet_int";
 

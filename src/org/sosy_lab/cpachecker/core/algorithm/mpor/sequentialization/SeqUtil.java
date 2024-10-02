@@ -106,7 +106,8 @@ public class SeqUtil {
       ImmutableMap<ThreadEdge, AssignExpr> pReturnPcAssigns,
       ImmutableMap<ThreadNode, AssignExpr> pPcToReturnPcAssigns,
       ImmutableMap<MPORThread, CIdExpression> pThreadActiveVars,
-      ImmutableMap<CIdExpression, CIdExpression> pMutexLockedVars) {
+      ImmutableMap<CIdExpression, CIdExpression> pMutexLockedVars,
+      ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>> pThreadJoiningVars) {
 
     pCoveredNodes.add(pThreadNode);
 
@@ -248,7 +249,7 @@ public class SeqUtil {
             switch (funcType) {
               case PTHREAD_CREATE:
                 MPORThread createdThread =
-                    ThreadUtil.extractThreadFromPthreadCreate(pThreadActiveVars.keySet(), edge);
+                    ThreadUtil.extractThreadFromPthreadCall(pThreadActiveVars.keySet(), edge);
                 CExpressionAssignmentStatement activeAssign =
                     SeqStatements.buildExprAssign(
                         pThreadActiveVars.get(createdThread), SeqExpressions.INT_ONE);
@@ -257,13 +258,9 @@ public class SeqUtil {
                         pThread.id, false, Optional.of(activeAssign.toASTString()), targetPc));
                 break;
 
-              case PTHREAD_JOIN:
-                // TODO
-                break;
-
               case PTHREAD_MUTEX_LOCK:
                 CExpression exprA =
-                    CFAUtils.getValueFromPointer(CFAUtils.getParameterAtIndex(sub, 0));
+                    CFAUtils.getValueFromAddress(CFAUtils.getParameterAtIndex(sub, 0));
                 assert exprA instanceof CIdExpression;
                 CIdExpression idExprA = (CIdExpression) exprA;
                 assert pMutexLockedVars.containsKey(idExprA);
@@ -277,7 +274,7 @@ public class SeqUtil {
 
               case PTHREAD_MUTEX_UNLOCK:
                 CExpression exprB =
-                    CFAUtils.getValueFromPointer(CFAUtils.getParameterAtIndex(sub, 0));
+                    CFAUtils.getValueFromAddress(CFAUtils.getParameterAtIndex(sub, 0));
                 assert exprB instanceof CIdExpression;
                 CIdExpression idExprB = (CIdExpression) exprB;
                 CExpressionAssignmentStatement lockedFalseAssign =
@@ -288,8 +285,20 @@ public class SeqUtil {
                         pThread.id, false, Optional.of(lockedFalseAssign.toASTString()), targetPc));
                 break;
 
-              default:
+              case PTHREAD_JOIN:
+                MPORThread targetThread =
+                    ThreadUtil.extractThreadFromPthreadCall(pThreadActiveVars.keySet(), edge);
+                CExpressionAssignmentStatement joiningTrueAssign =
+                    SeqStatements.buildExprAssign(
+                        pThreadJoiningVars.get(pThread).get(targetThread), SeqExpressions.INT_ONE);
+                stmts.add(
+                    new SeqLoopCaseStmt(
+                        pThread.id, false, Optional.of(joiningTrueAssign.toASTString()), targetPc));
                 break;
+
+              default:
+                throw new IllegalArgumentException(
+                    "unhandled relevant pthread method: " + funcType.name);
             }
 
           } else {

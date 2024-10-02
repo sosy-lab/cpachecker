@@ -592,7 +592,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         // extract the first parameter of pthread_create, i.e. the pthread_t value
         CExpression pthreadT =
-            CFAUtils.getValueFromPointer(CFAUtils.getParameterAtIndex(cfaEdge, 0));
+            CFAUtils.getValueFromAddress(CFAUtils.getParameterAtIndex(cfaEdge, 0));
         // extract the third parameter of pthread_create which points to the start routine function
         CFunctionType startRoutine =
             CFAUtils.getCFunctionTypeFromCExpression(CFAUtils.getParameterAtIndex(cfaEdge, 2));

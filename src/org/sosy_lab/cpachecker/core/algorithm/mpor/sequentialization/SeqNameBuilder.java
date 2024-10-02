@@ -58,6 +58,17 @@ public class SeqNameBuilder {
     return pMutexName + SeqSyntax.UNDERSCORE + SeqToken.LOCKED;
   }
 
+  /** Returns a var name of the form {@code __t{pWaitingId}_joining_t{pTargetId}} */
+  public static String createThreadJoiningName(int pWaitingId, int pTargetId) {
+    return SeqPrefix.THREAD_JOINING
+        + pWaitingId
+        + SeqSyntax.UNDERSCORE
+        + SeqToken.JOINING
+        + SeqSyntax.UNDERSCORE
+        + SeqToken.T
+        + pTargetId;
+  }
+
   public static String createQualifiedName(String pFuncName, String pVarName) {
     return pFuncName + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
   }

@@ -26,21 +26,7 @@ public class SeqExpressions {
       new CIntegerLiteralExpression(FileLocation.DUMMY, SeqSimpleTypes.INT, BigInteger.ZERO);
 
   /** Returns a {@link CIdExpression} with a declaration of the form {@code int {pVarName} = 0;}. */
-  public static CIdExpression buildThreadActiveVar(String pVarName) {
-    CVariableDeclaration varDec =
-        new CVariableDeclaration(
-            FileLocation.DUMMY,
-            true,
-            CStorageClass.AUTO,
-            SeqSimpleTypes.INT,
-            pVarName,
-            pVarName,
-            SeqNameBuilder.createQualifiedName(SeqToken.MAIN, pVarName),
-            SeqInitializers.INT_ZERO);
-    return new CIdExpression(FileLocation.DUMMY, varDec);
-  }
-
-  public static CIdExpression buildMutexLockedVar(String pVarName) {
+  public static CIdExpression buildIntVar(String pVarName) {
     CVariableDeclaration varDec =
         new CVariableDeclaration(
             FileLocation.DUMMY,

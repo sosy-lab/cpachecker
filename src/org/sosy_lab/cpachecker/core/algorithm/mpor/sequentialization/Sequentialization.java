@@ -117,6 +117,16 @@ public class Sequentialization {
       CVariableDeclaration varDec = (CVariableDeclaration) idExpr.getDeclaration();
       rProgram.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
     }
+    // thread joining vars
+    for (ImmutableMap<MPORThread, CIdExpression> targetMap :
+        mapThreadJoiningVars(pSubstitutions.keySet()).values()) {
+
+      for (CIdExpression idExpr : targetMap.values()) {
+        assert idExpr.getDeclaration() instanceof CVariableDeclaration;
+        CVariableDeclaration varDec = (CVariableDeclaration) idExpr.getDeclaration();
+        rProgram.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
+      }
+    }
     rProgram.append(SeqSyntax.NEWLINE);
 
     // prepend all custom function declarations
@@ -173,6 +183,8 @@ public class Sequentialization {
           mapThreadActiveVars(pSubstitutions.keySet());
       ImmutableMap<CIdExpression, CIdExpression> mutexLockedVars =
           mapMutexLockedVars(pSubstitutions);
+      ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>> threadJoiningVars =
+          mapThreadJoiningVars(pSubstitutions.keySet());
 
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
         if (!coveredNodes.contains(threadNode)) {
@@ -187,7 +199,8 @@ public class Sequentialization {
                   returnPcAssigns,
                   pcToReturnPcAssigns,
                   threadActiveVars,
-                  mutexLockedVars);
+                  mutexLockedVars,
+                  threadJoiningVars);
           if (loopCase != null) {
             loopCases.add(loopCase);
           }
@@ -407,14 +420,15 @@ public class Sequentialization {
 
   private static ImmutableMap<MPORThread, CIdExpression> mapThreadActiveVars(
       ImmutableSet<MPORThread> pThreads) {
+
     ImmutableMap.Builder<MPORThread, CIdExpression> rVars = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
         if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
-          MPORThread createdThread = ThreadUtil.extractThreadFromPthreadCreate(pThreads, cfaEdge);
+          MPORThread createdThread = ThreadUtil.extractThreadFromPthreadCall(pThreads, cfaEdge);
           String varName = SeqNameBuilder.createThreadActiveName(createdThread.id);
-          rVars.put(createdThread, SeqExpressions.buildThreadActiveVar(varName));
+          rVars.put(createdThread, SeqExpressions.buildIntVar(varName));
         }
       }
     }
@@ -423,6 +437,7 @@ public class Sequentialization {
 
   private static ImmutableMap<CIdExpression, CIdExpression> mapMutexLockedVars(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions) {
+
     ImmutableMap.Builder<CIdExpression, CIdExpression> rVars = ImmutableMap.builder();
     for (var entry : pSubstitutions.entrySet()) {
       MPORThread thread = entry.getKey();
@@ -432,15 +447,43 @@ public class Sequentialization {
         CFAEdge sub = edgeSubs.get(threadEdge);
         // TODO mutexes can also be init with pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
         if (PthreadFuncType.isCallToPthreadFunc(sub, PthreadFuncType.PTHREAD_MUTEX_INIT)) {
-          CExpression expr = CFAUtils.getValueFromPointer(CFAUtils.getParameterAtIndex(sub, 0));
+          CExpression expr = CFAUtils.getValueFromAddress(CFAUtils.getParameterAtIndex(sub, 0));
           assert expr instanceof CIdExpression;
           CIdExpression idExpr = (CIdExpression) expr;
           String varName = SeqNameBuilder.createMutexLockedName(idExpr.getName());
-          rVars.put(idExpr, SeqExpressions.buildMutexLockedVar(varName));
+          // TODO it should be wiser to use the original idExpr as the key and not the substitute...
+          rVars.put(idExpr, SeqExpressions.buildIntVar(varName));
         }
       }
     }
     // if the same mutex is init twice (i.e. undefined behavior), this throws an exception
+    return rVars.buildOrThrow();
+  }
+
+  private static ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>>
+      mapThreadJoiningVars(ImmutableSet<MPORThread> pThreads) {
+
+    ImmutableMap.Builder<MPORThread, ImmutableMap<MPORThread, CIdExpression>> rVars =
+        ImmutableMap.builder();
+    for (MPORThread thread : pThreads) {
+      Map<MPORThread, CIdExpression> targetThreads = new HashMap<>();
+      for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
+        CFAEdge cfaEdge = threadEdge.cfaEdge;
+        if (PthreadFuncType.isCallToPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_JOIN)) {
+          CExpression expr = CFAUtils.getParameterAtIndex(cfaEdge, 0);
+          MPORThread targetThread = ThreadUtil.extractThreadFromPthreadCall(pThreads, cfaEdge);
+
+          // multiple join calls within one thread to the same thread are possible -> only need one
+          if (!targetThreads.containsKey(targetThread)) {
+            assert expr instanceof CIdExpression;
+            CIdExpression idExpr = (CIdExpression) expr;
+            String varName = SeqNameBuilder.createThreadJoiningName(thread.id, targetThread.id);
+            targetThreads.put(targetThread, SeqExpressions.buildIntVar(varName));
+          }
+        }
+      }
+      rVars.put(thread, ImmutableMap.copyOf(targetThreads));
+    }
     return rVars.buildOrThrow();
   }
 

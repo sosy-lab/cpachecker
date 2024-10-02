@@ -708,6 +708,8 @@ int __t1_active = 0;
 int __t2_active = 0;
 int __g_14_m_locked = 0;
 
+int __t0_joining_t1 = 0;
+int __t0_joining_t2 = 0;
 // custom function declarations
 int __VERIFIER_nondet_int();
 void __mpor_seq_assume(int cond);
@@ -1199,8 +1201,8 @@ int main(void) {
         case 450: pc[0] = 451; continue;
         case 451: __t1_active = 1; pc[0] = 452; continue;
         case 452: __t2_active = 1; pc[0] = 453; continue;
-        case 453: continue;
-        case 454: continue;
+        case 453: __t0_joining_t1 = 1; pc[0] = 454; continue;
+        case 454: __t0_joining_t2 = 1; pc[0] = 455; continue;
         case 455: pc[0] = -1; continue;
         case 456: pc[0] = 457; continue;
         case 457: if (!((__p0_19_q->head) == (__p0_19_q->tail))) { pc[0] = 461;  }else if ((__p0_19_q->head) == (__p0_19_q->tail)) { pc[0] = 458;  }continue;

@@ -21,4 +21,6 @@ public class SeqPrefix {
   public static final String RETURN_PC_THREAD = "__return_pc_t";
 
   public static final String THREAD_ACTIVE = "__t";
+
+  public static final String THREAD_JOINING = "__t";
 }
