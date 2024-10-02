@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -145,7 +144,6 @@ public class Sequentialization {
     rProgram.append(anyUnsigned).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
     // TODO we also need to prune:
-    //  - set init pc (0) to first non-empty statement
     //  - update ALL target pc so that the next non-empty statement is reached, no intermediary
     //    empty statements
     //  - the rest of the state space pruning (e.g. two local accesses after another)
@@ -229,21 +227,26 @@ public class Sequentialization {
     for (var entry : pLoopCases.entrySet()) {
       ImmutableList<SeqLoopCase> loopCases = entry.getValue();
       ImmutableMap<Integer, SeqLoopCase> originPcs = mapOriginPcToCases(loopCases);
+      ImmutableList.Builder<SeqLoopCase> prunedCases = ImmutableList.builder();
+
       Set<SeqLoopCase> skippedCases = new HashSet<>();
-      List<SeqLoopCase> prunedCases = new ArrayList<>();
+      Set<Long> newCaseIds = new HashSet<>();
 
       for (SeqLoopCase loopCase : loopCases) {
         if (!skippedCases.contains(loopCase)) {
           for (SeqLoopCaseStmt caseStmt : loopCase.statements) {
             if (caseStmt.statement.isEmpty()) {
-              prunedCases.add(handleCasePrune(originPcs, loopCase, skippedCases, loopCase));
-            } else if (!prunedCases.contains(loopCase)) {
+              SeqLoopCase prunedCase = handleCasePrune(originPcs, loopCase, skippedCases, loopCase);
+              prunedCases.add(prunedCase);
+              newCaseIds.add(prunedCase.id);
+            } else if (!newCaseIds.contains(loopCase.id)) {
               prunedCases.add(loopCase);
+              newCaseIds.add(loopCase.id);
             }
           }
         }
       }
-      rPrunedCases.put(entry.getKey(), ImmutableList.copyOf(prunedCases));
+      rPrunedCases.put(entry.getKey(), prunedCases.build());
     }
     return rPrunedCases.buildOrThrow();
   }
@@ -263,8 +266,6 @@ public class Sequentialization {
       Set<SeqLoopCase> pSkipped,
       SeqLoopCase pCurrentCase) {
 
-    assert !pCurrentCase.statements.isEmpty();
-
     for (SeqLoopCaseStmt caseStmt : pCurrentCase.statements) {
       if (caseStmt.statement.isEmpty()) {
         assert pCurrentCase.statements.size() == 1;
@@ -279,9 +280,8 @@ public class Sequentialization {
           return handleCasePrune(pOriginPcs, pInitCase, pSkipped, nextCase);
         }
       }
-      return pInitCase.cloneWithTargetPc(pCurrentCase.originPc);
+      return pCurrentCase.cloneWithOriginPc(pInitCase.originPc);
     }
-
     throw new IllegalArgumentException("pCurrentCase statements are empty");
   }
 

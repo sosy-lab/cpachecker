@@ -25,6 +25,11 @@ public class SeqLoopCaseStmt implements SeqElement {
   /** True if this is an if, else-if or else statement (extra curly brackets required). */
   public final boolean isAssume;
 
+  // TODO we also need the ThreadEdge (the original, not the substitute)
+  //  the original ThreadEdge also contains the original CFAEdges which are needed for commutativity
+  //  checks. the POR algorithm can then be run on the pruned switch-cases (because the reduction
+  //  assumes only use the pc in the final sequentialization anyway)
+
   // TODO replace String with CExpression or CStatement later?
   public final Optional<String> statement;
 

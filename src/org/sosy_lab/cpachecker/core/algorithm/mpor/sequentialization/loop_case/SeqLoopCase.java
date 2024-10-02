@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case;
 
-import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -19,6 +18,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqT
 /** Represents a case in the sequentialization while loop. */
 public class SeqLoopCase implements SeqElement {
 
+  private static long currentId = 0;
+
+  public final long id;
+
   public final int originPc;
 
   public final ImmutableList<SeqLoopCaseStmt> statements;
@@ -26,6 +29,15 @@ public class SeqLoopCase implements SeqElement {
   public final ImmutableSet<Integer> targetPcs;
 
   public SeqLoopCase(int pOriginPc, ImmutableList<SeqLoopCaseStmt> pStatements) {
+    id = currentId++;
+    originPc = pOriginPc;
+    statements = pStatements;
+    targetPcs = initTargetPcs(statements);
+  }
+
+  /** Private constructor, only used during cloning process to keep the same id. */
+  private SeqLoopCase(long pId, int pOriginPc, ImmutableList<SeqLoopCaseStmt> pStatements) {
+    id = pId;
     originPc = pOriginPc;
     statements = pStatements;
     targetPcs = initTargetPcs(statements);
@@ -41,13 +53,8 @@ public class SeqLoopCase implements SeqElement {
     return rPcs.build();
   }
 
-  public SeqLoopCase cloneWithTargetPc(int pTargetPc) {
-    checkArgument(statements.size() == 1, "multiple statements - cloning not possible");
-
-    ImmutableList.Builder<SeqLoopCaseStmt> cloneStmt = ImmutableList.builder();
-    cloneStmt.add(statements.get(0).cloneWithTargetPc(pTargetPc));
-
-    return new SeqLoopCase(originPc, cloneStmt.build());
+  public SeqLoopCase cloneWithOriginPc(int pOriginPc) {
+    return new SeqLoopCase(id, pOriginPc, statements);
   }
 
   @Override
