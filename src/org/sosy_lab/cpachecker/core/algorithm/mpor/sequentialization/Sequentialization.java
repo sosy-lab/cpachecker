@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -76,14 +77,14 @@ public class Sequentialization {
 
     StringBuilder rProgram = new StringBuilder();
 
-    // prepend all original program declarations that are not substituted
+    // add all original program declarations that are not substituted
     rProgram.append(SeqComment.createNonVarDeclarationComment());
     for (MPORThread thread : pSubstitutions.keySet()) {
       rProgram.append(createNonVarDecString(thread));
     }
     rProgram.append(SeqSyntax.NEWLINE);
 
-    // prepend all var substitute declarations in the order global - local - params - return_pc
+    // add all var substitute declarations in the order global - local - params - return_pc
     MPORThread mainThread = MPORAlgorithm.getMainThread(pSubstitutions.keySet());
     rProgram.append(createGlobalVarString(pSubstitutions.get(mainThread)));
     for (var entry : pSubstitutions.entrySet()) {
@@ -100,7 +101,7 @@ public class Sequentialization {
     }
     rProgram.append(SeqSyntax.NEWLINE);
 
-    // prepend pthread control vars
+    // add pthread control vars
     rProgram.append(SeqComment.createPthreadReplacementVarsComment());
     // TODO the functions are called here separately -> separate maps
     //  make sure to use the same maps
@@ -128,7 +129,7 @@ public class Sequentialization {
     }
     rProgram.append(SeqSyntax.NEWLINE);
 
-    // prepend all custom function declarations
+    // add all custom function declarations
     VerifierNonDetInt verifierNonDetInt = new VerifierNonDetInt();
     Assume assume = new Assume();
     AnyUnsigned anyUnsigned = new AnyUnsigned();
@@ -139,19 +140,23 @@ public class Sequentialization {
     rProgram.append(anyUnsigned.getDeclaration()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqSyntax.NEWLINE);
 
-    // prepend non main() methods
+    // add non main() methods
     rProgram.append(assume).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
     rProgram.append(anyUnsigned).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
-    // TODO prune empty loop cases
+    // TODO we also need to prune:
+    //  - set init pc (0) to first non-empty statement
+    //  - update ALL target pc so that the next non-empty statement is reached, no intermediary
+    //    empty statements
+    //  - the rest of the state space pruning (e.g. two local accesses after another)
+    //    will be done via assume statements
+    //    (on this note: we should also remove the const CPAchecker TMP logic and replace it with
+    //    assumes as they are basically atomic)
+    // add main() method with pruned (i.e. only non-empty) switch cases
     ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> loopCases = mapLoopCases(pSubstitutions);
-    MainMethod mainMethod = new MainMethod(loopCases);
+    ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> prunedCases = pruneLoopCases(loopCases);
+    MainMethod mainMethod = new MainMethod(prunedCases);
     rProgram.append(mainMethod);
-
-    /*rProgram.append("===== pruned main thread =====");
-    for (SeqLoopCase loopCase : pruneLoopCases(loopCases.get(mainThread))) {
-      rProgram.append(loopCase.createString());
-    }*/
 
     return rProgram.toString();
   }
@@ -215,21 +220,32 @@ public class Sequentialization {
   }
 
   /** Prunes empty loop cases i.e. loop cases without any statements other than pc adjustments. */
-  private static ImmutableList<SeqLoopCase> pruneLoopCases(ImmutableList<SeqLoopCase> pCases) {
-    ImmutableMap<Integer, SeqLoopCase> originPcs = mapOriginPcToCases(pCases);
+  private static ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> pruneLoopCases(
+      ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> pLoopCases) {
 
-    Set<SeqLoopCase> skippedCases = new HashSet<>();
-    ImmutableList.Builder<SeqLoopCase> rNewCases = ImmutableList.builder();
-    for (SeqLoopCase loopCase : pCases) {
-      if (!skippedCases.contains(loopCase)) {
-        for (SeqLoopCaseStmt caseStmt : loopCase.statements) {
-          if (caseStmt.statement.isEmpty()) {
-            rNewCases.add(handleCasePrune(originPcs, loopCase, skippedCases, loopCase));
+    ImmutableMap.Builder<MPORThread, ImmutableList<SeqLoopCase>> rPrunedCases =
+        ImmutableMap.builder();
+
+    for (var entry : pLoopCases.entrySet()) {
+      ImmutableList<SeqLoopCase> loopCases = entry.getValue();
+      ImmutableMap<Integer, SeqLoopCase> originPcs = mapOriginPcToCases(loopCases);
+      Set<SeqLoopCase> skippedCases = new HashSet<>();
+      List<SeqLoopCase> prunedCases = new ArrayList<>();
+
+      for (SeqLoopCase loopCase : loopCases) {
+        if (!skippedCases.contains(loopCase)) {
+          for (SeqLoopCaseStmt caseStmt : loopCase.statements) {
+            if (caseStmt.statement.isEmpty()) {
+              prunedCases.add(handleCasePrune(originPcs, loopCase, skippedCases, loopCase));
+            } else if (!prunedCases.contains(loopCase)) {
+              prunedCases.add(loopCase);
+            }
           }
         }
       }
+      rPrunedCases.put(entry.getKey(), ImmutableList.copyOf(prunedCases));
     }
-    return rNewCases.build();
+    return rPrunedCases.buildOrThrow();
   }
 
   private static ImmutableMap<Integer, SeqLoopCase> mapOriginPcToCases(
@@ -241,7 +257,6 @@ public class Sequentialization {
     return rOriginPcs.buildOrThrow();
   }
 
-  // TODO refactor this
   private static SeqLoopCase handleCasePrune(
       final ImmutableMap<Integer, SeqLoopCase> pOriginPcs,
       final SeqLoopCase pInitCase,
@@ -255,15 +270,19 @@ public class Sequentialization {
         assert pCurrentCase.statements.size() == 1;
         pSkipped.add(pCurrentCase);
         SeqLoopCase nextCase = pOriginPcs.get(caseStmt.targetPc.orElseThrow());
-        assert nextCase != null;
+        // TODO nextCase null -> targetPc is EXIT_PC, needs to be handled separately
+        if (nextCase == null) {
+          return pInitCase;
+        }
         // do not visit exit nodes of the threads cfa
         if (!nextCase.statements.isEmpty()) {
-          handleCasePrune(pOriginPcs, pInitCase, pSkipped, nextCase);
+          return handleCasePrune(pOriginPcs, pInitCase, pSkipped, nextCase);
         }
       }
       return pInitCase.cloneWithTargetPc(pCurrentCase.originPc);
     }
-    throw new IllegalStateException();
+
+    throw new IllegalArgumentException("pCurrentCase statements are empty");
   }
 
   /**
