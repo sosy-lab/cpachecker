@@ -36,6 +36,22 @@ public class ThreadUtil {
     }
   }
 
+  public static CExpression extractPthreadTFromPthreadCall(CFAEdge pEdge) {
+    checkArgument(
+        PthreadFuncType.isCallToAnyPthreadFuncWithPthreadTParam(pEdge),
+        "pEdge must be call to a pthread method with a pthread_t param");
+
+    PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(pEdge);
+    CExpression pthreadTParam =
+        CFAUtils.getParameterAtIndex(pEdge, funcType.pthreadTIndex.orElseThrow());
+
+    if (funcType.isPthreadTPointer.orElseThrow()) {
+      return CFAUtils.getValueFromAddress(pthreadTParam);
+    } else {
+      return pthreadTParam;
+    }
+  }
+
   /** Searches the given map of MPORThreads for the given thread object. */
   private static MPORThread getThreadByObject(
       ImmutableSet<MPORThread> pThreads, Optional<CExpression> pThreadObject) {

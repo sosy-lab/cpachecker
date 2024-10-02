@@ -707,9 +707,9 @@ int __return_pc_t2_reach_error;
 int __t1_active = 0;
 int __t2_active = 0;
 int __g_14_m_locked = 0;
-
 int __t0_joining_t1 = 0;
 int __t0_joining_t2 = 0;
+
 // custom function declarations
 int __VERIFIER_nondet_int();
 void __mpor_seq_assume(int cond);

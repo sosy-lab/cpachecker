@@ -105,7 +105,7 @@ public class SeqUtil {
       ImmutableMap<ThreadEdge, ImmutableSet<AssignExpr>> pReturnStmts,
       ImmutableMap<ThreadEdge, AssignExpr> pReturnPcAssigns,
       ImmutableMap<ThreadNode, AssignExpr> pPcToReturnPcAssigns,
-      ImmutableMap<MPORThread, CIdExpression> pThreadActiveVars,
+      ImmutableMap<CIdExpression, CIdExpression> pThreadActiveVars,
       ImmutableMap<CIdExpression, CIdExpression> pMutexLockedVars,
       ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>> pThreadJoiningVars) {
 
@@ -217,11 +217,13 @@ public class SeqUtil {
             assert pReturnStmts.containsKey(threadEdge);
             if (retStmt.getSuccessor().getFunction().getType().equals(pThread.startRoutine)) {
               // exiting thread -> assign 0 to thread_active var if possible and set exit pc
-              if (pThreadActiveVars.containsKey(pThread)) {
+              Optional<CExpression> threadObject = pThread.threadObject;
+              if (!pThread.isMain() && pThreadActiveVars.containsKey(threadObject.orElseThrow())) {
+
                 CExpressionAssignmentStatement exprAssign =
                     new CExpressionAssignmentStatement(
                         FileLocation.DUMMY,
-                        pThreadActiveVars.get(pThread),
+                        pThreadActiveVars.get(threadObject.orElseThrow()),
                         SeqExpressions.INT_ZERO);
                 stmts.add(
                     new SeqLoopCaseStmt(
@@ -229,6 +231,7 @@ public class SeqUtil {
                         false,
                         Optional.of(exprAssign.toASTString()),
                         Optional.of(EXIT_PC)));
+
               } else {
                 stmts.add(
                     new SeqLoopCaseStmt(pThread.id, false, Optional.empty(), Optional.of(EXIT_PC)));
@@ -248,11 +251,11 @@ public class SeqUtil {
             PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(edge);
             switch (funcType) {
               case PTHREAD_CREATE:
-                MPORThread createdThread =
-                    ThreadUtil.extractThreadFromPthreadCall(pThreadActiveVars.keySet(), edge);
+                CExpression aPthreadT = ThreadUtil.extractPthreadTFromPthreadCall(edge);
+                assert aPthreadT instanceof CIdExpression;
                 CExpressionAssignmentStatement activeAssign =
                     SeqStatements.buildExprAssign(
-                        pThreadActiveVars.get(createdThread), SeqExpressions.INT_ONE);
+                        pThreadActiveVars.get((CIdExpression) aPthreadT), SeqExpressions.INT_ONE);
                 stmts.add(
                     new SeqLoopCaseStmt(
                         pThread.id, false, Optional.of(activeAssign.toASTString()), targetPc));
@@ -287,7 +290,7 @@ public class SeqUtil {
 
               case PTHREAD_JOIN:
                 MPORThread targetThread =
-                    ThreadUtil.extractThreadFromPthreadCall(pThreadActiveVars.keySet(), edge);
+                    ThreadUtil.extractThreadFromPthreadCall(pThreadJoiningVars.keySet(), edge);
                 CExpressionAssignmentStatement joiningTrueAssign =
                     SeqStatements.buildExprAssign(
                         pThreadJoiningVars.get(pThread).get(targetThread), SeqExpressions.INT_ONE);

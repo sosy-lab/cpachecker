@@ -217,16 +217,9 @@ public final class MPORUtil {
   }
 
   /**
-   * Tries to add pNewElem to pVisitedElem. If pVisitedElem contained pNewElem before, this returns
-   * false and true otherwise.
+   * If pVisitedElem contained pNewElem before, this returns false and true otherwise.
    *
-   * <p>The function is very short and could be replaced with pVisitedElem.add(pNewElem), but the
-   * name improves readability.
-   *
-   * @param pVisitedElem the set of already visited elements
-   * @param pNewElem the element we are trying to visit
-   * @return true if pVisitedElem did not contain pNewElem before
-   * @param <E> the Type of elements
+   * <p>The function could be replaced with pVisitedElem.add(pNewElem).
    */
   public static <E> boolean shouldVisit(Set<E> pVisitedElem, E pNewElem) {
     return pVisitedElem.add(pNewElem);
