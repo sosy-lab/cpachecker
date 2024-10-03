@@ -20,10 +20,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqT
 public class SeqExpressions {
 
   public static final CIntegerLiteralExpression INT_ONE =
-      new CIntegerLiteralExpression(FileLocation.DUMMY, SeqSimpleTypes.INT, BigInteger.ONE);
+      new CIntegerLiteralExpression(FileLocation.DUMMY, SeqTypes.INT, BigInteger.ONE);
 
   public static final CIntegerLiteralExpression INT_ZERO =
-      new CIntegerLiteralExpression(FileLocation.DUMMY, SeqSimpleTypes.INT, BigInteger.ZERO);
+      new CIntegerLiteralExpression(FileLocation.DUMMY, SeqTypes.INT, BigInteger.ZERO);
 
   /** Returns a {@link CIdExpression} with a declaration of the form {@code int {pVarName} = 0;}. */
   public static CIdExpression buildIntVar(String pVarName) {
@@ -32,11 +32,11 @@ public class SeqExpressions {
             FileLocation.DUMMY,
             true,
             CStorageClass.AUTO,
-            SeqSimpleTypes.INT,
+            SeqTypes.INT,
             pVarName,
             pVarName,
             SeqNameBuilder.createQualifiedName(SeqToken.MAIN, pVarName),
-            SeqInitializers.INT_ZERO);
+            SeqInitializers.INT_0);
     return new CIdExpression(FileLocation.DUMMY, varDec);
   }
 }

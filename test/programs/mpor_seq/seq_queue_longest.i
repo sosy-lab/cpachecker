@@ -712,8 +712,9 @@ int __t0_joining_t2 = 0;
 
 // custom function declarations
 int __VERIFIER_nondet_int();
-void __mpor_seq_assume(int cond);
-int __mpor_seq_any_unsigned(int array[], int size);
+void __mpor_seq_assume(const int);
+int __mpor_seq_any_unsigned(const int * const , const int);
+int main();
 
 void __mpor_seq_assume(int cond) {
   if (!(cond)) {

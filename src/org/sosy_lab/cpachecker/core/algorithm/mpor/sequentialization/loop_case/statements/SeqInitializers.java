@@ -13,6 +13,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 
 public class SeqInitializers {
-  public static final CInitializer INT_ZERO =
+  public static final CInitializer INT_0 =
       new CInitializerExpression(FileLocation.DUMMY, SeqExpressions.INT_ZERO);
 }

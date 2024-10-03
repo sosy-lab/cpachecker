@@ -45,9 +45,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.AnyUnsigned;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.Assume;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.MainMethod;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.VerifierNonDetInt;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCaseStmt;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements.SeqDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements.SeqExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
@@ -129,17 +129,18 @@ public class Sequentialization {
     rProgram.append(SeqSyntax.NEWLINE);
 
     // add all custom function declarations
-    VerifierNonDetInt verifierNonDetInt = new VerifierNonDetInt();
-    Assume assume = new Assume();
-    AnyUnsigned anyUnsigned = new AnyUnsigned();
     rProgram.append(SeqComment.createFuncDeclarationComment());
-    // this declaration may be duplicate depending on the input program, but that's fine in C
-    rProgram.append(verifierNonDetInt.getDeclaration()).append(SeqSyntax.NEWLINE);
-    rProgram.append(assume.getDeclaration()).append(SeqSyntax.NEWLINE);
-    rProgram.append(anyUnsigned.getDeclaration()).append(SeqSyntax.NEWLINE);
+    // __VERIFIER_nondet_int be duplicate depending on the input program, but that's fine in C
+    rProgram.append(SeqDeclarations.VERIFIER_NONDET_INT.toASTString()).append(SeqSyntax.NEWLINE);
+    rProgram.append(SeqDeclarations.ASSUME.toASTString()).append(SeqSyntax.NEWLINE);
+    rProgram.append(SeqDeclarations.ANY_UNSIGNED.toASTString()).append(SeqSyntax.NEWLINE);
+    // main should always be duplicate
+    rProgram.append(SeqDeclarations.MAIN.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqSyntax.NEWLINE);
 
     // add non main() methods
+    Assume assume = new Assume();
+    AnyUnsigned anyUnsigned = new AnyUnsigned();
     rProgram.append(assume).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
     rProgram.append(anyUnsigned).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
@@ -225,7 +226,7 @@ public class Sequentialization {
 
     for (var entry : pLoopCases.entrySet()) {
       ImmutableList<SeqLoopCase> loopCases = entry.getValue();
-      ImmutableMap<Integer, SeqLoopCase> originPcs = mapOriginPcToCases(loopCases);
+      ImmutableMap<Integer, SeqLoopCase> originPc = mapOriginPcToCases(loopCases);
       ImmutableList.Builder<SeqLoopCase> prunedCases = ImmutableList.builder();
 
       Set<SeqLoopCase> skippedCases = new HashSet<>();
@@ -234,7 +235,7 @@ public class Sequentialization {
       for (SeqLoopCase loopCase : loopCases) {
         if (!skippedCases.contains(loopCase)) {
           if (loopCase.allStatementsEmpty()) {
-            SeqLoopCase prunedCase = handleCasePrune(originPcs, loopCase, skippedCases, loopCase);
+            SeqLoopCase prunedCase = handleCasePrune(originPc, loopCase, skippedCases, loopCase);
             prunedCases.add(prunedCase);
             newCaseIds.add(prunedCase.id);
           } else if (!newCaseIds.contains(loopCase.id)) {
@@ -258,7 +259,7 @@ public class Sequentialization {
   }
 
   private static SeqLoopCase handleCasePrune(
-      final ImmutableMap<Integer, SeqLoopCase> pOriginPcs,
+      final ImmutableMap<Integer, SeqLoopCase> pOriginPc,
       final SeqLoopCase pInitCase,
       Set<SeqLoopCase> pSkipped,
       SeqLoopCase pCurrentCase) {
@@ -267,14 +268,14 @@ public class Sequentialization {
       // if all statements in pCurrentCase are empty -> check if it should be pruned
       if (pCurrentCase.allStatementsEmpty()) {
         pSkipped.add(pCurrentCase);
-        SeqLoopCase nextCase = pOriginPcs.get(caseStmt.targetPc.orElseThrow());
+        SeqLoopCase nextCase = pOriginPc.get(caseStmt.targetPc.orElseThrow());
         // TODO nextCase null -> targetPc is EXIT_PC, needs to be handled separately
         if (nextCase == null) {
           return pInitCase;
         }
         // do not visit exit nodes of the threads cfa
         if (!nextCase.statements.isEmpty()) {
-          return handleCasePrune(pOriginPcs, pInitCase, pSkipped, nextCase);
+          return handleCasePrune(pOriginPc, pInitCase, pSkipped, nextCase);
         }
         break; // if all stmts are empty, we only have to consider one -> breaking loop here
       }
