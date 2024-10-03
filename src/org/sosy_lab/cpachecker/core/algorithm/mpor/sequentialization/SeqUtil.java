@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ASTStringExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.EdgeCodeExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ElseIfExpr;
@@ -43,7 +42,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.s
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
@@ -53,41 +51,6 @@ public class SeqUtil {
   public static final int INIT_PC = 0;
 
   public static final int EXIT_PC = -1;
-
-  public static ImmutableList<ASTStringExpr> createGlobalDeclarations(
-      CSimpleDeclarationSubstitution pSubstitution) {
-
-    ImmutableList.Builder<ASTStringExpr> rGlobalDecs = ImmutableList.builder();
-    assert pSubstitution.globalVarSubs != null;
-    for (CVariableDeclaration sub : pSubstitution.globalVarSubs.values()) {
-      rGlobalDecs.add(new ASTStringExpr(sub.toASTString()));
-    }
-    return rGlobalDecs.build();
-  }
-
-  public static ImmutableList<ASTStringExpr> createLocalDeclarations(
-      CSimpleDeclarationSubstitution pSubstitution) {
-
-    ImmutableList.Builder<ASTStringExpr> rLocalDecs = ImmutableList.builder();
-    assert pSubstitution.localVarSubs != null;
-    for (CVariableDeclaration sub : pSubstitution.localVarSubs.values()) {
-      if (!isConstCPAcheckerTMP(sub)) {
-        rLocalDecs.add(new ASTStringExpr(sub.toASTString()));
-      }
-    }
-    return rLocalDecs.build();
-  }
-
-  public static ImmutableList<ASTStringExpr> createParamDeclarations(
-      CSimpleDeclarationSubstitution pSubstitution) {
-
-    ImmutableList.Builder<ASTStringExpr> rParamDecs = ImmutableList.builder();
-    assert pSubstitution.paramSubs != null;
-    for (CVariableDeclaration sub : pSubstitution.paramSubs.values()) {
-      rParamDecs.add(new ASTStringExpr(sub.toASTString()));
-    }
-    return rParamDecs.build();
-  }
 
   // TODO create CaseBuilder class
   /**
@@ -376,7 +339,7 @@ public class SeqUtil {
 
   // Helpers =====================================================================================
 
-  private static boolean isConstCPAcheckerTMP(CVariableDeclaration pVarDec) {
+  public static boolean isConstCPAcheckerTMP(CVariableDeclaration pVarDec) {
     return pVarDec.getType().isConst()
         && !pVarDec.isGlobal()
         && pVarDec.getName().contains(SeqToken.CPACHECKER_TMP);

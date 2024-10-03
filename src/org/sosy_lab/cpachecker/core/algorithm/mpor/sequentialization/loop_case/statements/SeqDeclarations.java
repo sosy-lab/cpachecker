@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
@@ -22,10 +22,11 @@ public class SeqDeclarations {
   // CParameterDeclaration =======================================================================
 
   public static final CParameterDeclaration COND =
-      new CParameterDeclaration(FileLocation.DUMMY, SeqTypes.INT, SeqToken.COND);
+      new CParameterDeclaration(FileLocation.DUMMY, SeqTypes.CONST_INT, SeqToken.COND);
 
   public static final CParameterDeclaration ARRAY =
-      new CParameterDeclaration(FileLocation.DUMMY, SeqTypes.ARRAY, SeqToken.ARRAY);
+      new CParameterDeclaration(
+          FileLocation.DUMMY, SeqTypes.CONST_POINTER_CONST_INT, SeqToken.ARRAY);
 
   public static final CParameterDeclaration SIZE =
       new CParameterDeclaration(FileLocation.DUMMY, SeqTypes.CONST_INT, SeqToken.SIZE);
@@ -37,7 +38,7 @@ public class SeqDeclarations {
           FileLocation.DUMMY,
           SeqTypes.VERIFIER_NONDET_INT,
           SeqToken.VERIFIER_NONDET_INT,
-          List.of(),
+          ImmutableList.of(),
           ImmutableSet.of());
 
   public static final CFunctionDeclaration ASSUME =
@@ -45,7 +46,7 @@ public class SeqDeclarations {
           FileLocation.DUMMY,
           SeqTypes.ASSUME,
           SeqNameBuilder.createFuncName(SeqToken.ASSUME),
-          List.of(COND),
+          ImmutableList.of(COND),
           ImmutableSet.of(FunctionAttribute.NO_RETURN));
 
   public static final CFunctionDeclaration ANY_UNSIGNED =
@@ -53,10 +54,10 @@ public class SeqDeclarations {
           FileLocation.DUMMY,
           SeqTypes.ANY_UNSIGNED,
           SeqNameBuilder.createFuncName(SeqToken.ANY_UNSIGNED),
-          List.of(ARRAY, SIZE),
+          ImmutableList.of(ARRAY, SIZE),
           ImmutableSet.of());
 
   public static final CFunctionDeclaration MAIN =
       new CFunctionDeclaration(
-          FileLocation.DUMMY, SeqTypes.MAIN, SeqToken.MAIN, List.of(), ImmutableSet.of());
+          FileLocation.DUMMY, SeqTypes.MAIN, SeqToken.MAIN, ImmutableList.of(), ImmutableSet.of());
 }

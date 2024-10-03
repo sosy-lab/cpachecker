@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements;
 
-import java.util.List;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -27,10 +26,6 @@ public class SeqTypes {
   public static final CSimpleType CONST_INT =
       new CSimpleType(true, false, CBasicType.INT, false, false, false, false, false, false, false);
 
-  // CArrayTypes =================================================================================
-
-  public static final CArrayType ARRAY = new CArrayType(true, false, INT);
-
   // CPointerTypes ===============================================================================
 
   /** A constant pointer to a constant int value (const int * const). */
@@ -43,12 +38,14 @@ public class SeqTypes {
 
   // CFunctionTypes ==============================================================================
 
-  public static final CFunctionType VERIFIER_NONDET_INT = new CFunctionType(INT, List.of(), false);
+  public static final CFunctionType VERIFIER_NONDET_INT =
+      new CFunctionType(INT, ImmutableList.of(), false);
 
-  public static final CFunctionType ASSUME = new CFunctionType(VOID, List.of(CONST_INT), false);
+  public static final CFunctionType ASSUME =
+      new CFunctionType(VOID, ImmutableList.of(CONST_INT), false);
 
   public static final CFunctionType ANY_UNSIGNED =
-      new CFunctionType(INT, List.of(CONST_POINTER_CONST_INT, CONST_INT), false);
+      new CFunctionType(INT, ImmutableList.of(CONST_POINTER_CONST_INT, CONST_INT), false);
 
-  public static final CFunctionType MAIN = new CFunctionType(INT, List.of(), false);
+  public static final CFunctionType MAIN = new CFunctionType(INT, ImmutableList.of(), false);
 }

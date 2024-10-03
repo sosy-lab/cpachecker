@@ -130,7 +130,7 @@ public class Sequentialization {
 
     // add all custom function declarations
     rProgram.append(SeqComment.createFuncDeclarationComment());
-    // __VERIFIER_nondet_int be duplicate depending on the input program, but that's fine in C
+    // __VERIFIER_nondet_int can be duplicate depending on the input program, but that's fine in C
     rProgram.append(SeqDeclarations.VERIFIER_NONDET_INT.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqDeclarations.ASSUME.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqDeclarations.ANY_UNSIGNED.toASTString()).append(SeqSyntax.NEWLINE);
@@ -530,8 +530,9 @@ public class Sequentialization {
   private String createGlobalVarString(CSimpleDeclarationSubstitution pSubstitution) {
     StringBuilder rDecs = new StringBuilder();
     rDecs.append(SeqComment.createGlobalVarsComment());
-    for (ASTStringExpr expr : SeqUtil.createGlobalDeclarations(pSubstitution)) {
-      rDecs.append(expr.toString()).append(SeqSyntax.NEWLINE);
+    assert pSubstitution.globalVarSubs != null;
+    for (CVariableDeclaration varDec : pSubstitution.globalVarSubs.values()) {
+      rDecs.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
     }
     rDecs.append(SeqSyntax.NEWLINE);
     return rDecs.toString();
@@ -540,8 +541,11 @@ public class Sequentialization {
   private String createLocalVarString(int pThreadId, CSimpleDeclarationSubstitution pSubstitution) {
     StringBuilder rDecs = new StringBuilder();
     rDecs.append(SeqComment.createLocalVarsComment(pThreadId));
-    for (ASTStringExpr expr : SeqUtil.createLocalDeclarations(pSubstitution)) {
-      rDecs.append(expr.toString()).append(SeqSyntax.NEWLINE);
+    for (CVariableDeclaration varDec : pSubstitution.localVarSubs.values()) {
+      // TODO handle const CPAchecker TMP vars
+      if (!SeqUtil.isConstCPAcheckerTMP(varDec)) {
+        rDecs.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
+      }
     }
     rDecs.append(SeqSyntax.NEWLINE);
     return rDecs.toString();
@@ -550,8 +554,9 @@ public class Sequentialization {
   private String createParamVarString(int pThreadId, CSimpleDeclarationSubstitution pSubstitution) {
     StringBuilder rDecs = new StringBuilder();
     rDecs.append(SeqComment.createParamVarsComment(pThreadId));
-    for (ASTStringExpr expr : SeqUtil.createParamDeclarations(pSubstitution)) {
-      rDecs.append(expr.toString()).append(SeqSyntax.NEWLINE);
+    assert pSubstitution.paramSubs != null;
+    for (CVariableDeclaration varDec : pSubstitution.paramSubs.values()) {
+      rDecs.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
     }
     rDecs.append(SeqSyntax.NEWLINE);
     return rDecs.toString();
