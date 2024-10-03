@@ -10,8 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.
 
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
@@ -38,5 +41,14 @@ public class SeqExpressions {
             SeqNameBuilder.createQualifiedName(SeqToken.MAIN, pVarName),
             SeqInitializers.INT_0);
     return new CIdExpression(FileLocation.DUMMY, varDec);
+  }
+
+  public static CIdExpression buildIdExpr(CVariableDeclaration pVarDec) {
+    return new CIdExpression(FileLocation.DUMMY, pVarDec);
+  }
+
+  public static CExpressionAssignmentStatement buildExprAssignStmt(
+      CLeftHandSide pLhs, CExpression pRhs) {
+    return new CExpressionAssignmentStatement(FileLocation.DUMMY, pLhs, pRhs);
   }
 }

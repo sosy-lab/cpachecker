@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -37,11 +38,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Variable;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ASTStringExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.DeclareExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.VariableExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.AnyUnsigned;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.Assume;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.MainMethod;
@@ -175,7 +174,7 @@ public class Sequentialization {
       ImmutableMap<ThreadEdge, CFAEdge> edgeSubs = substitution.substituteEdges(thread);
 
       // function handling
-      ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> paramAssigns =
+      ImmutableMap<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>> paramAssigns =
           mapParamAssigns(thread, edgeSubs, substitution);
       ImmutableMap<ThreadEdge, ImmutableSet<AssignExpr>> returnStmts =
           mapReturnStmts(thread, edgeSubs);
@@ -287,24 +286,26 @@ public class Sequentialization {
 
   /**
    * Maps {@link ThreadEdge}s whose {@link CFAEdge}s are {@link CFunctionCallEdge}s to a list of
-   * parameter assignment expressions.
+   * {@link CExpressionAssignmentStatement}s.
    *
    * <p>E.g. {@code func(&paramA, paramB);} in thread 0 is linked to {@code __t0_0_paramA = &paramA
    * ;} and {@code __t0_1_paramB = paramB ;}. Both substitution vars are declared in {@link
    * CSimpleDeclarationSubstitution#paramSubs}.
    */
-  private static ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> mapParamAssigns(
-      MPORThread pThread,
-      ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs,
-      CSimpleDeclarationSubstitution pSub) {
+  private static ImmutableMap<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>>
+      mapParamAssigns(
+          MPORThread pThread,
+          ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs,
+          CSimpleDeclarationSubstitution pSub) {
 
-    ImmutableMap.Builder<ThreadEdge, ImmutableList<AssignExpr>> rAssigns = ImmutableMap.builder();
+    ImmutableMap.Builder<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>> rAssigns =
+        ImmutableMap.builder();
 
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       CFAEdge subEdge = pEdgeSubs.get(threadEdge);
       if (subEdge instanceof CFunctionCallEdge funcCall) {
 
-        ImmutableList.Builder<AssignExpr> assigns = ImmutableList.builder();
+        ImmutableList.Builder<CExpressionAssignmentStatement> assigns = ImmutableList.builder();
         List<CParameterDeclaration> paramDecs =
             funcCall.getSuccessor().getFunctionDefinition().getParameters();
 
@@ -314,12 +315,10 @@ public class Sequentialization {
           assert pSub.paramSubs != null;
           CExpression paramExpr =
               funcCall.getFunctionCallExpression().getParameterExpressions().get(i);
-          CVariableDeclaration sub = pSub.paramSubs.get(paramDec);
+          CIdExpression sub = pSub.paramSubs.get(paramDec);
           assert sub != null;
-          AssignExpr assign =
-              new AssignExpr(
-                  new VariableExpr(Optional.empty(), new Variable(sub.getName())),
-                  new ASTStringExpr(paramExpr.toASTString()));
+          CExpressionAssignmentStatement assign =
+              SeqExpressions.buildExprAssignStmt(sub, paramExpr);
           assigns.add(assign);
         }
         rAssigns.put(threadEdge, assigns.build());
@@ -555,8 +554,8 @@ public class Sequentialization {
     StringBuilder rDecs = new StringBuilder();
     rDecs.append(SeqComment.createParamVarsComment(pThreadId));
     assert pSubstitution.paramSubs != null;
-    for (CVariableDeclaration varDec : pSubstitution.paramSubs.values()) {
-      rDecs.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
+    for (CIdExpression idExpr : pSubstitution.paramSubs.values()) {
+      rDecs.append(idExpr.getDeclaration().toASTString()).append(SeqSyntax.NEWLINE);
     }
     rDecs.append(SeqSyntax.NEWLINE);
     return rDecs.toString();

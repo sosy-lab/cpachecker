@@ -63,7 +63,7 @@ public class SeqUtil {
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs,
-      ImmutableMap<ThreadEdge, ImmutableList<AssignExpr>> pParamAssigns,
+      ImmutableMap<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>> pParamAssigns,
       ImmutableMap<ThreadEdge, ImmutableSet<AssignExpr>> pReturnStmts,
       ImmutableMap<ThreadEdge, AssignExpr> pReturnPcAssigns,
       ImmutableMap<ThreadNode, AssignExpr> pPcToReturnPcAssigns,
@@ -127,19 +127,19 @@ public class SeqUtil {
 
           } else if (sub instanceof CFunctionCallEdge) {
             assert pParamAssigns.containsKey(threadEdge);
-            ImmutableList<AssignExpr> assigns = pParamAssigns.get(threadEdge);
+            ImmutableList<CExpressionAssignmentStatement> assigns = pParamAssigns.get(threadEdge);
             assert assigns != null;
             if (assigns.isEmpty()) {
               stmts.add(new SeqLoopCaseStmt(pThread.id, false, Optional.empty(), targetPc));
             } else {
               for (int i = 0; i < assigns.size(); i++) {
-                AssignExpr assign = assigns.get(i);
+                CExpressionAssignmentStatement assign = assigns.get(i);
                 // if this is the last param assign, add the targetPc, otherwise empty
                 stmts.add(
                     new SeqLoopCaseStmt(
                         pThread.id,
                         false,
-                        Optional.of(assign.toString()),
+                        Optional.of(assign.toASTString()),
                         i == assigns.size() - 1 ? targetPc : Optional.empty()));
               }
             }

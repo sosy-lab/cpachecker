@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements.SeqExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SubstituteBuilder {
@@ -150,13 +152,14 @@ public class SubstituteBuilder {
       ImmutableSet<CVariableDeclaration> pGlobalVars,
       ImmutableSet<MPORThread> pThreads,
       CBinaryExpressionBuilder pBinExprBuilder) {
+
     ImmutableMap.Builder<MPORThread, CSimpleDeclarationSubstitution> rDecSubstitutions =
         ImmutableMap.builder();
     // create global vars up front, their initializer cannot contain local variables
     ImmutableMap<CVariableDeclaration, CVariableDeclaration> globalVarSubs =
         getVarSubs(null, null, 0, pGlobalVars, pBinExprBuilder);
     for (MPORThread thread : pThreads) {
-      ImmutableMap<CParameterDeclaration, CVariableDeclaration> paramSubs = getParamSubs(thread);
+      ImmutableMap<CParameterDeclaration, CIdExpression> paramSubs = getParamSubs(thread);
       ImmutableMap<CVariableDeclaration, CVariableDeclaration> localVarSubs =
           getVarSubs(globalVarSubs, paramSubs, thread.id, thread.localVars, pBinExprBuilder);
       rDecSubstitutions.put(
@@ -167,16 +170,16 @@ public class SubstituteBuilder {
     return rDecSubstitutions.buildOrThrow();
   }
 
-  private static ImmutableMap<CParameterDeclaration, CVariableDeclaration> getParamSubs(
+  private static ImmutableMap<CParameterDeclaration, CIdExpression> getParamSubs(
       MPORThread pThread) {
-    ImmutableMap.Builder<CParameterDeclaration, CVariableDeclaration> rThreadSubs =
-        ImmutableMap.builder();
+
+    ImmutableMap.Builder<CParameterDeclaration, CIdExpression> rThreadSubs = ImmutableMap.builder();
     for (CFunctionDeclaration funcDec : pThread.cfa.calledFuncs) {
       for (CParameterDeclaration paramDec : funcDec.getParameters()) {
         String varName = SeqNameBuilder.createParamName(paramDec, pThread.id);
-        rThreadSubs.put(
-            paramDec,
-            SubstituteBuilder.substituteVarDec(paramDec.asVariableDeclaration(), varName));
+        CVariableDeclaration varDec =
+            SubstituteBuilder.substituteVarDec(paramDec.asVariableDeclaration(), varName);
+        rThreadSubs.put(paramDec, SeqExpressions.buildIdExpr(varDec));
       }
     }
     return rThreadSubs.buildOrThrow();
@@ -188,7 +191,7 @@ public class SubstituteBuilder {
    */
   private static ImmutableMap<CVariableDeclaration, CVariableDeclaration> getVarSubs(
       @Nullable ImmutableMap<CVariableDeclaration, CVariableDeclaration> pGlobalVarSubs,
-      @Nullable ImmutableMap<CParameterDeclaration, CVariableDeclaration> pParamSubs,
+      @Nullable ImmutableMap<CParameterDeclaration, CIdExpression> pParamSubs,
       int pThreadId,
       ImmutableSet<CVariableDeclaration> pVarDecs,
       CBinaryExpressionBuilder pBinExprBuilder) {
