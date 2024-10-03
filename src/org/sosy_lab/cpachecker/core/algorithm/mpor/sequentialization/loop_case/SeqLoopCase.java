@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case;
 
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqElement;
@@ -29,7 +28,7 @@ public class SeqLoopCase implements SeqElement {
   public final ImmutableSet<Integer> targetPcs;
 
   public SeqLoopCase(int pOriginPc, ImmutableList<SeqLoopCaseStmt> pStatements) {
-    id = currentId++;
+    id = createNewId();
     originPc = pOriginPc;
     statements = pStatements;
     targetPcs = initTargetPcs(statements);
@@ -55,6 +54,19 @@ public class SeqLoopCase implements SeqElement {
 
   public SeqLoopCase cloneWithOriginPc(int pOriginPc) {
     return new SeqLoopCase(id, pOriginPc, statements);
+  }
+
+  private static long createNewId() {
+    return currentId++;
+  }
+
+  public boolean allStatementsEmpty() {
+    for (SeqLoopCaseStmt stmt : statements) {
+      if (stmt.statement.isPresent()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override

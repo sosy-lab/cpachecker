@@ -144,8 +144,7 @@ public class Sequentialization {
     rProgram.append(anyUnsigned).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
     // TODO we also need to prune:
-    //  - update ALL target pc so that the next non-empty statement is reached, no intermediary
-    //    empty statements
+    //  - update targetPc to -1 if we reach a thread exit node
     //  - the rest of the state space pruning (e.g. two local accesses after another)
     //    will be done via assume statements
     //    (on this note: we should also remove the const CPAchecker TMP logic and replace it with
@@ -234,15 +233,13 @@ public class Sequentialization {
 
       for (SeqLoopCase loopCase : loopCases) {
         if (!skippedCases.contains(loopCase)) {
-          for (SeqLoopCaseStmt caseStmt : loopCase.statements) {
-            if (caseStmt.statement.isEmpty()) {
-              SeqLoopCase prunedCase = handleCasePrune(originPcs, loopCase, skippedCases, loopCase);
-              prunedCases.add(prunedCase);
-              newCaseIds.add(prunedCase.id);
-            } else if (!newCaseIds.contains(loopCase.id)) {
-              prunedCases.add(loopCase);
-              newCaseIds.add(loopCase.id);
-            }
+          if (loopCase.allStatementsEmpty()) {
+            SeqLoopCase prunedCase = handleCasePrune(originPcs, loopCase, skippedCases, loopCase);
+            prunedCases.add(prunedCase);
+            newCaseIds.add(prunedCase.id);
+          } else if (!newCaseIds.contains(loopCase.id)) {
+            prunedCases.add(loopCase);
+            newCaseIds.add(loopCase.id);
           }
         }
       }
@@ -267,8 +264,8 @@ public class Sequentialization {
       SeqLoopCase pCurrentCase) {
 
     for (SeqLoopCaseStmt caseStmt : pCurrentCase.statements) {
-      if (caseStmt.statement.isEmpty()) {
-        assert pCurrentCase.statements.size() == 1;
+      // if all statements in pCurrentCase are empty -> check if it should be pruned
+      if (pCurrentCase.allStatementsEmpty()) {
         pSkipped.add(pCurrentCase);
         SeqLoopCase nextCase = pOriginPcs.get(caseStmt.targetPc.orElseThrow());
         // TODO nextCase null -> targetPc is EXIT_PC, needs to be handled separately
@@ -279,7 +276,9 @@ public class Sequentialization {
         if (!nextCase.statements.isEmpty()) {
           return handleCasePrune(pOriginPcs, pInitCase, pSkipped, nextCase);
         }
+        break; // if all stmts are empty, we only have to consider one -> breaking loop here
       }
+      // otherwise break recursion -> non-empty case found
       return pCurrentCase.cloneWithOriginPc(pInitCase.originPc);
     }
     throw new IllegalArgumentException("pCurrentCase statements are empty");

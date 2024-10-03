@@ -31,6 +31,7 @@ public class ThreadNode {
     leavingEdges = pLeavingEdges;
   }
 
+  // TODO the ordering of edges is not the same for all program runs -> use a list here?
   public Set<ThreadEdge> leavingEdges() {
     return leavingEdges;
   }

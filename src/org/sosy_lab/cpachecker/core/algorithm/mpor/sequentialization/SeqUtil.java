@@ -166,15 +166,19 @@ public class SeqUtil {
             assert pParamAssigns.containsKey(threadEdge);
             ImmutableList<AssignExpr> assigns = pParamAssigns.get(threadEdge);
             assert assigns != null;
-            for (int i = 0; i < assigns.size(); i++) {
-              AssignExpr assign = assigns.get(i);
-              // if it is the last param assign, add the targetPc, otherwise empty
-              stmts.add(
-                  new SeqLoopCaseStmt(
-                      pThread.id,
-                      false,
-                      Optional.of(assign.toString()),
-                      i == assigns.size() - 1 ? targetPc : Optional.empty()));
+            if (assigns.isEmpty()) {
+              stmts.add(new SeqLoopCaseStmt(pThread.id, false, Optional.empty(), targetPc));
+            } else {
+              for (int i = 0; i < assigns.size(); i++) {
+                AssignExpr assign = assigns.get(i);
+                // if this is the last param assign, add the targetPc, otherwise empty
+                stmts.add(
+                    new SeqLoopCaseStmt(
+                        pThread.id,
+                        false,
+                        Optional.of(assign.toString()),
+                        i == assigns.size() - 1 ? targetPc : Optional.empty()));
+              }
             }
 
           } else if (sub instanceof CDeclarationEdge) {

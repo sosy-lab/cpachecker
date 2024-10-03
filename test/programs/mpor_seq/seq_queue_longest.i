@@ -753,7 +753,7 @@ int main(void) {
         case 440: __return_pc_t0_init = 441;  __p0_20_q = &__g_18_queue;  pc[0] = 462; continue;
         case 441: __p0_19_q = &__g_18_queue;  pc[0] = 456; __return_pc_t0_empty = 443;  continue;
         case 443: if ((0 == __t0_23___CPAchecker_TMP_0) == -1) { pc[0] = 444;  }else if (!((0 == __t0_23___CPAchecker_TMP_0) == -1)) { pc[0] = 450;  }continue;
-        case 444: __return_pc_t0_reach_error = -1;  continue;
+        case 444: pc[0] = 446; __return_pc_t0_reach_error = -1;  continue;
         case 446: 4UL; pc[0] = 448; continue;
         case 448: __assert_fail("0", "queue_longest.c", 4, "__PRETTY_FUNCTION__"); pc[0] = -1; continue;
         case 450: __t1_active = 1; pc[0] = 452; continue;
@@ -803,7 +803,7 @@ int main(void) {
         case 37: const int __t1_32___CPAchecker_TMP_1 = __p1_24_q->tail; __p1_24_q->tail = (__p1_24_q->tail) + 1; __t1_32___CPAchecker_TMP_1; pc[1] = 40; continue;
         case 40: __t1_29___CPAchecker_TMP_0 = 0;  pc[1] = 36; continue;
         case 41: __t1_active = 0; pc[1] = -1; continue;
-        case 42: __return_pc_t1_reach_error = -1;  continue;
+        case 42: pc[1] = 45; __return_pc_t1_reach_error = -1;  continue;
         case 45: 4UL; pc[1] = 47; continue;
         case 47: __assert_fail("0", "queue_longest.c", 4, "__PRETTY_FUNCTION__"); pc[1] = -1; continue;
         case 49: if ((__p1_26_q->head) == (__p1_26_q->tail)) { pc[1] = 51;  }else if (!((__p1_26_q->head) == (__p1_26_q->tail))) { pc[1] = 54;  }continue;
@@ -811,7 +811,7 @@ int main(void) {
         case 52: __t1_30___CPAchecker_TMP_1 = -1;  pc[1] = 53; continue;
         case 53: pc[1] = __return_pc_t1_empty;  continue;
         case 54: __t1_30___CPAchecker_TMP_1 = 0;  pc[1] = 53; continue;
-        case 55: __return_pc_t1_reach_error = -1;  continue;
+        case 55: pc[1] = 45; __return_pc_t1_reach_error = -1;  continue;
       }
 
     } else if (next_thread == 2) {
@@ -824,7 +824,7 @@ int main(void) {
         case 8: __t2_34_i = __t2_34_i + 1; pc[2] = 4; continue;
         case 10: __p2_33_q = &__g_18_queue;  pc[2] = 22; __return_pc_t2_dequeue = 12;  continue;
         case 12: if ((0 == __t2_35___CPAchecker_TMP_0) == (__g_15_stored_elements[__t2_34_i])) { pc[2] = 13;  }else if (!((0 == __t2_35___CPAchecker_TMP_0) == (__g_15_stored_elements[__t2_34_i]))) { pc[2] = 19;  }continue;
-        case 13: __return_pc_t2_reach_error = -1;  continue;
+        case 13: pc[2] = 15; __return_pc_t2_reach_error = -1;  continue;
         case 15: 4UL; pc[2] = 17; continue;
         case 17: __assert_fail("0", "queue_longest.c", 4, "__PRETTY_FUNCTION__"); pc[2] = -1; continue;
         case 19: __g_17_dequeue_flag = 0; pc[2] = 20; continue;
