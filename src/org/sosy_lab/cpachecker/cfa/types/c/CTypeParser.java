@@ -108,12 +108,8 @@ public class CTypeParser {
     CComplexType.ComplexTypeKind kind = CComplexType.ComplexTypeKind.valueOf(parts.get(2));
     String name = parts.get(3);
     String origName = parts.get(4);
-    CComplexType realType = null;
-    if (parts.size() > 5 && !parts.get(5).equals("unknownType")) {
-      realType = (CComplexType) parse(parts.get(5));
-    }
 
-    return new CElaboratedType(isConst, isVolatile, kind, name, origName, realType);
+    return new CElaboratedType(isConst, isVolatile, kind, name, origName, null);
   }
 
   private static CType parseVoidType(String input) {

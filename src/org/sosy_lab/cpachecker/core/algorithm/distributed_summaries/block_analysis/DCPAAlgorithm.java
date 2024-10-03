@@ -222,7 +222,7 @@ public class DCPAAlgorithm {
             Objects.requireNonNull(
                 AbstractStates.extractStateByType(makeStartState(), PredicateAbstractState.class)));
 
-    // Create new invariantsState which sotres a disjunction of all invariants states formulas
+    // Create new invariantsState which joins all invariantsStates of the blockEnds
     InvariantsCPA invariantsCPA = CPAs.retrieveCPA(dcpa.getCPA(), InvariantsCPA.class);
     InvariantsState joinedInvariantsState =
         (InvariantsState)
