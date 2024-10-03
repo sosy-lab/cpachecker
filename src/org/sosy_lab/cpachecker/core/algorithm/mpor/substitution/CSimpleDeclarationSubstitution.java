@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -205,10 +207,8 @@ public class CSimpleDeclarationSubstitution implements Substitution {
           // TODO what about structs?
           CDeclaration dec = decl.getDeclaration();
           if (dec instanceof CVariableDeclaration) {
-            CSimpleDeclaration varSub = getVarSub(dec).getDeclaration();
-            if (varSub instanceof CVariableDeclaration varDec) {
-              substitute = SubstituteBuilder.substituteDeclarationEdge(decl, varDec);
-            }
+            CVariableDeclaration varDec = getVarDecSub(dec);
+            substitute = SubstituteBuilder.substituteDeclarationEdge(decl, varDec);
           }
 
         } else if (edge instanceof CAssumeEdge assume) {
@@ -262,6 +262,15 @@ public class CSimpleDeclarationSubstitution implements Substitution {
       }
     }
     throw new IllegalArgumentException("pSimpleDec must be CVariable- or CParameterDeclaration");
+  }
+
+  public CVariableDeclaration getVarDecSub(CSimpleDeclaration pSimpleDec) {
+    checkArgument(substitutableDeclaration(pSimpleDec), "pSimpleDec cannot be substituted");
+    CIdExpression idExpr = getVarSub(pSimpleDec);
+    checkArgument(
+        idExpr.getDeclaration() instanceof CVariableDeclaration,
+        "declaration of CIdExpression must be CVariableDeclaration");
+    return (CVariableDeclaration) idExpr.getDeclaration();
   }
 
   private boolean substitutableDeclaration(CSimpleDeclaration pSimpleDec) {

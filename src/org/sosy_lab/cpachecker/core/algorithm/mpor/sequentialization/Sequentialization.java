@@ -531,8 +531,7 @@ public class Sequentialization {
     rDecs.append(SeqComment.createGlobalVarsComment());
     assert pSubstitution.globalVarSubs != null;
     for (CIdExpression idExpr : pSubstitution.globalVarSubs.values()) {
-      assert idExpr.getDeclaration() instanceof CVariableDeclaration;
-      CVariableDeclaration varDec = (CVariableDeclaration) idExpr.getDeclaration();
+      CVariableDeclaration varDec = pSubstitution.getVarDecSub(idExpr.getDeclaration());
       rDecs.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
     }
     rDecs.append(SeqSyntax.NEWLINE);
@@ -544,8 +543,7 @@ public class Sequentialization {
     rDecs.append(SeqComment.createLocalVarsComment(pThreadId));
     for (CIdExpression idExpr : pSubstitution.localVarSubs.values()) {
       // TODO handle const CPAchecker TMP vars
-      assert idExpr.getDeclaration() instanceof CVariableDeclaration;
-      CVariableDeclaration varDec = (CVariableDeclaration) idExpr.getDeclaration();
+      CVariableDeclaration varDec = pSubstitution.getVarDecSub(idExpr.getDeclaration());
       if (!SeqUtil.isConstCPAcheckerTMP(varDec)) {
         rDecs.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
       }
