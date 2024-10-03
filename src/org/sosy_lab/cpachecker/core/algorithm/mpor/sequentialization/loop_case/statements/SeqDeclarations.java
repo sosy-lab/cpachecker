@@ -13,11 +13,20 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
 public class SeqDeclarations {
+
+  // CVariableDeclaration ========================================================================
+
+  public static final CVariableDeclaration PC =
+      buildVarDec(false, SeqTypes.PC, SeqToken.PC, SeqInitializers.INT_0);
 
   // CParameterDeclaration =======================================================================
 
@@ -60,4 +69,31 @@ public class SeqDeclarations {
   public static final CFunctionDeclaration MAIN =
       new CFunctionDeclaration(
           FileLocation.DUMMY, SeqTypes.MAIN, SeqToken.MAIN, ImmutableList.of(), ImmutableSet.of());
+
+  // Build Functions =============================================================================
+
+  // TODO SubstituteBuilder.substituteVarDec also uses CVariableDeclaration constructor
+  public static CVariableDeclaration buildVarDec(
+      boolean pIsGlobal, CType pCType, String pName, CInitializer pInitializer) {
+
+    return new CVariableDeclaration(
+        FileLocation.DUMMY,
+        pIsGlobal,
+        CStorageClass.AUTO,
+        pCType,
+        pName,
+        pName,
+        SeqNameBuilder.createQualifiedName(pName),
+        pInitializer);
+  }
+
+  /**
+   * Creates a {@link CVariableDeclaration} of the form {@code int
+   * __return_pc_t{pThreadId}_{pFuncName};}.
+   */
+  public static CVariableDeclaration buildReturnPcVarDec(int pThreadId, String pFuncName) {
+    String varName = SeqNameBuilder.createReturnPcName(pThreadId, pFuncName);
+    // TODO initialize with -2 and assert that it is not -2 when assigning in the sequentialization?
+    return buildVarDec(true, SeqTypes.INT, varName, SeqInitializers.INT_0);
+  }
 }

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -25,6 +26,10 @@ public class SeqTypes {
 
   public static final CSimpleType CONST_INT =
       new CSimpleType(true, false, CBasicType.INT, false, false, false, false, false, false, false);
+
+  // CArrayTypes ================================================================================
+
+  public static final CArrayType PC = new CArrayType(false, false, INT);
 
   // CPointerTypes ===============================================================================
 

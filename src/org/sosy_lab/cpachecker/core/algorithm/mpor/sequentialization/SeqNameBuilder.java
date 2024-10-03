@@ -69,8 +69,9 @@ public class SeqNameBuilder {
         + pTargetId;
   }
 
-  public static String createQualifiedName(String pFuncName, String pVarName) {
-    return pFuncName + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
+  public static String createQualifiedName(String pVarName) {
+    // TODO the qualified names are not relevant in the seq, so we just use dummy::
+    return SeqToken.DUMMY + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
   }
 
   // TODO unused

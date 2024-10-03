@@ -32,6 +32,8 @@ public class SeqToken {
 
   public static final String CPACHECKER_TMP = "__CPAchecker_TMP_";
 
+  public static final String DUMMY = "dummy";
+
   public static final String ELSE = "else";
 
   public static final String EXECUTE = "execute";

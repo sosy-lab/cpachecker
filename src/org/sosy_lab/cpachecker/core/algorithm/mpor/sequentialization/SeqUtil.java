@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.EdgeCodeExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ElseIfExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.IfExpr;
@@ -65,8 +64,8 @@ public class SeqUtil {
       ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs,
       ImmutableMap<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>> pParamAssigns,
       ImmutableMap<ThreadEdge, ImmutableSet<CExpressionAssignmentStatement>> pReturnStmts,
-      ImmutableMap<ThreadEdge, AssignExpr> pReturnPcAssigns,
-      ImmutableMap<ThreadNode, AssignExpr> pPcToReturnPcAssigns,
+      ImmutableMap<ThreadEdge, CExpressionAssignmentStatement> pReturnPcToPcAssigns,
+      ImmutableMap<ThreadNode, CExpressionAssignmentStatement> pPcToReturnPcAssigns,
       ImmutableMap<CIdExpression, CIdExpression> pThreadActiveVars,
       ImmutableMap<CIdExpression, CIdExpression> pMutexLockedVars,
       ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>> pThreadJoiningVars) {
@@ -84,10 +83,11 @@ public class SeqUtil {
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
       // handle all CFunctionReturnEdges: exiting function -> pc not relevant, assign return pc
       assert pPcToReturnPcAssigns.containsKey(pThreadNode);
-      AssignExpr assign = pPcToReturnPcAssigns.get(pThreadNode);
+      CExpressionAssignmentStatement assign = pPcToReturnPcAssigns.get(pThreadNode);
       assert assign != null;
       stmts.add(
-          new SeqLoopCaseStmt(pThread.id, false, Optional.of(assign.toString()), Optional.empty()));
+          new SeqLoopCaseStmt(
+              pThread.id, false, Optional.of(assign.toASTString()), Optional.empty()));
 
     } else {
       boolean firstEdge = true;
@@ -118,12 +118,12 @@ public class SeqUtil {
             }
 
           } else if (sub instanceof CFunctionSummaryEdge) {
-            assert pReturnPcAssigns.containsKey(threadEdge);
-            AssignExpr assign = pReturnPcAssigns.get(threadEdge);
+            assert pReturnPcToPcAssigns.containsKey(threadEdge);
+            CExpressionAssignmentStatement assign = pReturnPcToPcAssigns.get(threadEdge);
             assert assign != null;
             stmts.add(
                 new SeqLoopCaseStmt(
-                    pThread.id, false, Optional.of(assign.toString()), Optional.empty()));
+                    pThread.id, false, Optional.of(assign.toASTString()), Optional.empty()));
 
           } else if (sub instanceof CFunctionCallEdge) {
             assert pParamAssigns.containsKey(threadEdge);

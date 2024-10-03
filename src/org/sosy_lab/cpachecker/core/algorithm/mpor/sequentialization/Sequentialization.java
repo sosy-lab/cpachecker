@@ -18,11 +18,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -36,10 +38,6 @@ import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.DeclareExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.AnyUnsigned;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.Assume;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.MainMethod;
@@ -47,6 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.S
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCaseStmt;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements.SeqDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements.SeqExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements.SeqTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
@@ -91,9 +90,11 @@ public class Sequentialization {
       rProgram.append(createParamVarString(entry.getKey().id, entry.getValue()));
     }
     rProgram.append(SeqComment.createReturnPcVarsComment());
-    for (MPORThread thread : pSubstitutions.keySet()) {
-      for (DeclareExpr dec : mapReturnPcDecs(thread).values()) {
-        rProgram.append(dec.toString()).append(SeqSyntax.NEWLINE);
+    ImmutableMap<MPORThread, ImmutableMap<ThreadEdge, CIdExpression>> returnPcVars =
+        mapReturnPcVars(pSubstitutions.keySet());
+    for (ImmutableMap<ThreadEdge, CIdExpression> map : returnPcVars.values()) {
+      for (CIdExpression idExpr : map.values()) {
+        rProgram.append(idExpr.getDeclaration().toASTString()).append(SeqSyntax.NEWLINE);
       }
     }
     rProgram.append(SeqSyntax.NEWLINE);
@@ -149,7 +150,8 @@ public class Sequentialization {
     //    (on this note: we should also remove the const CPAchecker TMP logic and replace it with
     //    assumes as they are basically atomic)
     // add main() method with pruned (i.e. only non-empty) switch cases
-    ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> loopCases = mapLoopCases(pSubstitutions);
+    ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> loopCases =
+        mapLoopCases(pSubstitutions, returnPcVars);
     ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> prunedCases = pruneLoopCases(loopCases);
     MainMethod mainMethod = new MainMethod(prunedCases);
     rProgram.append(mainMethod);
@@ -159,7 +161,9 @@ public class Sequentialization {
 
   /** Maps threads to their SeqLoopCases. */
   private static ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> mapLoopCases(
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions) {
+      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
+      ImmutableMap<MPORThread, ImmutableMap<ThreadEdge, CIdExpression>> pReturnPcVars) {
+
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqLoopCase>> rLoopCases =
         ImmutableMap.builder();
     for (var entry : pSubstitutions.entrySet()) {
@@ -179,8 +183,10 @@ public class Sequentialization {
           mapParamAssigns(thread, edgeSubs, substitution);
       ImmutableMap<ThreadEdge, ImmutableSet<CExpressionAssignmentStatement>> returnStmts =
           mapReturnStmts(thread, edgeSubs);
-      ImmutableMap<ThreadEdge, AssignExpr> returnPcAssigns = mapReturnPcAssigns(thread);
-      ImmutableMap<ThreadNode, AssignExpr> pcToReturnPcAssigns = mapPcToReturnPcAssigns(thread);
+      ImmutableMap<ThreadEdge, CExpressionAssignmentStatement> returnPcToPcAssigns =
+          mapReturnPcToPcAssigns(thread, pReturnPcVars.get(thread));
+      ImmutableMap<ThreadNode, CExpressionAssignmentStatement> pcToReturnPcAssigns =
+          mapPcToReturnPcAssigns(thread, pReturnPcVars.get(thread));
 
       // pthread method replacements
       ImmutableMap<CIdExpression, CIdExpression> threadActiveVars =
@@ -202,7 +208,7 @@ public class Sequentialization {
                   edgeSubs,
                   paramAssigns,
                   returnStmts,
-                  returnPcAssigns,
+                  returnPcToPcAssigns,
                   pcToReturnPcAssigns,
                   threadActiveVars,
                   mutexLockedVars,
@@ -369,20 +375,26 @@ public class Sequentialization {
 
   /**
    * Maps {@link ThreadEdge}s whose {@link CFAEdge}s are {@link CFunctionSummaryEdge}s to {@code
-   * return_pc} declarations.
+   * return_pc} {@link CIdExpression}s.
    *
    * <p>E.g. a {@link CFunctionSummaryEdge} for the function {@code fib} in thread 0 is mapped to
-   * the declaration {@code int t0_fib_return_pc;}.
+   * the expression of {@code int __return_pc_t0_fib}.
    */
-  private static ImmutableMap<ThreadEdge, DeclareExpr> mapReturnPcDecs(MPORThread pThread) {
-    ImmutableMap.Builder<ThreadEdge, DeclareExpr> rDecs = ImmutableMap.builder();
-    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
-        rDecs.put(
-            threadEdge,
-            SeqExprBuilder.createReturnPcDec(
-                pThread.id, funcSummary.getFunctionEntry().getFunctionName()));
+  private static ImmutableMap<MPORThread, ImmutableMap<ThreadEdge, CIdExpression>> mapReturnPcVars(
+      ImmutableSet<MPORThread> pThreads) {
+
+    ImmutableMap.Builder<MPORThread, ImmutableMap<ThreadEdge, CIdExpression>> rDecs =
+        ImmutableMap.builder();
+    for (MPORThread thread : pThreads) {
+      ImmutableMap.Builder<ThreadEdge, CIdExpression> returnPc = ImmutableMap.builder();
+      for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
+        if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
+          String funcName = funcSummary.getFunctionEntry().getFunctionName();
+          CVariableDeclaration varDec = SeqDeclarations.buildReturnPcVarDec(thread.id, funcName);
+          returnPc.put(threadEdge, SeqExpressions.buildIdExpr(varDec));
+        }
       }
+      rDecs.put(thread, returnPc.buildOrThrow());
     }
     return rDecs.buildOrThrow();
   }
@@ -392,20 +404,20 @@ public class Sequentialization {
    * return_pc} assignments.
    *
    * <p>E.g. a {@link CFunctionSummaryEdge} going from pc 5 to 10 for the function {@code fib} in
-   * thread 0 is mapped to the assignment {@code t0_fib_return_pc = 10;}.
+   * thread 0 is mapped to the assignment {@code __return_pc_t0_fib = 10;}.
    */
-  private static ImmutableMap<ThreadEdge, AssignExpr> mapReturnPcAssigns(MPORThread pThread) {
-    ImmutableMap.Builder<ThreadEdge, AssignExpr> rAssigns = ImmutableMap.builder();
+  private static ImmutableMap<ThreadEdge, CExpressionAssignmentStatement> mapReturnPcToPcAssigns(
+      MPORThread pThread, ImmutableMap<ThreadEdge, CIdExpression> pReturnPcVars) {
 
-    ImmutableMap<ThreadEdge, DeclareExpr> returnPcDecs = mapReturnPcDecs(pThread);
+    ImmutableMap.Builder<ThreadEdge, CExpressionAssignmentStatement> rAssigns =
+        ImmutableMap.builder();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge) {
-        DeclareExpr dec = returnPcDecs.get(threadEdge);
-        assert dec != null;
-        AssignExpr assign =
-            new AssignExpr(
-                dec.variableExpr.variable,
-                new Value(Integer.toString(threadEdge.getSuccessor().pc)));
+        CIdExpression idExpr = pReturnPcVars.get(threadEdge);
+        assert idExpr != null;
+        CIntegerLiteralExpression pc =
+            SeqExpressions.buildIntLiteralExpr(threadEdge.getSuccessor().pc);
+        CExpressionAssignmentStatement assign = SeqExpressions.buildExprAssignStmt(idExpr, pc);
         rAssigns.put(threadEdge, assign);
       }
     }
@@ -417,23 +429,24 @@ public class Sequentialization {
    * return_pc} variable assignments.
    *
    * <p>E.g. a {@link FunctionExitNode} for the function {@code fib} in thread 0 is mapped to the
-   * assignment {@code pc[next_thread] = t0__fib__return_pc;}.
+   * assignment {@code pc[0] = __return_pc_t0_fib;}.
    */
-  private static ImmutableMap<ThreadNode, AssignExpr> mapPcToReturnPcAssigns(MPORThread pThread) {
-    Map<ThreadNode, AssignExpr> rAssigns = new HashMap<>();
+  private static ImmutableMap<ThreadNode, CExpressionAssignmentStatement> mapPcToReturnPcAssigns(
+      MPORThread pThread, ImmutableMap<ThreadEdge, CIdExpression> pReturnPcVars) {
 
-    ImmutableMap<ThreadEdge, DeclareExpr> returnPcDecs = mapReturnPcDecs(pThread);
+    Map<ThreadNode, CExpressionAssignmentStatement> rAssigns = new HashMap<>();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummaryEdge) {
         Optional<FunctionExitNode> funcExitNode = funcSummaryEdge.getFunctionEntry().getExitNode();
         if (funcExitNode.isPresent()) {
-          DeclareExpr dec = returnPcDecs.get(threadEdge);
+          CIdExpression returnPc = pReturnPcVars.get(threadEdge);
           ThreadNode threadNode = pThread.cfa.getThreadNodeByCfaNode(funcExitNode.orElseThrow());
           if (!rAssigns.containsKey(threadNode)) {
-            assert dec != null;
-            AssignExpr assign =
-                new AssignExpr(
-                    SeqExprBuilder.createPcUpdate(pThread.id), dec.variableExpr.variable);
+            CIntegerLiteralExpression threadId = SeqExpressions.buildIntLiteralExpr(pThread.id);
+            CArraySubscriptExpression pcArray =
+                SeqExpressions.buildArraySubscriptExpr(SeqTypes.PC, SeqExpressions.PC, threadId);
+            CExpressionAssignmentStatement assign =
+                SeqExpressions.buildExprAssignStmt(pcArray, returnPc);
             rAssigns.put(threadNode, assign);
           }
         }
