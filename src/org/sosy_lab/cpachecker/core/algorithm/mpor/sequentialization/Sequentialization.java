@@ -530,7 +530,9 @@ public class Sequentialization {
     StringBuilder rDecs = new StringBuilder();
     rDecs.append(SeqComment.createGlobalVarsComment());
     assert pSubstitution.globalVarSubs != null;
-    for (CVariableDeclaration varDec : pSubstitution.globalVarSubs.values()) {
+    for (CIdExpression idExpr : pSubstitution.globalVarSubs.values()) {
+      assert idExpr.getDeclaration() instanceof CVariableDeclaration;
+      CVariableDeclaration varDec = (CVariableDeclaration) idExpr.getDeclaration();
       rDecs.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
     }
     rDecs.append(SeqSyntax.NEWLINE);
@@ -540,8 +542,10 @@ public class Sequentialization {
   private String createLocalVarString(int pThreadId, CSimpleDeclarationSubstitution pSubstitution) {
     StringBuilder rDecs = new StringBuilder();
     rDecs.append(SeqComment.createLocalVarsComment(pThreadId));
-    for (CVariableDeclaration varDec : pSubstitution.localVarSubs.values()) {
+    for (CIdExpression idExpr : pSubstitution.localVarSubs.values()) {
       // TODO handle const CPAchecker TMP vars
+      assert idExpr.getDeclaration() instanceof CVariableDeclaration;
+      CVariableDeclaration varDec = (CVariableDeclaration) idExpr.getDeclaration();
       if (!SeqUtil.isConstCPAcheckerTMP(varDec)) {
         rDecs.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
       }

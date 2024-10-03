@@ -51,16 +51,14 @@ import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 
 public class CSimpleDeclarationSubstitution implements Substitution {
 
-  // TODO use CIdExpressions as values here
   /**
    * The map of global variable declarations to their substitutes. {@code null} if this instance
    * serves as a dummy.
    */
-  @Nullable public final ImmutableMap<CVariableDeclaration, CVariableDeclaration> globalVarSubs;
+  @Nullable public final ImmutableMap<CVariableDeclaration, CIdExpression> globalVarSubs;
 
-  // TODO use CIdExpressions as values here
   /** The map of thread local variable declarations to their substitutes. */
-  public final ImmutableMap<CVariableDeclaration, CVariableDeclaration> localVarSubs;
+  public final ImmutableMap<CVariableDeclaration, CIdExpression> localVarSubs;
 
   /**
    * The map of parameter to variable declaration substitutes. {@code null} if this instance serves
@@ -71,8 +69,8 @@ public class CSimpleDeclarationSubstitution implements Substitution {
   private final CBinaryExpressionBuilder binExprBuilder;
 
   public CSimpleDeclarationSubstitution(
-      @Nullable ImmutableMap<CVariableDeclaration, CVariableDeclaration> pGlobalVarSubs,
-      ImmutableMap<CVariableDeclaration, CVariableDeclaration> pLocalVarSubs,
+      @Nullable ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalVarSubs,
+      ImmutableMap<CVariableDeclaration, CIdExpression> pLocalVarSubs,
       @Nullable ImmutableMap<CParameterDeclaration, CIdExpression> pParamSubs,
       CBinaryExpressionBuilder pBinExprBuilder) {
 
@@ -91,16 +89,8 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     CType exprType = pExpression.getExpressionType();
 
     if (pExpression instanceof CIdExpression idExpr) {
-      if (idExpr.getDeclaration() instanceof CParameterDeclaration paramDec) {
-        assert paramSubs != null;
-        assert paramSubs.containsKey(paramDec);
-        return paramSubs.get(paramDec);
-
-      } else if (shouldSubstitute(idExpr.getDeclaration())) {
-        CVariableDeclaration sub = getVarSub(idExpr.getDeclaration());
-        // TODO do not create new CIdExpressions here everytime -> use CIdExpressions as values
-        //  instead of CVariableDeclaration in sub maps
-        return new CIdExpression(fl, exprType, sub.getName(), sub);
+      if (substitutableDeclaration(idExpr.getDeclaration())) {
+        return getVarSub(idExpr.getDeclaration());
       }
 
     } else if (pExpression instanceof CBinaryExpression binExpr) {
@@ -215,9 +205,9 @@ public class CSimpleDeclarationSubstitution implements Substitution {
           // TODO what about structs?
           CDeclaration dec = decl.getDeclaration();
           if (dec instanceof CVariableDeclaration) {
-            CVariableDeclaration varSub = getVarSub(dec);
-            if (varSub != null) {
-              substitute = SubstituteBuilder.substituteDeclarationEdge(decl, varSub);
+            CSimpleDeclaration varSub = getVarSub(dec).getDeclaration();
+            if (varSub instanceof CVariableDeclaration varDec) {
+              substitute = SubstituteBuilder.substituteDeclarationEdge(decl, varDec);
             }
           }
 
@@ -254,8 +244,8 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     return ImmutableMap.copyOf(rSubstitutes);
   }
 
-  /** Returns the global, local or param {@link CVariableDeclaration} substitute of pDec. */
-  private CVariableDeclaration getVarSub(CSimpleDeclaration pSimpleDec) {
+  /** Returns the global, local or param {@link CIdExpression} substitute of pDec. */
+  private CIdExpression getVarSub(CSimpleDeclaration pSimpleDec) {
     if (pSimpleDec instanceof CVariableDeclaration varDec) {
       if (localVarSubs.containsKey(varDec)) {
         return localVarSubs.get(varDec);
@@ -268,16 +258,13 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     } else if (pSimpleDec instanceof CParameterDeclaration paramDec) {
       assert paramSubs != null;
       if (paramSubs.containsKey(paramDec)) {
-        CIdExpression idExpr = paramSubs.get(paramDec);
-        assert idExpr != null;
-        assert idExpr.getDeclaration() instanceof CVariableDeclaration;
-        return (CVariableDeclaration) idExpr.getDeclaration();
+        return paramSubs.get(paramDec);
       }
     }
     throw new IllegalArgumentException("pSimpleDec must be CVariable- or CParameterDeclaration");
   }
 
-  private boolean shouldSubstitute(CSimpleDeclaration pSimpleDec) {
+  private boolean substitutableDeclaration(CSimpleDeclaration pSimpleDec) {
     return pSimpleDec instanceof CVariableDeclaration
         || pSimpleDec instanceof CParameterDeclaration;
   }
