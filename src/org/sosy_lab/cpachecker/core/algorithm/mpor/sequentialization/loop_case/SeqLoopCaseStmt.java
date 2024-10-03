@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqElement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 /** Represents a single case statement in the sequentialization while loop. */
@@ -55,18 +55,22 @@ public class SeqLoopCaseStmt implements SeqElement {
 
   @Override
   public String toString() {
-    Optional<AssignExpr> pcUpdate =
+    Optional<CExpressionAssignmentStatement> pcUpdate =
         targetPc.isPresent()
-            ? Optional.of(SeqExprBuilder.createPcNextThreadAssign(threadId, targetPc.orElseThrow()))
+            ? Optional.of(SeqStatements.buildPcAssign(threadId, targetPc.orElseThrow()))
             : Optional.empty();
     String pcUpdateString =
         isAssume && pcUpdate.isPresent()
-            ? SeqUtil.wrapInCurlyInwards(pcUpdate.orElseThrow())
-            : targetPc.isPresent() ? pcUpdate.orElseThrow().toString() : SeqSyntax.EMPTY_STRING;
+            ? SeqUtil.wrapInCurlyInwards(pcUpdate.orElseThrow().toASTString())
+            : targetPc.isPresent() ? pcUpdate.orElseThrow().toASTString() : SeqSyntax.EMPTY_STRING;
     if (statement.isEmpty()) {
       return pcUpdateString;
     } else {
-      return statement.orElseThrow() + SeqSyntax.SPACE + pcUpdateString;
+      if (pcUpdateString.isEmpty()) {
+        return statement.orElseThrow();
+      } else {
+        return statement.orElseThrow() + SeqSyntax.SPACE + pcUpdateString;
+      }
     }
   }
 }

@@ -751,10 +751,10 @@ int main(void) {
       switch (pc[0]) {
         case 0: __g_16_enqueue_flag = 1; pc[0] = 439; continue;
         case 439: __g_17_dequeue_flag = 0; pc[0] = 440; continue;
-        case 440: __return_pc_t0_init = 441; __p0_20_q = &__g_18_queue; pc[0] = 462; continue;
+        case 440: __p0_20_q = &__g_18_queue; pc[0] = 462; __return_pc_t0_init = 441; continue;
         case 441: __return_pc_t0_empty = 443; __p0_19_q = &__g_18_queue; pc[0] = 456; continue;
-        case 443: if (!((0 == __t0_23___CPAchecker_TMP_0) == -1)) { pc[0] = 450;  }else if ((0 == __t0_23___CPAchecker_TMP_0) == -1) { pc[0] = 444;  }continue;
-        case 444: pc[0] = 446; __return_pc_t0_reach_error = -1; continue;
+        case 443: if ((0 == __t0_23___CPAchecker_TMP_0) == -1) { pc[0] = 444; } else if (!((0 == __t0_23___CPAchecker_TMP_0) == -1)) { pc[0] = 450; } continue;
+        case 444: __return_pc_t0_reach_error = -1; pc[0] = 446; continue;
         case 446: 4UL; pc[0] = 448; continue;
         case 448: __assert_fail("0", "queue_longest.c", 4, "__PRETTY_FUNCTION__"); pc[0] = -1; continue;
         case 450: __t1_active = 1; pc[0] = 452; continue;
@@ -762,7 +762,7 @@ int main(void) {
         case 453: __t0_joining_t1 = 1; pc[0] = 454; continue;
         case 454: __t0_joining_t2 = 1; pc[0] = 455; continue;
         case 455: pc[0] = -1; continue;
-        case 456: if ((__p0_19_q->head) == (__p0_19_q->tail)) { pc[0] = 458;  }else if (!((__p0_19_q->head) == (__p0_19_q->tail))) { pc[0] = 461;  }continue;
+        case 456: if (!((__p0_19_q->head) == (__p0_19_q->tail))) { pc[0] = 461; } else if ((__p0_19_q->head) == (__p0_19_q->tail)) { pc[0] = 458; } continue;
         case 458: printf("queue is empty\n"); pc[0] = 459; continue;
         case 459: __t0_23___CPAchecker_TMP_0 = -1; pc[0] = 460; continue;
         case 460: pc[0] = __return_pc_t0_empty; continue;
@@ -778,15 +778,15 @@ int main(void) {
         case 0: __g_14_m_locked = 1; pc[1] = 4; continue;
         case 4: __t1_27_value = __VERIFIER_nondet_int(); pc[1] = 5; continue;
         case 5: __p1_24_q = &__g_18_queue; __p1_25_x = __t1_27_value; pc[1] = 27; __return_pc_t1_enqueue = 7; continue;
-        case 7: if (__t1_29___CPAchecker_TMP_0 == 0) { pc[1] = 8;  }else if (!(__t1_29___CPAchecker_TMP_0 == 0)) { pc[1] = 55;  }continue;
+        case 7: if (!(__t1_29___CPAchecker_TMP_0 == 0)) { pc[1] = 55; } else if (__t1_29___CPAchecker_TMP_0 == 0) { pc[1] = 8; } continue;
         case 8: __g_15_stored_elements[0] = __t1_27_value; pc[1] = 9; continue;
-        case 9: __return_pc_t1_empty = 11; __p1_26_q = &__g_18_queue; pc[1] = 49; continue;
-        case 11: if (__t1_30___CPAchecker_TMP_1 == 0) { pc[1] = 12;  }else if (!(__t1_30___CPAchecker_TMP_1 == 0)) { pc[1] = 42;  }continue;
+        case 9: __p1_26_q = &__g_18_queue; pc[1] = 49; __return_pc_t1_empty = 11; continue;
+        case 11: if (!(__t1_30___CPAchecker_TMP_1 == 0)) { pc[1] = 42; } else if (__t1_30___CPAchecker_TMP_1 == 0) { pc[1] = 12; } continue;
         case 12: __g_14_m_locked = 0; pc[1] = 13; continue;
         case 13: __t1_28_i = 0; pc[1] = 15; continue;
-        case 15: if (!(__t1_28_i < 799)) { pc[1] = 41;  }else if (__t1_28_i < 799) { pc[1] = 16;  }continue;
+        case 15: if (__t1_28_i < 799) { pc[1] = 16; } else if (!(__t1_28_i < 799)) { pc[1] = 41; } continue;
         case 16: __g_14_m_locked = 1; pc[1] = 17; continue;
-        case 17: if (!(__g_16_enqueue_flag == 0)) { pc[1] = 21;  }else if (__g_16_enqueue_flag == 0) { pc[1] = 18;  }continue;
+        case 17: if (__g_16_enqueue_flag == 0) { pc[1] = 18; } else if (!(__g_16_enqueue_flag == 0)) { pc[1] = 21; } continue;
         case 18: __g_14_m_locked = 0; pc[1] = 19; continue;
         case 19: __t1_28_i = __t1_28_i + 1; pc[1] = 15; continue;
         case 21: __t1_27_value = __VERIFIER_nondet_int(); pc[1] = 22; continue;
@@ -797,34 +797,34 @@ int main(void) {
         case 26: __g_14_m_locked = 0; pc[1] = 19; continue;
         case 27: (__p1_24_q->element)[__p1_24_q->tail] = __p1_25_x; pc[1] = 29; continue;
         case 29: const int __t1_31___CPAchecker_TMP_0 = __p1_24_q->amount; __p1_24_q->amount = (__p1_24_q->amount) + 1; __t1_31___CPAchecker_TMP_0; pc[1] = 32; continue;
-        case 32: if ((__p1_24_q->tail) == 800) { pc[1] = 33;  }else if (!((__p1_24_q->tail) == 800)) { pc[1] = 37;  }continue;
+        case 32: if (!((__p1_24_q->tail) == 800)) { pc[1] = 37; } else if ((__p1_24_q->tail) == 800) { pc[1] = 33; } continue;
         case 33: __p1_24_q->tail = 1; pc[1] = 34; continue;
         case 34: __t1_29___CPAchecker_TMP_0 = 0; pc[1] = 36; continue;
         case 36: pc[1] = __return_pc_t1_enqueue; continue;
         case 37: const int __t1_32___CPAchecker_TMP_1 = __p1_24_q->tail; __p1_24_q->tail = (__p1_24_q->tail) + 1; __t1_32___CPAchecker_TMP_1; pc[1] = 40; continue;
         case 40: __t1_29___CPAchecker_TMP_0 = 0; pc[1] = 36; continue;
         case 41: __t1_active = 0; pc[1] = -1; continue;
-        case 42: pc[1] = 45; __return_pc_t1_reach_error = -1; continue;
+        case 42: __return_pc_t1_reach_error = -1; pc[1] = 45; continue;
         case 45: 4UL; pc[1] = 47; continue;
         case 47: __assert_fail("0", "queue_longest.c", 4, "__PRETTY_FUNCTION__"); pc[1] = -1; continue;
-        case 49: if ((__p1_26_q->head) == (__p1_26_q->tail)) { pc[1] = 51;  }else if (!((__p1_26_q->head) == (__p1_26_q->tail))) { pc[1] = 54;  }continue;
+        case 49: if (!((__p1_26_q->head) == (__p1_26_q->tail))) { pc[1] = 54; } else if ((__p1_26_q->head) == (__p1_26_q->tail)) { pc[1] = 51; } continue;
         case 51: printf("queue is empty\n"); pc[1] = 52; continue;
         case 52: __t1_30___CPAchecker_TMP_1 = -1; pc[1] = 53; continue;
         case 53: pc[1] = __return_pc_t1_empty; continue;
         case 54: __t1_30___CPAchecker_TMP_1 = 0; pc[1] = 53; continue;
-        case 55: pc[1] = 45; __return_pc_t1_reach_error = -1; continue;
+        case 55: __return_pc_t1_reach_error = -1; pc[1] = 45; continue;
       }
 
     } else if (next_thread == 2) {
       switch (pc[2]) {
         case 0: __t2_34_i = 0; pc[2] = 4; continue;
-        case 4: if (__t2_34_i < 800) { pc[2] = 5;  }else if (!(__t2_34_i < 800)) { pc[2] = 37;  }continue;
+        case 4: if (__t2_34_i < 800) { pc[2] = 5; } else if (!(__t2_34_i < 800)) { pc[2] = 37; } continue;
         case 5: __g_14_m_locked = 1; pc[2] = 6; continue;
-        case 6: if (__g_17_dequeue_flag == 0) { pc[2] = 7;  }else if (!(__g_17_dequeue_flag == 0)) { pc[2] = 10;  }continue;
+        case 6: if (!(__g_17_dequeue_flag == 0)) { pc[2] = 10; } else if (__g_17_dequeue_flag == 0) { pc[2] = 7; } continue;
         case 7: __g_14_m_locked = 0; pc[2] = 8; continue;
         case 8: __t2_34_i = __t2_34_i + 1; pc[2] = 4; continue;
-        case 10: __p2_33_q = &__g_18_queue; pc[2] = 22; __return_pc_t2_dequeue = 12; continue;
-        case 12: if ((0 == __t2_35___CPAchecker_TMP_0) == (__g_15_stored_elements[__t2_34_i])) { pc[2] = 13;  }else if (!((0 == __t2_35___CPAchecker_TMP_0) == (__g_15_stored_elements[__t2_34_i]))) { pc[2] = 19;  }continue;
+        case 10: __return_pc_t2_dequeue = 12; __p2_33_q = &__g_18_queue; pc[2] = 22; continue;
+        case 12: if (!((0 == __t2_35___CPAchecker_TMP_0) == (__g_15_stored_elements[__t2_34_i]))) { pc[2] = 19; } else if ((0 == __t2_35___CPAchecker_TMP_0) == (__g_15_stored_elements[__t2_34_i])) { pc[2] = 13; } continue;
         case 13: __return_pc_t2_reach_error = -1; pc[2] = 15; continue;
         case 15: 4UL; pc[2] = 17; continue;
         case 17: __assert_fail("0", "queue_longest.c", 4, "__PRETTY_FUNCTION__"); pc[2] = -1; continue;
@@ -833,7 +833,7 @@ int main(void) {
         case 21: __g_14_m_locked = 0; pc[2] = 8; continue;
         case 22: __t2_36_x = (__p2_33_q->element)[__p2_33_q->head]; pc[2] = 25; continue;
         case 25: const int __t2_37___CPAchecker_TMP_0 = __p2_33_q->amount; __p2_33_q->amount = (__p2_33_q->amount) - 1; __t2_37___CPAchecker_TMP_0; pc[2] = 28; continue;
-        case 28: if ((__p2_33_q->head) == 800) { pc[2] = 29;  }else if (!((__p2_33_q->head) == 800)) { pc[2] = 33;  }continue;
+        case 28: if (!((__p2_33_q->head) == 800)) { pc[2] = 33; } else if ((__p2_33_q->head) == 800) { pc[2] = 29; } continue;
         case 29: __p2_33_q->head = 1; pc[2] = 30; continue;
         case 30: __t2_35___CPAchecker_TMP_0 = __t2_36_x; pc[2] = 32; continue;
         case 32: pc[2] = __return_pc_t2_dequeue; continue;

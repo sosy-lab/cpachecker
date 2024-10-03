@@ -73,7 +73,7 @@ public class SeqLoopCase implements SeqElement {
   public String toString() {
     StringBuilder stmts = new StringBuilder();
     for (SeqLoopCaseStmt stmt : statements) {
-      stmts.append(stmt.toString());
+      stmts.append(stmt.toString()).append(SeqSyntax.SPACE);
     }
     return SeqToken.CASE
         + SeqSyntax.SPACE

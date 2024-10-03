@@ -118,6 +118,7 @@ public class SeqUtil {
             }
 
           } else if (sub instanceof CFunctionSummaryEdge) {
+            assert pThreadNode.leavingEdges().size() >= 2;
             assert pReturnPcToPcAssigns.containsKey(threadEdge);
             CExpressionAssignmentStatement assign = pReturnPcToPcAssigns.get(threadEdge);
             assert assign != null;
@@ -126,6 +127,7 @@ public class SeqUtil {
                     pThread.id, false, Optional.of(assign.toASTString()), Optional.empty()));
 
           } else if (sub instanceof CFunctionCallEdge) {
+            assert pThreadNode.leavingEdges().size() >= 2;
             assert pParamAssigns.containsKey(threadEdge);
             ImmutableList<CExpressionAssignmentStatement> assigns = pParamAssigns.get(threadEdge);
             assert assigns != null;
@@ -287,7 +289,7 @@ public class SeqUtil {
     }
   }
 
-  /** Returns { pExpression } */
+  /** Returns "{ pExpression }" */
   public static String wrapInCurlyInwards(SeqExpression pExpression) {
     return SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.SPACE
@@ -296,7 +298,16 @@ public class SeqUtil {
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 
-  /** Returns } pExpression { */
+  /** Returns "{ pString }" */
+  public static String wrapInCurlyInwards(String pString) {
+    return SeqSyntax.CURLY_BRACKET_LEFT
+        + SeqSyntax.SPACE
+        + pString
+        + SeqSyntax.SPACE
+        + SeqSyntax.CURLY_BRACKET_RIGHT;
+  }
+
+  /** Returns "} pExpression {" */
   public static String wrapInCurlyOutwards(SeqExpression pExpression) {
     return SeqSyntax.CURLY_BRACKET_RIGHT
         + SeqSyntax.SPACE
