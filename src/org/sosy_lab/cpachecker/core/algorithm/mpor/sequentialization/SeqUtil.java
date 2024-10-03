@@ -64,7 +64,7 @@ public class SeqUtil {
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs,
       ImmutableMap<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>> pParamAssigns,
-      ImmutableMap<ThreadEdge, ImmutableSet<AssignExpr>> pReturnStmts,
+      ImmutableMap<ThreadEdge, ImmutableSet<CExpressionAssignmentStatement>> pReturnStmts,
       ImmutableMap<ThreadEdge, AssignExpr> pReturnPcAssigns,
       ImmutableMap<ThreadNode, AssignExpr> pPcToReturnPcAssigns,
       ImmutableMap<CIdExpression, CIdExpression> pThreadActiveVars,
@@ -204,12 +204,12 @@ public class SeqUtil {
               }
             } else {
               // returning from any other function: assign return value to all CPAchecker_TMP vars
-              ImmutableSet<AssignExpr> assigns = pReturnStmts.get(threadEdge);
+              ImmutableSet<CExpressionAssignmentStatement> assigns = pReturnStmts.get(threadEdge);
               assert assigns != null;
-              for (AssignExpr assign : assigns) {
+              for (CExpressionAssignmentStatement assign : assigns) {
                 stmts.add(
                     new SeqLoopCaseStmt(
-                        pThread.id, false, Optional.of(assign.toString()), targetPc));
+                        pThread.id, false, Optional.of(assign.toASTString()), targetPc));
               }
             }
 

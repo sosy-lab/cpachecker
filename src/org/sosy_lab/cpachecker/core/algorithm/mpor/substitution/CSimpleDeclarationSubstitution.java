@@ -251,26 +251,29 @@ public class CSimpleDeclarationSubstitution implements Substitution {
         return localVarSubs.get(varDec);
       } else {
         assert globalVarSubs != null;
-        if (globalVarSubs.containsKey(varDec)) {
-          return globalVarSubs.get(varDec);
-        }
+        checkArgument(
+            globalVarSubs.containsKey(varDec),
+            "no substitute found for " + pSimpleDec.toASTString());
+        return globalVarSubs.get(varDec);
       }
     } else if (pSimpleDec instanceof CParameterDeclaration paramDec) {
       assert paramSubs != null;
-      if (paramSubs.containsKey(paramDec)) {
-        return paramSubs.get(paramDec);
-      }
+      checkArgument(
+          paramSubs.containsKey(paramDec), "no substitute found for " + pSimpleDec.toASTString());
+      return paramSubs.get(paramDec);
     }
     throw new IllegalArgumentException("pSimpleDec must be CVariable- or CParameterDeclaration");
   }
 
   public CVariableDeclaration getVarDecSub(CSimpleDeclaration pSimpleDec) {
-    checkArgument(substitutableDeclaration(pSimpleDec), "pSimpleDec cannot be substituted");
     CIdExpression idExpr = getVarSub(pSimpleDec);
-    checkArgument(
-        idExpr.getDeclaration() instanceof CVariableDeclaration,
-        "declaration of CIdExpression must be CVariableDeclaration");
     return (CVariableDeclaration) idExpr.getDeclaration();
+  }
+
+  public CVariableDeclaration castIdExprDec(CSimpleDeclaration pSimpleDec) {
+    checkArgument(
+        pSimpleDec instanceof CVariableDeclaration, "pSimpleDec must be CVariableDeclaration");
+    return (CVariableDeclaration) pSimpleDec;
   }
 
   private boolean substitutableDeclaration(CSimpleDeclaration pSimpleDec) {

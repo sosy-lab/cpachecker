@@ -144,6 +144,7 @@ public class MainMethod implements SeqFunction {
         + switchCases
         + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
         + SeqUtil.prependTabsWithNewline(1, SeqSyntax.CURLY_BRACKET_RIGHT)
+        // TODO need a return 0; here
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 

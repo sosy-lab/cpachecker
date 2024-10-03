@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Variable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.DeclareExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExprBuilder;
@@ -173,10 +172,12 @@ public class Sequentialization {
       //  overview
       ImmutableMap<ThreadEdge, CFAEdge> edgeSubs = substitution.substituteEdges(thread);
 
+      // TODO here we should create a SeqFunction class or similar that keeps all of these values
+      //  for each thread / function
       // function handling
       ImmutableMap<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>> paramAssigns =
           mapParamAssigns(thread, edgeSubs, substitution);
-      ImmutableMap<ThreadEdge, ImmutableSet<AssignExpr>> returnStmts =
+      ImmutableMap<ThreadEdge, ImmutableSet<CExpressionAssignmentStatement>> returnStmts =
           mapReturnStmts(thread, edgeSubs);
       ImmutableMap<ThreadEdge, AssignExpr> returnPcAssigns = mapReturnPcAssigns(thread);
       ImmutableMap<ThreadNode, AssignExpr> pcToReturnPcAssigns = mapPcToReturnPcAssigns(thread);
@@ -329,31 +330,33 @@ public class Sequentialization {
 
   /**
    * Maps {@link ThreadEdge}s whose {@link CFAEdge}s are {@link CReturnStatementEdge}s to {@link
-   * AssignExpr} where the CPAchecker_TMP vars are assigned the return value.
+   * CExpressionAssignmentStatement} where the CPAchecker_TMP vars are assigned the return value.
    *
    * <p>Note that {@code main} functions and start routines of threads oftentimes do not have
    * corresponding {@link CFunctionSummaryEdge}s.
    */
-  private static ImmutableMap<ThreadEdge, ImmutableSet<AssignExpr>> mapReturnStmts(
-      MPORThread pThread, ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs) {
+  private static ImmutableMap<ThreadEdge, ImmutableSet<CExpressionAssignmentStatement>>
+      mapReturnStmts(MPORThread pThread, ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs) {
 
-    ImmutableMap.Builder<ThreadEdge, ImmutableSet<AssignExpr>> rRetStmts = ImmutableMap.builder();
+    ImmutableMap.Builder<ThreadEdge, ImmutableSet<CExpressionAssignmentStatement>> rRetStmts =
+        ImmutableMap.builder();
     for (ThreadEdge aThreadEdge : pThread.cfa.threadEdges) {
       CFAEdge aSub = pEdgeSubs.get(aThreadEdge);
+
       if (aSub instanceof CReturnStatementEdge retStmt) {
         AFunctionType aFunc = retStmt.getSuccessor().getFunction().getType();
-        ImmutableSet.Builder<AssignExpr> assigns = ImmutableSet.builder();
+        ImmutableSet.Builder<CExpressionAssignmentStatement> assigns = ImmutableSet.builder();
         for (ThreadEdge bThreadEdge : pThread.cfa.threadEdges) {
           CFAEdge bSub = pEdgeSubs.get(bThreadEdge);
+
           if (bSub instanceof CFunctionSummaryEdge funcSumm) {
             // if the summary edge is of the form CPAchecker_TMP = func(); (i.e. an assignment)
             if (funcSumm.getExpression() instanceof CFunctionCallAssignmentStatement assignStmt) {
               AFunctionType bFunc = funcSumm.getFunctionEntry().getFunction().getType();
               if (aFunc.equals(bFunc)) {
                 assigns.add(
-                    new AssignExpr(
-                        new Variable(assignStmt.getLeftHandSide().toASTString()),
-                        new Variable(retStmt.getExpression().orElseThrow().toASTString())));
+                    SeqExpressions.buildExprAssignStmt(
+                        assignStmt.getLeftHandSide(), retStmt.getExpression().orElseThrow()));
               }
             }
           }
@@ -531,8 +534,7 @@ public class Sequentialization {
     rDecs.append(SeqComment.createGlobalVarsComment());
     assert pSubstitution.globalVarSubs != null;
     for (CIdExpression idExpr : pSubstitution.globalVarSubs.values()) {
-      CVariableDeclaration varDec = pSubstitution.getVarDecSub(idExpr.getDeclaration());
-      rDecs.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
+      rDecs.append(idExpr.getDeclaration().toASTString()).append(SeqSyntax.NEWLINE);
     }
     rDecs.append(SeqSyntax.NEWLINE);
     return rDecs.toString();
@@ -542,8 +544,8 @@ public class Sequentialization {
     StringBuilder rDecs = new StringBuilder();
     rDecs.append(SeqComment.createLocalVarsComment(pThreadId));
     for (CIdExpression idExpr : pSubstitution.localVarSubs.values()) {
+      CVariableDeclaration varDec = pSubstitution.castIdExprDec(idExpr.getDeclaration());
       // TODO handle const CPAchecker TMP vars
-      CVariableDeclaration varDec = pSubstitution.getVarDecSub(idExpr.getDeclaration());
       if (!SeqUtil.isConstCPAcheckerTMP(varDec)) {
         rDecs.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
       }
