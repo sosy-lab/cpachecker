@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 /**
  * This class is a mixin for {@link FunctionEntryNode}.
  *
- * <p>It sets the names to be used for all relevant subtypes.
+ * <p>It sets the names to use for all relevant subtypes.
  *
  * <p>It serializes its {@link FunctionExitNode} field as number.
  */

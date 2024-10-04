@@ -28,14 +28,21 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -79,7 +86,11 @@ public class CfaJsonModule extends SimpleModule {
 
     /* Register all mixins. */
     pContext.setMixInAnnotations(AAstNode.class, AAstNodeMixin.class);
+    pContext.setMixInAnnotations(ADeclarationEdge.class, ADeclarationEdgeMixin.class);
+    pContext.setMixInAnnotations(AReturnStatementEdge.class, AReturnStatementEdgeMixin.class);
+    pContext.setMixInAnnotations(AStatementEdge.class, AStatementEdgeMixin.class);
     pContext.setMixInAnnotations(AbstractCFAEdge.class, AbstractCFAEdgeMixin.class);
+    pContext.setMixInAnnotations(AssumeEdge.class, AssumeEdgeMixin.class);
     pContext.setMixInAnnotations(BlankEdge.class, BlankEdgeMixin.class);
     pContext.setMixInAnnotations(
         CArraySubscriptExpression.class, CArraySubscriptExpressionMixin.class);
@@ -92,7 +103,6 @@ public class CfaJsonModule extends SimpleModule {
     pContext.setMixInAnnotations(CExpressionStatement.class, CExpressionStatementMixin.class);
     pContext.setMixInAnnotations(CFAEdge.class, CFAEdgeMixin.class);
     pContext.setMixInAnnotations(CFALabelNode.class, CFALabelNodeMixin.class);
-    pContext.setMixInAnnotations(CfaMetadata.class, CfaMetadataMixin.class);
     pContext.setMixInAnnotations(CFANode.class, CFANodeMixin.class);
     pContext.setMixInAnnotations(CFATerminationNode.class, CFATerminationNodeMixin.class);
     pContext.setMixInAnnotations(
@@ -114,17 +124,22 @@ public class CfaJsonModule extends SimpleModule {
     pContext.setMixInAnnotations(CParameterDeclaration.class, CParameterDeclarationMixin.class);
     pContext.setMixInAnnotations(CPointerType.class, CPointerTypeMixin.class);
     pContext.setMixInAnnotations(CProblemType.class, CProblemTypeMixin.class);
-    pContext.setMixInAnnotations(CReturnStatement.class, CReturnStatementMixin.class);
     pContext.setMixInAnnotations(CReturnStatementEdge.class, CReturnStatementEdgeMixin.class);
+    pContext.setMixInAnnotations(CReturnStatement.class, CReturnStatementMixin.class);
     pContext.setMixInAnnotations(CSimpleType.class, CSimpleTypeMixin.class);
     pContext.setMixInAnnotations(CStatementEdge.class, CStatementEdgeMixin.class);
     pContext.setMixInAnnotations(
         CStringLiteralExpression.class, CStringLiteralExpressionMixin.class);
     pContext.setMixInAnnotations(CVariableDeclaration.class, CVariableDeclarationMixin.class);
     pContext.setMixInAnnotations(CVoidType.class, CVoidTypeMixin.class);
+    pContext.setMixInAnnotations(CfaJsonModule.class, CfaJsonModule.class);
+    pContext.setMixInAnnotations(CfaMetadata.class, CfaMetadataMixin.class);
     pContext.setMixInAnnotations(FileLocation.class, FileLocationMixin.class);
+    pContext.setMixInAnnotations(FunctionCallEdge.class, FunctionCallEdgeMixin.class);
     pContext.setMixInAnnotations(FunctionEntryNode.class, FunctionEntryNodeMixin.class);
     pContext.setMixInAnnotations(FunctionExitNode.class, FunctionExitNodeMixin.class);
+    pContext.setMixInAnnotations(FunctionReturnEdge.class, FunctionReturnEdgeMixin.class);
+    pContext.setMixInAnnotations(FunctionSummaryEdge.class, FunctionSummaryEdgeMixin.class);
     pContext.setMixInAnnotations(Loop.class, LoopMixin.class);
     pContext.setMixInAnnotations(LoopStructure.class, LoopStructureMixin.class);
     pContext.setMixInAnnotations(Partition.class, PartitionMixin.class);

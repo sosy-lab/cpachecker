@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  *
  * <p>Type information is being serialized to account for subtype polymorphism.
  *
- * <p>It sets the names to be used for all relevant subtypes.
+ * <p>It sets the names to use for all relevant subtypes.
  *
  * <p>Edges are serialized as IDs.
  *

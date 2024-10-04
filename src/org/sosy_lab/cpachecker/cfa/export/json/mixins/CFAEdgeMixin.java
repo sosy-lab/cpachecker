@@ -9,9 +9,15 @@
 package org.sosy_lab.cpachecker.cfa.export.json.mixins;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.export.json.deserialization.CfaEdgeIdResolver;
 import org.sosy_lab.cpachecker.cfa.export.json.serialization.CfaEdgeIdGenerator;
+import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
@@ -20,13 +26,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  * <p>Identity information is being serialized to prevent infinite recursion.
  *
  * <p>Type information is being serialized to account for subtype polymorphism.
+ *
+ * <p>It sets the names to use for all relevant subtypes.
  */
 @JsonIdentityInfo(
     generator = CfaEdgeIdGenerator.class,
     resolver = CfaEdgeIdResolver.class,
     property = "edgeNumber")
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.CLASS,
-    include = JsonTypeInfo.As.PROPERTY,
-    property = "typeOfCFAEdge")
+@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "edgeType")
+@JsonSubTypes({
+  @Type(value = AbstractCFAEdge.class, name = "Abstract"),
+  @Type(value = DummyCFAEdge.class, name = "Dummy")
+})
 public final class CFAEdgeMixin {}
