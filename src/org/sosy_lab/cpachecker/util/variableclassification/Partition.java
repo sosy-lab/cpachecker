@@ -44,7 +44,7 @@ public class Partition implements Comparable<Partition> {
 
   private final Table<CFAEdge, Integer, Partition> edgeToPartition;
 
-  Partition(
+  public Partition(
       Map<String, Partition> varToPartition, Table<CFAEdge, Integer, Partition> edgeToPartition) {
     this.varToPartition = checkNotNull(varToPartition);
     this.edgeToPartition = checkNotNull(edgeToPartition);

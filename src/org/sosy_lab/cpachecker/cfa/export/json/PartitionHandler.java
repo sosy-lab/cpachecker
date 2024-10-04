@@ -53,8 +53,6 @@ public class PartitionHandler {
       Constructor<?> partitionConstructor =
           Partition.class.getDeclaredConstructor(Map.class, Table.class);
 
-      ClassUtil.checkAndFixAccess(partitionConstructor, true);
-
       this.partition =
           (Partition) partitionConstructor.newInstance(this.varToPartition, this.edgeToPartition);
 
