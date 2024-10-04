@@ -19,7 +19,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
  * A converter that transforms a set of {@link CSimpleDeclaration} objects into a sorted list of
  * {@link CSimpleDeclaration} objects.
  *
- * <p>The sorting is based on the hash code of the {@link CSimpleDeclaration} objects.
+ * <p>The sorting is based on the qualified name of the {@link CSimpleDeclaration} objects, which is
+ * global and unique.
  */
 public final class CSimpleDeclarationSetToSortedListConverter
     extends StdConverter<Set<CSimpleDeclaration>, List<CSimpleDeclaration>> {
@@ -27,7 +28,7 @@ public final class CSimpleDeclarationSetToSortedListConverter
   @Override
   public List<CSimpleDeclaration> convert(Set<CSimpleDeclaration> pSet) {
     List<CSimpleDeclaration> list = new ArrayList<>(pSet);
-    list.sort(Comparator.comparing(CSimpleDeclaration::hashCode));
+    list.sort(Comparator.comparing(CSimpleDeclaration::getQualifiedName));
 
     return list;
   }
