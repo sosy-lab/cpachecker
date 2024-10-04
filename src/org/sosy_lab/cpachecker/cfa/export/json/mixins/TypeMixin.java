@@ -20,7 +20,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 /**
  * This class is a mixin for {@link Type}.
  *
- * <p>Type information is being serialized to account for subtype polymorphism.
+ * <p>Since this class has subtypes, Jackson needs to know which type to instantiate when it
+ * encounters a {@link Type} object during deserialization. This additional information is
+ * serialized as a property "typeType" in the JSON representation of the object.
  *
  * <p>It sets the names to use for all relevant subtypes.
  */

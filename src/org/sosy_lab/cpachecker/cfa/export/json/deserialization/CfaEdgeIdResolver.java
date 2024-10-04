@@ -15,12 +15,19 @@ import com.fasterxml.jackson.annotation.ObjectIdResolver;
 import com.fasterxml.jackson.annotation.SimpleObjectIdResolver;
 import java.util.HashMap;
 import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonImport;
+import org.sosy_lab.cpachecker.cfa.export.json.mixins.CFAEdgeMixin;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
  * This class is a custom {@link ObjectIdResolver}.
  *
  * <p>It is used to retrieve {@link CFAEdge}s from their respective IDs.
+ *
+ * @see CfaJsonImport
+ * @see CFAEdgeMixin
+ * @see EdgeToPartitionsDeserializer
+ * @see PartitionsDeserializer
  */
 public final class CfaEdgeIdResolver extends SimpleObjectIdResolver {
   private static final ThreadLocal<CfaEdgeIdResolver> currentResolver = new ThreadLocal<>();

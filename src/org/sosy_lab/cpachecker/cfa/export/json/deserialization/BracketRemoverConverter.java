@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cfa.export.json.deserialization;
 
 import com.fasterxml.jackson.databind.util.StdConverter;
+import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonImport;
+import org.sosy_lab.cpachecker.cfa.export.json.mixins.CAssumeEdgeMixin;
 
 /**
  * A converter that removes the leading and trailing brackets from a given string.
@@ -17,6 +19,9 @@ import com.fasterxml.jackson.databind.util.StdConverter;
  * the input string is returned as is.
  *
  * <p>If the input string is null, null is returned.
+ *
+ * @see CfaJsonImport
+ * @see CAssumeEdgeMixin
  */
 public final class BracketRemoverConverter extends StdConverter<String, String> {
 

@@ -12,23 +12,31 @@ import com.fasterxml.jackson.databind.util.StdConverter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Table;
 import java.util.List;
-import org.sosy_lab.cpachecker.cfa.export.json.TableEntry;
+import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonExport;
+import org.sosy_lab.cpachecker.cfa.export.json.EdgeToPartitionEntry;
+import org.sosy_lab.cpachecker.cfa.export.json.mixins.VariableClassificationMixin;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 
 /**
- * A converter class that converts a {@link Table} object to a list of {@link TableEntry} objects.
+ * A converter class that converts a {@link Table} object to a list of {@link EdgeToPartitionEntry}
+ * objects.
  *
  * <p>The Table object represents a mapping between CFAEdges, Integers, and Partitions
  * (EdgeToPartitions).
+ *
+ * @see CfaJsonExport
+ * @see VariableClassificationMixin
  */
 public final class EdgeToPartitionsTableToListConverter
-    extends StdConverter<Table<CFAEdge, Integer, Partition>, List<TableEntry>> {
+    extends StdConverter<Table<CFAEdge, Integer, Partition>, List<EdgeToPartitionEntry>> {
   @Override
-  public List<TableEntry> convert(Table<CFAEdge, Integer, Partition> pTable) {
+  public List<EdgeToPartitionEntry> convert(Table<CFAEdge, Integer, Partition> pTable) {
     return pTable.cellSet().stream()
         .filter(cell -> cell.getValue() != null)
-        .map(cell -> new TableEntry(cell.getRowKey(), cell.getColumnKey(), cell.getValue()))
+        .map(
+            cell ->
+                new EdgeToPartitionEntry(cell.getRowKey(), cell.getColumnKey(), cell.getValue()))
         .collect(ImmutableList.toImmutableList());
   }
 }

@@ -13,12 +13,17 @@ import com.fasterxml.jackson.annotation.ObjectIdResolver;
 import com.fasterxml.jackson.annotation.SimpleObjectIdResolver;
 import java.io.IOException;
 import java.util.HashMap;
+import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonImport;
+import org.sosy_lab.cpachecker.cfa.export.json.mixins.PartitionMixin;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 
 /**
  * This class is a custom {@link ObjectIdResolver}.
  *
  * <p>It is used for {@link Partition} objects.
+ *
+ * @see CfaJsonImport
+ * @see PartitionMixin
  */
 public final class PartitionIdResolver extends SimpleObjectIdResolver {
 

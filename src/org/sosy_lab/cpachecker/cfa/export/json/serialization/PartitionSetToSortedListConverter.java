@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonExport;
+import org.sosy_lab.cpachecker.cfa.export.json.mixins.VariableClassificationMixin;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 
 /**
@@ -20,6 +22,9 @@ import org.sosy_lab.cpachecker.util.variableclassification.Partition;
  * Partition} objects.
  *
  * <p>The sorting is based on the hash code of the {@link Partition} objects.
+ *
+ * @see CfaJsonExport
+ * @see VariableClassificationMixin
  */
 public final class PartitionSetToSortedListConverter
     extends StdConverter<Set<Partition>, List<Partition>> {

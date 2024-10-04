@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonData;
+import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonExport;
 import org.sosy_lab.cpachecker.cfa.export.json.PartitionHandler;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
@@ -31,6 +33,9 @@ import org.sosy_lab.cpachecker.util.variableclassification.Partition;
  * Custom JSON serializer for serializing a set of {@link Partition}s.
  *
  * <p>It serializes the partitions as an array of objects. Each object represents a partition.
+ *
+ * @see CfaJsonExport
+ * @see CfaJsonData
  */
 public final class PartitionsSerializer extends JsonSerializer<Set<Partition>> {
 

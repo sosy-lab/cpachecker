@@ -179,7 +179,13 @@ public class CFACreator {
       description = "add loop-structure information to CFA.")
   private boolean useLoopStructure = true;
 
-  @Option(secure = true, name = "cfa.export", description = "export CFA as .dot and JSON files")
+  @Option(
+      secure = true,
+      name = "cfa.export",
+      description =
+          "Export CFA as .dot and/or JSON file. The .dot export is determined by the 'cfa.file'"
+              + " option, which is set to 'cfa.dot' by default. The JSON export is determined by"
+              + " the option 'cfa.export.json'. This option must be set for the export.")
   private boolean exportCfa = true;
 
   @Option(

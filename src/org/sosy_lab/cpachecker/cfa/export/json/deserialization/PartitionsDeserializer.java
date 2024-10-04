@@ -22,8 +22,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonData;
+import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonImport;
+import org.sosy_lab.cpachecker.cfa.export.json.EdgeToPartitionEntry;
 import org.sosy_lab.cpachecker.cfa.export.json.PartitionHandler;
-import org.sosy_lab.cpachecker.cfa.export.json.TableEntry;
+import org.sosy_lab.cpachecker.cfa.export.json.mixins.VariableClassificationMixin;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 
@@ -34,6 +37,11 @@ import org.sosy_lab.cpachecker.util.variableclassification.Partition;
  * <p>The deserialization process involves reading the JSON data, constructing PartitionHandler
  * objects, and adding variables, values, edges, and mappings to each PartitionHandler. Finally, the
  * deserialized Partitions are returned as a set.
+ *
+ * @see CfaJsonImport
+ * @see CfaJsonData
+ * @see VariableClassificationMixin
+ * @see PartitionIdResolver
  */
 public final class PartitionsDeserializer extends JsonDeserializer<Set<Partition>> {
   private static ThreadLocal<Map<Integer, PartitionHandler>> partitionHandlers =
@@ -78,7 +86,6 @@ public final class PartitionsDeserializer extends JsonDeserializer<Set<Partition
 
     /* Iterate over the root node and construct PartitionHandlers. */
     for (JsonNode node : rootNode) {
-
       PartitionHandler handler;
 
       if (node.isObject()) {
@@ -119,7 +126,8 @@ public final class PartitionsDeserializer extends JsonDeserializer<Set<Partition
 
         /* EdgeToPartition */
         for (JsonNode etp : node.get("edgeToPartition")) {
-          TableEntry tableEntry = EdgeToPartitionsDeserializer.deserializeTableEntry(etp);
+          EdgeToPartitionEntry tableEntry =
+              EdgeToPartitionsDeserializer.deserializeEdgeToPartitionEntry(etp);
           handler.addEdgeToPartition(tableEntry.edge(), tableEntry.index(), tableEntry.partition());
         }
 

@@ -21,7 +21,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 
-/* This record represents the CFA data. */
+/**
+ * This record represents the JSON data structure that a CFA is exported to and imported from.
+ *
+ * @see CfaJsonImport
+ * @see CfaJsonExport
+ */
 public record CfaJsonData(
     TreeMultimap<String, CFANode> nodes,
     Set<CFAEdge> edges,

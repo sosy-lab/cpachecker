@@ -14,18 +14,23 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.export.json.deserialization.BracketRemoverConverter;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 
 /**
  * This class is a mixin for {@link CAssumeEdge}.
  *
- * <p>rawStatement is deserialized using {@link BracketRemoverConverter}.
- *
  * <p>It specifies the constructor to use during deserialization.
  */
 public final class CAssumeEdgeMixin {
 
+  /**
+   * The BracketRemoverConverter is needed here because {@link CAssumeEdge} uses the super
+   * constructor of {@link AssumeEdge}, which adds brackets to the raw statement. This converter
+   * removes these brackets during deserialization before the raw statement is passed to the
+   * constructor, which adds them again. Otherwise, the raw statement would contain double brackets.
+   */
   @SuppressWarnings("unused")
   @JsonDeserialize(converter = BracketRemoverConverter.class)
   private String rawStatement;

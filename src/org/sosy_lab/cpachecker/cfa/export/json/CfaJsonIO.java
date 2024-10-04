@@ -15,9 +15,13 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import org.sosy_lab.cpachecker.cfa.export.json.mixins.CfaJsonModule;
 
-/* This class provides a base for exporting and importing CFA data to and from JSON. */
+/**
+ * This class provides a base for exporting and importing CFA data to and from JSON.
+ *
+ * @see CfaJsonImport
+ * @see CfaJsonExport
+ */
 public final class CfaJsonIO {
 
   /**

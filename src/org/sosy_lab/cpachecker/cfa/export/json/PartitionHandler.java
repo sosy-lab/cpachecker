@@ -15,10 +15,15 @@ import com.google.common.collect.Table;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableSet;
+import org.sosy_lab.cpachecker.cfa.export.json.deserialization.EdgeToPartitionsDeserializer;
+import org.sosy_lab.cpachecker.cfa.export.json.deserialization.PartitionIdResolver;
+import org.sosy_lab.cpachecker.cfa.export.json.deserialization.PartitionsDeserializer;
+import org.sosy_lab.cpachecker.cfa.export.json.serialization.PartitionsSerializer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 
@@ -30,6 +35,11 @@ import org.sosy_lab.cpachecker.util.variableclassification.Partition;
  * partitions.
  *
  * <p>The getReference() method returns the Partition object.
+ *
+ * @see PartitionsSerializer
+ * @see EdgeToPartitionsDeserializer
+ * @see PartitionsDeserializer
+ * @see PartitionIdResolver
  */
 public class PartitionHandler {
   private Partition partition;
@@ -53,7 +63,7 @@ public class PartitionHandler {
       Constructor<?> partitionConstructor =
           Partition.class.getDeclaredConstructor(Map.class, Table.class);
 
-      this.partition =
+      partition =
           (Partition) partitionConstructor.newInstance(this.varToPartition, this.edgeToPartition);
 
       /* Set the index field of the partition. */
@@ -64,7 +74,12 @@ public class PartitionHandler {
       this.values = readValues();
       this.edges = readEdges();
 
-    } catch (Exception e) {
+    } catch (NoSuchMethodException
+        | NoSuchFieldException
+        | InstantiationException
+        | IllegalAccessException
+        | IllegalArgumentException
+        | InvocationTargetException e) {
       throw new IOException("Error while constructing PartitionHandler: " + e.getMessage(), e);
     }
   }
@@ -110,7 +125,7 @@ public class PartitionHandler {
 
       ClassUtil.checkAndFixAccess(field, true);
 
-      field.set(this.partition, pIndex);
+      field.set(partition, pIndex);
 
     } catch (IllegalAccessException e) {
       throw new NoSuchFieldException(

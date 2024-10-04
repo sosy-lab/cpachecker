@@ -37,7 +37,9 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  *
  * <p>Identity information is being serialized to prevent infinite recursion.
  *
- * <p>Type information is being serialized to account for subtype polymorphism.
+ * <p>Since this class has subtypes, Jackson needs to know which type to instantiate when it
+ * encounters a {@link CFANode} object during deserialization. This additional information is
+ * serialized as a property "nodeType" in the JSON representation of the object.
  *
  * <p>It sets the names to use for all relevant subtypes.
  *
@@ -77,6 +79,7 @@ public final class CFANodeMixin {
   @JsonIdentityReference(alwaysAsId = true)
   private FunctionSummaryEdge enteringSummaryEdge;
 
+  /* The conversion is required to ensure deterministic serialization. */
   @SuppressWarnings("unused")
   @JsonSerialize(converter = CSimpleDeclarationSetToSortedListConverter.class)
   private Set<CSimpleDeclaration> outOfScopeVariables;

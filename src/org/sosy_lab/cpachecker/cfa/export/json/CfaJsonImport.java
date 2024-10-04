@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.export.json;
 
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -56,7 +56,7 @@ public final class CfaJsonImport {
   public static MutableCFA read(@Nullable Path pCfaJsonFile)
       throws JsonParseException, JsonMappingException, IOException {
 
-    checkState(pCfaJsonFile != null, "No JSON file specified");
+    checkNotNull(pCfaJsonFile, "No JSON file specified");
 
     /* Read CfaJsonData from file. */
     CfaJsonData cfaJsonData =
@@ -79,7 +79,7 @@ public final class CfaJsonImport {
   public static JsonNode readJsonNode(@Nullable Path pCfaJsonFile)
       throws JsonParseException, JsonMappingException, IOException {
 
-    checkState(pCfaJsonFile != null, "No JSON file specified");
+    checkNotNull(pCfaJsonFile, "No JSON file specified");
 
     /* Read JsonNode from file. */
     return getImportingObjectMapper().readTree(pCfaJsonFile.toFile());
@@ -96,7 +96,7 @@ public final class CfaJsonImport {
   private static Class<?> getStartingLocationClass() throws IOException {
     try {
       return Class.forName(STARTING_LOCATION_RECORD_PATH);
-    } catch (Exception e) {
+    } catch (ClassNotFoundException e) {
       throw new IOException("Could not find record " + STARTING_LOCATION_RECORD_PATH, e);
     }
   }

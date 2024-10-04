@@ -34,8 +34,6 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * {@link Partition}s and relevant {@link CfaMetadata}.
  *
  * <p>The export format is JSON.
- *
- * <p>It uses the {@link CfaJsonData} record to store the {@link CFA} data.
  */
 public final class CfaJsonExport {
   private final CfaJsonData cfaJsonData;
@@ -63,7 +61,7 @@ public final class CfaJsonExport {
         varClassification.isPresent() ? varClassification.orElseThrow().getPartitions() : null;
 
     /* Create the CFA JSON data. */
-    this.cfaJsonData =
+    cfaJsonData =
         new CfaJsonData(nodes, cfa.edges(), cfa.getAllFunctions(), partitions, cfa.getMetadata());
   }
 
@@ -84,7 +82,7 @@ public final class CfaJsonExport {
         JsonGenerator jsonGenerator =
             new JsonFactory().createGenerator(bufferedOutputStream, JsonEncoding.UTF8); ) {
 
-      CfaJsonIO.getBasicCfaObjectMapper().writeValue(jsonGenerator, this.cfaJsonData);
+      CfaJsonIO.getBasicCfaObjectMapper().writeValue(jsonGenerator, cfaJsonData);
     }
   }
 }

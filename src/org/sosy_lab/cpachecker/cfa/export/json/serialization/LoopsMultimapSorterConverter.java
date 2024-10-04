@@ -13,12 +13,17 @@ import com.google.common.collect.ImmutableListMultimap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonExport;
+import org.sosy_lab.cpachecker.cfa.export.json.mixins.LoopStructureMixin;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 /**
  * A converter that sorts a multimap of {@link Loop} objects with {@link String} keys.
  *
  * <p>The sorting is based on the natural order of the keys of the multimap.
+ *
+ * @see CfaJsonExport
+ * @see LoopStructureMixin
  */
 public final class LoopsMultimapSorterConverter
     extends StdConverter<ImmutableListMultimap<String, Loop>, ImmutableListMultimap<String, Loop>> {

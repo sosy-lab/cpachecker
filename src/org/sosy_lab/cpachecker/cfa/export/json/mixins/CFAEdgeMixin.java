@@ -25,7 +25,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  *
  * <p>Identity information is being serialized to prevent infinite recursion.
  *
- * <p>Type information is being serialized to account for subtype polymorphism.
+ * <p>Since this class has subtypes, Jackson needs to know which type to instantiate when it
+ * encounters a {@link CFAEdge} object during deserialization. This additional information is
+ * serialized as a property "edgeType" in the JSON representation of the object.
  *
  * <p>It sets the names to use for all relevant subtypes.
  */

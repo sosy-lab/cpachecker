@@ -8,6 +8,6 @@
 
 /**
  * Mixins containing Jackson annotations to customize the serialization and deserialization behavior
- * of classes without modifying their source code.
+ * of CFA objects without modifying their source code.
  */
 package org.sosy_lab.cpachecker.cfa.export.json.mixins;

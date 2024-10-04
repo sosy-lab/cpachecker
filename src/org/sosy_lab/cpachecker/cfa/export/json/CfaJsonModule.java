@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.export.json.mixins;
+package org.sosy_lab.cpachecker.cfa.export.json;
 
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.export.json.mixins.*;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -128,6 +129,8 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  *
  * <p>Important: The {@link AstCfaRelation} in {@link CfaMetadata} is not serialized or
  * deserialized.
+ *
+ * @see CfaJsonIO
  */
 public class CfaJsonModule extends SimpleModule {
 

@@ -12,13 +12,17 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 /**
  * This class is a mixin for {@link FunctionExitNode}.
  *
- * <p>It serializes its {@link FunctionEntryNode} field as number.
+ * <p>It serializes its {@link FunctionEntryNode} field as number to prevent infinite recursion:
+ * {@link FunctionExitNode} -> {@link FunctionEntryNode} -> {@link FunctionExitNode} -> ... This
+ * Mixin assumes that all {@link CFANode}s of the CFA are serialized, and therefore the {@link
+ * FunctionEntryNode} as well.
  *
  * <p>It specifies the constructor to use during deserialization.
  */

@@ -11,18 +11,25 @@ package org.sosy_lab.cpachecker.cfa.export.json.serialization;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.fasterxml.jackson.annotation.ObjectIdGenerator;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators.IntSequenceGenerator;
 import java.io.IOException;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonExport;
+import org.sosy_lab.cpachecker.cfa.export.json.mixins.CFAEdgeMixin;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
  * A custom generator for generating unique IDs for CFA edges.
  *
  * <p>It is used to retrieve IDs from their respective {@link CFAEdge}s.
+ *
+ * @see CfaJsonExport
+ * @see CFAEdgeMixin
+ * @see PartitionsSerializer
  */
 public final class CfaEdgeIdGenerator extends ObjectIdGenerator<Integer> {
 
@@ -79,6 +86,10 @@ public final class CfaEdgeIdGenerator extends ObjectIdGenerator<Integer> {
    *
    * <p>The ID is generated and stored in the edgeToIdMap together with the object.
    *
+   * <p>If the object is null, null is returned. This is because of
+   * https://github.com/FasterXML/jackson-annotations/issues/56
+   *
+   * @see IntSequenceGenerator
    * @param pForObject The object for which to generate the ID.
    * @return The generated ID.
    */
@@ -111,6 +122,10 @@ public final class CfaEdgeIdGenerator extends ObjectIdGenerator<Integer> {
   /**
    * Generates an IdKey object based on the given key.
    *
+   * <p>If the key is null, null is returned. This is because of
+   * https://github.com/FasterXML/jackson-annotations/issues/56
+   *
+   * @see IntSequenceGenerator
    * @param pKey The key used to generate the IdKey object.
    * @return The generated IdKey object.
    */
@@ -129,7 +144,8 @@ public final class CfaEdgeIdGenerator extends ObjectIdGenerator<Integer> {
    */
   @Override
   public ObjectIdGenerator<Integer> newForSerialization(Object pContext) {
-    CfaEdgeIdGenerator generator = new CfaEdgeIdGenerator(this.scope, 1);
+    /* Counting starts at 0. */
+    CfaEdgeIdGenerator generator = new CfaEdgeIdGenerator(this.scope, 0);
     currentGenerator.set(generator);
     return generator;
   }

@@ -6,5 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/* JSON serialization functionality. */
+/**
+ * Functionality to export a CFA into JSON.
+ *
+ * @see org.sosy_lab.cpachecker.cfa.export.json.CfaJsonExport
+ */
 package org.sosy_lab.cpachecker.cfa.export.json.serialization;

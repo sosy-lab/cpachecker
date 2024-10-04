@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 /**
  * This class is a mixin for {@link LoopStructure}.
  *
- * <p>It sorts the loops field during serialization.
+ * <p>It sorts the loops field during serialization to ensure a deterministic order.
  *
  * <p>It specifies the constructor to use during deserialization.
  */

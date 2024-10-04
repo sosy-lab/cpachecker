@@ -14,6 +14,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonExport;
+import org.sosy_lab.cpachecker.cfa.export.json.mixins.CFANodeMixin;
 
 /**
  * A converter that transforms a set of {@link CSimpleDeclaration} objects into a sorted list of
@@ -21,6 +23,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
  *
  * <p>The sorting is based on the qualified name of the {@link CSimpleDeclaration} objects, which is
  * global and unique.
+ *
+ * @see CfaJsonExport
+ * @see CFANodeMixin
  */
 public final class CSimpleDeclarationSetToSortedListConverter
     extends StdConverter<Set<CSimpleDeclaration>, List<CSimpleDeclaration>> {
