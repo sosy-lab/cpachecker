@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.truth.Truth.assertWithMessage;
+import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -37,6 +38,8 @@ public class ReplaceBitvectorDivisionTest {
   private final Solver solver;
   private final BitvectorFormulaManager bvmgr;
 
+  private Theory theory;
+
   @Parameters(name = "{0}")
   public static Theory[] data() {
     return new Theory[] {Theory.BITVECTOR, Theory.INTEGER, Theory.RATIONAL};
@@ -55,6 +58,7 @@ public class ReplaceBitvectorDivisionTest {
               .setOption("cpa.predicate.encodeFloatAs", Theory.UNSUPPORTED.toString())
               .build();
 
+      theory = pTheory;
       solver = Solver.create(config, logger, notifier);
       bvmgr = solver.getFormulaManager().getBitvectorFormulaManager();
     } catch (InvalidConfigurationException e) {
@@ -102,6 +106,9 @@ public class ReplaceBitvectorDivisionTest {
 
   @Test
   public void bitvectorRemainderTest() {
+    // When rationals are used as theory `remainder` is replaced by UFs
+    assume().that(theory).isNotEqualTo(Theory.RATIONAL);
+
     for (int x : testValues) {
       for (int y : testValues) {
         var bv0 = bvmgr.makeBitvector(32, x);
@@ -119,6 +126,9 @@ public class ReplaceBitvectorDivisionTest {
 
   @Test
   public void bitvectorModuloTest() {
+    // When rationals are used a theory `modulo` is replaced by UFs
+    assume().that(theory).isNotEqualTo(Theory.RATIONAL);
+
     for (int x : testValues) {
       for (int y : testValues) {
         var bv0 = bvmgr.makeBitvector(32, x);

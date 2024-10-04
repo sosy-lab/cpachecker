@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.truth.Truth.assertWithMessage;
+import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -38,6 +39,8 @@ public class ReplaceFloatingPointDivisionTest {
   private final Solver solver;
   private final FloatingPointFormulaManager fpmgr;
 
+  private Theory theory;
+
   private static final FloatingPointType DOUBLE_PRECISION =
       FloatingPointType.getDoublePrecisionFloatingPointType();
 
@@ -59,6 +62,7 @@ public class ReplaceFloatingPointDivisionTest {
               .setOption("cpa.predicate.encodeFloatAs", pTheory.toString())
               .build();
 
+      theory = pTheory;
       solver = Solver.create(config, logger, notifier);
       fpmgr = solver.getFormulaManager().getFloatingPointFormulaManager();
     } catch (InvalidConfigurationException e) {
@@ -89,6 +93,9 @@ public class ReplaceFloatingPointDivisionTest {
 
   @Test
   public void floatDivisionTest() {
+    // When the theory is Theory.INTEGER `division` will round to the next integer
+    assume().that(theory).isNotEqualTo(Theory.INTEGER);
+
     for (int x : testValues) {
       for (int y : testValues) {
         var f0 = fpmgr.makeNumber(x, DOUBLE_PRECISION);
@@ -106,6 +113,9 @@ public class ReplaceFloatingPointDivisionTest {
 
   @Test
   public void floatRemainderTest() {
+    // If the theory is not Theory.FLOAT an UF symbol is used for `remainder` and the test fails
+    assume().that(theory).isNoneOf(Theory.INTEGER, Theory.RATIONAL);
+
     for (int x : testValues) {
       for (int y : testValues) {
         var f0 = fpmgr.makeNumber(x, DOUBLE_PRECISION);
