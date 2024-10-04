@@ -45,6 +45,9 @@ public class CTypeParser {
 
   private static CType parsePointerType(String input) {
     String content = extractInnerContent(input, "PointerType(");
+    if (content.equals("AlreadyVisitedType")) {
+      return CPointerType.POINTER_TO_VOID;
+    }
     List<String> parts = splitIgnoringNestedCommas(content);
 
     boolean isConst = Boolean.parseBoolean(parts.get(0));
@@ -109,6 +112,8 @@ public class CTypeParser {
     String name = parts.get(3);
     String origName = parts.get(4);
 
+    // check for complextype kind (STRUCT or UNION) and handle accordingly
+
     return new CElaboratedType(isConst, isVolatile, kind, name, origName, null);
   }
 
@@ -157,6 +162,8 @@ public class CTypeParser {
     CComplexType.ComplexTypeKind kind = CComplexType.ComplexTypeKind.valueOf(parts.get(2));
     String name = parts.get(3);
     String origName = parts.get(4);
+
+    // check for complextype kind (STRUCT or UNION) and handle accordingly
 
     List<CCompositeType.CCompositeTypeMemberDeclaration> members = null;
     if (parts.size() > 5 && !parts.get(5).equals("null")) {
