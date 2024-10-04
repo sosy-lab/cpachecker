@@ -104,13 +104,18 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.AArrayType;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.AbstractFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -140,6 +145,7 @@ public class CfaJsonModule extends SimpleModule {
     /* Register all mixins. */
     pContext.setMixInAnnotations(
         AArraySubscriptExpression.class, AArraySubscriptExpressionMixin.class);
+    pContext.setMixInAnnotations(AArrayType.class, AArrayTypeMixin.class);
     pContext.setMixInAnnotations(AAssignment.class, AAssignmentMixin.class);
     pContext.setMixInAnnotations(AAstNode.class, AAstNodeMixin.class);
     pContext.setMixInAnnotations(ABinaryExpression.class, ABinaryExpressionMixin.class);
@@ -158,6 +164,7 @@ public class CfaJsonModule extends SimpleModule {
     pContext.setMixInAnnotations(AFunctionCall.class, AFunctionCallMixin.class);
     pContext.setMixInAnnotations(AFunctionCallStatement.class, AFunctionCallStatementMixin.class);
     pContext.setMixInAnnotations(AFunctionDeclaration.class, AFunctionDeclarationMixin.class);
+    pContext.setMixInAnnotations(AFunctionType.class, AFunctionTypeMixin.class);
     pContext.setMixInAnnotations(AIdExpression.class, AIdExpressionMixin.class);
     pContext.setMixInAnnotations(AInitializerExpression.class, AInitializerExpressionMixin.class);
     pContext.setMixInAnnotations(AInitializer.class, AInitializerMixin.class);
@@ -181,6 +188,7 @@ public class CfaJsonModule extends SimpleModule {
     pContext.setMixInAnnotations(AbstractCFAEdge.class, AbstractCFAEdgeMixin.class);
     pContext.setMixInAnnotations(AbstractDeclaration.class, AbstractDeclarationMixin.class);
     pContext.setMixInAnnotations(AbstractExpression.class, AbstractExpressionMixin.class);
+    pContext.setMixInAnnotations(AbstractFunctionType.class, AbstractFunctionTypeMixin.class);
     pContext.setMixInAnnotations(AbstractInitializer.class, AbstractInitializerMixin.class);
     pContext.setMixInAnnotations(AbstractLeftHandSide.class, AbstractLeftHandSideMixin.class);
     pContext.setMixInAnnotations(AbstractReturnStatement.class, AbstractReturnStatementMixin.class);
@@ -197,6 +205,7 @@ public class CfaJsonModule extends SimpleModule {
     pContext.setMixInAnnotations(CAssumeEdge.class, CAssumeEdgeMixin.class);
     pContext.setMixInAnnotations(CAstNode.class, CAstNodeMixin.class);
     pContext.setMixInAnnotations(CBinaryExpression.class, CBinaryExpressionMixin.class);
+    pContext.setMixInAnnotations(CComplexType.class, CComplexTypeMixin.class);
     pContext.setMixInAnnotations(CDeclarationEdge.class, CDeclarationEdgeMixin.class);
     pContext.setMixInAnnotations(CDeclaration.class, CDeclarationMixin.class);
     pContext.setMixInAnnotations(CDesignator.class, CDesignatorMixin.class);
@@ -243,6 +252,7 @@ public class CfaJsonModule extends SimpleModule {
     pContext.setMixInAnnotations(
         CThreadOperationStatement.class, CThreadOperationStatementMixin.class);
     pContext.setMixInAnnotations(CTypeDeclaration.class, CTypeDeclarationMixin.class);
+    pContext.setMixInAnnotations(CType.class, CTypeMixin.class);
     pContext.setMixInAnnotations(CVariableDeclaration.class, CVariableDeclarationMixin.class);
     pContext.setMixInAnnotations(CVoidType.class, CVoidTypeMixin.class);
     pContext.setMixInAnnotations(CfaJsonModule.class, CfaJsonModule.class);

@@ -8,16 +8,26 @@
 
 package org.sosy_lab.cpachecker.cfa.export.json.mixins;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+import org.sosy_lab.cpachecker.cfa.types.AArrayType;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * This class is a mixin for {@link Type}.
  *
  * <p>Type information is being serialized to account for subtype polymorphism.
+ *
+ * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.CLASS,
-    include = JsonTypeInfo.As.PROPERTY,
-    property = "typeOfType")
+@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "typeType")
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = AArrayType.class, name = "AArray"),
+  @JsonSubTypes.Type(value = AFunctionType.class, name = "AFunction"),
+  @JsonSubTypes.Type(value = CType.class, name = "C"),
+})
 public final class TypeMixin {}
