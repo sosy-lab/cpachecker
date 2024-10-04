@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.errorprone.annotations.DoNotCall;
 import java.math.BigInteger;
 import java.util.List;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -65,63 +64,42 @@ public class BitvectorFormulaManagerView extends BaseManagerView
     return manager.subtract(pNumber1, pNumbe2);
   }
 
+  // TODO: Move the javadoc to java-smt
   /**
-   * {@inheritDoc}
+   * Division.
    *
-   * <p>This method returns the formula for the C99-conform DIVIDE-operator, which is rounded
-   * towards zero. SMTlib2 rounds towards positive or negative infinity, depending on both operands.
-   *
-   * <p>Example: SMTlib2: 10/3==3, 10/(-3)==(-3), (-10)/3==(-4), (-10)/(-3)==4 (4 different values!)
-   * C99: 10/3==3, 10/(-3)==(-3), (-10)/3==(-3), (-10)/(-3)==3
+   * <p>The result will be truncated to the next closest integer.
    */
   @Override
   public BitvectorFormula divide(
-      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
-    return manager.divide(pNumber1, pNumber2, signed);
+      BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
+    return manager.divide(pNumber1, pNumbe2, signed);
   }
 
+  // TODO: Move the javadoc to java-smt
   /**
-   * Deprecated and unsupported operation.
+   * Modulo of the division.
    *
-   * <p>This method previously returned the SMTLIB2 remainder operator.
-   */
-  @SuppressWarnings({"deprecation", "removal"})
-  @DoNotCall
-  @Override
-  public final BitvectorFormula modulo(
-      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
-    throw new UnsupportedOperationException(
-        "This operation has been deprecated and replaced by smodulo() and remainder().");
-  }
-
-  /**
-   * {@inheritDoc}
-   *
-   * <p>Signed bitvector modulo operation. See {@link
-   * BitvectorFormulaManager#smodulo(BitvectorFormula, BitvectorFormula)} for more information. For
-   * unsigned bitvector modulo please use unsigned {@link
-   * BitvectorFormulaManagerView#remainder(BitvectorFormula, BitvectorFormula, boolean)}.
-   *
-   * <p>Note: this does NOT behave in the same way the modulo operation (%) behaves in C or Java!
+   * <p>Defined by <code>m = a - b*q</code> where the quotient <code>q = a/b</code> is rounded to
+   * the next integer using <code>floor</code>. For a different definition that truncates the
+   * quotient use {@link #remainder}.
    */
   @Override
-  public BitvectorFormula smodulo(BitvectorFormula numerator, BitvectorFormula denominator) {
-    return manager.smodulo(numerator, denominator);
+  public BitvectorFormula smodulo(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
+    return manager.smodulo(pNumber1, pNumber2);
   }
 
   /**
-   * {@inheritDoc}
+   * Remainder of the division.
    *
-   * <p>This method behaves mostly according to the % operator in C or Java. While in C the modulo
-   * operation is rounded towards 0, SMTLIB2 rounds towards the nearest infinity depending on the
-   * operands so that the sign of the result of the operation is equal to the numerator sign. It
-   * behaves differently compared to the {@link IntegerFormulaManagerView#modulo(IntegerFormula,
-   * IntegerFormula)} for negative numerators (in the signed case).
+   * <p>Defined by <code>m = a - b*q</code> where the quotient <code>q = a/b</code> is truncated to
+   * the next integer. For a different definition that uses <code>floor</code> to round the quotient
+   * use {@link #smodulo}.
    */
   @Override
   public BitvectorFormula remainder(
-      BitvectorFormula numerator, BitvectorFormula denominator, boolean signed) {
-    return manager.remainder(numerator, denominator, signed);
+      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
+    return manager.remainder(pNumber1, pNumber2, signed);
   }
 
   @Override
@@ -219,23 +197,23 @@ public class BitvectorFormulaManagerView extends BaseManagerView
   }
 
   @Override
-  public BitvectorFormula rotateLeft(BitvectorFormula number, int toRotate) {
-    return manager.rotateLeft(number, toRotate);
+  public BitvectorFormula rotateLeft(BitvectorFormula pNumber, int pToRotate) {
+    return manager.rotateLeft(pNumber, pToRotate);
   }
 
   @Override
-  public BitvectorFormula rotateLeft(BitvectorFormula number, BitvectorFormula toRotate) {
-    return manager.rotateLeft(number, toRotate);
+  public BitvectorFormula rotateLeft(BitvectorFormula pNumber, BitvectorFormula pToRotate) {
+    return manager.rotateLeft(pNumber, pToRotate);
   }
 
   @Override
-  public BitvectorFormula rotateRight(BitvectorFormula number, int toRotate) {
-    return manager.rotateRight(number, toRotate);
+  public BitvectorFormula rotateRight(BitvectorFormula pNumber, int pToRotate) {
+    return manager.rotateRight(pNumber, pToRotate);
   }
 
   @Override
-  public BitvectorFormula rotateRight(BitvectorFormula number, BitvectorFormula toRotate) {
-    return manager.rotateRight(number, toRotate);
+  public BitvectorFormula rotateRight(BitvectorFormula pNumber, BitvectorFormula pToRotate) {
+    return manager.rotateLeft(pNumber, pToRotate);
   }
 
   @Override

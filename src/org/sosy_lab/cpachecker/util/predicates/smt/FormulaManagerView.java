@@ -229,7 +229,7 @@ public class FormulaManagerView {
 
     bitvectorFormulaManager = createBitvectorFormulaManager(config);
     floatingPointFormulaManager = createFloatingPointFormulaManager();
-    integerFormulaManager = createIntegerFormulaManager(booleanFormulaManager, intOptions);
+    integerFormulaManager = createIntegerFormulaManager(intOptions);
 
     logInfo();
   }
@@ -368,8 +368,7 @@ public class FormulaManagerView {
 
   /** Creates the IntegerFormulaManager or a replacement based on the option encodeIntegerAs. */
   private @Nullable IntegerFormulaManagerView createIntegerFormulaManager(
-      BooleanFormulaManager pBooleanFormulaManager, ReplaceIntegerEncodingOptions pIntegerOptions)
-      throws InvalidConfigurationException {
+      ReplaceIntegerEncodingOptions pIntegerOptions) throws InvalidConfigurationException {
     if (encodeIntegerAs == Theory.UNSUPPORTED) {
       return null;
     }
@@ -399,7 +398,7 @@ public class FormulaManagerView {
               + "but CPAchecker will crash if integers are used during the analysis.",
           e);
     }
-    return new IntegerFormulaManagerView(wrappingHandler, pBooleanFormulaManager, rawImgr);
+    return new IntegerFormulaManagerView(wrappingHandler, rawImgr);
   }
 
   FormulaWrappingHandler getFormulaWrappingHandler() {
@@ -624,11 +623,17 @@ public class FormulaManagerView {
   }
 
   /**
-   * This method returns the formula for the DIVIDE-operator. Depending on the used formulaManager,
-   * the result can be conform to either C99- or the SMTlib2-standard.
+   * This method returns the formula for the DIVIDE-operator.
    *
-   * <p>Example: SMTlib2: 10%3==1, 10%(-3)==1, (-10)%3==2, (-10)%(-3)==2 C99: 10%3==1, 10%(-3)==1,
-   * (-10)%3==(-1), (-10)%(-3)==(-1)
+   * <p>The rounding mode used for the result depends on the type of formula:
+   *
+   * <ul>
+   *   <li>Integers use euclidean division, see {@link IntegerFormulaManagerView#divide}
+   *   <li>Bitvectors truncate the result, see {@link BitvectorFormulaManagerView#divide}
+   *   <li>Rationals are precise and don't need rounding
+   *   <li>Floating point formulas use "round to nearest, ties to even", see {@link
+   *       FloatingPointFormulaManagerView#divide}
+   * </ul>
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeDivide(T pF1, T pF2, boolean pSigned) {
@@ -653,12 +658,9 @@ public class FormulaManagerView {
   }
 
   /**
-   * This method returns the formula for the REMAINDER-operator. This behaves consistently with
-   * C99/11s and Javas % operator, with the maybe the exception to 0 in the second argument, where
-   * the behavior might depend on the SMTLIB2 standard or even the solver used.
+   * This method returns the formula for the MODULO-operator.
    *
-   * <p>Examples:
-   * <li>10%3==1, 10%(-3)==1, (-10)%3==(-1), (-10)%(-3)==(-1)
+   * <p>See {@link #makeDivide} for details about the rounding mode.
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeRemainder(T pF1, T pF2, boolean pSigned) {
@@ -668,11 +670,16 @@ public class FormulaManagerView {
       //   negative numbers in pF1.
       t = getIntegerFormulaManager().modulo(pFi1, pFi2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
-      // remainder for BVs behaves as the C standard defines modulo (%)
-      //   (also Javas % operator behaves the same)
+      // BitvectorFormulaManager has 2 "remainder" operations: smodulo() and remainder()
+      // We use remainder() here as it uses the same rounding-mode for the quotient (=truncate) as
+      // the division operation for bitvector formulas
       t =
           getBitvectorFormulaManager()
               .remainder((BitvectorFormula) pF1, (BitvectorFormula) pF2, pSigned);
+    } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
+      t =
+          getFloatingPointFormulaManager()
+              .remainder((FloatingPointFormula) pF1, (FloatingPointFormula) pF2);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }

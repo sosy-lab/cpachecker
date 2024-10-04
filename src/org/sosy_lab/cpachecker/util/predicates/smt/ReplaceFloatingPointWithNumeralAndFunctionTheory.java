@@ -241,8 +241,9 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
   @Override
   public FloatingPointFormula remainder(
-      FloatingPointFormula dividend, FloatingPointFormula divisor) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+      FloatingPointFormula pFloatingPointFormula, FloatingPointFormula pFloatingPointFormula1) {
+    // TODO: Represent this as a Uf?
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -356,8 +357,12 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
   @Override
   public FloatingPointFormula makeNumber(
-      BigInteger exponent, BigInteger mantissa, boolean signBit, FloatingPointType type) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+      BigInteger pExponent,
+      BigInteger pMantisse,
+      boolean pSign,
+      FloatingPointType pFloatingPointType) {
+    // TODO: Convert this to Double or String
+    throw new UnsupportedOperationException();
   }
 
   @Override

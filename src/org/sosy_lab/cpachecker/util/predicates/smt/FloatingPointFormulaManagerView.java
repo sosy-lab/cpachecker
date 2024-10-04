@@ -158,8 +158,8 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
 
   @Override
   public FloatingPointFormula remainder(
-      FloatingPointFormula dividend, FloatingPointFormula divisor) {
-    return manager.remainder(dividend, divisor);
+      FloatingPointFormula number1, FloatingPointFormula number2) {
+    return manager.remainder(number1, number2);
   }
 
   @Override
@@ -270,8 +270,11 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
 
   @Override
   public FloatingPointFormula makeNumber(
-      BigInteger exponent, BigInteger mantissa, boolean signBit, FloatingPointType type) {
-    return manager.makeNumber(exponent, mantissa, signBit, type);
+      BigInteger pExponent,
+      BigInteger pMantissa,
+      boolean pSign,
+      FloatingPointType pFloatingPointType) {
+    return manager.makeNumber(pExponent, pMantissa, pSign, pFloatingPointType);
   }
 
   @Override
