@@ -55,6 +55,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   private final FunctionDeclaration<T> rightShiftUfDecl;
   private final FunctionDeclaration<T> leftRotateUfDecl;
   private final FunctionDeclaration<T> rightRotateUfDecl;
+  private final FunctionDeclaration<T> divisionUfDecl;
   private final FunctionDeclaration<T> moduloUfDecl;
   private final FunctionDeclaration<T> remainderUfDecl;
   private final FormulaType<T> formulaType;
@@ -90,6 +91,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     rightShiftUfDecl = createBinaryFunction("_>>_");
     leftRotateUfDecl = createBinaryFunction("_<<+_");
     rightRotateUfDecl = createBinaryFunction("_+>>_");
+    divisionUfDecl = createBinaryFunction("_/_");
     moduloUfDecl = createBinaryFunction("_%_");
     remainderUfDecl = createBinaryFunction("_%Floor_");
   }
@@ -219,15 +221,15 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
    * @see BitvectorFormulaManagerView#divide
    * @see IntegerFormulaManagerView#divide
    */
-  private Formula representBitvectorDivision(final T f1, final T f2) {
-    // TODO: Check the formula
-    final T zero = numericFormulaManager.makeNumber(0);
-    final T additionalUnit =
+  private Formula representBitvectorDivision(final IntegerFormula f1, final IntegerFormula f2) {
+    IntegerFormulaManager integerFormulaManager = (IntegerFormulaManager) numericFormulaManager;
+    final IntegerFormula zero = integerFormulaManager.makeNumber(0);
+    final IntegerFormula additionalUnit =
         booleanFormulaManager.ifThenElse(
-            numericFormulaManager.greaterOrEquals(f2, zero),
-            numericFormulaManager.makeNumber(1),
-            numericFormulaManager.makeNumber(-1));
-    final T div = numericFormulaManager.divide(f1, f2);
+            integerFormulaManager.greaterOrEquals(f2, zero),
+            integerFormulaManager.makeNumber(1),
+            integerFormulaManager.makeNumber(-1));
+    final IntegerFormula div = integerFormulaManager.divide(f1, f2);
 
     // IF   first operand is positive or is divisible by second operand
     // THEN return plain division --> here C99 is equal to SMTlib2
@@ -235,18 +237,24 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
 
     return booleanFormulaManager.ifThenElse(
         booleanFormulaManager.or(
-            numericFormulaManager.greaterOrEquals(f1, zero),
-            numericFormulaManager.equal(numericFormulaManager.multiply(div, f2), f1)),
+            integerFormulaManager.greaterOrEquals(f1, zero),
+            integerFormulaManager.equal(integerFormulaManager.multiply(div, f2), f1)),
         div,
-        numericFormulaManager.add(div, additionalUnit));
+        integerFormulaManager.add(div, additionalUnit));
   }
 
   @Override
   public BitvectorFormula divide(
       BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return wrap(
-        getFormulaType(pNumber1), representBitvectorDivision(unwrap(pNumber1), unwrap(pNumber2)));
+    if (numericFormulaManager instanceof IntegerFormulaManager) {
+      return wrap(
+          getFormulaType(pNumber1),
+          representBitvectorDivision(
+              (IntegerFormula) unwrap(pNumber1), (IntegerFormula) unwrap(pNumber2)));
+    } else {
+      return makeUf(getFormulaType(pNumber1), divisionUfDecl, pNumber1, pNumber2);
+    }
   }
 
   /**
