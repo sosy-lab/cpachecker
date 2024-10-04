@@ -165,7 +165,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     for (AbstractSimpleDeclaration decl :
         FluentIterable.from(pCfa.edges())
             .filter(ADeclarationEdge.class)
-            .transform(edge -> edge.getDeclaration())
+            .transform(ADeclarationEdge::getDeclaration)
             .filter(AbstractSimpleDeclaration.class)
             .filter(
                 Predicates.or(
@@ -852,7 +852,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
   private abstract static class CandidateInvariant {
 
-    protected static enum EqualCompareType {
+    protected enum EqualCompareType {
       EQ,
       GEQ,
       LEQ,
@@ -1280,7 +1280,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   }
 
   private static class TwoVariableRelationInvariant extends CandidateInvariant {
-    private static enum ComparisonType {
+    private enum ComparisonType {
       EQ,
       GT,
       GEQ,
@@ -1427,7 +1427,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         double val1 = pVal1.doubleValue();
         double val2 = pVal2.doubleValue();
         opMul = Pair.of(val1 * val2, EqualCompareType.EQ);
-        if ((divReversed && val1 == 0) || (!divReversed && val2 == 0)) {
+        if (divReversed ? val1 == 0 : val2 == 0) {
           opDiv = Pair.of(0.0, EqualCompareType.NONE);
         } else {
           double res = divReversed ? val2 / val1 : val1 / val2;
@@ -1440,7 +1440,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         long val1 = pVal1.longValue();
         long val2 = pVal2.longValue();
         opMul = Pair.of(val1 * val2, EqualCompareType.EQ);
-        if ((divReversed && val1 == 0) || (!divReversed && val2 == 0)) {
+        if (divReversed ? val1 == 0 : val2 == 0) {
           opDiv = Pair.of(0, EqualCompareType.NONE);
         } else {
           long res = divReversed ? val2 / val1 : val1 / val2;

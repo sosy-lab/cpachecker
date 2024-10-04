@@ -1582,8 +1582,7 @@ class ASTConverter {
       case IASTUnaryExpression.op_prefixDecr:
         // instead of ++x, create "x = x+1"
 
-        BinaryOperator preOp;
-        preOp =
+        BinaryOperator preOp =
             switch (e.getOperator()) {
               case IASTUnaryExpression.op_prefixIncr -> BinaryOperator.PLUS;
               case IASTUnaryExpression.op_prefixDecr -> BinaryOperator.MINUS;
@@ -1600,8 +1599,7 @@ class ASTConverter {
       case IASTUnaryExpression.op_postFixDecr:
         // instead of x++ create "x = x + 1"
 
-        BinaryOperator postOp;
-        postOp =
+        BinaryOperator postOp =
             switch (e.getOperator()) {
               case IASTUnaryExpression.op_postFixIncr -> BinaryOperator.PLUS;
               case IASTUnaryExpression.op_postFixDecr -> BinaryOperator.MINUS;

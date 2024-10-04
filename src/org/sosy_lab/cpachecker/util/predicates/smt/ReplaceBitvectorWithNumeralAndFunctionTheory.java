@@ -264,6 +264,33 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
         numericFormulaManager.add(div, additionalUnit));
   }
 
+  /**
+   * @see BitvectorFormulaManagerView#modulo(BitvectorFormula, BitvectorFormula, boolean)
+   */
+  @SuppressWarnings("unchecked")
+  private Formula getC99ReplacementForSMTlib2Modulo(final T f1, final T f2) {
+    final T zero = numericFormulaManager.makeNumber(0);
+    final T additionalUnit =
+        booleanFormulaManager.ifThenElse(
+            numericFormulaManager.greaterOrEquals(f2, zero), numericFormulaManager.negate(f2), f2);
+
+    final T mod =
+        (T)
+            ((IntegerFormulaManager) numericFormulaManager)
+                .modulo((IntegerFormula) f1, (IntegerFormula) f2);
+
+    // IF   first operand is positive or mod-result is zero
+    // THEN return plain modulo --> here C99 is equal to SMTlib2
+    // ELSE modulo and add an additional unit towards the nearest infinity.
+
+    return booleanFormulaManager.ifThenElse(
+        booleanFormulaManager.or(
+            numericFormulaManager.greaterOrEquals(f1, zero),
+            numericFormulaManager.equal(mod, zero)),
+        mod,
+        numericFormulaManager.add(mod, additionalUnit));
+  }
+
   @Override
   public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";

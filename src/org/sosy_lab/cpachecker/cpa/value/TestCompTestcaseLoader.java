@@ -16,6 +16,7 @@ import java.util.Map;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import org.sosy_lab.cpachecker.util.XMLUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -26,7 +27,9 @@ public class TestCompTestcaseLoader {
 
   public static Map<Integer, String> loadTestcase(Path pathToFile)
       throws ParserConfigurationException, SAXException, IOException {
-    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+
+    DocumentBuilderFactory docFactory = XMLUtils.getSecureDocumentBuilderFactory(false);
+
     DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
     Map<Integer, String> inputs = new HashMap<>();
     Document doc = docBuilder.parse(pathToFile.toFile());

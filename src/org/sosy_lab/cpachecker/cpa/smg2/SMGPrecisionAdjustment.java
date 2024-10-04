@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -84,6 +85,14 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
             "toggle liveness abstraction. Is independent of CEGAR, but dependent on the CFAs"
                 + " liveness variables being tracked.")
     private boolean doLivenessAbstraction = true;
+
+    @Option(
+        secure = true,
+        description =
+            "toggle liveness abstraction if liveness abstraction is supposed to simply abstract all"
+                + " variables away (invalidating memory) when unused, even if there is valid"
+                + " outside pointers on them.")
+    private boolean doEnforcePointerInsensitiveLiveness = true;
 
     @Option(
         secure = true,
@@ -163,6 +172,10 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
 
     public int getListAbstractionMinimumLengthThreshold() {
       return listAbstractionMinimumLengthThreshold;
+    }
+
+    public boolean isEnforcePointerInsensitiveLiveness() {
+      return doEnforcePointerInsensitiveLiveness;
     }
 
     public int getListAbstractionMaximumIncreaseLengthThreshold() {
@@ -459,10 +472,28 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         for (MemoryLocation variable : pState.getTrackedMemoryLocations()) {
           String qualifiedVarName = variable.getQualifiedName();
           if (!liveVariables
-                  .orElseThrow()
-                  .isVariableLive(qualifiedVarName, location.getLocationNode())
-              && qualifiedVarName.contains("__CPAchecker_TMP_")) {
-            currentState = currentState.invalidateVariable(variable);
+              .orElseThrow()
+              .isVariableLive(qualifiedVarName, location.getLocationNode())) {
+            if (options.isEnforcePointerInsensitiveLiveness()) {
+              currentState = currentState.invalidateVariable(variable);
+            } else {
+              // Don't invalidate memory that may have valid outside pointers to it that may keep it
+              // alive!
+              Optional<SMGObject> maybeVarObj =
+                  currentState.getMemoryModel().getObjectForVariable(qualifiedVarName);
+              if (maybeVarObj.isPresent()) {
+                Set<SMGObject> allObjsPointingTowards =
+                    currentState
+                        .getMemoryModel()
+                        .getSmg()
+                        .getAllSourcesForPointersPointingTowards(maybeVarObj.orElseThrow());
+                if (allObjsPointingTowards.isEmpty()
+                    || (allObjsPointingTowards.size() == 1
+                        && allObjsPointingTowards.contains(maybeVarObj.orElseThrow()))) {
+                  currentState = currentState.invalidateVariable(variable);
+                }
+              }
+            }
           }
         }
       }

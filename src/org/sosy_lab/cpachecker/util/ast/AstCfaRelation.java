@@ -56,6 +56,10 @@ public final class AstCfaRelation {
   @LazyInit
   private ImmutableMap<Pair<Integer, Integer>, IfElement> lineAndStartColumnToIfStructure = null;
 
+  @LazyInit
+  private ImmutableMap<StartingLocation, IterationElement> lineAndStartColumnToIterationStructure =
+      null;
+
   // Static variables are currently not being considered, since it is somewhat unclear how to handle
   // them.
   private final Map<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
@@ -108,11 +112,14 @@ public final class AstCfaRelation {
    * @param pEdge the edge to look for
    * @return the IfElement that contains the given edge as a condition
    */
-  public IfElement getIfStructureForConditionEdge(CFAEdge pEdge) {
+  public Optional<IfElement> getIfStructureForConditionEdge(CFAEdge pEdge) {
     if (conditionEdgesToIfStructure == null) {
       initializeMapFromConditionEdgesToIfStructures();
     }
-    return conditionEdgesToIfStructure.getOrDefault(pEdge, null);
+
+    IfElement result = conditionEdgesToIfStructure.getOrDefault(pEdge, null);
+
+    return Optional.ofNullable(result);
   }
 
   /**
@@ -147,6 +154,47 @@ public final class AstCfaRelation {
     return result;
   }
 
+  /**
+   * Returns the node that starts the iteration statement at the given line and column.
+   *
+   * @param line the line at which the iteration statement starts
+   * @param column the column at which the iteration statement starts
+   * @return the node that starts the iteration statement at the given line and column if it could
+   *     be uniquely determined
+   */
+  public Optional<CFANode> getNodeForIterationStatementLocation(int line, int column) {
+    for (IterationElement structure : iterationStructures) {
+      if (structure.getCompleteElement().location().getStartingLineNumber() == line
+          && structure.getCompleteElement().location().getStartColumnInLine() == column) {
+        return structure.getLoopHead();
+      }
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Returns the node that starts the statement at the given line and column.
+   *
+   * @param line the line at which the iteration statement starts
+   * @param column the column at which the iteration statement starts
+   * @return the node that starts the iteration statement at the given line and column if it could
+   *     be uniquely determined
+   */
+  public Optional<CFANode> getNodeForStatementLocation(int line, int column) {
+    ASTElement statement =
+        Objects.requireNonNull(
+                startingLocationToTightestStatement.floorEntry(new StartingLocation(column, line)))
+            .getValue();
+
+    if (statement.location().getStartingLineNumber() != line
+        || statement.location().getStartColumnInLine() != column) {
+      // We only want to match the exact starting location of the statement
+      return Optional.empty();
+    }
+
+    return statement.edges().stream().map(CFAEdge::getPredecessor).findFirst();
+  }
+
   private void initializeMapFromLineAndStartColumnToIfStructure() {
     if (lineAndStartColumnToIfStructure != null) {
       return;
@@ -176,6 +224,41 @@ public final class AstCfaRelation {
     Pair<Integer, Integer> key = Pair.of(pColumn, pLine);
     if (lineAndStartColumnToIfStructure.containsKey(key)) {
       return Optional.ofNullable(lineAndStartColumnToIfStructure.get(key));
+    }
+
+    return Optional.empty();
+  }
+
+  private void initializeMapFromLineAndStartColumnToIterationStructure() {
+    if (lineAndStartColumnToIterationStructure != null) {
+      return;
+    }
+    ImmutableMap.Builder<StartingLocation, IterationElement> builder = new ImmutableMap.Builder<>();
+    for (IterationElement structure : iterationStructures) {
+      FileLocation location = structure.getCompleteElement().location();
+      StartingLocation key =
+          new StartingLocation(location.getStartColumnInLine(), location.getStartingLineNumber());
+      builder.put(key, structure);
+    }
+    lineAndStartColumnToIterationStructure = builder.buildOrThrow();
+  }
+
+  /**
+   * Returns the IterationElement that starts at the given column and line.
+   *
+   * @param pColumn the column
+   * @param pLine the line
+   * @return the IterationElement that starts at the given column and line
+   */
+  public Optional<IterationElement> getIterationStructureStartingAtColumn(
+      Integer pColumn, Integer pLine) {
+    if (lineAndStartColumnToIterationStructure == null) {
+      initializeMapFromLineAndStartColumnToIterationStructure();
+    }
+
+    StartingLocation key = new StartingLocation(pColumn, pLine);
+    if (lineAndStartColumnToIterationStructure.containsKey(key)) {
+      return Optional.ofNullable(lineAndStartColumnToIterationStructure.get(key));
     }
 
     return Optional.empty();

@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -385,7 +386,8 @@ public class ReportGenerator {
     TraceFormula traceFormula = ((FaultLocalizationInfoWithTraceFormula) fInfo).getTraceFormula();
     PreCondition preCondition = traceFormula.getPrecondition();
     FormulaContext context = traceFormula.getContext();
-    FormulaToCVisitor visitor = new FormulaToCVisitor(context.getSolver().getFormulaManager());
+    FormulaToCVisitor visitor =
+        new FormulaToCVisitor(context.getSolver().getFormulaManager(), Function.identity());
     context.getSolver().getFormulaManager().visit(preCondition.getPrecondition(), visitor);
     return visitor.getString();
   }

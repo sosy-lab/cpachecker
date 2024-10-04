@@ -25,10 +25,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -109,9 +111,17 @@ public class PredicateAbstractionsWriter {
         PredicateAbstractState predicateState = PredicateAbstractState.getPredicateState(state);
         BooleanFormula formula = predicateState.getAbstractionFormula().asFormula();
         if (asExpression) {
-          ExpressionTree<Object> tree =
-              ExpressionTrees.fromFormula(formula, fmgr, AbstractStates.extractLocation(state));
-          stateToAssert.put(state, tree.toString());
+          ExpressionTree<Object> expressionTree;
+          try {
+            expressionTree =
+                ExpressionTrees.fromFormula(
+                    formula, fmgr, AbstractStates.extractLocation(state), Function.identity());
+          } catch (TranslationToExpressionTreeFailedException e) {
+            // Keep consistency with the previous implementation
+            logger.logDebugException(e, "Translation to expression tree failed");
+            expressionTree = ExpressionTrees.getTrue();
+          }
+          stateToAssert.put(state, expressionTree.toString());
           done.add(state);
           continue;
         }

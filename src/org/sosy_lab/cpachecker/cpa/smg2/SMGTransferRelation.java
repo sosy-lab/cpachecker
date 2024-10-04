@@ -905,7 +905,7 @@ public class SMGTransferRelation
             // Infeasible
             return null;
           }
-          return transformedImmutableListCopy(maybeFeasiblePaths, vAS -> vAS.getState());
+          return transformedImmutableListCopy(maybeFeasiblePaths, ValueAndSMGState::getState);
         } catch (SMGSolverException e) {
           if (e.isSolverException()) {
             throw e.getSolverException();
