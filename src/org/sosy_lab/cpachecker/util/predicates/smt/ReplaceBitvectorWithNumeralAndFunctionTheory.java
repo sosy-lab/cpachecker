@@ -220,7 +220,6 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
    * @see IntegerFormulaManagerView#divide
    */
   private Formula representBitvectorDivision(final T f1, final T f2) {
-    // TODO: Check the formula
     final T zero = numericFormulaManager.makeNumber(0);
     final T additionalUnit =
         booleanFormulaManager.ifThenElse(

@@ -660,7 +660,8 @@ public class FormulaManagerView {
   /**
    * This method returns the formula for the MODULO-operator.
    *
-   * <p>See {@link #makeDivide} for details about the rounding mode.
+   * <p>The exact definition depends on the type of the formula. See {@link #makeDivide} for more
+   * details.
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeRemainder(T pF1, T pF2, boolean pSigned) {
