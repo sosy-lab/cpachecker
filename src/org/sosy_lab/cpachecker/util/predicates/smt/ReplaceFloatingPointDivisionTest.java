@@ -88,7 +88,7 @@ public class ReplaceFloatingPointDivisionTest {
   }
 
   @Test
-  public void integerDivisionTest() {
+  public void floatDivisionTest() {
     for (int x : testValues) {
       for (int y : testValues) {
         var f0 = fpmgr.makeNumber(x, DOUBLE_PRECISION);
