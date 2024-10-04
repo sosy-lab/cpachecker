@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -106,10 +108,12 @@ public class CfaJsonModule extends SimpleModule {
     pContext.setMixInAnnotations(CFunctionTypeWithNames.class, CFunctionTypeWithNamesMixin.class);
     pContext.setMixInAnnotations(CIdExpression.class, CIdExpressionMixin.class);
     pContext.setMixInAnnotations(CInitializerExpression.class, CInitializerExpressionMixin.class);
+    pContext.setMixInAnnotations(CInitializerList.class, CInitializerListMixin.class);
     pContext.setMixInAnnotations(
         CIntegerLiteralExpression.class, CIntegerLiteralExpressionMixin.class);
     pContext.setMixInAnnotations(CParameterDeclaration.class, CParameterDeclarationMixin.class);
     pContext.setMixInAnnotations(CPointerType.class, CPointerTypeMixin.class);
+    pContext.setMixInAnnotations(CProblemType.class, CProblemTypeMixin.class);
     pContext.setMixInAnnotations(CReturnStatement.class, CReturnStatementMixin.class);
     pContext.setMixInAnnotations(CReturnStatementEdge.class, CReturnStatementEdgeMixin.class);
     pContext.setMixInAnnotations(CSimpleType.class, CSimpleTypeMixin.class);
