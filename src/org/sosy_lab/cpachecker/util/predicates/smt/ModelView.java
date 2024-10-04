@@ -45,9 +45,42 @@ class ModelView implements Model {
     wrappingHandler = pWrappingHandler;
   }
 
+  /**
+   * Match the value to the type of the formula.
+   *
+   * <p>For wrapped formulas the value returned by the model does not match the final type and needs
+   * to be converted first.
+   */
+  private Object wrapValue(Formula pFormula, Object pValue) {
+    if (pFormula instanceof FloatingPointFormula) {
+      if (pValue instanceof FloatingPointNumber) {
+        return pValue;
+      } else if (pValue instanceof Number numericValue) {
+        double value = Double.valueOf(numericValue.doubleValue());
+        String bits = Long.toUnsignedString(Double.doubleToRawLongBits(value), 2);
+        String pad = "0".repeat(64 - bits.length());
+        return FloatingPointNumber.of(pad + bits, 11, 52);
+      } else {
+        throw new IllegalArgumentException();
+      }
+    } else if (pFormula instanceof BitvectorFormula) {
+      if (pValue instanceof BigInteger) {
+        return pValue;
+      }
+      if (pValue instanceof Rational pRational) {
+        BigInteger i1 = pRational.getNum();
+        BigInteger i2 = pRational.getDen();
+        return i1.divide(i2);
+      } else {
+        throw new IllegalArgumentException();
+      }
+    }
+    return pValue;
+  }
+
   @Nullable
   private Object evaluateImpl(Formula f) {
-    return delegate.evaluate(wrappingHandler.unwrap(f));
+    return wrapValue(f, delegate.evaluate(wrappingHandler.unwrap(f)));
   }
 
   @Nullable
