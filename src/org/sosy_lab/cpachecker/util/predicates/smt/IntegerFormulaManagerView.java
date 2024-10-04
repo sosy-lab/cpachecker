@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import java.math.BigInteger;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
