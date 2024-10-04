@@ -12,7 +12,11 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators.PropertyGenerator;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
@@ -21,7 +25,11 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.export.json.serialization.CSimpleDeclarationSetToSortedListConverter;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
@@ -30,6 +38,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  * <p>Identity information is being serialized to prevent infinite recursion.
  *
  * <p>Type information is being serialized to account for subtype polymorphism.
+ *
+ * <p>It sets the names to be used for all relevant subtypes.
  *
  * <p>Edges are serialized as IDs.
  *
@@ -41,10 +51,14 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
     generator = PropertyGenerator.class,
     scope = CFANode.class,
     property = "nodeNumber")
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.CLASS,
-    include = JsonTypeInfo.As.PROPERTY,
-    property = "typeOfCFANode")
+@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "nodeType")
+@JsonSubTypes({
+  @Type(value = CFALabelNode.class, name = "Label"),
+  @Type(value = CFANode.class, name = "Basic"),
+  @Type(value = CFATerminationNode.class, name = "Termination"),
+  @Type(value = FunctionEntryNode.class, name = "FunctionEntry"),
+  @Type(value = FunctionExitNode.class, name = "FunctionExit")
+})
 public final class CFANodeMixin {
 
   @SuppressWarnings("unused")
