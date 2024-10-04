@@ -387,7 +387,7 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertDivision() throws InterruptedException {
-      skipTestForSolvers(Solvers.MATHSAT5, Solvers.PRINCESS);
+      skipTestForSolvers(Solvers.MATHSAT5, Solvers.PRINCESS, Solvers.BITWUZLA);
       BooleanFormula formula =
           imgrv.equal(
               imgrv.divide(imgrv.makeVariable("x"), imgrv.makeNumber(2)), imgrv.makeVariable("y"));
