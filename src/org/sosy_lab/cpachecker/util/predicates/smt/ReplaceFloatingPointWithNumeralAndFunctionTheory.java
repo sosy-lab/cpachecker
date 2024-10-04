@@ -365,11 +365,35 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   @Override
   public FloatingPointFormula makeNumber(
       BigInteger pExponent,
-      BigInteger pMantisse,
+      BigInteger pMantissa,
       boolean pSign,
       FloatingPointType pFloatingPointType) {
-    // TODO: Convert this to Double or String
-    throw new UnsupportedOperationException();
+    if (pFloatingPointType.equals(FormulaType.getSinglePrecisionFloatingPointType())) {
+      String sign = pSign ? "1" : "0";
+      String exponent = pExponent.toString(2);
+      String pad1 = "0".repeat(pFloatingPointType.getExponentSize() - exponent.length());
+      String mantissa = pMantissa.toString(2);
+      String pad2 = "0".repeat(pFloatingPointType.getMantissaSize() - mantissa.length());
+      float value =
+          Float.intBitsToFloat(
+              Integer.parseUnsignedInt(sign + pad1 + exponent + pad2 + mantissa, 2));
+
+      return makeNumber(value, pFloatingPointType);
+    } else if (pFloatingPointType.equals(FormulaType.getDoublePrecisionFloatingPointType())) {
+      String sign = pSign ? "1" : "0";
+      String exponent = pExponent.toString(2);
+      String pad1 = "0".repeat(pFloatingPointType.getExponentSize() - exponent.length());
+      String mantissa = pMantissa.toString(2);
+      String pad2 = "0".repeat(pFloatingPointType.getMantissaSize() - mantissa.length());
+      double value =
+          Double.longBitsToDouble(
+              Long.parseUnsignedLong(sign + pad1 + exponent + pad2 + mantissa, 2));
+
+      return makeNumber(value, pFloatingPointType);
+    } else {
+      // FIXME: Support larger float formats
+      throw new IllegalArgumentException();
+    }
   }
 
   @Override
