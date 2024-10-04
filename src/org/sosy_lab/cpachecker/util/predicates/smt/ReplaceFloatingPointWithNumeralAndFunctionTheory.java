@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -241,9 +242,15 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
   @Override
   public FloatingPointFormula remainder(
-      FloatingPointFormula pFloatingPointFormula, FloatingPointFormula pFloatingPointFormula1) {
-    // TODO: Represent this as a Uf?
-    throw new UnsupportedOperationException();
+      FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
+    Preconditions.checkArgument(getFormulaType(pNumber1).equals(getFormulaType(pNumber2)));
+    FormulaType<T> formulaType = getFormulaType(unwrap(pNumber1));
+    return wrap(
+        getFormulaType(pNumber1),
+        functionManager.callUF(
+            functionManager.declareUF("_%fp.rem_", formulaType, formulaType, formulaType),
+            unwrap(pNumber1),
+            unwrap(pNumber2)));
   }
 
   @Override
