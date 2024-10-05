@@ -38,6 +38,10 @@ import org.sosy_lab.cpachecker.util.variableclassification.Partition;
  * objects, and adding variables, values, edges, and mappings to each PartitionHandler. Finally, the
  * deserialized Partitions are returned as a set.
  *
+ * <p>In order for the deserialization process to work, the set of all {@link CFAEdge}s must be
+ * deserialized before the set of all {@link Partition}s. This is because the deserialization of
+ * Partitions involves references to {@link CFAEdge}s.
+ *
  * @see CfaJsonImport
  * @see CfaJsonData
  * @see VariableClassificationMixin

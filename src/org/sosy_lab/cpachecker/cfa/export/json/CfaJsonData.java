@@ -24,6 +24,9 @@ import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 /**
  * This record represents the JSON data structure that a CFA is exported to and imported from.
  *
+ * <p>The order of the fields is important for the deserialization process! Have a look at {@link
+ * PartitionsDeserializer} for more information.
+ *
  * @see CfaJsonImport
  * @see CfaJsonExport
  */
