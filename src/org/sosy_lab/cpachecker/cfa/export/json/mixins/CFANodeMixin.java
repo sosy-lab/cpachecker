@@ -43,7 +43,36 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  *
  * <p>It sets the names to use for all relevant subtypes.
  *
- * <p>Edges are serialized as IDs.
+ * <p>{@link CFAEdge}s are serialized as IDs. We assume that this Mixin is only used in a
+ * serialization process that serializes both the set of all {@link CFAEdge}s and the set of all
+ * {@link CFANode}s. Under this assumption, we do not have to redundantly export the full {@link
+ * CFAEdge} when exporting a {@link CFANode}. It is good enough to reference the edge id here. The
+ * export of the set of all {@link CFAEdge}s will then export the full {@link CFAEdge}s and make the
+ * reference valid.
+ *
+ * <pre>
+ * Example:
+ *
+ * A CFA node with this Mixin would be exported as:
+ * {
+ *   "leavingEdges" : [ 2 ],
+ * "enteringEdges" : [ 1 ],
+ * "leavingSummaryEdge" : null,
+ * "enteringSummaryEdge" : null,
+ *   // other fields
+ * }
+ *
+ * and the set of all CFA edges _must_ contain:
+ * {
+ *   "edgeNumber": 1,
+ *   // other fields to fully describe the edge
+ * },
+ * {
+ *   "edgeNumber": 2,
+ *   // other fields to fully describe the edge
+ * }
+ * so that the reference to the edge numbers is valid.
+ * </pre>
  *
  * <p>outOfScopeVariables are sorted to ensure deterministic serialization.
  *
