@@ -18,6 +18,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -61,7 +62,7 @@ public class ThreadBuilder {
    * @return a MPORThread object with properly initialized variables
    */
   public MPORThread createThread(
-      Optional<CExpression> pThreadObject,
+      Optional<CIdExpression> pThreadObject,
       FunctionEntryNode pEntryNode,
       FunctionExitNode pExitNode) {
 

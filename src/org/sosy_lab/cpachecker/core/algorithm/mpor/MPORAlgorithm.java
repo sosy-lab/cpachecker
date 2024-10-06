@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -593,7 +593,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     for (CFAEdge cfaEdge : CFAUtils.allUniqueEdges(pCfa)) {
       if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         // extract the first parameter of pthread_create, i.e. the pthread_t value
-        CExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
+        CIdExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
         // extract the third parameter of pthread_create which points to the start routine function
         CFunctionType startRoutine = PthreadUtil.extractStartRoutine(cfaEdge);
         FunctionEntryNode entryNode =

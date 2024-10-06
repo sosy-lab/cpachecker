@@ -718,8 +718,8 @@ public class CFAUtils {
   }
 
   /**
-   * Extracts and returns the value from the given address. E.g. if pAddress is &id1 from
-   * pthread_create(&id1, ...), then this function returns id1's expression.
+   * Extracts and returns the {@link CExpression} from the given address. E.g. if pAddress is &id1
+   * from pthread_create(&id1, ...), then this function returns id1's expression.
    */
   public static CExpression getValueFromAddress(CExpression pAddress) {
     if (pAddress instanceof CUnaryExpression unaryExpr) {

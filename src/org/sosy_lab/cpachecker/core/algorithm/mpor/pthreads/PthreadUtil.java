@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -35,19 +36,25 @@ public class PthreadUtil {
     }
   }
 
-  public static CExpression extractPthreadT(CFAEdge pEdge) {
+  public static CIdExpression extractPthreadT(CFAEdge pEdge) {
     checkArgument(
         PthreadFuncType.callsAnyPthreadFuncWithPthreadT(pEdge),
         "pEdge must be call to a pthread method with a pthread_t param");
 
     PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(pEdge);
-    CExpression pthreadT = CFAUtils.getParameterAtIndex(pEdge, funcType.getPthreadTIndex());
+    CExpression param = CFAUtils.getParameterAtIndex(pEdge, funcType.getPthreadTIndex());
 
     if (funcType.isPthreadTPointer()) {
-      return CFAUtils.getValueFromAddress(pthreadT);
+      CExpression value = CFAUtils.getValueFromAddress(param);
+      if (value instanceof CIdExpression pthreadT) {
+        return pthreadT;
+      }
     } else {
-      return pthreadT;
+      if (param instanceof CIdExpression pthreadT) {
+        return pthreadT;
+      }
     }
+    throw new IllegalArgumentException("pthreadT must be CIdExpression");
   }
 
   public static CExpression extractPthreadMutexT(CFAEdge pEdge) {

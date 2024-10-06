@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORCreate;
@@ -25,9 +25,8 @@ public class MPORThread {
 
   public final int id;
 
-  // TODO make this CIdExpression
   /** The pthread_t object. Set to empty for the main thread. */
-  public final Optional<CExpression> threadObject;
+  public final Optional<CIdExpression> threadObject;
 
   /** The {@link CFunctionType} of the startRoutine (pthreads) or main function (main thread). */
   public final CFunctionType startRoutine;
@@ -48,7 +47,7 @@ public class MPORThread {
   protected MPORThread(
       int pId,
       CFunctionType pStartRoutine,
-      Optional<CExpression> pThreadObject,
+      Optional<CIdExpression> pThreadObject,
       ImmutableSet<CVariableDeclaration> pLocalVars,
       ImmutableSet<MPORCreate> pCreates,
       ImmutableSet<MPORMutex> pMutexes,
