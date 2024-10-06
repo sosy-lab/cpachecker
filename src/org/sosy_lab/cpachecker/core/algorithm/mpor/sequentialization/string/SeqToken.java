@@ -46,7 +46,7 @@ public class SeqToken {
 
   public static final String IF = "if";
 
-  public static final String JOINING = "joining";
+  public static final String JOINS = "joins";
 
   public static final String LOCKED = "locked";
 

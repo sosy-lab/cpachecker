@@ -247,14 +247,14 @@ public class SeqUtil {
 
               case PTHREAD_JOIN:
                 MPORThread targetThread =
-                    PthreadUtil.extractThread(pPthreadVars.threadJoining.keySet(), edge);
-                CExpressionAssignmentStatement joiningTrueAssign =
+                    PthreadUtil.extractThread(pPthreadVars.threadJoins.keySet(), edge);
+                CExpressionAssignmentStatement joinsTrueAssign =
                     SeqStatements.buildExprAssign(
-                        pPthreadVars.threadJoining.get(pThread).get(targetThread),
+                        pPthreadVars.threadJoins.get(pThread).get(targetThread),
                         SeqExpressions.INT_ONE);
                 stmts.add(
                     new SeqLoopCaseStmt(
-                        pThread.id, false, Optional.of(joiningTrueAssign.toASTString()), targetPc));
+                        pThread.id, false, Optional.of(joinsTrueAssign.toASTString()), targetPc));
                 break;
 
               default:

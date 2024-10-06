@@ -68,12 +68,12 @@ public class SeqNameBuilder {
         + pMutexName;
   }
 
-  /** Returns a var name of the form {@code __t{pWaitingId}_joining_t{pTargetId}} */
-  public static String createThreadJoiningName(int pWaitingId, int pTargetId) {
+  /** Returns a var name of the form {@code __t{pWaitingId}_joins_t{pTargetId}} */
+  public static String createThreadJoinsName(int pWaitingId, int pTargetId) {
     return SeqPrefix.THREAD_JOINING
         + pWaitingId
         + SeqSyntax.UNDERSCORE
-        + SeqToken.JOINING
+        + SeqToken.JOINS
         + SeqSyntax.UNDERSCORE
         + SeqToken.T
         + pTargetId;

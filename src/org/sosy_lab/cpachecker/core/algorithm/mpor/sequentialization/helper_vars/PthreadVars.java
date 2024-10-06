@@ -25,18 +25,18 @@ public class PthreadVars {
 
   public final ImmutableMap<MPORThread, ImmutableMap<CIdExpression, CIdExpression>> mutexAwaits;
 
-  public final ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>> threadJoining;
+  public final ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>> threadJoins;
 
   public PthreadVars(
       ImmutableMap<CIdExpression, CIdExpression> pThreadActiveVars,
       ImmutableMap<CIdExpression, CIdExpression> pMutexLockedVars,
       ImmutableMap<MPORThread, ImmutableMap<CIdExpression, CIdExpression>> pMutexAwaits,
-      ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>> pThreadJoiningVars) {
+      ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>> pThreadJoinsVars) {
 
     threadActive = pThreadActiveVars;
     mutexLocked = pMutexLockedVars;
     mutexAwaits = pMutexAwaits;
-    threadJoining = pThreadJoiningVars;
+    threadJoins = pThreadJoinsVars;
   }
 
   /** Returns all CIdExpressions of the vars in the order active - locked - awaits - joins. */
@@ -53,9 +53,9 @@ public class PthreadVars {
         rIdExpressions.add(awaits);
       }
     }
-    for (ImmutableMap<MPORThread, CIdExpression> map : threadJoining.values()) {
-      for (CIdExpression joining : map.values()) {
-        rIdExpressions.add(joining);
+    for (ImmutableMap<MPORThread, CIdExpression> map : threadJoins.values()) {
+      for (CIdExpression joins : map.values()) {
+        rIdExpressions.add(joins);
       }
     }
     return rIdExpressions.build();

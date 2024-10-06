@@ -500,7 +500,7 @@ public class Sequentialization {
   }
 
   private static ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>>
-      mapThreadJoiningVars(ImmutableSet<MPORThread> pThreads) {
+      mapThreadJoinsVars(ImmutableSet<MPORThread> pThreads) {
 
     ImmutableMap.Builder<MPORThread, ImmutableMap<MPORThread, CIdExpression>> rVars =
         ImmutableMap.builder();
@@ -514,7 +514,7 @@ public class Sequentialization {
 
           // multiple join calls within one thread to the same thread are possible -> only need one
           if (!targetThreads.containsKey(targetThread)) {
-            String varName = SeqNameBuilder.createThreadJoiningName(thread.id, targetThread.id);
+            String varName = SeqNameBuilder.createThreadJoinsName(thread.id, targetThread.id);
             targetThreads.put(targetThread, SeqExpressions.buildIntVar(varName));
           }
         }
@@ -580,13 +580,10 @@ public class Sequentialization {
 
   private PthreadVars buildPthreadVars(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions) {
-    ImmutableMap<CIdExpression, CIdExpression> threadActiveVars =
-        mapThreadActiveVars(pSubstitutions.keySet());
-    ImmutableMap<CIdExpression, CIdExpression> mutexLockedVars = mapMutexLockedVars(pSubstitutions);
-    ImmutableMap<MPORThread, ImmutableMap<CIdExpression, CIdExpression>> mutexAwaitsVars =
-        mapMutexAwaitsVars(pSubstitutions);
-    ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>> threadJoiningVars =
-        mapThreadJoiningVars(pSubstitutions.keySet());
-    return new PthreadVars(threadActiveVars, mutexLockedVars, mutexAwaitsVars, threadJoiningVars);
+    return new PthreadVars(
+        mapThreadActiveVars(pSubstitutions.keySet()),
+        mapMutexLockedVars(pSubstitutions),
+        mapMutexAwaitsVars(pSubstitutions),
+        mapThreadJoinsVars(pSubstitutions.keySet()));
   }
 }

@@ -709,8 +709,8 @@ int __t2_active = 0;
 int __g_14_m_locked = 0;
 int __t1_awaits___g_14_m = 0;
 int __t2_awaits___g_14_m = 0;
-int __t0_joining_t1 = 0;
-int __t0_joining_t2 = 0;
+int __t0_joins_t1 = 0;
+int __t0_joins_t2 = 0;
 
 // custom function declarations
 void abort();
