@@ -20,6 +20,8 @@ public class SeqToken {
 
   public static final String ASSUME = "assume";
 
+  public static final String AWAITS = "awaits";
+
   public static final String BREAK = "break";
 
   public static final String CASE = "case";

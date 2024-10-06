@@ -14,19 +14,27 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class PthreadVars {
 
+  // TODO keeping track of which CIdExpression represents which is difficult, its best to create
+  //  PthreadT, PthreadMutexT, ThreadActive, MutexLocked, ThreadAwaitsMutex, ThreadJoiningThread
+  //  classes for better overview?
+
   public final ImmutableMap<CIdExpression, CIdExpression> threadActive;
 
   public final ImmutableMap<CIdExpression, CIdExpression> mutexLocked;
+
+  public final ImmutableMap<MPORThread, ImmutableMap<CIdExpression, CIdExpression>> mutexAwaits;
 
   public final ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>> threadJoining;
 
   public PthreadVars(
       ImmutableMap<CIdExpression, CIdExpression> pThreadActiveVars,
       ImmutableMap<CIdExpression, CIdExpression> pMutexLockedVars,
+      ImmutableMap<MPORThread, ImmutableMap<CIdExpression, CIdExpression>> pMutexAwaits,
       ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>> pThreadJoiningVars) {
 
     threadActive = pThreadActiveVars;
     mutexLocked = pMutexLockedVars;
+    mutexAwaits = pMutexAwaits;
     threadJoining = pThreadJoiningVars;
   }
 }

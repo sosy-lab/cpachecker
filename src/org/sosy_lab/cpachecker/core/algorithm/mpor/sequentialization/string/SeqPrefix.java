@@ -22,5 +22,7 @@ public class SeqPrefix {
 
   public static final String THREAD_ACTIVE = "__t";
 
+  public static final String THREAD_AWAITS = "__t";
+
   public static final String THREAD_JOINING = "__t";
 }

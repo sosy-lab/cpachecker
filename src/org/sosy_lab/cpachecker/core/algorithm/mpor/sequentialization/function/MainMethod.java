@@ -76,6 +76,7 @@ public class MainMethod implements SeqFunction {
 
   private final DeclareExpr declarePc;
 
+  // TODO add an ImmutableSet<CExpression> pAssumptions
   public MainMethod(ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> pLoopCases) {
     loopCases = pLoopCases;
     declareNumThreads =
