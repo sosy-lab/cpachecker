@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Contains pre-built ASTNode variables used in the sequentialization as well as builder functions
- * to create a simpler syntax.
+ * Helper ASTNodes to handle function calls and pthread method replacements in the
+ * sequentialization.
  */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars;

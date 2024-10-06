@@ -24,6 +24,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqT
 
 public class Assume implements SeqFunction {
 
+  // TODO use CPAchecker ast here
+
   private static final Variable cond = new Variable(SeqToken.COND);
 
   private static final IfExpr ifCond = new IfExpr(new NegationExpr(cond));
@@ -38,7 +40,7 @@ public class Assume implements SeqFunction {
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.NEWLINE
         + SeqUtil.prependTabsWithNewline(1, SeqUtil.appendOpeningCurly(ifCond.toString()))
-        + SeqUtil.prependTabsWithNewline(2, abortCall.toString() + SeqSyntax.SEMICOLON)
+        + SeqUtil.prependTabsWithNewline(2, abortCall + SeqSyntax.SEMICOLON)
         + SeqUtil.prependTabsWithNewline(1, SeqSyntax.CURLY_BRACKET_RIGHT)
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }

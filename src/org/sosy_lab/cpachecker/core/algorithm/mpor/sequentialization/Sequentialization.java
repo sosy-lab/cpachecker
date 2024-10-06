@@ -38,14 +38,16 @@ import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.AnyUnsigned;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.Assume;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.MainMethod;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.FunctionVars;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.PthreadVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCaseStmt;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements.SeqDeclarations;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements.SeqExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.statements.SeqTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
@@ -187,6 +189,8 @@ public class Sequentialization {
           mapReturnPcToPcAssigns(thread, pReturnPcVars.get(thread));
       ImmutableMap<ThreadNode, CExpressionAssignmentStatement> pcToReturnPcAssigns =
           mapPcToReturnPcAssigns(thread, pReturnPcVars.get(thread));
+      FunctionVars funcVars =
+          new FunctionVars(paramAssigns, returnStmts, returnPcToPcAssigns, pcToReturnPcAssigns);
 
       // pthread method replacements
       ImmutableMap<CIdExpression, CIdExpression> threadActiveVars =
@@ -195,6 +199,8 @@ public class Sequentialization {
           mapMutexLockedVars(pSubstitutions);
       ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>> threadJoiningVars =
           mapThreadJoiningVars(pSubstitutions.keySet());
+      PthreadVars pthreadVars =
+          new PthreadVars(threadActiveVars, mutexLockedVars, threadJoiningVars);
 
       Set<ThreadNode> coveredNodes = new HashSet<>();
 
@@ -202,17 +208,7 @@ public class Sequentialization {
         if (!coveredNodes.contains(threadNode)) {
           SeqLoopCase loopCase =
               SeqUtil.createCaseFromThreadNode(
-                  thread,
-                  coveredNodes,
-                  threadNode,
-                  edgeSubs,
-                  paramAssigns,
-                  returnStmts,
-                  returnPcToPcAssigns,
-                  pcToReturnPcAssigns,
-                  threadActiveVars,
-                  mutexLockedVars,
-                  threadJoiningVars);
+                  thread, coveredNodes, threadNode, edgeSubs, funcVars, pthreadVars);
           if (loopCase != null) {
             loopCases.add(loopCase);
           }
