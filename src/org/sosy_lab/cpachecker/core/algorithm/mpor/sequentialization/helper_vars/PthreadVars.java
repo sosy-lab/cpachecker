@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -36,5 +37,27 @@ public class PthreadVars {
     mutexLocked = pMutexLockedVars;
     mutexAwaits = pMutexAwaits;
     threadJoining = pThreadJoiningVars;
+  }
+
+  /** Returns all CIdExpressions of the vars in the order active - locked - awaits - joins. */
+  public ImmutableList<CIdExpression> getIdExpressions() {
+    ImmutableList.Builder<CIdExpression> rIdExpressions = ImmutableList.builder();
+    for (CIdExpression active : threadActive.values()) {
+      rIdExpressions.add(active);
+    }
+    for (CIdExpression locked : mutexLocked.values()) {
+      rIdExpressions.add(locked);
+    }
+    for (ImmutableMap<CIdExpression, CIdExpression> map : mutexAwaits.values()) {
+      for (CIdExpression awaits : map.values()) {
+        rIdExpressions.add(awaits);
+      }
+    }
+    for (ImmutableMap<MPORThread, CIdExpression> map : threadJoining.values()) {
+      for (CIdExpression joining : map.values()) {
+        rIdExpressions.add(joining);
+      }
+    }
+    return rIdExpressions.build();
   }
 }
