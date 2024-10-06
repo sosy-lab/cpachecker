@@ -112,7 +112,7 @@ public final class CfaJsonImport {
    */
   private ObjectMapper getImportingObjectMapper() throws IOException {
     /* Get basic ObjectMapper. */
-    ObjectMapper objectMapper = CfaJsonIO.getBasicCfaObjectMapper();
+    ObjectMapper objectMapper = new CfaJsonIO().getBasicCfaObjectMapper();
 
     SimpleModule simpleModule = new SimpleModule();
 

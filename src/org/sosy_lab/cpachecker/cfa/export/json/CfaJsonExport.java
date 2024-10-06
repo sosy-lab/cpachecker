@@ -82,7 +82,7 @@ public final class CfaJsonExport {
         JsonGenerator jsonGenerator =
             new JsonFactory().createGenerator(bufferedOutputStream, JsonEncoding.UTF8); ) {
 
-      CfaJsonIO.getBasicCfaObjectMapper().writeValue(jsonGenerator, cfaJsonData);
+      new CfaJsonIO().getBasicCfaObjectMapper().writeValue(jsonGenerator, cfaJsonData);
     }
   }
 }

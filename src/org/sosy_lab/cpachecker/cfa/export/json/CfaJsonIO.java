@@ -31,7 +31,7 @@ public final class CfaJsonIO {
    * @return The configured {@link ObjectMapper} instance which only maps fields and uses
    *     indentation and newlines.
    */
-  static final ObjectMapper getBasicCfaObjectMapper() {
+  public final ObjectMapper getBasicCfaObjectMapper() {
     return JsonMapper.builder()
 
         /* Only map fields of objects. */
