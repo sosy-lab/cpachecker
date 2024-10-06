@@ -54,10 +54,10 @@ public class PthreadUtil {
         return pthreadT;
       }
     }
-    throw new IllegalArgumentException("pthreadT must be CIdExpression");
+    throw new IllegalArgumentException("pthread_t must be CIdExpression");
   }
 
-  public static CExpression extractPthreadMutexT(CFAEdge pEdge) {
+  public static CIdExpression extractPthreadMutexT(CFAEdge pEdge) {
     checkArgument(
         PthreadFuncType.callsAnyPthreadFuncWithPthreadMutexT(pEdge),
         "pEdge must be call to a pthread method with a pthread_mutex_t param");
@@ -66,7 +66,11 @@ public class PthreadUtil {
     CExpression pthreadMutexT =
         CFAUtils.getParameterAtIndex(pEdge, funcType.getPthreadMutexTIndex());
 
-    return CFAUtils.getValueFromAddress(pthreadMutexT);
+    CExpression expr = CFAUtils.getValueFromAddress(pthreadMutexT);
+    if (expr instanceof CIdExpression idExpr) {
+      return idExpr;
+    }
+    throw new IllegalArgumentException("pthread_mutex_t must be a CIdExpression");
   }
 
   public static CFunctionType extractStartRoutine(CFAEdge pEdge) {

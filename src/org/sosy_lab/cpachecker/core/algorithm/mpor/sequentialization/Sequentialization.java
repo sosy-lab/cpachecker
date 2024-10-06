@@ -456,12 +456,10 @@ public class Sequentialization {
         // TODO mutexes can also be init with pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
         if (PthreadFuncType.callsPthreadFunc(sub, PthreadFuncType.PTHREAD_MUTEX_INIT)) {
           // TODO use CIdExpressions for pthreadMutexT too
-          CExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
-          assert pthreadMutexT instanceof CIdExpression;
-          CIdExpression idExpr = (CIdExpression) pthreadMutexT;
-          String varName = SeqNameBuilder.createMutexLockedName(idExpr.getName());
+          CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
+          String varName = SeqNameBuilder.createMutexLockedName(pthreadMutexT.getName());
           // TODO it should be wiser to use the original idExpr as the key and not the substitute...
-          rVars.put(idExpr, SeqExpressions.buildIntVar(varName));
+          rVars.put(pthreadMutexT, SeqExpressions.buildIntVar(varName));
         }
       }
     }
@@ -482,15 +480,12 @@ public class Sequentialization {
         assert edgeSubs.containsKey(threadEdge);
         CFAEdge sub = edgeSubs.get(threadEdge);
         if (PthreadFuncType.callsPthreadFunc(sub, PthreadFuncType.PTHREAD_MUTEX_LOCK)) {
-          // TODO use CIdExpressions for pthreadMutexT too
-          CExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
-          assert pthreadMutexT instanceof CIdExpression;
-          CIdExpression idExpr = (CIdExpression) pthreadMutexT;
-
+          CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
           // multiple lock calls within one thread to the same mutex are possible -> only need one
-          if (!awaitVars.containsKey(idExpr)) {
-            String varName = SeqNameBuilder.createMutexLockedName(thread.id, idExpr.getName());
-            awaitVars.put(idExpr, SeqExpressions.buildIntVar(varName));
+          if (!awaitVars.containsKey(pthreadMutexT)) {
+            String varName =
+                SeqNameBuilder.createMutexLockedName(thread.id, pthreadMutexT.getName());
+            awaitVars.put(pthreadMutexT, SeqExpressions.buildIntVar(varName));
           }
         }
       }

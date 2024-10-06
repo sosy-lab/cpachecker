@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order;
 
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  */
 public class MPORMutex {
 
-  public final CExpression pthreadMutexT;
+  public final CIdExpression pthreadMutexT;
 
   /** The CFANode directly after pthread_mutex_lock. */
   public final CFANode entryNode;
@@ -46,11 +46,12 @@ public class MPORMutex {
    *     pthread_mutex_lock
    */
   public MPORMutex(
-      CExpression pPthreadMutexT,
+      CIdExpression pPthreadMutexT,
       CFANode pEntryNode,
       ImmutableSet<CFANode> pNodes,
       ImmutableSet<CFAEdge> pEdges,
       ImmutableSet<CFANode> pExitNodes) {
+
     pthreadMutexT = pPthreadMutexT;
     entryNode = pEntryNode;
     nodes = pNodes;

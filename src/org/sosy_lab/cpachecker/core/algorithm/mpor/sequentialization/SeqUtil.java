@@ -228,18 +228,19 @@ public class SeqUtil {
                 break;
 
               case PTHREAD_MUTEX_LOCK:
+                // TODO general idea:
+                //  if (m_locked) { __t_awaits_m = 1; }
+                //  else { __t_awaits_m = 0; m_locked = 1; pc[...] = ...; }
+                //  continue;
+                //  then add assumption over locked, awaits and next_thread
+                break;
+
               case PTHREAD_MUTEX_UNLOCK:
-                CExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
-                assert pthreadMutexT instanceof CIdExpression;
-                CIdExpression idExpr = (CIdExpression) pthreadMutexT;
-                assert pPthreadVars.mutexLocked.containsKey(idExpr);
-                // if lock -> assign 1 to locked, otherwise 0
-                CExpression value =
-                    funcType.equals(PthreadFuncType.PTHREAD_MUTEX_LOCK)
-                        ? SeqExpressions.INT_ONE
-                        : SeqExpressions.INT_ZERO;
+                CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
+                assert pPthreadVars.mutexLocked.containsKey(pthreadMutexT);
                 CExpressionAssignmentStatement lockedAssign =
-                    SeqStatements.buildExprAssign(pPthreadVars.mutexLocked.get(idExpr), value);
+                    SeqStatements.buildExprAssign(
+                        pPthreadVars.mutexLocked.get(pthreadMutexT), SeqExpressions.INT_ZERO);
                 stmts.add(
                     new SeqLoopCaseStmt(
                         pThread.id, false, Optional.of(lockedAssign.toASTString()), targetPc));

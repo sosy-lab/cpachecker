@@ -244,7 +244,7 @@ public class ThreadBuilder {
       if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
         for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
           if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_MUTEX_LOCK)) {
-            CExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(cfaEdge);
+            CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(cfaEdge);
             // the successor node of mutex_lock is the first inside the lock
             CFANode initialNode = cfaEdge.getSuccessor();
             Set<CFANode> mutexNodes = new HashSet<>(); // using a set so that we can use .contains
@@ -290,7 +290,7 @@ public class ThreadBuilder {
    *     function.
    */
   private void initMutexVariables(
-      final CExpression pPthreadMutexT,
+      final CIdExpression pPthreadMutexT,
       Set<CFANode> pMutexNodes, // using a set so that we can use .contains(...)
       ImmutableSet.Builder<CFAEdge> pMutexEdges,
       ImmutableSet.Builder<CFANode> pMutexExitNodes,
@@ -302,7 +302,7 @@ public class ThreadBuilder {
       for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
         pMutexEdges.add(cfaEdge);
         if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_MUTEX_UNLOCK)) {
-          CExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(cfaEdge);
+          CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(cfaEdge);
           if (pthreadMutexT.equals(pPthreadMutexT)) {
             pMutexExitNodes.add(pCurrentNode);
           }

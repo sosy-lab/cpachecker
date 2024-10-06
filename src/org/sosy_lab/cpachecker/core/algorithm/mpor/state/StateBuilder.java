@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
@@ -268,7 +269,7 @@ public class StateBuilder {
             for (CFAEdge cfaEdge : CFAUtils.leavingEdges(otherNode)) {
 
               if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_MUTEX_LOCK)) {
-                CExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(cfaEdge);
+                CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(cfaEdge);
                 if (pthreadMutexT.equals(mutex.pthreadMutexT)) {
 
                   // extract all CFAEdges inside mutex excluding the leaving edges of exitNodes
