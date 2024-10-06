@@ -53,7 +53,7 @@ public final class CfaJsonImport {
    *     CfaJsonData} record.
    * @throws IOException If there is an error reading the JSON file.
    */
-  public static MutableCFA read(@Nullable Path pCfaJsonFile)
+  public MutableCFA read(@Nullable Path pCfaJsonFile)
       throws JsonParseException, JsonMappingException, IOException {
 
     checkNotNull(pCfaJsonFile, "No JSON file specified");
@@ -76,7 +76,7 @@ public final class CfaJsonImport {
    * @throws JsonMappingException if the JSON content cannot be mapped to a JSON node.
    * @throws IOException if an I/O error occurs while reading the file.
    */
-  public static JsonNode readJsonNode(@Nullable Path pCfaJsonFile)
+  public JsonNode readJsonNode(@Nullable Path pCfaJsonFile)
       throws JsonParseException, JsonMappingException, IOException {
 
     checkNotNull(pCfaJsonFile, "No JSON file specified");
@@ -93,7 +93,7 @@ public final class CfaJsonImport {
    * @return the Class object representing the StartingLocation record.
    * @throws IOException if the class cannot be found or loaded.
    */
-  private static Class<?> getStartingLocationClass() throws IOException {
+  private Class<?> getStartingLocationClass() throws IOException {
     try {
       return Class.forName(STARTING_LOCATION_RECORD_PATH);
     } catch (ClassNotFoundException e) {
@@ -110,7 +110,7 @@ public final class CfaJsonImport {
    * @return a configured ObjectMapper for importing CFA data.
    * @throws IOException if an I/O error occurs during the configuration.
    */
-  private static ObjectMapper getImportingObjectMapper() throws IOException {
+  private ObjectMapper getImportingObjectMapper() throws IOException {
     /* Get basic ObjectMapper. */
     ObjectMapper objectMapper = CfaJsonIO.getBasicCfaObjectMapper();
 
