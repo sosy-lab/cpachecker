@@ -8,21 +8,25 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 public class ArrayElement implements SeqDataEntity {
 
   public final Variable array;
 
-  public final SeqDataEntity index;
+  public final CExpression index;
 
-  public ArrayElement(Variable pArray, SeqDataEntity pIndex) {
+  public ArrayElement(Variable pArray, CExpression pIndex) {
     array = pArray;
     index = pIndex;
   }
 
   @Override
   public String toString() {
-    return array + SeqSyntax.SQUARE_BRACKET_LEFT + index + SeqSyntax.SQUARE_BRACKET_RIGHT;
+    return array
+        + SeqSyntax.SQUARE_BRACKET_LEFT
+        + index.toASTString()
+        + SeqSyntax.SQUARE_BRACKET_RIGHT;
   }
 }

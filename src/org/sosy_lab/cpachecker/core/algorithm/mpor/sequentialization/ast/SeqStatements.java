@@ -24,8 +24,7 @@ public class SeqStatements {
 
   public static CExpressionAssignmentStatement buildPcAssign(int pThreadId, int targetPc) {
     CIntegerLiteralExpression index = SeqExpressions.buildIntLiteralExpr(pThreadId);
-    CArraySubscriptExpression pcExpr =
-        SeqExpressions.buildArraySubscriptExpr(SeqTypes.PC, SeqExpressions.PC, index);
+    CArraySubscriptExpression pcExpr = SeqExpressions.buildPcSubscriptExpr(index);
     CIntegerLiteralExpression targetInt = SeqExpressions.buildIntLiteralExpr(targetPc);
     return SeqExpressions.buildExprAssignStmt(pcExpr, targetInt);
   }

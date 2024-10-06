@@ -100,9 +100,9 @@ public class SeqUtil {
 
         } else {
           // use (else) if (condition) for assumes, no matter if induced by if, for, while...
-          if (sub instanceof CAssumeEdge) {
+          if (sub instanceof CAssumeEdge assumeEdge) {
             assert allEdgesAssume(pThreadNode.leavingEdges());
-            IfExpr ifExpr = new IfExpr(new EdgeCodeExpr(sub));
+            IfExpr ifExpr = new IfExpr(assumeEdge.getExpression());
             if (firstEdge) {
               firstEdge = false;
               stmts.add(
@@ -218,10 +218,10 @@ public class SeqUtil {
             PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(edge);
             switch (funcType) {
               case PTHREAD_CREATE:
-                CExpression aPthreadT = PthreadUtil.extractPthreadT(edge);
+                CExpression pthreadT = PthreadUtil.extractPthreadT(edge);
                 CExpressionAssignmentStatement activeAssign =
                     SeqStatements.buildExprAssign(
-                        pPthreadVars.threadActive.get(aPthreadT), SeqExpressions.INT_ONE);
+                        pPthreadVars.threadActive.get(pthreadT), SeqExpressions.INT_ONE);
                 stmts.add(
                     new SeqLoopCaseStmt(
                         pThread.id, false, Optional.of(activeAssign.toASTString()), targetPc));
@@ -236,11 +236,11 @@ public class SeqUtil {
                 break;
 
               case PTHREAD_MUTEX_UNLOCK:
-                CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
-                assert pPthreadVars.mutexLocked.containsKey(pthreadMutexT);
+                CIdExpression aPthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
+                assert pPthreadVars.mutexLocked.containsKey(aPthreadMutexT);
                 CExpressionAssignmentStatement lockedAssign =
                     SeqStatements.buildExprAssign(
-                        pPthreadVars.mutexLocked.get(pthreadMutexT), SeqExpressions.INT_ZERO);
+                        pPthreadVars.mutexLocked.get(aPthreadMutexT), SeqExpressions.INT_ZERO);
                 stmts.add(
                     new SeqLoopCaseStmt(
                         pThread.id, false, Optional.of(lockedAssign.toASTString()), targetPc));

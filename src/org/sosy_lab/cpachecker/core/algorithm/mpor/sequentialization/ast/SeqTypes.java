@@ -29,7 +29,7 @@ public class SeqTypes {
 
   // CArrayTypes ================================================================================
 
-  public static final CArrayType PC = new CArrayType(false, false, INT);
+  public static final CArrayType INT_ARRAY = new CArrayType(false, false, INT);
 
   // CPointerTypes ===============================================================================
 

@@ -26,7 +26,10 @@ public class SeqDeclarations {
   // CVariableDeclaration ========================================================================
 
   public static final CVariableDeclaration PC =
-      buildVarDec(false, SeqTypes.PC, SeqToken.PC, SeqInitializers.INT_0);
+      buildVarDec(false, SeqTypes.INT_ARRAY, SeqToken.PC, SeqInitializers.INT_0);
+
+  public static final CVariableDeclaration NEXT_THREAD =
+      buildVarDec(false, SeqTypes.INT, SeqToken.NEXT_THREAD, SeqInitializers.VERIFIER_NONDET_INT);
 
   // CParameterDeclaration =======================================================================
 

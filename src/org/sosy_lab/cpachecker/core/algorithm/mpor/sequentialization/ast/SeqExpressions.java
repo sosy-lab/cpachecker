@@ -16,12 +16,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 
 public class SeqExpressions {
 
   // CIntegerLiteralExpression ===================================================================
+
+  public static final CIntegerLiteralExpression INT_EXIT_PC =
+      new CIntegerLiteralExpression(
+          FileLocation.DUMMY, SeqTypes.INT, BigInteger.valueOf(SeqUtil.EXIT_PC));
 
   public static final CIntegerLiteralExpression INT_ONE =
       new CIntegerLiteralExpression(FileLocation.DUMMY, SeqTypes.INT, BigInteger.ONE);
@@ -31,7 +36,16 @@ public class SeqExpressions {
 
   // CIdExpression ===============================================================================
 
+  public static final CIdExpression COND = buildIdExpr(SeqDeclarations.COND);
+
   public static final CIdExpression PC = buildIdExpr(SeqDeclarations.PC);
+
+  public static final CIdExpression NEXT_THREAD = buildIdExpr(SeqDeclarations.NEXT_THREAD);
+
+  public static final CIdExpression ABORT = buildIdExpr(SeqDeclarations.ABORT);
+
+  public static final CIdExpression VERIFIER_NONDET_INT =
+      buildIdExpr(SeqDeclarations.VERIFIER_NONDET_INT);
 
   // Helper Functions ============================================================================
 
@@ -47,8 +61,8 @@ public class SeqExpressions {
     return new CIdExpression(FileLocation.DUMMY, varDec);
   }
 
-  public static CIdExpression buildIdExpr(CVariableDeclaration pVarDec) {
-    return new CIdExpression(FileLocation.DUMMY, pVarDec);
+  public static CIdExpression buildIdExpr(CSimpleDeclaration pDec) {
+    return new CIdExpression(FileLocation.DUMMY, pDec);
   }
 
   public static CExpressionAssignmentStatement buildExprAssignStmt(
@@ -56,8 +70,8 @@ public class SeqExpressions {
     return new CExpressionAssignmentStatement(FileLocation.DUMMY, pLhs, pRhs);
   }
 
-  public static CArraySubscriptExpression buildArraySubscriptExpr(
-      CType pCType, CExpression pArrayExpr, CExpression pSubscriptExpr) {
-    return new CArraySubscriptExpression(FileLocation.DUMMY, pCType, pArrayExpr, pSubscriptExpr);
+  public static CArraySubscriptExpression buildPcSubscriptExpr(CExpression pSubscriptExpr) {
+    return new CArraySubscriptExpression(
+        FileLocation.DUMMY, SeqTypes.INT_ARRAY, SeqExpressions.PC, pSubscriptExpr);
   }
 }

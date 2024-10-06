@@ -15,4 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 public class SeqInitializers {
   public static final CInitializer INT_0 =
       new CInitializerExpression(FileLocation.DUMMY, SeqExpressions.INT_ZERO);
+
+  public static final CInitializer VERIFIER_NONDET_INT =
+      new CInitializerExpression(FileLocation.DUMMY, SeqExpressions.VERIFIER_NONDET_INT);
 }

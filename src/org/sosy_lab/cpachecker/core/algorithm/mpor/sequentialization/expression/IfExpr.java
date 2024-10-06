@@ -8,14 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
 public class IfExpr implements SeqExpression {
 
-  public final SeqExpression condition;
+  public final CExpression condition;
 
-  public IfExpr(SeqExpression pCondition) {
+  public IfExpr(CExpression pCondition) {
     condition = pCondition;
   }
 
@@ -24,7 +25,7 @@ public class IfExpr implements SeqExpression {
     return SeqToken.IF
         + SeqSyntax.SPACE
         + SeqSyntax.BRACKET_LEFT
-        + condition
+        + condition.toASTString()
         + SeqSyntax.BRACKET_RIGHT;
   }
 }

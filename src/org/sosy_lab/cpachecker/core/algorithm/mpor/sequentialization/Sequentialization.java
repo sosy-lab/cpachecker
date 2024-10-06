@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -40,8 +41,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.AnyUnsigned;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.Assume;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.MainMethod;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.FunctionVars;
@@ -54,6 +53,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarati
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
@@ -65,13 +65,17 @@ public class Sequentialization {
 
   protected final int numThreads;
 
-  public Sequentialization(int pNumThreads) {
+  private final CBinaryExpressionBuilder binExprBuilder;
+
+  public Sequentialization(int pNumThreads, CBinaryExpressionBuilder pBinExprBuilder) {
     numThreads = pNumThreads;
+    binExprBuilder = pBinExprBuilder;
   }
 
   /** Generates and returns the entire sequentialized program. */
   public String generateProgram(
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions) {
+      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions)
+      throws UnrecognizedCodeException {
 
     StringBuilder rProgram = new StringBuilder();
 
@@ -117,16 +121,24 @@ public class Sequentialization {
     rProgram.append(SeqDeclarations.ABORT.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqDeclarations.VERIFIER_NONDET_INT.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqDeclarations.ASSUME.toASTString()).append(SeqSyntax.NEWLINE);
-    rProgram.append(SeqDeclarations.ANY_UNSIGNED.toASTString()).append(SeqSyntax.NEWLINE);
+    // TODO replace the any_unsigned and execute variable method with: (use while(1))
+    //  if (pc[next_thread] == -1) {
+    //      int i = 0;
+    //      while (i < NUM_THREADS) {
+    //        if (pc[i] >= 0) {
+    //          continue;
+    //        }
+    //        i++;
+    //      }
+    //      break;
+    //    }
     // main should always be duplicate
     rProgram.append(SeqDeclarations.MAIN.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqSyntax.NEWLINE);
 
     // add non main() methods
-    Assume assume = new Assume();
-    AnyUnsigned anyUnsigned = new AnyUnsigned();
+    Assume assume = new Assume(binExprBuilder);
     rProgram.append(assume).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
-    rProgram.append(anyUnsigned).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
     // TODO we also need to prune:
     //  - update targetPc to -1 if we reach a thread exit node
@@ -138,7 +150,7 @@ public class Sequentialization {
     ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> loopCases =
         mapLoopCases(pSubstitutions, returnPcVars, pthreadVars);
     ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> prunedCases = pruneLoopCases(loopCases);
-    MainMethod mainMethod = new MainMethod(prunedCases);
+    MainMethod mainMethod = new MainMethod(prunedCases, binExprBuilder);
     rProgram.append(mainMethod);
 
     return rProgram.toString();
@@ -413,8 +425,7 @@ public class Sequentialization {
           ThreadNode threadNode = pThread.cfa.getThreadNodeByCfaNode(funcExitNode.orElseThrow());
           if (!rAssigns.containsKey(threadNode)) {
             CIntegerLiteralExpression threadId = SeqExpressions.buildIntLiteralExpr(pThread.id);
-            CArraySubscriptExpression pcArray =
-                SeqExpressions.buildArraySubscriptExpr(SeqTypes.PC, SeqExpressions.PC, threadId);
+            CArraySubscriptExpression pcArray = SeqExpressions.buildPcSubscriptExpr(threadId);
             CExpressionAssignmentStatement assign =
                 SeqExpressions.buildExprAssignStmt(pcArray, returnPc);
             rAssigns.put(threadNode, assign);

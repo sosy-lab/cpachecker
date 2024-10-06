@@ -434,14 +434,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     threadBuilder = new ThreadBuilder(funcCallMap);
     stateBuilder = new StateBuilder(PTR, funcCallMap);
-    binExprBuilder = new CBinaryExpressionBuilder(INPUT_CFA.getMachineModel(), pLogManager);
+    binExprBuilder = new CBinaryExpressionBuilder(INPUT_CFA.getMachineModel(), LOG_MANAGER);
 
     globalVars = getGlobalVars(INPUT_CFA);
     threads = getThreads(INPUT_CFA, funcCallMap);
 
     substitutions = SubstituteBuilder.getDecSubstitutions(globalVars, threads, binExprBuilder);
 
-    SEQ = new Sequentialization(threads.size());
+    SEQ = new Sequentialization(threads.size(), binExprBuilder);
   }
 
   // Preconditions ===============================================================================
