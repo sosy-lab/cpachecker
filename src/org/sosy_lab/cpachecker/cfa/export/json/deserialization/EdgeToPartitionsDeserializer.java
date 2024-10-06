@@ -48,8 +48,7 @@ public final class EdgeToPartitionsDeserializer
    * @return a EdgeToPartitionEntry object containing the deserialized data.
    * @throws IOException if an I/O error occurs during deserialization.
    */
-  public static EdgeToPartitionEntry deserializeEdgeToPartitionEntry(JsonNode pNode)
-      throws IOException {
+  public EdgeToPartitionEntry deserializeEdgeToPartitionEntry(JsonNode pNode) throws IOException {
 
     CFAEdge edge = CfaEdgeIdResolver.getEdgeFromId(pNode.get("edge").asInt());
     Integer index = pNode.get("index").asInt();

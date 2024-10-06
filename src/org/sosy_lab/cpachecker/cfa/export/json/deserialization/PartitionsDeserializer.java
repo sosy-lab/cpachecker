@@ -131,7 +131,7 @@ public final class PartitionsDeserializer extends JsonDeserializer<Set<Partition
         /* EdgeToPartition */
         for (JsonNode etp : node.get("edgeToPartition")) {
           EdgeToPartitionEntry tableEntry =
-              EdgeToPartitionsDeserializer.deserializeEdgeToPartitionEntry(etp);
+              new EdgeToPartitionsDeserializer().deserializeEdgeToPartitionEntry(etp);
           handler.addEdgeToPartition(tableEntry.edge(), tableEntry.index(), tableEntry.partition());
         }
 
