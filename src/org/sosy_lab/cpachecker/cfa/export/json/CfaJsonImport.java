@@ -11,10 +11,16 @@ package org.sosy_lab.cpachecker.cfa.export.json;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.KeyDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableSortedSet;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -22,8 +28,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
-import org.sosy_lab.cpachecker.cfa.export.json.deserialization.UnusedImmutableSortedSetDeserializer;
-import org.sosy_lab.cpachecker.cfa.export.json.deserialization.UnusedKeyDeserializer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -118,16 +122,35 @@ public final class CfaJsonImport {
 
     /* The following deserializers are required by jackson, but never called. */
 
-    /* Add custom deserializer. */
+    /* Add unused deserializer. */
     simpleModule.addDeserializer(
-        ImmutableSortedSet.class, new UnusedImmutableSortedSetDeserializer());
+        ImmutableSortedSet.class,
+        new JsonDeserializer<ImmutableSortedSet<Equivalence.Wrapper<?>>>() {
 
-    /* Add custom key deserializers. */
-    simpleModule.addKeyDeserializer(CFAEdge.class, new UnusedKeyDeserializer());
-    simpleModule.addKeyDeserializer(getStartingLocationClass(), new UnusedKeyDeserializer());
-    simpleModule.addKeyDeserializer(CCompositeType.class, new UnusedKeyDeserializer());
-    simpleModule.addKeyDeserializer(CFANode.class, new UnusedKeyDeserializer());
-    simpleModule.addKeyDeserializer(Pair.class, new UnusedKeyDeserializer());
+          @Override
+          public ImmutableSortedSet<Equivalence.Wrapper<?>> deserialize(
+              JsonParser pParser, DeserializationContext pContext) throws IOException {
+            throw new UnsupportedOperationException("Not implemented");
+          }
+        });
+
+    /* Add unused key deserializer. */
+    KeyDeserializer unusedKeyDeserializer =
+        new KeyDeserializer() {
+
+          @Override
+          public Object deserializeKey(
+              final String pKey, final DeserializationContext pDeserializationContext)
+              throws IOException, JsonProcessingException {
+            throw new UnsupportedOperationException("Not implemented");
+          }
+        };
+
+    simpleModule.addKeyDeserializer(CFAEdge.class, unusedKeyDeserializer);
+    simpleModule.addKeyDeserializer(getStartingLocationClass(), unusedKeyDeserializer);
+    simpleModule.addKeyDeserializer(CCompositeType.class, unusedKeyDeserializer);
+    simpleModule.addKeyDeserializer(CFANode.class, unusedKeyDeserializer);
+    simpleModule.addKeyDeserializer(Pair.class, unusedKeyDeserializer);
 
     objectMapper.registerModule(simpleModule);
 
