@@ -10,9 +10,6 @@ package org.sosy_lab.cpachecker.cfa.export.json.serialization;
 
 import com.fasterxml.jackson.databind.util.StdConverter;
 import com.google.common.collect.ImmutableListMultimap;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonExport;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.LoopStructureMixin;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -31,16 +28,9 @@ public final class LoopsMultimapSorterConverter
   @Override
   public ImmutableListMultimap<String, Loop> convert(
       ImmutableListMultimap<String, Loop> pMultimap) {
-    /* Sort the keys. */
-    List<String> keys = new ArrayList<>(pMultimap.keySet());
-    keys.sort(Comparator.naturalOrder());
 
-    /* Build the map. */
     ImmutableListMultimap.Builder<String, Loop> builder = ImmutableListMultimap.builder();
-
-    for (String key : keys) {
-      builder.putAll(key, pMultimap.get(key));
-    }
+    pMultimap.keySet().stream().sorted().forEach(key -> builder.putAll(key, pMultimap.get(key)));
 
     return builder.build();
   }
