@@ -54,7 +54,7 @@ public final class PartitionIdResolver extends SimpleObjectIdResolver {
         this.bindItem(pId, resolved);
 
       } catch (IOException e) {
-        return null;
+        throw new IllegalStateException("Cannot resolve Partition object", e);
       }
     }
 
