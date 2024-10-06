@@ -183,14 +183,13 @@ public class SeqUtil {
             assert pFuncVars.returnStmts.containsKey(threadEdge);
             if (retStmt.getSuccessor().getFunction().getType().equals(pThread.startRoutine)) {
               // exiting thread -> assign 0 to thread_active var if possible and set exit pc
-              CExpression threadObject = pThread.threadObject.orElseThrow();
-              boolean varExists = pPthreadVars.threadActive.containsKey(threadObject);
-              if (!pThread.isMain() && varExists) {
+              if (!pThread.isMain()
+                  && pPthreadVars.threadActive.containsKey(pThread.threadObject.orElseThrow())) {
 
                 CExpressionAssignmentStatement exprAssign =
                     new CExpressionAssignmentStatement(
                         FileLocation.DUMMY,
-                        pPthreadVars.threadActive.get(threadObject),
+                        pPthreadVars.threadActive.get(pThread.threadObject.orElseThrow()),
                         SeqExpressions.INT_ZERO);
                 stmts.add(
                     new SeqLoopCaseStmt(
@@ -220,7 +219,6 @@ public class SeqUtil {
             switch (funcType) {
               case PTHREAD_CREATE:
                 CExpression aPthreadT = PthreadUtil.extractPthreadT(edge);
-                assert aPthreadT instanceof CIdExpression;
                 CExpressionAssignmentStatement activeAssign =
                     SeqStatements.buildExprAssign(
                         pPthreadVars.threadActive.get(aPthreadT), SeqExpressions.INT_ONE);

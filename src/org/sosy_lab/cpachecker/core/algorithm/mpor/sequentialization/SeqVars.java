@@ -13,6 +13,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqT
 
 public class SeqVars {
 
+  // TODO replace with CPAchecker ast
+
   public static final Variable numThreads = new Variable(SeqToken.NUM_THREADS);
 
   public static final Variable pc = new Variable(SeqToken.PC);

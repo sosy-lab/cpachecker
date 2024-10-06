@@ -711,6 +711,7 @@ int __t0_joining_t1 = 0;
 int __t0_joining_t2 = 0;
 
 // custom function declarations
+void abort();
 int __VERIFIER_nondet_int();
 void __mpor_seq_assume(const int);
 int __mpor_seq_any_unsigned(const int * const , const int);

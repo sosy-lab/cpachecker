@@ -43,6 +43,8 @@ public class SeqTypes {
 
   // CFunctionTypes ==============================================================================
 
+  public static final CFunctionType ABORT = new CFunctionType(VOID, ImmutableList.of(), false);
+
   public static final CFunctionType VERIFIER_NONDET_INT =
       new CFunctionType(INT, ImmutableList.of(), false);
 

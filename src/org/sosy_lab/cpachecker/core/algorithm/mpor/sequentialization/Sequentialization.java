@@ -131,7 +131,8 @@ public class Sequentialization {
 
     // add all custom function declarations
     rProgram.append(SeqComment.createFuncDeclarationComment());
-    // __VERIFIER_nondet_int can be duplicate depending on the input program, but that's fine in C
+    // abort and __VERIFIER_nondet_int may be duplicate depending on the input program
+    rProgram.append(SeqDeclarations.ABORT.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqDeclarations.VERIFIER_NONDET_INT.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqDeclarations.ASSUME.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqDeclarations.ANY_UNSIGNED.toASTString()).append(SeqSyntax.NEWLINE);

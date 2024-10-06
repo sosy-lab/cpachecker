@@ -42,6 +42,14 @@ public class SeqDeclarations {
 
   // CFunctionDeclarations =======================================================================
 
+  public static final CFunctionDeclaration ABORT =
+      new CFunctionDeclaration(
+          FileLocation.DUMMY,
+          SeqTypes.ABORT,
+          SeqToken.ABORT,
+          ImmutableList.of(),
+          ImmutableSet.of(FunctionAttribute.NO_RETURN));
+
   public static final CFunctionDeclaration VERIFIER_NONDET_INT =
       new CFunctionDeclaration(
           FileLocation.DUMMY,
@@ -56,7 +64,7 @@ public class SeqDeclarations {
           SeqTypes.ASSUME,
           SeqNameBuilder.createFuncName(SeqToken.ASSUME),
           ImmutableList.of(COND),
-          ImmutableSet.of(FunctionAttribute.NO_RETURN));
+          ImmutableSet.of());
 
   public static final CFunctionDeclaration ANY_UNSIGNED =
       new CFunctionDeclaration(
