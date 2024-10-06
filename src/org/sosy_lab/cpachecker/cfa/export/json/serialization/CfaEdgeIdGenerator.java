@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 public final class CfaEdgeIdGenerator extends ObjectIdGenerator<Integer> {
 
   private static final long serialVersionUID = 7470151299045493234L;
+  private static final int START_ID = 0;
+
   private static ThreadLocal<CfaEdgeIdGenerator> currentGenerator = new ThreadLocal<>();
 
   private final Map<CFAEdge, Integer> edgeToIdMap = new HashMap<>();
@@ -47,7 +49,7 @@ public final class CfaEdgeIdGenerator extends ObjectIdGenerator<Integer> {
    */
   @SuppressWarnings("unused")
   public CfaEdgeIdGenerator() {
-    this(Object.class, -1);
+    this(Object.class, START_ID - 1);
   }
 
   /**
@@ -103,7 +105,9 @@ public final class CfaEdgeIdGenerator extends ObjectIdGenerator<Integer> {
             "Wrong object: " + pForObject.getClass().getSimpleName() + " is not a CFAEdge");
       }
 
-      int id = this.nextValue++;
+      int id = this.nextValue;
+      this.nextValue++;
+
       edgeToIdMap.put((CFAEdge) pForObject, id);
       return id;
     }
@@ -144,8 +148,7 @@ public final class CfaEdgeIdGenerator extends ObjectIdGenerator<Integer> {
    */
   @Override
   public ObjectIdGenerator<Integer> newForSerialization(Object pContext) {
-    /* Counting starts at 0. */
-    CfaEdgeIdGenerator generator = new CfaEdgeIdGenerator(this.scope, 0);
+    CfaEdgeIdGenerator generator = new CfaEdgeIdGenerator(this.scope, START_ID);
     currentGenerator.set(generator);
     return generator;
   }
