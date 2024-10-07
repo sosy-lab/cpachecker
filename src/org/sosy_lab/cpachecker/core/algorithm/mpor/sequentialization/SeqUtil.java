@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ElseIfExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.IfExpr;
@@ -185,7 +185,7 @@ public class SeqUtil {
                     new CExpressionAssignmentStatement(
                         FileLocation.DUMMY,
                         pPthreadVars.threadActive.get(pThread.threadObject.orElseThrow()),
-                        SeqExpressions.INT_0);
+                        SeqIntegerLiteralExpression.INT_0);
                 stmts.add(
                     new SeqLoopCaseStmt(
                         pThread.id,
@@ -216,7 +216,7 @@ public class SeqUtil {
                 CExpression pthreadT = PthreadUtil.extractPthreadT(edge);
                 CExpressionAssignmentStatement activeAssign =
                     SeqStatements.buildExprAssign(
-                        pPthreadVars.threadActive.get(pthreadT), SeqExpressions.INT_1);
+                        pPthreadVars.threadActive.get(pthreadT), SeqIntegerLiteralExpression.INT_1);
                 stmts.add(
                     new SeqLoopCaseStmt(
                         pThread.id, false, Optional.of(activeAssign.toASTString()), targetPc));
@@ -248,8 +248,8 @@ public class SeqUtil {
                 // if lock -> assign 1 to locked, otherwise 0
                 CExpression value =
                     funcType.equals(PthreadFuncType.PTHREAD_MUTEX_LOCK)
-                        ? SeqExpressions.INT_1
-                        : SeqExpressions.INT_0;
+                        ? SeqIntegerLiteralExpression.INT_1
+                        : SeqIntegerLiteralExpression.INT_0;
                 CExpressionAssignmentStatement lockedAssign =
                     SeqStatements.buildExprAssign(
                         pPthreadVars.mutexLocked.get(pthreadMutexT), value);
@@ -264,7 +264,7 @@ public class SeqUtil {
                 CExpressionAssignmentStatement joinsTrueAssign =
                     SeqStatements.buildExprAssign(
                         pPthreadVars.threadJoins.get(pThread).get(targetThread),
-                        SeqExpressions.INT_1);
+                        SeqIntegerLiteralExpression.INT_1);
                 stmts.add(
                     new SeqLoopCaseStmt(
                         pThread.id, false, Optional.of(joinsTrueAssign.toASTString()), targetPc));

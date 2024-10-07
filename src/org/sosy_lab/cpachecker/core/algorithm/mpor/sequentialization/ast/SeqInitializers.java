@@ -12,13 +12,11 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 
 public class SeqInitializers {
 
-  public static final CInitializer INT_0 = buildIntInitializer(SeqExpressions.INT_0);
-
-  public static final CInitializer VERIFIER_NONDET_INT =
-      new CInitializerExpression(FileLocation.DUMMY, SeqExpressions.VERIFIER_NONDET_INT);
+  public static final CInitializer INT_0 = buildIntInitializer(SeqIntegerLiteralExpression.INT_0);
 
   public static CInitializer buildIntInitializer(CExpression pExpression) {
     return new CInitializerExpression(FileLocation.DUMMY, pExpression);

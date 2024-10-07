@@ -25,9 +25,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqVars;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.ArrayElement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ElseIfExpr;
@@ -47,7 +50,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class MainMethod implements SeqFunction {
 
-  private static final LoopExpr whileExecute = new LoopExpr(SeqExpressions.INT_1);
+  private static final LoopExpr whileExecute = new LoopExpr(SeqIntegerLiteralExpression.INT_1);
 
   private final CBinaryExpressionBuilder binExprBuilder;
 
@@ -80,26 +83,26 @@ public class MainMethod implements SeqFunction {
     numThreads = pNumThreads;
     declareNumThreads = (CVariableDeclaration) pNumThreads.getDeclaration();
     // TODO declare pc array here
-    declarePc = SeqDeclarations.PC;
-    declareNextThread = SeqDeclarations.NEXT_THREAD;
+    declarePc = SeqVariableDeclaration.PC;
+    declareNextThread = SeqVariableDeclaration.NEXT_THREAD;
     assignNextThread =
         new CFunctionCallAssignmentStatement(
             FileLocation.DUMMY,
-            SeqExpressions.NEXT_THREAD,
+            SeqIdExpression.NEXT_THREAD,
             new CFunctionCallExpression(
                 FileLocation.DUMMY,
-                SeqTypes.INT,
-                SeqExpressions.VERIFIER_NONDET_INT,
+                SeqSimpleType.INT,
+                SeqIdExpression.VERIFIER_NONDET_INT,
                 ImmutableList.of(),
-                SeqDeclarations.VERIFIER_NONDET_INT));
+                SeqFunctionDeclaration.VERIFIER_NONDET_INT));
     assumeNextThread =
         new FunctionCallExpr(
             SeqNameBuilder.createFuncName(SeqToken.ASSUME), assumeNextThreadParams());
     exitPcCheck =
         new IfExpr(
             binExprBuilder.buildBinaryExpression(
-                SeqExpressions.buildPcSubscriptExpr(SeqExpressions.NEXT_THREAD),
-                SeqExpressions.INT_EXIT_PC,
+                SeqExpressions.buildPcSubscriptExpr(SeqIdExpression.NEXT_THREAD),
+                SeqIntegerLiteralExpression.INT_EXIT_PC,
                 BinaryOperator.EQUALS));
   }
 
@@ -109,13 +112,14 @@ public class MainMethod implements SeqFunction {
 
     int i = 0;
     for (var entry : loopCases.entrySet()) {
-      CIntegerLiteralExpression threadId = SeqExpressions.buildIntLiteralExpr(entry.getKey().id);
+      CIntegerLiteralExpression threadId =
+          SeqIntegerLiteralExpression.buildIntLiteralExpr(entry.getKey().id);
       IfExpr ifExpr = null;
       try {
         ifExpr =
             new IfExpr(
                 binExprBuilder.buildBinaryExpression(
-                    SeqExpressions.NEXT_THREAD, threadId, BinaryOperator.EQUALS));
+                    SeqIdExpression.NEXT_THREAD, threadId, BinaryOperator.EQUALS));
       } catch (UnrecognizedCodeException pE) {
         throw new RuntimeException(pE);
       }
@@ -162,18 +166,18 @@ public class MainMethod implements SeqFunction {
         + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
         + SeqUtil.prependTabsWithNewline(1, SeqSyntax.CURLY_BRACKET_RIGHT)
         + SeqUtil.prependTabsWithNewline(
-            1, SeqToken.RETURN + SeqSyntax.SPACE + SeqExpressions.INT_0.toASTString())
+            1, SeqToken.RETURN + SeqSyntax.SPACE + SeqIntegerLiteralExpression.INT_0.toASTString())
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 
   @Override
   public CType getReturnType() {
-    return SeqTypes.INT;
+    return SeqSimpleType.INT;
   }
 
   @Override
   public CIdExpression getFunctionName() {
-    return SeqExpressions.MAIN;
+    return SeqIdExpression.MAIN;
   }
 
   @Override
@@ -183,7 +187,7 @@ public class MainMethod implements SeqFunction {
 
   @Override
   public CFunctionDeclaration getDeclaration() {
-    return SeqDeclarations.MAIN;
+    return SeqFunctionDeclaration.MAIN;
   }
 
   private InitializerListExpr pcInitializerList(int pNumThreads) {
@@ -199,9 +203,11 @@ public class MainMethod implements SeqFunction {
     rParams.add(
         new SeqLogicalAndExpression(
             binExprBuilder.buildBinaryExpression(
-                SeqExpressions.INT_0, SeqExpressions.NEXT_THREAD, BinaryOperator.LESS_EQUAL),
+                SeqIntegerLiteralExpression.INT_0,
+                SeqIdExpression.NEXT_THREAD,
+                BinaryOperator.LESS_EQUAL),
             binExprBuilder.buildBinaryExpression(
-                SeqExpressions.NEXT_THREAD, numThreads, BinaryOperator.LESS_THAN)));
+                SeqIdExpression.NEXT_THREAD, numThreads, BinaryOperator.LESS_THAN)));
     return rParams.build();
   }
 

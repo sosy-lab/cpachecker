@@ -39,10 +39,13 @@ import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.Assume;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.MainMethod;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.FunctionVars;
@@ -121,11 +124,13 @@ public class Sequentialization {
     // add all custom function declarations
     rProgram.append(SeqComment.createFuncDeclarationComment());
     // abort and __VERIFIER_nondet_int may be duplicate depending on the input program
-    rProgram.append(SeqDeclarations.ABORT.toASTString()).append(SeqSyntax.NEWLINE);
-    rProgram.append(SeqDeclarations.VERIFIER_NONDET_INT.toASTString()).append(SeqSyntax.NEWLINE);
-    rProgram.append(SeqDeclarations.ASSUME.toASTString()).append(SeqSyntax.NEWLINE);
+    rProgram.append(SeqFunctionDeclaration.ABORT.toASTString()).append(SeqSyntax.NEWLINE);
+    rProgram
+        .append(SeqFunctionDeclaration.VERIFIER_NONDET_INT.toASTString())
+        .append(SeqSyntax.NEWLINE);
+    rProgram.append(SeqFunctionDeclaration.ASSUME.toASTString()).append(SeqSyntax.NEWLINE);
     // main should always be duplicate
-    rProgram.append(SeqDeclarations.MAIN.toASTString()).append(SeqSyntax.NEWLINE);
+    rProgram.append(SeqFunctionDeclaration.MAIN.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqSyntax.NEWLINE);
 
     // add non main() methods
@@ -143,13 +148,13 @@ public class Sequentialization {
         mapLoopCases(pSubstitutions, returnPcVars, pthreadVars);
     ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> prunedCases = pruneLoopCases(loopCases);
     CIdExpression numThreads =
-        SeqExpressions.buildIdExpr(
-            SeqDeclarations.buildVarDec(
+        SeqIdExpression.buildIdExpr(
+            SeqVariableDeclaration.buildVarDec(
                 false,
-                SeqTypes.INT,
+                SeqSimpleType.INT,
                 SeqToken.NUM_THREADS,
                 SeqInitializers.buildIntInitializer(
-                    SeqExpressions.buildIntLiteralExpr(threadCount))));
+                    SeqIntegerLiteralExpression.buildIntLiteralExpr(threadCount))));
     MainMethod mainMethod = new MainMethod(binExprBuilder, prunedCases, numThreads);
     rProgram.append(mainMethod.toASTString());
 
@@ -367,8 +372,9 @@ public class Sequentialization {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
           String funcName = funcSummary.getFunctionEntry().getFunctionName();
-          CVariableDeclaration varDec = SeqDeclarations.buildReturnPcVarDec(thread.id, funcName);
-          returnPc.put(threadEdge, SeqExpressions.buildIdExpr(varDec));
+          CVariableDeclaration varDec =
+              SeqVariableDeclaration.buildReturnPcVarDec(thread.id, funcName);
+          returnPc.put(threadEdge, SeqIdExpression.buildIdExpr(varDec));
         }
       }
       rDecs.put(thread, returnPc.buildOrThrow());
@@ -393,7 +399,7 @@ public class Sequentialization {
         CIdExpression idExpr = pReturnPcVars.get(threadEdge);
         assert idExpr != null;
         CIntegerLiteralExpression pc =
-            SeqExpressions.buildIntLiteralExpr(threadEdge.getSuccessor().pc);
+            SeqIntegerLiteralExpression.buildIntLiteralExpr(threadEdge.getSuccessor().pc);
         CExpressionAssignmentStatement assign = SeqExpressions.buildExprAssignStmt(idExpr, pc);
         rAssigns.put(threadEdge, assign);
       }
@@ -419,7 +425,8 @@ public class Sequentialization {
           CIdExpression returnPc = pReturnPcVars.get(threadEdge);
           ThreadNode threadNode = pThread.cfa.getThreadNodeByCfaNode(funcExitNode.orElseThrow());
           if (!rAssigns.containsKey(threadNode)) {
-            CIntegerLiteralExpression threadId = SeqExpressions.buildIntLiteralExpr(pThread.id);
+            CIntegerLiteralExpression threadId =
+                SeqIntegerLiteralExpression.buildIntLiteralExpr(pThread.id);
             CArraySubscriptExpression pcArray = SeqExpressions.buildPcSubscriptExpr(threadId);
             CExpressionAssignmentStatement assign =
                 SeqExpressions.buildExprAssignStmt(pcArray, returnPc);
@@ -442,7 +449,7 @@ public class Sequentialization {
           MPORThread createdThread = PthreadUtil.extractThread(pThreads, cfaEdge);
           String varName = SeqNameBuilder.createThreadActiveName(createdThread.id);
           CIdExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
-          rVars.put(pthreadT, SeqExpressions.buildIntVar(varName));
+          rVars.put(pthreadT, SeqIdExpression.buildIdExprInt(varName));
         }
       }
     }
@@ -465,7 +472,7 @@ public class Sequentialization {
           CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
           String varName = SeqNameBuilder.createMutexLockedName(pthreadMutexT.getName());
           // TODO it should be wiser to use the original idExpr as the key and not the substitute...
-          rVars.put(pthreadMutexT, SeqExpressions.buildIntVar(varName));
+          rVars.put(pthreadMutexT, SeqIdExpression.buildIdExprInt(varName));
         }
       }
     }
@@ -491,7 +498,7 @@ public class Sequentialization {
           if (!awaitVars.containsKey(pthreadMutexT)) {
             String varName =
                 SeqNameBuilder.createMutexLockedName(thread.id, pthreadMutexT.getName());
-            awaitVars.put(pthreadMutexT, SeqExpressions.buildIntVar(varName));
+            awaitVars.put(pthreadMutexT, SeqIdExpression.buildIdExprInt(varName));
           }
         }
       }
@@ -516,7 +523,7 @@ public class Sequentialization {
           // multiple join calls within one thread to the same thread are possible -> only need one
           if (!targetThreads.containsKey(targetThread)) {
             String varName = SeqNameBuilder.createThreadJoinsName(thread.id, targetThread.id);
-            targetThreads.put(targetThread, SeqExpressions.buildIntVar(varName));
+            targetThreads.put(targetThread, SeqIdExpression.buildIdExprInt(varName));
           }
         }
       }

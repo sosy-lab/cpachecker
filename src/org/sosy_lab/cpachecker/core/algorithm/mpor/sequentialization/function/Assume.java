@@ -18,9 +18,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqParameterDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.IfExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -30,10 +32,10 @@ public class Assume implements SeqFunction {
   private static final CFunctionCallExpression abortCall =
       new CFunctionCallExpression(
           FileLocation.DUMMY,
-          SeqTypes.VOID,
-          SeqExpressions.ABORT,
+          SeqVoidType.VOID,
+          SeqIdExpression.ABORT,
           ImmutableList.of(),
-          SeqDeclarations.ABORT);
+          SeqFunctionDeclaration.ABORT);
 
   private final IfExpr ifCond;
 
@@ -41,7 +43,7 @@ public class Assume implements SeqFunction {
     ifCond =
         new IfExpr(
             pBinExprBuilder.buildBinaryExpression(
-                SeqExpressions.COND, SeqExpressions.INT_0, BinaryOperator.EQUALS));
+                SeqIdExpression.COND, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS));
   }
 
   @Override
@@ -58,23 +60,23 @@ public class Assume implements SeqFunction {
 
   @Override
   public CType getReturnType() {
-    return SeqTypes.VOID;
+    return SeqVoidType.VOID;
   }
 
   @Override
   public CIdExpression getFunctionName() {
-    return SeqExpressions.ASSUME;
+    return SeqIdExpression.ASSUME;
   }
 
   @Override
   public ImmutableList<CParameterDeclaration> getParameters() {
     ImmutableList.Builder<CParameterDeclaration> rParameters = ImmutableList.builder();
-    rParameters.add(SeqDeclarations.COND);
+    rParameters.add(SeqParameterDeclaration.COND);
     return rParameters.build();
   }
 
   @Override
   public CFunctionDeclaration getDeclaration() {
-    return SeqDeclarations.ASSUME;
+    return SeqFunctionDeclaration.ASSUME;
   }
 }

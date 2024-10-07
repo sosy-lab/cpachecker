@@ -19,51 +19,62 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqParameterDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqArrayType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
 
 public class SeqExpressions {
 
-  // CIntegerLiteralExpression ===================================================================
+  public static class SeqIntegerLiteralExpression {
 
-  public static final CIntegerLiteralExpression INT_EXIT_PC = buildIntLiteralExpr(SeqUtil.EXIT_PC);
+    public static final CIntegerLiteralExpression INT_EXIT_PC =
+        buildIntLiteralExpr(SeqUtil.EXIT_PC);
 
-  public static final CIntegerLiteralExpression INT_0 = buildIntLiteralExpr(0);
+    public static final CIntegerLiteralExpression INT_0 = buildIntLiteralExpr(0);
 
-  public static final CIntegerLiteralExpression INT_1 = buildIntLiteralExpr(1);
+    public static final CIntegerLiteralExpression INT_1 = buildIntLiteralExpr(1);
 
-  // CIdExpression ===============================================================================
+    public static CIntegerLiteralExpression buildIntLiteralExpr(int pValue) {
+      return new CIntegerLiteralExpression(
+          FileLocation.DUMMY, SeqSimpleType.INT, BigInteger.valueOf(pValue));
+    }
+  }
 
-  public static final CIdExpression COND = buildIdExpr(SeqDeclarations.COND);
+  public static class SeqIdExpression {
 
-  public static final CIdExpression PC = buildIdExpr(SeqDeclarations.PC);
+    public static final CIdExpression COND = buildIdExpr(SeqParameterDeclaration.COND);
 
-  public static final CIdExpression NEXT_THREAD = buildIdExpr(SeqDeclarations.NEXT_THREAD);
+    public static final CIdExpression PC = buildIdExpr(SeqVariableDeclaration.PC);
 
-  public static final CIdExpression ASSUME = buildIdExpr(SeqDeclarations.ASSUME);
+    public static final CIdExpression NEXT_THREAD = buildIdExpr(SeqVariableDeclaration.NEXT_THREAD);
 
-  public static final CIdExpression ABORT = buildIdExpr(SeqDeclarations.ABORT);
+    public static final CIdExpression ASSUME = buildIdExpr(SeqFunctionDeclaration.ASSUME);
 
-  public static final CIdExpression MAIN = buildIdExpr(SeqDeclarations.MAIN);
+    public static final CIdExpression ABORT = buildIdExpr(SeqFunctionDeclaration.ABORT);
 
-  public static final CIdExpression VERIFIER_NONDET_INT =
-      buildIdExpr(SeqDeclarations.VERIFIER_NONDET_INT);
+    public static final CIdExpression MAIN = buildIdExpr(SeqFunctionDeclaration.MAIN);
+
+    public static final CIdExpression VERIFIER_NONDET_INT =
+        buildIdExpr(SeqFunctionDeclaration.VERIFIER_NONDET_INT);
+
+    /**
+     * Returns a {@link CIdExpression} with a declaration of the form {@code int {pVarName} = 0;}.
+     */
+    public static CIdExpression buildIdExprInt(String pVarName) {
+      CVariableDeclaration varDec =
+          SeqVariableDeclaration.buildVarDec(
+              true, SeqSimpleType.INT, pVarName, SeqInitializers.INT_0);
+      return new CIdExpression(FileLocation.DUMMY, varDec);
+    }
+
+    public static CIdExpression buildIdExpr(CSimpleDeclaration pDec) {
+      return new CIdExpression(FileLocation.DUMMY, pDec);
+    }
+  }
 
   // Helper Functions ============================================================================
-
-  public static CIntegerLiteralExpression buildIntLiteralExpr(int pValue) {
-    return new CIntegerLiteralExpression(
-        FileLocation.DUMMY, SeqTypes.INT, BigInteger.valueOf(pValue));
-  }
-
-  /** Returns a {@link CIdExpression} with a declaration of the form {@code int {pVarName} = 0;}. */
-  public static CIdExpression buildIntVar(String pVarName) {
-    CVariableDeclaration varDec =
-        SeqDeclarations.buildVarDec(true, SeqTypes.INT, pVarName, SeqInitializers.INT_0);
-    return new CIdExpression(FileLocation.DUMMY, varDec);
-  }
-
-  public static CIdExpression buildIdExpr(CSimpleDeclaration pDec) {
-    return new CIdExpression(FileLocation.DUMMY, pDec);
-  }
 
   public static CExpressionAssignmentStatement buildExprAssignStmt(
       CLeftHandSide pLhs, CExpression pRhs) {
@@ -72,6 +83,6 @@ public class SeqExpressions {
 
   public static CArraySubscriptExpression buildPcSubscriptExpr(CExpression pSubscriptExpr) {
     return new CArraySubscriptExpression(
-        FileLocation.DUMMY, SeqTypes.INT_ARRAY, SeqExpressions.PC, pSubscriptExpr);
+        FileLocation.DUMMY, SeqArrayType.INT_ARRAY, SeqIdExpression.PC, pSubscriptExpr);
   }
 }

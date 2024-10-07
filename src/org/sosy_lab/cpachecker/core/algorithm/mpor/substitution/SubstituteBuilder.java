@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SubstituteBuilder {
@@ -179,7 +179,7 @@ public class SubstituteBuilder {
         String varName = SeqNameBuilder.createParamName(paramDec, pThread.id);
         CVariableDeclaration varDec =
             SubstituteBuilder.substituteVarDec(paramDec.asVariableDeclaration(), varName);
-        rThreadSubs.put(paramDec, SeqExpressions.buildIdExpr(varDec));
+        rThreadSubs.put(paramDec, SeqIdExpression.buildIdExpr(varDec));
       }
     }
     return rThreadSubs.buildOrThrow();
@@ -202,7 +202,7 @@ public class SubstituteBuilder {
     for (CVariableDeclaration varDec : pVarDecs) {
       String substituteName = SeqNameBuilder.createVarName(varDec, pThreadId);
       CVariableDeclaration substitute = SubstituteBuilder.substituteVarDec(varDec, substituteName);
-      dummyVarSubsB.put(varDec, SeqExpressions.buildIdExpr(substitute));
+      dummyVarSubsB.put(varDec, SeqIdExpression.buildIdExpr(substitute));
     }
     ImmutableMap<CVariableDeclaration, CIdExpression> dummyLocalVarSubs =
         dummyVarSubsB.buildOrThrow();
@@ -228,7 +228,7 @@ public class SubstituteBuilder {
               SubstituteBuilder.substituteInitExpr(
                   initExpr, dummySubstitution.substitute(initExpr.getExpression()));
           CVariableDeclaration finalSub = SubstituteBuilder.substituteVarDec(varDec, initExprSub);
-          rFinalSubs.put(entry.getKey(), SeqExpressions.buildIdExpr(finalSub));
+          rFinalSubs.put(entry.getKey(), SeqIdExpression.buildIdExpr(finalSub));
           continue;
         }
       }

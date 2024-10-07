@@ -26,7 +26,10 @@ public interface SeqFunction extends SeqElement {
 
   CFunctionDeclaration getDeclaration();
 
-  // TODO try using CFunctionDeclaration with a CFunctionTypeWithNames
+  /**
+   * Basically {@link CFunctionDeclaration#toASTString()} with parameter names but without the
+   * suffix {@code ;}.
+   */
   default String getDeclarationWithParameterNames() {
     StringBuilder parameters = new StringBuilder();
     for (int i = 0; i < getParameters().size(); i++) {

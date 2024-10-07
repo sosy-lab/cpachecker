@@ -16,41 +16,51 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqParameterDeclaration;
 
 public class SeqTypes {
 
-  // CSimpleTypes ================================================================================
+  public static class SeqSimpleType {
 
-  public static final CSimpleType INT =
-      new CSimpleType(
-          false, false, CBasicType.INT, false, false, false, false, false, false, false);
+    public static final CSimpleType INT =
+        new CSimpleType(
+            false, false, CBasicType.INT, false, false, false, false, false, false, false);
 
-  public static final CSimpleType CONST_INT =
-      new CSimpleType(true, false, CBasicType.INT, false, false, false, false, false, false, false);
+    public static final CSimpleType CONST_INT =
+        new CSimpleType(
+            true, false, CBasicType.INT, false, false, false, false, false, false, false);
+  }
 
-  // CArrayTypes ================================================================================
+  public static class SeqArrayType {
 
-  public static final CArrayType INT_ARRAY = new CArrayType(false, false, INT);
+    public static final CArrayType INT_ARRAY = new CArrayType(false, false, SeqSimpleType.INT);
+  }
 
-  // CPointerTypes ===============================================================================
+  public static class SeqPointerType {
 
-  /** A constant pointer to a constant int value (const int * const). */
-  public static final CPointerType CONST_POINTER_CONST_INT =
-      new CPointerType(true, false, CONST_INT);
+    /** A constant pointer to a constant int value (const int * const). */
+    public static final CPointerType CONST_POINTER_CONST_INT =
+        new CPointerType(true, false, SeqSimpleType.CONST_INT);
+  }
 
-  // CVoidTypes ==================================================================================
+  public static class SeqVoidType {
 
-  public static final CVoidType VOID = CVoidType.VOID;
+    public static final CVoidType VOID = CVoidType.VOID;
+  }
 
-  // CFunctionTypes ==============================================================================
+  public static class SeqFunctionType {
 
-  public static final CFunctionType ABORT = new CFunctionType(VOID, ImmutableList.of(), false);
+    public static final CFunctionType ABORT =
+        new CFunctionType(SeqVoidType.VOID, ImmutableList.of(), false);
 
-  public static final CFunctionType VERIFIER_NONDET_INT =
-      new CFunctionType(INT, ImmutableList.of(), false);
+    public static final CFunctionType VERIFIER_NONDET_INT =
+        new CFunctionType(SeqSimpleType.INT, ImmutableList.of(), false);
 
-  public static final CFunctionTypeWithNames ASSUME =
-      new CFunctionTypeWithNames(VOID, ImmutableList.of(SeqDeclarations.COND), false);
+    public static final CFunctionTypeWithNames ASSUME =
+        new CFunctionTypeWithNames(
+            SeqSimpleType.INT, ImmutableList.of(SeqParameterDeclaration.COND), false);
 
-  public static final CFunctionType MAIN = new CFunctionType(INT, ImmutableList.of(), false);
+    public static final CFunctionType MAIN =
+        new CFunctionType(SeqSimpleType.INT, ImmutableList.of(), false);
+  }
 }

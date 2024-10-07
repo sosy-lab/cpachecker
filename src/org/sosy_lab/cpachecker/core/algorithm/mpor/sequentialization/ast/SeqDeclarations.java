@@ -19,77 +19,86 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqArrayType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
 public class SeqDeclarations {
 
-  // CVariableDeclaration ========================================================================
+  public static class SeqVariableDeclaration {
 
-  public static final CVariableDeclaration PC =
-      buildVarDec(false, SeqTypes.INT_ARRAY, SeqToken.PC, SeqInitializers.INT_0);
+    public static final CVariableDeclaration PC =
+        buildVarDec(false, SeqArrayType.INT_ARRAY, SeqToken.PC, SeqInitializers.INT_0);
 
-  public static final CVariableDeclaration NEXT_THREAD =
-      buildVarDec(false, SeqTypes.INT, SeqToken.NEXT_THREAD, null);
+    public static final CVariableDeclaration NEXT_THREAD =
+        buildVarDec(false, SeqSimpleType.INT, SeqToken.NEXT_THREAD, null);
 
-  // CParameterDeclaration =======================================================================
+    // TODO SubstituteBuilder.substituteVarDec also uses CVariableDeclaration constructor
+    public static CVariableDeclaration buildVarDec(
+        boolean pIsGlobal, CType pCType, String pName, CInitializer pInitializer) {
 
-  public static final CParameterDeclaration COND =
-      new CParameterDeclaration(FileLocation.DUMMY, SeqTypes.CONST_INT, SeqToken.COND);
-
-  // CFunctionDeclarations =======================================================================
-
-  public static final CFunctionDeclaration ABORT =
-      new CFunctionDeclaration(
+      return new CVariableDeclaration(
           FileLocation.DUMMY,
-          SeqTypes.ABORT,
-          SeqToken.ABORT,
-          ImmutableList.of(),
-          ImmutableSet.of(FunctionAttribute.NO_RETURN));
+          pIsGlobal,
+          CStorageClass.AUTO,
+          pCType,
+          pName,
+          pName,
+          SeqNameBuilder.createQualifiedName(pName),
+          pInitializer);
+    }
 
-  public static final CFunctionDeclaration VERIFIER_NONDET_INT =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          SeqTypes.VERIFIER_NONDET_INT,
-          SeqToken.VERIFIER_NONDET_INT,
-          ImmutableList.of(),
-          ImmutableSet.of());
-
-  public static final CFunctionDeclaration ASSUME =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          SeqTypes.ASSUME,
-          SeqNameBuilder.createFuncName(SeqToken.ASSUME),
-          ImmutableList.of(COND),
-          ImmutableSet.of());
-
-  public static final CFunctionDeclaration MAIN =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY, SeqTypes.MAIN, SeqToken.MAIN, ImmutableList.of(), ImmutableSet.of());
-
-  // Build Functions =============================================================================
-
-  // TODO SubstituteBuilder.substituteVarDec also uses CVariableDeclaration constructor
-  public static CVariableDeclaration buildVarDec(
-      boolean pIsGlobal, CType pCType, String pName, CInitializer pInitializer) {
-
-    return new CVariableDeclaration(
-        FileLocation.DUMMY,
-        pIsGlobal,
-        CStorageClass.AUTO,
-        pCType,
-        pName,
-        pName,
-        SeqNameBuilder.createQualifiedName(pName),
-        pInitializer);
+    /**
+     * Creates a {@link CVariableDeclaration} of the form {@code int
+     * __return_pc_t{pThreadId}_{pFuncName};}.
+     */
+    public static CVariableDeclaration buildReturnPcVarDec(int pThreadId, String pFuncName) {
+      String varName = SeqNameBuilder.createReturnPcName(pThreadId, pFuncName);
+      // TODO initialize with -2 and assert that it is not -2 when assigning in the
+      // sequentialization?
+      return buildVarDec(true, SeqSimpleType.INT, varName, SeqInitializers.INT_0);
+    }
   }
 
-  /**
-   * Creates a {@link CVariableDeclaration} of the form {@code int
-   * __return_pc_t{pThreadId}_{pFuncName};}.
-   */
-  public static CVariableDeclaration buildReturnPcVarDec(int pThreadId, String pFuncName) {
-    String varName = SeqNameBuilder.createReturnPcName(pThreadId, pFuncName);
-    // TODO initialize with -2 and assert that it is not -2 when assigning in the sequentialization?
-    return buildVarDec(true, SeqTypes.INT, varName, SeqInitializers.INT_0);
+  public static class SeqParameterDeclaration {
+
+    public static final CParameterDeclaration COND =
+        new CParameterDeclaration(FileLocation.DUMMY, SeqSimpleType.CONST_INT, SeqToken.COND);
+  }
+
+  public static class SeqFunctionDeclaration {
+
+    public static final CFunctionDeclaration ABORT =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            SeqFunctionType.ABORT,
+            SeqToken.ABORT,
+            ImmutableList.of(),
+            ImmutableSet.of(FunctionAttribute.NO_RETURN));
+
+    public static final CFunctionDeclaration VERIFIER_NONDET_INT =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            SeqFunctionType.VERIFIER_NONDET_INT,
+            SeqToken.VERIFIER_NONDET_INT,
+            ImmutableList.of(),
+            ImmutableSet.of());
+
+    public static final CFunctionDeclaration ASSUME =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            SeqFunctionType.ASSUME,
+            SeqNameBuilder.createFuncName(SeqToken.ASSUME),
+            ImmutableList.of(SeqParameterDeclaration.COND),
+            ImmutableSet.of());
+
+    public static final CFunctionDeclaration MAIN =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            SeqFunctionType.MAIN,
+            SeqToken.MAIN,
+            ImmutableList.of(),
+            ImmutableSet.of());
   }
 }
