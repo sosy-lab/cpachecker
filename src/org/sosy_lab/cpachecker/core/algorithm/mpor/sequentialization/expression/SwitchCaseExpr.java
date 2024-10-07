@@ -9,20 +9,20 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
 public class SwitchCaseExpr implements SeqExpression {
 
-  // TODO restrict to Variable, ArrayExpr
-  public final SeqExpression expression;
+  public final CExpression expression;
 
   public final ImmutableList<String> cases;
 
   private final int tabs;
 
-  public SwitchCaseExpr(SeqExpression pExpression, ImmutableList<String> pCases, int pTabs) {
+  public SwitchCaseExpr(CExpression pExpression, ImmutableList<String> pCases, int pTabs) {
     expression = pExpression;
     cases = pCases;
     tabs = pTabs;

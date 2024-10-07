@@ -14,10 +14,6 @@ public class SeqToken {
 
   public static final String ACTIVE = "active";
 
-  public static final String ANY_UNSIGNED = "any_unsigned";
-
-  public static final String ARRAY = "array";
-
   public static final String ASSUME = "assume";
 
   public static final String AWAITS = "awaits";
@@ -27,8 +23,6 @@ public class SeqToken {
   public static final String CASE = "case";
 
   public static final String COND = "cond";
-
-  public static final String CONST = "const";
 
   public static final String CONTINUE = "continue";
 
