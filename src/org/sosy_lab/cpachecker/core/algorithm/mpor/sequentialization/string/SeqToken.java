@@ -32,6 +32,8 @@ public class SeqToken {
 
   public static final String ELSE = "else";
 
+  public static final String ELSE_IF = "else if";
+
   public static final String EXECUTE = "execute";
 
   public static final String FUNCTION = "function";

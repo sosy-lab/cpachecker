@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
@@ -36,7 +35,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.LoopExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SwitchCaseExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.function_call.FunctionCallExpr;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.c_to_seq.CToSeqExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.function_call.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
@@ -61,9 +61,9 @@ public class MainMethod implements SeqFunction {
 
   private final CFunctionCallAssignmentStatement assignNextThread;
 
-  private final FunctionCallExpr assumeNextThread;
+  private final SeqFunctionCallExpression assumeNextThread;
 
-  private final IfExpr exitPcCheck;
+  private final SeqFunctionCallExpression assumeThreadActive;
 
   // TODO add an ImmutableSet<CExpression> pAssumptions
   public MainMethod(
@@ -89,14 +89,9 @@ public class MainMethod implements SeqFunction {
                 ImmutableList.of(),
                 SeqFunctionDeclaration.VERIFIER_NONDET_INT));
     assumeNextThread =
-        new FunctionCallExpr(
-            SeqNameBuilder.createFuncName(SeqToken.ASSUME), assumeNextThreadParams());
-    exitPcCheck =
-        new IfExpr(
-            binExprBuilder.buildBinaryExpression(
-                SeqExpressions.buildPcSubscriptExpr(SeqIdExpression.NEXT_THREAD),
-                SeqIntegerLiteralExpression.INT_EXIT_PC,
-                BinaryOperator.EQUALS));
+        new SeqFunctionCallExpression(SeqIdExpression.ASSUME, assumeNextThreadParams());
+    assumeThreadActive =
+        new SeqFunctionCallExpression(SeqIdExpression.ASSUME, assumeThreadActiveParams());
   }
 
   @Override
@@ -150,16 +145,17 @@ public class MainMethod implements SeqFunction {
         + SeqUtil.prependTabsWithNewline(2, SeqVariableDeclaration.NEXT_THREAD.toASTString())
         + SeqUtil.prependTabsWithNewline(2, assignNextThread.toASTString())
         + SeqUtil.prependTabsWithNewline(2, assumeNextThread.toASTString() + SeqSyntax.SEMICOLON)
-        + SeqSyntax.NEWLINE
-        + SeqUtil.prependTabsWithNewline(2, SeqUtil.appendOpeningCurly(exitPcCheck.toASTString()))
-        + SeqUtil.prependTabsWithNewline(3, SeqToken.CONTINUE + SeqSyntax.SEMICOLON)
-        + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
+        + SeqUtil.prependTabsWithNewline(2, assumeThreadActive.toASTString() + SeqSyntax.SEMICOLON)
         + SeqSyntax.NEWLINE
         + switchCases
         + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
         + SeqUtil.prependTabsWithNewline(1, SeqSyntax.CURLY_BRACKET_RIGHT)
         + SeqUtil.prependTabsWithNewline(
-            1, SeqToken.RETURN + SeqSyntax.SPACE + SeqIntegerLiteralExpression.INT_0.toASTString())
+            1,
+            SeqToken.RETURN
+                + SeqSyntax.SPACE
+                + SeqIntegerLiteralExpression.INT_0.toASTString()
+                + SeqSyntax.SEMICOLON)
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 
@@ -193,6 +189,17 @@ public class MainMethod implements SeqFunction {
                 BinaryOperator.LESS_EQUAL),
             binExprBuilder.buildBinaryExpression(
                 SeqIdExpression.NEXT_THREAD, numThreads, BinaryOperator.LESS_THAN)));
+    return rParams.build();
+  }
+
+  private ImmutableList<SeqExpression> assumeThreadActiveParams() throws UnrecognizedCodeException {
+    Builder<SeqExpression> rParams = ImmutableList.builder();
+    rParams.add(
+        new CToSeqExpression(
+            binExprBuilder.buildBinaryExpression(
+                SeqExpressions.buildPcSubscriptExpr(SeqIdExpression.NEXT_THREAD),
+                SeqIntegerLiteralExpression.INT_EXIT_PC,
+                BinaryOperator.NOT_EQUALS)));
     return rParams.build();
   }
 }

@@ -9,21 +9,22 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.function_call;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
-// TODO rename SeqFunctionCallExpression
-public class FunctionCallExpr implements SeqExpression {
+public class SeqFunctionCallExpression implements SeqExpression {
 
-  public final String functionName;
+  public final CIdExpression functionName;
 
   public final ImmutableList<SeqExpression> parameters;
 
   /**
-   * Returns a new {@link FunctionCallExpr}. Use ImmutableList.of() for pParameters if there are no
-   * parameters.
+   * Returns a new {@link SeqFunctionCallExpression}. Use ImmutableList.of() for pParameters if
+   * there are no parameters.
    */
-  public FunctionCallExpr(String pFunctionName, ImmutableList<SeqExpression> pParameters) {
+  public SeqFunctionCallExpression(
+      CIdExpression pFunctionName, ImmutableList<SeqExpression> pParameters) {
     functionName = pFunctionName;
     parameters = pParameters;
   }
@@ -39,6 +40,9 @@ public class FunctionCallExpr implements SeqExpression {
             .append(i == parameters.size() - 1 ? SeqSyntax.EMPTY_STRING : separator);
       }
     }
-    return functionName + SeqSyntax.BRACKET_LEFT + parametersString + SeqSyntax.BRACKET_RIGHT;
+    return functionName.getName()
+        + SeqSyntax.BRACKET_LEFT
+        + parametersString
+        + SeqSyntax.BRACKET_RIGHT;
   }
 }

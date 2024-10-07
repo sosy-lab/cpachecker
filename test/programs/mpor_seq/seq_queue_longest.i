@@ -715,40 +715,24 @@ int __t0_joins_t2 = 0;
 // custom function declarations
 void abort();
 int __VERIFIER_nondet_int();
-void __mpor_seq_assume(const int);
-int __mpor_seq_any_unsigned(const int * const , const int);
+int __mpor_seq_assume(const int cond);
 int main();
 
-void __mpor_seq_assume(int cond) {
-  if (!(cond)) {
+void __mpor_seq_assume(const int cond) {
+  if (cond == 0) {
     abort();
   }
 }
 
-int __mpor_seq_any_unsigned(int array[], int size) {
-  int i = 0;
-  while (i < size) {
-    if (array[i] >= 0) {
-      return 1;
-    }
-    i++;
-  }
-  return 0;
-}
+int main() {
+  int NUM_THREADS = 3;
+  int pc[] = 0;
 
-int main(void) {
-  const int NUM_THREADS = 3;
-  int pc[NUM_THREADS] = { 0, 0, 0 };
-  int execute = 1;
-
-  while (execute) {
-    int next_thread = __VERIFIER_nondet_int();
-    __mpor_seq_assume(0 <= next_thread && next_thread < NUM_THREADS);
-
-    if (pc[next_thread] == -1) {
-      execute = __mpor_seq_any_unsigned(pc, NUM_THREADS); 
-      continue;
-    }
+  while (1) {
+    int next_thread;
+    next_thread = __VERIFIER_nondet_int();
+    __mpor_seq_assume((0 <= next_thread && next_thread < NUM_THREADS));
+    __mpor_seq_assume((pc[next_thread]) != -1);
 
     if (next_thread == 0) {
       switch (pc[0]) {
@@ -762,8 +746,8 @@ int main(void) {
         case 448: __assert_fail("0", "queue_longest.c", 4, "__PRETTY_FUNCTION__"); pc[0] = -1; continue;
         case 450: __t1_active = 1; pc[0] = 452; continue;
         case 452: __t2_active = 1; pc[0] = 453; continue;
-        case 453: __t0_joining_t1 = 1; pc[0] = 454; continue;
-        case 454: __t0_joining_t2 = 1; pc[0] = 455; continue;
+        case 453: __t0_joins_t1 = 1; pc[0] = 454; continue;
+        case 454: __t0_joins_t2 = 1; pc[0] = 455; continue;
         case 455: pc[0] = -1; continue;
         case 456: if (!((__p0_19_q->head) == (__p0_19_q->tail))) { pc[0] = 461; } else if ((__p0_19_q->head) == (__p0_19_q->tail)) { pc[0] = 458; } continue;
         case 458: printf("queue is empty\n"); pc[0] = 459; continue;
@@ -846,4 +830,5 @@ int main(void) {
       }
     }
   }
+  return 0;
 }

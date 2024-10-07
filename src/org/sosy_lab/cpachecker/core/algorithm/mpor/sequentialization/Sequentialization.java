@@ -151,6 +151,7 @@ public class Sequentialization {
         SeqIdExpression.buildIdExpr(
             SeqVariableDeclaration.buildVarDec(
                 false,
+                // TODO need const int here
                 SeqSimpleType.INT,
                 SeqToken.NUM_THREADS,
                 SeqInitializers.buildIntInitializer(
