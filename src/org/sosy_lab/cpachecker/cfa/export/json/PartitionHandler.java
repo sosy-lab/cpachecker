@@ -13,9 +13,7 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
@@ -59,12 +57,8 @@ public class PartitionHandler {
   public PartitionHandler(int pIndex) throws IOException {
     try {
 
-      /* Create a new instance of Partition via reflection. */
-      Constructor<?> partitionConstructor =
-          Partition.class.getDeclaredConstructor(Map.class, Table.class);
-
-      partition =
-          (Partition) partitionConstructor.newInstance(this.varToPartition, this.edgeToPartition);
+      /* Create a new instance of Partition. */
+      partition = new Partition(this.varToPartition, this.edgeToPartition);
 
       /* Set the index field of the partition. */
       writeIndexField(pIndex);
@@ -74,12 +68,7 @@ public class PartitionHandler {
       this.values = readValues();
       this.edges = readEdges();
 
-    } catch (NoSuchMethodException
-        | NoSuchFieldException
-        | InstantiationException
-        | IllegalAccessException
-        | IllegalArgumentException
-        | InvocationTargetException e) {
+    } catch (NoSuchFieldException | IllegalArgumentException e) {
       throw new IOException("Error while constructing PartitionHandler: " + e.getMessage(), e);
     }
   }

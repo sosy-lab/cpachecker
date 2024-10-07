@@ -84,33 +84,27 @@ public final class CfaEdgeIdGenerator extends ObjectIdGenerator<Integer> {
   /**
    * Generates an ID for the given object.
    *
-   * <p>If the object is not a {@link CFAEdge}, an {@link IllegalArgumentException} is thrown.
-   *
    * <p>The ID is generated and stored in the edgeToIdMap together with the object.
-   *
-   * <p>If the object is null, null is returned. This is because of
-   * https://github.com/FasterXML/jackson-annotations/issues/56
    *
    * @see IntSequenceGenerator
    * @param pForObject The object for which to generate the ID.
    * @return The generated ID.
+   * @throws IllegalArgumentException If the object is not a {@link CFAEdge}.
    */
   @Override
   public Integer generateId(Object pForObject) {
-    if (pForObject == null) {
-      return null;
-    } else {
-      if (!(pForObject instanceof CFAEdge)) {
-        throw new IllegalArgumentException(
-            "Wrong object: " + pForObject.getClass().getSimpleName() + " is not a CFAEdge");
-      }
+    checkNotNull(pForObject, "The object to generate an ID for must not be null");
 
-      int id = this.nextValue;
-      this.nextValue++;
-
-      edgeToIdMap.put((CFAEdge) pForObject, id);
-      return id;
+    if (!(pForObject instanceof CFAEdge)) {
+      throw new IllegalArgumentException(
+          "Wrong object: " + pForObject.getClass().getSimpleName() + " is not a CFAEdge");
     }
+
+    int id = nextValue;
+    nextValue++;
+
+    edgeToIdMap.put((CFAEdge) pForObject, id);
+    return id;
   }
 
   /**
@@ -126,16 +120,15 @@ public final class CfaEdgeIdGenerator extends ObjectIdGenerator<Integer> {
   /**
    * Generates an IdKey object based on the given key.
    *
-   * <p>If the key is null, null is returned. This is because of
-   * https://github.com/FasterXML/jackson-annotations/issues/56
-   *
    * @see IntSequenceGenerator
    * @param pKey The key used to generate the IdKey object.
    * @return The generated IdKey object.
    */
   @Override
   public IdKey key(Object pKey) {
-    return pKey == null ? null : new ObjectIdGenerator.IdKey(this.getClass(), this.scope, pKey);
+    checkNotNull(pKey, "The key must not be null");
+
+    return new ObjectIdGenerator.IdKey(this.getClass(), this.scope, pKey);
   }
 
   /**
