@@ -42,6 +42,8 @@ public class SeqExpressions {
 
   public static final CIdExpression ABORT = buildIdExpr(SeqDeclarations.ABORT);
 
+  public static final CIdExpression MAIN = buildIdExpr(SeqDeclarations.MAIN);
+
   public static final CIdExpression VERIFIER_NONDET_INT =
       buildIdExpr(SeqDeclarations.VERIFIER_NONDET_INT);
 

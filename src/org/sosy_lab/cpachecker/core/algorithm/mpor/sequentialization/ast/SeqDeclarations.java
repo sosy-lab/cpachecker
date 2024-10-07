@@ -36,13 +36,6 @@ public class SeqDeclarations {
   public static final CParameterDeclaration COND =
       new CParameterDeclaration(FileLocation.DUMMY, SeqTypes.CONST_INT, SeqToken.COND);
 
-  public static final CParameterDeclaration ARRAY =
-      new CParameterDeclaration(
-          FileLocation.DUMMY, SeqTypes.CONST_POINTER_CONST_INT, SeqToken.ARRAY);
-
-  public static final CParameterDeclaration SIZE =
-      new CParameterDeclaration(FileLocation.DUMMY, SeqTypes.CONST_INT, SeqToken.SIZE);
-
   // CFunctionDeclarations =======================================================================
 
   public static final CFunctionDeclaration ABORT =
@@ -67,14 +60,6 @@ public class SeqDeclarations {
           SeqTypes.ASSUME,
           SeqNameBuilder.createFuncName(SeqToken.ASSUME),
           ImmutableList.of(COND),
-          ImmutableSet.of());
-
-  public static final CFunctionDeclaration ANY_UNSIGNED =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          SeqTypes.ANY_UNSIGNED,
-          SeqNameBuilder.createFuncName(SeqToken.ANY_UNSIGNED),
-          ImmutableList.of(ARRAY, SIZE),
           ImmutableSet.of());
 
   public static final CFunctionDeclaration MAIN =

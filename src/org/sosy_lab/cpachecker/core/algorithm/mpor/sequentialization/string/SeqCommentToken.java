@@ -27,8 +27,6 @@ public class SeqCommentToken {
 
   public static final String PTHREAD = "pthread";
 
-  public static final String REPLACEMENTS = "replacements";
-
   public static final String SIMULATION = "simulation";
 
   public static final String THREAD = "thread";

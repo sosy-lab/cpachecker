@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -48,11 +49,8 @@ public class SeqTypes {
   public static final CFunctionType VERIFIER_NONDET_INT =
       new CFunctionType(INT, ImmutableList.of(), false);
 
-  public static final CFunctionType ASSUME =
-      new CFunctionType(VOID, ImmutableList.of(CONST_INT), false);
-
-  public static final CFunctionType ANY_UNSIGNED =
-      new CFunctionType(INT, ImmutableList.of(CONST_POINTER_CONST_INT, CONST_INT), false);
+  public static final CFunctionTypeWithNames ASSUME =
+      new CFunctionTypeWithNames(VOID, ImmutableList.of(SeqDeclarations.COND), false);
 
   public static final CFunctionType MAIN = new CFunctionType(INT, ImmutableList.of(), false);
 }

@@ -12,12 +12,6 @@ public class SeqOperator {
 
   public static final String LOGICAL_AND = "&&";
 
-  public static final String ASSIGN = "=";
-
-  public static final String EQUAL = "==";
-
-  public static final String INCREMENT = "++";
-
   public static final String LOGICAL_NOT = "!";
 
   public static final String LOGICAL_OR = "||";

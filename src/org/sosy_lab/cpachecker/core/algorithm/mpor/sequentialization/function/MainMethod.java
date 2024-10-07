@@ -16,9 +16,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqVars;
@@ -36,7 +39,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.function_call.FunctionCallExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqValue;
@@ -140,7 +142,7 @@ public class MainMethod implements SeqFunction {
       i++;
     }
 
-    return getSignature().toASTString()
+    return getDeclarationWithParameterNames()
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.NEWLINE
@@ -165,20 +167,23 @@ public class MainMethod implements SeqFunction {
   }
 
   @Override
-  public String getReturnType() {
-    return SeqDataType.INT;
+  public CType getReturnType() {
+    return SeqTypes.INT;
   }
 
   @Override
-  public String getName() {
-    return SeqToken.MAIN;
+  public CIdExpression getFunctionName() {
+    return SeqExpressions.MAIN;
   }
 
   @Override
-  public ImmutableList<SeqExpression> getParameters() {
-    Builder<SeqExpression> rParameters = ImmutableList.builder();
-    rParameters.add(new Value(SeqDataType.VOID));
-    return rParameters.build();
+  public ImmutableList<CParameterDeclaration> getParameters() {
+    return ImmutableList.of();
+  }
+
+  @Override
+  public CFunctionDeclaration getDeclaration() {
+    return SeqDeclarations.MAIN;
   }
 
   private InitializerListExpr pcInitializerList(int pNumThreads) {
