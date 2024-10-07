@@ -11,31 +11,32 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
-import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqVars;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.ArrayElement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Value;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ArrayExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.AssignExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.BooleanExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.DeclareExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.ElseIfExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.FunctionCallExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.IfExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.InitializerListExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.LoopExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SwitchCaseExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.VariableExpr;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.function_call.FunctionCallExpr;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqDataType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqValue;
@@ -44,61 +45,54 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class MainMethod implements SeqFunction {
 
-  private static final DeclareExpr declareExecute =
-      new DeclareExpr(
-          false,
-          new VariableExpr(Optional.of(SeqDataType.INT), SeqVars.execute),
-          Optional.of(new Value(SeqValue.ONE)));
+  private static final LoopExpr whileExecute = new LoopExpr(SeqExpressions.INT_1);
 
-  private static final LoopExpr whileExecute = new LoopExpr(SeqVars.execute);
-
-  private static final DeclareExpr declareNextThread =
-      new DeclareExpr(
-          false,
-          new VariableExpr(Optional.of(SeqDataType.INT), SeqVars.nextThread),
-          Optional.of(new FunctionCallExpr(SeqToken.VERIFIER_NONDET_INT, ImmutableList.of())));
-
-  private static final FunctionCallExpr assumeNextThread =
-      new FunctionCallExpr(
-          SeqNameBuilder.createFuncName(SeqToken.ASSUME), assumeNextThreadParams());
-
-  private static final AssignExpr executeUpdate =
-      new AssignExpr(
-          SeqVars.execute,
-          new FunctionCallExpr(
-              SeqNameBuilder.createFuncName(SeqToken.ANY_UNSIGNED), anyNonNegativeParams()));
+  private final CBinaryExpressionBuilder binExprBuilder;
 
   /** The thread-specific cases in the main while loop. */
   private final ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> loopCases;
 
-  private final CBinaryExpressionBuilder binExprBuilder;
+  private final CIdExpression numThreads;
 
-  private final DeclareExpr declareNumThreads;
+  private final CVariableDeclaration declareNumThreads;
 
-  private final DeclareExpr declarePc;
+  private final CVariableDeclaration declarePc;
+
+  private final CVariableDeclaration declareNextThread;
+
+  private final CFunctionCallAssignmentStatement assignNextThread;
+
+  private final FunctionCallExpr assumeNextThread;
 
   private final IfExpr exitPcCheck;
 
   // TODO add an ImmutableSet<CExpression> pAssumptions
   public MainMethod(
+      CBinaryExpressionBuilder pBinExprBuilder,
       ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> pLoopCases,
-      CBinaryExpressionBuilder pBinExprBuilder)
+      CIdExpression pNumThreads)
       throws UnrecognizedCodeException {
 
     binExprBuilder = pBinExprBuilder;
     loopCases = pLoopCases;
-    declareNumThreads =
-        new DeclareExpr(
-            true,
-            new VariableExpr(Optional.of(SeqDataType.INT), SeqVars.numThreads),
-            Optional.of(new Value(Integer.toString(pLoopCases.size()))));
-    declarePc =
-        new DeclareExpr(
-            false,
-            new VariableExpr(
-                Optional.of(SeqDataType.INT),
-                new ArrayExpr(SeqVars.pc, Optional.of(SeqVars.numThreads))),
-            Optional.of(pcInitializerList(pLoopCases.size())));
+    numThreads = pNumThreads;
+    declareNumThreads = (CVariableDeclaration) pNumThreads.getDeclaration();
+    // TODO declare pc array here
+    declarePc = SeqDeclarations.PC;
+    declareNextThread = SeqDeclarations.NEXT_THREAD;
+    assignNextThread =
+        new CFunctionCallAssignmentStatement(
+            FileLocation.DUMMY,
+            SeqExpressions.NEXT_THREAD,
+            new CFunctionCallExpression(
+                FileLocation.DUMMY,
+                SeqTypes.INT,
+                SeqExpressions.VERIFIER_NONDET_INT,
+                ImmutableList.of(),
+                SeqDeclarations.VERIFIER_NONDET_INT));
+    assumeNextThread =
+        new FunctionCallExpr(
+            SeqNameBuilder.createFuncName(SeqToken.ASSUME), assumeNextThreadParams());
     exitPcCheck =
         new IfExpr(
             binExprBuilder.buildBinaryExpression(
@@ -108,7 +102,7 @@ public class MainMethod implements SeqFunction {
   }
 
   @Override
-  public String toString() {
+  public String toASTString() {
     StringBuilder switchCases = new StringBuilder();
 
     int i = 0;
@@ -126,7 +120,7 @@ public class MainMethod implements SeqFunction {
       // first switch case: use if, otherwise else-if
       if (i == 0) {
         switchCases.append(
-            SeqUtil.prependTabsWithoutNewline(2, SeqUtil.appendOpeningCurly(ifExpr.toString())));
+            SeqUtil.prependTabsWithoutNewline(2, SeqUtil.appendOpeningCurly(ifExpr.toASTString())));
       } else {
         ElseIfExpr elseIfExpr = new ElseIfExpr(ifExpr);
         switchCases.append(
@@ -135,38 +129,38 @@ public class MainMethod implements SeqFunction {
       switchCases.append(SeqSyntax.NEWLINE);
       Builder<String> cases = ImmutableList.builder();
       for (SeqLoopCase loopCase : entry.getValue()) {
-        cases.add(loopCase.toString());
+        cases.add(loopCase.toASTString());
       }
       ArrayElement arrayElem = new ArrayElement(SeqVars.pc, threadId);
       SwitchCaseExpr switchCaseExpr = new SwitchCaseExpr(arrayElem, cases.build(), 3);
-      switchCases.append(switchCaseExpr);
+      switchCases.append(switchCaseExpr.toASTString());
 
       // append 2 newlines, except for last switch case (1 only)
       switchCases.append(SeqUtil.repeat(SeqSyntax.NEWLINE, i == loopCases.size() - 1 ? 1 : 2));
       i++;
     }
 
-    return getSignature().toString()
+    return getSignature().toASTString()
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.NEWLINE
-        + SeqUtil.prependTabsWithNewline(1, declareNumThreads.toString())
-        + SeqUtil.prependTabsWithNewline(1, declarePc.toString())
-        + SeqUtil.prependTabsWithNewline(1, declareExecute.toString())
+        + SeqUtil.prependTabsWithNewline(1, declareNumThreads.toASTString())
+        + SeqUtil.prependTabsWithNewline(1, declarePc.toASTString())
         + SeqSyntax.NEWLINE
-        + SeqUtil.prependTabsWithNewline(1, SeqUtil.appendOpeningCurly(whileExecute.toString()))
-        + SeqUtil.prependTabsWithNewline(2, declareNextThread.toString())
-        + SeqUtil.prependTabsWithNewline(2, assumeNextThread.toString() + SeqSyntax.SEMICOLON)
+        + SeqUtil.prependTabsWithNewline(1, SeqUtil.appendOpeningCurly(whileExecute.toASTString()))
+        + SeqUtil.prependTabsWithNewline(2, declareNextThread.toASTString())
+        + SeqUtil.prependTabsWithNewline(2, assignNextThread.toASTString())
+        + SeqUtil.prependTabsWithNewline(2, assumeNextThread.toASTString() + SeqSyntax.SEMICOLON)
         + SeqSyntax.NEWLINE
-        + SeqUtil.prependTabsWithNewline(2, SeqUtil.appendOpeningCurly(exitPcCheck.toString()))
-        + SeqUtil.prependTabsWithNewline(3, executeUpdate.toString())
+        + SeqUtil.prependTabsWithNewline(2, SeqUtil.appendOpeningCurly(exitPcCheck.toASTString()))
         + SeqUtil.prependTabsWithNewline(3, SeqToken.CONTINUE + SeqSyntax.SEMICOLON)
         + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
         + SeqSyntax.NEWLINE
         + switchCases
         + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
         + SeqUtil.prependTabsWithNewline(1, SeqSyntax.CURLY_BRACKET_RIGHT)
-        // TODO need a return 0; here
+        + SeqUtil.prependTabsWithNewline(
+            1, SeqToken.RETURN + SeqSyntax.SPACE + SeqExpressions.INT_0.toASTString())
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 
@@ -195,14 +189,14 @@ public class MainMethod implements SeqFunction {
     return new InitializerListExpr(rInitializers.build());
   }
 
-  private static ImmutableList<SeqExpression> assumeNextThreadParams() {
+  private ImmutableList<SeqExpression> assumeNextThreadParams() throws UnrecognizedCodeException {
     Builder<SeqExpression> rParams = ImmutableList.builder();
     rParams.add(
-        new BooleanExpr(
-            new BooleanExpr(
-                new Value(SeqValue.ZERO), SeqOperator.LESS_OR_EQUAL, SeqVars.nextThread),
-            SeqOperator.AND,
-            new BooleanExpr(SeqVars.nextThread, SeqOperator.LESS, SeqVars.numThreads)));
+        new SeqLogicalAndExpression(
+            binExprBuilder.buildBinaryExpression(
+                SeqExpressions.INT_0, SeqExpressions.NEXT_THREAD, BinaryOperator.LESS_EQUAL),
+            binExprBuilder.buildBinaryExpression(
+                SeqExpressions.NEXT_THREAD, numThreads, BinaryOperator.LESS_THAN)));
     return rParams.build();
   }
 

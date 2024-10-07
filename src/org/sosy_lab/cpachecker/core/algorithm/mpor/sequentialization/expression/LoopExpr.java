@@ -8,24 +8,24 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
 public class LoopExpr implements SeqExpression {
 
-  // TODO restrict to ArrayExpr, BoolenaExpr, FunctionCallExpr, NegationExpr
-  public final SeqExpression condition;
+  public final CExpression condition;
 
-  public LoopExpr(SeqExpression pCondition) {
+  public LoopExpr(CExpression pCondition) {
     condition = pCondition;
   }
 
   @Override
-  public String toString() {
+  public String toASTString() {
     return SeqToken.WHILE
         + SeqSyntax.SPACE
         + SeqSyntax.BRACKET_LEFT
-        + condition
+        + condition.toASTString()
         + SeqSyntax.BRACKET_RIGHT;
   }
 }

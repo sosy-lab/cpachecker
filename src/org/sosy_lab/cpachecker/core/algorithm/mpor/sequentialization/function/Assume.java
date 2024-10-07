@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -19,10 +18,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.data_entity.Variable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.IfExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.VariableExpr;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.function_call.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
@@ -33,7 +31,7 @@ public class Assume implements SeqFunction {
   private static final CFunctionCallExpression abortCall =
       new CFunctionCallExpression(
           FileLocation.DUMMY,
-          SeqTypes.ABORT,
+          SeqTypes.VOID,
           SeqExpressions.ABORT,
           ImmutableList.of(),
           SeqDeclarations.ABORT);
@@ -44,16 +42,16 @@ public class Assume implements SeqFunction {
     ifCond =
         new IfExpr(
             pBinExprBuilder.buildBinaryExpression(
-                SeqExpressions.COND, SeqExpressions.INT_ZERO, BinaryOperator.EQUALS));
+                SeqExpressions.COND, SeqExpressions.INT_0, BinaryOperator.EQUALS));
   }
 
   @Override
-  public String toString() {
-    return getSignature().toString()
+  public String toASTString() {
+    return getSignature().toASTString()
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.NEWLINE
-        + SeqUtil.prependTabsWithNewline(1, SeqUtil.appendOpeningCurly(ifCond.toString()))
+        + SeqUtil.prependTabsWithNewline(1, SeqUtil.appendOpeningCurly(ifCond.toASTString()))
         + SeqUtil.prependTabsWithNewline(2, abortCall.toASTString() + SeqSyntax.SEMICOLON)
         + SeqUtil.prependTabsWithNewline(1, SeqSyntax.CURLY_BRACKET_RIGHT)
         + SeqSyntax.CURLY_BRACKET_RIGHT;
@@ -72,7 +70,7 @@ public class Assume implements SeqFunction {
   @Override
   public ImmutableList<SeqExpression> getParameters() {
     ImmutableList.Builder<SeqExpression> rParameters = ImmutableList.builder();
-    rParameters.add(new VariableExpr(Optional.of(SeqDataType.INT), new Variable(SeqToken.COND)));
+    rParameters.add(new SeqIdExpression(SeqExpressions.COND));
     return rParameters.build();
   }
 }

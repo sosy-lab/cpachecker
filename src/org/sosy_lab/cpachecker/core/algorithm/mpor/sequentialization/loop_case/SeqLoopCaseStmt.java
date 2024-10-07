@@ -54,7 +54,7 @@ public class SeqLoopCaseStmt implements SeqElement {
   }
 
   @Override
-  public String toString() {
+  public String toASTString() {
     Optional<CExpressionAssignmentStatement> pcUpdate =
         targetPc.isPresent()
             ? Optional.of(SeqStatements.buildPcAssign(threadId, targetPc.orElseThrow()))

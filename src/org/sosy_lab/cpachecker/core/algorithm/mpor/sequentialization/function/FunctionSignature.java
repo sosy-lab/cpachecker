@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqElement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.FunctionCallExpr;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.function_call.FunctionCallExpr;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 public class FunctionSignature implements SeqElement {
@@ -24,7 +24,7 @@ public class FunctionSignature implements SeqElement {
   }
 
   @Override
-  public String toString() {
-    return returnType + SeqSyntax.SPACE + functionCallExpr;
+  public String toASTString() {
+    return returnType + SeqSyntax.SPACE + functionCallExpr.toASTString();
   }
 }

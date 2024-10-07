@@ -29,7 +29,7 @@ public class SeqDeclarations {
       buildVarDec(false, SeqTypes.INT_ARRAY, SeqToken.PC, SeqInitializers.INT_0);
 
   public static final CVariableDeclaration NEXT_THREAD =
-      buildVarDec(false, SeqTypes.INT, SeqToken.NEXT_THREAD, SeqInitializers.VERIFIER_NONDET_INT);
+      buildVarDec(false, SeqTypes.INT, SeqToken.NEXT_THREAD, null);
 
   // CParameterDeclaration =======================================================================
 

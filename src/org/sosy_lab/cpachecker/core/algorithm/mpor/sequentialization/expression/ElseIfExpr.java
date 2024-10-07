@@ -20,7 +20,7 @@ public class ElseIfExpr implements SeqExpression {
   }
 
   @Override
-  public String toString() {
-    return SeqToken.ELSE + SeqSyntax.SPACE + ifExpr;
+  public String toASTString() {
+    return SeqToken.ELSE + SeqSyntax.SPACE + ifExpr.toASTString();
   }
 }

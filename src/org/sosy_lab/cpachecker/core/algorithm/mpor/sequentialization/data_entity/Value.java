@@ -17,7 +17,7 @@ public class Value implements SeqDataEntity {
   }
 
   @Override
-  public String toString() {
+  public String toASTString() {
     return value;
   }
 }

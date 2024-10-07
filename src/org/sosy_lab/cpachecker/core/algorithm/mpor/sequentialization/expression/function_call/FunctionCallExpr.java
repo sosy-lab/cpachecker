@@ -6,11 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.function_call;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
+// TODO rename SeqFunctionCallExpression
 public class FunctionCallExpr implements SeqExpression {
 
   public final String functionName;
@@ -27,13 +29,13 @@ public class FunctionCallExpr implements SeqExpression {
   }
 
   @Override
-  public String toString() {
+  public String toASTString() {
     StringBuilder parametersString = new StringBuilder(SeqSyntax.EMPTY_STRING);
     if (!parameters.isEmpty()) {
       String separator = SeqSyntax.COMMA + SeqSyntax.SPACE;
       for (int i = 0; i < parameters.size(); i++) {
         parametersString
-            .append(parameters.get(i))
+            .append(parameters.get(i).toASTString())
             .append(i == parameters.size() - 1 ? SeqSyntax.EMPTY_STRING : separator);
       }
     }

@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
-
-public interface SeqElement {
-  String toASTString();
-}
+/** Classes for the expressing function calls in the sequentialization. */
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.function_call;

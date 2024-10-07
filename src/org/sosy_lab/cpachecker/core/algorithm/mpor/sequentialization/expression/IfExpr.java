@@ -14,6 +14,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqT
 
 public class IfExpr implements SeqExpression {
 
+  // TODO create SeqControlStructure for if, else, else if, switch, while
+
   public final CExpression condition;
 
   public IfExpr(CExpression pCondition) {
@@ -21,7 +23,7 @@ public class IfExpr implements SeqExpression {
   }
 
   @Override
-  public String toString() {
+  public String toASTString() {
     return SeqToken.IF
         + SeqSyntax.SPACE
         + SeqSyntax.BRACKET_LEFT

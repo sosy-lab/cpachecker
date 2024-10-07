@@ -60,6 +60,8 @@ public class SeqLoopCase implements SeqElement {
     return currentId++;
   }
 
+  // TODO it is very confusing to have statements that can be empty, and the statements list which
+  //  can be empty too -> rename
   public boolean allStatementsEmpty() {
     for (SeqLoopCaseStmt stmt : statements) {
       if (stmt.statement.isPresent()) {
@@ -70,10 +72,10 @@ public class SeqLoopCase implements SeqElement {
   }
 
   @Override
-  public String toString() {
+  public String toASTString() {
     StringBuilder stmts = new StringBuilder();
     for (SeqLoopCaseStmt stmt : statements) {
-      stmts.append(stmt.toString()).append(SeqSyntax.SPACE);
+      stmts.append(stmt.toASTString()).append(SeqSyntax.SPACE);
     }
     return SeqToken.CASE
         + SeqSyntax.SPACE

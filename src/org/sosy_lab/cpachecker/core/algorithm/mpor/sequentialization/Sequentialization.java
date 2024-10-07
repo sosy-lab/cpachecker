@@ -41,6 +41,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.Assume;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.MainMethod;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.FunctionVars;
@@ -49,6 +51,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.S
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCaseStmt;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -63,12 +66,12 @@ public class Sequentialization {
   //  curly left / right brackets, newlines, etc.
   public static final int TAB_SIZE = 2;
 
-  protected final int numThreads;
+  protected final int threadCount;
 
   private final CBinaryExpressionBuilder binExprBuilder;
 
-  public Sequentialization(int pNumThreads, CBinaryExpressionBuilder pBinExprBuilder) {
-    numThreads = pNumThreads;
+  public Sequentialization(int pThreadCount, CBinaryExpressionBuilder pBinExprBuilder) {
+    threadCount = pThreadCount;
     binExprBuilder = pBinExprBuilder;
   }
 
@@ -121,24 +124,13 @@ public class Sequentialization {
     rProgram.append(SeqDeclarations.ABORT.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqDeclarations.VERIFIER_NONDET_INT.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqDeclarations.ASSUME.toASTString()).append(SeqSyntax.NEWLINE);
-    // TODO replace the any_unsigned and execute variable method with: (use while(1))
-    //  if (pc[next_thread] == -1) {
-    //      int i = 0;
-    //      while (i < NUM_THREADS) {
-    //        if (pc[i] >= 0) {
-    //          continue;
-    //        }
-    //        i++;
-    //      }
-    //      break;
-    //    }
     // main should always be duplicate
     rProgram.append(SeqDeclarations.MAIN.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqSyntax.NEWLINE);
 
     // add non main() methods
     Assume assume = new Assume(binExprBuilder);
-    rProgram.append(assume).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
+    rProgram.append(assume.toASTString()).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
     // TODO we also need to prune:
     //  - update targetPc to -1 if we reach a thread exit node
@@ -150,8 +142,16 @@ public class Sequentialization {
     ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> loopCases =
         mapLoopCases(pSubstitutions, returnPcVars, pthreadVars);
     ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> prunedCases = pruneLoopCases(loopCases);
-    MainMethod mainMethod = new MainMethod(prunedCases, binExprBuilder);
-    rProgram.append(mainMethod);
+    CIdExpression numThreads =
+        SeqExpressions.buildIdExpr(
+            SeqDeclarations.buildVarDec(
+                false,
+                SeqTypes.INT,
+                SeqToken.NUM_THREADS,
+                SeqInitializers.buildIntInitializer(
+                    SeqExpressions.buildIntLiteralExpr(threadCount))));
+    MainMethod mainMethod = new MainMethod(binExprBuilder, prunedCases, numThreads);
+    rProgram.append(mainMethod.toASTString());
 
     return rProgram.toString();
   }
@@ -170,12 +170,8 @@ public class Sequentialization {
       MPORThread thread = entry.getKey();
       CSimpleDeclarationSubstitution substitution = entry.getValue();
 
-      // TODO with so many vars used as params, its best to create a separate class for better
-      //  overview
       ImmutableMap<ThreadEdge, CFAEdge> edgeSubs = substitution.substituteEdges(thread);
 
-      // TODO here we should create a SeqFunction class or similar that keeps all of these values
-      //  for each thread / function
       // function handling
       ImmutableMap<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>> paramAssigns =
           mapParamAssigns(thread, edgeSubs, substitution);
@@ -265,7 +261,6 @@ public class Sequentialization {
         if (!nextCase.statements.isEmpty()) {
           return handleCasePrune(pOriginPc, pInitCase, pSkipped, nextCase);
         }
-        break; // if all stmts are empty, we only have to consider one -> breaking loop here
       }
       // otherwise break recursion -> non-empty case found
       return pCurrentCase.cloneWithOriginPc(pInitCase.originPc);

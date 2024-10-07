@@ -10,25 +10,15 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 
 public class SeqOperator {
 
-  public static final String AND = "&&";
+  public static final String LOGICAL_AND = "&&";
 
   public static final String ASSIGN = "=";
 
   public static final String EQUAL = "==";
 
-  public static final String GREATER = ">";
-
-  public static final String GREATER_OR_EQUAL = ">=";
-
   public static final String INCREMENT = "++";
 
-  public static final String LESS = "<";
+  public static final String LOGICAL_NOT = "!";
 
-  public static final String LESS_OR_EQUAL = "<=";
-
-  public static final String NOT = "!";
-
-  public static final String NOT_EQUAL = "!=";
-
-  public static final String OR = "||";
+  public static final String LOGICAL_OR = "||";
 }

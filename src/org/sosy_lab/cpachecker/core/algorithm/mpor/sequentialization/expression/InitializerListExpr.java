@@ -20,7 +20,7 @@ public class InitializerListExpr implements SeqExpression {
   }
 
   @Override
-  public String toString() {
+  public String toASTString() {
     StringBuilder inits = new StringBuilder();
     String suffix = SeqSyntax.COMMA + SeqSyntax.SPACE;
     for (int i = 0; i < initializers.size(); i++) {

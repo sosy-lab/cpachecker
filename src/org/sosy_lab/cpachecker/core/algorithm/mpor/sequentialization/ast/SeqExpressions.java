@@ -24,15 +24,11 @@ public class SeqExpressions {
 
   // CIntegerLiteralExpression ===================================================================
 
-  public static final CIntegerLiteralExpression INT_EXIT_PC =
-      new CIntegerLiteralExpression(
-          FileLocation.DUMMY, SeqTypes.INT, BigInteger.valueOf(SeqUtil.EXIT_PC));
+  public static final CIntegerLiteralExpression INT_EXIT_PC = buildIntLiteralExpr(SeqUtil.EXIT_PC);
 
-  public static final CIntegerLiteralExpression INT_ONE =
-      new CIntegerLiteralExpression(FileLocation.DUMMY, SeqTypes.INT, BigInteger.ONE);
+  public static final CIntegerLiteralExpression INT_0 = buildIntLiteralExpr(0);
 
-  public static final CIntegerLiteralExpression INT_ZERO =
-      new CIntegerLiteralExpression(FileLocation.DUMMY, SeqTypes.INT, BigInteger.ZERO);
+  public static final CIntegerLiteralExpression INT_1 = buildIntLiteralExpr(1);
 
   // CIdExpression ===============================================================================
 
@@ -41,6 +37,8 @@ public class SeqExpressions {
   public static final CIdExpression PC = buildIdExpr(SeqDeclarations.PC);
 
   public static final CIdExpression NEXT_THREAD = buildIdExpr(SeqDeclarations.NEXT_THREAD);
+
+  public static final CIdExpression ASSUME = buildIdExpr(SeqDeclarations.ASSUME);
 
   public static final CIdExpression ABORT = buildIdExpr(SeqDeclarations.ABORT);
 

@@ -29,7 +29,7 @@ public class SwitchCaseExpr implements SeqExpression {
   }
 
   @Override
-  public String toString() {
+  public String toASTString() {
     StringBuilder casesString = new StringBuilder(SeqSyntax.EMPTY_STRING);
     for (String caseString : cases) {
       casesString.append(SeqUtil.prependTabsWithoutNewline(tabs + 1, caseString));
@@ -38,7 +38,7 @@ public class SwitchCaseExpr implements SeqExpression {
         + SeqToken.SWITCH
         + SeqSyntax.SPACE
         + SeqSyntax.BRACKET_LEFT
-        + expression
+        + expression.toASTString()
         + SeqSyntax.BRACKET_RIGHT
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
