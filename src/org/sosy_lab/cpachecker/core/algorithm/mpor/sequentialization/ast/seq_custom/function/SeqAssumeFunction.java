@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.function;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -23,12 +23,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDecl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.control_flow.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.statement.SeqControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class Assume implements SeqFunction {
+public class SeqAssumeFunction implements SeqFunction {
 
   private static final CFunctionCallExpression abortCall =
       new CFunctionCallExpression(
@@ -40,7 +40,8 @@ public class Assume implements SeqFunction {
 
   private final SeqControlFlowStatement ifCond;
 
-  public Assume(CBinaryExpressionBuilder pBinExprBuilder) throws UnrecognizedCodeException {
+  public SeqAssumeFunction(CBinaryExpressionBuilder pBinExprBuilder)
+      throws UnrecognizedCodeException {
     ifCond =
         new SeqControlFlowStatement(
             pBinExprBuilder.buildBinaryExpression(

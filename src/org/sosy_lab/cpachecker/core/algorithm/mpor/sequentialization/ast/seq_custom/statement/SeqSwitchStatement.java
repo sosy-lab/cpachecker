@@ -6,16 +6,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.statement;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.control_flow.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
-public class SwitchCaseExpr implements SeqExpression {
+public class SeqSwitchStatement implements SeqStatement {
 
   private final SeqControlFlowStatement switchExpression;
 
@@ -23,7 +22,7 @@ public class SwitchCaseExpr implements SeqExpression {
 
   private final int tabs;
 
-  public SwitchCaseExpr(CExpression pExpression, ImmutableList<String> pCases, int pTabs) {
+  public SeqSwitchStatement(CExpression pExpression, ImmutableList<String> pCases, int pTabs) {
     switchExpression = new SeqControlFlowStatement(pExpression, SeqControlFlowStatementType.SWITCH);
     cases = pCases;
     tabs = pTabs;

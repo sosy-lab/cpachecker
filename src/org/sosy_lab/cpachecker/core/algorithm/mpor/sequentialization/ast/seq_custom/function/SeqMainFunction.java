@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.function;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
@@ -31,20 +31,20 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.SeqExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.SwitchCaseExpr;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.c_to_seq.CToSeqExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.control_flow.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.function_call.SeqFunctionCallExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.logical.SeqLogicalAndExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.expression.CToSeqExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.expression.SeqExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.expression.SeqFunctionCallExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.expression.SeqLogicalAndExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.statement.SeqControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.statement.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class MainMethod implements SeqFunction {
+public class SeqMainFunction implements SeqFunction {
 
   private static final SeqControlFlowStatement whileTrue =
       new SeqControlFlowStatement(
@@ -68,7 +68,7 @@ public class MainMethod implements SeqFunction {
   private final SeqFunctionCallExpression assumeThreadActive;
 
   // TODO add an ImmutableSet<CExpression> pAssumptions
-  public MainMethod(
+  public SeqMainFunction(
       CBinaryExpressionBuilder pBinExprBuilder,
       ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> pLoopCases,
       CIdExpression pNumThreads)
@@ -127,7 +127,7 @@ public class MainMethod implements SeqFunction {
         cases.add(loopCase.toASTString());
       }
       CArraySubscriptExpression pcThreadId = SeqExpressions.buildPcSubscriptExpr(threadId);
-      SwitchCaseExpr switchCaseExpr = new SwitchCaseExpr(pcThreadId, cases.build(), 3);
+      SeqSwitchStatement switchCaseExpr = new SeqSwitchStatement(pcThreadId, cases.build(), 3);
       switchCases.append(switchCaseExpr.toASTString());
 
       // append 2 newlines, except for last switch case (1 only)

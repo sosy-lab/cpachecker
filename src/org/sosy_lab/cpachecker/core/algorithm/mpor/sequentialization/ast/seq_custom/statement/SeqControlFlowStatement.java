@@ -6,15 +6,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.control_flow;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.statement;
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.SeqExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
-public class SeqControlFlowStatement implements SeqExpression {
+public class SeqControlFlowStatement implements SeqStatement {
 
   public enum SeqControlFlowStatementType {
     ELSE("else"),

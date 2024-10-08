@@ -10,12 +10,15 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqElement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.SeqASTNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
+// TODO update this and put into ast.custom
 /** Represents a case in the sequentialization while loop. */
-public class SeqLoopCase implements SeqElement {
+public class SeqLoopCase implements SeqASTNode {
+
+  // TODO create int caseLabel (= originPc), caseBlock (= statements)
 
   private static long currentId = 0;
 

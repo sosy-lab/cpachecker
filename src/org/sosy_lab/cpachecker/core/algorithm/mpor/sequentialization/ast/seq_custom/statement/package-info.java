@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Classes for representing if, else if, else, switch, while statements in the sequentialization.
- */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.control_flow;
+/** Classes to represent custom statements in the Sequentialization. */
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.statement;

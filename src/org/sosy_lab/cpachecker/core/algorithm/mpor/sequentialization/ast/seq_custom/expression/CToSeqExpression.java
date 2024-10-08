@@ -6,14 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.c_to_seq;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.expression;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.SeqExpression;
 
 /**
  * Wraps a SeqExpression around a CExpression so that it can be used as a parameter in a function

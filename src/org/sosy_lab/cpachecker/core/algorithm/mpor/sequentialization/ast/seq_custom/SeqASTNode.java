@@ -6,5 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Classes for the logical operators &&, || and ! in the sequentialization. */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.logical;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom;
+
+public interface SeqASTNode {
+  String toASTString();
+}

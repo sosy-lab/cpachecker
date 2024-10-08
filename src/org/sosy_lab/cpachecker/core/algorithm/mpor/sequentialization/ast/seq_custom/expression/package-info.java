@@ -6,5 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Contains helper functions inside the sequentialization that reduces lines of code. */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function;
+/** Classes to represent custom expressions in the Sequentialization. */
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.expression;

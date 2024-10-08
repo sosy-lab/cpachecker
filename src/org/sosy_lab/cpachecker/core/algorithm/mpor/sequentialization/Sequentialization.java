@@ -46,8 +46,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.Assume;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function.MainMethod;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.function.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.function.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.FunctionVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.PthreadVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
@@ -134,7 +134,7 @@ public class Sequentialization {
     rProgram.append(SeqSyntax.NEWLINE);
 
     // add non main() methods
-    Assume assume = new Assume(binExprBuilder);
+    SeqAssumeFunction assume = new SeqAssumeFunction(binExprBuilder);
     rProgram.append(assume.toASTString()).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
     // TODO we also need to prune:
@@ -156,7 +156,7 @@ public class Sequentialization {
                 SeqToken.NUM_THREADS,
                 SeqInitializers.buildIntInitializer(
                     SeqIntegerLiteralExpression.buildIntLiteralExpr(threadCount))));
-    MainMethod mainMethod = new MainMethod(binExprBuilder, prunedCases, numThreads);
+    SeqMainFunction mainMethod = new SeqMainFunction(binExprBuilder, prunedCases, numThreads);
     rProgram.append(mainMethod.toASTString());
 
     return rProgram.toString();

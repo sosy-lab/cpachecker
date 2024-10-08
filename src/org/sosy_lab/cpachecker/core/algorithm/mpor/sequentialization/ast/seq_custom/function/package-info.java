@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom;
-
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqElement;
-
-public interface SeqExpression extends SeqElement {}
+/** Classes to represent custom functions in the Sequentialization. */
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.function;
