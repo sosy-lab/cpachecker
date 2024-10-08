@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 /**
  * This class is a mixin for {@link CFANode}.
  *
- * <p>Identity information is being serialized to prevent infinite recursion.
+ * <p>Identity information is serialized to prevent infinite recursion.
  *
  * <p>Since this class has subtypes, Jackson needs to know which type to instantiate when it
  * encounters a {@link CFANode} object during deserialization. This additional information is
