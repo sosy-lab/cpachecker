@@ -6,14 +6,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.function;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.SeqASTNode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.SeqASTNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 public interface SeqFunction extends SeqASTNode {

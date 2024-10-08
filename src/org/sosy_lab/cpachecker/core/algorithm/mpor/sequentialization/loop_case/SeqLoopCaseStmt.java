@@ -14,7 +14,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.SeqASTNode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.SeqASTNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 /** Represents a single case statement in the sequentialization while loop. */

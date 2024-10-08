@@ -7,4 +7,4 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /** Classes to represent custom statements in the Sequentialization. */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.statement;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement;

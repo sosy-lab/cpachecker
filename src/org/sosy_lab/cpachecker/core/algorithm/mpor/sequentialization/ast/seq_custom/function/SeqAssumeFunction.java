@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.function;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -23,8 +23,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDecl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.statement.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 

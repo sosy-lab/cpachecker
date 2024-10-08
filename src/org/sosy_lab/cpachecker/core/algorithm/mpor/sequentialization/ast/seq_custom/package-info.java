@@ -10,4 +10,4 @@
  * Algorithms and data structures for expressions in the sequentialization. The expression classes
  * represent a loose grammar which does not guarantee correct C syntax if used incorrectly.
  */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom;

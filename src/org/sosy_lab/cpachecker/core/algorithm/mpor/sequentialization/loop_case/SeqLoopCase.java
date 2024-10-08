@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.SeqASTNode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.SeqASTNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 

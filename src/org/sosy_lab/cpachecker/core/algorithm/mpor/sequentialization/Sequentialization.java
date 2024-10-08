@@ -46,8 +46,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.function.SeqAssumeFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.function.SeqMainFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.FunctionVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.PthreadVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
