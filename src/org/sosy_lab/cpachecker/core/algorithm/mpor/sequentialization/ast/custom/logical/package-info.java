@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
-
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqElement;
-
-public interface SeqExpression extends SeqElement {}
+/** Classes for the logical operators &&, || and ! in the sequentialization. */
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.logical;

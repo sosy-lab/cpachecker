@@ -6,24 +6,25 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.control_flow.SeqControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
 public class SwitchCaseExpr implements SeqExpression {
 
-  public final CExpression expression;
+  private final SeqControlFlowStatement switchExpression;
 
-  public final ImmutableList<String> cases;
+  private final ImmutableList<String> cases;
 
   private final int tabs;
 
   public SwitchCaseExpr(CExpression pExpression, ImmutableList<String> pCases, int pTabs) {
-    expression = pExpression;
+    switchExpression = new SeqControlFlowStatement(pExpression, SeqControlFlowStatementType.SWITCH);
     cases = pCases;
     tabs = pTabs;
   }
@@ -35,13 +36,7 @@ public class SwitchCaseExpr implements SeqExpression {
       casesString.append(SeqUtil.prependTabsWithoutNewline(tabs + 1, caseString));
     }
     return SeqUtil.repeat(SeqSyntax.TAB, tabs)
-        + SeqToken.SWITCH
-        + SeqSyntax.SPACE
-        + SeqSyntax.BRACKET_LEFT
-        + expression.toASTString()
-        + SeqSyntax.BRACKET_RIGHT
-        + SeqSyntax.SPACE
-        + SeqSyntax.CURLY_BRACKET_LEFT
+        + SeqUtil.appendOpeningCurly(switchExpression.toASTString())
         + SeqSyntax.NEWLINE
         + casesString
         + SeqUtil.repeat(SeqSyntax.TAB, tabs)

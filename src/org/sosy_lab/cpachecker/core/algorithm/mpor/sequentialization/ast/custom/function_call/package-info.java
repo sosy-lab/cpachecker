@@ -6,9 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
-
-// TODO we should just add the toASTString function to both SeqFunction and SeqExpression
-public interface SeqElement {
-  String toASTString();
-}
+/** Classes for the expressing function calls in the sequentialization. */
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.function_call;

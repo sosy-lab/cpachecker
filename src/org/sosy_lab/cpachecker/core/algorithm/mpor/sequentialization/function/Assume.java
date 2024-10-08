@@ -23,7 +23,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDecl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.IfExpr;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.control_flow.SeqControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -37,13 +38,14 @@ public class Assume implements SeqFunction {
           ImmutableList.of(),
           SeqFunctionDeclaration.ABORT);
 
-  private final IfExpr ifCond;
+  private final SeqControlFlowStatement ifCond;
 
   public Assume(CBinaryExpressionBuilder pBinExprBuilder) throws UnrecognizedCodeException {
     ifCond =
-        new IfExpr(
+        new SeqControlFlowStatement(
             pBinExprBuilder.buildBinaryExpression(
-                SeqIdExpression.COND, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS));
+                SeqIdExpression.COND, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS),
+            SeqControlFlowStatementType.IF);
   }
 
   @Override

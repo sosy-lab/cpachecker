@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Classes for the logical operators &&, || and ! in the sequentialization. */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.logical;
+/**
+ * Classes for representing if, else if, else, switch, while statements in the sequentialization.
+ */
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.control_flow;

@@ -6,11 +6,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.logical;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.logical;
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 

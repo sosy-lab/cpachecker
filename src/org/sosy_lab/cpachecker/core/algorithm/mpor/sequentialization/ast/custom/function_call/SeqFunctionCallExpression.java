@@ -6,11 +6,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.function_call;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.function_call;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 public class SeqFunctionCallExpression implements SeqExpression {

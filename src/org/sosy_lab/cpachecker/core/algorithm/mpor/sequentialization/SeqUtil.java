@@ -33,7 +33,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.SeqExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.control_flow.SeqControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.FunctionVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.PthreadVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
@@ -96,20 +97,17 @@ public class SeqUtil {
           stmts.add(new SeqLoopCaseStmt(pThread.id, false, Optional.empty(), targetPc));
 
         } else {
-          // use (else) if (condition) for assumes, no matter if induced by if, for, while...
+          // use (else) if (condition) for all assumes (if, for, while, switch, ...)
           if (sub instanceof CAssumeEdge assumeEdge) {
             assert allEdgesAssume(pThreadNode.leavingEdges());
-            String assumption = assumeEdge.getCode();
-            String prefix = firstEdge ? SeqToken.IF : SeqToken.ELSE_IF;
+            SeqControlFlowStatementType stmtType =
+                firstEdge ? SeqControlFlowStatementType.IF : SeqControlFlowStatementType.ELSE_IF;
             if (firstEdge) {
               firstEdge = false;
             }
+            SeqControlFlowStatement stmt = new SeqControlFlowStatement(assumeEdge, stmtType);
             stmts.add(
-                new SeqLoopCaseStmt(
-                    pThread.id,
-                    true,
-                    Optional.of(prefix + SeqSyntax.SPACE + wrapInBracketsInwards(assumption)),
-                    targetPc));
+                new SeqLoopCaseStmt(pThread.id, true, Optional.of(stmt.toASTString()), targetPc));
 
           } else if (sub instanceof CFunctionSummaryEdge) {
             assert pThreadNode.leavingEdges().size() >= 2;
@@ -311,14 +309,15 @@ public class SeqUtil {
   }
 
   /** Returns "} pExpression {" */
-  public static String wrapInCurlyOutwards(SeqExpression pExpression) {
+  public static String wrapInCurlyOutwards(String pString) {
     return SeqSyntax.CURLY_BRACKET_RIGHT
         + SeqSyntax.SPACE
-        + pExpression.toASTString()
+        + pString
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT;
   }
 
+  /** Returns "pString {" */
   public static String appendOpeningCurly(String pString) {
     return pString + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT;
   }

@@ -30,17 +30,11 @@ public class SeqToken {
 
   public static final String DUMMY = "dummy";
 
-  public static final String ELSE = "else";
-
-  public static final String ELSE_IF = "else if";
-
   public static final String EXECUTE = "execute";
 
   public static final String FUNCTION = "function";
 
   public static final String I = "i";
-
-  public static final String IF = "if";
 
   public static final String JOINS = "joins";
 
@@ -59,11 +53,7 @@ public class SeqToken {
 
   public static final String SIZE = "size";
 
-  public static final String SWITCH = "switch";
-
   public static final String T = "t";
 
   public static final String VERIFIER_NONDET_INT = "__VERIFIER_nondet_int";
-
-  public static final String WHILE = "while";
 }

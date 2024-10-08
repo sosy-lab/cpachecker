@@ -11,4 +11,4 @@
  * solution but required if we want to use both logical AND, OR, NOT expressions and CIdExpressions
  * in the same function call.
  */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.expression.c_to_seq;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom.c_to_seq;
