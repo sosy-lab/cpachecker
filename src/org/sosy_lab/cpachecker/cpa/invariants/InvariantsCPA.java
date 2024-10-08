@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -265,6 +266,14 @@ public class InvariantsCPA
     }
     writer = new StateToFormulaWriter(config, logManager, shutdownNotifier, cfa);
     edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, machineModel);
+  }
+
+  public Map<MemoryLocation, CType> getAllVariableTypes() {
+    Map<MemoryLocation, CType> variableTypes = new HashMap<>();
+    for (CFAEdge edge : CFAUtils.allEdges(cfa)) {
+      variableTypes.putAll(edgeAnalyzer.getInvolvedVariableTypes(edge));
+    }
+    return variableTypes;
   }
 
   public CompoundIntervalManagerFactory getCompoundIntervalFormulaManagerFactory() {

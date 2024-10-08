@@ -42,7 +42,6 @@ public class BlockSummaryMessagePayload extends ForwardingMap<String, Object> {
   public static final String STATS = "stats";
   public static final String ORIGIN = "origin";
   public static final String STRATEGY = "strategy";
-  public static final String VTYPES = "vtypes";
 
   private final Map<String, Object> delegate;
 

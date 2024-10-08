@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 
 public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeException> {
@@ -131,7 +130,8 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
     visitedTypeHashes.add(compositeTypeHash);
 
     StringBuilder result = new StringBuilder();
-    result.append("CompositeType(")
+    result
+        .append("CompositeType(")
         .append(pCompositeType.isConst())
         .append(", ")
         .append(pCompositeType.isVolatile())
@@ -145,7 +145,8 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
     if (pCompositeType.getMembers() != null && !pCompositeType.getMembers().isEmpty()) {
       result.append(", [");
       for (CCompositeType.CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
-        result.append(member.getType().accept(this))
+        result
+            .append(member.getType().accept(this))
             .append(":")
             .append(member.getName())
             .append(", ");
