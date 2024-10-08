@@ -35,10 +35,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalAndExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -53,7 +53,7 @@ public class SeqMainFunction implements SeqFunction {
   private final CBinaryExpressionBuilder binExprBuilder;
 
   /** The thread-specific cases in the main while loop. */
-  private final ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> loopCases;
+  private final ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses;
 
   private final CIdExpression numThreads;
 
@@ -70,12 +70,12 @@ public class SeqMainFunction implements SeqFunction {
   // TODO add an ImmutableSet<CExpression> pAssumptions
   public SeqMainFunction(
       CBinaryExpressionBuilder pBinExprBuilder,
-      ImmutableMap<MPORThread, ImmutableList<SeqLoopCase>> pLoopCases,
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
       CIdExpression pNumThreads)
       throws UnrecognizedCodeException {
 
     binExprBuilder = pBinExprBuilder;
-    loopCases = pLoopCases;
+    caseClauses = pCaseClauses;
     numThreads = pNumThreads;
     declareNumThreads = (CVariableDeclaration) pNumThreads.getDeclaration();
     // TODO declare pc array here
@@ -101,7 +101,7 @@ public class SeqMainFunction implements SeqFunction {
     StringBuilder switchCases = new StringBuilder();
 
     int i = 0;
-    for (var entry : loopCases.entrySet()) {
+    for (var entry : caseClauses.entrySet()) {
       CIntegerLiteralExpression threadId =
           SeqIntegerLiteralExpression.buildIntLiteralExpr(entry.getKey().id);
       try {
@@ -122,16 +122,12 @@ public class SeqMainFunction implements SeqFunction {
         throw new RuntimeException(pE);
       }
       switchCases.append(SeqSyntax.NEWLINE);
-      ImmutableList.Builder<String> cases = ImmutableList.builder();
-      for (SeqLoopCase loopCase : entry.getValue()) {
-        cases.add(loopCase.toASTString());
-      }
       CArraySubscriptExpression pcThreadId = SeqExpressions.buildPcSubscriptExpr(threadId);
-      SeqSwitchStatement switchCaseExpr = new SeqSwitchStatement(pcThreadId, cases.build(), 3);
+      SeqSwitchStatement switchCaseExpr = new SeqSwitchStatement(pcThreadId, entry.getValue(), 3);
       switchCases.append(switchCaseExpr.toASTString());
 
       // append 2 newlines, except for last switch case (1 only)
-      switchCases.append(SeqUtil.repeat(SeqSyntax.NEWLINE, i == loopCases.size() - 1 ? 1 : 2));
+      switchCases.append(SeqUtil.repeat(SeqSyntax.NEWLINE, i == caseClauses.size() - 1 ? 1 : 2));
       i++;
     }
 

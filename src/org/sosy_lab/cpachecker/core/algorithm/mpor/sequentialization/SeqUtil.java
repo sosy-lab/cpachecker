@@ -33,12 +33,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.FunctionVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.PthreadVars;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCase;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case.SeqLoopCaseStmt;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -53,11 +53,11 @@ public class SeqUtil {
 
   // TODO create CaseBuilder class
   /**
-   * Returns a {@link SeqLoopCase} which represents case statements in the sequentializations while
-   * loop. Returns null if pThreadNode has no leaving edges i.e. its pc is -1.
+   * Returns a {@link SeqCaseClause} which represents case statements in the sequentializations
+   * while loop. Returns null if pThreadNode has no leaving edges i.e. its pc is -1.
    */
   @Nullable
-  public static SeqLoopCase createCaseFromThreadNode(
+  public static SeqCaseClause createCaseFromThreadNode(
       final MPORThread pThread,
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
@@ -68,7 +68,7 @@ public class SeqUtil {
     pCoveredNodes.add(pThreadNode);
 
     int originPc = pThreadNode.pc;
-    ImmutableList.Builder<SeqLoopCaseStmt> stmts = ImmutableList.builder();
+    ImmutableList.Builder<SeqCaseBlockStatement> stmts = ImmutableList.builder();
 
     // no edges -> exit node reached (assert fail or main / start routine exit node)
     if (pThreadNode.leavingEdges().isEmpty()) {
@@ -81,7 +81,7 @@ public class SeqUtil {
       CExpressionAssignmentStatement assign = pFuncVars.pcToReturnPcAssigns.get(pThreadNode);
       assert assign != null;
       stmts.add(
-          new SeqLoopCaseStmt(
+          new SeqCaseBlockStatement(
               pThread.id, false, Optional.of(assign.toASTString()), Optional.empty()));
 
     } else {
@@ -94,7 +94,7 @@ public class SeqUtil {
 
         if (emptyCaseCode(sub)) {
           assert pThreadNode.leavingEdges().size() == 1;
-          stmts.add(new SeqLoopCaseStmt(pThread.id, false, Optional.empty(), targetPc));
+          stmts.add(new SeqCaseBlockStatement(pThread.id, false, Optional.empty(), targetPc));
 
         } else {
           // use (else) if (condition) for all assumes (if, for, while, switch, ...)
@@ -107,7 +107,8 @@ public class SeqUtil {
             }
             SeqControlFlowStatement stmt = new SeqControlFlowStatement(assumeEdge, stmtType);
             stmts.add(
-                new SeqLoopCaseStmt(pThread.id, true, Optional.of(stmt.toASTString()), targetPc));
+                new SeqCaseBlockStatement(
+                    pThread.id, true, Optional.of(stmt.toASTString()), targetPc));
 
           } else if (sub instanceof CFunctionSummaryEdge) {
             assert pThreadNode.leavingEdges().size() >= 2;
@@ -115,7 +116,7 @@ public class SeqUtil {
             CExpressionAssignmentStatement assign = pFuncVars.returnPcToPcAssigns.get(threadEdge);
             assert assign != null;
             stmts.add(
-                new SeqLoopCaseStmt(
+                new SeqCaseBlockStatement(
                     pThread.id, false, Optional.of(assign.toASTString()), Optional.empty()));
 
           } else if (sub instanceof CFunctionCallEdge) {
@@ -125,13 +126,13 @@ public class SeqUtil {
                 pFuncVars.paramAssigns.get(threadEdge);
             assert assigns != null;
             if (assigns.isEmpty()) {
-              stmts.add(new SeqLoopCaseStmt(pThread.id, false, Optional.empty(), targetPc));
+              stmts.add(new SeqCaseBlockStatement(pThread.id, false, Optional.empty(), targetPc));
             } else {
               for (int i = 0; i < assigns.size(); i++) {
                 CExpressionAssignmentStatement assign = assigns.get(i);
                 // if this is the last param assign, add the targetPc, otherwise empty
                 stmts.add(
-                    new SeqLoopCaseStmt(
+                    new SeqCaseBlockStatement(
                         pThread.id,
                         false,
                         Optional.of(assign.toASTString()),
@@ -155,24 +156,24 @@ public class SeqUtil {
             CFAEdge succSuccSub = pEdgeSubs.get(succSuccEdge);
             assert succSub != null && succSuccSub != null;
             stmts.add(
-                new SeqLoopCaseStmt(
+                new SeqCaseBlockStatement(
                     pThread.id, false, Optional.of(sub.getCode()), Optional.empty()));
             stmts.add(
-                new SeqLoopCaseStmt(
+                new SeqCaseBlockStatement(
                     pThread.id, false, Optional.of(succSub.getCode()), Optional.empty()));
             stmts.add(
-                new SeqLoopCaseStmt(
+                new SeqCaseBlockStatement(
                     pThread.id,
                     false,
                     Optional.of(succSuccSub.getCode()),
                     Optional.of(succSuccEdge.getSuccessor().pc)));
 
           } else if (sub instanceof CReturnStatementEdge retStmt) {
-            // TODO it would be cleaner to create a switch statement for the return_pc
-            //  and only assign the relevant CPAchecker_TMP var. but this solution works
+            // TODO need to create a switch case to only assign the context return value!
             assert pFuncVars.returnStmts.containsKey(threadEdge);
             if (retStmt.getSuccessor().getFunction().getType().equals(pThread.startRoutine)) {
               // exiting thread -> assign 0 to thread_active var if possible and set exit pc
+              // TODO also add a t0_active for the main thread (it can terminate before a pthread)
               if (!pThread.isMain()
                   && pPthreadVars.threadActive.containsKey(pThread.threadObject.orElseThrow())) {
 
@@ -182,7 +183,7 @@ public class SeqUtil {
                         pPthreadVars.threadActive.get(pThread.threadObject.orElseThrow()),
                         SeqIntegerLiteralExpression.INT_0);
                 stmts.add(
-                    new SeqLoopCaseStmt(
+                    new SeqCaseBlockStatement(
                         pThread.id,
                         false,
                         Optional.of(exprAssign.toASTString()),
@@ -190,16 +191,17 @@ public class SeqUtil {
 
               } else {
                 stmts.add(
-                    new SeqLoopCaseStmt(pThread.id, false, Optional.empty(), Optional.of(EXIT_PC)));
+                    new SeqCaseBlockStatement(
+                        pThread.id, false, Optional.empty(), Optional.of(EXIT_PC)));
               }
             } else {
-              // returning from any other function: assign return value to all CPAchecker_TMP vars
+              // returning from any other function: assign return value to all return vars
               ImmutableSet<CExpressionAssignmentStatement> assigns =
                   pFuncVars.returnStmts.get(threadEdge);
               assert assigns != null;
               for (CExpressionAssignmentStatement assign : assigns) {
                 stmts.add(
-                    new SeqLoopCaseStmt(
+                    new SeqCaseBlockStatement(
                         pThread.id, false, Optional.of(assign.toASTString()), targetPc));
               }
             }
@@ -213,7 +215,7 @@ public class SeqUtil {
                     SeqStatements.buildExprAssign(
                         pPthreadVars.threadActive.get(pthreadT), SeqIntegerLiteralExpression.INT_1);
                 stmts.add(
-                    new SeqLoopCaseStmt(
+                    new SeqCaseBlockStatement(
                         pThread.id, false, Optional.of(activeAssign.toASTString()), targetPc));
                 break;
 
@@ -232,7 +234,7 @@ public class SeqUtil {
                     SeqStatements.buildExprAssign(
                         pPthreadVars.mutexLocked.get(aPthreadMutexT), SeqExpressions.INT_0);
                 stmts.add(
-                    new SeqLoopCaseStmt(
+                    new SeqCaseBlockStatement(
                         pThread.id, false, Optional.of(lockedAssign.toASTString()), targetPc));
                 break;*/
 
@@ -249,7 +251,7 @@ public class SeqUtil {
                     SeqStatements.buildExprAssign(
                         pPthreadVars.mutexLocked.get(pthreadMutexT), value);
                 stmts.add(
-                    new SeqLoopCaseStmt(
+                    new SeqCaseBlockStatement(
                         pThread.id, false, Optional.of(lockedAssign.toASTString()), targetPc));
                 break;
 
@@ -261,7 +263,7 @@ public class SeqUtil {
                         pPthreadVars.threadJoins.get(pThread).get(targetThread),
                         SeqIntegerLiteralExpression.INT_1);
                 stmts.add(
-                    new SeqLoopCaseStmt(
+                    new SeqCaseBlockStatement(
                         pThread.id, false, Optional.of(joinsTrueAssign.toASTString()), targetPc));
                 break;
 
@@ -271,12 +273,13 @@ public class SeqUtil {
             }
 
           } else {
-            stmts.add(new SeqLoopCaseStmt(pThread.id, false, Optional.of(sub.getCode()), targetPc));
+            stmts.add(
+                new SeqCaseBlockStatement(pThread.id, false, Optional.of(sub.getCode()), targetPc));
           }
         }
       }
     }
-    return new SeqLoopCase(originPc, stmts.build());
+    return new SeqCaseClause(originPc, stmts.build());
   }
 
   public static String createLineOfCode(CFAEdge pEdge) {

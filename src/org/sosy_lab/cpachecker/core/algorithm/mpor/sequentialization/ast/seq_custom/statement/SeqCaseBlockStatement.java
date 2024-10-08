@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -14,11 +14,10 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.SeqASTNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
-/** Represents a single case statement in the sequentialization while loop. */
-public class SeqLoopCaseStmt implements SeqASTNode {
+/** Represents a single case block in the sequentialization. */
+public class SeqCaseBlockStatement implements SeqStatement {
 
   private final int threadId;
 
@@ -39,7 +38,7 @@ public class SeqLoopCaseStmt implements SeqASTNode {
    */
   public final Optional<Integer> targetPc;
 
-  public SeqLoopCaseStmt(
+  public SeqCaseBlockStatement(
       int pThreadId, boolean pIsAssume, Optional<String> pStatement, Optional<Integer> pTargetPc) {
     // if isAssume, then targetPc has to be present
     checkArgument(!pIsAssume || pTargetPc.isPresent());
@@ -49,9 +48,10 @@ public class SeqLoopCaseStmt implements SeqASTNode {
     targetPc = pTargetPc;
   }
 
-  protected SeqLoopCaseStmt cloneWithTargetPc(int pTargetPc) {
-    return new SeqLoopCaseStmt(threadId, isAssume, statement, Optional.of(pTargetPc));
-  }
+  // TODO add target pc pruning logic
+  /*protected SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) {
+    return new SeqCaseBlockStatement(threadId, isAssume, statement, Optional.of(pTargetPc));
+  }*/
 
   @Override
   public String toASTString() {

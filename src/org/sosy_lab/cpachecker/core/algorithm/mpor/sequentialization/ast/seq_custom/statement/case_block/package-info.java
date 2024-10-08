@@ -6,5 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Classes representing cases and their statements in the sequentialization main while loop. */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case;
+/** Classes representing case blocks in the sequentialization. */
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;

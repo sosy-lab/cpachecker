@@ -18,21 +18,23 @@ public class SeqSwitchStatement implements SeqStatement {
 
   private final SeqControlFlowStatement switchExpression;
 
-  private final ImmutableList<String> cases;
+  private final ImmutableList<SeqCaseClause> caseClauses;
 
   private final int tabs;
 
-  public SeqSwitchStatement(CExpression pExpression, ImmutableList<String> pCases, int pTabs) {
+  public SeqSwitchStatement(
+      CExpression pExpression, ImmutableList<SeqCaseClause> pCaseClauses, int pTabs) {
+
     switchExpression = new SeqControlFlowStatement(pExpression, SeqControlFlowStatementType.SWITCH);
-    cases = pCases;
+    caseClauses = pCaseClauses;
     tabs = pTabs;
   }
 
   @Override
   public String toASTString() {
     StringBuilder casesString = new StringBuilder(SeqSyntax.EMPTY_STRING);
-    for (String caseString : cases) {
-      casesString.append(SeqUtil.prependTabsWithoutNewline(tabs + 1, caseString));
+    for (SeqCaseClause caseClause : caseClauses) {
+      casesString.append(SeqUtil.prependTabsWithoutNewline(tabs + 1, caseClause.toASTString()));
     }
     return SeqUtil.repeat(SeqSyntax.TAB, tabs)
         + SeqUtil.appendOpeningCurly(switchExpression.toASTString())

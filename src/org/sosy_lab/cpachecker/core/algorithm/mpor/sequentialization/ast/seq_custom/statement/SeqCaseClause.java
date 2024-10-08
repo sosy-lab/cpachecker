@@ -6,19 +6,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.loop_case;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.SeqASTNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
-// TODO update this and put into ast.custom
-/** Represents a case in the sequentialization while loop. */
-public class SeqLoopCase implements SeqASTNode {
-
-  // TODO create int caseLabel (= originPc), caseBlock (= statements)
+/** Represents a case clause, i.e. a case label and its case block. */
+public class SeqCaseClause implements SeqStatement {
 
   private static long currentId = 0;
 
@@ -26,28 +22,28 @@ public class SeqLoopCase implements SeqASTNode {
 
   public final int originPc;
 
-  public final ImmutableList<SeqLoopCaseStmt> statements;
+  public final ImmutableList<SeqCaseBlockStatement> caseBlock;
 
   public final ImmutableSet<Integer> targetPcs;
 
-  public SeqLoopCase(int pOriginPc, ImmutableList<SeqLoopCaseStmt> pStatements) {
+  public SeqCaseClause(int pOriginPc, ImmutableList<SeqCaseBlockStatement> pStatements) {
     id = createNewId();
     originPc = pOriginPc;
-    statements = pStatements;
-    targetPcs = initTargetPcs(statements);
+    caseBlock = pStatements;
+    targetPcs = initTargetPcs(caseBlock);
   }
 
   /** Private constructor, only used during cloning process to keep the same id. */
-  private SeqLoopCase(long pId, int pOriginPc, ImmutableList<SeqLoopCaseStmt> pStatements) {
+  private SeqCaseClause(long pId, int pOriginPc, ImmutableList<SeqCaseBlockStatement> pStatements) {
     id = pId;
     originPc = pOriginPc;
-    statements = pStatements;
-    targetPcs = initTargetPcs(statements);
+    caseBlock = pStatements;
+    targetPcs = initTargetPcs(caseBlock);
   }
 
-  private ImmutableSet<Integer> initTargetPcs(ImmutableList<SeqLoopCaseStmt> pStatements) {
+  private ImmutableSet<Integer> initTargetPcs(ImmutableList<SeqCaseBlockStatement> pStatements) {
     ImmutableSet.Builder<Integer> rPcs = ImmutableSet.builder();
-    for (SeqLoopCaseStmt caseStmt : pStatements) {
+    for (SeqCaseBlockStatement caseStmt : pStatements) {
       if (caseStmt.targetPc.isPresent()) {
         rPcs.add(caseStmt.targetPc.orElseThrow());
       }
@@ -55,8 +51,8 @@ public class SeqLoopCase implements SeqASTNode {
     return rPcs.build();
   }
 
-  public SeqLoopCase cloneWithOriginPc(int pOriginPc) {
-    return new SeqLoopCase(id, pOriginPc, statements);
+  public SeqCaseClause cloneWithOriginPc(int pOriginPc) {
+    return new SeqCaseClause(id, pOriginPc, caseBlock);
   }
 
   private static long createNewId() {
@@ -66,7 +62,7 @@ public class SeqLoopCase implements SeqASTNode {
   // TODO it is very confusing to have statements that can be empty, and the statements list which
   //  can be empty too -> rename
   public boolean allStatementsEmpty() {
-    for (SeqLoopCaseStmt stmt : statements) {
+    for (SeqCaseBlockStatement stmt : caseBlock) {
       if (stmt.statement.isPresent()) {
         return false;
       }
@@ -77,7 +73,7 @@ public class SeqLoopCase implements SeqASTNode {
   @Override
   public String toASTString() {
     StringBuilder stmts = new StringBuilder();
-    for (SeqLoopCaseStmt stmt : statements) {
+    for (SeqCaseBlockStatement stmt : caseBlock) {
       stmts.append(stmt.toASTString()).append(SeqSyntax.SPACE);
     }
     return SeqToken.CASE
