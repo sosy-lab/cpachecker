@@ -18,7 +18,7 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
 
   @Serial private static final long serialVersionUID = -665995216646475799L;
   private final TypeIdOperator operator;
-  private final CType type;
+  private final CType cType;
 
   public CTypeIdExpression(
       final FileLocation pFileLocation,
@@ -27,7 +27,7 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
       final CType pType) {
     super(pFileLocation, pExpressionType);
     operator = pOperator;
-    type = pType;
+    cType = pType;
   }
 
   @Override
@@ -40,7 +40,7 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
   }
 
   public CType getType() {
-    return type;
+    return cType;
   }
 
   @Override
@@ -83,12 +83,12 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
 
   @Override
   public String toASTString() {
-    return operator.getOperator() + "(" + type.toASTString("") + ")";
+    return operator.getOperator() + "(" + cType.toASTString("") + ")";
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(operator, type) * 31 + super.hashCode();
+    return Objects.hash(operator, cType) * 31 + super.hashCode();
   }
 
   @Override
@@ -100,6 +100,6 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
     return obj instanceof CTypeIdExpression other
         && super.equals(obj)
         && Objects.equals(other.operator, operator)
-        && Objects.equals(other.type, type);
+        && Objects.equals(other.cType, cType);
   }
 }

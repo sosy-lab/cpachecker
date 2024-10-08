@@ -18,7 +18,7 @@ public final class CComplexCastExpression extends AbstractExpression implements 
 
   @Serial private static final long serialVersionUID = -3131719369492162894L;
   private final CExpression operand;
-  private final CType type;
+  private final CType cType;
 
   /** When isReal is false this is a cast to get the imaginary Part of the complex number */
   private final boolean isReal;
@@ -33,7 +33,7 @@ public final class CComplexCastExpression extends AbstractExpression implements 
 
     isReal = pIsRealCast;
     operand = pOperand;
-    type = pType;
+    cType = pType;
   }
 
   @Override
@@ -46,7 +46,7 @@ public final class CComplexCastExpression extends AbstractExpression implements 
   }
 
   public CType getType() {
-    return type;
+    return cType;
   }
 
   public boolean isImaginaryCast() {
@@ -88,7 +88,7 @@ public final class CComplexCastExpression extends AbstractExpression implements 
 
   @Override
   public int hashCode() {
-    return Objects.hash(operand, type, isReal) * 31 + super.hashCode();
+    return Objects.hash(operand, cType, isReal) * 31 + super.hashCode();
   }
 
   @Override
@@ -100,7 +100,7 @@ public final class CComplexCastExpression extends AbstractExpression implements 
     return obj instanceof CComplexCastExpression other
         && super.equals(obj)
         && Objects.equals(other.operand, operand)
-        && Objects.equals(other.type, type)
+        && Objects.equals(other.cType, cType)
         && other.isReal == isReal;
   }
 }
