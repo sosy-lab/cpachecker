@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 public class SeqMutexLockStatement implements SeqCaseBlockStatement {
   @Override
   public String toASTString() {
-    return "";
+    // TODO
+    return "TODO handle mutex lock";
   }
 }

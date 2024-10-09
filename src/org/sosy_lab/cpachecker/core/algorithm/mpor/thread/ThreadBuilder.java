@@ -138,7 +138,7 @@ public class ThreadBuilder {
       Set<ThreadEdge> threadEdges = createThreadEdgesFromCfaEdges(leavingCfaEdges);
       pThreadEdges.addAll(threadEdges);
       if (leavingCfaEdges.isEmpty()) {
-        pThreadNodes.add(new ThreadNode(pCurrentNode, SeqUtil.EXIT_PC, threadEdges));
+        pThreadNodes.add(new ThreadNode(pCurrentNode, SeqUtil.TERMINATION_PC, threadEdges));
       } else {
         pThreadNodes.add(new ThreadNode(pCurrentNode, currentPc++, threadEdges));
         for (CFAEdge cfaEdge : leavingCfaEdges) {

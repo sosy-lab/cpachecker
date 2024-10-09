@@ -23,7 +23,7 @@ public class SeqStatements {
     return new CExpressionAssignmentStatement(FileLocation.DUMMY, pLhs, pRhs);
   }
 
-  public static CExpressionAssignmentStatement buildPcAssign(int pThreadId, int targetPc) {
+  public static CExpressionAssignmentStatement buildPcUpdate(int pThreadId, int targetPc) {
     CIntegerLiteralExpression index = SeqIntegerLiteralExpression.buildIntLiteralExpr(pThreadId);
     CArraySubscriptExpression pcExpr = SeqExpressions.buildPcSubscriptExpr(index);
     CIntegerLiteralExpression targetInt = SeqIntegerLiteralExpression.buildIntLiteralExpr(targetPc);

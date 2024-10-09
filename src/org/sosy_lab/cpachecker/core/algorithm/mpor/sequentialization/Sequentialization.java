@@ -48,8 +48,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInit
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqMainFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.FunctionVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.PthreadVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
@@ -222,15 +223,16 @@ public class Sequentialization {
       Set<SeqCaseClause> skippedCases = new HashSet<>();
       Set<Long> newCaseIds = new HashSet<>();
 
-      for (SeqCaseClause loopCase : loopCases) {
-        if (!skippedCases.contains(loopCase)) {
-          if (loopCase.allStatementsEmpty()) {
-            SeqCaseClause prunedCase = handleCasePrune(originPc, loopCase, skippedCases, loopCase);
+      for (SeqCaseClause caseClause : loopCases) {
+        if (!skippedCases.contains(caseClause)) {
+          if (caseClause.isPrunable()) {
+            SeqCaseClause prunedCase =
+                handleCaseClausePrune(originPc, caseClause, skippedCases, caseClause);
             prunedCases.add(prunedCase);
             newCaseIds.add(prunedCase.id);
-          } else if (!newCaseIds.contains(loopCase.id)) {
-            prunedCases.add(loopCase);
-            newCaseIds.add(loopCase.id);
+          } else if (!newCaseIds.contains(caseClause.id)) {
+            prunedCases.add(caseClause);
+            newCaseIds.add(caseClause.id);
           }
         }
       }
@@ -248,27 +250,27 @@ public class Sequentialization {
     return rOriginPcs.buildOrThrow();
   }
 
-  private static SeqCaseClause handleCasePrune(
+  private static SeqCaseClause handleCaseClausePrune(
       final ImmutableMap<Integer, SeqCaseClause> pOriginPc,
       final SeqCaseClause pInitCase,
       Set<SeqCaseClause> pSkipped,
       SeqCaseClause pCurrentCase) {
 
-    for (SeqCaseBlockStatement caseStmt : pCurrentCase.caseBlock) {
-      // if all statements in pCurrentCase are empty -> check if it should be pruned
-      if (pCurrentCase.allStatementsEmpty()) {
+    for (SeqCaseBlockStatement stmt : pCurrentCase.caseBlock) {
+      if (pCurrentCase.isPrunable()) {
         pSkipped.add(pCurrentCase);
-        SeqCaseClause nextCase = pOriginPc.get(caseStmt.targetPc.orElseThrow());
-        // TODO nextCase null -> targetPc is EXIT_PC, needs to be handled separately
-        if (nextCase == null) {
+        SeqBlankStatement blank = (SeqBlankStatement) stmt;
+        SeqCaseClause nextCaseClause = pOriginPc.get(blank.getTargetPc());
+        // TODO nextCaseClause null -> targetPc is EXIT_PC, needs to be handled separately
+        if (nextCaseClause == null) {
           return pInitCase;
         }
         // do not visit exit nodes of the threads cfa
-        if (!nextCase.caseBlock.isEmpty()) {
-          return handleCasePrune(pOriginPc, pInitCase, pSkipped, nextCase);
+        if (!nextCaseClause.caseBlock.isEmpty()) {
+          return handleCaseClausePrune(pOriginPc, pInitCase, pSkipped, nextCaseClause);
         }
       }
-      // otherwise break recursion -> non-empty case found
+      // otherwise break recursion -> non-prunable case found
       return pCurrentCase.cloneWithOriginPc(pInitCase.originPc);
     }
     throw new IllegalArgumentException("pCurrentCase statements are empty");

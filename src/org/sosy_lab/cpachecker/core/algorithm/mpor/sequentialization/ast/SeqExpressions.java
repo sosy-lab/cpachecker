@@ -30,7 +30,7 @@ public class SeqExpressions {
   public static class SeqIntegerLiteralExpression {
 
     public static final CIntegerLiteralExpression INT_EXIT_PC =
-        buildIntLiteralExpr(SeqUtil.EXIT_PC);
+        buildIntLiteralExpr(SeqUtil.TERMINATION_PC);
 
     public static final CIntegerLiteralExpression INT_0 = buildIntLiteralExpr(0);
 

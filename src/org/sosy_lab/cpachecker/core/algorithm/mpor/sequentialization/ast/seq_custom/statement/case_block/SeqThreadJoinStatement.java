@@ -8,9 +8,24 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+
 public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
+
+  private final CExpressionAssignmentStatement assign;
+
+  private final CExpressionAssignmentStatement pcUpdate;
+
+  public SeqThreadJoinStatement(
+      CExpressionAssignmentStatement pAssign, CExpressionAssignmentStatement pPcUpdate) {
+
+    assign = pAssign;
+    pcUpdate = pPcUpdate;
+  }
+
   @Override
   public String toASTString() {
-    return "";
+    return assign.toASTString() + SeqSyntax.SPACE + pcUpdate.toASTString();
   }
 }
