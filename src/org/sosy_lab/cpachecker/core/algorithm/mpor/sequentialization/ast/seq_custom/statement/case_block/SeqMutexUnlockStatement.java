@@ -8,10 +8,24 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+
 public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
+
+  private final CExpressionAssignmentStatement lockedFalse;
+
+  private final CExpressionAssignmentStatement pcUpdate;
+
+  public SeqMutexUnlockStatement(
+      CExpressionAssignmentStatement pLockedFalse, CExpressionAssignmentStatement pPcUpdate) {
+
+    lockedFalse = pLockedFalse;
+    pcUpdate = pPcUpdate;
+  }
+
   @Override
   public String toASTString() {
-    // TODO
-    return "TODO handle mutex unlock";
+    return lockedFalse.toASTString() + SeqSyntax.SPACE + pcUpdate;
   }
 }

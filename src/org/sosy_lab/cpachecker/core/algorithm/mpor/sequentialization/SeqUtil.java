@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqDefaultStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqMutexLockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqMutexUnlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqParameterAssignStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcAssignStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignStatement;
@@ -199,38 +200,25 @@ public class SeqUtil {
                 stmts.add(new SeqThreadCreationStatement(activeAssign, pcUpdate));
                 break;
 
-              /*case PTHREAD_MUTEX_LOCK:
-                // TODO general idea for lock:
-                //  if (m_locked) { __t_awaits_m = 1; }
-                //  else { __t_awaits_m = 0; m_locked = 1; pc[...] = ...; }
-                //  continue;
-                //  then add assumption over locked, awaits and next_thread
+              case PTHREAD_MUTEX_LOCK:
+                CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(sub);
+                assert pPthreadVars.mutexLocked.containsKey(lockedMutexT);
+                CIdExpression mutexLocked = pPthreadVars.mutexLocked.get(lockedMutexT);
+                assert pPthreadVars.mutexAwaits.containsKey(pThread);
+                assert pPthreadVars.mutexAwaits.get(pThread).containsKey(lockedMutexT);
+                CIdExpression mutexAwaits = pPthreadVars.mutexAwaits.get(pThread).get(lockedMutexT);
+                stmts.add(new SeqMutexLockStatement(mutexLocked, mutexAwaits, pcUpdate));
                 break;
 
               case PTHREAD_MUTEX_UNLOCK:
-                CIdExpression aPthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
-                assert pPthreadVars.mutexLocked.containsKey(aPthreadMutexT);
-                CExpressionAssignmentStatement lockedAssign =
+                CIdExpression unlockedMutexT = PthreadUtil.extractPthreadMutexT(sub);
+                assert pPthreadVars.mutexLocked.containsKey(unlockedMutexT);
+                // assign 0 to locked variable
+                CExpressionAssignmentStatement lockedFalse =
                     SeqStatements.buildExprAssign(
-                        pPthreadVars.mutexLocked.get(aPthreadMutexT), SeqExpressions.INT_0);
-                stmts.add(
-                    new SeqCaseBlockStatement(
-                        pThread.id, false, Optional.of(lockedAssign.toASTString()), targetPc));
-                break;*/
-
-              case PTHREAD_MUTEX_LOCK:
-              case PTHREAD_MUTEX_UNLOCK:
-                CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
-                assert pPthreadVars.mutexLocked.containsKey(pthreadMutexT);
-                // if lock -> assign 1 to locked, otherwise 0
-                /*CExpression value =
-                    funcType.equals(PthreadFuncType.PTHREAD_MUTEX_LOCK)
-                        ? SeqIntegerLiteralExpression.INT_1
-                        : SeqIntegerLiteralExpression.INT_0;
-                CExpressionAssignmentStatement lockedAssign =
-                    SeqStatements.buildExprAssign(
-                        pPthreadVars.mutexLocked.get(pthreadMutexT), value);*/
-                stmts.add(new SeqMutexLockStatement());
+                        pPthreadVars.mutexLocked.get(unlockedMutexT),
+                        SeqIntegerLiteralExpression.INT_0);
+                stmts.add(new SeqMutexUnlockStatement(lockedFalse, pcUpdate));
                 break;
 
               case PTHREAD_JOIN:

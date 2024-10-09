@@ -763,7 +763,7 @@ int main() {
 
     } else if (next_thread == 1) {
       switch (pc[1]) {
-        case 0: __g_14_m_locked = 1; pc[1] = 4; continue;
+        case 0: if (__g_14_m_locked) { __t1_awaits___g_14_m = 1; } else { __t1_awaits___g_14_m = 0; __g_14_m_locked = 1; pc[1] = 4; } continue;
         case 4: __t1_27_value = __VERIFIER_nondet_int(); pc[1] = 5; continue;
         case 5: __p1_24_q = &__g_18_queue; __p1_25_x = __t1_27_value; pc[1] = 27; __return_pc_t1_enqueue = 7; continue;
         case 7: if (!(__t1_29___CPAchecker_TMP_0 == 0)) { pc[1] = 55; } else if (__t1_29___CPAchecker_TMP_0 == 0) { pc[1] = 8; } continue;
@@ -773,7 +773,7 @@ int main() {
         case 12: __g_14_m_locked = 0; pc[1] = 13; continue;
         case 13: __t1_28_i = 0; pc[1] = 15; continue;
         case 15: if (__t1_28_i < 799) { pc[1] = 16; } else if (!(__t1_28_i < 799)) { pc[1] = 41; } continue;
-        case 16: __g_14_m_locked = 1; pc[1] = 17; continue;
+        case 16: if (__g_14_m_locked) { __t1_awaits___g_14_m = 1; } else { __t1_awaits___g_14_m = 0; __g_14_m_locked = 1; pc[1] = 17; } continue;
         case 17: if (__g_16_enqueue_flag == 0) { pc[1] = 18; } else if (!(__g_16_enqueue_flag == 0)) { pc[1] = 21; } continue;
         case 18: __g_14_m_locked = 0; pc[1] = 19; continue;
         case 19: __t1_28_i = __t1_28_i + 1; pc[1] = 15; continue;
@@ -807,7 +807,7 @@ int main() {
       switch (pc[2]) {
         case 0: __t2_34_i = 0; pc[2] = 4; continue;
         case 4: if (__t2_34_i < 800) { pc[2] = 5; } else if (!(__t2_34_i < 800)) { pc[2] = 37; } continue;
-        case 5: __g_14_m_locked = 1; pc[2] = 6; continue;
+        case 5: if (__g_14_m_locked) { __t2_awaits___g_14_m = 1; } else { __t2_awaits___g_14_m = 0; __g_14_m_locked = 1; pc[2] = 6; } continue;
         case 6: if (!(__g_17_dequeue_flag == 0)) { pc[2] = 10; } else if (__g_17_dequeue_flag == 0) { pc[2] = 7; } continue;
         case 7: __g_14_m_locked = 0; pc[2] = 8; continue;
         case 8: __t2_34_i = __t2_34_i + 1; pc[2] = 4; continue;

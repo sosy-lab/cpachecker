@@ -64,6 +64,14 @@ public class SeqControlFlowStatement implements SeqStatement {
     assumeEdge = Optional.of(pAssumeEdge);
   }
 
+  /** Use this constructor when there is no expression, i.e. {@code else { ... }} */
+  public SeqControlFlowStatement() {
+    type = SeqControlFlowStatementType.ELSE;
+    cExpression = Optional.empty();
+    seqExpression = Optional.empty();
+    assumeEdge = Optional.empty();
+  }
+
   @Override
   public String toASTString() {
     String expression;
@@ -74,8 +82,8 @@ public class SeqControlFlowStatement implements SeqStatement {
     } else if (assumeEdge.isPresent()) {
       expression = assumeEdge.orElseThrow().getCode();
     } else {
-      throw new IllegalArgumentException(
-          "either CExpression, SeqExpression or CAssumeEdge must be present");
+      // no expression -> just else
+      return type.keyword;
     }
     return type.keyword
         + SeqSyntax.SPACE
