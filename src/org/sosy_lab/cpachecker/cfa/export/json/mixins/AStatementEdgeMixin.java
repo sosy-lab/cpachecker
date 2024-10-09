@@ -30,7 +30,7 @@ public final class AStatementEdgeMixin {
 
   @SuppressWarnings("unused")
   @JsonCreator
-  protected AStatementEdgeMixin(
+  private AStatementEdgeMixin(
       @JsonProperty("rawStatement") String pRawStatement,
       @JsonProperty("statement") AStatement pStatement,
       @JsonProperty("fileLocation") FileLocation pFileLocation,

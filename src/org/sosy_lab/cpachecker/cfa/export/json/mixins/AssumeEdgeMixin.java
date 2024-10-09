@@ -30,7 +30,7 @@ public final class AssumeEdgeMixin {
 
   @SuppressWarnings("unused")
   @JsonCreator
-  protected AssumeEdgeMixin(
+  private AssumeEdgeMixin(
       @JsonProperty("rawStatement") String pRawStatement,
       @JsonProperty("fileLocation") FileLocation pFileLocation,
       @JsonProperty("predecessor") CFANode pPredecessor,

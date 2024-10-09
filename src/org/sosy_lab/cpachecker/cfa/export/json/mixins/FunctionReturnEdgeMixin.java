@@ -31,7 +31,7 @@ public final class FunctionReturnEdgeMixin {
 
   @SuppressWarnings("unused")
   @JsonCreator
-  protected FunctionReturnEdgeMixin(
+  private FunctionReturnEdgeMixin(
       @JsonProperty("fileLocation") FileLocation pFileLocation,
       @JsonProperty("predecessor") FunctionExitNode pPredecessor,
       @JsonProperty("successor") CFANode pSuccessor,

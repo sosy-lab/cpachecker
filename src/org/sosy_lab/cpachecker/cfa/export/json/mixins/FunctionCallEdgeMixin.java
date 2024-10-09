@@ -31,7 +31,7 @@ public final class FunctionCallEdgeMixin {
 
   @SuppressWarnings("unused")
   @JsonCreator
-  protected FunctionCallEdgeMixin(
+  private FunctionCallEdgeMixin(
       @JsonProperty("rawStatement") String pRawStatement,
       @JsonProperty("fileLocation") FileLocation pFileLocation,
       @JsonProperty("predecessor") CFANode pPredecessor,

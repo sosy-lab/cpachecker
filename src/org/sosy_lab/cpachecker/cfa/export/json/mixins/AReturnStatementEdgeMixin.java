@@ -31,7 +31,7 @@ public final class AReturnStatementEdgeMixin {
 
   @SuppressWarnings("unused")
   @JsonCreator
-  protected AReturnStatementEdgeMixin(
+  private AReturnStatementEdgeMixin(
       @JsonProperty("rawStatement") String pRawStatement,
       @JsonProperty("returnStatement") AReturnStatement pReturnStatement,
       @JsonProperty("fileLocation") FileLocation pFileLocation,

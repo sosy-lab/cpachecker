@@ -30,7 +30,7 @@ public final class ADeclarationEdgeMixin {
 
   @SuppressWarnings("unused")
   @JsonCreator
-  protected ADeclarationEdgeMixin(
+  private ADeclarationEdgeMixin(
       @JsonProperty("rawStatement") String pRawSignature,
       @JsonProperty("fileLocation") FileLocation pFileLocation,
       @JsonProperty("predecessor") CFANode pPredecessor,

@@ -31,7 +31,7 @@ public final class FunctionSummaryEdgeMixin {
 
   @SuppressWarnings("unused")
   @JsonCreator
-  protected FunctionSummaryEdgeMixin(
+  private FunctionSummaryEdgeMixin(
       @JsonProperty("rawStatement") String pRawStatement,
       @JsonProperty("fileLocation") FileLocation pFileLocation,
       @JsonProperty("predecessor") CFANode pPredecessor,
