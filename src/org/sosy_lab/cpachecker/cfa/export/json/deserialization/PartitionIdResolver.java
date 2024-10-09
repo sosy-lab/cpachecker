@@ -28,6 +28,17 @@ import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 public final class PartitionIdResolver extends SimpleObjectIdResolver {
 
   /**
+   * Creates a new instance of {@link PartitionIdResolver} for deserialization.
+   *
+   * @param pContext The deserialization context object.
+   * @return The newly created instance.
+   */
+  @Override
+  public ObjectIdResolver newForDeserialization(Object pContext) {
+    return new PartitionIdResolver();
+  }
+
+  /**
    * Resolves an object based on the given {@link
    * com.fasterxml.jackson.annotation.ObjectIdGenerator.IdKey}.
    *
