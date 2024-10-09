@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
 /** Represents a case clause, i.e. a case label and its case block. */
-public class SeqCaseClause implements SeqStatement {
+public class SeqCaseClauseStatement implements SeqStatement {
 
   private static long currentId = 0;
 
@@ -25,21 +25,22 @@ public class SeqCaseClause implements SeqStatement {
 
   public final ImmutableList<SeqCaseBlockStatement> caseBlock;
 
-  public SeqCaseClause(int pOriginPc, ImmutableList<SeqCaseBlockStatement> pStatements) {
+  public SeqCaseClauseStatement(int pOriginPc, ImmutableList<SeqCaseBlockStatement> pStatements) {
     id = createNewId();
     originPc = pOriginPc;
     caseBlock = pStatements;
   }
 
   /** Private constructor, only used during cloning process to keep the same id. */
-  private SeqCaseClause(long pId, int pOriginPc, ImmutableList<SeqCaseBlockStatement> pStatements) {
+  private SeqCaseClauseStatement(
+      long pId, int pOriginPc, ImmutableList<SeqCaseBlockStatement> pStatements) {
     id = pId;
     originPc = pOriginPc;
     caseBlock = pStatements;
   }
 
-  public SeqCaseClause cloneWithOriginPc(int pOriginPc) {
-    return new SeqCaseClause(id, pOriginPc, caseBlock);
+  public SeqCaseClauseStatement cloneWithOriginPc(int pOriginPc) {
+    return new SeqCaseClauseStatement(id, pOriginPc, caseBlock);
   }
 
   private static long createNewId() {

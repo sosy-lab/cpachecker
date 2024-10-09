@@ -34,18 +34,19 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAssignReturnPcStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqConstCpaCheckerTmpStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqDefaultStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqMutexLockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqMutexUnlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqParameterAssignStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcAssignStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcRetrievalStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcStorageStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadJoinStatement;
@@ -66,11 +67,12 @@ public class SeqUtil {
 
   // TODO create CaseBuilder class
   /**
-   * Returns a {@link SeqCaseClause} which represents case statements in the sequentializations
-   * while loop. Returns null if pThreadNode has no leaving edges i.e. its pc is -1.
+   * Returns a {@link SeqCaseClauseStatement} which represents case statements in the
+   * sequentializations while loop. Returns null if pThreadNode has no leaving edges i.e. its pc is
+   * -1.
    */
   @Nullable
-  public static SeqCaseClause createCaseFromThreadNode(
+  public static SeqCaseClauseStatement createCaseFromThreadNode(
       final MPORThread pThread,
       final ImmutableSet<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
@@ -94,7 +96,7 @@ public class SeqUtil {
       assert pFuncVars.pcToReturnPcAssigns.containsKey(pThreadNode);
       CExpressionAssignmentStatement assign = pFuncVars.pcToReturnPcAssigns.get(pThreadNode);
       assert assign != null;
-      stmts.add(new SeqAssignReturnPcStatement(assign));
+      stmts.add(new SeqReturnPcRetrievalStatement(assign));
 
     } else {
       boolean firstEdge = true;
@@ -126,7 +128,7 @@ public class SeqUtil {
             assert pFuncVars.returnPcToPcAssigns.containsKey(threadEdge);
             CExpressionAssignmentStatement assign = pFuncVars.returnPcToPcAssigns.get(threadEdge);
             assert assign != null;
-            stmts.add(new SeqReturnPcAssignStatement(assign));
+            stmts.add(new SeqReturnPcStorageStatement(assign));
 
           } else if (sub instanceof CFunctionCallEdge) {
             assert pThreadNode.leavingEdges().size() >= 2;
@@ -147,22 +149,28 @@ public class SeqUtil {
               }
             }
 
-          } else if (sub instanceof CDeclarationEdge) {
-            // TODO remove this and add atomicity with assumptions
+          } else if (sub instanceof CDeclarationEdge decEdge) {
             // "leftover" declaration: const CPAchecker_TMP var
-            ThreadNode succ = threadEdge.getSuccessor();
-            ThreadEdge succEdge = succ.leavingEdges().iterator().next();
-            ThreadNode succSucc = succEdge.getSuccessor();
-            ThreadEdge succSuccEdge = succSucc.leavingEdges().iterator().next();
-            assert succ.leavingEdges().size() == 1;
-            assert succSucc.leavingEdges().size() == 1;
-            pCoveredNodes.add(succ);
-            pCoveredNodes.add(succSucc);
+            ThreadNode successorA = threadEdge.getSuccessor();
+            assert successorA.leavingEdges().size() == 1;
+            ThreadEdge statementA = successorA.leavingEdges().iterator().next();
+            assert statementA.cfaEdge instanceof CStatementEdge;
+            ThreadNode successorB = statementA.getSuccessor();
+            assert successorB.leavingEdges().size() == 1;
+            ThreadEdge statementB = successorB.leavingEdges().iterator().next();
+            assert statementB.cfaEdge instanceof CStatementEdge;
+            pCoveredNodes.add(successorA);
+            pCoveredNodes.add(successorB);
+
             // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
-            CFAEdge succSub = pEdgeSubs.get(succEdge);
-            CFAEdge succSuccSub = pEdgeSubs.get(succSuccEdge);
-            assert succSub != null && succSuccSub != null;
-            stmts.add(new SeqDefaultStatement((CStatementEdge) succEdge.cfaEdge, pcUpdate));
+            CFAEdge subA = pEdgeSubs.get(statementA);
+            CFAEdge subB = pEdgeSubs.get(statementB);
+            assert subA != null && subB != null;
+            CExpressionAssignmentStatement skippedPcUpdate =
+                SeqStatements.buildPcUpdate(pThread.id, statementB.getSuccessor().pc);
+            stmts.add(
+                new SeqConstCpaCheckerTmpStatement(
+                    decEdge, (CStatementEdge) subA, (CStatementEdge) subB, skippedPcUpdate));
 
           } else if (sub instanceof CReturnStatementEdge retStmt) {
             assert pFuncVars.returnStmts.containsKey(threadEdge);
@@ -241,7 +249,7 @@ public class SeqUtil {
         }
       }
     }
-    return new SeqCaseClause(originPc, stmts.build());
+    return new SeqCaseClauseStatement(originPc, stmts.build());
   }
 
   /** Returns "(pString)" */
@@ -308,7 +316,6 @@ public class SeqUtil {
         && pVarDec.getName().contains(SeqToken.CPACHECKER_TMP);
   }
 
-  // TODO here for test purposes
   private static boolean allEdgesAssume(Set<ThreadEdge> pThreadEdges) {
     for (ThreadEdge threadEdge : pThreadEdges) {
       if (!(threadEdge.cfaEdge instanceof AssumeEdge)) {
@@ -320,15 +327,14 @@ public class SeqUtil {
 
   private static boolean emptyCaseCode(CFAEdge pEdge) {
     if (pEdge instanceof BlankEdge) {
-      assert pEdge.getCode().isEmpty(); // TODO test, remove later
+      assert pEdge.getCode().isEmpty();
       return true;
     } else if (pEdge instanceof CDeclarationEdge decEdge) {
       CDeclaration dec = decEdge.getDeclaration();
       if (!(dec instanceof CVariableDeclaration varDec)) {
         return true; // all non vars are declared beforehand
       } else {
-        // code of const int CPAchecker_TMP vars is included in the cases
-        // TODO make sure that the two successors code is within the same case
+        // declaration of const int CPAchecker_TMP vars is included in the cases
         return !isConstCPAcheckerTMP(varDec);
       }
     } else if (PthreadFuncType.callsAnyPthreadFunc(pEdge)) {
@@ -338,7 +344,7 @@ public class SeqUtil {
   }
 
   /**
-   * Returns true if the semantics of the pthread method in pEdge has to be considered in the
+   * Returns true if the semantics of the pthread method in pEdge is considered in the
    * sequentialization.
    */
   private static boolean isRelevantPthreadFunc(CFAEdge pEdge) {

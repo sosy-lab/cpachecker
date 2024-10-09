@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -50,7 +49,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqMainFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.FunctionVars;
@@ -146,26 +145,27 @@ public class Sequentialization {
     //    (on this note: we should also remove the const CPAchecker TMP logic and replace it with
     //    assumes as they are basically atomic)
     // create pruned (i.e. only non-empty) cases statements
-    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> loopCases =
-        mapLoopCases(pSubstitutions, returnPcVars, pthreadVars);
-    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCases = pruneLoopCases(loopCases);
-    SeqMainFunction mainMethod = new SeqMainFunction(binExprBuilder, prunedCases, threadCount);
+    ImmutableMap<MPORThread, ImmutableList<SeqCaseClauseStatement>> caseClauses =
+        mapCaseClauses(pSubstitutions, returnPcVars, pthreadVars);
+    ImmutableMap<MPORThread, ImmutableList<SeqCaseClauseStatement>> prunedCaseClauses =
+        pruneCaseClauses(caseClauses);
+    SeqMainFunction mainMethod =
+        new SeqMainFunction(binExprBuilder, prunedCaseClauses, threadCount);
     rProgram.append(mainMethod.toASTString());
 
     return rProgram.toString();
   }
 
-  // TODO rename all loopCases to caseClauses
-  /** Maps threads to their SeqLoopCases. */
-  private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> mapLoopCases(
+  /** Maps threads to the case clauses they potentially execute. */
+  private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClauseStatement>> mapCaseClauses(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
       ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> pReturnPcVars,
       PthreadVars pPthreadVars) {
 
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rLoopCases =
+    ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClauseStatement>> rCaseClauses =
         ImmutableMap.builder();
     for (var entry : pSubstitutions.entrySet()) {
-      ImmutableList.Builder<SeqCaseClause> loopCases = ImmutableList.builder();
+      ImmutableList.Builder<SeqCaseClauseStatement> caseClauses = ImmutableList.builder();
 
       MPORThread thread = entry.getKey();
       CSimpleDeclarationSubstitution substitution = entry.getValue();
@@ -188,7 +188,7 @@ public class Sequentialization {
 
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
         if (!coveredNodes.contains(threadNode)) {
-          SeqCaseClause loopCase =
+          SeqCaseClauseStatement caseClause =
               SeqUtil.createCaseFromThreadNode(
                   thread,
                   pSubstitutions.keySet(),
@@ -197,83 +197,88 @@ public class Sequentialization {
                   edgeSubs,
                   funcVars,
                   pPthreadVars);
-          if (loopCase != null) {
-            loopCases.add(loopCase);
+          if (caseClause != null) {
+            caseClauses.add(caseClause);
           }
         }
       }
 
-      rLoopCases.put(thread, loopCases.build());
+      rCaseClauses.put(thread, caseClauses.build());
     }
-    return rLoopCases.buildOrThrow();
+    return rCaseClauses.buildOrThrow();
   }
 
-  /** Prunes empty loop cases i.e. loop cases without any statements other than pc adjustments. */
-  private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pruneLoopCases(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pLoopCases) {
+  /** Prunes case clauses that contain only {@link SeqBlankStatement}s. */
+  private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClauseStatement>> pruneCaseClauses(
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClauseStatement>> pCaseClauses) {
 
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rPrunedCases =
+    ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClauseStatement>> rPruned =
         ImmutableMap.builder();
 
-    for (var entry : pLoopCases.entrySet()) {
-      ImmutableList<SeqCaseClause> loopCases = entry.getValue();
-      ImmutableMap<Integer, SeqCaseClause> originPc = mapOriginPcToCases(loopCases);
-      ImmutableList.Builder<SeqCaseClause> prunedCases = ImmutableList.builder();
+    for (var entry : pCaseClauses.entrySet()) {
+      ImmutableList<SeqCaseClauseStatement> caseClauses = entry.getValue();
+      ImmutableMap<Integer, SeqCaseClauseStatement> originPc =
+          mapOriginPcToCaseClauses(caseClauses);
+      ImmutableList.Builder<SeqCaseClauseStatement> pruned = ImmutableList.builder();
 
-      Set<SeqCaseClause> skippedCases = new HashSet<>();
-      Set<Long> newCaseIds = new HashSet<>();
+      Set<SeqCaseClauseStatement> skipped = new HashSet<>();
+      Set<Long> newCaseClauseIds = new HashSet<>();
 
-      for (SeqCaseClause caseClause : loopCases) {
-        if (!skippedCases.contains(caseClause)) {
+      for (SeqCaseClauseStatement caseClause : caseClauses) {
+        if (!skipped.contains(caseClause)) {
           if (caseClause.isPrunable()) {
-            SeqCaseClause prunedCase =
-                handleCaseClausePrune(originPc, caseClause, skippedCases, caseClause);
-            prunedCases.add(prunedCase);
-            newCaseIds.add(prunedCase.id);
-          } else if (!newCaseIds.contains(caseClause.id)) {
-            prunedCases.add(caseClause);
-            newCaseIds.add(caseClause.id);
+            SeqCaseClauseStatement prunedCaseClause =
+                handleCaseClausePrune(originPc, caseClause, skipped, caseClause);
+            pruned.add(prunedCaseClause);
+            newCaseClauseIds.add(prunedCaseClause.id);
+          } else if (!newCaseClauseIds.contains(caseClause.id)) {
+            pruned.add(caseClause);
+            newCaseClauseIds.add(caseClause.id);
           }
         }
       }
-      rPrunedCases.put(entry.getKey(), prunedCases.build());
+      rPruned.put(entry.getKey(), pruned.build());
     }
-    return rPrunedCases.buildOrThrow();
+    return rPruned.buildOrThrow();
   }
 
-  private static ImmutableMap<Integer, SeqCaseClause> mapOriginPcToCases(
-      ImmutableList<SeqCaseClause> pCases) {
-    ImmutableMap.Builder<Integer, SeqCaseClause> rOriginPcs = ImmutableMap.builder();
-    for (SeqCaseClause loopCase : pCases) {
-      rOriginPcs.put(loopCase.originPc, loopCase);
+  private static ImmutableMap<Integer, SeqCaseClauseStatement> mapOriginPcToCaseClauses(
+      ImmutableList<SeqCaseClauseStatement> pCaseClauses) {
+
+    ImmutableMap.Builder<Integer, SeqCaseClauseStatement> rOriginPcs = ImmutableMap.builder();
+    for (SeqCaseClauseStatement caseClause : pCaseClauses) {
+      rOriginPcs.put(caseClause.originPc, caseClause);
     }
     return rOriginPcs.buildOrThrow();
   }
 
-  private static SeqCaseClause handleCaseClausePrune(
-      final ImmutableMap<Integer, SeqCaseClause> pOriginPc,
-      final SeqCaseClause pInitCase,
-      Set<SeqCaseClause> pSkipped,
-      SeqCaseClause pCurrentCase) {
+  /**
+   * Recursively skips case clauses that are empty (i.e. contain only {@link SeqBlankStatement}).
+   */
+  private static SeqCaseClauseStatement handleCaseClausePrune(
+      final ImmutableMap<Integer, SeqCaseClauseStatement> pOriginPc,
+      final SeqCaseClauseStatement pInit,
+      Set<SeqCaseClauseStatement> pSkipped,
+      SeqCaseClauseStatement pCurrent) {
 
-    for (SeqCaseBlockStatement stmt : pCurrentCase.caseBlock) {
-      if (pCurrentCase.isPrunable()) {
-        pSkipped.add(pCurrentCase);
+    for (SeqCaseBlockStatement stmt : pCurrent.caseBlock) {
+      if (pCurrent.isPrunable()) {
+        pSkipped.add(pCurrent);
         SeqBlankStatement blank = (SeqBlankStatement) stmt;
-        SeqCaseClause nextCaseClause = pOriginPc.get(blank.targetPc);
+        SeqCaseClauseStatement nextCaseClause = pOriginPc.get(blank.targetPc);
         // TODO nextCaseClause null -> targetPc is EXIT_PC, needs to be handled separately
         if (nextCaseClause == null) {
-          return pInitCase;
+          return pInit;
         }
         // do not visit exit nodes of the threads cfa
         if (!nextCaseClause.caseBlock.isEmpty()) {
-          return handleCaseClausePrune(pOriginPc, pInitCase, pSkipped, nextCaseClause);
+          return handleCaseClausePrune(pOriginPc, pInit, pSkipped, nextCaseClause);
         }
       }
       // otherwise break recursion -> non-prunable case found
-      return pCurrentCase.cloneWithOriginPc(pInitCase.originPc);
+      return pCurrent.cloneWithOriginPc(pInit.originPc);
     }
-    throw new IllegalArgumentException("pCurrentCase statements are empty");
+    throw new IllegalArgumentException("pCurrent statements are empty");
   }
 
   /**
@@ -361,7 +366,7 @@ public class Sequentialization {
   }
 
   /**
-   * Maps {@link FunctionEntryNode}s to {@code return_pc} {@link CIdExpression}s for all threads.
+   * Maps {@link CFunctionDeclaration}s to {@code return_pc} {@link CIdExpression}s for all threads.
    *
    * <p>E.g. the function {@code fib} in thread 0 is mapped to the expression of {@code int
    * __return_pc_t0_fib}.
@@ -474,7 +479,6 @@ public class Sequentialization {
         CFAEdge sub = edgeSubs.get(threadEdge);
         // TODO mutexes can also be init with pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
         if (PthreadFuncType.callsPthreadFunc(sub, PthreadFuncType.PTHREAD_MUTEX_INIT)) {
-          // TODO use CIdExpressions for pthreadMutexT too
           CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
           String varName = SeqNameBuilder.createMutexLockedName(pthreadMutexT.getName());
           // TODO it should be wiser to use the original idExpr as the key and not the substitute...
@@ -548,7 +552,7 @@ public class Sequentialization {
       if (threadEdge.cfaEdge instanceof CDeclarationEdge decEdge) {
         CDeclaration dec = decEdge.getDeclaration();
         if (!(dec instanceof CVariableDeclaration)) {
-          assert pThread.isMain(); // TODO testing if only the main thread declares non vars
+          assert pThread.isMain(); // test if only main thread declares non-vars, e.g. functions
           rDecs.append(threadEdge.cfaEdge.getCode()).append(SeqSyntax.NEWLINE);
         }
       }
@@ -572,10 +576,7 @@ public class Sequentialization {
     rDecs.append(SeqComment.createLocalVarsComment(pThreadId));
     for (CIdExpression localVar : pSubstitution.localVarSubs.values()) {
       CVariableDeclaration varDec = pSubstitution.castIdExprDec(localVar.getDeclaration());
-      // TODO handle const CPAchecker TMP vars
-      if (!SeqUtil.isConstCPAcheckerTMP(varDec)) {
-        rDecs.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
-      }
+      rDecs.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
     }
     rDecs.append(SeqSyntax.NEWLINE);
     return rDecs.toString();

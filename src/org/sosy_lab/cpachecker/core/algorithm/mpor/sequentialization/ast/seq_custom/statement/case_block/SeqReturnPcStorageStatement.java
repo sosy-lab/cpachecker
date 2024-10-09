@@ -10,11 +10,17 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 
-public class SeqAssignReturnPcStatement implements SeqCaseBlockStatement {
+/**
+ * Represents a {@code return_pc} storage, i.e. assigning the successor {@code pc} to the {@code
+ * return_pc}.
+ *
+ * <p>E.g. {@code __return_pc_{thread_id}_{func_name} = n;}
+ */
+public class SeqReturnPcStorageStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement assign;
 
-  public SeqAssignReturnPcStatement(CExpressionAssignmentStatement pAssign) {
+  public SeqReturnPcStorageStatement(CExpressionAssignmentStatement pAssign) {
     assign = pAssign;
   }
 
