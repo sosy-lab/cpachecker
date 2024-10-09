@@ -747,8 +747,8 @@ int main() {
         case 448: __assert_fail("0", "queue_longest.c", 4, "__PRETTY_FUNCTION__"); pc[0] = -1; continue;
         case 450: __t1_active = 1; pc[0] = 452; continue;
         case 452: __t2_active = 1; pc[0] = 453; continue;
-        case 453: __t0_joins_t1 = 1; pc[0] = 454; continue;
-        case 454: __t0_joins_t2 = 1; pc[0] = 455; continue;
+        case 453: if (__t1_active) { __t0_joins_t1 = 1; } else { __t0_joins_t1 = 0; pc[0] = 454; } continue;
+        case 454: if (__t2_active) { __t0_joins_t2 = 1; } else { __t0_joins_t2 = 0; pc[0] = 455; } continue;
         case 455: __t0_active = 0; pc[0] = -1; continue;
         case 456: if (!((__p0_19_q->head) == (__p0_19_q->tail))) { pc[0] = 461; } else if ((__p0_19_q->head) == (__p0_19_q->tail)) { pc[0] = 458; } continue;
         case 458: printf("queue is empty\n"); pc[0] = 459; continue;

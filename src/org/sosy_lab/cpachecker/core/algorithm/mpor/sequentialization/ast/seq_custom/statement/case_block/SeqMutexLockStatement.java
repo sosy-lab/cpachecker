@@ -32,7 +32,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement awaitsTrue;
 
-  private final SeqControlFlowStatement elseNotLocked;
+  private static final SeqControlFlowStatement elseNotLocked = new SeqControlFlowStatement();
 
   private final CExpressionAssignmentStatement awaitsFalse;
 
@@ -49,7 +49,6 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
     awaitsTrue =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, pMutexAwaits, SeqIntegerLiteralExpression.INT_1);
-    elseNotLocked = new SeqControlFlowStatement();
     awaitsFalse =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, pMutexAwaits, SeqIntegerLiteralExpression.INT_0);

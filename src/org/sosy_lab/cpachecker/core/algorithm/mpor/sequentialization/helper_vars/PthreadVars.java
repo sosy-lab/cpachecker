@@ -19,12 +19,22 @@ public class PthreadVars {
   //  PthreadT, PthreadMutexT, ThreadActive, MutexLocked, ThreadAwaitsMutex, ThreadJoiningThread
   //  classes for better overview?
 
+  /** The list of {@code {thread}_active} variables, indexed by {@link MPORThread#id}. */
   public final ImmutableList<CIdExpression> threadActive;
 
+  /** The map of {@code pthread_mutex_t} objects to their {@code {mutex}_locked} variables. */
   public final ImmutableMap<CIdExpression, CIdExpression> mutexLocked;
 
+  /**
+   * The map of threads to {@code pthread_mutex_t} objects they (un)lock. Each thread and object are
+   * mapped to their {@code {thread}_awaits_{mutex}} variable
+   */
   public final ImmutableMap<MPORThread, ImmutableMap<CIdExpression, CIdExpression>> mutexAwaits;
 
+  /**
+   * The map threads to threads they join. Each thread joining a thread is mapped to a {@code
+   * {thread}_joins_{threads}} variable.
+   */
   public final ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>> threadJoins;
 
   public PthreadVars(
