@@ -805,7 +805,10 @@ cfa.checkNullPointers.singleTargetPerFunction = true
 # create a series of if-else edges with explicit indizes instead.
 cfa.expandFunctionPointerArrayAssignments = false
 
-# export CFA as .dot and JSON files
+# Export CFA as .dot and/or JSON file. The .dot export is determined by the
+# 'cfa.file' option, which is set to 'cfa.dot' by default. The JSON export is
+# determined by the option 'cfa.export.json'. This option must be set for the
+# export.
 cfa.export = true
 
 # export CFA as JSON file
