@@ -75,6 +75,9 @@ public class ReplaceFloatingPointDivisionTest {
   @Before
   public void init() {
     ImmutableList.Builder<Integer> builder = ImmutableList.builder();
+    builder.add(0);
+    builder.add(1);
+    builder.add(Integer.MIN_VALUE);
     Random random = new Random(0);
     int c = 0;
     while (c < 20) {
@@ -100,9 +103,11 @@ public class ReplaceFloatingPointDivisionTest {
       for (int y : testValues) {
         var f0 = fpmgr.makeNumber(x, DOUBLE_PRECISION);
         var f1 = fpmgr.makeNumber(y, DOUBLE_PRECISION);
-        assertWithMessage("divide(%s, %s)", x, y)
-            .that(eval(fpmgr.divide(f0, f1)))
-            .isEqualTo(rneDivision(x, y));
+        if (y != 0) {
+          assertWithMessage("divide(%s, %s)", x, y)
+              .that(eval(fpmgr.divide(f0, f1)))
+              .isEqualTo(rneDivision(x, y));
+        }
       }
     }
   }
@@ -120,9 +125,11 @@ public class ReplaceFloatingPointDivisionTest {
       for (int y : testValues) {
         var f0 = fpmgr.makeNumber(x, DOUBLE_PRECISION);
         var f1 = fpmgr.makeNumber(y, DOUBLE_PRECISION);
-        assertWithMessage("remainder(%s, %s)", x, y)
-            .that(eval(fpmgr.remainder(f0, f1)))
-            .isEqualTo(rneRemainder(x, y));
+        if (y != 0) {
+          assertWithMessage("remainder(%s, %s)", x, y)
+              .that(eval(fpmgr.remainder(f0, f1)))
+              .isEqualTo(rneRemainder(x, y));
+        }
       }
     }
   }
