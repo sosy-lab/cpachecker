@@ -704,6 +704,7 @@ int __return_pc_t2_dequeue = 0;
 int __return_pc_t2_reach_error = 0;
 
 // pthread method simulation variables
+int __t0_active = 1;
 int __t1_active = 0;
 int __t2_active = 0;
 int __g_14_m_locked = 0;
@@ -748,7 +749,7 @@ int main() {
         case 452: __t2_active = 1; pc[0] = 453; continue;
         case 453: __t0_joins_t1 = 1; pc[0] = 454; continue;
         case 454: __t0_joins_t2 = 1; pc[0] = 455; continue;
-        case 455: pc[0] = -1; continue;
+        case 455: __t0_active = 0; pc[0] = -1; continue;
         case 456: if (!((__p0_19_q->head) == (__p0_19_q->tail))) { pc[0] = 461; } else if ((__p0_19_q->head) == (__p0_19_q->tail)) { pc[0] = 458; } continue;
         case 458: printf("queue is empty\n"); pc[0] = 459; continue;
         case 459: __t0_23___CPAchecker_TMP_0 = -1; pc[0] = 460; continue;

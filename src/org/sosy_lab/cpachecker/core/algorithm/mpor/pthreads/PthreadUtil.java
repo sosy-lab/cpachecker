@@ -84,7 +84,7 @@ public class PthreadUtil {
   }
 
   /** Searches the given map of MPORThreads for the given thread object. */
-  private static MPORThread getThreadByObject(
+  public static MPORThread getThreadByObject(
       ImmutableSet<MPORThread> pThreads, Optional<CExpression> pThreadObject) {
 
     for (MPORThread rThread : pThreads) {

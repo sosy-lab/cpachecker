@@ -19,7 +19,7 @@ public class PthreadVars {
   //  PthreadT, PthreadMutexT, ThreadActive, MutexLocked, ThreadAwaitsMutex, ThreadJoiningThread
   //  classes for better overview?
 
-  public final ImmutableMap<CIdExpression, CIdExpression> threadActive;
+  public final ImmutableList<CIdExpression> threadActive;
 
   public final ImmutableMap<CIdExpression, CIdExpression> mutexLocked;
 
@@ -28,7 +28,7 @@ public class PthreadVars {
   public final ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>> threadJoins;
 
   public PthreadVars(
-      ImmutableMap<CIdExpression, CIdExpression> pThreadActiveVars,
+      ImmutableList<CIdExpression> pThreadActiveVars,
       ImmutableMap<CIdExpression, CIdExpression> pMutexLockedVars,
       ImmutableMap<MPORThread, ImmutableMap<CIdExpression, CIdExpression>> pMutexAwaits,
       ImmutableMap<MPORThread, ImmutableMap<MPORThread, CIdExpression>> pThreadJoinsVars) {
@@ -42,7 +42,7 @@ public class PthreadVars {
   /** Returns all CIdExpressions of the vars in the order active - locked - awaits - joins. */
   public ImmutableList<CIdExpression> getIdExpressions() {
     ImmutableList.Builder<CIdExpression> rIdExpressions = ImmutableList.builder();
-    for (CIdExpression active : threadActive.values()) {
+    for (CIdExpression active : threadActive) {
       rIdExpressions.add(active);
     }
     for (CIdExpression locked : mutexLocked.values()) {

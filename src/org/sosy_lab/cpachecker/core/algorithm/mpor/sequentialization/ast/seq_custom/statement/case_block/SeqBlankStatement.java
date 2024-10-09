@@ -14,15 +14,11 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement pcUpdate;
 
-  private final int targetPc;
+  public final int targetPc;
 
   public SeqBlankStatement(CExpressionAssignmentStatement pPcUpdate, int pTargetPc) {
     pcUpdate = pPcUpdate;
     targetPc = pTargetPc;
-  }
-
-  public int getTargetPc() {
-    return targetPc;
   }
 
   @Override

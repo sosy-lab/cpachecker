@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -60,12 +61,12 @@ public class SeqExpressions {
         buildIdExpr(SeqFunctionDeclaration.VERIFIER_NONDET_INT);
 
     /**
-     * Returns a {@link CIdExpression} with a declaration of the form {@code int {pVarName} = 0;}.
+     * Returns a {@link CIdExpression} with a declaration of the form {@code int {pVarName} =
+     * {pInitializer};}.
      */
-    public static CIdExpression buildIdExprInt(String pVarName) {
+    public static CIdExpression buildIntIdExpr(String pVarName, CInitializer pInitializer) {
       CVariableDeclaration varDec =
-          SeqVariableDeclaration.buildVarDec(
-              true, SeqSimpleType.INT, pVarName, SeqInitializers.INT_0);
+          SeqVariableDeclaration.buildVarDec(true, SeqSimpleType.INT, pVarName, pInitializer);
       return new CIdExpression(FileLocation.DUMMY, varDec);
     }
 
