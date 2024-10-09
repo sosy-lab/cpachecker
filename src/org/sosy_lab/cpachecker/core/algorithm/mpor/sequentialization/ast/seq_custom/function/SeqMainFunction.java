@@ -86,7 +86,6 @@ public class SeqMainFunction implements SeqFunction {
                 SeqToken.NUM_THREADS,
                 SeqInitializer.buildIntInitializer(
                     SeqIntegerLiteralExpression.buildIntLiteralExpr(pNumThreads))));
-    ;
 
     CInitializerList pcInitializerList =
         SeqInitializerList.buildIntInitializerList(SeqIntegerLiteralExpression.INT_0, pNumThreads);

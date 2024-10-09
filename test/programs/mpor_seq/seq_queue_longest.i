@@ -696,7 +696,6 @@ QType *__p2_33_q;
 int __return_pc_t0_init = 0;
 int __return_pc_t0_empty = 0;
 int __return_pc_t0_reach_error = 0;
-int __return_pc_t1_enqueue = 0;
 int __return_pc_t1_empty = 0;
 int __return_pc_t1_enqueue = 0;
 int __return_pc_t1_reach_error = 0;

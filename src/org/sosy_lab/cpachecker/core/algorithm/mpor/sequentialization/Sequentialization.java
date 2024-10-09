@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -102,11 +104,11 @@ public class Sequentialization {
       rProgram.append(createParamVarString(entry.getKey().id, entry.getValue()));
     }
     rProgram.append(SeqComment.createReturnPcVarsComment());
-    ImmutableMap<MPORThread, ImmutableMap<ThreadEdge, CIdExpression>> returnPcVars =
+    ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> returnPcVars =
         mapReturnPcVars(pSubstitutions.keySet());
-    for (ImmutableMap<ThreadEdge, CIdExpression> map : returnPcVars.values()) {
-      for (CIdExpression idExpr : map.values()) {
-        rProgram.append(idExpr.getDeclaration().toASTString()).append(SeqSyntax.NEWLINE);
+    for (ImmutableMap<CFunctionDeclaration, CIdExpression> map : returnPcVars.values()) {
+      for (CIdExpression returnPc : map.values()) {
+        rProgram.append(returnPc.getDeclaration().toASTString()).append(SeqSyntax.NEWLINE);
       }
     }
     rProgram.append(SeqSyntax.NEWLINE);
@@ -114,9 +116,9 @@ public class Sequentialization {
     // add pthread control vars
     rProgram.append(SeqComment.createPthreadVarsComment());
     PthreadVars pthreadVars = buildPthreadVars(pSubstitutions);
-    for (CIdExpression idExpr : pthreadVars.getIdExpressions()) {
-      assert idExpr.getDeclaration() instanceof CVariableDeclaration;
-      CVariableDeclaration varDec = (CVariableDeclaration) idExpr.getDeclaration();
+    for (CIdExpression pthreadVar : pthreadVars.getIdExpressions()) {
+      assert pthreadVar.getDeclaration() instanceof CVariableDeclaration;
+      CVariableDeclaration varDec = (CVariableDeclaration) pthreadVar.getDeclaration();
       rProgram.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
     }
     rProgram.append(SeqSyntax.NEWLINE);
@@ -157,7 +159,7 @@ public class Sequentialization {
   /** Maps threads to their SeqLoopCases. */
   private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> mapLoopCases(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
-      ImmutableMap<MPORThread, ImmutableMap<ThreadEdge, CIdExpression>> pReturnPcVars,
+      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> pReturnPcVars,
       PthreadVars pPthreadVars) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rLoopCases =
@@ -359,30 +361,26 @@ public class Sequentialization {
   }
 
   /**
-   * Maps {@link ThreadEdge}s whose {@link CFAEdge}s are {@link CFunctionSummaryEdge}s to {@code
-   * return_pc} {@link CIdExpression}s.
+   * Maps {@link FunctionEntryNode}s to {@code return_pc} {@link CIdExpression}s for all threads.
    *
-   * <p>E.g. a {@link CFunctionSummaryEdge} for the function {@code fib} in thread 0 is mapped to
-   * the expression of {@code int __return_pc_t0_fib}.
+   * <p>E.g. the function {@code fib} in thread 0 is mapped to the expression of {@code int
+   * __return_pc_t0_fib}.
    */
-  private static ImmutableMap<MPORThread, ImmutableMap<ThreadEdge, CIdExpression>> mapReturnPcVars(
-      ImmutableSet<MPORThread> pThreads) {
+  private static ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
+      mapReturnPcVars(ImmutableSet<MPORThread> pThreads) {
 
-    ImmutableMap.Builder<MPORThread, ImmutableMap<ThreadEdge, CIdExpression>> rDecs =
+    ImmutableMap.Builder<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> rVars =
         ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
-      ImmutableMap.Builder<ThreadEdge, CIdExpression> returnPc = ImmutableMap.builder();
-      for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
-        if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
-          String funcName = funcSummary.getFunctionEntry().getFunctionName();
-          CVariableDeclaration varDec =
-              SeqVariableDeclaration.buildReturnPcVarDec(thread.id, funcName);
-          returnPc.put(threadEdge, SeqIdExpression.buildIdExpr(varDec));
-        }
+      ImmutableMap.Builder<CFunctionDeclaration, CIdExpression> returnPc = ImmutableMap.builder();
+      for (CFunctionDeclaration function : thread.cfa.calledFuncs) {
+        CVariableDeclaration varDec =
+            SeqVariableDeclaration.buildReturnPcVarDec(thread.id, function.getName());
+        returnPc.put(function, SeqIdExpression.buildIdExpr(varDec));
       }
-      rDecs.put(thread, returnPc.buildOrThrow());
+      rVars.put(thread, returnPc.buildOrThrow());
     }
-    return rDecs.buildOrThrow();
+    return rVars.buildOrThrow();
   }
 
   // TODO the major problem here is that if we assign a pc that is pruned later, the assignment
@@ -396,17 +394,18 @@ public class Sequentialization {
    * thread 0 is mapped to the assignment {@code __return_pc_t0_fib = 10;}.
    */
   private static ImmutableMap<ThreadEdge, CExpressionAssignmentStatement> mapReturnPcToPcAssigns(
-      MPORThread pThread, ImmutableMap<ThreadEdge, CIdExpression> pReturnPcVars) {
+      MPORThread pThread, ImmutableMap<CFunctionDeclaration, CIdExpression> pReturnPcVars) {
 
     ImmutableMap.Builder<ThreadEdge, CExpressionAssignmentStatement> rAssigns =
         ImmutableMap.builder();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge) {
-        CIdExpression idExpr = pReturnPcVars.get(threadEdge);
-        assert idExpr != null;
+      if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
+        CFunctionDeclaration function = funcSummary.getFunctionEntry().getFunctionDefinition();
+        CIdExpression returnPc = pReturnPcVars.get(function);
+        assert returnPc != null;
         CIntegerLiteralExpression pc =
             SeqIntegerLiteralExpression.buildIntLiteralExpr(threadEdge.getSuccessor().pc);
-        CExpressionAssignmentStatement assign = SeqExpressions.buildExprAssignStmt(idExpr, pc);
+        CExpressionAssignmentStatement assign = SeqExpressions.buildExprAssignStmt(returnPc, pc);
         rAssigns.put(threadEdge, assign);
       }
     }
@@ -421,14 +420,15 @@ public class Sequentialization {
    * assignment {@code pc[0] = __return_pc_t0_fib;}.
    */
   private static ImmutableMap<ThreadNode, CExpressionAssignmentStatement> mapPcToReturnPcAssigns(
-      MPORThread pThread, ImmutableMap<ThreadEdge, CIdExpression> pReturnPcVars) {
+      MPORThread pThread, ImmutableMap<CFunctionDeclaration, CIdExpression> pReturnPcVars) {
 
     Map<ThreadNode, CExpressionAssignmentStatement> rAssigns = new HashMap<>();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummaryEdge) {
-        Optional<FunctionExitNode> funcExitNode = funcSummaryEdge.getFunctionEntry().getExitNode();
+      if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
+        Optional<FunctionExitNode> funcExitNode = funcSummary.getFunctionEntry().getExitNode();
         if (funcExitNode.isPresent()) {
-          CIdExpression returnPc = pReturnPcVars.get(threadEdge);
+          CFunctionDeclaration function = funcSummary.getFunctionEntry().getFunctionDefinition();
+          CIdExpression returnPc = pReturnPcVars.get(function);
           ThreadNode threadNode = pThread.cfa.getThreadNodeByCfaNode(funcExitNode.orElseThrow());
           if (!rAssigns.containsKey(threadNode)) {
             CIntegerLiteralExpression threadId =
@@ -560,8 +560,8 @@ public class Sequentialization {
     StringBuilder rDecs = new StringBuilder();
     rDecs.append(SeqComment.createGlobalVarsComment());
     assert pSubstitution.globalVarSubs != null;
-    for (CIdExpression idExpr : pSubstitution.globalVarSubs.values()) {
-      rDecs.append(idExpr.getDeclaration().toASTString()).append(SeqSyntax.NEWLINE);
+    for (CIdExpression globalVar : pSubstitution.globalVarSubs.values()) {
+      rDecs.append(globalVar.getDeclaration().toASTString()).append(SeqSyntax.NEWLINE);
     }
     rDecs.append(SeqSyntax.NEWLINE);
     return rDecs.toString();
@@ -570,8 +570,8 @@ public class Sequentialization {
   private String createLocalVarString(int pThreadId, CSimpleDeclarationSubstitution pSubstitution) {
     StringBuilder rDecs = new StringBuilder();
     rDecs.append(SeqComment.createLocalVarsComment(pThreadId));
-    for (CIdExpression idExpr : pSubstitution.localVarSubs.values()) {
-      CVariableDeclaration varDec = pSubstitution.castIdExprDec(idExpr.getDeclaration());
+    for (CIdExpression localVar : pSubstitution.localVarSubs.values()) {
+      CVariableDeclaration varDec = pSubstitution.castIdExprDec(localVar.getDeclaration());
       // TODO handle const CPAchecker TMP vars
       if (!SeqUtil.isConstCPAcheckerTMP(varDec)) {
         rDecs.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
@@ -585,8 +585,8 @@ public class Sequentialization {
     StringBuilder rDecs = new StringBuilder();
     rDecs.append(SeqComment.createParamVarsComment(pThreadId));
     assert pSubstitution.paramSubs != null;
-    for (CIdExpression idExpr : pSubstitution.paramSubs.values()) {
-      rDecs.append(idExpr.getDeclaration().toASTString()).append(SeqSyntax.NEWLINE);
+    for (CIdExpression param : pSubstitution.paramSubs.values()) {
+      rDecs.append(param.getDeclaration().toASTString()).append(SeqSyntax.NEWLINE);
     }
     rDecs.append(SeqSyntax.NEWLINE);
     return rDecs.toString();
