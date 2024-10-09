@@ -253,13 +253,16 @@ public class CSimpleDeclarationSubstitution implements Substitution {
         assert globalVarSubs != null;
         checkArgument(
             globalVarSubs.containsKey(varDec),
-            "no substitute found for " + pSimpleDec.toASTString());
+            "no substitute found for " + "%s",
+            pSimpleDec.toASTString());
         return globalVarSubs.get(varDec);
       }
     } else if (pSimpleDec instanceof CParameterDeclaration paramDec) {
       assert paramSubs != null;
       checkArgument(
-          paramSubs.containsKey(paramDec), "no substitute found for " + pSimpleDec.toASTString());
+          paramSubs.containsKey(paramDec),
+          "no substitute found for " + "%s",
+          pSimpleDec.toASTString());
       return paramSubs.get(paramDec);
     }
     throw new IllegalArgumentException("pSimpleDec must be CVariable- or CParameterDeclaration");

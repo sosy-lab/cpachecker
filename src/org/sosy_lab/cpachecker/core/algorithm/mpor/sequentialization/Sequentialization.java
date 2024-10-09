@@ -45,8 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDecl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
@@ -56,7 +55,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.PthreadVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -149,21 +147,13 @@ public class Sequentialization {
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> loopCases =
         mapLoopCases(pSubstitutions, returnPcVars, pthreadVars);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCases = pruneLoopCases(loopCases);
-    CIdExpression numThreads =
-        SeqIdExpression.buildIdExpr(
-            SeqVariableDeclaration.buildVarDec(
-                false,
-                // TODO need const int here
-                SeqSimpleType.INT,
-                SeqToken.NUM_THREADS,
-                SeqInitializers.buildIntInitializer(
-                    SeqIntegerLiteralExpression.buildIntLiteralExpr(threadCount))));
-    SeqMainFunction mainMethod = new SeqMainFunction(binExprBuilder, prunedCases, numThreads);
+    SeqMainFunction mainMethod = new SeqMainFunction(binExprBuilder, prunedCases, threadCount);
     rProgram.append(mainMethod.toASTString());
 
     return rProgram.toString();
   }
 
+  // TODO rename all loopCases to caseClauses
   /** Maps threads to their SeqLoopCases. */
   private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> mapLoopCases(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
@@ -210,6 +200,7 @@ public class Sequentialization {
           }
         }
       }
+
       rLoopCases.put(thread, loopCases.build());
     }
     return rLoopCases.buildOrThrow();
@@ -464,7 +455,7 @@ public class Sequentialization {
     for (MPORThread thread : pThreads) {
       String varName = SeqNameBuilder.createThreadActiveName(thread.id);
       // main thread -> init active far to 1, otherwise 0
-      CInitializer initializer = thread.isMain() ? SeqInitializers.INT_1 : SeqInitializers.INT_0;
+      CInitializer initializer = thread.isMain() ? SeqInitializer.INT_1 : SeqInitializer.INT_0;
       CIdExpression activeVar = SeqIdExpression.buildIntIdExpr(varName, initializer);
       rVars.add(activeVar);
     }
@@ -487,7 +478,7 @@ public class Sequentialization {
           CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
           String varName = SeqNameBuilder.createMutexLockedName(pthreadMutexT.getName());
           // TODO it should be wiser to use the original idExpr as the key and not the substitute...
-          rVars.put(pthreadMutexT, SeqIdExpression.buildIntIdExpr(varName, SeqInitializers.INT_0));
+          rVars.put(pthreadMutexT, SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0));
         }
       }
     }
@@ -514,7 +505,7 @@ public class Sequentialization {
             String varName =
                 SeqNameBuilder.createMutexLockedName(thread.id, pthreadMutexT.getName());
             awaitVars.put(
-                pthreadMutexT, SeqIdExpression.buildIntIdExpr(varName, SeqInitializers.INT_0));
+                pthreadMutexT, SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0));
           }
         }
       }
@@ -540,7 +531,7 @@ public class Sequentialization {
           if (!targetThreads.containsKey(targetThread)) {
             String varName = SeqNameBuilder.createThreadJoinsName(thread.id, targetThread.id);
             targetThreads.put(
-                targetThread, SeqIdExpression.buildIntIdExpr(varName, SeqInitializers.INT_0));
+                targetThread, SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0));
           }
         }
       }

@@ -19,6 +19,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializerList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
@@ -28,8 +30,8 @@ public class SeqDeclarations {
 
   public static class SeqVariableDeclaration {
 
-    public static final CVariableDeclaration PC =
-        buildVarDec(false, SeqArrayType.INT_ARRAY, SeqToken.PC, SeqInitializers.INT_0);
+    protected static final CVariableDeclaration DUMMY_PC =
+        buildVarDec(false, SeqArrayType.INT_ARRAY, SeqToken.PC, SeqInitializerList.EMPTY_LIST);
 
     public static final CVariableDeclaration NEXT_THREAD =
         buildVarDec(false, SeqSimpleType.INT, SeqToken.NEXT_THREAD, null);
@@ -57,7 +59,7 @@ public class SeqDeclarations {
       String varName = SeqNameBuilder.createReturnPcName(pThreadId, pFuncName);
       // TODO initialize with -2 and assert that it is not -2 when assigning in the
       // sequentialization?
-      return buildVarDec(true, SeqSimpleType.INT, varName, SeqInitializers.INT_0);
+      return buildVarDec(true, SeqSimpleType.INT, varName, SeqInitializer.INT_0);
     }
   }
 

@@ -47,7 +47,7 @@ public class SeqExpressions {
 
     public static final CIdExpression COND = buildIdExpr(SeqParameterDeclaration.COND);
 
-    public static final CIdExpression PC = buildIdExpr(SeqVariableDeclaration.PC);
+    protected static final CIdExpression DUMMY_PC = buildIdExpr(SeqVariableDeclaration.DUMMY_PC);
 
     public static final CIdExpression NEXT_THREAD = buildIdExpr(SeqVariableDeclaration.NEXT_THREAD);
 
@@ -84,6 +84,6 @@ public class SeqExpressions {
 
   public static CArraySubscriptExpression buildPcSubscriptExpr(CExpression pSubscriptExpr) {
     return new CArraySubscriptExpression(
-        FileLocation.DUMMY, SeqArrayType.INT_ARRAY, SeqIdExpression.PC, pSubscriptExpr);
+        FileLocation.DUMMY, SeqArrayType.INT_ARRAY, SeqIdExpression.DUMMY_PC, pSubscriptExpr);
   }
 }

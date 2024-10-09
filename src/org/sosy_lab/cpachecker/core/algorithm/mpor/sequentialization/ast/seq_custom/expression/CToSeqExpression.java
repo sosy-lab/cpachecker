@@ -27,7 +27,7 @@ public class CToSeqExpression implements SeqExpression {
    * call.
    */
   public CToSeqExpression(CExpression pExpression) {
-    checkArgument(isPermittedType(pExpression), "pExpression is not allowed: " + pExpression);
+    checkArgument(isPermittedType(pExpression), "pExpression is not allowed: " + "%s", pExpression);
     expression = pExpression;
   }
 

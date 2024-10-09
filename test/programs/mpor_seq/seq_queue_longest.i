@@ -726,8 +726,8 @@ void __mpor_seq_assume(const int cond) {
 }
 
 int main() {
-  int NUM_THREADS = 3;
-  int pc[] = 0;
+  const int NUM_THREADS = 3;
+  int pc[] = { 0, 0, 0 };
 
   while (1) {
     int next_thread;
