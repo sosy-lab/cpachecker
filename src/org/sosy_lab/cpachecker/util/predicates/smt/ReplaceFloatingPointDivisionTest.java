@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.Theory;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
+import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -42,7 +43,7 @@ public class ReplaceFloatingPointDivisionTest {
   private Theory theory;
 
   private static final FloatingPointType DOUBLE_PRECISION =
-      FloatingPointType.getDoublePrecisionFloatingPointType();
+      FormulaType.getDoublePrecisionFloatingPointType();
 
   @Parameters(name = "{0}")
   public static Theory[] data() {
