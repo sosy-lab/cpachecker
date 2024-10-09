@@ -376,6 +376,52 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /**
+   * Checks if the current edge begins or ends at the given line and the column lies between the
+   * starting column of the edge and the column at which the edge ends.
+   */
+  public static class CheckMatchesColumnAndLine implements AutomatonBoolExpr {
+    private final int columnToReach;
+    private final int lineNumber;
+
+    public CheckMatchesColumnAndLine(int pColumn, int pLineNumber) {
+      columnToReach = pColumn;
+      lineNumber = pLineNumber;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      CFAEdge edge = pArgs.getCfaEdge();
+
+      FileLocation edgeLocation = edge.getFileLocation();
+      int edgeNodeStartingColumn = edgeLocation.getStartColumnInLine();
+
+      if (edgeLocation.getStartingLineInOrigin() == lineNumber
+          && edgeNodeStartingColumn == columnToReach) {
+        return CONST_TRUE;
+      }
+
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCHES(line = " + lineNumber + ", column = " + columnToReach + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return columnToReach;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckMatchesColumnAndLine c
+          && columnToReach == c.columnToReach
+          && lineNumber == c.lineNumber;
+    }
+  }
+
+  /**
    * The check succeeds if any of the edges leaving any of the successor nodes of the current edge
    * fulfil {@link CheckCoversOffsetAndLine}.
    */

@@ -31,17 +31,21 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckMatchesColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckPassesThroughNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesElement;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IsStatementEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
@@ -99,10 +103,10 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       String nextStateId, Integer followLine, Integer followColumn, Integer pDistanceToViolation) {
     // For target nodes it sometimes does not make sense to evaluate them at the last possible
     // sequence point as with assumptions. For example, a reach_error call will usually not have
-    // any successors in the ARG, since the verification stops there. Therefore handling targets
+    // any successors in the ARG, since the verification stops there. Therefore, handling targets
     // the same way as with assumptions would not work. As an overapproximation we use the
     // covers to present the desired functionality.
-    AutomatonBoolExpr expr = new CheckCoversColumnAndLine(followColumn, followLine);
+    AutomatonBoolExpr expr = new CheckMatchesColumnAndLine(followColumn, followLine);
 
     AutomatonTransition.Builder transitionBuilder =
         new AutomatonTransition.Builder(expr, nextStateId);
@@ -200,18 +204,18 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       throw new AssertionError("This should never happen");
     }
 
-    if (nodesThenBranch.equals(nodesElseBranch) || nodesCondition.isEmpty()) {
-      logger.log(
-          Level.FINE,
-          "Skipping branching waypoint at if statement since the"
-              + " then and else branch are both empty,"
-              + " and currently there is no way to distinguish them.");
-      return Optional.empty();
-    }
+    // When the condition is empty we still want to be able to pass the waypoint
+    Set<CFANode> adaptedNodesCondition =
+        nodesCondition.isEmpty()
+            ? FluentIterable.from(nodesThenBranch)
+                .append(nodesElseBranch)
+                .transformAndConcat(CFAUtils::allPredecessorsOf)
+                .toSet()
+            : nodesCondition;
 
     AutomatonBoolExpr condition =
         new CheckPassesThroughNodes(
-            nodesCondition, pBranchToFollow ? nodesThenBranch : nodesElseBranch);
+            adaptedNodesCondition, pBranchToFollow ? nodesThenBranch : nodesElseBranch);
     AutomatonTransition followBranchTransition =
         distanceToViolation(
                 new AutomatonTransition.Builder(condition, nextStateId), pDistanceToViolation)
@@ -220,7 +224,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     // Add break state for the other branch, since we don't want to explore it
     CheckPassesThroughNodes negatedCondition =
         new CheckPassesThroughNodes(
-            nodesCondition, !pBranchToFollow ? nodesThenBranch : nodesElseBranch);
+            adaptedNodesCondition, !pBranchToFollow ? nodesThenBranch : nodesElseBranch);
     AutomatonTransition avoidBranchTransition =
         new AutomatonTransition.Builder(negatedCondition, AutomatonInternalState.BOTTOM).build();
 
@@ -263,13 +267,17 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
         FluentIterable.from(startLineToCFAEdge.get(followLine)).filter(AStatementEdge.class)) {
       // The syntax of the witness V2 describes that the return statement must point to the
       // closing bracket of the function whose return statement is being considered
-      int columnEndOfEdge = edge.getFileLocation().getEndColumnInLine();
-      if (columnEndOfEdge != followColumn
+      AStatement statement = edge.getStatement();
+      FileLocation statementLocation = statement.getFileLocation();
+      int columnStartOfStatement = statementLocation.getStartColumnInLine();
+      int columnOfClosingBracketInFunctionCall =
+          columnStartOfStatement + statement.toString().lastIndexOf(")");
+      if (columnOfClosingBracketInFunctionCall != followColumn
           || edge.getFileLocation().getEndingLineInOrigin() != followLine) {
         continue;
       }
 
-      if (edge.getStatement() instanceof AFunctionCallAssignmentStatement statement) {
+      if (statement instanceof AFunctionCallAssignmentStatement functionCallStatement) {
         Set<String> constraints = new HashSet<>();
         if (constraint != null) {
           constraints.add(constraint);
@@ -288,7 +296,10 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                   CParserUtils.parseStatements(
                       constraints,
                       Optional.ofNullable(
-                          statement.getRightHandSide().getFunctionNameExpression().toString()),
+                          functionCallStatement
+                              .getRightHandSide()
+                              .getFunctionNameExpression()
+                              .toString()),
                       cparser,
                       scope,
                       parserTools),

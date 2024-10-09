@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -829,11 +830,12 @@ public final class ValueAnalysisState
     }
   }
 
-  @Override
-  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation)
+  private ExpressionTree<Object> getFormulaApproximation(
+      FunctionEntryNode pFunctionScope,
+      CFANode pLocation,
+      Function<String, Boolean> variableNameIScope,
+      Function<String, String> variableRenamingFunction)
       throws TranslationToExpressionTreeFailedException {
-
     if (machineModel == null) {
       throw new TranslationToExpressionTreeFailedException("MachineModel is not available.");
     }
@@ -861,20 +863,20 @@ public final class ValueAnalysisState
           }
           assert cType != null && CTypes.isArithmeticType(cType);
           String id = memoryLocation.getIdentifier();
-          if (pFunctionScope.getReturnVariable().isEmpty()
-              || !id.equals(pFunctionScope.getReturnVariable().get().getName())) {
+          if (variableNameIScope.apply(id)) {
             FileLocation loc =
                 pLocation.getNumEnteringEdges() > 0
                     ? pLocation.getEnteringEdge(0).getFileLocation()
                     : pFunctionScope.getFileLocation();
+            String newVariableName = variableRenamingFunction.apply(id);
             CVariableDeclaration decl =
                 new CVariableDeclaration(
                     loc,
                     false,
                     CStorageClass.AUTO,
                     cType,
-                    id,
-                    id,
+                    newVariableName,
+                    newVariableName,
                     memoryLocation.getExtendedQualifiedName(),
                     null);
             CExpression var = new CIdExpression(loc, decl);
@@ -890,6 +892,19 @@ public final class ValueAnalysisState
   }
 
   @Override
+  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      throws TranslationToExpressionTreeFailedException {
+    return getFormulaApproximation(
+        pFunctionScope,
+        pLocation,
+        varName ->
+            pFunctionScope.getReturnVariable().isEmpty()
+                || !varName.equals(pFunctionScope.getReturnVariable().get().getName()),
+        Function.identity());
+  }
+
+  @Override
   public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
       FunctionEntryNode pFunctionScope,
       CFANode pLocation,
@@ -898,69 +913,18 @@ public final class ValueAnalysisState
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {
-    if (machineModel == null) {
-      throw new TranslationToExpressionTreeFailedException("MachineModel is not available.");
-    }
 
-    List<ExpressionTree<Object>> result = new ArrayList<>();
-
-    for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
-      Value valueOfEntry = entry.getValue().getValue();
-      if (valueOfEntry instanceof EnumConstantValue) {
-        continue;
-      }
-      NumericValue num = valueOfEntry.asNumericValue();
-      if (num != null) {
-        MemoryLocation memoryLocation = entry.getKey();
-        Type type = entry.getValue().getType();
-        if (!memoryLocation.isReference()
-            && memoryLocation.isOnFunctionStack(pFunctionScope.getFunctionName())
-            && type instanceof CType cType
-            && CTypes.isArithmeticType((CType) type)) {
-          if (cType instanceof CBitFieldType) {
-            cType = ((CBitFieldType) cType).getType();
-          }
-          if (cType instanceof CElaboratedType) {
-            cType = ((CElaboratedType) cType).getRealType();
-          }
-          assert cType != null && CTypes.isArithmeticType(cType);
-          String id = memoryLocation.getIdentifier();
-          if ((pFunctionScope.getReturnVariable().isEmpty()
-                  || !id.equals(pFunctionScope.getReturnVariable().get().getName()))
-              && pAstCfaRelation
-                  .getVariablesAndParametersInScope(pLocation)
-                  .anyMatch(v -> v.getName().equals(id))
-              && !id.contains("__CPAchecker_")) {
-            FileLocation loc =
-                pLocation.getNumEnteringEdges() > 0
-                    ? pLocation.getEnteringEdge(0).getFileLocation()
-                    : pFunctionScope.getFileLocation();
-
-            String variableName = id;
-            if (useOldKeywordForVariables) {
-              variableName = "\\old(" + id + ")";
-            }
-
-            CVariableDeclaration decl =
-                new CVariableDeclaration(
-                    loc,
-                    false,
-                    CStorageClass.AUTO,
-                    cType,
-                    variableName,
-                    variableName,
-                    memoryLocation.getExtendedQualifiedName(),
-                    null);
-            CExpression var = new CIdExpression(loc, decl);
-            Optional<CExpression> constraint = buildConstraint(var, cType, num);
-            if (constraint.isPresent()) {
-              result.add(LeafExpression.of(constraint.orElseThrow()));
-            }
-          }
-        }
-      }
-    }
-    return And.of(result);
+    return getFormulaApproximation(
+        pFunctionScope,
+        pLocation,
+        varName ->
+            (pFunctionScope.getReturnVariable().isEmpty()
+                    || !varName.equals(pFunctionScope.getReturnVariable().get().getName()))
+                && pAstCfaRelation
+                    .getVariablesAndParametersInScope(pLocation)
+                    .anyMatch(v -> v.getName().equals(varName))
+                && !varName.contains("__CPAchecker_"),
+        varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName);
   }
 
   @Override
