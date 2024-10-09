@@ -105,8 +105,8 @@ public class ReplaceFloatingPointDivisionTest {
         var f1 = fpmgr.makeNumber(y, DOUBLE_PRECISION);
         if (y != 0) {
           assertWithMessage("divide(%s, %s)", x, y)
-              .that(eval(fpmgr.divide(f0, f1)))
-              .isEqualTo(rneDivision(x, y));
+              .that(eval(fpmgr.divide(f0, f1)) == rneDivision(x, y))
+              .isTrue();
         }
       }
     }
