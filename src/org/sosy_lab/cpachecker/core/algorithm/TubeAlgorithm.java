@@ -49,9 +49,18 @@ public class TubeAlgorithm implements Algorithm{
     AlgorithmStatus status = algorithm.run(reachedSet);
     for (AbstractState abstractState : reachedSet) {
       ARGState state = (ARGState) abstractState;
-      if (state.getChildren().isEmpty()) {
-        TubeState tubeState = AbstractStates.extractStateByType(state, TubeState.class);
+      if (state.getChildren().isEmpty()) { //instead of just this state, check all the states and based on their answers i can then use the logic from the next TODO
 
+        TubeState tubeState = AbstractStates.extractStateByType(state, TubeState.class);
+        //TODO 1. find all leafs that has been negated at least once --> safe (no error) print: over to check if an error: errorCount >0
+        //2. if there is no negation in the leafs from 1. && all leafs are error print under
+        //3. if its noth -- precise
+        //4. else: unclassified
+        //in my json: x<8 will be precise
+        // if x<6 its under
+        //if less then 50 its over
+        // if its 10 unclassified
+        // go to sv benchmarks and identify types of programs. pick 20 and create under/over/precise jsons for them. if ill have extra time to automate a json creator script with under over precice
         if (tubeState != null) {
           if (isTubeOverApprox(tubeState) && isTubeUnderApprox(tubeState)){
             logger.log(Level.INFO,"precise");

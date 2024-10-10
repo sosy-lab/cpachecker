@@ -39,12 +39,13 @@ public class TubeTransferRelation extends SingleEdgeTransferRelation {
   public Collection<TubeState> getAbstractSuccessorsForEdge(
           AbstractState element, Precision prec, CFAEdge cfaEdge) {
     TubeState tubeState = (TubeState) element;
-    TubeState initialTubeState = new TubeState(cfaEdge,tubeState.getAsserts(), null, false, tubeState.getErrorCounter(), tubeState.getFormulaManagerView());
+    TubeState initialTubeState = new TubeState(cfaEdge,tubeState.getAsserts(), null, false, tubeState.getErrorCounter(), tubeState.getSupplier(), tubeState.getLogManager(),
+        tubeState.getCfa());
 
-    if (cfaEdge.getCode().contains("reach_error")&& cfaEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
+    if (cfaEdge.getCode().contains("reach_error();")&&(cfaEdge.getEdgeType().equals(CFAEdgeType.StatementEdge) || cfaEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge))) {
       return getSuccessorForError(initialTubeState);
     }
-    if(initialTubeState.getAsserts().containsKey(cfaEdge.getLineNumber())) {
+    if(initialTubeState.getAsserts().containsKey(cfaEdge.getLineNumber()) && cfaEdge.getCode().contains("__VERIFIER_nondet")) {
       return getSuccessorsForAssertions(initialTubeState, cfaEdge);
     } else {
       return ImmutableSet.of(initialTubeState);
@@ -70,10 +71,12 @@ public class TubeTransferRelation extends SingleEdgeTransferRelation {
    * @return The collection of TubeState successors for the assertions
    */
   private Collection<TubeState> getSuccessorsForAssertions(TubeState initialTubeState, CFAEdge cfaEdge) {
-    BooleanFormula exp = initialTubeState.getAssertAtLine(cfaEdge.getLineNumber(), false);
-    BooleanFormula negExp = initialTubeState.getAssertAtLine(cfaEdge.getLineNumber(), true);
-    TubeState successor = new TubeState(cfaEdge, initialTubeState.getAsserts(), exp, initialTubeState.isNegated(), initialTubeState.getErrorCounter(), initialTubeState.getFormulaManagerView());
-    TubeState successor2 = new TubeState(cfaEdge, initialTubeState.getAsserts(), negExp, true, initialTubeState.getErrorCounter(), initialTubeState.getFormulaManagerView());
+    String exp = initialTubeState.getAssertAtLine(cfaEdge.getLineNumber(), false);
+    String negExp = initialTubeState.getAssertAtLine(cfaEdge.getLineNumber(), true);
+    TubeState successor = new TubeState(cfaEdge, initialTubeState.getAsserts(), exp, initialTubeState.isNegated(), initialTubeState.getErrorCounter(), initialTubeState.getSupplier(),initialTubeState.getLogManager(),
+        initialTubeState.getCfa());
+    TubeState successor2 = new TubeState(cfaEdge, initialTubeState.getAsserts(), negExp, true, initialTubeState.getErrorCounter(), initialTubeState.getSupplier(),initialTubeState.getLogManager(),
+        successor.getCfa());
     return ImmutableSet.of(successor, successor2);
   }
 }

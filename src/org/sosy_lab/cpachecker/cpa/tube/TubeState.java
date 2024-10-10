@@ -8,32 +8,56 @@
 
 package org.sosy_lab.cpachecker.cpa.tube;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
-
 import java.io.Serializable;
-
+import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.CParser.Factory;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.CParserUtils;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-public class TubeState implements AbstractQueryableState, Partitionable, Serializable,
-
+public class TubeState implements AbstractQueryableState, Partitionable, Serializable, Graphable,
                                   FormulaReportingState {
   /**
    * Represents a TubeState object that contains a map of integer to boolean formulas.
    */
-  private final ImmutableMap<Integer,BooleanFormula> asserts;
+  private final ImmutableMap<Integer,String> asserts;
+
+  public LogManager getLogManager() {
+    return logManager;
+  }
+
+  private final LogManager logManager;
   /**
    * The boolean expression represented by this TubeState.
    */
 
-  private boolean isNegated;
-  private final BooleanFormula booleanExp;
+  private final boolean isNegated;
+  private final String booleanExp;
   /**
    * Represents a CFA edge, which is an edge in the control flow graph.
    */
@@ -42,35 +66,32 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
    * Represents a counter for tracking the number of errors.
    */
   private int errorCounter = 0;
-  /**
-   * The CtoFormulaConverter variable is an instance of the CtoFormulaConverter class.
-   * It is a member variable of the TubeState class, used to convert C to Boolean formulas.
-   *
-   * Example usage:
-   * TubeState tubeState = new TubeState();
-   * CtoFormulaConverter converter = new CtoFormulaConverter();
-   * tubeState.converter = converter;
-   */
-  public CtoFormulaConverter converter;
-  /**
-   * Represents the view of the formula manager.
-   */
-  FormulaManagerView formulaManagerView;
-  /**
-   * Manages boolean formulas and provides utility methods for manipulating and evaluating them.
-   */
-  BooleanFormulaManager booleanFormulaManager;
+
+  public CFA getCfa() {
+    return cfa;
+  }
+
+  private final CFA cfa;
+
+  public Function<FormulaManagerView, CtoFormulaConverter> getSupplier() {
+    return supplier;
+  }
+
+  private final Function<FormulaManagerView,CtoFormulaConverter> supplier;
+
   /**
    * Represents the state of a tube.
    */
-  public TubeState(CFAEdge pCFAEdge,ImmutableMap<Integer, BooleanFormula> pAssert, BooleanFormula exp, boolean isNegated, int pError_counter, FormulaManagerView pFormulaManagerView){
+  public TubeState(CFAEdge pCFAEdge, ImmutableMap<Integer, String> pAssert, String exp, boolean pIsNegated, int pError_counter,
+                   Function<FormulaManagerView,CtoFormulaConverter> pSupplier, LogManager pLogManager, CFA pCfa){
     this.cfaEdge = pCFAEdge;
     this.asserts = pAssert;
     this.booleanExp = exp;
     this.errorCounter = pError_counter;
-    this.formulaManagerView = pFormulaManagerView;
-    booleanFormulaManager = formulaManagerView.getBooleanFormulaManager();
-    this.isNegated = isNegated;
+    this.isNegated = pIsNegated;
+    this.supplier = pSupplier;
+    this.logManager = pLogManager;
+    this.cfa = pCfa;
   }
   /**
    * Retrieves the assert formula at the specified line number and applies negation if specified.
@@ -79,10 +100,10 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
    * @param negate     Whether to negate the assert formula or not
    * @return The assert formula at the specified line number
    */
-  public BooleanFormula getAssertAtLine(int lineNumber, boolean negate){
-    BooleanFormula f = asserts.get(lineNumber);
+  public String getAssertAtLine(int lineNumber, boolean negate){
+    String f = asserts.get(lineNumber);
     if (negate){
-      return booleanFormulaManager.not(f);
+      return "!("+ f + ")";
     }
     return f;
   }
@@ -97,7 +118,7 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
    * @return An ImmutableMap containing the assertions, where the key is the line number
    *         and the value is the BooleanFormula.
    */
-  public ImmutableMap<Integer, BooleanFormula> getAsserts() {
+  public ImmutableMap<Integer, String> getAsserts() {
     return this.asserts;
   }
   /**
@@ -105,7 +126,7 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
    *
    * @return the boolean expression
    */
-  public BooleanFormula getBooleanExp() {
+  public String getBooleanExp() {
     return booleanExp;
   }
   /**
@@ -115,14 +136,6 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
    */
   public int getErrorCounter(){
     return this.errorCounter;
-  }
-  /**
-   * Retrieves the FormulaManagerView associated with the TubeState.
-   *
-   * @return The FormulaManagerView instance associated with the TubeState.
-   */
-  public FormulaManagerView getFormulaManagerView() {
-    return formulaManagerView;
   }
 
   /**
@@ -179,11 +192,47 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
    */
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
-    BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
-      if (booleanExp == null){
-        return bfmgr.makeTrue();
-      }else {
-        return booleanExp;
-      }
+    String exp = this.getBooleanExp();
+    if(exp == null){
+      return manager.getBooleanFormulaManager().makeTrue();
+    }
+    BooleanFormula booleanFormula;
+    try {
+      booleanFormula = manager.uninstantiate(parseFormula(manager, exp));
+    } catch (InvalidAutomatonException | UnrecognizedCodeException | InterruptedException pE) {
+      throw new RuntimeException(pE);
+    }
+    return Objects.requireNonNullElseGet(booleanFormula,
+        manager.getBooleanFormulaManager()::makeTrue);
+
+  }
+
+  @Override
+  public String toDOTLabel() {
+    return toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
+  }
+
+  BooleanFormula parseFormula(FormulaManagerView pFormulaManagerView, String entry) throws InvalidAutomatonException, InterruptedException, UnrecognizedCodeException {
+    CStatement statements = CParserUtils.parseSingleStatement(entry, CParser.Factory.getParser(
+        logManager, Factory.getDefaultOptions(), cfa.getMachineModel(),
+        ShutdownNotifier.createDummy()),new CProgramScope(cfa, logManager));
+    CExpression expression = getcExpression(statements);
+    CtoFormulaConverter converter = supplier.apply(pFormulaManagerView);
+    return converter.makePredicate(expression,new BlankEdge("", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), "test"),entry, SSAMap.emptySSAMap().builder());
+  }
+
+
+  private static CExpression getcExpression(CStatement statement) {
+    CExpression expression = ((CExpressionStatement) statement).getExpression();
+    if (expression == null) {
+      throw new IllegalArgumentException(
+          "Statement cannot be converted into CExpression. Invalid statement: " + statement);
+    }
+    return expression;
   }
 }
