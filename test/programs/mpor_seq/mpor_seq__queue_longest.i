@@ -1,14 +1,14 @@
 // This file is part of CPAchecker,
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
-//
+// 
 // SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
-//
+// 
 // SPDX-License-Identifier: Apache-2.0
 
 // This sequentialization (transformation of a parallel program into an equivalent 
 // sequential program) was created by the MPORAlgorithm implemented in CPAchecker. 
-// Input file path: /home/noahkoenig/Documents/Edu/24ss/ba-sosy/sv-common/queue_longest.i
+// Input file: /home/noahkoenig/Documents/Edu/24ss/ba-sosy/sv-common/queue_longest.i
 
 // original program declarations (non-variable)
 int __VERIFIER_nondet_int();
