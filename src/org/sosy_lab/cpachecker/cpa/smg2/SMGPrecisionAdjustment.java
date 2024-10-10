@@ -459,8 +459,9 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         for (MemoryLocation variable : pState.getTrackedMemoryLocations()) {
           String qualifiedVarName = variable.getQualifiedName();
           if (!liveVariables
-              .orElseThrow()
-              .isVariableLive(qualifiedVarName, location.getLocationNode())) {
+                  .orElseThrow()
+                  .isVariableLive(qualifiedVarName, location.getLocationNode())
+              && qualifiedVarName.contains("__CPAchecker_TMP_")) {
             currentState = currentState.invalidateVariable(variable);
           }
         }
