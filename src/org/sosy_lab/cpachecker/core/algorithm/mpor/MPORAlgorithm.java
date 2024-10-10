@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -415,6 +416,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       CFA pInputCfa)
       throws InvalidConfigurationException, CPAException, InterruptedException {
 
+    checkArgument(pInputCfa.getFileNames().size() == 1, "MPOR expects only one input program file");
+
     CPA = pCpa;
     CONFIG = pConfiguration;
     LOG_MANAGER = pLogManager;
@@ -444,7 +447,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     SEQ = new Sequentialization(threads.size(), binExprBuilder);
 
-    SequentializationWriter writer = new SequentializationWriter(LOG_MANAGER, "test_program");
+    Path inputFilePath = INPUT_CFA.getFileNames().get(0);
+    SequentializationWriter writer = new SequentializationWriter(LOG_MANAGER, inputFilePath);
     writer.write(SEQ.generateProgram(substitutions));
   }
 

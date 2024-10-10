@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 
@@ -32,41 +33,44 @@ public class SequentializationWriter {
 
   private final LogManager logManager;
 
-  private final String filePath;
+  private final String inputFileComment;
 
-  private final File file;
+  private final File outputFile;
 
-  public SequentializationWriter(LogManager pLogManager, String pInputFileName) {
+  public SequentializationWriter(LogManager pLogManager, Path pInputFilePath) {
     logManager = pLogManager;
-    filePath = targetDirectory + "mpor_seq_" + pInputFileName + ".i";
-    file = new File(filePath);
+    String inputFileName = pInputFilePath.getFileName().toString();
+    inputFileComment = createInputFileComment(pInputFilePath.toString());
+    String outputFilePath = targetDirectory + "mpor_seq__" + inputFileName;
+    outputFile = new File(outputFilePath);
   }
 
   public void write(String pOutputProgram) {
-    String sequentialization = license + pOutputProgram;
+    String sequentialization = license + inputFileComment + pOutputProgram;
     try {
-      File parentDir = file.getParentFile();
+      File parentDir = outputFile.getParentFile();
       // ensure the target directory exists
       if (!parentDir.exists()) {
         logManager.log(
             Level.SEVERE,
             () ->
-                "FAIL. No sequentialization created, make sure the target directory exists in"
+                "MPOR FAIL. No sequentialization created, make sure the target directory exists in"
                     + " CPAchecker: "
                     + targetDirectory);
 
         // ensure the file does not exist already (no overwriting)
-      } else if (!file.createNewFile()) {
+      } else if (!outputFile.createNewFile()) {
         logManager.log(
             Level.SEVERE,
             () ->
-                "FAIL. No sequentialization created, file exists already: "
-                    + file.getAbsolutePath());
+                "MPOR FAIL. No sequentialization created, file exists already: "
+                    + outputFile.getAbsolutePath());
       } else {
         logManager.log(
-            Level.INFO, () -> "SUCCESS. Sequentialization created: " + file.getAbsolutePath());
+            Level.INFO,
+            () -> "MPOR SUCCESS. Sequentialization created: " + outputFile.getAbsolutePath());
         // write content to the file
-        Writer writer = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8);
+        Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8);
         writer.write(sequentialization);
         writer.close();
       }
@@ -75,5 +79,13 @@ public class SequentializationWriter {
           Level.SEVERE,
           () -> "An IO error occurred while writing the sequentialization: " + e.getMessage());
     }
+  }
+
+  private String createInputFileComment(String pInputFilePath) {
+    return "// This sequentialization (transformation of a parallel program into an equivalent \n"
+        + "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker. \n"
+        + "// Input file path: "
+        + pInputFilePath
+        + "\n\n";
   }
 }

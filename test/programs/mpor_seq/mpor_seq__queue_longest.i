@@ -6,6 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// This sequentialization (transformation of a parallel program into an equivalent 
+// sequential program) was created by the MPORAlgorithm implemented in CPAchecker. 
+// Input file path: /home/noahkoenig/Documents/Edu/24ss/ba-sosy/sv-common/queue_longest.i
+
 // original program declarations (non-variable)
 int __VERIFIER_nondet_int();
 void abort();
