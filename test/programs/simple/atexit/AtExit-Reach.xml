@@ -15,7 +15,6 @@ SPDX-License-Identifier: Apache-2.0
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="2">
     <rundefinition>
         <option name="--valueAnalysis"/>
-        <option name="--option">cpa.functionpointer.trackInvalidFunctionPointers=true</option>
     </rundefinition>
 
     <option name="--no-output-files"/>
