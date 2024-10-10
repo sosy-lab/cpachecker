@@ -22,11 +22,11 @@ SPDX-License-Identifier: Apache-2.0
 
     <tasks name="MemSafety">
         <includesfile>AtExit-MemSafety.set</includesfile>
-        <propertyfile>../../benchmarks/properties/valid-memsafety.prp</propertyfile>
+        <propertyfile>../../../config/properties/valid-memsafety.prp</propertyfile>
     </tasks>
 
     <tasks name="MemCleanup">
         <includesfile>AtExit-MemSafety.set</includesfile>
-        <propertyfile>../../benchmarks/properties/valid-memcleanup.prp</propertyfile>
+        <propertyfile>../../../config/properties/valid-memcleanup.prp</propertyfile>
     </tasks>
 </benchmark>

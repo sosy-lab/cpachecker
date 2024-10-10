@@ -6,14 +6,4 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-format_version: '2.0'
-
-input_files: 'memsafety-1.c'
-
-properties:
-  - property_file: ../../../benchmarks/properties/valid-memcleanup.prp
-    expected_verdict: true
-
-options:
-  language: C
-  data_model: ILP32
+../programs/benchmarks/memsafety/global-atexit*.yml

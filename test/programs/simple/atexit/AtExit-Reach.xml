@@ -22,6 +22,6 @@ SPDX-License-Identifier: Apache-2.0
 
     <tasks>
         <includesfile>AtExit-Reach.set</includesfile>
-        <propertyfile>../../benchmarks/properties/unreach-call.prp</propertyfile>
+        <propertyfile>../../../config/properties/unreach-call.prp</propertyfile>
     </tasks>
 </benchmark>
