@@ -15,40 +15,45 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
 /** Represents a case clause, i.e. a case label and its case block. */
-public class SeqCaseClauseStatement implements SeqStatement {
+public class SeqCaseClause implements SeqStatement {
 
   private static long currentId = 0;
 
   public final long id;
 
-  public final int originPc;
+  public final SeqCaseLabel caseLabel;
 
-  public final ImmutableList<SeqCaseBlockStatement> caseBlock;
+  public final SeqCaseBlock caseBlock;
 
-  public SeqCaseClauseStatement(int pOriginPc, ImmutableList<SeqCaseBlockStatement> pStatements) {
+  public SeqCaseClause(
+      int pCaseLabelValue, ImmutableList<SeqCaseBlockStatement> pCaseBlockStatements) {
+
     id = createNewId();
-    originPc = pOriginPc;
-    caseBlock = pStatements;
+    caseLabel = new SeqCaseLabel(pCaseLabelValue);
+    caseBlock = new SeqCaseBlock(pCaseBlockStatements);
   }
 
   /** Private constructor, only used during cloning process to keep the same id. */
-  private SeqCaseClauseStatement(
-      long pId, int pOriginPc, ImmutableList<SeqCaseBlockStatement> pStatements) {
+  private SeqCaseClause(long pId, SeqCaseLabel pCaseLabel, SeqCaseBlock pCaseBlocks) {
     id = pId;
-    originPc = pOriginPc;
-    caseBlock = pStatements;
+    caseLabel = pCaseLabel;
+    caseBlock = pCaseBlocks;
   }
 
-  public SeqCaseClauseStatement cloneWithOriginPc(int pOriginPc) {
-    return new SeqCaseClauseStatement(id, pOriginPc, caseBlock);
+  public SeqCaseClause cloneWithCaseLabel(SeqCaseLabel pCaseLabel) {
+    return new SeqCaseClause(id, pCaseLabel, caseBlock);
   }
 
   private static long createNewId() {
     return currentId++;
   }
 
+  /**
+   * Returns true if all statements in the {@link SeqCaseBlock} are blank, i.e. they only update a
+   * pc.
+   */
   public boolean isPrunable() {
-    for (SeqCaseBlockStatement stmt : caseBlock) {
+    for (SeqCaseBlockStatement stmt : caseBlock.statements) {
       if (!(stmt instanceof SeqBlankStatement)) {
         return false;
       }
@@ -58,16 +63,9 @@ public class SeqCaseClauseStatement implements SeqStatement {
 
   @Override
   public String toASTString() {
-    StringBuilder stmts = new StringBuilder();
-    for (SeqCaseBlockStatement stmt : caseBlock) {
-      stmts.append(stmt.toASTString()).append(SeqSyntax.SPACE);
-    }
-    return SeqToken.CASE
+    return caseLabel.toASTString()
         + SeqSyntax.SPACE
-        + originPc
-        + SeqSyntax.COLON
-        + SeqSyntax.SPACE
-        + stmts
+        + caseBlock.toASTString()
         + SeqToken.CONTINUE
         + SeqSyntax.SEMICOLON
         + SeqSyntax.NEWLINE;

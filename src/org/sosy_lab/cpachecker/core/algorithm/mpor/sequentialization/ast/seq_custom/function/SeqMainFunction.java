@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalAndExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
@@ -55,8 +55,8 @@ public class SeqMainFunction implements SeqFunction {
 
   private final CBinaryExpressionBuilder binExprBuilder;
 
-  /** The thread-specific cases in the main while loop. */
-  private final ImmutableMap<MPORThread, ImmutableList<SeqCaseClauseStatement>> caseClauses;
+  /** The thread-specific case clauses in the while loop. */
+  private final ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses;
 
   private final CIdExpression numThreads;
 
@@ -71,7 +71,7 @@ public class SeqMainFunction implements SeqFunction {
   // TODO add an ImmutableSet<CExpression> pAssumptions
   public SeqMainFunction(
       CBinaryExpressionBuilder pBinExprBuilder,
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClauseStatement>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
       int pNumThreads)
       throws UnrecognizedCodeException {
 

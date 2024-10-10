@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAssumeStatement;
@@ -67,12 +67,11 @@ public class SeqUtil {
 
   // TODO create CaseBuilder class
   /**
-   * Returns a {@link SeqCaseClauseStatement} which represents case statements in the
-   * sequentializations while loop. Returns null if pThreadNode has no leaving edges i.e. its pc is
-   * -1.
+   * Returns a {@link SeqCaseClause} which represents case statements in the sequentializations
+   * while loop. Returns null if pThreadNode has no leaving edges i.e. its pc is -1.
    */
   @Nullable
-  public static SeqCaseClauseStatement createCaseFromThreadNode(
+  public static SeqCaseClause createCaseFromThreadNode(
       final MPORThread pThread,
       final ImmutableSet<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
@@ -93,8 +92,8 @@ public class SeqUtil {
 
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
       // handle all CFunctionReturnEdges: exiting function -> pc not relevant, assign return pc
-      assert pFuncVars.pcToReturnPcAssigns.containsKey(pThreadNode);
-      CExpressionAssignmentStatement assign = pFuncVars.pcToReturnPcAssigns.get(pThreadNode);
+      assert pFuncVars.returnPcRetrievals.containsKey(pThreadNode);
+      CExpressionAssignmentStatement assign = pFuncVars.returnPcRetrievals.get(pThreadNode);
       assert assign != null;
       stmts.add(new SeqReturnPcRetrievalStatement(assign));
 
@@ -125,8 +124,8 @@ public class SeqUtil {
 
           } else if (sub instanceof CFunctionSummaryEdge) {
             assert pThreadNode.leavingEdges().size() >= 2;
-            assert pFuncVars.returnPcToPcAssigns.containsKey(threadEdge);
-            CExpressionAssignmentStatement assign = pFuncVars.returnPcToPcAssigns.get(threadEdge);
+            assert pFuncVars.returnPcStorages.containsKey(threadEdge);
+            CExpressionAssignmentStatement assign = pFuncVars.returnPcStorages.get(threadEdge);
             assert assign != null;
             stmts.add(new SeqReturnPcStorageStatement(assign));
 
@@ -249,7 +248,7 @@ public class SeqUtil {
         }
       }
     }
-    return new SeqCaseClauseStatement(originPc, stmts.build());
+    return new SeqCaseClause(originPc, stmts.build());
   }
 
   /** Returns "(pString)" */
