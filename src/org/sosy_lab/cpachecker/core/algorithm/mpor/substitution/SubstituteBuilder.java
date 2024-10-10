@@ -10,12 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -24,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -33,15 +36,80 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class SubstituteBuilder {
+
+  public static ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges(
+      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions) {
+
+    Map<ThreadEdge, SubstituteEdge> rSubstitutes = new HashMap<>();
+    for (var entry : pSubstitutions.entrySet()) {
+      MPORThread thread = entry.getKey();
+      CSimpleDeclarationSubstitution substitution = entry.getValue();
+
+      for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
+        // prevent duplicate keys by excluding parallel edges
+        if (!rSubstitutes.containsKey(threadEdge)) {
+          CFAEdge cfaEdge = threadEdge.cfaEdge;
+          // if edge is not substituted: just use original edge
+          SubstituteEdge substitute = new SubstituteEdge(cfaEdge);
+
+          if (cfaEdge instanceof CDeclarationEdge decl) {
+            // TODO what about structs?
+            CDeclaration dec = decl.getDeclaration();
+            if (dec instanceof CVariableDeclaration) {
+              CVariableDeclaration varDec = substitution.getVarDecSub(dec);
+              substitute = new SubstituteEdge(substituteDeclarationEdge(decl, varDec));
+            }
+
+          } else if (cfaEdge instanceof CAssumeEdge assume) {
+            substitute =
+                new SubstituteEdge(
+                    substituteAssumeEdge(assume, substitution.substitute(assume.getExpression())));
+
+          } else if (cfaEdge instanceof CStatementEdge stmt) {
+            substitute =
+                new SubstituteEdge(
+                    substituteStatementEdge(stmt, substitution.substitute(stmt.getStatement())));
+
+          } else if (cfaEdge instanceof CFunctionSummaryEdge funcSumm) {
+            // only substitute assignments (e.g. CPAchecker_TMP = func();)
+            if (funcSumm.getExpression() instanceof CFunctionCallAssignmentStatement assignStmt) {
+              substitute =
+                  new SubstituteEdge(
+                      substituteFunctionSummaryEdge(funcSumm, substitution.substitute(assignStmt)));
+            }
+
+          } else if (cfaEdge instanceof CFunctionCallEdge funcCall) {
+            // CFunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here
+            // too
+            substitute =
+                new SubstituteEdge(
+                    substituteFunctionCallEdge(
+                        funcCall,
+                        (CFunctionCall) substitution.substitute(funcCall.getFunctionCall())));
+
+          } else if (cfaEdge instanceof CReturnStatementEdge retStmt) {
+            substitute =
+                new SubstituteEdge(
+                    substituteReturnStatementEdge(
+                        retStmt, substitution.substitute(retStmt.getReturnStatement())));
+          }
+
+          rSubstitutes.put(threadEdge, substitute);
+        }
+      }
+    }
+    return ImmutableMap.copyOf(rSubstitutes);
+  }
 
   /**
    * Creates a clone of the given CVariableDeclaration with substituted name(s).
    *
    * @param pOriginal the variable declaration to substitute
    */
-  public static CVariableDeclaration substituteVarDec(
+  private static CVariableDeclaration substituteVarDec(
       CVariableDeclaration pOriginal, String pName) {
     return new CVariableDeclaration(
         pOriginal.getFileLocation(),
@@ -59,7 +127,7 @@ public class SubstituteBuilder {
    *
    * @param pOriginal the variable declaration to substitute
    */
-  public static CVariableDeclaration substituteVarDec(
+  private static CVariableDeclaration substituteVarDec(
       CVariableDeclaration pOriginal, CInitializerExpression pInitExpr) {
     return new CVariableDeclaration(
         pOriginal.getFileLocation(),
@@ -72,12 +140,12 @@ public class SubstituteBuilder {
         pInitExpr);
   }
 
-  public static CInitializerExpression substituteInitExpr(
+  private static CInitializerExpression substituteInitExpr(
       CInitializerExpression pOriginal, CExpression pExpression) {
     return new CInitializerExpression(pOriginal.getFileLocation(), pExpression);
   }
 
-  public static CAssumeEdge substituteAssumeEdge(CAssumeEdge pOriginal, CExpression pExpr) {
+  private static CAssumeEdge substituteAssumeEdge(CAssumeEdge pOriginal, CExpression pExpr) {
     return new CAssumeEdge(
         pOriginal.getRawStatement(),
         pOriginal.getFileLocation(),
@@ -87,7 +155,7 @@ public class SubstituteBuilder {
         pOriginal.getTruthAssumption());
   }
 
-  public static CDeclarationEdge substituteDeclarationEdge(
+  private static CDeclarationEdge substituteDeclarationEdge(
       CDeclarationEdge pOriginal, CVariableDeclaration pVarDec) {
     return new CDeclarationEdge(
         pOriginal.getRawStatement(),
@@ -97,7 +165,8 @@ public class SubstituteBuilder {
         pVarDec);
   }
 
-  public static CStatementEdge substituteStatementEdge(CStatementEdge pOriginal, CStatement pStmt) {
+  private static CStatementEdge substituteStatementEdge(
+      CStatementEdge pOriginal, CStatement pStmt) {
     return new CStatementEdge(
         pOriginal.getRawStatement(),
         pStmt,
@@ -106,7 +175,7 @@ public class SubstituteBuilder {
         pOriginal.getSuccessor());
   }
 
-  public static CFunctionSummaryEdge substituteFunctionSummaryEdge(
+  private static CFunctionSummaryEdge substituteFunctionSummaryEdge(
       CFunctionSummaryEdge pOriginal, CStatement pFuncCall) {
     return new CFunctionSummaryEdge(
         pOriginal.getRawStatement(),
@@ -117,7 +186,7 @@ public class SubstituteBuilder {
         pOriginal.getFunctionEntry());
   }
 
-  public static CFunctionCallEdge substituteFunctionCallEdge(
+  private static CFunctionCallEdge substituteFunctionCallEdge(
       CFunctionCallEdge pOriginal, CFunctionCall pFuncCall) {
     return new CFunctionCallEdge(
         pOriginal.getRawStatement(),
@@ -128,7 +197,7 @@ public class SubstituteBuilder {
         pOriginal.getSummaryEdge());
   }
 
-  public static CReturnStatementEdge substituteReturnStatementEdge(
+  private static CReturnStatementEdge substituteReturnStatementEdge(
       CReturnStatementEdge pOriginal, CReturnStatement pRetStmt) {
     return new CReturnStatementEdge(
         pOriginal.getRawStatement(),
@@ -136,16 +205,6 @@ public class SubstituteBuilder {
         pOriginal.getFileLocation(),
         pOriginal.getPredecessor(),
         pOriginal.getSuccessor());
-  }
-
-  public static CFunctionCallExpression substituteFunctionCallExpr(
-      CFunctionCallExpression pOriginal, List<CExpression> pParams) {
-    return new CFunctionCallExpression(
-        pOriginal.getFileLocation(),
-        pOriginal.getExpressionType(),
-        pOriginal.getFunctionNameExpression(),
-        pParams,
-        pOriginal.getDeclaration());
   }
 
   public static ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> getDecSubstitutions(
@@ -177,8 +236,7 @@ public class SubstituteBuilder {
     for (CFunctionDeclaration funcDec : pThread.cfa.calledFuncs) {
       for (CParameterDeclaration paramDec : funcDec.getParameters()) {
         String varName = SeqNameBuilder.createParamName(paramDec, pThread.id);
-        CVariableDeclaration varDec =
-            SubstituteBuilder.substituteVarDec(paramDec.asVariableDeclaration(), varName);
+        CVariableDeclaration varDec = substituteVarDec(paramDec.asVariableDeclaration(), varName);
         rThreadSubs.put(paramDec, SeqIdExpression.buildIdExpr(varDec));
       }
     }
@@ -201,7 +259,7 @@ public class SubstituteBuilder {
         ImmutableMap.builder();
     for (CVariableDeclaration varDec : pVarDecs) {
       String substituteName = SeqNameBuilder.createVarName(varDec, pThreadId);
-      CVariableDeclaration substitute = SubstituteBuilder.substituteVarDec(varDec, substituteName);
+      CVariableDeclaration substitute = substituteVarDec(varDec, substituteName);
       dummyVarSubsB.put(varDec, SeqIdExpression.buildIdExpr(substitute));
     }
     ImmutableMap<CVariableDeclaration, CIdExpression> dummyLocalVarSubs =
@@ -225,9 +283,8 @@ public class SubstituteBuilder {
       if (initializer != null) {
         if (initializer instanceof CInitializerExpression initExpr) {
           CInitializerExpression initExprSub =
-              SubstituteBuilder.substituteInitExpr(
-                  initExpr, dummySubstitution.substitute(initExpr.getExpression()));
-          CVariableDeclaration finalSub = SubstituteBuilder.substituteVarDec(varDec, initExprSub);
+              substituteInitExpr(initExpr, dummySubstitution.substitute(initExpr.getExpression()));
+          CVariableDeclaration finalSub = substituteVarDec(varDec, initExprSub);
           rFinalSubs.put(entry.getKey(), SeqIdExpression.buildIdExpr(finalSub));
           continue;
         }

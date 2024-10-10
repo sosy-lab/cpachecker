@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.PthreadVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
@@ -76,7 +77,7 @@ public class SeqUtil {
       final ImmutableSet<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
-      ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
       FunctionVars pFuncVars,
       PthreadVars pPthreadVars) {
 
@@ -101,18 +102,18 @@ public class SeqUtil {
       boolean firstEdge = true;
       for (ThreadEdge threadEdge : pThreadNode.leavingEdges()) {
         CFAEdge edge = threadEdge.cfaEdge;
-        CFAEdge sub = pEdgeSubs.get(threadEdge);
+        SubstituteEdge sub = pSubEdges.get(threadEdge);
         assert sub != null;
         int targetPc = threadEdge.getSuccessor().pc;
         CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(pThread.id, targetPc);
 
-        if (emptyCaseCode(sub)) {
+        if (emptyCaseCode(sub.cfaEdge)) {
           assert pThreadNode.leavingEdges().size() == 1;
           stmts.add(new SeqBlankStatement(pcUpdate, targetPc));
 
         } else {
           // use (else) if (condition) for all assumes (if, for, while, switch, ...)
-          if (sub instanceof CAssumeEdge assumeEdge) {
+          if (sub.cfaEdge instanceof CAssumeEdge assumeEdge) {
             assert allEdgesAssume(pThreadNode.leavingEdges());
             SeqControlFlowStatementType stmtType =
                 firstEdge ? SeqControlFlowStatementType.IF : SeqControlFlowStatementType.ELSE_IF;
@@ -122,14 +123,14 @@ public class SeqUtil {
             SeqControlFlowStatement stmt = new SeqControlFlowStatement(assumeEdge, stmtType);
             stmts.add(new SeqAssumeStatement(stmt, pcUpdate));
 
-          } else if (sub instanceof CFunctionSummaryEdge) {
+          } else if (sub.cfaEdge instanceof CFunctionSummaryEdge) {
             assert pThreadNode.leavingEdges().size() >= 2;
             assert pFuncVars.returnPcStorages.containsKey(threadEdge);
             CExpressionAssignmentStatement assign = pFuncVars.returnPcStorages.get(threadEdge);
             assert assign != null;
             stmts.add(new SeqReturnPcStorageStatement(assign));
 
-          } else if (sub instanceof CFunctionCallEdge) {
+          } else if (sub.cfaEdge instanceof CFunctionCallEdge) {
             assert pThreadNode.leavingEdges().size() >= 2;
             assert pFuncVars.paramAssigns.containsKey(threadEdge);
             ImmutableList<CExpressionAssignmentStatement> assigns =
@@ -148,7 +149,7 @@ public class SeqUtil {
               }
             }
 
-          } else if (sub instanceof CDeclarationEdge decEdge) {
+          } else if (sub.cfaEdge instanceof CDeclarationEdge decEdge) {
             // "leftover" declaration: const CPAchecker_TMP var
             ThreadNode successorA = threadEdge.getSuccessor();
             assert successorA.leavingEdges().size() == 1;
@@ -162,16 +163,14 @@ public class SeqUtil {
             pCoveredNodes.add(successorB);
 
             // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
-            CFAEdge subA = pEdgeSubs.get(statementA);
-            CFAEdge subB = pEdgeSubs.get(statementB);
+            SubstituteEdge subA = pSubEdges.get(statementA);
+            SubstituteEdge subB = pSubEdges.get(statementB);
             assert subA != null && subB != null;
             CExpressionAssignmentStatement skippedPcUpdate =
                 SeqStatements.buildPcUpdate(pThread.id, statementB.getSuccessor().pc);
-            stmts.add(
-                new SeqConstCpaCheckerTmpStatement(
-                    decEdge, (CStatementEdge) subA, (CStatementEdge) subB, skippedPcUpdate));
+            stmts.add(new SeqConstCpaCheckerTmpStatement(decEdge, subA, subB, skippedPcUpdate));
 
-          } else if (sub instanceof CReturnStatementEdge retStmt) {
+          } else if (sub.cfaEdge instanceof CReturnStatementEdge retStmt) {
             assert pFuncVars.returnStmts.containsKey(threadEdge);
             if (retStmt.getSuccessor().getFunction().getType().equals(pThread.startRoutine)) {
               // exiting thread -> assign 0 to thread_active var if possible and set exit pc
@@ -193,7 +192,7 @@ public class SeqUtil {
               }
             }
 
-          } else if (isRelevantPthreadFunc(edge)) {
+          } else if (isRelevantPthreadFunc(sub.cfaEdge)) {
             PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(edge);
             switch (funcType) {
               case PTHREAD_CREATE:
@@ -208,7 +207,7 @@ public class SeqUtil {
                 break;
 
               case PTHREAD_MUTEX_LOCK:
-                CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(sub);
+                CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(sub.cfaEdge);
                 assert pPthreadVars.mutexLocked.containsKey(lockedMutexT);
                 CIdExpression mutexLocked = pPthreadVars.mutexLocked.get(lockedMutexT);
                 assert pPthreadVars.mutexAwaits.containsKey(pThread);
@@ -218,7 +217,7 @@ public class SeqUtil {
                 break;
 
               case PTHREAD_MUTEX_UNLOCK:
-                CIdExpression unlockedMutexT = PthreadUtil.extractPthreadMutexT(sub);
+                CIdExpression unlockedMutexT = PthreadUtil.extractPthreadMutexT(sub.cfaEdge);
                 assert pPthreadVars.mutexLocked.containsKey(unlockedMutexT);
                 // assign 0 to locked variable
                 CExpressionAssignmentStatement lockedFalse =
@@ -242,8 +241,8 @@ public class SeqUtil {
             }
 
           } else {
-            assert sub instanceof CStatementEdge;
-            stmts.add(new SeqDefaultStatement((CStatementEdge) sub, pcUpdate));
+            assert sub.cfaEdge instanceof CStatementEdge;
+            stmts.add(new SeqDefaultStatement((CStatementEdge) sub.cfaEdge, pcUpdate));
           }
         }
       }

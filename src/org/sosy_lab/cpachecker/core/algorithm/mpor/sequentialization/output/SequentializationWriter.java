@@ -27,7 +27,7 @@ public class SequentializationWriter {
           + "//\n"
           + "// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>\n"
           + "//\n"
-          + "// SPDX-License-Identifier: Apache-2.0\n\n";
+          + "// SPDX-License-Identifier: Apache-2.0";
 
   private static final String targetDirectory = "test/programs/mpor_seq/";
 
@@ -46,7 +46,7 @@ public class SequentializationWriter {
   }
 
   public void write(String pOutputProgram) {
-    String sequentialization = license + inputFileComment + pOutputProgram;
+    String sequentialization = license + "\n\n" + inputFileComment + pOutputProgram;
     try {
       File parentDir = outputFile.getParentFile();
       // ensure the target directory exists
@@ -70,9 +70,9 @@ public class SequentializationWriter {
             Level.INFO,
             () -> "MPOR SUCCESS. Sequentialization created: " + outputFile.getAbsolutePath());
         // write content to the file
-        Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8);
-        writer.write(sequentialization);
-        writer.close();
+        try (Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
+          writer.write(sequentialization);
+        }
       }
     } catch (IOException e) {
       logManager.log(

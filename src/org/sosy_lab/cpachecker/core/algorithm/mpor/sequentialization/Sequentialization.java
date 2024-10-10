@@ -57,6 +57,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
@@ -114,7 +116,9 @@ public class Sequentialization {
 
     // add pthread control vars
     rProgram.append(SeqComment.createPthreadVarsComment());
-    PthreadVars pthreadVars = buildPthreadVars(pSubstitutions);
+    ImmutableMap<ThreadEdge, SubstituteEdge> subEdges =
+        SubstituteBuilder.substituteEdges(pSubstitutions);
+    PthreadVars pthreadVars = buildPthreadVars(pSubstitutions.keySet(), subEdges);
     for (CIdExpression pthreadVar : pthreadVars.getIdExpressions()) {
       assert pthreadVar.getDeclaration() instanceof CVariableDeclaration;
       CVariableDeclaration varDec = (CVariableDeclaration) pthreadVar.getDeclaration();
@@ -146,7 +150,7 @@ public class Sequentialization {
     //    assumes as they are basically atomic)
     // create pruned (i.e. only non-empty) cases statements
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
-        mapCaseClauses(pSubstitutions, returnPcVars, pthreadVars);
+        mapCaseClauses(pSubstitutions, subEdges, returnPcVars, pthreadVars);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
         pruneCaseClauses(caseClauses);
     SeqMainFunction mainMethod =
@@ -159,24 +163,23 @@ public class Sequentialization {
   /** Maps threads to the case clauses they potentially execute. */
   private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> mapCaseClauses(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
       ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> pReturnPcVars,
       PthreadVars pPthreadVars) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rCaseClauses =
         ImmutableMap.builder();
     for (var entry : pSubstitutions.entrySet()) {
-      ImmutableList.Builder<SeqCaseClause> caseClauses = ImmutableList.builder();
-
       MPORThread thread = entry.getKey();
       CSimpleDeclarationSubstitution substitution = entry.getValue();
 
-      ImmutableMap<ThreadEdge, CFAEdge> edgeSubs = substitution.substituteEdges(thread);
+      ImmutableList.Builder<SeqCaseClause> caseClauses = ImmutableList.builder();
 
       // function handling
       ImmutableMap<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>> paramAssigns =
-          mapParamAssigns(thread, edgeSubs, substitution);
+          mapParamAssigns(thread, pSubEdges, substitution);
       ImmutableMap<ThreadEdge, ImmutableSet<CExpressionAssignmentStatement>> returnStmts =
-          mapReturnStmts(thread, edgeSubs);
+          mapReturnStmts(thread, pSubEdges);
       ImmutableMap<ThreadEdge, CExpressionAssignmentStatement> returnPcStorages =
           mapReturnPcStorages(thread, pReturnPcVars.get(thread));
       ImmutableMap<ThreadNode, CExpressionAssignmentStatement> returnPcRetrievals =
@@ -194,7 +197,7 @@ public class Sequentialization {
                   pSubstitutions.keySet(),
                   coveredNodes,
                   threadNode,
-                  edgeSubs,
+                  pSubEdges,
                   funcVars,
                   pPthreadVars);
           if (caseClause != null) {
@@ -291,15 +294,16 @@ public class Sequentialization {
   private static ImmutableMap<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>>
       mapParamAssigns(
           MPORThread pThread,
-          ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs,
+          ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
           CSimpleDeclarationSubstitution pSub) {
 
     ImmutableMap.Builder<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>> rAssigns =
         ImmutableMap.builder();
 
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      CFAEdge subEdge = pEdgeSubs.get(threadEdge);
-      if (subEdge instanceof CFunctionCallEdge funcCall) {
+      SubstituteEdge sub = pSubEdges.get(threadEdge);
+      assert sub != null;
+      if (sub.cfaEdge instanceof CFunctionCallEdge funcCall) {
 
         ImmutableList.Builder<CExpressionAssignmentStatement> assigns = ImmutableList.builder();
         List<CParameterDeclaration> paramDecs =
@@ -311,10 +315,10 @@ public class Sequentialization {
           assert pSub.paramSubs != null;
           CExpression paramExpr =
               funcCall.getFunctionCallExpression().getParameterExpressions().get(i);
-          CIdExpression sub = pSub.paramSubs.get(paramDec);
-          assert sub != null;
+          CIdExpression paramSub = pSub.paramSubs.get(paramDec);
+          assert paramSub != null;
           CExpressionAssignmentStatement assign =
-              SeqExpressions.buildExprAssignStmt(sub, paramExpr);
+              SeqExpressions.buildExprAssignStmt(paramSub, paramExpr);
           assigns.add(assign);
         }
         rAssigns.put(threadEdge, assigns.build());
@@ -333,20 +337,22 @@ public class Sequentialization {
    * corresponding {@link CFunctionSummaryEdge}s.
    */
   private static ImmutableMap<ThreadEdge, ImmutableSet<CExpressionAssignmentStatement>>
-      mapReturnStmts(MPORThread pThread, ImmutableMap<ThreadEdge, CFAEdge> pEdgeSubs) {
+      mapReturnStmts(MPORThread pThread, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
 
     ImmutableMap.Builder<ThreadEdge, ImmutableSet<CExpressionAssignmentStatement>> rRetStmts =
         ImmutableMap.builder();
     for (ThreadEdge aThreadEdge : pThread.cfa.threadEdges) {
-      CFAEdge aSub = pEdgeSubs.get(aThreadEdge);
+      SubstituteEdge aSub = pSubEdges.get(aThreadEdge);
+      assert aSub != null;
 
-      if (aSub instanceof CReturnStatementEdge retStmt) {
+      if (aSub.cfaEdge instanceof CReturnStatementEdge retStmt) {
         AFunctionType aFunc = retStmt.getSuccessor().getFunction().getType();
         ImmutableSet.Builder<CExpressionAssignmentStatement> assigns = ImmutableSet.builder();
         for (ThreadEdge bThreadEdge : pThread.cfa.threadEdges) {
-          CFAEdge bSub = pEdgeSubs.get(bThreadEdge);
+          SubstituteEdge bSub = pSubEdges.get(bThreadEdge);
+          assert bSub != null;
 
-          if (bSub instanceof CFunctionSummaryEdge funcSumm) {
+          if (bSub.cfaEdge instanceof CFunctionSummaryEdge funcSumm) {
             // if the summary edge is of the form CPAchecker_TMP = func(); (i.e. an assignment)
             if (funcSumm.getExpression() instanceof CFunctionCallAssignmentStatement assignStmt) {
               AFunctionType bFunc = funcSumm.getFunctionEntry().getFunction().getType();
@@ -467,18 +473,17 @@ public class Sequentialization {
   }
 
   private static ImmutableMap<CIdExpression, CIdExpression> mapMutexLockedVars(
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions) {
+      ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
 
     ImmutableMap.Builder<CIdExpression, CIdExpression> rVars = ImmutableMap.builder();
-    for (var entry : pSubstitutions.entrySet()) {
-      MPORThread thread = entry.getKey();
-      ImmutableMap<ThreadEdge, CFAEdge> edgeSubs = entry.getValue().substituteEdges(thread);
+    for (MPORThread thread : pThreads) {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
-        assert edgeSubs.containsKey(threadEdge);
-        CFAEdge sub = edgeSubs.get(threadEdge);
+        assert pSubEdges.containsKey(threadEdge);
+        SubstituteEdge sub = pSubEdges.get(threadEdge);
+        assert sub != null;
         // TODO mutexes can also be init with pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
-        if (PthreadFuncType.callsPthreadFunc(sub, PthreadFuncType.PTHREAD_MUTEX_INIT)) {
-          CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
+        if (PthreadFuncType.callsPthreadFunc(sub.cfaEdge, PthreadFuncType.PTHREAD_MUTEX_INIT)) {
+          CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub.cfaEdge);
           String varName = SeqNameBuilder.createMutexLockedName(pthreadMutexT.getName());
           // TODO it should be wiser to use the original idExpr as the key and not the substitute...
           rVars.put(pthreadMutexT, SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0));
@@ -490,19 +495,19 @@ public class Sequentialization {
   }
 
   private static ImmutableMap<MPORThread, ImmutableMap<CIdExpression, CIdExpression>>
-      mapMutexAwaitsVars(ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions) {
+      mapMutexAwaitsVars(
+          ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
 
     ImmutableMap.Builder<MPORThread, ImmutableMap<CIdExpression, CIdExpression>> rVars =
         ImmutableMap.builder();
-    for (var aEntry : pSubstitutions.entrySet()) {
-      MPORThread thread = aEntry.getKey();
-      ImmutableMap<ThreadEdge, CFAEdge> edgeSubs = aEntry.getValue().substituteEdges(thread);
+    for (MPORThread thread : pThreads) {
       Map<CIdExpression, CIdExpression> awaitVars = new HashMap<>();
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
-        assert edgeSubs.containsKey(threadEdge);
-        CFAEdge sub = edgeSubs.get(threadEdge);
-        if (PthreadFuncType.callsPthreadFunc(sub, PthreadFuncType.PTHREAD_MUTEX_LOCK)) {
-          CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub);
+        assert pSubEdges.containsKey(threadEdge);
+        SubstituteEdge sub = pSubEdges.get(threadEdge);
+        assert sub != null;
+        if (PthreadFuncType.callsPthreadFunc(sub.cfaEdge, PthreadFuncType.PTHREAD_MUTEX_LOCK)) {
+          CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub.cfaEdge);
           // multiple lock calls within one thread to the same mutex are possible -> only need one
           if (!awaitVars.containsKey(pthreadMutexT)) {
             String varName =
@@ -597,11 +602,12 @@ public class Sequentialization {
   // Helpers for better Overview =================================================================
 
   private PthreadVars buildPthreadVars(
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions) {
+      ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
+
     return new PthreadVars(
-        mapThreadActiveVars(pSubstitutions.keySet()),
-        mapMutexLockedVars(pSubstitutions),
-        mapMutexAwaitsVars(pSubstitutions),
-        mapThreadJoinsVars(pSubstitutions.keySet()));
+        mapThreadActiveVars(pThreads),
+        mapMutexLockedVars(pThreads, pSubEdges),
+        mapMutexAwaitsVars(pThreads, pSubEdges),
+        mapThreadJoinsVars(pThreads));
   }
 }

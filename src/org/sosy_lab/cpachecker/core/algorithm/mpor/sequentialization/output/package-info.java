@@ -6,5 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Classes to output the generated sequentialization in {@code .i} files. */
+/** Classes to output the generated sequentialization in files. */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output;

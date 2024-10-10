@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
  * Represents a special CPAchecker case where a {@code const CPAchecker_TMP} variable is declared
@@ -47,8 +48,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
   public SeqConstCpaCheckerTmpStatement(
       CDeclarationEdge pDeclaration,
-      CStatementEdge pStatementA,
-      CStatementEdge pStatementB,
+      SubstituteEdge pStatementA,
+      SubstituteEdge pStatementB,
       CExpressionAssignmentStatement pPcUpdate) {
 
     checkArgument(
@@ -57,18 +58,26 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
     checkArgument(
         SeqUtil.isConstCPAcheckerTMP((CVariableDeclaration) pDeclaration.getDeclaration()),
         "pDeclaration must declare a const __CPAchecker_TMP variable");
+    checkArgument(
+        pStatementA.cfaEdge instanceof CStatementEdge,
+        "pStatementA.cfaEdge must be CStatementEdge");
+    checkArgument(
+        pStatementB.cfaEdge instanceof CStatementEdge,
+        "pStatementB.cfaEdge must be CStatementEdge");
+
+    statementA = (CStatementEdge) pStatementA.cfaEdge;
+    statementB = (CStatementEdge) pStatementB.cfaEdge;
 
     CSimpleDeclaration decA = pDeclaration.getDeclaration();
-    CExpressionStatement stmtB = (CExpressionStatement) pStatementB.getStatement();
+    CExpressionStatement stmtB = (CExpressionStatement) statementB.getStatement();
     CIdExpression idB = (CIdExpression) stmtB.getExpression();
     CSimpleDeclaration decB = idB.getDeclaration();
+
     checkArgument(
         decA.equals(decB),
         "pDeclaration and pStatementB must use the same __CPAchecker_TMP variable");
 
     declaration = pDeclaration;
-    statementA = pStatementA;
-    statementB = pStatementB;
     pcUpdate = pPcUpdate;
   }
 

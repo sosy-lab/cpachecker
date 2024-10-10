@@ -12,21 +12,17 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -38,16 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 
@@ -91,7 +78,7 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     CType exprType = pExpression.getExpressionType();
 
     if (pExpression instanceof CIdExpression idExpr) {
-      if (substitutableDeclaration(idExpr.getDeclaration())) {
+      if (isSubstitutable(idExpr.getDeclaration())) {
         return getVarSub(idExpr.getDeclaration());
       }
 
@@ -180,7 +167,12 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     for (CExpression expr : pFuncCallExpr.getParameterExpressions()) {
       params.add(substitute(expr));
     }
-    return SubstituteBuilder.substituteFunctionCallExpr(pFuncCallExpr, params);
+    return new CFunctionCallExpression(
+        pFuncCallExpr.getFileLocation(),
+        pFuncCallExpr.getExpressionType(),
+        pFuncCallExpr.getFunctionNameExpression(),
+        params,
+        pFuncCallExpr.getDeclaration());
   }
 
   public CReturnStatement substitute(CReturnStatement pRetStmt) {
@@ -193,55 +185,6 @@ public class CSimpleDeclarationSubstitution implements Substitution {
       return new CReturnStatement(
           pRetStmt.getFileLocation(), Optional.of(substitute(expr)), pRetStmt.asAssignment());
     }
-  }
-
-  public ImmutableMap<ThreadEdge, CFAEdge> substituteEdges(MPORThread pThread) {
-    Map<ThreadEdge, CFAEdge> rSubstitutes = new HashMap<>();
-    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      // prevent duplicate keys by excluding parallel edges
-      if (!rSubstitutes.containsKey(threadEdge)) {
-        CFAEdge edge = threadEdge.cfaEdge;
-        CFAEdge substitute = null;
-
-        if (edge instanceof CDeclarationEdge decl) {
-          // TODO what about structs?
-          CDeclaration dec = decl.getDeclaration();
-          if (dec instanceof CVariableDeclaration) {
-            CVariableDeclaration varDec = getVarDecSub(dec);
-            substitute = SubstituteBuilder.substituteDeclarationEdge(decl, varDec);
-          }
-
-        } else if (edge instanceof CAssumeEdge assume) {
-          substitute =
-              SubstituteBuilder.substituteAssumeEdge(assume, substitute(assume.getExpression()));
-
-        } else if (edge instanceof CStatementEdge stmt) {
-          substitute =
-              SubstituteBuilder.substituteStatementEdge(stmt, substitute(stmt.getStatement()));
-
-        } else if (edge instanceof CFunctionSummaryEdge funcSumm) {
-          // only substitute assignments (e.g. CPAchecker_TMP = func();)
-          if (funcSumm.getExpression() instanceof CFunctionCallAssignmentStatement assignStmt) {
-            substitute =
-                SubstituteBuilder.substituteFunctionSummaryEdge(funcSumm, substitute(assignStmt));
-          }
-
-        } else if (edge instanceof CFunctionCallEdge funcCall) {
-          // CFunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here too
-          substitute =
-              SubstituteBuilder.substituteFunctionCallEdge(
-                  funcCall, (CFunctionCall) substitute(funcCall.getFunctionCall()));
-
-        } else if (edge instanceof CReturnStatementEdge retStmt) {
-          substitute =
-              SubstituteBuilder.substituteReturnStatementEdge(
-                  retStmt, substitute(retStmt.getReturnStatement()));
-        }
-
-        rSubstitutes.put(threadEdge, substitute == null ? edge : substitute);
-      }
-    }
-    return ImmutableMap.copyOf(rSubstitutes);
   }
 
   /** Returns the global, local or param {@link CIdExpression} substitute of pDec. */
@@ -279,7 +222,7 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     return (CVariableDeclaration) pSimpleDec;
   }
 
-  private boolean substitutableDeclaration(CSimpleDeclaration pSimpleDec) {
+  private boolean isSubstitutable(CSimpleDeclaration pSimpleDec) {
     return pSimpleDec instanceof CVariableDeclaration
         || pSimpleDec instanceof CParameterDeclaration;
   }
