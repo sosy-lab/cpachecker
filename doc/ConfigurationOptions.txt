@@ -1380,6 +1380,9 @@ cpa.arg.export.code.metadataOutput = no default value
 # when enabled also write invariant true to correctness-witness automata
 cpa.arg.exportTrueInvariants = false
 
+# export correctness witness in YAML format
+cpa.arg.exportYamlCorrectnessWitness = true
+
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
 
@@ -3175,6 +3178,11 @@ cpa.smg2.abstraction.alwaysAtLoop = false
 # threshold for level of determinism, in percent, up-to which abstraction
 # computations are performed (and iteration threshold was reached)
 cpa.smg2.abstraction.determinismThreshold = 85
+
+# toggle liveness abstraction if liveness abstraction is supposed to simply
+# abstract all variables away (invalidating memory) when unused, even if
+# there is valid outside pointers on them.
+cpa.smg2.abstraction.doEnforcePointerInsensitiveLiveness = true
 
 # toggle liveness abstraction. Is independent of CEGAR, but dependent on the
 # CFAs liveness variables being tracked.
@@ -5233,6 +5241,10 @@ witness.considerAssumptions = true
 # the witness, so this options can be used to debug those cases.
 witness.debug.checkForMissedInvariants = false
 
+# Fail if invariants in the witness do not match a unique location in the
+# CFA. This is useful to detect errors in the witness file.
+witness.failOnUnmatchedInvariants = false
+
 # Validate correctness witness by specifying an invariants specification
 # automaton
 witness.invariantsSpecificationAutomaton = NO_ISA
@@ -5308,6 +5320,10 @@ witness.validation.termination.terminatingStatements = "config/specification/Ter
 # When validating a violation witness, use this configuration file instead of
 # the current one.
 witness.validation.violation.config = no default value
+
+# when enabled we also provide an analysis in form of logging output of the
+# likely quality of the produced witnesses
+witness.yamlexporter.analyseWitnessQuality = false
 
 # Export all information contained in the counterexample as a witness.
 witness.yamlexporter.exportCompleteCounterexample = false

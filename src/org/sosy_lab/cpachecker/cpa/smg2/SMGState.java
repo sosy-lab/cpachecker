@@ -1280,7 +1280,7 @@ public class SMGState
 
   @SuppressWarnings("unused")
   private boolean experimentalNestedListFilter(SMGState pOther) {
-    if (!(this.memoryModel.getHeapObjectsMinSize() >= pOther.memoryModel.getHeapObjectsMinSize())) {
+    if (!(memoryModel.getHeapObjectsMinSize() >= pOther.memoryModel.getHeapObjectsMinSize())) {
       return false;
     }
 
@@ -1338,7 +1338,7 @@ public class SMGState
     if (!pOther
         .removeOldConstraints()
         .getConstraints()
-        .containsAll(this.removeOldConstraints().getConstraints())) {
+        .containsAll(removeOldConstraints().getConstraints())) {
       // TODO: Problem: there might still be distinct symbolic values with the same constraints.
       //   => Compare those by location.
       //   Example: imagine a loop, the loop bound may be against a nondet() function,
@@ -1464,6 +1464,24 @@ public class SMGState
   @Nullable SMGState removeOldConstraints() {
     ConstantSymbolicExpressionLocator symIdentVisitor =
         ConstantSymbolicExpressionLocator.getInstance();
+    // There are 3 sources of constraints, values in objects (HVEs), offsets and sizes.
+    // TODO: offsets
+    ImmutableSet.Builder<SymbolicValue> sizeIdentsBuilder = ImmutableSet.builder();
+    for (SMGObject obj : getMemoryModel().getSmg().getObjects()) {
+      Value value = obj.getSize();
+      // Get all symbolic values in sizes (they might not have a SMGValue mapping anymore below!)
+      if (value instanceof SymbolicValue symValue) {
+        for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
+          SymbolicValue usedIdentifier = constSym;
+          if (constSym.getValue() instanceof SymbolicIdentifier symIdent) {
+            usedIdentifier = symIdent;
+          }
+          sizeIdentsBuilder.add(usedIdentifier);
+        }
+      }
+    }
+    ImmutableSet<SymbolicValue> sizeIdents = sizeIdentsBuilder.build();
+
     ImmutableSet.Builder<Constraint> constraints = ImmutableSet.builder();
     // First, get all SMGValues for possible identifier
     Map<SymbolicValue, Set<SMGValue>> identToAllValues = new HashMap<>();
@@ -1496,6 +1514,12 @@ public class SMGState
         if (identifierInConstraint.getValue() instanceof SymbolicIdentifier symIdent) {
           usedIdentifier = symIdent;
         }
+
+        if (sizeIdents.contains(usedIdentifier)) {
+          constraints.add(constraint);
+          break;
+        }
+
         Set<SMGValue> maybeSMGValues =
             identToAllValues.getOrDefault(usedIdentifier, ImmutableSet.of());
         for (SMGValue smgValue : maybeSMGValues) {
@@ -3679,7 +3703,7 @@ public class SMGState
         constraintFactory.checkValidMemoryAccess(
             offsetOfAccessInBits, sizeOfAccessInBits, object.getSize(), calcTypeForMemAccess, this);
 
-    String stackFrameFunctionName = this.getStackFrameTopFunctionName();
+    String stackFrameFunctionName = getStackFrameTopFunctionName();
 
     // Iff SAT -> memory-safety is violated
     return evaluator.checkMemoryConstraintsAreUnsatIndividually(

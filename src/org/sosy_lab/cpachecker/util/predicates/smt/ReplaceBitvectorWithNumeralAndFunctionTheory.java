@@ -258,8 +258,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
         booleanFormulaManager.ifThenElse(
             numericFormulaManager.greaterOrEquals(f2, zero), numericFormulaManager.negate(f2), f2);
 
-    final T mod;
-    mod =
+    final T mod =
         (T)
             ((IntegerFormulaManager) numericFormulaManager)
                 .modulo((IntegerFormula) f1, (IntegerFormula) f2);

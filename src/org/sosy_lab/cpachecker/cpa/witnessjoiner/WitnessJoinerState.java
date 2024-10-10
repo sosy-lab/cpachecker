@@ -38,7 +38,8 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      final FunctionEntryNode pFunctionScope, final CFANode pLocation) throws InterruptedException {
+      final FunctionEntryNode pFunctionScope, final CFANode pLocation)
+      throws InterruptedException, TranslationToExpressionTreeFailedException {
 
     ExpressionTreeFactory<AExpression> factory = ExpressionTrees.newFactory();
     List<ExpressionTree<AExpression>> result = new ArrayList<>();
@@ -57,8 +58,13 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
-      FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, ReportingMethodNotImplementedException {
+      FunctionEntryNode pFunctionScope,
+      CFANode pLocation,
+      AstCfaRelation pAstCfaRelation,
+      boolean useOldKeywordForVariables)
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
     throw new ReportingMethodNotImplementedException(
         "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented in"
             + " 'WitnessJoinerState");
@@ -67,7 +73,9 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-      throws InterruptedException, ReportingMethodNotImplementedException {
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
     throw new ReportingMethodNotImplementedException(
         "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented in"
             + " 'WitnessJoinerState'");

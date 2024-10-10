@@ -2161,7 +2161,7 @@ public class SymbolicProgramConfiguration {
       }
       for (SMGHasValueEdge valueEdge :
           ImmutableList.sortedCopyOf(
-              Comparator.comparing(o -> o.getOffset()), smg.getEdges(memory))) {
+              Comparator.comparing(SMGHasValueEdge::getOffset), smg.getEdges(memory))) {
         SMGValue smgValue = valueEdge.hasValue();
         Preconditions.checkArgument(valueMapping.containsValue(smgValue));
         Value value = valueMapping.inverse().get(smgValue).get();
@@ -2198,21 +2198,16 @@ public class SymbolicProgramConfiguration {
       }
       if (stackframe.getReturnObject().isPresent()) {
         // There is a return object!
-        String retObjString = "";
+        builder.append("\nFunction ").append(funName).append(" return object :");
         if (smg.isValid(stackframe.getReturnObject().orElseThrow())) {
-          retObjString = retObjString + stackframe.getReturnObject().orElseThrow();
+          builder.append(stackframe.getReturnObject().orElseThrow());
         } else {
-          retObjString = retObjString + " invalid " + stackframe.getReturnObject().orElseThrow();
+          builder.append(" invalid ").append(stackframe.getReturnObject().orElseThrow());
         }
-        builder.append("\n");
-        builder
-            .append("Function ")
-            .append(funName)
-            .append(" return object ")
-            .append(":" + retObjString + " with values: ");
+        builder.append(" with values: ");
         for (SMGHasValueEdge valueEdge :
             ImmutableList.sortedCopyOf(
-                Comparator.comparing(o -> o.getOffset()),
+                Comparator.comparing(SMGHasValueEdge::getOffset),
                 smg.getEdges(stackframe.getReturnObject().orElseThrow()))) {
           MemoryLocation memLoc =
               MemoryLocation.fromQualifiedName(
@@ -2261,7 +2256,7 @@ public class SymbolicProgramConfiguration {
               .append("\n");
         }
         for (SMGHasValueEdge valueEdge :
-            ImmutableList.sortedCopyOf(Comparator.comparing(o -> o.getOffset()), edges)) {
+            ImmutableList.sortedCopyOf(Comparator.comparing(SMGHasValueEdge::getOffset), edges)) {
           SMGValue smgValue = valueEdge.hasValue();
           Preconditions.checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
@@ -2297,7 +2292,7 @@ public class SymbolicProgramConfiguration {
       }
       ImmutableList<SMGHasValueEdge> orderedHVes =
           ImmutableList.sortedCopyOf(
-              Comparator.comparing(o -> o.getOffset()),
+              Comparator.comparing(SMGHasValueEdge::getOffset),
               smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true));
 
       builder

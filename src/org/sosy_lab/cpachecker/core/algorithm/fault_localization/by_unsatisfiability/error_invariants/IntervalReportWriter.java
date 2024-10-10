@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.ErrorInvariantsAlgorithm.Interval;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
@@ -33,7 +34,7 @@ public class IntervalReportWriter extends FaultReportWriter {
 
   public IntervalReportWriter(FormulaManagerView pFormulaManager) {
     formulaManager = pFormulaManager;
-    visitor = new FormulaToCVisitor(formulaManager);
+    visitor = new FormulaToCVisitor(formulaManager, Function.identity());
   }
 
   @Override
