@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.ExecutionTrace;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.MPORState;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
@@ -442,6 +443,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     substitutions = SubstituteBuilder.getDecSubstitutions(globalVars, threads, binExprBuilder);
 
     SEQ = new Sequentialization(threads.size(), binExprBuilder);
+
+    SequentializationWriter writer = new SequentializationWriter(LOG_MANAGER, "test_program");
+    writer.write(SEQ.generateProgram(substitutions));
   }
 
   // Preconditions ===============================================================================

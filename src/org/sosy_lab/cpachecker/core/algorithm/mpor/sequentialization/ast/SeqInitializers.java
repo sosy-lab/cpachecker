@@ -31,7 +31,7 @@ public class SeqInitializers {
 
   public static class SeqInitializerList {
 
-    public static CInitializerList EMPTY_LIST =
+    public static final CInitializerList EMPTY_LIST =
         new CInitializerList(FileLocation.DUMMY, ImmutableList.of());
 
     public static CInitializerList buildIntInitializerList(
