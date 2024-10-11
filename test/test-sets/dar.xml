@@ -78,7 +78,8 @@
         <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     </tasks>
     <tasks name="ReachSafety-Heap">
-        <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+        <includesfile>../programs/benchmarks/Heap.set</includesfile>
+        <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         
         <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>

@@ -73,7 +73,8 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/termination-numeric/*.yml</include>
   </tasks>
     <tasks name="HeapReach">
-    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/forester-heap/*</exclude> <!-- only timeout -->
     <exclude>../programs/benchmarks/list-ext2-properties/simple_and_skiplist_2lvl-2.yml</exclude> <!-- flapping timeout/OOM -->
@@ -84,7 +85,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/heap-manipulation/sll_to_dll_rev-2.yml</exclude> <!-- flapping timeout / OOM -->
   </tasks>
   <tasks name="HeapMemSafety">
-    <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <!-- exclude files where several properties are available -->
     <exclude>../programs/benchmarks/list-ext-properties/list-ext.yml</exclude>

@@ -40,7 +40,8 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/openssl/s3_srvr.blast.06.i.cil-2.yml</exclude> <!-- flapping interpolation failure/timeout -->
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>

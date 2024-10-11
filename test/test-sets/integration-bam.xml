@@ -132,7 +132,8 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
   <tasks>
     <option name="--predicateAnalysis-bam"/>
-    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
     <!-- exclude tasks from Forester set -->
     <exclude>../programs/benchmarks/forester-heap/*</exclude>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>

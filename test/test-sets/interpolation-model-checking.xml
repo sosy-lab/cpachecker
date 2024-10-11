@@ -112,7 +112,8 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks name="ReachSafety-HeapReach">
-    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   

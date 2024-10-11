@@ -57,7 +57,8 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/openssl/s3_srvr.*</exclude> <!-- infeasible cex can't be removed -->
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/list-simple/*</exclude> <!-- only timeout -->
     <!-- SV-Comp files assume that malloc always succeeds -->

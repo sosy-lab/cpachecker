@@ -55,7 +55,8 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
 
     <!-- Timeout even after 90s -->
     <exclude>../programs/benchmarks/list-properties/*</exclude>

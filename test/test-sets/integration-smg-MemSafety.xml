@@ -29,7 +29,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks name="HeapMemSafety">
-    <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
     <option name="--smg"/>
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
