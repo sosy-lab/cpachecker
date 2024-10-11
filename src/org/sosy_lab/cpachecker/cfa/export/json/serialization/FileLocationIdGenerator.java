@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.export.json.serialization;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -68,11 +69,9 @@ public class FileLocationIdGenerator extends AbstractStringIdGenerator {
   @Override
   public String generateId(Object pForObject) {
     checkNotNull(pForObject, "The object to generate an ID for must not be null");
-
-    if (!(pForObject instanceof FileLocation)) {
-      throw new IllegalArgumentException(
-          "The object to generate an ID for must be an instance of FileLocation");
-    }
+    checkArgument(
+        (pForObject instanceof FileLocation),
+        "The object to generate an ID for must be an instance of FileLocation");
 
     int value = counter;
     counter++;

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.export.json.serialization;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonExport;
@@ -62,11 +63,9 @@ public class CfaNodeIdGenerator extends AbstractStringIdGenerator {
   @Override
   public String generateId(Object pForObject) {
     checkNotNull(pForObject, "The object to generate an ID for must not be null");
-
-    if (!(pForObject instanceof CFANode)) {
-      throw new IllegalArgumentException(
-          "The object to generate an ID for must be an instance of CFANode");
-    }
+    checkArgument(
+        (pForObject instanceof CFANode),
+        "The object to generate an ID for must be an instance of CFANode");
 
     return "Node_"
         + ((CFANode) pForObject).getNodeNumber()

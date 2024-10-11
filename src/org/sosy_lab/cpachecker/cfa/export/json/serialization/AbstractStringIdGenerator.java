@@ -11,19 +11,11 @@ package org.sosy_lab.cpachecker.cfa.export.json.serialization;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.fasterxml.jackson.annotation.ObjectIdGenerator;
-import java.io.IOException;
-import java.io.NotSerializableException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonExport;
 
 /**
  * This abstract {@link ObjectIdGenerator} provides a base implementation for generating
  * string-based object IDs within a specified scope.
- *
- * <p>Additionally, this class overrides the default serialization and deserialization methods to
- * prevent the generator from being serialized or deserialized, as ObjectIdGenerator implements
- * Serializable.
  *
  * @see CfaJsonExport
  * @see SimpleNameIdGenerator
@@ -93,17 +85,5 @@ public abstract class AbstractStringIdGenerator extends ObjectIdGenerator<String
   @Override
   public Class<?> getScope() {
     return this.scope;
-  }
-
-  /* Custom serialization method to prevent serialization of the generator (ObjectIdGenerator implements Serializable). */
-  @SuppressWarnings("unused")
-  protected void writeObject(ObjectOutputStream pStream) throws IOException {
-    throw new NotSerializableException(getClass().getName());
-  }
-
-  /* Custom deserialization method to prevent deserialization of the generator (ObjectIdGenerator implements Serializable). */
-  @SuppressWarnings("unused")
-  protected void readObject(ObjectInputStream pStream) throws IOException {
-    throw new NotSerializableException(getClass().getName());
   }
 }

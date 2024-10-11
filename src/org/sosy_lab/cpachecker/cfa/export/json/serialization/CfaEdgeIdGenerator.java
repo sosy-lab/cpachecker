@@ -11,6 +11,10 @@ package org.sosy_lab.cpachecker.cfa.export.json.serialization;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.fasterxml.jackson.annotation.ObjectIdGenerator;
+import java.io.IOException;
+import java.io.NotSerializableException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonExport;
@@ -25,6 +29,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  * <p>It is necessary to store the {@link #currentGenerator} because the {@link CfaEdgeIdGenerator}
  * is not directly accessible from custom serializers and its construction is initialized with
  * Jackson annotations and therefore unchangeable.
+ *
+ * <p>Additionally, this class overrides the default serialization and deserialization methods to
+ * prevent the generator from being serialized or deserialized, as ObjectIdGenerator implements
+ * Serializable.
  *
  * @see CfaJsonExport
  * @see CFAEdgeMixin
@@ -124,5 +132,17 @@ public class CfaEdgeIdGenerator extends SimpleNameIdGenerator {
     }
 
     return id;
+  }
+
+  /* Custom serialization method to prevent serialization of the generator (ObjectIdGenerator implements Serializable). */
+  @SuppressWarnings("unused")
+  private void writeObject(ObjectOutputStream pStream) throws IOException {
+    throw new NotSerializableException(getClass().getName());
+  }
+
+  /* Custom deserialization method to prevent deserialization of the generator (ObjectIdGenerator implements Serializable). */
+  @SuppressWarnings("unused")
+  private void readObject(ObjectInputStream pStream) throws IOException {
+    throw new NotSerializableException(getClass().getName());
   }
 }
