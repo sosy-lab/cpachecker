@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.export.json.mixins;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -27,6 +28,6 @@ public final class CTypeDefDeclarationMixin {
       @JsonProperty("fileLocation") FileLocation pFileLocation,
       @JsonProperty("isGlobal") boolean pIsGlobal,
       @JsonProperty("type") CType pType,
-      @JsonProperty("qualifiedName") String pName,
+      @JsonProperty("name") @JsonAlias("origName") String pName,
       @JsonProperty("qualifiedName") String pQualifiedName) {}
 }
