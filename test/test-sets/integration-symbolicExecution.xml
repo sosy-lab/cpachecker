@@ -38,7 +38,7 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/Assertion.spc</propertyfile>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
+    <includesfile>../programs/benchmarks/Floats.set</includesfile>
     <exclude>../programs/benchmarks/floats-cdfpl/*</exclude> <!-- mostly timeouts or close to timeout -->
     <exclude>../programs/benchmarks/float-benchs/sqrt*</exclude> <!-- mostly timeouts or close to timeout -->
     <exclude>../programs/benchmarks/float-benchs/filter*</exclude> <!-- mostly timeouts -->
@@ -76,7 +76,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <exclude>../programs/benchmarks/systemc/token_ring.*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/*</exclude> <!-- mostly timeouts -->
@@ -85,7 +85,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-net-usb-catc.ko.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--*</exclude>

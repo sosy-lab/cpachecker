@@ -152,7 +152,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
   <tasks>
     <option name="--predicateAnalysis-bam"/>
-    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/*lcr-var*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced//pals_floodmax.4.4.ufo.UNBOUNDED.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
@@ -174,7 +174,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--skip-recursion"/>
     <option name="--option">analysis.checkCounterexamples=true</option>
     <option name="--option">counterexample.checker=CBMC</option>
-    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <!-- exclude some files that are nearly identical in complexity and runtime, some of them are timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-*</exclude>

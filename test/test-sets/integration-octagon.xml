@@ -45,7 +45,7 @@ SPDX-License-Identifier: Apache-2.0
       <option name="--option">cpa.octagon.octagonLibrary=INT</option>
   </tasks>
   <tasks>
-      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
       <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
       <option name="--option">OctagonCPA.precision.trackFloatVariables=false</option>

@@ -61,7 +61,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/nla-digbench-scaling/geo3-ll_valuebound2.yml</exclude> <!-- flapping timeout -->
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="--skip-recursion"/>

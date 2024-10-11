@@ -33,7 +33,7 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/Assertion.spc</propertyfile>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
+    <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
     <exclude>../programs/benchmarks/bitvector/gcd_4.yml</exclude> <!-- flapping timeout  -->
     <exclude>../programs/benchmarks/bitvector/modulus-2.yml</exclude> <!-- flapping timeout  -->
     <exclude>../programs/benchmarks/bitvector/parity.yml</exclude> <!-- flapping timeout  -->
@@ -65,7 +65,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="--skip-recursion"/>

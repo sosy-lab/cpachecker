@@ -59,7 +59,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/nla-digbench-scaling/ps2-ll_unwindbound20.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
@@ -74,7 +74,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/systemc/token_ring.10.cil-1.yml</exclude> <!-- flapping timeout -->
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="--skip-recursion"/>

@@ -89,7 +89,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
