@@ -396,7 +396,7 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertModulo() throws InterruptedException {
-      skipTestForSolvers(Solvers.MATHSAT5, Solvers.PRINCESS, Solvers.BITWUZLA);
+      skipTestForSolvers(Solvers.MATHSAT5, Solvers.PRINCESS);
       BooleanFormula formula =
           imgrv.equal(
               imgrv.modulo(imgrv.makeVariable("x"), imgrv.makeNumber(2)), imgrv.makeVariable("y"));
