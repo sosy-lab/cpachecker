@@ -35,6 +35,14 @@ public interface ExpressionTreeReportingState extends AbstractState {
     }
   }
 
+  class TranslationToExpressionTreeFailedException extends Exception {
+    @Serial private static final long serialVersionUID = -12936129745L;
+
+    public TranslationToExpressionTreeFailedException(String pMessage) {
+      super(pMessage);
+    }
+  }
+
   /**
    * Returns an ExpressionTree over-approximating the state.
    *
@@ -42,9 +50,12 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * @param pLocation the formula should at least try to approximate variables referenced by
    *     entering edges
    * @throws InterruptedException if the computation is interrupted
+   * @throws TranslationToExpressionTreeFailedException if the translation to an expression tree
+   *     failed
    */
   ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException;
+      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      throws InterruptedException, TranslationToExpressionTreeFailedException;
 
   /**
    * Returns an ExpressionTree over-approximating the state only considering the variables which are
@@ -54,13 +65,23 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * @param pLocation the formula should at least try to approximate variables referenced by
    *     entering edges at this location
    * @param pAstCfaRelation the relation between the AST and the CFA
+   * @param useOldKeywordForVariables whether to use the old keyword for variables or not. For
+   *     example if true the variable `x` should be denoted by `\old(x)` in the produced ACSL
+   *     formula
    * @return the formula approximation
    * @throws InterruptedException if the computation is interrupted
    * @throws ReportingMethodNotImplementedException if the computation is not implemented
+   * @throws TranslationToExpressionTreeFailedException if the translation to an expression tree
+   *     failed
    */
   ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
-      FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, ReportingMethodNotImplementedException;
+      FunctionEntryNode pFunctionScope,
+      CFANode pLocation,
+      AstCfaRelation pAstCfaRelation,
+      boolean useOldKeywordForVariables)
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException;
 
   /**
    * Only return the formula approximation for the return variable of the function. This means that,
@@ -77,8 +98,12 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * @return the formula approximation
    * @throws InterruptedException if the computation is interrupted
    * @throws ReportingMethodNotImplementedException if the computation is not implemented
+   * @throws TranslationToExpressionTreeFailedException if the translation to an expression tree
+   *     failed
    */
   ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-      throws InterruptedException, ReportingMethodNotImplementedException;
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException;
 }

@@ -688,9 +688,7 @@ public class CFACreator {
    */
   private ParseResult parseToCFAs(final String program)
       throws ParserException, InterruptedException {
-    final ParseResult parseResult;
-
-    parseResult = parser.parseString(Path.of("test"), program);
+    final ParseResult parseResult = parser.parseString(Path.of("test"), program);
     if (parseResult.isEmpty()) {
       switch (language) {
         case JAVA:

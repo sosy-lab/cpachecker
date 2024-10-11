@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
 
 public interface AAstNode extends Serializable {
 
-  public static enum AAstNodeRepresentation {
+  public enum AAstNodeRepresentation {
     DEFAULT, // Do not use qualified names for variables and do not use original names for variables
     QUALIFIED, // use qualified names for variables
     ORIGINAL_NAMES // use original names i.e. for the original program for variables

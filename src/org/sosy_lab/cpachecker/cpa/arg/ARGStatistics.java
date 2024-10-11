@@ -132,6 +132,16 @@ public class ARGStatistics implements Statistics {
   private PathTemplate yamlWitnessOutputFileTemplate =
       PathTemplate.ofFormatString("witness-%s.yml");
 
+  // Since the default of the 'yamlProofWitness' option is not null, it is not possible to
+  // deactivate it in the configs, since when it is 'null' the default value is used, which is not
+  // null. Due to this reason, the 'exportYamlCorrectnessWitness' option is
+  // added to make it possible to deactivate the export.
+  @Option(
+      secure = true,
+      name = "exportYamlCorrectnessWitness",
+      description = "export correctness witness in YAML format")
+  private boolean exportYamlCorrectnessWitness = true;
+
   @Option(
       secure = true,
       description = "when enabled also write invariant true to correctness-witness automata")
@@ -241,13 +251,13 @@ public class ARGStatistics implements Statistics {
         && proofWitnessDot == null
         && pixelGraphicFile == null
         && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))
-        && yamlWitnessOutputFileTemplate == null) {
+        && (!exportYamlCorrectnessWitness || yamlWitnessOutputFileTemplate == null)) {
       exportARG = false;
     }
 
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, pCFA);
 
-    if (yamlWitnessOutputFileTemplate != null) {
+    if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
       argToWitnessWriter = new ARGToYAMLWitnessExport(config, pCFA, pSpecification, pLogger);
     } else {
       argToWitnessWriter = null;
@@ -399,13 +409,14 @@ public class ARGStatistics implements Statistics {
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
 
     for (ARGState rootState : rootStates) {
-      exportARG0(rootState, BiPredicates.pairIn(allTargetPathEdges), pResult);
+      exportARG0(rootState, pReached, BiPredicates.pairIn(allTargetPathEdges), pResult);
     }
   }
 
   @SuppressWarnings("try")
   private void exportARG0(
       final ARGState rootState,
+      final UnmodifiableReachedSet pReached,
       final BiPredicate<ARGState, ARGState> isTargetPathEdge,
       Result pResult) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation =
@@ -423,9 +434,9 @@ public class ARGStatistics implements Statistics {
                 argWitnessExporter.getProofInvariantProvider());
 
         if (cfa.getMetadata().getInputLanguage() == Language.C) {
-          if (yamlWitnessOutputFileTemplate != null && argToWitnessWriter != null) {
+          if (exportYamlCorrectnessWitness && argToWitnessWriter != null) {
             try {
-              argToWitnessWriter.export(rootState, yamlWitnessOutputFileTemplate);
+              argToWitnessWriter.export(rootState, pReached, yamlWitnessOutputFileTemplate);
             } catch (IOException | ReportingMethodNotImplementedException e) {
               logger.logUserException(
                   Level.WARNING,

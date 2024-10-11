@@ -1158,9 +1158,7 @@ public class SMGCPAValueVisitor
         // The precondition is a precondition for get(0) because of no state split
         Preconditions.checkArgument(
             !currentState.getMemoryModel().pointsToZeroPlus(pointerValue.getMemoryAddress()));
-        ValueAndSMGState readValueAndState;
-
-        readValueAndState =
+        ValueAndSMGState readValueAndState =
             evaluator
                 .readValueWithPointerDereference(
                     currentState, pointerValue.getMemoryAddress(), offset, sizeInBits, returnType)
