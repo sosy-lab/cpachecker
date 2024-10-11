@@ -443,7 +443,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     globalVars = getGlobalVars(INPUT_CFA);
     threads = getThreads(INPUT_CFA, funcCallMap);
 
-    substitutions = SubstituteBuilder.getDecSubstitutions(globalVars, threads, binExprBuilder);
+    substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads, binExprBuilder);
 
     SEQ = new Sequentialization(threads.size(), binExprBuilder);
 

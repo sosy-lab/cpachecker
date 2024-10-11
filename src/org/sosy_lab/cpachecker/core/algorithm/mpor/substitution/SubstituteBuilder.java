@@ -40,6 +40,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class SubstituteBuilder {
 
+  // Edge Substitutes ============================================================================
+
   public static ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions) {
 
@@ -207,7 +209,9 @@ public class SubstituteBuilder {
         pOriginal.getSuccessor());
   }
 
-  public static ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> getDecSubstitutions(
+  // Thread Substitutions ========================================================================
+
+  public static ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> buildSubstitutions(
       ImmutableSet<CVariableDeclaration> pGlobalVars,
       ImmutableSet<MPORThread> pThreads,
       CBinaryExpressionBuilder pBinExprBuilder) {

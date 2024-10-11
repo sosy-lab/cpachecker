@@ -49,17 +49,17 @@ public class SeqNameBuilder {
   }
 
   /** Returns a var name of the form {@code __t{pThreadId}_active} */
-  public static String createThreadActiveName(int pThreadId) {
+  public static String buildThreadActiveName(int pThreadId) {
     return SeqPrefix.THREAD_ACTIVE + pThreadId + SeqSyntax.UNDERSCORE + SeqToken.ACTIVE;
   }
 
   /** Returns a var name of the form {@code {pMutexName}_locked} */
-  public static String createMutexLockedName(String pMutexName) {
+  public static String buildMutexLockedName(String pMutexName) {
     return pMutexName + SeqSyntax.UNDERSCORE + SeqToken.LOCKED;
   }
 
   /** Returns a var name of the form {@code __t{pThreadId}_awaits_{pMutexName}} */
-  public static String createMutexLockedName(int pThreadId, String pMutexName) {
+  public static String buildThreadAwaitsMutexName(int pThreadId, String pMutexName) {
     return SeqPrefix.THREAD_AWAITS
         + pThreadId
         + SeqSyntax.UNDERSCORE
@@ -69,7 +69,7 @@ public class SeqNameBuilder {
   }
 
   /** Returns a var name of the form {@code __t{pWaitingId}_joins_t{pTargetId}} */
-  public static String createThreadJoinsName(int pWaitingId, int pTargetId) {
+  public static String buildThreadJoinsThreadName(int pWaitingId, int pTargetId) {
     return SeqPrefix.THREAD_JOINING
         + pWaitingId
         + SeqSyntax.UNDERSCORE

@@ -51,10 +51,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadJoinStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadTerminationStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.FunctionVars;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.helper_vars.PthreadVars;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.ThreadVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -79,7 +79,7 @@ public class SeqUtil {
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
       FunctionVars pFuncVars,
-      PthreadVars pPthreadVars) {
+      ThreadVars pThreadVars) {
 
     pCoveredNodes.add(pThreadNode);
 
@@ -177,7 +177,7 @@ public class SeqUtil {
               CExpressionAssignmentStatement activeAssign =
                   new CExpressionAssignmentStatement(
                       FileLocation.DUMMY,
-                      pPthreadVars.threadActive.get(pThread.id),
+                      pThreadVars.active.get(pThread.id).idExpression,
                       SeqIntegerLiteralExpression.INT_0);
               stmts.add(new SeqThreadTerminationStatement(pThread.id, activeAssign));
 
@@ -201,37 +201,40 @@ public class SeqUtil {
                     PthreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
                 CExpressionAssignmentStatement activeAssign =
                     SeqStatements.buildExprAssign(
-                        pPthreadVars.threadActive.get(thread.id),
+                        pThreadVars.active.get(thread.id).idExpression,
                         SeqIntegerLiteralExpression.INT_1);
                 stmts.add(new SeqThreadCreationStatement(activeAssign, pcUpdate));
                 break;
 
               case PTHREAD_MUTEX_LOCK:
                 CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(sub.cfaEdge);
-                assert pPthreadVars.mutexLocked.containsKey(lockedMutexT);
-                CIdExpression mutexLocked = pPthreadVars.mutexLocked.get(lockedMutexT);
-                assert pPthreadVars.mutexAwaits.containsKey(pThread);
-                assert pPthreadVars.mutexAwaits.get(pThread).containsKey(lockedMutexT);
-                CIdExpression mutexAwaits = pPthreadVars.mutexAwaits.get(pThread).get(lockedMutexT);
+                assert pThreadVars.locked.containsKey(lockedMutexT);
+                CIdExpression mutexLocked = pThreadVars.locked.get(lockedMutexT).idExpression;
+                assert pThreadVars.awaits.containsKey(pThread);
+                assert pThreadVars.awaits.get(pThread).containsKey(lockedMutexT);
+                CIdExpression mutexAwaits =
+                    pThreadVars.awaits.get(pThread).get(lockedMutexT).idExpression;
                 stmts.add(new SeqMutexLockStatement(mutexLocked, mutexAwaits, pcUpdate));
                 break;
 
               case PTHREAD_MUTEX_UNLOCK:
                 CIdExpression unlockedMutexT = PthreadUtil.extractPthreadMutexT(sub.cfaEdge);
-                assert pPthreadVars.mutexLocked.containsKey(unlockedMutexT);
+                assert pThreadVars.locked.containsKey(unlockedMutexT);
                 // assign 0 to locked variable
                 CExpressionAssignmentStatement lockedFalse =
                     SeqStatements.buildExprAssign(
-                        pPthreadVars.mutexLocked.get(unlockedMutexT),
+                        pThreadVars.locked.get(unlockedMutexT).idExpression,
                         SeqIntegerLiteralExpression.INT_0);
                 stmts.add(new SeqMutexUnlockStatement(lockedFalse, pcUpdate));
                 break;
 
               case PTHREAD_JOIN:
                 MPORThread targetThread =
-                    PthreadUtil.extractThread(pPthreadVars.threadJoins.keySet(), edge);
-                CIdExpression targetThreadActive = pPthreadVars.threadActive.get(targetThread.id);
-                CIdExpression threadJoins = pPthreadVars.threadJoins.get(pThread).get(targetThread);
+                    PthreadUtil.extractThread(pThreadVars.joins.keySet(), edge);
+                CIdExpression targetThreadActive =
+                    pThreadVars.active.get(targetThread.id).idExpression;
+                CIdExpression threadJoins =
+                    pThreadVars.joins.get(pThread).get(targetThread).idExpression;
                 stmts.add(new SeqThreadJoinStatement(targetThreadActive, threadJoins, pcUpdate));
                 break;
 
