@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.export.json.deserialization;
 
 import com.fasterxml.jackson.annotation.ObjectIdGenerator;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators.PropertyGenerator;
 import com.fasterxml.jackson.annotation.ObjectIdResolver;
 import com.fasterxml.jackson.annotation.SimpleObjectIdResolver;
 import java.io.IOException;
@@ -48,9 +49,16 @@ public final class PartitionIdResolver extends SimpleObjectIdResolver {
    *
    * @param pId The {@link com.fasterxml.jackson.annotation.ObjectIdGenerator.IdKey} to resolve.
    * @return the resolved object, or null if it cannot be resolved.
+   * @throws IllegalArgumentException if the ID generator was not of type {@link PropertyGenerator}.
+   * @throws IllegalStateException if the object cannot be resolved.
    */
   @Override
   public Object resolveId(ObjectIdGenerator.IdKey pId) {
+    if (pId.type != PropertyGenerator.class) {
+      throw new IllegalArgumentException(
+          "Wrong generator: " + pId.type.getSimpleName() + " is not PropertyGenerator");
+    }
+
     if (this._items == null) {
       this._items = new HashMap<>();
     }

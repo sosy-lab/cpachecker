@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonImport;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CFAEdgeMixin;
+import org.sosy_lab.cpachecker.cfa.export.json.serialization.CfaEdgeIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
@@ -26,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  *
  * @see CfaJsonImport
  * @see CFAEdgeMixin
+ * @see CfaEdgeIdGenerator
  * @see EdgeToPartitionsDeserializer
  * @see PartitionsDeserializer
  */
@@ -52,13 +54,20 @@ public final class CfaEdgeIdResolver extends SimpleObjectIdResolver {
   /**
    * Binds an item to an ID.
    *
-   * <p>It makes sure that the key is a String and the item is a CFAEdge.
+   * <p>It only allows objects which had a {@link CfaEdgeIdGenerator} as their ID generator.
+   *
+   * <p>It makes sure that the key is a {@link String} and the item is a {@link CFAEdge}.
    *
    * @param pId The ID.
    * @param pItem The object to bind.
    */
   @Override
   public void bindItem(IdKey pId, Object pItem) {
+    if (pId.type != CfaEdgeIdGenerator.class) {
+      throw new IllegalArgumentException(
+          "Wrong generator: " + pId.type.getSimpleName() + " is not CfaEdgeIdGenerator");
+    }
+
     if (pId.key.getClass() != String.class) {
       throw new IllegalArgumentException(
           "Wrong key: " + pId.key.getClass().getSimpleName() + " is not a String");
