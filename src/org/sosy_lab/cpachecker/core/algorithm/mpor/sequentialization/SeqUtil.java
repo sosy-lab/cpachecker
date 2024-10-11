@@ -51,6 +51,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadJoinStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadTerminationStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionParameterAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcRetrieval;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcStorage;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
@@ -94,9 +98,9 @@ public class SeqUtil {
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
       // handle all CFunctionReturnEdges: exiting function -> pc not relevant, assign return pc
       assert pFuncVars.returnPcRetrievals.containsKey(pThreadNode);
-      CExpressionAssignmentStatement assign = pFuncVars.returnPcRetrievals.get(pThreadNode);
-      assert assign != null;
-      stmts.add(new SeqReturnPcRetrievalStatement(assign));
+      FunctionReturnPcRetrieval retrieval = pFuncVars.returnPcRetrievals.get(pThreadNode);
+      assert retrieval != null;
+      stmts.add(new SeqReturnPcRetrievalStatement(retrieval.assignmentStatement));
 
     } else {
       boolean firstEdge = true;
@@ -126,25 +130,25 @@ public class SeqUtil {
           } else if (sub.cfaEdge instanceof CFunctionSummaryEdge) {
             assert pThreadNode.leavingEdges().size() >= 2;
             assert pFuncVars.returnPcStorages.containsKey(threadEdge);
-            CExpressionAssignmentStatement assign = pFuncVars.returnPcStorages.get(threadEdge);
-            assert assign != null;
-            stmts.add(new SeqReturnPcStorageStatement(assign));
+            FunctionReturnPcStorage storage = pFuncVars.returnPcStorages.get(threadEdge);
+            assert storage != null;
+            stmts.add(new SeqReturnPcStorageStatement(storage.assignmentStatement));
 
           } else if (sub.cfaEdge instanceof CFunctionCallEdge) {
             assert pThreadNode.leavingEdges().size() >= 2;
-            assert pFuncVars.paramAssigns.containsKey(threadEdge);
-            ImmutableList<CExpressionAssignmentStatement> assigns =
-                pFuncVars.paramAssigns.get(threadEdge);
+            assert pFuncVars.parameterAssignments.containsKey(threadEdge);
+            ImmutableList<FunctionParameterAssignment> assigns =
+                pFuncVars.parameterAssignments.get(threadEdge);
             assert assigns != null;
             if (assigns.isEmpty()) {
               stmts.add(new SeqBlankStatement(pcUpdate, targetPc));
             } else {
               for (int i = 0; i < assigns.size(); i++) {
-                CExpressionAssignmentStatement assign = assigns.get(i);
+                FunctionParameterAssignment assign = assigns.get(i);
                 // if this is the last param assign, add the pcUpdate, otherwise empty
                 stmts.add(
                     new SeqParameterAssignStatement(
-                        assign,
+                        assign.statement,
                         i == assigns.size() - 1 ? Optional.of(pcUpdate) : Optional.empty()));
               }
             }
@@ -171,7 +175,7 @@ public class SeqUtil {
             stmts.add(new SeqConstCpaCheckerTmpStatement(decEdge, subA, subB, skippedPcUpdate));
 
           } else if (sub.cfaEdge instanceof CReturnStatementEdge retStmt) {
-            assert pFuncVars.returnStmts.containsKey(threadEdge);
+            assert pFuncVars.returnValueAssignments.containsKey(threadEdge);
             if (retStmt.getSuccessor().getFunction().getType().equals(pThread.startRoutine)) {
               // exiting thread -> assign 0 to thread_active var if possible and set exit pc
               CExpressionAssignmentStatement activeAssign =
@@ -183,12 +187,12 @@ public class SeqUtil {
 
             } else {
               // returning from any other function: assign return value to all return vars
-              ImmutableSet<CExpressionAssignmentStatement> assigns =
-                  pFuncVars.returnStmts.get(threadEdge);
+              ImmutableSet<FunctionReturnValueAssignment> assigns =
+                  pFuncVars.returnValueAssignments.get(threadEdge);
               assert assigns != null;
               // TODO need to create a switch case to only assign the context return value!
-              for (CExpressionAssignmentStatement assign : assigns) {
-                stmts.add(new SeqReturnValueAssignStatement(assign, pcUpdate));
+              for (FunctionReturnValueAssignment assign : assigns) {
+                stmts.add(new SeqReturnValueAssignStatement(assign.statement, pcUpdate));
               }
             }
 

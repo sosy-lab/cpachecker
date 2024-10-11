@@ -18,16 +18,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -45,13 +43,16 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDecl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionParameterAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcRetrieval;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcStorage;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
@@ -118,8 +119,8 @@ public class Sequentialization {
     }
     rProgram.append(SeqSyntax.NEWLINE);
 
-    // add pthread control vars
-    rProgram.append(SeqComment.createPthreadVarsComment());
+    // add thread control vars
+    rProgram.append(SeqComment.createThreadVarsComment());
     ImmutableMap<ThreadEdge, SubstituteEdge> subEdges =
         SubstituteBuilder.substituteEdges(pSubstitutions);
     ThreadVars threadVars = buildThreadVars(pSubstitutions.keySet(), subEdges);
@@ -165,7 +166,7 @@ public class Sequentialization {
   }
 
   /** Maps threads to the case clauses they potentially execute. */
-  private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> mapCaseClauses(
+  private ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> mapCaseClauses(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
       ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> pReturnPcVars,
@@ -179,18 +180,6 @@ public class Sequentialization {
 
       ImmutableList.Builder<SeqCaseClause> caseClauses = ImmutableList.builder();
 
-      // function handling
-      ImmutableMap<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>> paramAssigns =
-          mapParamAssigns(thread, pSubEdges, substitution);
-      ImmutableMap<ThreadEdge, ImmutableSet<CExpressionAssignmentStatement>> returnStmts =
-          mapReturnStmts(thread, pSubEdges);
-      ImmutableMap<ThreadEdge, CExpressionAssignmentStatement> returnPcStorages =
-          mapReturnPcStorages(thread, pReturnPcVars.get(thread));
-      ImmutableMap<ThreadNode, CExpressionAssignmentStatement> returnPcRetrievals =
-          mapReturnPcRetrievals(thread, pReturnPcVars.get(thread));
-      FunctionVars funcVars =
-          new FunctionVars(paramAssigns, returnStmts, returnPcStorages, returnPcRetrievals);
-
       Set<ThreadNode> coveredNodes = new HashSet<>();
 
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
@@ -202,7 +191,7 @@ public class Sequentialization {
                   coveredNodes,
                   threadNode,
                   pSubEdges,
-                  funcVars,
+                  buildFunctionVars(thread, substitution, pSubEdges, pReturnPcVars),
                   pThreadVars);
           if (caseClause != null) {
             caseClauses.add(caseClause);
@@ -287,92 +276,7 @@ public class Sequentialization {
     throw new IllegalArgumentException("pCurrent statements are empty");
   }
 
-  /**
-   * Maps {@link ThreadEdge}s whose {@link CFAEdge}s are {@link CFunctionCallEdge}s to a list of
-   * {@link CExpressionAssignmentStatement}s.
-   *
-   * <p>E.g. {@code func(&paramA, paramB);} in thread 0 is linked to {@code __t0_0_paramA = &paramA
-   * ;} and {@code __t0_1_paramB = paramB ;}. Both substitution vars are declared in {@link
-   * CSimpleDeclarationSubstitution#paramSubs}.
-   */
-  private static ImmutableMap<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>>
-      mapParamAssigns(
-          MPORThread pThread,
-          ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
-          CSimpleDeclarationSubstitution pSub) {
-
-    ImmutableMap.Builder<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>> rAssigns =
-        ImmutableMap.builder();
-
-    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      SubstituteEdge sub = pSubEdges.get(threadEdge);
-      assert sub != null;
-      if (sub.cfaEdge instanceof CFunctionCallEdge funcCall) {
-
-        ImmutableList.Builder<CExpressionAssignmentStatement> assigns = ImmutableList.builder();
-        List<CParameterDeclaration> paramDecs =
-            funcCall.getSuccessor().getFunctionDefinition().getParameters();
-
-        // for each parameter, assign the param substitute to the param expression in funcCall
-        for (int i = 0; i < paramDecs.size(); i++) {
-          CParameterDeclaration paramDec = paramDecs.get(i);
-          assert pSub.paramSubs != null;
-          CExpression paramExpr =
-              funcCall.getFunctionCallExpression().getParameterExpressions().get(i);
-          CIdExpression paramSub = pSub.paramSubs.get(paramDec);
-          assert paramSub != null;
-          CExpressionAssignmentStatement assign =
-              SeqExpressions.buildExprAssignStmt(paramSub, paramExpr);
-          assigns.add(assign);
-        }
-        rAssigns.put(threadEdge, assigns.build());
-      }
-    }
-    return rAssigns.buildOrThrow();
-  }
-
-  // TODO make sure to only assign the value from the original calling context!
-  //  create a class that stores the return_pc value, then create a switch case over it
-  /**
-   * Maps {@link ThreadEdge}s whose {@link CFAEdge}s are {@link CReturnStatementEdge}s to {@link
-   * CExpressionAssignmentStatement} where the CPAchecker_TMP vars are assigned the return value.
-   *
-   * <p>Note that {@code main} functions and start routines of threads oftentimes do not have
-   * corresponding {@link CFunctionSummaryEdge}s.
-   */
-  private static ImmutableMap<ThreadEdge, ImmutableSet<CExpressionAssignmentStatement>>
-      mapReturnStmts(MPORThread pThread, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
-
-    ImmutableMap.Builder<ThreadEdge, ImmutableSet<CExpressionAssignmentStatement>> rRetStmts =
-        ImmutableMap.builder();
-    for (ThreadEdge aThreadEdge : pThread.cfa.threadEdges) {
-      SubstituteEdge aSub = pSubEdges.get(aThreadEdge);
-      assert aSub != null;
-
-      if (aSub.cfaEdge instanceof CReturnStatementEdge retStmt) {
-        AFunctionType aFunc = retStmt.getSuccessor().getFunction().getType();
-        ImmutableSet.Builder<CExpressionAssignmentStatement> assigns = ImmutableSet.builder();
-        for (ThreadEdge bThreadEdge : pThread.cfa.threadEdges) {
-          SubstituteEdge bSub = pSubEdges.get(bThreadEdge);
-          assert bSub != null;
-
-          if (bSub.cfaEdge instanceof CFunctionSummaryEdge funcSumm) {
-            // if the summary edge is of the form CPAchecker_TMP = func(); (i.e. an assignment)
-            if (funcSumm.getExpression() instanceof CFunctionCallAssignmentStatement assignStmt) {
-              AFunctionType bFunc = funcSumm.getFunctionEntry().getFunction().getType();
-              if (aFunc.equals(bFunc)) {
-                assigns.add(
-                    SeqExpressions.buildExprAssignStmt(
-                        assignStmt.getLeftHandSide(), retStmt.getExpression().orElseThrow()));
-              }
-            }
-          }
-        }
-        rRetStmts.put(aThreadEdge, assigns.build());
-      }
-    }
-    return rRetStmts.buildOrThrow();
-  }
+  // FunctionVars ================================================================================
 
   /**
    * Maps {@link CFunctionDeclaration}s to {@code return_pc} {@link CIdExpression}s for all threads.
@@ -397,46 +301,140 @@ public class Sequentialization {
     return rVars.buildOrThrow();
   }
 
+  /**
+   * Maps {@link ThreadEdge}s whose {@link CFAEdge} is a {@link CFunctionCallEdge} to a list of
+   * {@link FunctionParameterAssignment}s.
+   *
+   * <p>E.g. {@code func(&paramA, paramB);} in thread 0 is linked to {@code __t0_0_paramA = &paramA
+   * ;} and {@code __t0_1_paramB = paramB ;}. Both substitution vars are declared in {@link
+   * CSimpleDeclarationSubstitution#paramSubs}.
+   */
+  private static ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
+      mapParameterAssignments(
+          MPORThread pThread,
+          ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
+          CSimpleDeclarationSubstitution pSub) {
+
+    ImmutableMap.Builder<ThreadEdge, ImmutableList<FunctionParameterAssignment>> rAssigns =
+        ImmutableMap.builder();
+
+    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
+      SubstituteEdge sub = pSubEdges.get(threadEdge);
+      assert sub != null;
+      if (sub.cfaEdge instanceof CFunctionCallEdge funcCall) {
+
+        ImmutableList.Builder<FunctionParameterAssignment> assigns = ImmutableList.builder();
+        List<CParameterDeclaration> paramDecs =
+            funcCall.getSuccessor().getFunctionDefinition().getParameters();
+
+        // for each parameter, assign the param substitute to the param expression in funcCall
+        for (int i = 0; i < paramDecs.size(); i++) {
+          CParameterDeclaration paramDec = paramDecs.get(i);
+          assert pSub.paramSubs != null;
+          CExpression paramExpr =
+              funcCall.getFunctionCallExpression().getParameterExpressions().get(i);
+          CIdExpression paramSub = pSub.paramSubs.get(paramDec);
+          assert paramSub != null;
+          FunctionParameterAssignment parameterAssignment =
+              new FunctionParameterAssignment(
+                  SeqExpressions.buildExprAssignStmt(paramSub, paramExpr));
+          assigns.add(parameterAssignment);
+        }
+        rAssigns.put(threadEdge, assigns.build());
+      }
+    }
+    return rAssigns.buildOrThrow();
+  }
+
+  // TODO make sure to only assign the value from the original calling context!
+  //  create a class that stores the return_pc value, then create a switch case over it
+  /**
+   * Maps {@link ThreadEdge}s whose {@link CFAEdge} is a {@link CReturnStatementEdge} to {@link
+   * FunctionReturnValueAssignment}s where the CPAchecker_TMP vars are assigned the return value.
+   *
+   * <p>Note that {@code main} functions and start routines of threads oftentimes do not have
+   * corresponding {@link CFunctionSummaryEdge}s.
+   */
+  private static ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
+      mapReturnValueAssignments(
+          MPORThread pThread,
+          ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
+          ImmutableMap<ThreadEdge, FunctionReturnPcStorage> pReturnPcStorages) {
+
+    ImmutableMap.Builder<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>> rRetStmts =
+        ImmutableMap.builder();
+    for (ThreadEdge aThreadEdge : pThread.cfa.threadEdges) {
+      SubstituteEdge aSub = pSubEdges.get(aThreadEdge);
+      assert aSub != null;
+
+      if (aSub.cfaEdge instanceof CReturnStatementEdge returnStmtEdge) {
+        ImmutableSet.Builder<FunctionReturnValueAssignment> assigns = ImmutableSet.builder();
+        for (ThreadEdge bThreadEdge : pThread.cfa.threadEdges) {
+          SubstituteEdge bSub = pSubEdges.get(bThreadEdge);
+          assert bSub != null;
+
+          if (bSub.cfaEdge instanceof CFunctionSummaryEdge funcSumm) {
+            // if the summary edge is of the form value = func(); (i.e. an assignment)
+            if (funcSumm.getExpression() instanceof CFunctionCallAssignmentStatement assignStmt) {
+              AFunctionDeclaration aFuncDec = returnStmtEdge.getSuccessor().getFunction();
+              AFunctionType aFunc = aFuncDec.getType();
+              AFunctionType bFunc = funcSumm.getFunctionEntry().getFunction().getType();
+              if (aFunc.equals(bFunc)) {
+                assert aFuncDec instanceof CFunctionDeclaration;
+                FunctionReturnValueAssignment assign =
+                    new FunctionReturnValueAssignment(
+                        pReturnPcStorages.get(bThreadEdge),
+                        assignStmt.getLeftHandSide(),
+                        returnStmtEdge.getExpression().orElseThrow());
+                assigns.add(assign);
+              }
+            }
+          }
+        }
+        rRetStmts.put(aThreadEdge, assigns.build());
+      }
+    }
+    return rRetStmts.buildOrThrow();
+  }
+
   // TODO the major problem here is that if we assign a pc that is pruned later, the assignment
   //  results the case not being matched because the origin pc is pruned --> the program stops.
   //  before pruning, we should assert that the pc assigned does not point to a blank statement
   /**
-   * Maps {@link ThreadEdge}s whose {@link CFAEdge}s are {@link CFunctionSummaryEdge}s to {@code
-   * return_pc} assignments.
+   * Maps {@link ThreadEdge}s whose {@link CFAEdge} is a {@link CFunctionSummaryEdge}s to {@link
+   * FunctionReturnPcStorage}s.
    *
    * <p>E.g. a {@link CFunctionSummaryEdge} going from pc 5 to 10 for the function {@code fib} in
-   * thread 0 is mapped to the assignment {@code __return_pc_t0_fib = 10;}.
+   * thread 0 is mapped to the storage with the assignment {@code __return_pc_t0_fib = 10;}.
    */
-  private static ImmutableMap<ThreadEdge, CExpressionAssignmentStatement> mapReturnPcStorages(
+  private static ImmutableMap<ThreadEdge, FunctionReturnPcStorage> mapReturnPcStorages(
       MPORThread pThread, ImmutableMap<CFunctionDeclaration, CIdExpression> pReturnPcVars) {
 
-    ImmutableMap.Builder<ThreadEdge, CExpressionAssignmentStatement> rAssigns =
-        ImmutableMap.builder();
+    ImmutableMap.Builder<ThreadEdge, FunctionReturnPcStorage> rAssigns = ImmutableMap.builder();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
         CFunctionDeclaration function = funcSummary.getFunctionEntry().getFunctionDefinition();
         CIdExpression returnPc = pReturnPcVars.get(function);
         assert returnPc != null;
-        CIntegerLiteralExpression pc =
-            SeqIntegerLiteralExpression.buildIntLiteralExpr(threadEdge.getSuccessor().pc);
-        CExpressionAssignmentStatement assign = SeqExpressions.buildExprAssignStmt(returnPc, pc);
-        rAssigns.put(threadEdge, assign);
+        FunctionReturnPcStorage returnPcStorage =
+            new FunctionReturnPcStorage(returnPc, threadEdge.getSuccessor().pc);
+        rAssigns.put(threadEdge, returnPcStorage);
       }
     }
     return rAssigns.buildOrThrow();
   }
 
   /**
-   * Maps {@link ThreadNode}s whose {@link CFANode}s are {@link FunctionExitNode}s to {@code
-   * return_pc} variable assignments.
+   * Maps {@link ThreadNode}s whose {@link CFANode} is a {@link FunctionExitNode} to {@link
+   * FunctionReturnPcRetrieval}s.
    *
    * <p>E.g. a {@link FunctionExitNode} for the function {@code fib} in thread 0 is mapped to the
    * assignment {@code pc[0] = __return_pc_t0_fib;}.
    */
-  private static ImmutableMap<ThreadNode, CExpressionAssignmentStatement> mapReturnPcRetrievals(
+  private static ImmutableMap<ThreadNode, FunctionReturnPcRetrieval> mapReturnPcRetrievals(
       MPORThread pThread, ImmutableMap<CFunctionDeclaration, CIdExpression> pReturnPcVars) {
 
-    Map<ThreadNode, CExpressionAssignmentStatement> rAssigns = new HashMap<>();
+    Map<ThreadNode, FunctionReturnPcRetrieval> rAssigns = new HashMap<>();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
         Optional<FunctionExitNode> funcExitNode = funcSummary.getFunctionEntry().getExitNode();
@@ -445,18 +443,17 @@ public class Sequentialization {
           CIdExpression returnPc = pReturnPcVars.get(function);
           ThreadNode threadNode = pThread.cfa.getThreadNodeByCfaNode(funcExitNode.orElseThrow());
           if (!rAssigns.containsKey(threadNode)) {
-            CIntegerLiteralExpression threadId =
-                SeqIntegerLiteralExpression.buildIntLiteralExpr(pThread.id);
-            CArraySubscriptExpression pcArray = SeqExpressions.buildPcSubscriptExpr(threadId);
-            CExpressionAssignmentStatement assign =
-                SeqExpressions.buildExprAssignStmt(pcArray, returnPc);
-            rAssigns.put(threadNode, assign);
+            FunctionReturnPcRetrieval returnPcRetrieval =
+                new FunctionReturnPcRetrieval(pThread.id, returnPc);
+            rAssigns.put(threadNode, returnPcRetrieval);
           }
         }
       }
     }
     return ImmutableMap.copyOf(rAssigns);
   }
+
+  // ThreadVars ==================================================================================
 
   /**
    * Creates and returns a list of {@code __t{thread_id}_active} variables, indexed by their {@link
@@ -614,5 +611,20 @@ public class Sequentialization {
         mapMutexLockedVars(pThreads, pSubEdges),
         mapThreadAwaitsMutexVars(pThreads, pSubEdges),
         mapThreadJoinsThreadVars(pThreads));
+  }
+
+  private FunctionVars buildFunctionVars(
+      MPORThread pThread,
+      CSimpleDeclarationSubstitution pSubstitution,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
+      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> pReturnPcVars) {
+
+    ImmutableMap<ThreadEdge, FunctionReturnPcStorage> returnPcStorages =
+        mapReturnPcStorages(pThread, pReturnPcVars.get(pThread));
+    return new FunctionVars(
+        mapParameterAssignments(pThread, pSubEdges, pSubstitution),
+        mapReturnValueAssignments(pThread, pSubEdges, returnPcStorages),
+        returnPcStorages,
+        mapReturnPcRetrievals(pThread, pReturnPcVars.get(pThread)));
   }
 }

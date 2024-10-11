@@ -68,11 +68,9 @@ public class SeqComment {
         + SeqSyntax.NEWLINE;
   }
 
-  public static String createPthreadVarsComment() {
+  public static String createThreadVarsComment() {
     return COMMENT_SINGLE
-        + SeqCommentToken.PTHREAD
-        + SeqSyntax.SPACE
-        + SeqCommentToken.METHOD
+        + SeqCommentToken.THREAD
         + SeqSyntax.SPACE
         + SeqCommentToken.SIMULATION
         + SeqSyntax.SPACE

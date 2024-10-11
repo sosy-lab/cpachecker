@@ -706,7 +706,7 @@ int __return_pc_t1_empty = 0;
 int __return_pc_t2_reach_error = 0;
 int __return_pc_t2_dequeue = 0;
 
-// pthread method simulation variables
+// thread simulation variables
 int __t0_active = 1;
 int __t1_active = 0;
 int __t2_active = 0;

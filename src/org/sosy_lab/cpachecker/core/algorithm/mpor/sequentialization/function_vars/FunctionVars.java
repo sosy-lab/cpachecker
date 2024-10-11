@@ -11,28 +11,30 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_v
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 
 public class FunctionVars {
 
-  public final ImmutableMap<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>> paramAssigns;
+  public final ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
+      parameterAssignments;
 
-  public final ImmutableMap<ThreadEdge, ImmutableSet<CExpressionAssignmentStatement>> returnStmts;
+  // TODO store respective ReturnPc storage here
+  public final ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
+      returnValueAssignments;
 
-  public final ImmutableMap<ThreadEdge, CExpressionAssignmentStatement> returnPcStorages;
+  public final ImmutableMap<ThreadEdge, FunctionReturnPcStorage> returnPcStorages;
 
-  public final ImmutableMap<ThreadNode, CExpressionAssignmentStatement> returnPcRetrievals;
+  public final ImmutableMap<ThreadNode, FunctionReturnPcRetrieval> returnPcRetrievals;
 
   public FunctionVars(
-      ImmutableMap<ThreadEdge, ImmutableList<CExpressionAssignmentStatement>> pParamAssigns,
-      ImmutableMap<ThreadEdge, ImmutableSet<CExpressionAssignmentStatement>> pReturnStmts,
-      ImmutableMap<ThreadEdge, CExpressionAssignmentStatement> pReturnPcStorages,
-      ImmutableMap<ThreadNode, CExpressionAssignmentStatement> pReturnPcRetrievals) {
+      ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>> pParameterAssignments,
+      ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>> pReturnValueAssignments,
+      ImmutableMap<ThreadEdge, FunctionReturnPcStorage> pReturnPcStorages,
+      ImmutableMap<ThreadNode, FunctionReturnPcRetrieval> pReturnPcRetrievals) {
 
-    paramAssigns = pParamAssigns;
-    returnStmts = pReturnStmts;
+    parameterAssignments = pParameterAssignments;
+    returnValueAssignments = pReturnValueAssignments;
     returnPcStorages = pReturnPcStorages;
     returnPcRetrievals = pReturnPcRetrievals;
   }
