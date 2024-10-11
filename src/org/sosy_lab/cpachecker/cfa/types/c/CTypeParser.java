@@ -218,7 +218,10 @@ public class CTypeParser {
 
           enumerators.add(
               new CEnumerator(
-                  FileLocation.DUMMY, enumeratorName, name + "::" + enumeratorName, BigInteger.valueOf(value)));
+                  FileLocation.DUMMY,
+                  enumeratorName,
+                  name + "::" + enumeratorName,
+                  BigInteger.valueOf(value)));
         }
       }
     }

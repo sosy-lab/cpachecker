@@ -407,8 +407,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     }
   }
 
-  private void writeAllMessages(List<BlockSummaryMessage> response)
-      throws IOException {
+  private void writeAllMessages(List<BlockSummaryMessage> response) throws IOException {
     MessageConverter converter = new MessageConverter();
     int messageCount = 0;
     for (BlockSummaryMessage blockSummaryMessage : response) {
