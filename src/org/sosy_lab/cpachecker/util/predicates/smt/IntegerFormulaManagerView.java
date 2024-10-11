@@ -19,11 +19,15 @@ public class IntegerFormulaManagerView
     extends NumeralFormulaManagerView<IntegerFormula, IntegerFormula>
     implements IntegerFormulaManager {
   private final IntegerFormulaManager integerFormulaManager;
+  private final BooleanFormulaManager booleanFormulaManager;
 
   IntegerFormulaManagerView(
-      FormulaWrappingHandler pWrappingHandler, IntegerFormulaManager pManager) {
+      FormulaWrappingHandler pWrappingHandler,
+      IntegerFormulaManager pManager,
+      BooleanFormulaManager pBooleanFormulaManager) {
     super(pWrappingHandler, pManager);
     integerFormulaManager = pManager;
+    booleanFormulaManager = pBooleanFormulaManager;
   }
 
   @Override
@@ -59,16 +63,12 @@ public class IntegerFormulaManagerView
    *     signed true for the BV equivalent.
    * @param dividend the formula used as the dividend of the operation.
    * @param divisor the formula used as the divisor of the operation.
-   * @param bmgr {@link BooleanFormulaManager} needed for the creation of the formula.
    * @return the remainder of the 2 given formulas.
    */
-  public IntegerFormula remainder(
-      final IntegerFormula dividend,
-      final IntegerFormula divisor,
-      final BooleanFormulaManager bmgr) {
+  public IntegerFormula remainder(final IntegerFormula dividend, final IntegerFormula divisor) {
     final IntegerFormula zero = makeNumber(0);
     final IntegerFormula additionalUnit =
-        bmgr.ifThenElse(greaterOrEquals(divisor, zero), negate(divisor), divisor);
+        booleanFormulaManager.ifThenElse(greaterOrEquals(divisor, zero), negate(divisor), divisor);
 
     final IntegerFormula mod = modulo(dividend, divisor);
 
@@ -77,7 +77,9 @@ public class IntegerFormulaManagerView
     // ELSE modulo and add an additional unit towards the nearest infinity.
 
     // This resembles C99/C11/Java closely but not 100%
-    return bmgr.ifThenElse(
-        bmgr.or(greaterOrEquals(dividend, zero), equal(mod, zero)), mod, add(mod, additionalUnit));
+    return booleanFormulaManager.ifThenElse(
+        booleanFormulaManager.or(greaterOrEquals(dividend, zero), equal(mod, zero)),
+        mod,
+        add(mod, additionalUnit));
   }
 }
