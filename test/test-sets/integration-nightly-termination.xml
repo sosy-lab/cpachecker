@@ -55,7 +55,17 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
   </tasks>
   <tasks name="Termination-Other">
-    <includesfile>../programs/benchmarks/Termination-Other.set</includesfile>
+    <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+    <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <includesfile>../programs/benchmarks/Floats.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
   </tasks>
 </benchmark>

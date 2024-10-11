@@ -40,7 +40,10 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--option">termination.violation.witness=witness.graphml</option>
 
   <tasks name="MemSafety-Arrays">
-    <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
+    <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
   <tasks name="MemSafety-Heap">
@@ -53,7 +56,10 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
   <tasks name="MemSafety-Other">
-    <includesfile>../programs/benchmarks/MemSafety-Other.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
   <tasks name="MemSafety-Juliet">

@@ -36,7 +36,10 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks name="ArraysMemSafety">
-    <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
+    <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
     <option name="--smg"/>
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
