@@ -170,7 +170,8 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
   <tasks name="MemSafety-Juliet">
-    <includesfile>../programs/benchmarks/MemSafety-Juliet.set</includesfile>
+    <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+    <exclude>../programs/benchmarks/Juliet_Test/*_bad.yml</exclude> <!-- missing subproperties -->
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
