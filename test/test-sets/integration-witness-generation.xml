@@ -30,7 +30,7 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <tasks name="ConcurrencySafety-Main">
-    <includesfile>../programs/benchmarks/ConcurrencySafety-Main.set</includesfile>
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- exclude some files to keep the integration set smaller.
          We actually want to use only a whitelist of files matching

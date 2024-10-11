@@ -100,7 +100,7 @@ SPDX-License-Identifier: Apache-2.0
   ?>
 
   <tasks name="ReachSafety-ArraysReach">
-    <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
+    <includesfile>../programs/benchmarks/Arrays.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 

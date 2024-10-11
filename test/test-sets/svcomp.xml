@@ -41,7 +41,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <rundefinition name="SV-COMP24_unreach-call">
   <tasks name="ReachSafety-Arrays">
-    <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
+    <includesfile>../programs/benchmarks/Arrays.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ReachSafety-BitVectors">
@@ -94,7 +94,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks name="ConcurrencySafety-Main">
-    <includesfile>../programs/benchmarks/ConcurrencySafety-Main.set</includesfile>
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
@@ -107,7 +107,7 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="SoftwareSystems-coreutils-ReachSafety">
-    <includesfile>../programs/benchmarks/SoftwareSystems-coreutils-ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
@@ -127,7 +127,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <rundefinition name="SV-COMP24_no-data-race">
   <tasks name="NoDataRace-Main">
-    <includesfile>../programs/benchmarks/NoDataRace-Main.set</includesfile>
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-data-race.prp</propertyfile>
   </tasks>
 </rundefinition>
@@ -183,7 +183,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks name="ConcurrencySafety-MemSafety">
-    <includesfile>../programs/benchmarks/ConcurrencySafety-MemSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 </rundefinition>
@@ -194,7 +194,7 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
   <tasks name="NoOverflows-Juliet">
-    <includesfile>../programs/benchmarks/NoOverflows-Juliet.set</includesfile>
+    <includesfile>../programs/benchmarks/Juliet.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
 
@@ -212,7 +212,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks name="ConcurrencySafety-NoOverflows">
-    <includesfile>../programs/benchmarks/ConcurrencySafety-NoOverflows.set</includesfile>
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
 </rundefinition>

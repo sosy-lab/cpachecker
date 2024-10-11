@@ -133,7 +133,7 @@
         <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     </tasks>
     <tasks name="SoftwareSystems-coreutils-ReachSafety">
-        <includesfile>../programs/benchmarks/SoftwareSystems-coreutils-ReachSafety.set</includesfile>
+        <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         
         <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
