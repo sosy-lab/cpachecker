@@ -623,11 +623,17 @@ public class FormulaManagerView {
   }
 
   /**
-   * This method returns the formula for the DIVIDE-operator. Depending on the used formulaManager,
-   * the result can be conform to either C99- or the SMTlib2-standard.
+   * This method returns the formula for the DIVIDE-operator.
    *
-   * <p>Example: SMTlib2: 10%3==1, 10%(-3)==1, (-10)%3==2, (-10)%(-3)==2 C99: 10%3==1, 10%(-3)==1,
-   * (-10)%3==(-1), (-10)%(-3)==(-1)
+   * <p>The rounding mode used for the result depends on the type of formula:
+   *
+   * <ul>
+   *   <li>Integers use euclidean division, see {@link IntegerFormulaManagerView#divide}
+   *   <li>Bitvectors truncate the result, see {@link BitvectorFormulaManagerView#divide}
+   *   <li>Rationals are precise and don't need rounding
+   *   <li>Floating point formulas use "round to nearest, ties to even", see {@link
+   *       FloatingPointFormulaManagerView#divide}
+   * </ul>
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeDivide(T pF1, T pF2, boolean pSigned) {
@@ -652,12 +658,10 @@ public class FormulaManagerView {
   }
 
   /**
-   * This method returns the formula for the REMAINDER-operator. This behaves consistently with
-   * C99/11s and Javas % operator, with the maybe the exception to 0 in the second argument, where
-   * the behavior might depend on the SMTLIB2 standard or even the solver used.
+   * This method returns the formula for the MODULO-operator.
    *
-   * <p>Examples:
-   * <li>10%3==1, 10%(-3)==1, (-10)%3==(-1), (-10)%(-3)==(-1)
+   * <p>The exact definition depends on the type of the formula. See {@link #makeDivide} for more
+   * details.
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeRemainder(T pF1, T pF2, boolean pSigned) {
