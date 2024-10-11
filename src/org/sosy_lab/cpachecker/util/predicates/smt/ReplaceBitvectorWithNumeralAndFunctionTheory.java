@@ -53,7 +53,10 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   private final FunctionDeclaration<T> bitwiseNotUfDecl;
   private final FunctionDeclaration<T> leftShiftUfDecl;
   private final FunctionDeclaration<T> rightShiftUfDecl;
+  private final FunctionDeclaration<T> leftRotateUfDecl;
+  private final FunctionDeclaration<T> rightRotateUfDecl;
   private final FunctionDeclaration<T> moduloUfDecl;
+  private final FunctionDeclaration<T> remainderUfDecl;
   private final FormulaType<T> formulaType;
 
   @Option(
@@ -86,6 +89,8 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     leftShiftUfDecl = createBinaryFunction("_<<_");
     rightShiftUfDecl = createBinaryFunction("_>>_");
     moduloUfDecl = createBinaryFunction("_%_");
+    leftRotateUfDecl = createBinaryFunction("_<<+_");
+    rightRotateUfDecl = createBinaryFunction("_+>>_");
   }
 
   @SuppressWarnings("unchecked")
@@ -327,23 +332,25 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   }
 
   @Override
-  public BitvectorFormula rotateLeft(BitvectorFormula number, int toRotate) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  public BitvectorFormula rotateLeft(BitvectorFormula pNumber, int pToRotate) {
+    return rotateLeft(pNumber, makeBitvector(getLength(pNumber), pToRotate));
   }
 
   @Override
-  public BitvectorFormula rotateLeft(BitvectorFormula number, BitvectorFormula toRotate) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  public BitvectorFormula rotateLeft(BitvectorFormula pNumber, BitvectorFormula pToRotate) {
+    assert getLength(pNumber) == getLength(pToRotate) : "Expect operators to have the same size";
+    return makeUf(getFormulaType(pNumber), leftRotateUfDecl, pNumber, pToRotate);
   }
 
   @Override
-  public BitvectorFormula rotateRight(BitvectorFormula number, int toRotate) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  public BitvectorFormula rotateRight(BitvectorFormula pNumber, int pToRotate) {
+    return rotateRight(pNumber, makeBitvector(getLength(pNumber), pToRotate));
   }
 
   @Override
-  public BitvectorFormula rotateRight(BitvectorFormula number, BitvectorFormula toRotate) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  public BitvectorFormula rotateRight(BitvectorFormula pNumber, BitvectorFormula pToRotate) {
+    assert getLength(pNumber) == getLength(pToRotate) : "Expect operators to have the same size";
+    return makeUf(getFormulaType(pNumber), rightRotateUfDecl, pNumber, pToRotate);
   }
 
   @Override
