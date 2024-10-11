@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
     generator = CfaEdgeIdGenerator.class,
     resolver = CfaEdgeIdResolver.class,
     scope = CFAEdge.class,
-    property = "edgeNumber")
+    property = "edgeId")
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "edgeType")
 @JsonSubTypes({
   @Type(value = AbstractCFAEdge.class, name = "Abstract"),

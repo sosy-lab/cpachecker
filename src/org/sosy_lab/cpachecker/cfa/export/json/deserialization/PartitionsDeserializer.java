@@ -111,7 +111,7 @@ public final class PartitionsDeserializer extends JsonDeserializer<Set<Partition
 
         /* Edges */
         for (JsonNode edge : node.get("edges")) {
-          CFAEdge cfaEdge = CfaEdgeIdResolver.getEdgeFromId(edge.get("edge").asInt());
+          CFAEdge cfaEdge = CfaEdgeIdResolver.getEdgeFromId(edge.get("edge").asText());
 
           for (JsonNode edgeIndex : edge.get("indices")) {
             handler.addEdge(cfaEdge, edgeIndex.asInt());

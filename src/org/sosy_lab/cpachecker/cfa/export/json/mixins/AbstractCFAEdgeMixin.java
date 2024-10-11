@@ -40,18 +40,18 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  *
  * A CFA edge with this Mixin would be exported as:
  * {
- *   "predecessor": 1,
- *   "successor": 2,
+ *   "predecessor": "Node_1",
+ *   "successor": "Node_2",
  *   // other fields
  * }
  *
  * and the set of all CFA nodes _must_ contain:
  * {
- *   "nodeNumber": 1,
+ *   "nodeId": "Node_1",
  *   // other fields to fully describe the node
  * },
  * {
- *   "nodeNumber": 2,
+ *   "nodeId": "Node_2",
  *   // other fields to fully describe the node
  * }
  * so that the reference to the node numbers is valid.

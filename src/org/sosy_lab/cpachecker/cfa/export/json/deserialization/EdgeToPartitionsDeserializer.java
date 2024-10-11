@@ -50,7 +50,7 @@ public final class EdgeToPartitionsDeserializer
    */
   public EdgeToPartitionEntry deserializeEdgeToPartitionEntry(JsonNode pNode) throws IOException {
 
-    CFAEdge edge = CfaEdgeIdResolver.getEdgeFromId(pNode.get("edge").asInt());
+    CFAEdge edge = CfaEdgeIdResolver.getEdgeFromId(pNode.get("edge").asText());
     Integer index = pNode.get("index").asInt();
     Partition partition =
         PartitionsDeserializer.getPartitionHandler(pNode.get("partition").asInt()).getReference();

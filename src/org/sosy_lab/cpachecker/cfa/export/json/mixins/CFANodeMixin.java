@@ -17,13 +17,13 @@ import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators.PropertyGenerator;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.export.json.serialization.CSimpleDeclarationSetToSortedListConverter;
+import org.sosy_lab.cpachecker.cfa.export.json.serialization.CfaNodeIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -55,8 +55,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  *
  * A CFA node with this Mixin would be exported as:
  * {
- *   "leavingEdges" : [ 2 ],
- * "enteringEdges" : [ 1 ],
+ *   "leavingEdges" : [ "Edge_2" ],
+ * "enteringEdges" : [ "Edge_1" ],
  * "leavingSummaryEdge" : null,
  * "enteringSummaryEdge" : null,
  *   // other fields
@@ -64,11 +64,11 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  *
  * and the set of all CFA edges _must_ contain:
  * {
- *   "edgeNumber": 1,
+ *   "edgeId": "Edge_1",
  *   // other fields to fully describe the edge
  * },
  * {
- *   "edgeNumber": 2,
+ *   "edgeId": "Edge_2",
  *   // other fields to fully describe the edge
  * }
  * so that the reference to the edge numbers is valid.
@@ -78,10 +78,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  *
  * <p>It specifies the constructor to use during deserialization.
  */
-@JsonIdentityInfo(
-    generator = PropertyGenerator.class,
-    scope = CFANode.class,
-    property = "nodeNumber")
+@JsonIdentityInfo(generator = CfaNodeIdGenerator.class, scope = CFANode.class, property = "nodeId")
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "nodeType")
 @JsonSubTypes({
   @Type(value = CFALabelNode.class, name = "Label"),

@@ -12,14 +12,14 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators.IntSequenceGenerator;
 import java.nio.file.Path;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.export.json.serialization.FileLocationIdGenerator;
 
 /**
  * This class is a mixin for {@link FileLocation}.
  *
- * <p>Redundant file locations are serialized as references ("fileLocationNumber") to the original
+ * <p>Redundant file locations are serialized as references ("fileLocationId") to the original
  * serialized location.
  *
  * <p>It sets the order of the fields to ensure deterministic serialization.
@@ -29,9 +29,9 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  * <p>It specifies the constructor to use during deserialization.
  */
 @JsonIdentityInfo(
-    generator = IntSequenceGenerator.class,
+    generator = FileLocationIdGenerator.class,
     scope = FileLocation.class,
-    property = "fileLocationNumber")
+    property = "fileLocationId")
 @JsonPropertyOrder({
   "fileName",
   "niceFileName",

@@ -11,11 +11,6 @@ package org.sosy_lab.cpachecker.cfa.export.json.serialization;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.fasterxml.jackson.annotation.ObjectIdGenerator;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators.IntSequenceGenerator;
-import java.io.IOException;
-import java.io.NotSerializableException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonExport;
@@ -23,76 +18,80 @@ import org.sosy_lab.cpachecker.cfa.export.json.mixins.CFAEdgeMixin;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
- * A custom generator for generating unique IDs for CFA edges.
+ * A custom generator for generating unique IDs for {@link CFAEdge}s.
  *
  * <p>It is used to retrieve IDs from their respective {@link CFAEdge}s.
+ *
+ * <p>It is necessary to store the {@link #currentGenerator} because the {@link CfaEdgeIdGenerator}
+ * is not directly accessible from custom serializers and its construction is initialized with
+ * Jackson annotations and therefore unchangeable.
  *
  * @see CfaJsonExport
  * @see CFAEdgeMixin
  * @see PartitionsSerializer
  */
-public final class CfaEdgeIdGenerator extends ObjectIdGenerator<Integer> {
-
-  private static final long serialVersionUID = 7470151299045493234L;
-  private static final int START_ID = 0;
+public class CfaEdgeIdGenerator extends SimpleNameIdGenerator {
+  private static final long serialVersionUID = -2736431011237852503L;
 
   private static ThreadLocal<CfaEdgeIdGenerator> currentGenerator = new ThreadLocal<>();
 
-  private final Map<CFAEdge, Integer> edgeToIdMap = new HashMap<>();
-  private final Class<?> scope;
-  private int nextValue;
+  private final Map<CFAEdge, String> edgeToIdMap;
 
-  /**
-   * Constructs a new CfaEdgeIdGenerator.
-   *
-   * <p>This constructor is being used by Jackson.
-   */
-  @SuppressWarnings("unused")
+  /* Jackson requires a default constructor for serialization. */
   public CfaEdgeIdGenerator() {
-    this(Object.class, START_ID - 1);
+    this(Object.class);
   }
 
   /**
-   * Constructs a new CfaEdgeIdGenerator with the given scope and next value.
+   * Constructs a new {@link CfaEdgeIdGenerator}.
    *
-   * @param pScope The class representing the scope of the generator.
-   * @param pNextValue The next value to be used by the generator.
+   * @param pScope The class scope for which the ID generator is created.
    */
-  public CfaEdgeIdGenerator(Class<?> pScope, int pNextValue) {
-    this.scope = pScope;
-    this.nextValue = pNextValue;
+  private CfaEdgeIdGenerator(Class<?> pScope) {
+    super(pScope);
+    this.edgeToIdMap = new HashMap<>();
   }
 
   /**
-   * Determines if this generator instance can be used for Object IDs of specific generator type and
-   * scope.
+   * Creates a new instance of {@link CfaEdgeIdGenerator} with the specified scope.
    *
-   * @param pGenerator The object generator to check.
-   * @return True if the generator class and its scope match this generator, false otherwise.
+   * @param pScope The class scope for the new instance.
+   * @return a new instance of {@link CfaEdgeIdGenerator}.
    */
   @Override
-  public boolean canUseFor(ObjectIdGenerator<?> pGenerator) {
-    return pGenerator.getClass() == this.getClass() && pGenerator.getScope() == this.scope;
-  }
-
-  /* Creates a new instance of CfaEdgeIdGenerator with the given scope. */
-  @Override
-  public ObjectIdGenerator<Integer> forScope(Class<?> pScope) {
-    return this.scope == pScope ? this : new CfaEdgeIdGenerator(pScope, this.nextValue);
+  protected AbstractStringIdGenerator newInstance(Class<?> pScope) {
+    return new CfaEdgeIdGenerator(pScope);
   }
 
   /**
-   * Generates an ID for the given object.
+   * Creates a new instance of {@link CfaEdgeIdGenerator} for serialization.
    *
-   * <p>The ID is generated and stored in the edgeToIdMap together with the object.
+   * <p>It also sets the {@link #currentGenerator} field to the newly created instance for later
+   * use.
    *
-   * @see IntSequenceGenerator
-   * @param pForObject The object for which to generate the ID.
-   * @return The generated ID.
-   * @throws IllegalArgumentException If the object is not a {@link CFAEdge}.
+   * @param pContext The context object.
+   * @return The new generator instance.
    */
   @Override
-  public Integer generateId(Object pForObject) {
+  public ObjectIdGenerator<String> newForSerialization(Object pContext) {
+    CfaEdgeIdGenerator generator = new CfaEdgeIdGenerator(scope);
+    currentGenerator.set(generator);
+    return generator;
+  }
+
+  /**
+   * Generates a unique identifier for the given object.
+   *
+   * <p>It also stores the generated ID in the {@link #edgeToIdMap} for later retrieval.
+   *
+   * @param pForObject The object for which to generate an ID; must not be null and must be an
+   *     instance of {@link CFAEdge}.
+   * @return a unique identifier for the given object.
+   * @throws NullPointerException if the given object is null.
+   * @throws IllegalArgumentException if the given object is not an instance of {@link CFAEdge}.
+   */
+  @Override
+  public String generateId(Object pForObject) {
     checkNotNull(pForObject, "The object to generate an ID for must not be null");
 
     if (!(pForObject instanceof CFAEdge)) {
@@ -100,83 +99,30 @@ public final class CfaEdgeIdGenerator extends ObjectIdGenerator<Integer> {
           "Wrong object: " + pForObject.getClass().getSimpleName() + " is not a CFAEdge");
     }
 
-    int id = nextValue;
-    nextValue++;
-
+    String id = super.generateId(pForObject);
     edgeToIdMap.put((CFAEdge) pForObject, id);
     return id;
   }
 
   /**
-   * Retrieves the scope of this generator.
-   *
-   * @return The scope of this generator.
-   */
-  @Override
-  public Class<?> getScope() {
-    return this.scope;
-  }
-
-  /**
-   * Generates an IdKey object based on the given key.
-   *
-   * @see IntSequenceGenerator
-   * @param pKey The key used to generate the IdKey object.
-   * @return The generated IdKey object.
-   */
-  @Override
-  public IdKey key(Object pKey) {
-    checkNotNull(pKey, "The key must not be null");
-
-    return new ObjectIdGenerator.IdKey(this.getClass(), this.scope, pKey);
-  }
-
-  /**
-   * Creates a new instance of the CfaEdgeIdGenerator for serialization.
-   *
-   * <p>It also sets the currentGenerator field to the newly created instance for later use.
-   *
-   * @param pContext The context object.
-   * @return The new instance of the CfaEdgeIdGenerator.
-   */
-  @Override
-  public ObjectIdGenerator<Integer> newForSerialization(Object pContext) {
-    CfaEdgeIdGenerator generator = new CfaEdgeIdGenerator(this.scope, START_ID);
-    currentGenerator.set(generator);
-    return generator;
-  }
-
-  /**
    * Retrieves the ID of a {@link CFAEdge}.
    *
-   * @param pEdge The CFAEdge.
-   * @return The ID of the CFAEdge.
-   * @throws IllegalStateException If no generator was set.
-   * @throws IllegalArgumentException If no ID for the CFAEdge is found.
+   * @param pEdge The {@link CFAEdge}.
+   * @return the ID of the {@link CFAEdge}.
+   * @throws NullPointerException if no generator was set.
+   * @throws IllegalArgumentException if no ID for the {@link CFAEdge} is found.
    */
-  public static Integer getIdFromEdge(CFAEdge pEdge) {
+  public static String getIdFromEdge(CFAEdge pEdge) {
     CfaEdgeIdGenerator generator = currentGenerator.get();
 
     checkNotNull(generator, "No generator available");
 
-    Integer id = generator.edgeToIdMap.get(pEdge);
+    String id = generator.edgeToIdMap.get(pEdge);
 
     if (id == null) {
       throw new IllegalArgumentException("No ID for edge " + pEdge + " found");
     }
 
     return id;
-  }
-
-  /* Custom serialization method to prevent serialization of the generator (ObjectIdGenerator implements Serializable). */
-  @SuppressWarnings("unused")
-  private void writeObject(ObjectOutputStream pStream) throws IOException {
-    throw new NotSerializableException(getClass().getName());
-  }
-
-  /* Custom deserialization method to prevent deserialization of the generator (ObjectIdGenerator implements Serializable). */
-  @SuppressWarnings("unused")
-  private void readObject(ObjectInputStream pStream) throws IOException {
-    throw new NotSerializableException(getClass().getName());
   }
 }

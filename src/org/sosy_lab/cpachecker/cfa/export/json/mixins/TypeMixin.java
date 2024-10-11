@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators.IntSequenceGenerator;
+import org.sosy_lab.cpachecker.cfa.export.json.serialization.SimpleNameIdGenerator;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -30,10 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonIdentityInfo(
-    generator = IntSequenceGenerator.class,
-    scope = Type.class,
-    property = "typeNumber")
+@JsonIdentityInfo(generator = SimpleNameIdGenerator.class, scope = Type.class, property = "typeId")
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "typeType")
 @JsonSubTypes({
   @JsonSubTypes.Type(value = AArrayType.class, name = "AArray"),

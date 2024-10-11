@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 public final class CfaEdgeIdResolver extends SimpleObjectIdResolver {
   private static final ThreadLocal<CfaEdgeIdResolver> currentResolver = new ThreadLocal<>();
 
-  private final Map<Integer, CFAEdge> idToEdgeMap = new HashMap<>();
+  private final Map<String, CFAEdge> idToEdgeMap = new HashMap<>();
 
   /**
    * Creates a new instance of {@link CfaEdgeIdResolver} for deserialization.
@@ -52,16 +52,16 @@ public final class CfaEdgeIdResolver extends SimpleObjectIdResolver {
   /**
    * Binds an item to an ID.
    *
-   * <p>It makes sure that the key is an Integer and the item is a CFAEdge.
+   * <p>It makes sure that the key is a String and the item is a CFAEdge.
    *
    * @param pId The ID.
    * @param pItem The object to bind.
    */
   @Override
   public void bindItem(IdKey pId, Object pItem) {
-    if (pId.key.getClass() != Integer.class) {
+    if (pId.key.getClass() != String.class) {
       throw new IllegalArgumentException(
-          "Wrong key: " + pId.key.getClass().getSimpleName() + " is not an Integer");
+          "Wrong key: " + pId.key.getClass().getSimpleName() + " is not a String");
     }
 
     if (!(pItem instanceof CFAEdge)) {
@@ -69,7 +69,7 @@ public final class CfaEdgeIdResolver extends SimpleObjectIdResolver {
           "Wrong object: " + pItem.getClass().getSimpleName() + " is not a CFAEdge");
     }
 
-    idToEdgeMap.put((Integer) pId.key, (CFAEdge) pItem);
+    idToEdgeMap.put((String) pId.key, (CFAEdge) pItem);
     super.bindItem(pId, pItem);
   }
 
@@ -81,7 +81,7 @@ public final class CfaEdgeIdResolver extends SimpleObjectIdResolver {
    * @throws IllegalStateException If no resolver was set.
    * @throws IllegalArgumentException If no CFAEdge with the specified ID is found.
    */
-  public static CFAEdge getEdgeFromId(Integer pId) {
+  public static CFAEdge getEdgeFromId(String pId) {
     CfaEdgeIdResolver resolver = currentResolver.get();
 
     checkNotNull(resolver, "No resolver available");

@@ -74,13 +74,12 @@ public final class PartitionsSerializer extends JsonSerializer<Set<Partition>> {
       List<Entry<CFAEdge, Collection<Integer>>> entries =
           new ArrayList<>(partition.getEdges().asMap().entrySet());
       Collections.sort(
-          entries,
-          Comparator.comparingInt(entry -> CfaEdgeIdGenerator.getIdFromEdge(entry.getKey())));
+          entries, Comparator.comparing(entry -> CfaEdgeIdGenerator.getIdFromEdge(entry.getKey())));
 
       pGenerator.writeArrayFieldStart("edges");
       for (Entry<CFAEdge, Collection<Integer>> entry : entries) {
         pGenerator.writeStartObject();
-        pGenerator.writeNumberField("edge", CfaEdgeIdGenerator.getIdFromEdge(entry.getKey()));
+        pGenerator.writeStringField("edge", CfaEdgeIdGenerator.getIdFromEdge(entry.getKey()));
         pGenerator.writeArrayFieldStart("indices");
         for (Integer index : entry.getValue()) {
           pGenerator.writeObject(index);
@@ -111,7 +110,7 @@ public final class PartitionsSerializer extends JsonSerializer<Set<Partition>> {
         pGenerator.writeArrayFieldStart("edgeToPartition");
         for (Cell<CFAEdge, Integer, Partition> cell : edgeToPartition.cellSet()) {
           pGenerator.writeStartObject();
-          pGenerator.writeNumberField("edge", CfaEdgeIdGenerator.getIdFromEdge(cell.getRowKey()));
+          pGenerator.writeStringField("edge", CfaEdgeIdGenerator.getIdFromEdge(cell.getRowKey()));
           pGenerator.writeNumberField("index", cell.getColumnKey());
           pGenerator.writeNumberField("partition", cell.getValue().hashCode());
           pGenerator.writeEndObject();
