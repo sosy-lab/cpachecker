@@ -78,9 +78,14 @@ public class BitvectorFormulaManagerView extends BaseManagerView
   }
 
   /**
-   * Deprecated and unsupported operation.
-   *
-   * <p>This method previously returned the SMTLIB2 remainder operator.
+   * This method is unsupported and always throws. For signed modulo as defined by the SMTLib2
+   * standard, please use {@link BitvectorFormulaManagerView#smodulo(BitvectorFormula,
+   * BitvectorFormula)} instead. However, note that the operation that is commonly called "modulo"
+   * (e.g., in C or Java) is called "remainder" by SMTLib2 and provided by the {@link
+   * BitvectorFormulaManagerView#remainder(BitvectorFormula, BitvectorFormula, boolean)} method, so
+   * make sure to choose the correct method. We refer to the documentation of the respective methods
+   * for their precise semantics and edge-cases. For the unsigned case, modulo and remainder are
+   * equivalent and remainder can be used with the last parameter set to false.
    */
   @SuppressWarnings({"deprecation", "removal"})
   @DoNotCall
