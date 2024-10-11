@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -62,9 +63,9 @@ public class AtExitTransformer {
     exprBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
   }
 
-  /** Check if the atexit() function is used by the program */
-  private boolean usesAtExit() {
-    for (CFAEdge edge : ImmutableList.copyOf(cfa.edges())) {
+  /** Check if the <code>atexit()</code> function is used by the program */
+  public static boolean usesAtExit(CFA pCfa) {
+    for (CFAEdge edge : ImmutableList.copyOf(pCfa.edges())) {
       if (edge instanceof CStatementEdge stmtEdge
           && stmtEdge.getStatement() instanceof CFunctionCallStatement callStmt
           && callStmt.getFunctionCallExpression().getFunctionNameExpression()
@@ -256,7 +257,7 @@ public class AtExitTransformer {
    * program.
    */
   public void transformIfNeeded() {
-    if (usesAtExit()) {
+    if (usesAtExit(cfa)) {
       // TODO: These two transformation could be merged
       replaceReturns();
       addExitHandlers();

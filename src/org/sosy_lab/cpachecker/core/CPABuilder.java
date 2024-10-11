@@ -34,11 +34,13 @@ import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.AtExitTransformer;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -85,6 +87,22 @@ public class CPABuilder {
     shutdownNotifier = pShutdownNotifier;
     reachedSetFactory = pReachedSetFactory;
     config.inject(this);
+  }
+
+  /**
+   * Update the configuration with a new prefix and overrides options based on the CFA structure.
+   *
+   * <p>Will set <code>cpa.functionpointer.trackInvalidFunctionPointers</code> to <code>true</code>
+   * if the CFA uses <code>atexit()</code>
+   */
+  private static Configuration buildConfiguration(Configuration pOld, CFA pCfa, String pNewPrefix)
+      throws InvalidConfigurationException {
+    ConfigurationBuilder builder = Configuration.builder();
+    builder.copyFrom(pOld);
+    if (AtExitTransformer.usesAtExit(pCfa)) {
+      builder.setOption("cpa.functionpointer.trackInvalidFunctionPointers", "true");
+    }
+    return Configuration.copyWithNewPrefix(builder.build(), pNewPrefix);
   }
 
   /**
@@ -186,7 +204,7 @@ public class CPABuilder {
       String cpaAlias = automaton.getName();
 
       CPAFactory factory = ControlAutomatonCPA.factory();
-      factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
+      factory.setConfiguration(buildConfiguration(config, cfa, cpaAlias));
       factory.setLogger(logger.withComponentName(cpaAlias));
       factory.set(cfa, CFA.class);
       factory.set(pAggregatedReachedSets, AggregatedReachedSets.class);
@@ -346,7 +364,7 @@ public class CPABuilder {
 
     // now use factory to get an instance of the CPA
 
-    factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
+    factory.setConfiguration(buildConfiguration(config, cfa, cpaAlias));
     factory.setLogger(logger.withComponentName(cpaAlias));
     factory.setShutdownNotifier(shutdownNotifier);
     factory.set(pAggregatedReachedSets, AggregatedReachedSets.class);

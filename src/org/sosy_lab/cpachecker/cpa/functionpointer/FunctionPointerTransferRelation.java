@@ -71,7 +71,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       description =
           "whether function pointers with invalid targets (e.g., 0) should be tracked in order to"
               + " find calls to such pointers")
-  private boolean trackInvalidFunctionPointers = true;
+  private boolean trackInvalidFunctionPointers = false;
 
   private final FunctionPointerTarget invalidFunctionPointerTarget;
 
