@@ -30,13 +30,11 @@ public class SeqSyntax {
 
   public static final String POINTER = "*";
 
+  public static final String QUOTATION_MARK = "\"";
+
   public static final String SEMICOLON = ";";
 
   public static final String SPACE = " ";
-
-  public static final String SQUARE_BRACKET_LEFT = "[";
-
-  public static final String SQUARE_BRACKET_RIGHT = "]";
 
   public static final String TAB = initTab();
 

@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause.CaseBlockEndingType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause.CaseBlockTerminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
@@ -29,16 +29,20 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement pcUpdate;
 
+  private final int threadId;
+
   public SeqReturnValueAssignStatements(
       CIdExpression pReturnPc,
       ImmutableSet<FunctionReturnValueAssignment> pAssigns,
-      CExpressionAssignmentStatement pPcUpdate) {
+      CExpressionAssignmentStatement pPcUpdate,
+      int pThreadId) {
 
     checkArgument(!pAssigns.isEmpty(), "pAssigns must contain at least one entry");
 
     assigns = pAssigns;
     returnPc = pReturnPc;
     pcUpdate = pPcUpdate;
+    threadId = pThreadId;
   }
 
   @Override
@@ -50,9 +54,10 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
           new SeqReturnValueAssignCaseBlockStatement(assignment.statement);
       caseClauses.add(
           new SeqCaseClause(
-              caseLabelValue, ImmutableList.of(assignmentStatement), CaseBlockEndingType.BREAK));
+              caseLabelValue, ImmutableList.of(assignmentStatement), CaseBlockTerminator.BREAK));
     }
-    SeqSwitchStatement switchStatement = new SeqSwitchStatement(returnPc, caseClauses.build(), 6);
+    SeqSwitchStatement switchStatement =
+        new SeqSwitchStatement(threadId, returnPc, caseClauses.build(), 6);
     return SeqSyntax.NEWLINE
         + switchStatement.toASTString()
         + SeqSyntax.NEWLINE

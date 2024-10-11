@@ -8,6 +8,10 @@
 
 // This sequentialization (transformation of a parallel program into an equivalent 
 // sequential program) was created by the MPORAlgorithm implemented in CPAchecker. 
+// 
+// Assertion fails from the function "__SEQUENTIALIZATION_ERROR__" mark faulty sequentializations. 
+// All other assertion fails are induced by faulty input programs. 
+// 
 // Input file: /home/noahkoenig/Documents/Edu/24ss/ba-sosy/sv-common/queue_longest.i
 
 // original program declarations (non-variable)
@@ -717,8 +721,9 @@ int __t0_joins_t1 = 0;
 int __t0_joins_t2 = 0;
 
 // custom function declarations
-void abort();
 int __VERIFIER_nondet_int();
+void abort();
+void __assert_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function);
 int __mpor_seq_assume(const int cond);
 int main();
 
@@ -758,18 +763,21 @@ int main() {
         case 459: 
             switch (__return_pc_t0_empty) {
               case 443: __t0_23___CPAchecker_TMP_0 = -1; break;
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 0, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[0] = 460; continue;
         case 460: pc[0] = __return_pc_t0_empty; continue;
         case 461: 
             switch (__return_pc_t0_empty) {
               case 443: __t0_23___CPAchecker_TMP_0 = 0; break;
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 0, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[0] = 460; continue;
         case 462: __p0_20_q->head = 0; pc[0] = 464; continue;
         case 464: __p0_20_q->tail = 0; pc[0] = 465; continue;
         case 465: __p0_20_q->amount = 0; pc[0] = 466; continue;
         case 466: pc[0] = __return_pc_t0_init; continue;
+        default: __assert_fail("0", "mpor_seq__queue_longest.i", 0, "__SEQUENTIALIZATION_ERROR__");
       }
 
     } else if (next_thread == 1) {
@@ -801,6 +809,7 @@ int main() {
         case 34: 
             switch (__return_pc_t1_enqueue) {
               case 7: __t1_29___CPAchecker_TMP_0 = 0; break;
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 1, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[1] = 36; continue;
         case 36: pc[1] = __return_pc_t1_enqueue; continue;
@@ -808,6 +817,7 @@ int main() {
         case 40: 
             switch (__return_pc_t1_enqueue) {
               case 7: __t1_29___CPAchecker_TMP_0 = 0; break;
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 1, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[1] = 36; continue;
         case 41: __t1_active = 0; pc[1] = -1; continue;
@@ -819,15 +829,18 @@ int main() {
         case 52: 
             switch (__return_pc_t1_empty) {
               case 11: __t1_30___CPAchecker_TMP_1 = -1; break;
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 1, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[1] = 53; continue;
         case 53: pc[1] = __return_pc_t1_empty; continue;
         case 54: 
             switch (__return_pc_t1_empty) {
               case 11: __t1_30___CPAchecker_TMP_1 = 0; break;
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 1, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[1] = 53; continue;
         case 55: __return_pc_t1_reach_error = -1; pc[1] = 45; continue;
+        default: __assert_fail("0", "mpor_seq__queue_longest.i", 1, "__SEQUENTIALIZATION_ERROR__");
       }
 
     } else if (next_thread == 2) {
@@ -853,6 +866,7 @@ int main() {
         case 30: 
             switch (__return_pc_t2_dequeue) {
               case 12: __t2_35___CPAchecker_TMP_0 = __t2_36_x; break;
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 2, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[2] = 32; continue;
         case 32: pc[2] = __return_pc_t2_dequeue; continue;
@@ -860,9 +874,11 @@ int main() {
         case 36: 
             switch (__return_pc_t2_dequeue) {
               case 12: __t2_35___CPAchecker_TMP_0 = __t2_36_x; break;
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 2, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[2] = 32; continue;
         case 37: __t2_active = 0; pc[2] = -1; continue;
+        default: __assert_fail("0", "mpor_seq__queue_longest.i", 2, "__SEQUENTIALIZATION_ERROR__");
       }
     }
   }

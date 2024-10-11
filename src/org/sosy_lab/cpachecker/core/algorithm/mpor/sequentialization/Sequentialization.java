@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -77,6 +80,8 @@ public class Sequentialization {
   //  curly left / right brackets, newlines, etc.
   public static final int TAB_SIZE = 2;
 
+  private static String fileName = null;
+
   protected final int threadCount;
 
   private final CBinaryExpressionBuilder binExprBuilder;
@@ -133,11 +138,12 @@ public class Sequentialization {
 
     // add all custom function declarations
     rProgram.append(SeqComment.createFuncDeclarationComment());
-    // abort and __VERIFIER_nondet_int may be duplicate depending on the input program
-    rProgram.append(SeqFunctionDeclaration.ABORT.toASTString()).append(SeqSyntax.NEWLINE);
+    // abort, assert, nondet_int may be duplicate depending on the input program
     rProgram
         .append(SeqFunctionDeclaration.VERIFIER_NONDET_INT.toASTString())
         .append(SeqSyntax.NEWLINE);
+    rProgram.append(SeqFunctionDeclaration.ABORT.toASTString()).append(SeqSyntax.NEWLINE);
+    rProgram.append(SeqFunctionDeclaration.ASSERT_FAIL.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqFunctionDeclaration.ASSUME.toASTString()).append(SeqSyntax.NEWLINE);
     // main should always be duplicate
     rProgram.append(SeqFunctionDeclaration.MAIN.toASTString()).append(SeqSyntax.NEWLINE);
@@ -624,5 +630,18 @@ public class Sequentialization {
         mapReturnValueAssignments(pThread, pSubEdges, returnPcStorages),
         returnPcStorages,
         mapReturnPcRetrievals(pThread, pReturnPcVars.get(pThread)));
+  }
+
+  // Helpers for better Overview =================================================================
+
+  public static String getFileName() {
+    checkArgument(fileName != null, "fileName was not initialized yet");
+    return fileName;
+  }
+
+  public static void setFileName(String pFileName) {
+    checkNotNull(pFileName);
+    checkArgument(fileName == null, "fileName was initialized already");
+    fileName = pFileName;
   }
 }

@@ -17,13 +17,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqT
 /** Represents a case clause, i.e. a case label and its case block. */
 public class SeqCaseClause implements SeqStatement {
 
-  public enum CaseBlockEndingType {
+  public enum CaseBlockTerminator {
     BREAK(SeqToken.BREAK),
     CONTINUE(SeqToken.CONTINUE);
 
     private final String asString;
 
-    CaseBlockEndingType(String pAsString) {
+    CaseBlockTerminator(String pAsString) {
       asString = pAsString;
     }
   }
@@ -36,17 +36,17 @@ public class SeqCaseClause implements SeqStatement {
 
   public final SeqCaseBlock caseBlock;
 
-  public final CaseBlockEndingType caseBlockEndingType;
+  public final CaseBlockTerminator caseBlockTerminator;
 
   public SeqCaseClause(
       int pCaseLabelValue,
       ImmutableList<SeqCaseBlockStatement> pCaseBlockStatements,
-      CaseBlockEndingType pCaseBlockEndingType) {
+      CaseBlockTerminator pCaseBlockTerminator) {
 
     id = createNewId();
     caseLabel = new SeqCaseLabel(pCaseLabelValue);
     caseBlock = new SeqCaseBlock(pCaseBlockStatements);
-    caseBlockEndingType = pCaseBlockEndingType;
+    caseBlockTerminator = pCaseBlockTerminator;
   }
 
   /** Private constructor, only used during cloning process to keep the same id. */
@@ -54,15 +54,15 @@ public class SeqCaseClause implements SeqStatement {
       long pId,
       SeqCaseLabel pCaseLabel,
       SeqCaseBlock pCaseBlocks,
-      CaseBlockEndingType pCaseBlockEndingType) {
+      CaseBlockTerminator pCaseBlockEndingType) {
     id = pId;
     caseLabel = pCaseLabel;
     caseBlock = pCaseBlocks;
-    caseBlockEndingType = pCaseBlockEndingType;
+    caseBlockTerminator = pCaseBlockEndingType;
   }
 
   public SeqCaseClause cloneWithCaseLabel(SeqCaseLabel pCaseLabel) {
-    return new SeqCaseClause(id, pCaseLabel, caseBlock, caseBlockEndingType);
+    return new SeqCaseClause(id, pCaseLabel, caseBlock, caseBlockTerminator);
   }
 
   private static long createNewId() {
@@ -87,7 +87,7 @@ public class SeqCaseClause implements SeqStatement {
     return caseLabel.toASTString()
         + SeqSyntax.SPACE
         + caseBlock.toASTString()
-        + caseBlockEndingType.asString
+        + caseBlockTerminator.asString
         + SeqSyntax.SEMICOLON
         + SeqSyntax.NEWLINE;
   }

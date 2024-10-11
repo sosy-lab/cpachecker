@@ -116,8 +116,9 @@ public class SeqMainFunction implements SeqFunction {
 
     int i = 0;
     for (var entry : caseClauses.entrySet()) {
+      MPORThread thread = entry.getKey();
       CIntegerLiteralExpression threadId =
-          SeqIntegerLiteralExpression.buildIntLiteralExpr(entry.getKey().id);
+          SeqIntegerLiteralExpression.buildIntLiteralExpr(thread.id);
       try {
         CBinaryExpression nextThreadEquals =
             binExprBuilder.buildBinaryExpression(
@@ -137,7 +138,8 @@ public class SeqMainFunction implements SeqFunction {
       }
       switchCases.append(SeqSyntax.NEWLINE);
       CArraySubscriptExpression pcThreadId = SeqExpressions.buildPcSubscriptExpr(threadId);
-      SeqSwitchStatement switchCaseExpr = new SeqSwitchStatement(pcThreadId, entry.getValue(), 3);
+      SeqSwitchStatement switchCaseExpr =
+          new SeqSwitchStatement(thread.id, pcThreadId, entry.getValue(), 3);
       switchCases.append(switchCaseExpr.toASTString());
 
       // append 2 newlines, except for last switch case (1 only)

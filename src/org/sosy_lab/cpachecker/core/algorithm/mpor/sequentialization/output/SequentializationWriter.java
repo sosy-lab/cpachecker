@@ -21,6 +21,7 @@ import java.util.logging.Level;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -41,12 +42,15 @@ public class SequentializationWriter {
 
   private final File outputFile;
 
+  public final String outputFileName;
+
   public SequentializationWriter(LogManager pLogManager, Path pInputFilePath) {
     logManager = pLogManager;
     licenseComment = extractLicenseComment();
     sequentializationComment = createSequentializationComment(pInputFilePath.toString());
     String inputFileName = pInputFilePath.getFileName().toString();
-    String outputFilePath = targetDirectory + "mpor_seq__" + inputFileName;
+    outputFileName = "mpor_seq__" + inputFileName;
+    String outputFilePath = targetDirectory + outputFileName;
     outputFile = new File(outputFilePath);
   }
 
@@ -130,9 +134,16 @@ public class SequentializationWriter {
             + licenseFilePath);
   }
 
+  // TODO info on assertion file line = threadId?
   private String createSequentializationComment(String pInputFilePath) {
     return "// This sequentialization (transformation of a parallel program into an equivalent \n"
         + "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker. \n"
+        + "// \n"
+        + "// Assertion fails from the function "
+        + SeqToken.__SEQUENTIALIZATION_ERROR__
+        + " mark faulty sequentializations. \n"
+        + "// All other assertion fails are induced by faulty input programs. \n"
+        + "// \n"
         + "// Input file: "
         + pInputFilePath
         + "\n\n";

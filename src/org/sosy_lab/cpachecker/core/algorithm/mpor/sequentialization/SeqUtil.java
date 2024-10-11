@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause.CaseBlockEndingType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause.CaseBlockTerminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAssumeStatement;
@@ -193,7 +193,8 @@ public class SeqUtil {
               assert assigns != null;
               assert !assigns.isEmpty();
               CIdExpression returnPc = assigns.iterator().next().returnPcStorage.returnPc;
-              stmts.add(new SeqReturnValueAssignStatements(returnPc, assigns, pcUpdate));
+              stmts.add(
+                  new SeqReturnValueAssignStatements(returnPc, assigns, pcUpdate, pThread.id));
             }
 
           } else if (isRelevantPthreadFunc(sub.cfaEdge)) {
@@ -253,12 +254,17 @@ public class SeqUtil {
         }
       }
     }
-    return new SeqCaseClause(originPc, stmts.build(), CaseBlockEndingType.CONTINUE);
+    return new SeqCaseClause(originPc, stmts.build(), CaseBlockTerminator.CONTINUE);
   }
 
   /** Returns "(pString)" */
   public static String wrapInBracketsInwards(String pString) {
     return SeqSyntax.BRACKET_LEFT + pString + SeqSyntax.BRACKET_RIGHT;
+  }
+
+  /** Returns ""pString"" */
+  public static String wrapInQuotationMarks(String pString) {
+    return SeqSyntax.QUOTATION_MARK + pString + SeqSyntax.QUOTATION_MARK;
   }
 
   /** Returns "{ pString }" */
@@ -317,7 +323,7 @@ public class SeqUtil {
   public static boolean isConstCPAcheckerTMP(CVariableDeclaration pVarDec) {
     return pVarDec.getType().isConst()
         && !pVarDec.isGlobal()
-        && pVarDec.getName().contains(SeqToken.CPACHECKER_TMP);
+        && pVarDec.getName().contains(SeqToken.__CPACHECKER_TMP_);
   }
 
   private static boolean allEdgesAssume(Set<ThreadEdge> pThreadEdges) {

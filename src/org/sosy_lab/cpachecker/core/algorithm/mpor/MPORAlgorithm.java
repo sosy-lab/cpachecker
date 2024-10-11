@@ -449,6 +449,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     Path inputFilePath = INPUT_CFA.getFileNames().get(0);
     SequentializationWriter writer = new SequentializationWriter(LOG_MANAGER, inputFilePath);
+    Sequentialization.setFileName(writer.outputFileName);
     writer.write(SEQ.generateProgram(substitutions));
   }
 

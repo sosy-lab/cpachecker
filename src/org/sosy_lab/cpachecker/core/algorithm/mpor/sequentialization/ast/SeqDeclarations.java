@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInit
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializerList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
@@ -58,7 +59,7 @@ public class SeqDeclarations {
     public static CVariableDeclaration buildReturnPcVarDec(int pThreadId, String pFuncName) {
       String varName = SeqNameBuilder.createReturnPcName(pThreadId, pFuncName);
       // TODO initialize with -2 and assert that it is not -2 when assigning in the
-      // sequentialization?
+      //  sequentialization?
       return buildVarDec(true, SeqSimpleType.INT, varName, SeqInitializer.INT_0);
     }
   }
@@ -67,6 +68,21 @@ public class SeqDeclarations {
 
     public static final CParameterDeclaration COND =
         new CParameterDeclaration(FileLocation.DUMMY, SeqSimpleType.CONST_INT, SeqToken.COND);
+
+    public static final CParameterDeclaration ASSERTION =
+        new CParameterDeclaration(
+            FileLocation.DUMMY, SeqPointerType.POINTER_CONST_CHAR, SeqToken.__ASSERTION);
+
+    public static final CParameterDeclaration FILE =
+        new CParameterDeclaration(
+            FileLocation.DUMMY, SeqPointerType.POINTER_CONST_CHAR, SeqToken.__FILE);
+
+    public static final CParameterDeclaration LINE =
+        new CParameterDeclaration(FileLocation.DUMMY, SeqSimpleType.UNSIGNED_INT, SeqToken.__LINE);
+
+    public static final CParameterDeclaration FUNCTION =
+        new CParameterDeclaration(
+            FileLocation.DUMMY, SeqPointerType.POINTER_CONST_CHAR, SeqToken.__FUNCTION);
   }
 
   public static class SeqFunctionDeclaration {
@@ -83,9 +99,21 @@ public class SeqDeclarations {
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             SeqFunctionType.VERIFIER_NONDET_INT,
-            SeqToken.VERIFIER_NONDET_INT,
+            SeqToken.__VERIFIER_NONDET_INT,
             ImmutableList.of(),
             ImmutableSet.of());
+
+    public static final CFunctionDeclaration ASSERT_FAIL =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            SeqFunctionType.ASSERT_FAIL,
+            SeqToken.__ASSERT_FAIL,
+            ImmutableList.of(
+                SeqParameterDeclaration.ASSERTION,
+                SeqParameterDeclaration.FILE,
+                SeqParameterDeclaration.LINE,
+                SeqParameterDeclaration.FUNCTION),
+            ImmutableSet.of(FunctionAttribute.NO_RETURN));
 
     public static final CFunctionDeclaration ASSUME =
         new CFunctionDeclaration(

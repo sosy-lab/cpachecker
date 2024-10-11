@@ -29,6 +29,14 @@ public class SeqTypes {
     public static final CSimpleType CONST_INT =
         new CSimpleType(
             true, false, CBasicType.INT, false, false, false, false, false, false, false);
+
+    public static final CSimpleType UNSIGNED_INT =
+        new CSimpleType(
+            false, false, CBasicType.INT, false, false, false, true, false, false, false);
+
+    public static final CSimpleType CONST_CHAR =
+        new CSimpleType(
+            true, false, CBasicType.CHAR, false, false, false, false, false, false, false);
   }
 
   public static class SeqArrayType {
@@ -37,6 +45,10 @@ public class SeqTypes {
   }
 
   public static class SeqPointerType {
+
+    /** A constant pointer to a constant int value (const int * const). */
+    public static final CPointerType POINTER_CONST_CHAR =
+        new CPointerType(false, false, SeqSimpleType.CONST_CHAR);
 
     /** A constant pointer to a constant int value (const int * const). */
     public static final CPointerType CONST_POINTER_CONST_INT =
@@ -55,6 +67,16 @@ public class SeqTypes {
 
     public static final CFunctionType VERIFIER_NONDET_INT =
         new CFunctionType(SeqSimpleType.INT, ImmutableList.of(), false);
+
+    public static final CFunctionTypeWithNames ASSERT_FAIL =
+        new CFunctionTypeWithNames(
+            SeqVoidType.VOID,
+            ImmutableList.of(
+                SeqParameterDeclaration.ASSERTION,
+                SeqParameterDeclaration.FILE,
+                SeqParameterDeclaration.LINE,
+                SeqParameterDeclaration.FUNCTION),
+            false);
 
     public static final CFunctionTypeWithNames ASSUME =
         new CFunctionTypeWithNames(

@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
@@ -25,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDecl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
 public class SeqExpressions {
 
@@ -51,14 +53,16 @@ public class SeqExpressions {
 
     public static final CIdExpression NEXT_THREAD = buildIdExpr(SeqVariableDeclaration.NEXT_THREAD);
 
-    public static final CIdExpression ASSUME = buildIdExpr(SeqFunctionDeclaration.ASSUME);
+    public static final CIdExpression VERIFIER_NONDET_INT =
+        buildIdExpr(SeqFunctionDeclaration.VERIFIER_NONDET_INT);
 
     public static final CIdExpression ABORT = buildIdExpr(SeqFunctionDeclaration.ABORT);
 
-    public static final CIdExpression MAIN = buildIdExpr(SeqFunctionDeclaration.MAIN);
+    public static final CIdExpression ASSERT_FAIL = buildIdExpr(SeqFunctionDeclaration.ASSERT_FAIL);
 
-    public static final CIdExpression VERIFIER_NONDET_INT =
-        buildIdExpr(SeqFunctionDeclaration.VERIFIER_NONDET_INT);
+    public static final CIdExpression ASSUME = buildIdExpr(SeqFunctionDeclaration.ASSUME);
+
+    public static final CIdExpression MAIN = buildIdExpr(SeqFunctionDeclaration.MAIN);
 
     /**
      * Returns a {@link CIdExpression} with a declaration of the form {@code int {pVarName} =
@@ -72,6 +76,19 @@ public class SeqExpressions {
 
     public static CIdExpression buildIdExpr(CSimpleDeclaration pDec) {
       return new CIdExpression(FileLocation.DUMMY, pDec);
+    }
+  }
+
+  public static class SeqStringLiteralExpression {
+
+    public static final CStringLiteralExpression STRING_0 =
+        buildStringLiteralExpr(SeqToken.STRING_O);
+
+    public static final CStringLiteralExpression SEQUENTIALIZATION_ERROR =
+        buildStringLiteralExpr(SeqToken.__SEQUENTIALIZATION_ERROR__);
+
+    public static CStringLiteralExpression buildStringLiteralExpr(String pValue) {
+      return new CStringLiteralExpression(FileLocation.DUMMY, pValue);
     }
   }
 

@@ -10,9 +10,15 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 
 public class SeqToken {
 
+  public static final String STRING_O = "\"0\"";
+
   public static final String ABORT = "abort";
 
   public static final String ACTIVE = "active";
+
+  public static final String __ASSERT_FAIL = "__assert_fail";
+
+  public static final String __ASSERTION = "__assertion";
 
   public static final String ASSUME = "assume";
 
@@ -26,17 +32,25 @@ public class SeqToken {
 
   public static final String CONTINUE = "continue";
 
-  public static final String CPACHECKER_TMP = "__CPAchecker_TMP_";
+  public static final String __CPACHECKER_TMP_ = "__CPAchecker_TMP_";
+
+  public static final String DEFAULT = "default";
 
   public static final String DUMMY = "dummy";
 
   public static final String EXECUTE = "execute";
 
+  public static final String __FILE = "__file";
+
   public static final String FUNCTION = "function";
+
+  public static final String __FUNCTION = "__function";
 
   public static final String I = "i";
 
   public static final String JOINS = "joins";
+
+  public static final String __LINE = "__line";
 
   public static final String LOCKED = "locked";
 
@@ -51,9 +65,11 @@ public class SeqToken {
 
   public static final String RETURN = "return";
 
+  public static final String __SEQUENTIALIZATION_ERROR__ = "\"__SEQUENTIALIZATION_ERROR__\"";
+
   public static final String SIZE = "size";
 
   public static final String T = "t";
 
-  public static final String VERIFIER_NONDET_INT = "__VERIFIER_nondet_int";
+  public static final String __VERIFIER_NONDET_INT = "__VERIFIER_nondet_int";
 }
