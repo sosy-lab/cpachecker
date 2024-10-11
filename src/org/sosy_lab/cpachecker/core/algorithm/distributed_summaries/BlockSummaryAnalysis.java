@@ -327,8 +327,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       // create workers
       Collection<BlockNode> blocks = blockGraph.getNodes();
       if (!spawnWorkerForId.isBlank()) {
-        int counter = 0;
-        MessageConverter converter = new MessageConverter();
         BlockNode blockNode =
             blocks.stream().filter(b -> b.getId().equals(spawnWorkerForId)).findAny().orElseThrow();
         Components build =
@@ -357,11 +355,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
             response.addAll(actor.processMessage(message));
           }
         }
-        for (BlockSummaryMessage blockSummaryMessage : response) {
-          Files.createDirectories(outputMessages);
-          Path message = outputMessages.resolve("M" + counter++ + ".json");
-          Files.writeString(message, converter.messageToJson(blockSummaryMessage));
-        }
+        writeAllMessages(response);
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
 
@@ -410,6 +404,20 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       throw new CPAException("Component Analysis run into an error.", e);
     } finally {
       logger.log(Level.INFO, "Block analysis finished.");
+    }
+  }
+
+  private void writeAllMessages(List<BlockSummaryMessage> response)
+      throws IOException {
+    MessageConverter converter = new MessageConverter();
+    int messageCount = 0;
+    for (BlockSummaryMessage blockSummaryMessage : response) {
+      Files.createDirectories(outputMessages);
+      final String outputFileNamePrefix = blockSummaryMessage.getType().name();
+      final String outputFileName = outputFileNamePrefix + messageCount + ".json";
+      Path outputPath = outputMessages.resolve(outputFileName);
+      Files.writeString(outputPath, converter.messageToJson(blockSummaryMessage));
+      messageCount++;
     }
   }
 
