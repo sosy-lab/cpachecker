@@ -19,7 +19,6 @@ public class FunctionVars {
   public final ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
       parameterAssignments;
 
-  // TODO store respective ReturnPc storage here
   public final ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
       returnValueAssignments;
 

@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause.CaseBlockEndingType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAssumeStatement;
@@ -47,7 +48,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqParameterAssignStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcRetrievalStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcStorageStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadJoinStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadTerminationStatement;
@@ -190,10 +191,9 @@ public class SeqUtil {
               ImmutableSet<FunctionReturnValueAssignment> assigns =
                   pFuncVars.returnValueAssignments.get(threadEdge);
               assert assigns != null;
-              // TODO need to create a switch case to only assign the context return value!
-              for (FunctionReturnValueAssignment assign : assigns) {
-                stmts.add(new SeqReturnValueAssignStatement(assign.statement, pcUpdate));
-              }
+              assert !assigns.isEmpty();
+              CIdExpression returnPc = assigns.iterator().next().returnPcStorage.returnPc;
+              stmts.add(new SeqReturnValueAssignStatements(returnPc, assigns, pcUpdate));
             }
 
           } else if (isRelevantPthreadFunc(sub.cfaEdge)) {
@@ -243,8 +243,7 @@ public class SeqUtil {
                 break;
 
               default:
-                throw new IllegalArgumentException(
-                    "unhandled relevant pthread method: " + funcType.name);
+                throw new AssertionError("unhandled relevant pthread method: " + funcType.name);
             }
 
           } else {
@@ -254,7 +253,7 @@ public class SeqUtil {
         }
       }
     }
-    return new SeqCaseClause(originPc, stmts.build());
+    return new SeqCaseClause(originPc, stmts.build(), CaseBlockEndingType.CONTINUE);
   }
 
   /** Returns "(pString)" */

@@ -346,8 +346,6 @@ public class Sequentialization {
     return rAssigns.buildOrThrow();
   }
 
-  // TODO make sure to only assign the value from the original calling context!
-  //  create a class that stores the return_pc value, then create a switch case over it
   /**
    * Maps {@link ThreadEdge}s whose {@link CFAEdge} is a {@link CReturnStatementEdge} to {@link
    * FunctionReturnValueAssignment}s where the CPAchecker_TMP vars are assigned the return value.
