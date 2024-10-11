@@ -49,7 +49,7 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
     <exclude>../programs/benchmarks/ntdrivers-simplified/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/openssl-simplified/s3_srvr_*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/locks/test_locks_12.yml</exclude> <!-- timeouts -->

@@ -42,7 +42,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
     <exclude>../programs/benchmarks/openssl/s3_*</exclude> <!-- mostly timeout  -->
     <exclude>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1.cil.yml</exclude> <!-- flapping timeout  -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>

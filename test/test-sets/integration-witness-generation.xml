@@ -122,7 +122,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loop-floats-scientific-comp/loop3.yml</exclude> <!-- flapping timeout -->
   </tasks>
   <tasks name="ControlFlow">
-    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/openssl/s3_srvr.blast.1*.yml</exclude> <!-- large runtime -->
     <exclude>../programs/benchmarks/openssl-simplified/s3_srvr_3.cil.yml</exclude> <!-- flapping timeout -->

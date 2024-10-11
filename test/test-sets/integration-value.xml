@@ -49,7 +49,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/float-newlib/*</exclude> <!-- only timeout -->
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>

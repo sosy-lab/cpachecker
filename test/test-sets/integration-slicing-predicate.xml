@@ -41,7 +41,7 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
   </tasks>
   <tasks name="ReachSafety-ControlFlow">
-    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>

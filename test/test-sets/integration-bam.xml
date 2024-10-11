@@ -121,7 +121,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--predicateAnalysis-bam"/>
     <option name="--option">analysis.checkCounterexamples=true</option>
     <option name="--option">counterexample.checker=CBMC</option>
-    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
     <exclude reason="timeout">../programs/benchmarks/openssl/s3_srvr.blast.1*</exclude>
     <exclude reason="partial set only">../programs/benchmarks/ntdrivers/*</exclude>
     <exclude reason="partial set only">../programs/benchmarks/openssl/*</exclude>

@@ -39,7 +39,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
     <exclude>../programs/benchmarks/openssl/*</exclude>
