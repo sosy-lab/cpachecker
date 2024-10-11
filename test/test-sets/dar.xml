@@ -84,7 +84,8 @@
         <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     </tasks>
     <tasks name="ReachSafety-Loops">
-        <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+        <includesfile>../programs/benchmarks/Loops.set</includesfile>
+        <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         
         <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>

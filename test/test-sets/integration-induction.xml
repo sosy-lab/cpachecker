@@ -73,7 +73,8 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/loops-crafted-1/**</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/loop-lit/afnp2014.yml</exclude> <!-- flapping timeouts -->

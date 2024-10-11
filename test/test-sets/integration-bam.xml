@@ -141,7 +141,8 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--predicateAnalysis-bam"/>
     <option name="--option">analysis.checkCounterexamples=true</option>
     <option name="--option">counterexample.checker=CBMC</option>
-    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
     <exclude>../programs/benchmarks/loop-invgen/*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/loop-lit/*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/loop-new/*</exclude> <!-- mostly timeout -->

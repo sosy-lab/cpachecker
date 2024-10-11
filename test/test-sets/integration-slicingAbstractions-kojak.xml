@@ -56,7 +56,8 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
     <exclude>../programs/benchmarks/loop-invgen/*</exclude> <!-- mostly timeout  -->
     <exclude>../programs/benchmarks/loops-crafted-1/*</exclude> <!-- mostly timeout  -->
     <exclude>../programs/benchmarks/nla-digbench/*</exclude> <!-- only timeout  -->

@@ -128,7 +128,8 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/ntdrivers/cdaudio.i.cil-1.yml</exclude> <!-- flapping timeout/memout -->
   </tasks>
   <tasks name="Recursive">
-    <includesfile>../programs/benchmarks/ReachSafety-Recursive.set</includesfile>
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/recursive/recHanoi03-2.yml</exclude> <!-- flapping timeout/memout -->
     <exclude>../programs/benchmarks/recursive-simple/fibo_2calls_25-1.yml</exclude> <!-- flapping timeout/OOM -->

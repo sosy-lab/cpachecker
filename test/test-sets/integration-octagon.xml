@@ -55,7 +55,8 @@ SPDX-License-Identifier: Apache-2.0
 
   <!-- Widening Tests -->
   <tasks name="Loops">
-      <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
       <exclude reason="timeout">../programs/benchmarks/loop-invgen/*</exclude>
       <exclude reason="timeout">../programs/benchmarks/loop-industry-pattern/*</exclude>

@@ -67,7 +67,8 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
     <exclude>../programs/benchmarks/loops/sum0*</exclude>
