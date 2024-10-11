@@ -207,8 +207,28 @@ class ReplaceIntegerWithBitvectorTheory extends BaseManagerView implements Integ
 
   @Override
   public IntegerFormula modulo(IntegerFormula pNumber1, IntegerFormula pNumber2) {
+    // Integer modulo behaves differently compared to BV smodulo and remainder
+    final BitvectorFormula zero = bvFormulaManager.makeBitvector(bitsize, 0);
+    final BitvectorFormula additionalUnit =
+        booleanFormulaManager.ifThenElse(
+            bvFormulaManager.greaterOrEquals(unwrap(pNumber2), zero, true),
+            unwrap(pNumber2),
+            bvFormulaManager.negate(unwrap(pNumber2)));
+
+    final BitvectorFormula rem =
+        bvFormulaManager.remainder(unwrap(pNumber1), unwrap(pNumber2), true);
+
+    // IF   first operand is positive or rem-result is zero
+    // THEN return plain remainder --> here C99/C11/Java and integer modulo is equal to bv SMTlib2
+    // ELSE modulo and add the absolute of an additional unit.
+
     return wrap(
         FormulaType.IntegerType,
-        bvFormulaManager.remainder(unwrap(pNumber1), unwrap(pNumber2), true));
+        booleanFormulaManager.ifThenElse(
+            booleanFormulaManager.or(
+                bvFormulaManager.greaterOrEquals(unwrap(pNumber1), zero, true),
+                bvFormulaManager.equal(rem, zero)),
+            rem,
+            bvFormulaManager.add(rem, additionalUnit)));
   }
 }

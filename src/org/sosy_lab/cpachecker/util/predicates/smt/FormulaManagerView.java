@@ -623,17 +623,11 @@ public class FormulaManagerView {
   }
 
   /**
-   * This method returns the formula for the DIVIDE-operator.
+   * This method returns the formula for the DIVIDE-operator. Depending on the used formulaManager,
+   * the result can be conform to either C99- or the SMTlib2-standard.
    *
-   * <p>The rounding mode used for the result depends on the type of formula:
-   *
-   * <ul>
-   *   <li>Integers use euclidean division, see {@link IntegerFormulaManagerView#divide}
-   *   <li>Bitvectors truncate the result, see {@link BitvectorFormulaManagerView#divide}
-   *   <li>Rationals are precise and don't need rounding
-   *   <li>Floating point formulas use "round to nearest, ties to even", see {@link
-   *       FloatingPointFormulaManagerView#divide}
-   * </ul>
+   * <p>Example: SMTlib2: 10%3==1, 10%(-3)==1, (-10)%3==2, (-10)%(-3)==2 C99: 10%3==1, 10%(-3)==1,
+   * (-10)%3==(-1), (-10)%(-3)==(-1)
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeDivide(T pF1, T pF2, boolean pSigned) {
@@ -658,10 +652,12 @@ public class FormulaManagerView {
   }
 
   /**
-   * This method returns the formula for the MODULO-operator.
+   * This method returns the formula for the REMAINDER-operator. This behaves consistently with
+   * C99/11s and Javas % operator, with the maybe the exception to 0 in the second argument, where
+   * the behavior might depend on the SMTLIB2 standard or even the solver used.
    *
-   * <p>The exact definition depends on the type of the formula. See {@link #makeDivide} for more
-   * details.
+   * <p>Examples:
+   * <li>10%3==1, 10%(-3)==1, (-10)%3==(-1), (-10)%(-3)==(-1)
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeRemainder(T pF1, T pF2, boolean pSigned) {
@@ -669,15 +665,13 @@ public class FormulaManagerView {
     if (pF1 instanceof IntegerFormula pFi1 && pF2 instanceof IntegerFormula pFi2) {
       // Integer modulo does not behave according to the C standard (or Java) for
       //   negative numbers in pF1.
-      t = getIntegerFormulaManager().modulo(pFi1, pFi2);
-    } else if (pF1 instanceof BitvectorFormula pFbv1 && pF2 instanceof BitvectorFormula pFbv2) {
-      // BitvectorFormulaManager has 2 "remainder" operations: smodulo() and remainder()
-      // We use remainder() here as it uses the same rounding-mode for the quotient (=truncate) as
-      // the division operation for bitvector formulas
-      t = getBitvectorFormulaManager().remainder(pFbv1, pFbv2, pSigned);
-    } else if (pF1 instanceof FloatingPointFormula pFf1
-        && pF2 instanceof FloatingPointFormula pFf2) {
-      t = getFloatingPointFormulaManager().remainder(pFf1, pFf2);
+      t = getIntegerFormulaManager().remainder(pFi1, pFi2, getBooleanFormulaManager());
+    } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
+      // remainder for BVs behaves as the C standard defines modulo (%)
+      //   (also Javas % operator behaves the same)
+      t =
+          getBitvectorFormulaManager()
+              .remainder((BitvectorFormula) pF1, (BitvectorFormula) pF2, pSigned);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
