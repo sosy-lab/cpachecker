@@ -74,6 +74,8 @@ class ASTTypeConverter {
     converter = pConverter;
     filePrefix = pFilePrefix;
     parseContext = pParseContext;
+
+    pParseContext.registerTypeMemoizationFilePrefixIfAbsent(filePrefix);
   }
 
   CType convert(IType t) {
@@ -81,7 +83,7 @@ class ASTTypeConverter {
     if (result == null) {
       result = checkNotNull(convert0(t));
       // re-check, in some cases we updated the map already
-      if (parseContext.getCType(t, filePrefix) != null) {
+      if (parseContext.getCType(t, filePrefix) == null) {
         parseContext.rememberCType(t, result, filePrefix);
       }
     }

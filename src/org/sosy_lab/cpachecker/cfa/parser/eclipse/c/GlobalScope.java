@@ -46,6 +46,7 @@ class GlobalScope extends AbstractScope {
   private final Map<String, CComplexTypeDeclaration> types;
   private final Map<String, CTypeDefDeclaration> typedefs;
   private final ProgramDeclarations programDeclarations;
+  private final ParseContext parseContext;
 
   public GlobalScope(
       Map<String, CSimpleDeclaration> globalVars,
@@ -53,6 +54,7 @@ class GlobalScope extends AbstractScope {
       Map<String, CFunctionDeclaration> functions,
       Map<String, CComplexTypeDeclaration> types,
       Map<String, CTypeDefDeclaration> typedefs,
+      ParseContext parseContext,
       ProgramDeclarations programDeclarations,
       String currentFile,
       Scope pFallbackScope) {
@@ -63,6 +65,7 @@ class GlobalScope extends AbstractScope {
     this.types = types;
     this.typedefs = typedefs;
     this.programDeclarations = programDeclarations;
+    this.parseContext = parseContext;
     fallbackScope = pFallbackScope;
   }
 
@@ -73,6 +76,7 @@ class GlobalScope extends AbstractScope {
         new HashMap<>(),
         new HashMap<>(),
         new HashMap<>(),
+        ParseContext.dummy(),
         new ProgramDeclarations(),
         "",
         CProgramScope.empty());
@@ -286,6 +290,7 @@ class GlobalScope extends AbstractScope {
       // the type from the other file
       if (programContainsEqualType) {
         CComplexTypeDeclaration oldProgDeclaration = programDeclarations.getEqualType(declaration);
+        parseContext.overwriteTypeIfNecessary(type, oldProgDeclaration.getType(), currentFile);
         type = oldProgDeclaration.getType();
 
         // there was already a declaration with this typename before, however
@@ -293,6 +298,7 @@ class GlobalScope extends AbstractScope {
       } else if (programContainsExactNamedType) {
         declaration = createRenamedTypeDeclaration(declaration);
         name = declaration.getType().getQualifiedName();
+        parseContext.overwriteTypeIfNecessary(type, declaration.getType(), currentFile);
       }
 
       // We now have a real declaration for a type for which we have seen a forward
@@ -308,6 +314,7 @@ class GlobalScope extends AbstractScope {
       // the type from this file instead of the new one
     } else if (programContainsEqualType) {
       declaration = programDeclarations.getEqualType(declaration);
+      parseContext.overwriteTypeIfNecessary(type, declaration.getType(), currentFile);
 
       // there was no former type declaration here, but the NAME of the type that
       // should be declared is already known from another parsed file, so we rename
@@ -315,6 +322,7 @@ class GlobalScope extends AbstractScope {
     } else if (programContainsExactNamedType) {
       declaration = createRenamedTypeDeclaration(declaration);
       name = declaration.getType().getQualifiedName();
+      parseContext.overwriteTypeIfNecessary(type, declaration.getType(), currentFile);
     }
 
     if (!programContainsEqualType) {
@@ -374,6 +382,7 @@ class GlobalScope extends AbstractScope {
               renamedCompositeType.getName(),
               renamedCompositeType.getOrigName(),
               renamedCompositeType);
+      parseContext.overwriteTypeIfNecessary(oldType, renamedElaboratedType, currentFile);
 
       List<CCompositeTypeMemberDeclaration> newMembers =
           new ArrayList<>(oldCompositeType.getMembers().size());

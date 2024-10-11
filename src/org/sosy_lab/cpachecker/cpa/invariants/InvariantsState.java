@@ -39,6 +39,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -1150,21 +1151,18 @@ public class InvariantsState
         .collect(pManager.getBooleanFormulaManager().toConjunction());
   }
 
-  @Override
-  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode) {
+  ExpressionTree<Object> getFormulaApproximation(
+      final FunctionEntryNode pFunctionEntryNode,
+      Predicate<NumeralFormula<CompoundInterval>> pIsInvalidVarApproximationFormulas,
+      Function<String, String> pVariableNameConverter) {
 
-    Predicate<NumeralFormula<CompoundInterval>> isInvalidVar =
-        pFormula ->
-            pFormula instanceof Variable
-                && !isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionEntryNode);
     Set<ExpressionTree<Object>> approximationsAsCode = new LinkedHashSet<>();
     for (BooleanFormula<CompoundInterval> approximation : getApproximationFormulas()) {
-      approximation = replaceInvalid(approximation, isInvalidVar);
+      approximation = replaceInvalid(approximation, pIsInvalidVarApproximationFormulas);
       Set<MemoryLocation> memLocs = approximation.accept(new CollectVarsVisitor<>());
       if (!memLocs.isEmpty()
           && Iterables.all(memLocs, memloc -> isExportable(memloc, pFunctionEntryNode))) {
-        ExpressionTree<Object> code = formulaToCode(approximation);
+        ExpressionTree<Object> code = formulaToCode(approximation, pVariableNameConverter);
         if (code != null) {
           approximationsAsCode.add(code);
         }
@@ -1172,15 +1170,16 @@ public class InvariantsState
     }
 
     final Set<MemoryLocation> safePointers = new HashSet<>();
-    isInvalidVar =
+    Predicate<NumeralFormula<CompoundInterval>> isInvalidVar =
         Predicates.or(
-            isInvalidVar,
+            pIsInvalidVarApproximationFormulas,
             pFormula -> {
               if (pFormula instanceof Variable) {
                 return !safePointers.contains(((Variable<?>) pFormula).getMemoryLocation());
               }
               return !Iterables.any(pFormula.accept(COLLECT_VARS_VISITOR), this::isPointerOrArray);
             });
+
     Predicate<NumeralFormula<CompoundInterval>> isNonSingletonConstant =
         pFormula ->
             pFormula instanceof Constant
@@ -1218,7 +1217,8 @@ public class InvariantsState
         BooleanFormula<CompoundInterval> equality =
             InvariantsFormulaManager.INSTANCE.equal(otherVar, var);
         if (definitelyImplies(equality)) {
-          ExpressionTree<Object> code = formulaToCode(replaceInvalid(equality, isInvalidVar));
+          ExpressionTree<Object> code =
+              formulaToCode(replaceInvalid(equality, isInvalidVar), pVariableNameConverter);
           if (code != null) {
             approximationsAsCode.add(code);
           }
@@ -1229,27 +1229,74 @@ public class InvariantsState
   }
 
   @Override
+  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+      final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode)
+      throws TranslationToExpressionTreeFailedException {
+
+    Predicate<NumeralFormula<CompoundInterval>> isInvalidVarFormulaApproximation =
+        pFormula ->
+            pFormula instanceof Variable
+                && !isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionEntryNode);
+
+    return getFormulaApproximation(
+        pFunctionEntryNode, isInvalidVarFormulaApproximation, Function.identity());
+  }
+
+  @Override
   public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
-      FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, ReportingMethodNotImplementedException {
-    throw new ReportingMethodNotImplementedException(
-        "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for"
-            + " InvariantsState.");
+      FunctionEntryNode pFunctionScope,
+      CFANode pLocation,
+      AstCfaRelation pAstCfaRelation,
+      boolean useOldKeywordForVariables)
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
+    Predicate<NumeralFormula<CompoundInterval>> isInvalidVarFormulaApproximation =
+        pFormula ->
+            pFormula instanceof Variable
+                && (!isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionScope)
+                    || !pAstCfaRelation
+                        .getVariablesAndParametersInScope(pLocation)
+                        .anyMatch(
+                            variableDeclaration ->
+                                variableDeclaration
+                                    .getQualifiedName()
+                                    .equals(
+                                        ((Variable<?>) pFormula)
+                                            .getMemoryLocation()
+                                            .getQualifiedName())));
+
+    return getFormulaApproximation(
+        pFunctionScope,
+        isInvalidVarFormulaApproximation,
+        varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName);
   }
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-      throws InterruptedException, ReportingMethodNotImplementedException {
-    throw new ReportingMethodNotImplementedException(
-        "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented for"
-            + " InvariantsState.");
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
+    Predicate<NumeralFormula<CompoundInterval>> isInvalidVarFormulaApproximation =
+        pFormula ->
+            pFormula instanceof Variable
+                && (!isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionScope)
+                    || !pFunctionReturnVariable
+                        .getDeclaration()
+                        .getQualifiedName()
+                        .equals(((Variable<?>) pFormula).getMemoryLocation().getQualifiedName()));
+
+    return getFormulaApproximation(
+        pFunctionScope, isInvalidVarFormulaApproximation, Function.identity());
   }
 
-  private ExpressionTree<Object> formulaToCode(BooleanFormula<CompoundInterval> pFormula) {
+  private ExpressionTree<Object> formulaToCode(
+      BooleanFormula<CompoundInterval> pFormula, Function<String, String> pVariableNameConverter) {
     return ExpressionTrees.cast(
         pFormula.accept(
-            new ToCodeFormulaVisitor(tools.evaluationVisitor, machineModel), getEnvironment()));
+            new ToCodeFormulaVisitor(tools.evaluationVisitor, machineModel, pVariableNameConverter),
+            getEnvironment()));
   }
 
   private ReplaceVisitor<CompoundInterval> getInvalidReplacementVisitor(

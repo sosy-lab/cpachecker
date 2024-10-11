@@ -8,6 +8,7 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 import com.google.common.base.Splitter;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -217,7 +218,7 @@ public class CTypeParser {
 
           enumerators.add(
               new CEnumerator(
-                  FileLocation.DUMMY, enumeratorName, name + "::" + enumeratorName, value));
+                  FileLocation.DUMMY, enumeratorName, name + "::" + enumeratorName, BigInteger.valueOf(value)));
         }
       }
     }

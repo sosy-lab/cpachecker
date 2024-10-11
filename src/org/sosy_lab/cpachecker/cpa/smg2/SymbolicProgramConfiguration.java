@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
@@ -637,17 +638,89 @@ public class SymbolicProgramConfiguration {
   // Only to be used by materialization to copy a SMGObject
   public SymbolicProgramConfiguration copyAllValuesFromObjToObj(
       SMGObject source, SMGObject target) {
-    return of(
-        smg.copyHVEdgesFromTo(source, target),
-        globalVariableMapping,
-        stackVariableMapping,
-        heapObjects,
-        externalObjectAllocation,
-        valueMapping,
-        variableToTypeMap,
-        memoryAddressAssumptionsMap,
-        mallocZeroMemory,
-        readBlacklist);
+    return copyHVEdgesFromTo(source, target);
+  }
+
+  // We need this here due to the update to the nesting level as this changes the SPC
+  private SymbolicProgramConfiguration copyHVEdgesFromTo(SMGObject source, SMGObject target) {
+    PersistentSet<SMGHasValueEdge> setOfValues =
+        smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(source, PersistentSet.of());
+    // We expect that there are NO edges in the target!
+    assert smg.getSMGObjectsWithSMGHasValueEdges()
+        .getOrDefault(target, PersistentSet.of())
+        .isEmpty();
+    boolean updateNesting =
+        target instanceof SMGSinglyLinkedListSegment targetSLL
+            && (!(source instanceof SMGSinglyLinkedListSegment sourceSLL)
+                || targetSLL.getNestingLevel() != sourceSLL.getNestingLevel());
+    Map<SMGObject, SMGObject> topListsAndNestedToUpdate = new HashMap<>();
+    SMG newSMG = smg;
+    for (SMGHasValueEdge hve : setOfValues) {
+      newSMG = newSMG.incrementValueToMemoryMapEntry(target, hve.hasValue());
+      if (updateNesting) {
+        SMGSinglyLinkedListSegment targetSLL = (SMGSinglyLinkedListSegment) target;
+        if (newSMG.isPointer(hve.hasValue())
+            && !hve.getOffset().equals(targetSLL.getNextOffset())) {
+          if (targetSLL instanceof SMGDoublyLinkedListSegment targetDLL
+              && targetDLL.getPrevOffset().equals(hve.getOffset())) {
+            continue;
+          }
+          // Update nesting level of directly nested abstracted structures
+          if (newSMG.getPTEdge(hve.hasValue()).orElseThrow().pointsTo()
+              instanceof SMGSinglyLinkedListSegment nestedLL) {
+            topListsAndNestedToUpdate.put(targetSLL, nestedLL);
+          }
+        }
+      }
+    }
+    SymbolicProgramConfiguration newSPC =
+        of(
+            newSMG.copyAndSetHVEdges(setOfValues, target),
+            globalVariableMapping,
+            stackVariableMapping,
+            heapObjects,
+            externalObjectAllocation,
+            valueMapping,
+            variableToTypeMap,
+            memoryAddressAssumptionsMap,
+            mallocZeroMemory,
+            readBlacklist);
+
+    for (Entry<SMGObject, SMGObject> topListAndNestedToUpdate :
+        topListsAndNestedToUpdate.entrySet()) {
+      newSPC =
+          newSPC.updateNestingLevelOf(
+              topListAndNestedToUpdate.getValue(),
+              topListAndNestedToUpdate.getKey().getNestingLevel() + 1);
+    }
+    return newSPC;
+  }
+
+  private SymbolicProgramConfiguration updateNestingLevelOf(
+      SMGObject objectToUpdate, int newNestingLevel) {
+    Preconditions.checkArgument(
+        !(objectToUpdate instanceof SMGSinglyLinkedListSegment) || newNestingLevel >= 0);
+    Preconditions.checkArgument(
+        objectToUpdate instanceof SMGSinglyLinkedListSegment || newNestingLevel == 0);
+    if (objectToUpdate.getNestingLevel() == newNestingLevel) {
+      return this;
+    }
+    SymbolicProgramConfiguration newSPC = this;
+    Preconditions.checkArgument(getSmg().isValid(objectToUpdate) && isHeapObject(objectToUpdate));
+    SMGObject newObjWNestingLevel = objectToUpdate.copyWithNewLevel(newNestingLevel);
+    // Add new heap obj
+    newSPC = newSPC.copyAndAddHeapObject(newObjWNestingLevel);
+    // Switch all HVEs to new
+    newSPC = newSPC.copyHVEdgesFromTo(objectToUpdate, newObjWNestingLevel);
+    // Switch all ptrs from old to new obj
+    newSPC = newSPC.replaceAllPointersTowardsWith(objectToUpdate, newObjWNestingLevel);
+    // invalidate old obj
+    Preconditions.checkArgument(
+        newSPC
+            .smg
+            .getAllSourcesForPointersPointingTowardsWithNumOfOccurrences(objectToUpdate)
+            .isEmpty());
+    return newSPC.invalidateSMGObject(objectToUpdate, false);
   }
 
   // Replace the pointer behind value with a new pointer with the new SMGObject target
@@ -2018,7 +2091,7 @@ public class SymbolicProgramConfiguration {
       }
       for (SMGHasValueEdge valueEdge :
           ImmutableList.sortedCopyOf(
-              Comparator.comparing(o -> o.getOffset()), smg.getEdges(memory))) {
+              Comparator.comparing(SMGHasValueEdge::getOffset), smg.getEdges(memory))) {
         SMGValue smgValue = valueEdge.hasValue();
         Preconditions.checkArgument(valueMapping.containsValue(smgValue));
         Value value = valueMapping.inverse().get(smgValue).get();
@@ -2055,21 +2128,16 @@ public class SymbolicProgramConfiguration {
       }
       if (stackframe.getReturnObject().isPresent()) {
         // There is a return object!
-        String retObjString = "";
+        builder.append("\nFunction ").append(funName).append(" return object :");
         if (smg.isValid(stackframe.getReturnObject().orElseThrow())) {
-          retObjString = retObjString + stackframe.getReturnObject().orElseThrow();
+          builder.append(stackframe.getReturnObject().orElseThrow());
         } else {
-          retObjString = retObjString + " invalid " + stackframe.getReturnObject().orElseThrow();
+          builder.append(" invalid ").append(stackframe.getReturnObject().orElseThrow());
         }
-        builder.append("\n");
-        builder
-            .append("Function ")
-            .append(funName)
-            .append(" return object ")
-            .append(":" + retObjString + " with values: ");
+        builder.append(" with values: ");
         for (SMGHasValueEdge valueEdge :
             ImmutableList.sortedCopyOf(
-                Comparator.comparing(o -> o.getOffset()),
+                Comparator.comparing(SMGHasValueEdge::getOffset),
                 smg.getEdges(stackframe.getReturnObject().orElseThrow()))) {
           MemoryLocation memLoc =
               MemoryLocation.fromQualifiedName(
@@ -2118,7 +2186,7 @@ public class SymbolicProgramConfiguration {
               .append("\n");
         }
         for (SMGHasValueEdge valueEdge :
-            ImmutableList.sortedCopyOf(Comparator.comparing(o -> o.getOffset()), edges)) {
+            ImmutableList.sortedCopyOf(Comparator.comparing(SMGHasValueEdge::getOffset), edges)) {
           SMGValue smgValue = valueEdge.hasValue();
           Preconditions.checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
@@ -2154,7 +2222,7 @@ public class SymbolicProgramConfiguration {
       }
       ImmutableList<SMGHasValueEdge> orderedHVes =
           ImmutableList.sortedCopyOf(
-              Comparator.comparing(o -> o.getOffset()),
+              Comparator.comparing(SMGHasValueEdge::getOffset),
               smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true));
 
       builder

@@ -657,6 +657,15 @@ public class CPAMain {
     private boolean useACSLAnnotatedProgram = false;
   }
 
+  /**
+   * Read witness file if present, switch to appropriate config and adjust cmdline options.
+   *
+   * @param config the CPAchecker configuration
+   * @param overrideOptions additional options to override the ones possibly in config
+   * @param configFileName the name of the file which was the source of the config
+   * @return a new configuration where the witness options have been processed
+   * @throws InvalidConfigurationException if the witness cannot be parsed or is unsupported
+   */
   public static Configuration handleWitnessOptions(
       Configuration config, Map<String, String> overrideOptions, Optional<String> configFileName)
       throws InvalidConfigurationException, IOException, InterruptedException {

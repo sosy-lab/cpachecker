@@ -23,51 +23,54 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
   <tasks name="ReachSafety-Arrays">
-    <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
+    <includesfile>../programs/benchmarks/Arrays.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ReachSafety-BitVectors">
-    <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
+    <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ReachSafety-ControlFlow">
-    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ReachSafety-ECA">
-    <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
+    <includesfile>../programs/benchmarks/ECA.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ReachSafety-Floats">
-    <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
+    <includesfile>../programs/benchmarks/Floats.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ReachSafety-Heap">
-    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ReachSafety-Loops">
-    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ReachSafety-ProductLines">
-    <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ReachSafety-Recursive">
-    <includesfile>../programs/benchmarks/ReachSafety-Recursive.set</includesfile>
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ReachSafety-Sequentialized">
-    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="SoftwareSystems-AWS-C-Common-ReachSafety">
-    <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common-ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
-    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
@@ -98,6 +101,15 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">solver.solver=cvc4</option>
   </rundefinition>
 
+  <rundefinition name="k1-cvc5">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+  <rundefinition name="k10-cvc5">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
   <rundefinition name="k1-smtinterpol">
     <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
@@ -124,6 +136,19 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">solver.solver=princess</option>
   </rundefinition>
 
+    <rundefinition name="k1-opensmt2">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+  <rundefinition name="k10-opensmt2">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+
   <rundefinition name="k1-boolector">
     <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
@@ -139,6 +164,17 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.handlePointerAliasing=false</option>
     <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
     <option name="--option">solver.solver=boolector</option>
+  </rundefinition>
+
+    <rundefinition name="k1-bitwuzla">
+    <option name="--option">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+  <rundefinition name="k10-bitwuzla">
+    <option name="--option">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
   </rundefinition>
 
   <!-- To install Yices2, please edit `lib/ivy.xml` and include the GPL-licenced parts of JavaSMT. -->

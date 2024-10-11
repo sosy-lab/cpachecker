@@ -1996,9 +1996,9 @@ class CFAFunctionBuilder extends ASTVisitor {
     final CExpression exp = astCreator.simplifyExpressionOneStep(binExp);
     final CFANode nextCaseStartsAtNode =
         switch (astCreator.getConditionKind(exp)) {
-            // no edge connecting rootNode with caseNode,
-            // so the "case" branch won't be connected to the rest of the CFA.
-            // also ignore the edge from rootNode to notCaseNode, it is not needed
+          // no edge connecting rootNode with caseNode,
+          // so the "case" branch won't be connected to the rest of the CFA.
+          // also ignore the edge from rootNode to notCaseNode, it is not needed
           case ALWAYS_FALSE -> rootNode;
           case ALWAYS_TRUE -> {
             final BlankEdge trueEdge =
