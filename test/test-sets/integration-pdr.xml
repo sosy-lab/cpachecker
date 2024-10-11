@@ -39,7 +39,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
     <exclude>../programs/benchmarks/openssl/*</exclude>
@@ -55,7 +55,8 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
 
     <!-- Timeout even after 90s -->
     <exclude>../programs/benchmarks/list-properties/*</exclude>
@@ -67,7 +68,8 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
     <exclude>../programs/benchmarks/loops/sum0*</exclude>
@@ -89,7 +91,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
