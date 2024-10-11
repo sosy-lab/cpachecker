@@ -1280,7 +1280,7 @@ public class SMGState
 
   @SuppressWarnings("unused")
   private boolean experimentalNestedListFilter(SMGState pOther) {
-    if (!(this.memoryModel.getHeapObjectsMinSize() >= pOther.memoryModel.getHeapObjectsMinSize())) {
+    if (!(memoryModel.getHeapObjectsMinSize() >= pOther.memoryModel.getHeapObjectsMinSize())) {
       return false;
     }
 
@@ -1338,7 +1338,7 @@ public class SMGState
     if (!pOther
         .removeOldConstraints()
         .getConstraints()
-        .containsAll(this.removeOldConstraints().getConstraints())) {
+        .containsAll(removeOldConstraints().getConstraints())) {
       // TODO: Problem: there might still be distinct symbolic values with the same constraints.
       //   => Compare those by location.
       //   Example: imagine a loop, the loop bound may be against a nondet() function,
@@ -1464,6 +1464,24 @@ public class SMGState
   @Nullable SMGState removeOldConstraints() {
     ConstantSymbolicExpressionLocator symIdentVisitor =
         ConstantSymbolicExpressionLocator.getInstance();
+    // There are 3 sources of constraints, values in objects (HVEs), offsets and sizes.
+    // TODO: offsets
+    ImmutableSet.Builder<SymbolicValue> sizeIdentsBuilder = ImmutableSet.builder();
+    for (SMGObject obj : getMemoryModel().getSmg().getObjects()) {
+      Value value = obj.getSize();
+      // Get all symbolic values in sizes (they might not have a SMGValue mapping anymore below!)
+      if (value instanceof SymbolicValue symValue) {
+        for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
+          SymbolicValue usedIdentifier = constSym;
+          if (constSym.getValue() instanceof SymbolicIdentifier symIdent) {
+            usedIdentifier = symIdent;
+          }
+          sizeIdentsBuilder.add(usedIdentifier);
+        }
+      }
+    }
+    ImmutableSet<SymbolicValue> sizeIdents = sizeIdentsBuilder.build();
+
     ImmutableSet.Builder<Constraint> constraints = ImmutableSet.builder();
     // First, get all SMGValues for possible identifier
     Map<SymbolicValue, Set<SMGValue>> identToAllValues = new HashMap<>();
@@ -1496,6 +1514,12 @@ public class SMGState
         if (identifierInConstraint.getValue() instanceof SymbolicIdentifier symIdent) {
           usedIdentifier = symIdent;
         }
+
+        if (sizeIdents.contains(usedIdentifier)) {
+          constraints.add(constraint);
+          break;
+        }
+
         Set<SMGValue> maybeSMGValues =
             identToAllValues.getOrDefault(usedIdentifier, ImmutableSet.of());
         for (SMGValue smgValue : maybeSMGValues) {
@@ -1703,9 +1727,20 @@ public class SMGState
           return false;
         }
       } else if (!(thisObjSize.equals(otherObjSize)
-          && thisObj.getNestingLevel() == otherObj.getNestingLevel()
-          && thisObj.getOffset().compareTo(otherObj.getOffset()) == 0)) {
+          || !thisObj.getOffset().equals(otherObj.getOffset()))) {
         return false;
+      } else if (this != otherState && thisObj.getNestingLevel() != otherObj.getNestingLevel()) {
+        // lessOrEquals
+        return false;
+      } else if (this == otherState) {
+        // Equal heap comparison of the same state, e.g. abstraction
+        if (thisObj.getNestingLevel() > otherObj.getNestingLevel()
+            && thisObj.getNestingLevel() - otherObj.getNestingLevel() != 1) {
+          return false;
+        } else if (thisObj.getNestingLevel() < otherObj.getNestingLevel()
+            && otherObj.getNestingLevel() - thisObj.getNestingLevel() != 1) {
+          return false;
+        }
       }
 
       if (thisObj instanceof SMGSinglyLinkedListSegment
@@ -3668,7 +3703,7 @@ public class SMGState
         constraintFactory.checkValidMemoryAccess(
             offsetOfAccessInBits, sizeOfAccessInBits, object.getSize(), calcTypeForMemAccess, this);
 
-    String stackFrameFunctionName = this.getStackFrameTopFunctionName();
+    String stackFrameFunctionName = getStackFrameTopFunctionName();
 
     // Iff SAT -> memory-safety is violated
     return evaluator.checkMemoryConstraintsAreUnsatIndividually(
@@ -5104,7 +5139,8 @@ public class SMGState
       BigInteger nextPointerTargetOffset,
       BigInteger pfo,
       BigInteger prevPointerTargetOffset,
-      Set<SMGObject> alreadyVisited)
+      Set<SMGObject> alreadyVisited,
+      int nestingLevel)
       throws SMGException {
     statistics.incrementListAbstractions();
     // Check that the next object exists, is valid, has the same size and the same value in head
@@ -5204,7 +5240,7 @@ public class SMGState
       }
       newDLL =
           new SMGDoublyLinkedListSegment(
-              root.getNestingLevel(),
+              nestingLevel,
               root.getSize(),
               root.getOffset(),
               headOffset,
@@ -5384,6 +5420,7 @@ public class SMGState
 
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
     assert currentState.getMemoryModel().getSmg().checkFirstPointerNestingLevelConsistency();
+    Preconditions.checkArgument(newDLL.getNestingLevel() == nestingLevel);
 
     return currentState.abstractIntoDLL(
         newDLL,
@@ -5391,7 +5428,8 @@ public class SMGState
         nextPointerTargetOffset,
         pfo,
         prevPointerTargetOffset,
-        ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newDLL).build());
+        ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newDLL).build(),
+        nestingLevel);
   }
 
   /*
@@ -5404,7 +5442,8 @@ public class SMGState
       SMGObject root,
       BigInteger nfo,
       BigInteger nextPointerTargetOffset,
-      Set<SMGObject> alreadyVisited)
+      Set<SMGObject> alreadyVisited,
+      int nestingLevel)
       throws SMGException {
     statistics.incrementListAbstractions();
     // Check that the next object exists, is valid, has the same size and the same value in head
@@ -5485,7 +5524,7 @@ public class SMGState
               : BigInteger.ZERO;
       newSLL =
           new SMGSinglyLinkedListSegment(
-              root.getNestingLevel(),
+              nestingLevel,
               root.getSize(),
               root.getOffset(),
               headOffset,
@@ -5557,12 +5596,14 @@ public class SMGState
 
     // TODO: write a test that checks that we remove all unnecessary pointers/values etc.
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
+    Preconditions.checkArgument(newSLL.getNestingLevel() == nestingLevel);
 
     return currentState.abstractIntoSLL(
         newSLL,
         nfo,
         nextPointerTargetOffset,
-        ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
+        ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build(),
+        nestingLevel);
   }
 
   public SMGState removeUnusedValues() {

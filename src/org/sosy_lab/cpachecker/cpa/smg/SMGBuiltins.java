@@ -801,7 +801,7 @@ public class SMGBuiltins {
 
       case "__VERIFIER_BUILTIN_PLOT":
         evaluateVBPlot(cFCExpression, newState);
-        // $FALL-THROUGH$
+      // $FALL-THROUGH$
       case "printf":
         return ImmutableList.of(SMGAddressValueAndState.of(newState));
 
@@ -967,7 +967,7 @@ public class SMGBuiltins {
                       + " cpa.smg.safeUnknownFunctionsPatterns",
                   calledFunctionName));
         }
-        // $FALL-THROUGH$ // for safe functions
+      // $FALL-THROUGH$ // for safe functions
       case ASSUME_SAFE:
         return ImmutableList.of(SMGAddressValueAndState.of(pState));
       case ASSUME_EXTERNAL_ALLOCATED:

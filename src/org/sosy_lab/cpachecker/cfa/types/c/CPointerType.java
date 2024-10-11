@@ -59,9 +59,7 @@ public final class CPointerType implements CType {
 
   @Override
   public String toString() {
-    String decl;
-
-    decl = "(" + type + ")*";
+    String decl = "(" + type + ")*";
 
     return (isConst() ? "const " : "") + (isVolatile() ? "volatile " : "") + decl;
   }

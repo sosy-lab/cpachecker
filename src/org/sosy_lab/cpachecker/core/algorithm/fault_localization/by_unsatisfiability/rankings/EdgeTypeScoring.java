@@ -26,15 +26,11 @@ public class EdgeTypeScoring implements FaultScoring {
       case ReturnStatementEdge:
         return 25d;
       case FunctionReturnEdge:
-        // fall through
       case CallToReturnEdge:
-        // fall through
       case FunctionCallEdge:
         return 12.5;
       case DeclarationEdge:
-        // fall through
       case BlankEdge:
-        // fall through
       default:
         return 0;
     }

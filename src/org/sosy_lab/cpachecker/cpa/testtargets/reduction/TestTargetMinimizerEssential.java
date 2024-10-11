@@ -9,8 +9,10 @@
 package org.sosy_lab.cpachecker.cpa.testtargets.reduction;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -18,17 +20,23 @@ import java.util.Queue;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cpa.testtargets.reduction.TestTargetReductionUtils.DummyInputCFAEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 
+/*
+ * Based on paper
+ * Takeshi Chusho: Test Data Selection and Quality Estimation Based on the Concept
+ * of Essential Branches for Path Testing. IEEE TSE 13(5): 509-517 (1987)
+ * https://doi.org/10.1109/TSE.1987.233196
+ */
 public class TestTargetMinimizerEssential {
 
-  // only works correctly if DummyCFAEdge uses Object equals
+  // only works correctly if DummyInputCFAEdge, DummyCFAEdge uses Object equals
   public Set<CFAEdge> reduceTargets(
       final Set<CFAEdge> pTestTargets, final CFA pCfa, final boolean fullCFACopy) {
     // maps a copied edge to the testTarget that can be removed if its dominated by another
@@ -77,7 +85,8 @@ public class TestTargetMinimizerEssential {
       // get next node in the queue
       currentNode = waitlist.poll();
 
-      if (currentNode.getNumLeavingEdges() == 0) {
+      if (currentNode.getNumLeavingEdges() == 0
+          && pEntryNode.getExitNode().orElse(null) != currentNode) {
         CFANode currentNodeFinal = currentNode;
         pEntryNode
             .getExitNode()
@@ -89,9 +98,10 @@ public class TestTargetMinimizerEssential {
                     origNodesCopied.add(exitNode);
                   }
                   CFAEdge copyEdge =
-                      new DummyCFAEdge(
+                      new DummyInputCFAEdge(
                           origCFANodeToCopyMap.get(currentNodeFinal),
-                          origCFANodeToCopyMap.get(exitNode));
+                          origCFANodeToCopyMap.get(exitNode),
+                          false);
                   origCFANodeToCopyMap.get(currentNodeFinal).addLeavingEdge(copyEdge);
                   origCFANodeToCopyMap.get(exitNode).addEnteringEdge(copyEdge);
                 });
@@ -113,8 +123,12 @@ public class TestTargetMinimizerEssential {
         }
         // create the new Edge and add it to its predecessor and successor nodes aswell as mapping
         // the original to it
+
         CFAEdge copyEdge =
-            new DummyCFAEdge(origCFANodeToCopyMap.get(currentNode), copiedSuccessorNode);
+            new DummyInputCFAEdge(
+                origCFANodeToCopyMap.get(currentNode),
+                copiedSuccessorNode,
+                TestTargetReductionUtils.isInputEdge(currentEdge));
         origCFANodeToCopyMap.get(currentNode).addLeavingEdge(copyEdge);
         copiedSuccessorNode.addEnteringEdge(copyEdge);
 
@@ -151,16 +165,23 @@ public class TestTargetMinimizerEssential {
   private void redirectEdgeToNewPredecessor(
       final CFAEdge edgeToRedirect,
       final CFANode newPredecessor,
-      final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap) {
+      final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
+      final boolean pProvidesInputToRedirect) {
+
+    boolean providesInput =
+        pProvidesInputToRedirect
+            || (edgeToRedirect instanceof DummyInputCFAEdge
+                && ((DummyInputCFAEdge) edgeToRedirect).providesInput());
     /*
      * redirect edges (construct a new edge and replace because predecessors and successors are
      * immutable
      */
     CFAEdge redirectedEdge;
     if (isSelfLoop(edgeToRedirect)) {
-      redirectedEdge = new DummyCFAEdge(newPredecessor, newPredecessor);
+      redirectedEdge = new DummyInputCFAEdge(newPredecessor, newPredecessor, providesInput);
     } else {
-      redirectedEdge = new DummyCFAEdge(newPredecessor, edgeToRedirect.getSuccessor());
+      redirectedEdge =
+          new DummyInputCFAEdge(newPredecessor, edgeToRedirect.getSuccessor(), providesInput);
     }
     edgeToRedirect.getSuccessor().removeEnteringEdge(edgeToRedirect);
     redirectedEdge.getSuccessor().addEnteringEdge(redirectedEdge);
@@ -177,9 +198,19 @@ public class TestTargetMinimizerEssential {
     // create a new edge from current Edges start to the successor of its end
     CFAEdge redirectedEdge;
     if (isSelfLoop(edgeToRedirect)) {
-      redirectedEdge = new DummyCFAEdge(newSuccessor, newSuccessor);
+      redirectedEdge =
+          new DummyInputCFAEdge(
+              newSuccessor,
+              newSuccessor,
+              edgeToRedirect instanceof DummyInputCFAEdge
+                  && ((DummyInputCFAEdge) edgeToRedirect).providesInput());
     } else {
-      redirectedEdge = new DummyCFAEdge(edgeToRedirect.getPredecessor(), newSuccessor);
+      redirectedEdge =
+          new DummyInputCFAEdge(
+              edgeToRedirect.getPredecessor(),
+              newSuccessor,
+              edgeToRedirect instanceof DummyInputCFAEdge
+                  && ((DummyInputCFAEdge) edgeToRedirect).providesInput());
     }
     edgeToRedirect.getPredecessor().removeLeavingEdge(edgeToRedirect);
     redirectedEdge.getPredecessor().addLeavingEdge(redirectedEdge);
@@ -233,60 +264,39 @@ public class TestTargetMinimizerEssential {
     }
   }
 
-  private void removeLeavingEdge(
-      final CFAEdge toRemove,
-      final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
-      final Set<CFAEdge> pTestTargets) {
-    CFANode pred = toRemove.getPredecessor();
-    // remove the current nodes leaving edge from its successor and from the current edge
-    pred.removeLeavingEdge(toRemove);
-    toRemove.getSuccessor().removeEnteringEdge(toRemove);
-    // add the exiting edges from the successor to the predecessor to keep the graph intact
-    CFANode successorNode = toRemove.getSuccessor();
-    while (successorNode.getNumLeavingEdges() > 0) {
-      redirectEdgeToNewPredecessor(
-          successorNode.getLeavingEdge(0), pred, copiedEdgeToTestTargetsMap);
-    }
-
-    // copy the incoming edges to the previous successor to the current Node
-    while (successorNode.getNumEnteringEdges() > 0) {
-      /*if (enteringRemovedNode == toRemove) {
-        continue;
-      }*/
-      redirectEdgeToNewSuccessor(
-          successorNode.getEnteringEdge(0), pred, copiedEdgeToTestTargetsMap);
-    }
-
-    updateTestGoalMappingAfterRemoval(
-        toRemove, CFAUtils.enteringEdges(pred), copiedEdgeToTestTargetsMap, pTestTargets);
-  }
-
-  private void removeEnteringEdge(
+  private void removeEdge(
       final CFAEdge toRemove,
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
       final Set<CFAEdge> pTestTargets,
-      final boolean mayBeLoopHead) {
+      final boolean isLeaving) {
+    CFANode pred = toRemove.getPredecessor();
     CFANode succ = toRemove.getSuccessor();
-    toRemove.getPredecessor().removeLeavingEdge(toRemove);
+    boolean providesInput =
+        toRemove instanceof DummyInputCFAEdge && ((DummyInputCFAEdge) toRemove).providesInput();
+
+    // remove the edge from its predecessor and successor
+    pred.removeLeavingEdge(toRemove);
     succ.removeEnteringEdge(toRemove);
 
+    updateTestGoalMappingAfterRemoval(
+        toRemove,
+        isLeaving ? CFAUtils.enteringEdges(pred) : CFAUtils.leavingEdges(succ),
+        copiedEdgeToTestTargetsMap,
+        pTestTargets);
+
+    // add the exiting edges from the successor to the predecessor to keep the graph intact
     while (succ.getNumLeavingEdges() > 0) {
       redirectEdgeToNewPredecessor(
-          succ.getLeavingEdge(0), toRemove.getPredecessor(), copiedEdgeToTestTargetsMap);
+          succ.getLeavingEdge(0), pred, copiedEdgeToTestTargetsMap, providesInput);
     }
 
-    if (mayBeLoopHead) {
-      while (succ.getNumEnteringEdges() > 0) {
-        /*if (toRemove == enteringEdge) {
-          continue;
-        }*/
-        redirectEdgeToNewSuccessor(
-            succ.getEnteringEdge(0), toRemove.getPredecessor(), copiedEdgeToTestTargetsMap);
-      }
+    // copy the incoming edges to the previous successor to the current Node
+    while (succ.getNumEnteringEdges() > 0) {
+      /*if (enteringRemovedNode == toRemove) {
+        continue;
+      }*/
+      redirectEdgeToNewSuccessor(succ.getEnteringEdge(0), pred, copiedEdgeToTestTargetsMap);
     }
-
-    updateTestGoalMappingAfterRemoval(
-        toRemove, CFAUtils.leavingEdges(succ), copiedEdgeToTestTargetsMap, pTestTargets);
   }
 
   /** Remove edges from copied graph according to first rule. */
@@ -299,6 +309,7 @@ public class TestTargetMinimizerEssential {
     Queue<CFANode> waitlist = new ArrayDeque<>();
     CFAEdge removedEdge;
     CFANode currentNode;
+    CFAEdge leaving;
 
     waitlist.add(pCopiedFunctionEntryExit.getFirst());
     visitedNodes.add(pCopiedFunctionEntryExit.getFirst());
@@ -309,14 +320,17 @@ public class TestTargetMinimizerEssential {
       // shrink graph if node has only one outgoing edge by removing the successor from the graph
       // unless successor is the root node.
       while (currentNode.getNumLeavingEdges() == 1) {
-        if (entersProgramStart(currentNode.getLeavingEdge(0), pCopiedFunctionEntryExit.getFirst())
-            || entersProgramEnd(currentNode.getLeavingEdge(0), pCopiedFunctionEntryExit.getSecond())
-            || isSelfLoop(currentNode.getLeavingEdge(0))) {
+        leaving = currentNode.getLeavingEdge(0);
+        if (entersProgramStart(leaving, pCopiedFunctionEntryExit.getFirst())
+            || entersProgramEnd(leaving, pCopiedFunctionEntryExit.getSecond())
+            || isSelfLoop(leaving)
+            || (copiedEdgeToTestTargetsMap.containsKey(leaving)
+                && TestTargetReductionUtils.isInputEdge(leaving))) {
           break;
         }
 
         removedEdge = currentNode.getLeavingEdge(0);
-        removeLeavingEdge(removedEdge, copiedEdgeToTestTargetsMap, pTestTargets);
+        removeEdge(removedEdge, copiedEdgeToTestTargetsMap, pTestTargets, true);
 
         // due to branching the node we remove might already be in the queue of nodes to look at.
         // In that case we need to remove it from the queue
@@ -355,8 +369,7 @@ public class TestTargetMinimizerEssential {
           && !isSelfLoop(currentNode.getEnteringEdge(0))) {
 
         // remove the current nodes entering edge from its predecessor and from the current node
-        removeEnteringEdge(
-            currentNode.getEnteringEdge(0), copiedEdgeToTestTargetsMap, pTestTargets, false);
+        removeEdge(currentNode.getEnteringEdge(0), copiedEdgeToTestTargetsMap, pTestTargets, false);
 
         waitlist.remove(currentNode);
       }
@@ -367,6 +380,47 @@ public class TestTargetMinimizerEssential {
         }
       }
     }
+  }
+
+  private ImmutableSet<Pair<CFANode, CFANode>> determinePathsWithRequiredInputs(
+      final CFANode pEntryNode) {
+    Map<Pair<CFANode, CFANode>, Boolean> pathsToRequiredInputs = new HashMap<>();
+
+    Deque<Pair<CFANode, CFANode>> waitlist = new ArrayDeque<>();
+    Pair<CFANode, CFANode> path;
+    Pair<CFANode, CFANode> newPath;
+    boolean viaInput;
+
+    for (CFAEdge leaving : CFAUtils.allLeavingEdges(pEntryNode)) {
+      newPath = Pair.of(pEntryNode, leaving.getSuccessor());
+      pathsToRequiredInputs.put(newPath, TestTargetReductionUtils.isInputEdge(leaving));
+      waitlist.add(newPath);
+    }
+
+    while (!waitlist.isEmpty()) {
+      path = waitlist.pop();
+      for (CFAEdge leaving : CFAUtils.allLeavingEdges(path.getSecond())) {
+        newPath = Pair.of(leaving.getPredecessor(), leaving.getSuccessor());
+        viaInput = TestTargetReductionUtils.isInputEdge(leaving);
+        if (!pathsToRequiredInputs.containsKey(newPath)
+            || (!pathsToRequiredInputs.get(newPath) && viaInput)) {
+          pathsToRequiredInputs.put(newPath, viaInput);
+          waitlist.add(newPath);
+        }
+
+        newPath = Pair.of(path.getFirst(), leaving.getSuccessor());
+
+        viaInput = pathsToRequiredInputs.get(path) || TestTargetReductionUtils.isInputEdge(leaving);
+        if (!pathsToRequiredInputs.containsKey(newPath)
+            || (!pathsToRequiredInputs.get(newPath) && viaInput)) {
+          pathsToRequiredInputs.put(newPath, viaInput);
+          waitlist.add(newPath);
+        }
+      }
+    }
+    return ImmutableSet.copyOf(
+        FluentIterable.from(pathsToRequiredInputs.keySet())
+            .filter(pathPair -> pathsToRequiredInputs.get(pathPair)));
   }
 
   private void applyRule3(
@@ -392,6 +446,9 @@ public class TestTargetMinimizerEssential {
             CFAUtils::allPredecessorsOf,
             pCopiedFunctionEntryExit.getSecond());
 
+    ImmutableSet<Pair<CFANode, CFANode>> pathsWithInput =
+        determinePathsWithRequiredInputs(pCopiedFunctionEntryExit.getFirst());
+
     waitlist.add(pCopiedFunctionEntryExit.getFirst());
     visitedNodes.add(pCopiedFunctionEntryExit.getFirst());
     while (!waitlist.isEmpty()) {
@@ -399,13 +456,16 @@ public class TestTargetMinimizerEssential {
       ruleApplicable = currentNode.getNumEnteringEdges() > 0;
       removedEdge = null;
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
-        if (!inverseDomTree.isAncestorOf(leavingEdge.getSuccessor(), currentNode)) {
+        if (!inverseDomTree.isAncestorOf(leavingEdge.getSuccessor(), currentNode)
+            || pathsWithInput.contains(Pair.of(currentNode, leavingEdge.getSuccessor()))) {
           if (removedEdge == null) {
             removedEdge = leavingEdge;
             if (entersProgramStart(removedEdge, pCopiedFunctionEntryExit.getFirst())
                 || entersProgramEnd(removedEdge, pCopiedFunctionEntryExit.getSecond())
-                || isSelfLoop(removedEdge)) {
-              // make sure we dont merge anything into the root node
+                || isSelfLoop(removedEdge)
+                || (removedEdge instanceof DummyInputCFAEdge
+                    && ((DummyInputCFAEdge) removedEdge).providesInput())) {
+              // make sure we don't merge anything into the root node
               ruleApplicable = false;
               break;
             }
@@ -417,9 +477,9 @@ public class TestTargetMinimizerEssential {
       }
 
       if (ruleApplicable && removedEdge != null && !isSelfLoop(removedEdge)) {
-        removeLeavingEdge(removedEdge, copiedEdgeToTestTargetsMap, pTestTargets);
+        removeEdge(removedEdge, copiedEdgeToTestTargetsMap, pTestTargets, true);
         waitlist.remove(removedEdge.getSuccessor());
-        // readd current node to the queue since we merge something into it and the new merged node
+        // read current node to the queue since we merge something into it and the new merged node
         // may satisfy the condition again
         waitlist.add(currentNode);
       }
@@ -474,7 +534,7 @@ public class TestTargetMinimizerEssential {
       }
 
       if (ruleApplicable && removedEdge != null && !isSelfLoop(removedEdge)) {
-        removeEnteringEdge(removedEdge, copiedEdgeToTestTargetsMap, pTestTargets, true);
+        removeEdge(removedEdge, copiedEdgeToTestTargetsMap, pTestTargets, false);
         waitlist.remove(removedEdge.getSuccessor());
       }
 

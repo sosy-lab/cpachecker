@@ -46,7 +46,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path loopInvariantsFile = null;
 
-  private static enum LoopInvExport {
+  private enum LoopInvExport {
     ALWAYS,
     IF_NOT_FALSE,
     IF_TRUE

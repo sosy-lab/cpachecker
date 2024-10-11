@@ -14,4 +14,4 @@ input_files: 'pointer-array-conversion-for-arithmetic.c'
 properties:
   - property_file: ../../config/properties/unreach-call.prp
     expected_verdict: false
-  - property_file: ../benchmarks/properties/coverage-error-call.prp
+  - property_file: ../../config/properties/coverage-error-call.prp

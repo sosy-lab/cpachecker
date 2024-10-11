@@ -8,13 +8,17 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Strings;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
@@ -121,16 +125,55 @@ class ParseContext {
   }
 
   CType getCType(IType type, String filePrefix) {
-    if (!typeConversions.containsKey(filePrefix)) {
-      return null;
-    }
     return typeConversions.get(filePrefix).get(type);
   }
 
-  void rememberCType(IType originalType, CType cType, String filePrefix) {
-    if (!typeConversions.containsKey(filePrefix)) {
-      typeConversions.put(filePrefix, new HashMap<>());
+  private IType getTypeFromTypeConversion(CType ourCType, String filePrefix) {
+    for (Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
+      if (ourCType.equals(entry.getValue())) {
+        return entry.getKey();
+      }
     }
+    return null;
+  }
+
+  void overwriteTypeIfNecessary(CType oldType, CType newType, String filePrefix) {
+    IType iType = getTypeFromTypeConversion(oldType, filePrefix);
+    if (iType != null) {
+      rememberAndOverrideCType(iType, newType, filePrefix);
+    }
+  }
+
+  void registerTypeMemoizationFilePrefixIfAbsent(String prefix) {
+    typeConversions.putIfAbsent(prefix, new IdentityHashMap<>());
+  }
+
+  /**
+   * Remember a type conversion from Eclipse CDT Types to CPAchecker Types.
+   *
+   * @param originalType the original eclipse type
+   * @param cType the converted CPAchecker type
+   * @param filePrefix the file for which to remember the conversion
+   * @throws IllegalStateException when the originalType was already contained in the mapping for
+   *     filePrefix
+   */
+  void rememberCType(IType originalType, CType cType, String filePrefix)
+      throws IllegalStateException {
+
+    checkState(
+        !typeConversions.get(filePrefix).containsKey(originalType),
+        "Trying to re-remember %s but was already contained for filePrefix %s and CPAchecker"
+            + " Type %s",
+        originalType,
+        filePrefix,
+        cType);
+
+    typeConversions.get(filePrefix).put(originalType, cType);
+  }
+
+  private void rememberAndOverrideCType(IType originalType, CType cType, String filePrefix) {
+
+    // Override a type if it was previously mapped
     typeConversions.get(filePrefix).put(originalType, cType);
   }
 

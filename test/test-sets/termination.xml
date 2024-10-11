@@ -36,26 +36,36 @@
     <resultfiles>**.graphml*</resultfiles>
 
     <tasks>
-        <includesfile>../programs/benchmarks/Termination-MainControlFlow.set</includesfile>
+        <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
         <!-- SV-Comp files assume that malloc always succeeds -->
         <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
         <exclude>../programs/benchmarks/termination-restricted-15/Swingers.yml</exclude> <!-- flapping unknown/timeout -->
     </tasks>
     <tasks name="Termination-BitVectors">
-        <includesfile>../programs/benchmarks/Termination-BitVectors.set</includesfile>
+        <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
     </tasks>
     <tasks name="Termination-MainHeap">
-        <includesfile>../programs/benchmarks/Termination-MainHeap.set</includesfile>
+        <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
     </tasks>
     <tasks name="Termination-Other">
-        <includesfile>../programs/benchmarks/Termination-Other.set</includesfile>
+        <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+        <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+        <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+        <includesfile>../programs/benchmarks/ECA.set</includesfile>
+        <includesfile>../programs/benchmarks/Floats.set</includesfile>
+        <includesfile>../programs/benchmarks/Heap.set</includesfile>
+        <includesfile>../programs/benchmarks/Loops.set</includesfile>
+        <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+        <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+        <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+        <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
     </tasks>
     <tasks name="SoftwareSystems-DeviceDriversLinux64-Termination">
-        <includesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64-Termination.set</includesfile>
+        <includesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
         <propertyfile >../sv-benchmarks/c/properties/termination.prp</propertyfile>
     </tasks>
 

@@ -141,8 +141,7 @@ public class ReachingDefState
     if (superset == this || superset == topElement) {
       return true;
     }
-    boolean isLocalSubset;
-    isLocalSubset = isSubsetOf(localReachDefs, superset.localReachDefs);
+    boolean isLocalSubset = isSubsetOf(localReachDefs, superset.localReachDefs);
     return isLocalSubset && isSubsetOf(globalReachDefs, superset.globalReachDefs);
   }
 
@@ -193,8 +192,8 @@ public class ReachingDefState
       return topElement;
     }
 
-    Map<MemoryLocation, Set<DefinitionPoint>> resultOfMapUnion;
-    resultOfMapUnion = unionMaps(localReachDefs, toJoin.localReachDefs);
+    Map<MemoryLocation, Set<DefinitionPoint>> resultOfMapUnion =
+        unionMaps(localReachDefs, toJoin.localReachDefs);
     if (resultOfMapUnion == localReachDefs) {
       newLocal = toJoin.localReachDefs;
     } else {
@@ -292,8 +291,7 @@ public class ReachingDefState
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
 
-    int size;
-    size = in.readInt();
+    int size = in.readInt();
     localReachDefs = Maps.newHashMapWithExpectedSize(size);
 
     for (int i = 0; i < size; i++) {
