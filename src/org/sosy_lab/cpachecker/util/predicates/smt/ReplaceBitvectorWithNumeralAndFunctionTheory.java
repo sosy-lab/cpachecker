@@ -16,7 +16,6 @@ import static org.sosy_lab.java_smt.api.FormulaType.getBitvectorTypeWithSize;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.errorprone.annotations.DoNotCall;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,6 +34,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
@@ -88,9 +88,10 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
 
     leftShiftUfDecl = createBinaryFunction("_<<_");
     rightShiftUfDecl = createBinaryFunction("_>>_");
-    moduloUfDecl = createBinaryFunction("_%_");
     leftRotateUfDecl = createBinaryFunction("_<<+_");
     rightRotateUfDecl = createBinaryFunction("_+>>_");
+    moduloUfDecl = createBinaryFunction("_%F_");
+    remainderUfDecl = createBinaryFunction("_%_");
   }
 
   @SuppressWarnings("unchecked")
@@ -206,52 +207,19 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
         numericFormulaManager.subtract(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
-  @Override
-  public BitvectorFormula divide(
-      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
-    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return wrap(
-        getFormulaType(pNumber1),
-        getC99ReplacementForSMTlib2Division(unwrap(pNumber1), unwrap(pNumber2)));
-  }
-
-  @DoNotCall
-  @SuppressWarnings({"deprecation", "removal"})
-  @Override
-  public final BitvectorFormula modulo(
-      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
-    throw new UnsupportedOperationException(
-        "This operation has been deprecated and replaced by smodulo() and remainder().");
-  }
-
-  @Override
-  public BitvectorFormula smodulo(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
-    // Note: signed bv modulo behaves differently compared to int modulo or bv remainder!
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
-  }
-
-  @Override
-  public BitvectorFormula remainder(
-      BitvectorFormula numerator, BitvectorFormula denominator, boolean signed) {
-    assert getLength(numerator) == getLength(denominator)
-        : "Expect operators to have the same size";
-    if (numericFormulaManager instanceof IntegerFormulaManagerView imgr) {
-      return wrap(
-          getFormulaType(numerator),
-          imgr.remainder(
-              (IntegerFormula) unwrap(numerator),
-              (IntegerFormula) unwrap(denominator),
-              booleanFormulaManager));
-    } else {
-      return makeUf(getFormulaType(numerator), moduloUfDecl, numerator, denominator);
-    }
-  }
-
   /**
-   * @see BitvectorFormulaManagerView#divide(BitvectorFormula, BitvectorFormula, boolean)
+   * Represent bitvector division as an integer formula.
+   *
+   * <p>Bitvector division can not be directly represented in integer logic as a different rounding
+   * mode is used. For bitvectors the result is truncated, whereas integer formulas use euclidean
+   * division. This may lead to different results when either the denominator or the divisor are not
+   * positive. To solve the issue this method constructs an equivalent integer formula that
+   * represents the result of the bitvector division.
+   *
+   * @see BitvectorFormulaManagerView#divide
+   * @see IntegerFormulaManagerView#divide
    */
-  private Formula getC99ReplacementForSMTlib2Division(final T f1, final T f2) {
-
+  private Formula representBitvectorDivision(final T f1, final T f2) {
     final T zero = numericFormulaManager.makeNumber(0);
     final T additionalUnit =
         booleanFormulaManager.ifThenElse(
@@ -270,6 +238,101 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
             numericFormulaManager.equal(numericFormulaManager.multiply(div, f2), f1)),
         div,
         numericFormulaManager.add(div, additionalUnit));
+  }
+
+  @Override
+  public BitvectorFormula divide(
+      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
+    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
+    return wrap(
+        getFormulaType(pNumber1), representBitvectorDivision(unwrap(pNumber1), unwrap(pNumber2)));
+  }
+
+  /**
+   * Represent the modulo of a bitvector division as an integer formula.
+   *
+   * <p>The modulo of a bitvector division can not be directly represented in integer logic as a
+   * different rounding mode is used. For bitvectors the result of the quotient <code>q = a/b</code>
+   * in the definition <code>r = a - b*q</code> is rounded with <code>floor</code>, whereas for
+   * integer formulas euclidean division is used. This may lead to different results when either the
+   * denominator or the divisor are not positive. To solve the issue this method constructs an
+   * equivalent integer formula that represents the result of the bitvector modulo.
+   *
+   * @see BitvectorFormulaManagerView#smodulo
+   * @see IntegerFormulaManagerView#modulo
+   */
+  private Formula representBitvectorModulo(final IntegerFormula f1, final IntegerFormula f2) {
+    IntegerFormulaManager integerFormulaManager = (IntegerFormulaManager) numericFormulaManager;
+    final IntegerFormula zero = integerFormulaManager.makeNumber(0);
+    final IntegerFormula additionalUnit =
+        booleanFormulaManager.ifThenElse(
+            integerFormulaManager.greaterOrEquals(f2, zero), integerFormulaManager.negate(f2), f2);
+
+    final IntegerFormula mod = integerFormulaManager.modulo(f1, f2);
+
+    return booleanFormulaManager.ifThenElse(
+        booleanFormulaManager.or(
+            integerFormulaManager.greaterOrEquals(f2, zero),
+            integerFormulaManager.equal(mod, zero)),
+        mod,
+        integerFormulaManager.add(mod, additionalUnit));
+  }
+
+  @Override
+  public BitvectorFormula smodulo(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
+    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
+    if (numericFormulaManager instanceof IntegerFormulaManager) {
+      return wrap(
+          getFormulaType(pNumber1),
+          representBitvectorModulo(
+              (IntegerFormula) unwrap(pNumber1), (IntegerFormula) unwrap(pNumber2)));
+    } else {
+      return makeUf(getFormulaType(pNumber1), moduloUfDecl, pNumber1, pNumber2);
+    }
+  }
+
+  /**
+   * Represent the remainder of a bitvector division as an integer formula.
+   *
+   * <p>The remainder of a bitvector division can not be directly represented in integer logic as a
+   * different rounding mode is used. For bitvectors the result of the quotient <code>q = a/b</code>
+   * in the definition <code>r = a - b*q</code> is truncated, whereas for integer formulas euclidean
+   * division is used. This may lead to different results when either the denominator or the divisor
+   * are not positive. To solve the issue this method constructs an equivalent integer formula that
+   * represents the result of the bitvector remainder.
+   *
+   * @see BitvectorFormulaManagerView#remainder
+   * @see IntegerFormulaManagerView#modulo
+   */
+  private Formula representBitvectorRemainder(final IntegerFormula f1, final IntegerFormula f2) {
+    IntegerFormulaManager integerFormulaManager = (IntegerFormulaManager) numericFormulaManager;
+    final IntegerFormula zero = integerFormulaManager.makeNumber(0);
+    final IntegerFormula additionalUnit =
+        booleanFormulaManager.ifThenElse(
+            integerFormulaManager.greaterOrEquals(f2, zero), integerFormulaManager.negate(f2), f2);
+
+    final IntegerFormula mod = integerFormulaManager.modulo(f1, f2);
+
+    return booleanFormulaManager.ifThenElse(
+        booleanFormulaManager.or(
+            integerFormulaManager.greaterOrEquals(f1, zero),
+            integerFormulaManager.equal(mod, zero)),
+        mod,
+        integerFormulaManager.add(mod, additionalUnit));
+  }
+
+  @Override
+  public BitvectorFormula remainder(
+      BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pB) {
+    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
+    if (numericFormulaManager instanceof IntegerFormulaManager) {
+      return wrap(
+          getFormulaType(pNumber1),
+          representBitvectorRemainder(
+              (IntegerFormula) unwrap(pNumber1), (IntegerFormula) unwrap(pNumber2)));
+    } else {
+      return makeUf(getFormulaType(pNumber1), remainderUfDecl, pNumber1, pNumber2);
+    }
   }
 
   @Override
