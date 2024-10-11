@@ -665,13 +665,15 @@ public class FormulaManagerView {
     if (pF1 instanceof IntegerFormula pFi1 && pF2 instanceof IntegerFormula pFi2) {
       // Integer modulo does not behave according to the C standard (or Java) for
       //   negative numbers in pF1.
-      t = getIntegerFormulaManager().remainder(pFi1, pFi2, getBooleanFormulaManager());
-    } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
-      // remainder for BVs behaves as the C standard defines modulo (%)
-      //   (also Javas % operator behaves the same)
-      t =
-          getBitvectorFormulaManager()
-              .remainder((BitvectorFormula) pF1, (BitvectorFormula) pF2, pSigned);
+      t = getIntegerFormulaManager().modulo(pFi1, pFi2);
+    } else if (pF1 instanceof BitvectorFormula pFbv1 && pF2 instanceof BitvectorFormula pFbv2) {
+      // BitvectorFormulaManager has 2 "remainder" operations: smodulo() and remainder()
+      // We use remainder() here as it uses the same rounding-mode for the quotient (=truncate) as
+      // the division operation for bitvector formulas
+      t = getBitvectorFormulaManager().remainder(pFbv1, pFbv2, pSigned);
+    } else if (pF1 instanceof FloatingPointFormula pFf1
+        && pF2 instanceof FloatingPointFormula pFf2) {
+      t = getFloatingPointFormulaManager().remainder(pFf1, pFf2);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
