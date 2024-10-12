@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqLogicalOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 public class SeqLogicalNotExpression implements SeqExpression {
@@ -41,6 +41,9 @@ public class SeqLogicalNotExpression implements SeqExpression {
       throw new IllegalArgumentException(
           "either CExpression or SeqExpression operand must be present");
     }
-    return SeqOperator.LOGICAL_NOT + SeqSyntax.BRACKET_LEFT + expression + SeqSyntax.BRACKET_RIGHT;
+    return SeqLogicalOperator.LOGICAL_NOT
+        + SeqSyntax.BRACKET_LEFT
+        + expression
+        + SeqSyntax.BRACKET_RIGHT;
   }
 }

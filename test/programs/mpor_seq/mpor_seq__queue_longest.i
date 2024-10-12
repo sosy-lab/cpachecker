@@ -12,9 +12,9 @@
 // Assertion fails from the function "__SEQUENTIALIZATION_ERROR__" mark faulty sequentializations. 
 // All other assertion fails are induced by faulty input programs. 
 // 
-// Input file: /home/noahkoenig/Documents/Edu/24ss/ba-sosy/sv-common/queue_longest.i
+// Input program file: /home/noahkoenig/Documents/Edu/24ss/ba-sosy/sv-common/queue_longest.i
 
-// original program declarations (non-variable)
+// unchanged input program declarations
 int __VERIFIER_nondet_int();
 void abort();
 void __assert_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function);
@@ -651,7 +651,7 @@ void *t1(void *arg);
 void *t2(void *arg);
 int main();
 
-// global variables
+// global variable substitutes
 extern char *__g_0___tzname[2];
 extern int __g_1___daylight;
 extern long int __g_2___timezone;
@@ -672,35 +672,35 @@ _Bool __g_16_enqueue_flag = 0;
 _Bool __g_17_dequeue_flag = 0;
 QType __g_18_queue = {  };
 
-// thread 0 local variables
+// thread 0 local variable substitutes
 pthread_t __t0_21_id1;
 pthread_t __t0_22_id2;
 int __t0_23___CPAchecker_TMP_0;
 
-// thread 1 local variables
+// thread 1 local variable substitutes
 int __t1_27_value;
 int __t1_28_i;
 int __t1_29___CPAchecker_TMP_0;
 int __t1_30___CPAchecker_TMP_1;
 
-// thread 2 local variables
+// thread 2 local variable substitutes
 int __t2_34_i;
 int __t2_35___CPAchecker_TMP_0;
 int __t2_36_x;
 
-// thread 0 parameter variables
+// thread 0 parameter declarations storing function arguments
 QType *__p0_19_q;
 QType *__p0_20_q;
 
-// thread 1 parameter variables
+// thread 1 parameter declarations storing function arguments
 QType *__p1_24_q;
 int __p1_25_x;
 QType *__p1_26_q;
 
-// thread 2 parameter variables
+// thread 2 parameter declarations storing function arguments
 QType *__p2_33_q;
 
-// thread local function return pc
+// thread local function return pc storing calling contexts
 int __return_pc_t0_reach_error = 0;
 int __return_pc_t0_empty = 0;
 int __return_pc_t0_init = 0;
@@ -710,7 +710,7 @@ int __return_pc_t1_empty = 0;
 int __return_pc_t2_reach_error = 0;
 int __return_pc_t2_dequeue = 0;
 
-// thread simulation variables
+// (p)thread simulation variables
 int __t0_active = 1;
 int __t1_active = 0;
 int __t2_active = 0;

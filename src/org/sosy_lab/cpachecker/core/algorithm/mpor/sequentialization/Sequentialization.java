@@ -100,7 +100,7 @@ public class Sequentialization {
     StringBuilder rProgram = new StringBuilder();
 
     // add all original program declarations that are not substituted
-    rProgram.append(SeqComment.createNonVarDeclarationComment());
+    rProgram.append(SeqComment.UNCHANGED_DECLARATIONS);
     for (MPORThread thread : pSubstitutions.keySet()) {
       rProgram.append(createNonVarDecString(thread));
     }
@@ -115,7 +115,7 @@ public class Sequentialization {
     for (var entry : pSubstitutions.entrySet()) {
       rProgram.append(createParamVarString(entry.getKey().id, entry.getValue()));
     }
-    rProgram.append(SeqComment.createReturnPcVarsComment());
+    rProgram.append(SeqComment.RETURN_PCS);
     ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> returnPcVars =
         mapReturnPcVars(pSubstitutions.keySet());
     for (ImmutableMap<CFunctionDeclaration, CIdExpression> map : returnPcVars.values()) {
@@ -125,8 +125,8 @@ public class Sequentialization {
     }
     rProgram.append(SeqSyntax.NEWLINE);
 
-    // add thread control vars
-    rProgram.append(SeqComment.createThreadVarsComment());
+    // add thread simulation vars
+    rProgram.append(SeqComment.THREAD_SIMULATION);
     ImmutableMap<ThreadEdge, SubstituteEdge> subEdges =
         SubstituteBuilder.substituteEdges(pSubstitutions);
     ThreadVars threadVars = buildThreadVars(pSubstitutions.keySet(), subEdges);
@@ -138,7 +138,7 @@ public class Sequentialization {
     rProgram.append(SeqSyntax.NEWLINE);
 
     // add all custom function declarations
-    rProgram.append(SeqComment.createFuncDeclarationComment());
+    rProgram.append(SeqComment.CUSTOM_FUNCTION_DECLARATIONS);
     // abort, assert, nondet_int may be duplicate depending on the input program
     rProgram
         .append(SeqFunctionDeclaration.VERIFIER_NONDET_INT.toASTString())
@@ -568,7 +568,7 @@ public class Sequentialization {
 
   private String createGlobalVarString(CSimpleDeclarationSubstitution pSubstitution) {
     StringBuilder rDecs = new StringBuilder();
-    rDecs.append(SeqComment.createGlobalVarsComment());
+    rDecs.append(SeqComment.GLOBAL_VARIABLES);
     assert pSubstitution.globalVarSubs != null;
     for (CIdExpression globalVar : pSubstitution.globalVarSubs.values()) {
       rDecs.append(globalVar.getDeclaration().toASTString()).append(SeqSyntax.NEWLINE);

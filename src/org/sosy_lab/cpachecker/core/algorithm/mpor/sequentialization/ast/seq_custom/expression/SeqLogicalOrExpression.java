@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqLogicalOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 public class SeqLogicalOrExpression implements SeqExpression {
@@ -55,7 +55,7 @@ public class SeqLogicalOrExpression implements SeqExpression {
     return SeqSyntax.BRACKET_LEFT
         + expression1
         + SeqSyntax.SPACE
-        + SeqOperator.LOGICAL_OR
+        + SeqLogicalOperator.LOGICAL_OR
         + SeqSyntax.SPACE
         + expression2
         + SeqSyntax.BRACKET_RIGHT;

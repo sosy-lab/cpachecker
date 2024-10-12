@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 
 public class SeqToken {
 
-  public static final String STRING_O = "\"0\"";
-
   public static final String ABORT = "abort";
 
   public static final String ACTIVE = "active";
@@ -68,6 +66,8 @@ public class SeqToken {
   public static final String __SEQUENTIALIZATION_ERROR__ = "\"__SEQUENTIALIZATION_ERROR__\"";
 
   public static final String SIZE = "size";
+
+  public static final String STRING_O = "\"0\"";
 
   public static final String T = "t";
 

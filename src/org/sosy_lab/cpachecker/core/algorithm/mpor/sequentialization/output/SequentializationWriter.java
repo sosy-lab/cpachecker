@@ -144,7 +144,7 @@ public class SequentializationWriter {
         + " mark faulty sequentializations. \n"
         + "// All other assertion fails are induced by faulty input programs. \n"
         + "// \n"
-        + "// Input file: "
+        + "// Input program file: "
         + pInputFilePath
         + "\n\n";
   }

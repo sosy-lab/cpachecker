@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 
-public class SeqOperator {
+public class SeqLogicalOperator {
 
   public static final String LOGICAL_AND = "&&";
 
