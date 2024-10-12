@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
@@ -76,17 +75,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
  * producing a reduced sequentialization of a parallel C program. The reduced sequentialization can
  * be given to an existing verifier capable of verifying sequential C programs. The POR and the
  * verifier serve as modules, hence Modular POR (MPOR).
- *
- * <p>Restrictions:
- *
- * <ul>
- *   <li>Using an unbounded number of threads (i.e. any loop with a {@code pthread_create} call) is
- *       undefined
- *   <li>The start routines / main function of all pthreads / the main thread must contain a
- *       FunctionExitNode (i.e. even if their return type is {@code void}, they must contain at
- *       least one return statement).
- *   <li>Recursive functions, either direct or indirect, are undefined.
- * </ul>
  */
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
@@ -106,10 +94,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
-    Path inputFilePath = INPUT_CFA.getFileNames().get(0);
-    SequentializationWriter writer = new SequentializationWriter(LOG_MANAGER, inputFilePath);
+    Path inputFilePath = inputCfa.getFileNames().get(0);
+    SequentializationWriter writer = new SequentializationWriter(logger, inputFilePath);
     Sequentialization.setFileName(writer.outputFileName);
-    writer.write(SEQ.generateProgram(substitutions));
+    writer.write(seq.generateProgram(substitutions));
 
     checkForCorrectInitialState(pReachedSet, threads);
 
@@ -120,7 +108,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     MPORState initState = stateBuilder.createInitState(threads, initAbstractState);
 
     handleState(initState);
-    // TODO
+
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
@@ -193,7 +181,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     // retrieve the priority thread which is not waiting on any other thread
     ImmutableSet<MPORThread> maximalScc = tsoGraph.computeSCCs().iterator().next();
-    assert maximalScc.size() == 1; // TODO should always hold because there are no loops
+    assert maximalScc.size() == 1; // should always hold because there are no loops
     MPORThread priorityThread = maximalScc.asList().get(0);
     // retrieve the priority edges executed by the priority thread and recursively execute them
     ImmutableSet.Builder<CFAEdge> priorityEdges = ImmutableSet.builder();
@@ -252,7 +240,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           Optional<CFANode> funcReturnNode = pState.funcReturnNodes.get(currentThread);
           for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(currentNode, funcReturnNode)) {
             // if the next edge(s) is a global access, stop
-            if (!GAC.hasGlobalAccess(cfaEdge)) {
+            if (!gac.hasGlobalAccess(cfaEdge)) {
               // otherwise, continue executing thread until a global access
               MPORState nextState = stateBuilder.createNewState(pState, currentThread, cfaEdge);
               findGapStates(pGapStatesBuilder, pVisitedNodes, nextState);
@@ -365,23 +353,23 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     return rEdgeCombinations;
   }
 
-  private final ConfigurableProgramAnalysis CPA;
+  private final ConfigurableProgramAnalysis cpa;
 
-  private final LogManager LOG_MANAGER;
+  private final LogManager logger;
 
-  private final Configuration CONFIG;
+  private final Configuration config;
 
-  private final ShutdownNotifier SHUTDOWN_NOTIFIER;
+  private final ShutdownNotifier shutdownNotifier;
 
-  private final Specification SPECIFICATION;
+  private final Specification specification;
 
-  private final CFA INPUT_CFA;
+  private final CFA inputCfa;
 
-  private final GlobalAccessChecker GAC;
+  private final GlobalAccessChecker gac;
 
-  private final PredicateTransferRelation PTR;
+  private final PredicateTransferRelation ptr;
 
-  private final Sequentialization SEQ;
+  private final Sequentialization seq;
 
   /**
    * A map from {@link CFunctionCallEdge} Predecessors to Return Nodes. Needs to be initialized
@@ -389,16 +377,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    */
   private final ImmutableMap<CFANode, CFANode> funcCallMap;
 
-  private final ImmutableMap<CFunctionType, ImmutableSet<CReturnStatementEdge>> funcReturnEdges;
-
   private final StateBuilder stateBuilder;
 
   private final ThreadBuilder threadBuilder;
-
-  private final CBinaryExpressionBuilder binExprBuilder;
-
-  /** The set of global variable declarations in the input program, used to identify variables. */
-  private final ImmutableSet<CVariableDeclaration> globalVars;
 
   /**
    * The set of threads in the program, including the main thread and all pthreads. Needs to be
@@ -421,53 +402,56 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       CFA pInputCfa)
       throws InvalidConfigurationException, CPAException, InterruptedException {
 
-    checkArgument(pInputCfa.getFileNames().size() == 1, "MPOR expects only one input program file");
+    handleInitialInputProgramRejections(pInputCfa);
 
-    CPA = pCpa;
-    CONFIG = pConfiguration;
-    LOG_MANAGER = pLogManager;
-    SHUTDOWN_NOTIFIER = pShutdownNotifier;
-    SPECIFICATION = pSpecification;
-    INPUT_CFA = pInputCfa;
+    cpa = pCpa;
+    config = pConfiguration;
+    logger = pLogManager;
+    shutdownNotifier = pShutdownNotifier;
+    specification = pSpecification;
+    inputCfa = pInputCfa;
 
-    checkForCProgram(INPUT_CFA);
-    checkForParallelProgram(INPUT_CFA);
-
-    GAC = new GlobalAccessChecker();
+    gac = new GlobalAccessChecker();
     PredicateCPA predicateCpa =
-        CPAs.retrieveCPAOrFail(CPA, PredicateCPA.class, PredicateRefiner.class);
-    PTR = predicateCpa.getTransferRelation();
+        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, PredicateRefiner.class);
+    ptr = predicateCpa.getTransferRelation();
 
-    funcCallMap = getFunctionCallMap(INPUT_CFA);
-    funcReturnEdges = getFuncReturnEdges(INPUT_CFA);
+    funcCallMap = getFunctionCallMap(inputCfa);
 
     threadBuilder = new ThreadBuilder(funcCallMap);
-    stateBuilder = new StateBuilder(PTR, funcCallMap);
-    binExprBuilder = new CBinaryExpressionBuilder(INPUT_CFA.getMachineModel(), LOG_MANAGER);
+    stateBuilder = new StateBuilder(ptr, funcCallMap);
 
-    globalVars = getGlobalVars(INPUT_CFA);
-    threads = getThreads(INPUT_CFA, funcCallMap);
+    threads = getThreads(inputCfa, funcCallMap);
 
+    ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
+    CBinaryExpressionBuilder binExprBuilder =
+        new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
     substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads, binExprBuilder);
 
-    SEQ = new Sequentialization(threads.size(), binExprBuilder);
+    seq = new Sequentialization(threads.size(), binExprBuilder);
   }
 
-  // Preconditions ===============================================================================
-
-  /** Checks whether the input language of the program is C and throws an exception if not. */
-  private void checkForCProgram(CFA pCfa) {
-    checkArgument(
-        pCfa.getMetadata().getInputLanguage().equals(Language.C), "MPOR expects C program");
-  }
+  // Input program rejections ====================================================================
 
   /**
-   * Checks whether any edge in pCfa contains a pthread_create call. If that is not the case, the
-   * algorithm ends and the user is informed that MPOR is meant to analyze parallel programs.
+   * Handles initial (i.e. more may come at later stages of the MPOR transformation) input program
+   * rejections and throws an {@link IllegalArgumentException} if the input program...
+   *
+   * <ul>
+   *   <li>is not in C
+   *   <li>contains multiple files
+   *   <li>has no call to {@code pthread_create} i.e. is not parallel
+   *   <li>contains any unsupported {@code pthread} function, see {@link PthreadFuncType}
+   * </ul>
    */
-  private void checkForParallelProgram(CFA pCfa) {
+  private void handleInitialInputProgramRejections(CFA pInputCfa) {
+    checkArgument(
+        pInputCfa.getMetadata().getInputLanguage().equals(Language.C), "MPOR expects C program");
+
+    checkArgument(pInputCfa.getFileNames().size() == 1, "MPOR expects only one input program file");
+
     boolean isParallel = false;
-    for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         isParallel = true;
         break;
@@ -475,6 +459,28 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     }
     checkArgument(
         isParallel, "MPOR expects parallel C program with at least one pthread_create call");
+
+    boolean unsupportedFunc = false;
+    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
+      for (PthreadFuncType funcType : PthreadFuncType.values()) {
+        if (!funcType.isSupported) {
+          checkArgument(
+              !PthreadFuncType.callsPthreadFunc(edge, funcType),
+              "MPOR does not support this function call: " + edge.getCode());
+        }
+      }
+    }
+  }
+
+  /**
+   * Tries to extract the FunctionExitNode from the given FunctionEntryNode and throws an {@link
+   * IllegalArgumentException} if it isn't possible.
+   */
+  public static FunctionExitNode getFunctionExitNode(FunctionEntryNode pFunctionEntryNode) {
+    checkArgument(
+        pFunctionEntryNode.getExitNode().isPresent(),
+        "MPOR expects the main function and all start routines to contain a FunctionExitNode");
+    return pFunctionEntryNode.getExitNode().orElseThrow();
   }
 
   /**
@@ -536,33 +542,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     return rFunctionCallMap.buildOrThrow();
   }
 
-  private ImmutableMap<CFunctionType, ImmutableSet<CReturnStatementEdge>> getFuncReturnEdges(
-      CFA pCfa) {
-    ImmutableMap.Builder<CFunctionType, ImmutableSet<CReturnStatementEdge>> rFuncReturnEdges =
-        ImmutableMap.builder();
-    for (FunctionEntryNode entryNode : pCfa.entryNodes()) {
-      CFunctionType entryCFuncType = MPORUtil.getCFuncTypeFromCfaNode(entryNode);
-      ImmutableSet.Builder<CReturnStatementEdge> returnEdges = ImmutableSet.builder();
-      for (CFAEdge edge : pCfa.edges()) {
-        if (edge instanceof CReturnStatementEdge cFuncReturnEdge) {
-          CFunctionType cFuncType =
-              MPORUtil.getCFuncTypeFromCfaNode(cFuncReturnEdge.getPredecessor());
-          if (cFuncType.equals(entryCFuncType)) {
-            returnEdges.add(cFuncReturnEdge);
-          }
-        }
-      }
-      rFuncReturnEdges.put(entryCFuncType, returnEdges.build());
-    }
-    return rFuncReturnEdges.buildOrThrow();
-  }
-
   /** Extracts all global variable declarations from pCfa. */
   private ImmutableSet<CVariableDeclaration> getGlobalVars(CFA pCfa) {
     ImmutableSet.Builder<CVariableDeclaration> rGlobalVars = ImmutableSet.builder();
-    for (CFAEdge edge : pCfa.edges()) {
+    for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
       if (edge instanceof CDeclarationEdge declarationEdge) {
-        if (GAC.hasGlobalAccess(edge) && declarationEdge.getDeclaration().isGlobal()) {
+        if (gac.hasGlobalAccess(edge) && declarationEdge.getDeclaration().isGlobal()) {
           AAstNode aAstNode = declarationEdge.getRawAST().orElseThrow();
           // exclude FunctionDeclarations
           if (aAstNode instanceof CVariableDeclaration cVariableDeclaration) {
@@ -594,7 +579,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     // add the main thread
     FunctionEntryNode mainEntryNode = pCfa.getMainFunction();
-    FunctionExitNode mainExitNode = MPORUtil.getFunctionExitNode(mainEntryNode);
+    FunctionExitNode mainExitNode = getFunctionExitNode(mainEntryNode);
     assert threadBuilder != null;
     rThreads.add(threadBuilder.createThread(Optional.empty(), mainEntryNode, mainExitNode));
 
@@ -607,7 +592,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         CFunctionType startRoutine = PthreadUtil.extractStartRoutine(cfaEdge);
         FunctionEntryNode entryNode =
             CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, startRoutine);
-        FunctionExitNode exitNode = MPORUtil.getFunctionExitNode(entryNode);
+        FunctionExitNode exitNode = getFunctionExitNode(entryNode);
         rThreads.add(
             threadBuilder.createThread(Optional.ofNullable(pthreadT), entryNode, exitNode));
       }
@@ -630,7 +615,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       CFANode currentNode = entry.getValue();
       Optional<CFANode> funcReturnNode = pState.funcReturnNodes.get(currentThread);
       ImmutableSet<CFAEdge> returnEdges = MPORUtil.returnLeavingEdges(currentNode, funcReturnNode);
-      if (!GAC.anyGlobalAccess(returnEdges)) {
+      if (!gac.anyGlobalAccess(returnEdges)) {
         return false;
       }
     }
@@ -652,10 +637,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           Optional<CFANode> funcReturnNodeB = pGapState.funcReturnNodes.get(threadA);
           // go through all pairings of global access leaving edges
           for (CFAEdge edgeA : MPORUtil.returnLeavingEdges(nodeA, funcReturnNodeA)) {
-            if (GAC.hasGlobalAccess(edgeA)) {
+            if (gac.hasGlobalAccess(edgeA)) {
               for (CFAEdge edgeB : MPORUtil.returnLeavingEdges(nodeB, funcReturnNodeB)) {
-                if (GAC.hasGlobalAccess(edgeB)) {
-                  if (!MPORUtil.doEdgesCommute(PTR, pGapState.abstractState, edgeA, edgeB)) {
+                if (gac.hasGlobalAccess(edgeB)) {
+                  if (!MPORUtil.doEdgesCommute(ptr, pGapState.abstractState, edgeA, edgeB)) {
                     return false;
                   }
                 }

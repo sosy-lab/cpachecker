@@ -16,34 +16,89 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public enum PthreadFuncType {
-  // TODO decide which of these are actually relevant for us
+
   // TODO create barrier logic, see e.g. pthread-divine/barrier_2t.i
 
   BARRIER_INIT(
       "pthread_barrier_init",
+      false,
+      false,
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
       Optional.empty()),
   BARRIER_WAIT(
       "pthread_barrier_wait",
+      false,
+      false,
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
       Optional.empty()),
-  CANCEL("pthread_cancel", Optional.of(0), Optional.of(false), Optional.empty(), Optional.empty()),
-  DETACH("pthread_detach", Optional.of(0), Optional.of(false), Optional.empty(), Optional.empty()),
-  EXIT("pthread_exit", Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()),
+  PTHREAD_CANCEL(
+      "pthread_cancel",
+      false,
+      false,
+      Optional.of(0),
+      Optional.of(false),
+      Optional.empty(),
+      Optional.empty()),
   PTHREAD_CREATE(
-      "pthread_create", Optional.of(0), Optional.of(true), Optional.empty(), Optional.of(2)),
+      "pthread_create",
+      true,
+      true,
+      Optional.of(0),
+      Optional.of(true),
+      Optional.empty(),
+      Optional.of(2)),
+  PTHREAD_DETACH(
+      "pthread_detach",
+      false,
+      false,
+      Optional.of(0),
+      Optional.of(false),
+      Optional.empty(),
+      Optional.empty()),
+  PTHREAD_EXIT(
+      "pthread_exit",
+      false,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty()),
   PTHREAD_JOIN(
-      "pthread_join", Optional.of(0), Optional.of(false), Optional.empty(), Optional.empty()),
+      "pthread_join",
+      true,
+      true,
+      Optional.of(0),
+      Optional.of(false),
+      Optional.empty(),
+      Optional.empty()),
   PTHREAD_MUTEX_INIT(
-      "pthread_mutex_init", Optional.empty(), Optional.empty(), Optional.of(0), Optional.empty()),
+      "pthread_mutex_init",
+      true,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.of(0),
+      Optional.empty()),
   PTHREAD_MUTEX_LOCK(
-      "pthread_mutex_lock", Optional.empty(), Optional.empty(), Optional.of(0), Optional.empty()),
+      "pthread_mutex_lock",
+      true,
+      true,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.of(0),
+      Optional.empty()),
   PTHREAD_MUTEX_UNLOCK(
-      "pthread_mutex_unlock", Optional.empty(), Optional.empty(), Optional.of(0), Optional.empty());
+      "pthread_mutex_unlock",
+      true,
+      true,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.of(0),
+      Optional.empty());
 
   // TODO unsure about yield, mutex_destroy
   //  pthread_mutex_t amutex = PTHREAD_MUTEX_INITIALIZER; // also used instead of mutex init
@@ -53,8 +108,12 @@ public enum PthreadFuncType {
 
   public final String name;
 
-  // TODO add a "isSupported" boolean, then we can check if any function calls an unsupported
-  //  pthread func -> input program rejection
+  public final boolean isSupported;
+
+  /**
+   * If this function is explicitly handled in the sequentialization, i.e. contains case block code.
+   */
+  public final boolean isExplicitlyHandled;
 
   /** The index of the pthread_t param if present. */
   private final Optional<Integer> pthreadTIndex;
@@ -68,6 +127,8 @@ public enum PthreadFuncType {
 
   PthreadFuncType(
       String pName,
+      boolean pIsSupported,
+      boolean pIsExplicitlyHandled,
       Optional<Integer> pPthreadTIndex,
       Optional<Boolean> pIsPthreadTPointer,
       Optional<Integer> pPthreadMutexTIndex,
@@ -76,8 +137,12 @@ public enum PthreadFuncType {
     // pPthreadTIndex and pIsPthreadTPointer have to be equivalent (both empty or both present)
     checkArgument(pPthreadTIndex.isEmpty() || pIsPthreadTPointer.isPresent());
     checkArgument(pIsPthreadTPointer.isEmpty() || pPthreadTIndex.isPresent());
+    // if the function is not supported, it cannot be explicitly handled
+    checkArgument(pIsSupported || !pIsExplicitlyHandled);
 
     name = pName;
+    isSupported = pIsSupported;
+    isExplicitlyHandled = pIsExplicitlyHandled;
     pthreadTIndex = pPthreadTIndex;
     isPthreadTPointer = pIsPthreadTPointer;
     pthreadMutexTIndex = pPthreadMutexTIndex;
@@ -116,9 +181,9 @@ public enum PthreadFuncType {
         && CFAUtils.getFunctionNameFromCfaEdge(pEdge).equals(pFuncType.name);
   }
 
-  public static boolean callsAnyPthreadFunc(CFAEdge pCfaEdge) {
+  public static boolean callsAnyPthreadFunc(CFAEdge pEdge) {
     for (PthreadFuncType funcType : PthreadFuncType.values()) {
-      if (callsPthreadFunc(pCfaEdge, funcType)) {
+      if (callsPthreadFunc(pEdge, funcType)) {
         return true;
       }
     }

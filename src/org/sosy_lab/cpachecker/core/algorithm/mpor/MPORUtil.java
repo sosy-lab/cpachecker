@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
@@ -18,13 +17,8 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -37,20 +31,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Contains static methods that can perfectly be reused outside the MPOR context. */
 public final class MPORUtil {
-
-  /**
-   * Tries to extract the FunctionExitNode from the given FunctionEntryNode.
-   *
-   * @param pFunctionEntryNode the FunctionEntryNode
-   * @return the FunctionExitNode of FunctionEntryNode if it is present
-   * @throws IllegalArgumentException if pFunctionEntryNodes FunctionExitNode is empty
-   */
-  public static FunctionExitNode getFunctionExitNode(FunctionEntryNode pFunctionEntryNode) {
-    checkArgument(
-        pFunctionEntryNode.getExitNode().isPresent(),
-        "pFunctionEntryNode must contain a FunctionExitNode");
-    return pFunctionEntryNode.getExitNode().orElseThrow();
-  }
 
   /**
    * Searches pFunctionCallMap for pCurrentNode. If the key is present, the FunctionReturnNode is
@@ -83,27 +63,6 @@ public final class MPORUtil {
       return cFuncType;
     }
     throw new IllegalArgumentException("unable to extract CFunctionType from pNode");
-  }
-
-  // TODO use to sequentialize summaryEdges
-  public static CVariableDeclaration getVarDeclarationFromSummaryEdge(CFunctionSummaryEdge pEdge) {
-    if (pEdge.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
-      if (assignment.getLeftHandSide() instanceof CIdExpression cIdExpression) {
-        if (cIdExpression.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration) {
-          return cVariableDeclaration;
-        }
-      }
-    }
-    throw new IllegalArgumentException("casting not possible");
-  }
-
-  // TODO use to sequentialize summaryEdges
-  public static CFunctionCallExpression getFunctionCallExprFromSummaryEdge(
-      CFunctionSummaryEdge pEdge) {
-    if (pEdge.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
-      return assignment.getRightHandSide();
-    }
-    throw new IllegalArgumentException("casting not possible");
   }
 
   /**

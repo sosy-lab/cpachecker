@@ -199,7 +199,7 @@ public class SeqUtil {
                   new SeqReturnValueAssignStatements(returnPc, assigns, pcUpdate, pThread.id));
             }
 
-          } else if (isRelevantPthreadFunc(sub.cfaEdge)) {
+          } else if (isExplicitlyHandledPthreadFunc(sub.cfaEdge)) {
             PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(edge);
             switch (funcType) {
               case PTHREAD_CREATE:
@@ -326,6 +326,10 @@ public class SeqUtil {
     return true;
   }
 
+  /**
+   * Returns true if pEdge results in a case block with only pc adjustments, i.e. no code changing
+   * the input program state.
+   */
   private static boolean emptyCaseCode(CFAEdge pEdge) {
     if (pEdge instanceof BlankEdge) {
       assert pEdge.getCode().isEmpty();
@@ -339,19 +343,21 @@ public class SeqUtil {
         return !isConstCPAcheckerTMP(varDec);
       }
     } else if (PthreadFuncType.callsAnyPthreadFunc(pEdge)) {
-      return !isRelevantPthreadFunc(pEdge);
+      // unsupported PthreadFunc -> empty case code
+      return !isExplicitlyHandledPthreadFunc(pEdge);
     }
     return false;
   }
 
   /**
    * Returns true if the semantics of the pthread method in pEdge is considered in the
-   * sequentialization.
+   * sequentialization, i.e. the case block contains code. A function may be supported by MPOR but
+   * not considered in the sequentialization.
    */
-  private static boolean isRelevantPthreadFunc(CFAEdge pEdge) {
-    return PthreadFuncType.callsPthreadFunc(pEdge, PthreadFuncType.PTHREAD_CREATE)
-        || PthreadFuncType.callsPthreadFunc(pEdge, PthreadFuncType.PTHREAD_JOIN)
-        || PthreadFuncType.callsPthreadFunc(pEdge, PthreadFuncType.PTHREAD_MUTEX_LOCK)
-        || PthreadFuncType.callsPthreadFunc(pEdge, PthreadFuncType.PTHREAD_MUTEX_UNLOCK);
+  private static boolean isExplicitlyHandledPthreadFunc(CFAEdge pEdge) {
+    if (PthreadFuncType.callsAnyPthreadFunc(pEdge)) {
+      return PthreadFuncType.getPthreadFuncType(pEdge).isExplicitlyHandled;
+    }
+    return false;
   }
 }
