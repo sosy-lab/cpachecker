@@ -12,7 +12,9 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -135,7 +137,7 @@ public class ThreadBuilder {
 
     if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
       FluentIterable<CFAEdge> leavingCfaEdges = CFAUtils.allLeavingEdges(pCurrentNode);
-      Set<ThreadEdge> threadEdges = createThreadEdgesFromCfaEdges(leavingCfaEdges);
+      List<ThreadEdge> threadEdges = createThreadEdgesFromCfaEdges(leavingCfaEdges);
       pThreadEdges.addAll(threadEdges);
       if (leavingCfaEdges.isEmpty()) {
         pThreadNodes.add(new ThreadNode(pCurrentNode, SeqUtil.TERMINATION_PC, threadEdges));
@@ -397,8 +399,8 @@ public class ThreadBuilder {
     return MPORUtil.updateFuncReturnNode(functionCallMap, pCurrentNode, pPrevFuncReturnNode);
   }
 
-  private Set<ThreadEdge> createThreadEdgesFromCfaEdges(FluentIterable<CFAEdge> pCfaEdges) {
-    Set<ThreadEdge> rThreadEdges = new HashSet<>();
+  private List<ThreadEdge> createThreadEdgesFromCfaEdges(FluentIterable<CFAEdge> pCfaEdges) {
+    List<ThreadEdge> rThreadEdges = new ArrayList<>();
     for (CFAEdge cfaEdge : pCfaEdges) {
       rThreadEdges.add(new ThreadEdge(cfaEdge));
     }

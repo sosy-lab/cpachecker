@@ -106,6 +106,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
+    Path inputFilePath = INPUT_CFA.getFileNames().get(0);
+    SequentializationWriter writer = new SequentializationWriter(LOG_MANAGER, inputFilePath);
+    Sequentialization.setFileName(writer.outputFileName);
+    writer.write(SEQ.generateProgram(substitutions));
+
     checkForCorrectInitialState(pReachedSet, threads);
 
     // if there is only one element in pReachedSet, it is our initial AbstractState
@@ -446,11 +451,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads, binExprBuilder);
 
     SEQ = new Sequentialization(threads.size(), binExprBuilder);
-
-    Path inputFilePath = INPUT_CFA.getFileNames().get(0);
-    SequentializationWriter writer = new SequentializationWriter(LOG_MANAGER, inputFilePath);
-    Sequentialization.setFileName(writer.outputFileName);
-    writer.write(SEQ.generateProgram(substitutions));
   }
 
   // Preconditions ===============================================================================

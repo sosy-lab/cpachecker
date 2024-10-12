@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.Set;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 
@@ -22,17 +22,16 @@ public class ThreadNode {
   /** The corresponding program counter of the CFANode. */
   public final int pc;
 
-  /** The set of context-sensitive return leaving edges of this ThreadNode. */
-  private final Set<ThreadEdge> leavingEdges;
+  /** The list of context-sensitive return leaving edges of this ThreadNode. */
+  private final List<ThreadEdge> leavingEdges;
 
-  protected ThreadNode(CFANode pCfaNode, int pPc, Set<ThreadEdge> pLeavingEdges) {
+  protected ThreadNode(CFANode pCfaNode, int pPc, List<ThreadEdge> pLeavingEdges) {
     cfaNode = pCfaNode;
     pc = pPc;
     leavingEdges = pLeavingEdges;
   }
 
-  // TODO the ordering of edges is not the same for all program runs -> use a list here?
-  public Set<ThreadEdge> leavingEdges() {
+  public List<ThreadEdge> leavingEdges() {
     return leavingEdges;
   }
 

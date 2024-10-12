@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -107,7 +108,7 @@ public class Sequentialization {
 
     // add all var substitute declarations in the order global - local - params - return_pc
     MPORThread mainThread = MPORAlgorithm.getMainThread(pSubstitutions.keySet());
-    rProgram.append(createGlobalVarString(pSubstitutions.get(mainThread)));
+    rProgram.append(createGlobalVarString(Objects.requireNonNull(pSubstitutions.get(mainThread))));
     for (var entry : pSubstitutions.entrySet()) {
       rProgram.append(createLocalVarString(entry.getKey().id, entry.getValue()));
     }
@@ -153,12 +154,7 @@ public class Sequentialization {
     SeqAssumeFunction assume = new SeqAssumeFunction(binExprBuilder);
     rProgram.append(assume.toASTString()).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
-    // TODO we also need to prune:
-    //  - update targetPc to -1 if we reach a thread exit node
-    //  - the rest of the state space pruning (e.g. two local accesses after another)
-    //    will be done via assume statements
-    //    (on this note: we should also remove the const CPAchecker TMP logic and replace it with
-    //    assumes as they are basically atomic)
+    // TODO we also need to prune: update targetPc to -1 if we reach a thread exit node
     // create pruned (i.e. only non-empty) cases statements
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
         mapCaseClauses(pSubstitutions, subEdges, returnPcVars, threadVars);
@@ -488,9 +484,9 @@ public class Sequentialization {
         assert sub != null;
         // TODO mutexes can also be init with pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
         if (PthreadFuncType.callsPthreadFunc(sub.cfaEdge, PthreadFuncType.PTHREAD_MUTEX_INIT)) {
-          CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub.cfaEdge);
-          String varName = SeqNameBuilder.buildMutexLockedName(pthreadMutexT.getName());
-          // TODO it should be wiser to use the original idExpr as the key and not the substitute...
+          CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(threadEdge.cfaEdge);
+          CIdExpression subPthreadMutexT = PthreadUtil.extractPthreadMutexT(sub.cfaEdge);
+          String varName = SeqNameBuilder.buildMutexLockedName(subPthreadMutexT.getName());
           CIdExpression mutexLocked = SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0);
           rVars.put(pthreadMutexT, new MutexLocked(mutexLocked));
         }

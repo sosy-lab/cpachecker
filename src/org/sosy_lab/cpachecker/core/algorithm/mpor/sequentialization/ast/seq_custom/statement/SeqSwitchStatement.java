@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement;
 
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -48,6 +47,7 @@ public class SeqSwitchStatement implements SeqStatement {
     // TODO how do we manage the line parameter?
     //  at the moment we just use the threadId, but a thread simulation may contain multiple
     //  switch cases where assert_fail is called
+    //  the best idea is to map integers (line) to strings (code), then we can use the line
     CStringLiteralExpression seqFileName =
         SeqStringLiteralExpression.buildStringLiteralExpr(
             SeqUtil.wrapInQuotationMarks(Sequentialization.getFileName()));
@@ -77,7 +77,7 @@ public class SeqSwitchStatement implements SeqStatement {
         SeqToken.DEFAULT
             + SeqSyntax.COLON
             + SeqSyntax.SPACE
-            + assertFailCall.toASTString(AAstNodeRepresentation.QUALIFIED)
+            + assertFailCall.toASTString()
             + SeqSyntax.SEMICOLON;
     return SeqUtil.repeat(SeqSyntax.TAB, tabs)
         + SeqUtil.appendOpeningCurly(switchExpression.toASTString())

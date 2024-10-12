@@ -53,6 +53,9 @@ public enum PthreadFuncType {
 
   public final String name;
 
+  // TODO add a "isSupported" boolean, then we can check if any function calls an unsupported
+  //  pthread func -> input program rejection
+
   /** The index of the pthread_t param if present. */
   private final Optional<Integer> pthreadTIndex;
 

@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -212,14 +214,19 @@ public class SeqUtil {
                 break;
 
               case PTHREAD_MUTEX_LOCK:
-                CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(sub.cfaEdge);
+                CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(threadEdge.cfaEdge);
                 assert pThreadVars.locked.containsKey(lockedMutexT);
-                CIdExpression mutexLocked = pThreadVars.locked.get(lockedMutexT).idExpression;
+                CIdExpression lockedVar =
+                    Objects.requireNonNull(pThreadVars.locked.get(lockedMutexT)).idExpression;
                 assert pThreadVars.awaits.containsKey(pThread);
-                assert pThreadVars.awaits.get(pThread).containsKey(lockedMutexT);
+                assert Objects.requireNonNull(pThreadVars.awaits.get(pThread))
+                    .containsKey(lockedMutexT);
                 CIdExpression mutexAwaits =
-                    pThreadVars.awaits.get(pThread).get(lockedMutexT).idExpression;
-                stmts.add(new SeqMutexLockStatement(mutexLocked, mutexAwaits, pcUpdate));
+                    Objects.requireNonNull(
+                            Objects.requireNonNull(pThreadVars.awaits.get(pThread))
+                                .get(lockedMutexT))
+                        .idExpression;
+                stmts.add(new SeqMutexLockStatement(lockedVar, mutexAwaits, pcUpdate));
                 break;
 
               case PTHREAD_MUTEX_UNLOCK:
@@ -228,7 +235,7 @@ public class SeqUtil {
                 // assign 0 to locked variable
                 CExpressionAssignmentStatement lockedFalse =
                     SeqStatements.buildExprAssign(
-                        pThreadVars.locked.get(unlockedMutexT).idExpression,
+                        Objects.requireNonNull(pThreadVars.locked.get(unlockedMutexT)).idExpression,
                         SeqIntegerLiteralExpression.INT_0);
                 stmts.add(new SeqMutexUnlockStatement(lockedFalse, pcUpdate));
                 break;
@@ -239,7 +246,10 @@ public class SeqUtil {
                 CIdExpression targetThreadActive =
                     pThreadVars.active.get(targetThread.id).idExpression;
                 CIdExpression threadJoins =
-                    pThreadVars.joins.get(pThread).get(targetThread).idExpression;
+                    Objects.requireNonNull(
+                            Objects.requireNonNull(pThreadVars.joins.get(pThread))
+                                .get(targetThread))
+                        .idExpression;
                 stmts.add(new SeqThreadJoinStatement(targetThreadActive, threadJoins, pcUpdate));
                 break;
 
@@ -255,11 +265,6 @@ public class SeqUtil {
       }
     }
     return new SeqCaseClause(originPc, stmts.build(), CaseBlockTerminator.CONTINUE);
-  }
-
-  /** Returns "(pString)" */
-  public static String wrapInBracketsInwards(String pString) {
-    return SeqSyntax.BRACKET_LEFT + pString + SeqSyntax.BRACKET_RIGHT;
   }
 
   /** Returns ""pString"" */
@@ -304,20 +309,6 @@ public class SeqUtil {
     return pString.repeat(Math.max(0, pAmount));
   }
 
-  public static String generateCase(String pCaseNumber, String pCodeBlock) {
-    return SeqToken.CASE
-        + SeqSyntax.SPACE
-        + pCaseNumber
-        + SeqSyntax.COLON
-        + SeqSyntax.SPACE
-        + pCodeBlock
-        + (pCodeBlock.endsWith(SeqSyntax.SEMICOLON) ? SeqSyntax.EMPTY_STRING : SeqSyntax.SEMICOLON)
-        + SeqSyntax.SPACE
-        + SeqToken.BREAK
-        + SeqSyntax.SEMICOLON
-        + SeqSyntax.NEWLINE;
-  }
-
   // Helpers =====================================================================================
 
   public static boolean isConstCPAcheckerTMP(CVariableDeclaration pVarDec) {
@@ -326,7 +317,7 @@ public class SeqUtil {
         && pVarDec.getName().contains(SeqToken.__CPACHECKER_TMP_);
   }
 
-  private static boolean allEdgesAssume(Set<ThreadEdge> pThreadEdges) {
+  private static boolean allEdgesAssume(List<ThreadEdge> pThreadEdges) {
     for (ThreadEdge threadEdge : pThreadEdges) {
       if (!(threadEdge.cfaEdge instanceof AssumeEdge)) {
         return false;
