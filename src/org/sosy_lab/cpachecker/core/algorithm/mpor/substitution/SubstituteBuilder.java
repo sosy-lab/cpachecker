@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -212,23 +211,19 @@ public class SubstituteBuilder {
   // Thread Substitutions ========================================================================
 
   public static ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> buildSubstitutions(
-      ImmutableSet<CVariableDeclaration> pGlobalVars,
-      ImmutableSet<MPORThread> pThreads,
-      CBinaryExpressionBuilder pBinExprBuilder) {
+      ImmutableSet<CVariableDeclaration> pGlobalVars, ImmutableSet<MPORThread> pThreads) {
 
     ImmutableMap.Builder<MPORThread, CSimpleDeclarationSubstitution> rDecSubstitutions =
         ImmutableMap.builder();
     // create global vars up front, their initializer cannot contain local variables
     ImmutableMap<CVariableDeclaration, CIdExpression> globalVarSubs =
-        getVarSubs(null, null, 0, pGlobalVars, pBinExprBuilder);
+        getVarSubs(null, null, 0, pGlobalVars);
     for (MPORThread thread : pThreads) {
       ImmutableMap<CParameterDeclaration, CIdExpression> paramSubs = getParamSubs(thread);
       ImmutableMap<CVariableDeclaration, CIdExpression> localVarSubs =
-          getVarSubs(globalVarSubs, paramSubs, thread.id, thread.localVars, pBinExprBuilder);
+          getVarSubs(globalVarSubs, paramSubs, thread.id, thread.localVars);
       rDecSubstitutions.put(
-          thread,
-          new CSimpleDeclarationSubstitution(
-              globalVarSubs, localVarSubs, paramSubs, pBinExprBuilder));
+          thread, new CSimpleDeclarationSubstitution(globalVarSubs, localVarSubs, paramSubs));
     }
     return rDecSubstitutions.buildOrThrow();
   }
@@ -255,8 +250,7 @@ public class SubstituteBuilder {
       @Nullable ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalVarSubs,
       @Nullable ImmutableMap<CParameterDeclaration, CIdExpression> pParamSubs,
       int pThreadId,
-      ImmutableSet<CVariableDeclaration> pVarDecs,
-      CBinaryExpressionBuilder pBinExprBuilder) {
+      ImmutableSet<CVariableDeclaration> pVarDecs) {
 
     // step 1: create dummy CVariableDeclaration substitutes which may be adjusted in step 2
     ImmutableMap.Builder<CVariableDeclaration, CIdExpression> dummyVarSubsB =
@@ -271,8 +265,7 @@ public class SubstituteBuilder {
 
     // create dummy substitution
     CSimpleDeclarationSubstitution dummySubstitution =
-        new CSimpleDeclarationSubstitution(
-            pGlobalVarSubs, dummyLocalVarSubs, pParamSubs, pBinExprBuilder);
+        new CSimpleDeclarationSubstitution(pGlobalVarSubs, dummyLocalVarSubs, pParamSubs);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
     ImmutableMap.Builder<CVariableDeclaration, CIdExpression> rFinalSubs = ImmutableMap.builder();

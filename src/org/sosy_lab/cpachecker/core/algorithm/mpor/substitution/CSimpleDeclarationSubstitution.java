@@ -18,7 +18,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -35,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 
@@ -55,18 +55,14 @@ public class CSimpleDeclarationSubstitution implements Substitution {
    */
   @Nullable public final ImmutableMap<CParameterDeclaration, CIdExpression> paramSubs;
 
-  private final CBinaryExpressionBuilder binExprBuilder;
-
   public CSimpleDeclarationSubstitution(
       @Nullable ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalVarSubs,
       ImmutableMap<CVariableDeclaration, CIdExpression> pLocalVarSubs,
-      @Nullable ImmutableMap<CParameterDeclaration, CIdExpression> pParamSubs,
-      CBinaryExpressionBuilder pBinExprBuilder) {
+      @Nullable ImmutableMap<CParameterDeclaration, CIdExpression> pParamSubs) {
 
     globalVarSubs = pGlobalVarSubs;
     localVarSubs = pLocalVarSubs;
     paramSubs = pParamSubs;
-    binExprBuilder = pBinExprBuilder;
   }
 
   // TODO take a look at ExpressionSubstitution.applySubstitution()
@@ -89,7 +85,8 @@ public class CSimpleDeclarationSubstitution implements Substitution {
       // only create a new expression if any operand was substituted (compare references)
       if (op1 != binExpr.getOperand1() || op2 != binExpr.getOperand2()) {
         try {
-          return binExprBuilder.buildBinaryExpression(op1, op2, binExpr.getOperator());
+          return MPORAlgorithm.getBinaryExpressionBuilder()
+              .buildBinaryExpression(op1, op2, binExpr.getOperator());
         } catch (UnrecognizedCodeException e) {
           // "convert" exception -> no UnrecognizedCodeException in signature
           throw new RuntimeException(e);

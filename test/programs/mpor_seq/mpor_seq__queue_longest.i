@@ -740,8 +740,17 @@ int main() {
   while (1) {
     int next_thread;
     next_thread = __VERIFIER_nondet_int();
+
     __mpor_seq_assume((0 <= next_thread && next_thread < NUM_THREADS));
     __mpor_seq_assume((pc[next_thread]) != -1);
+
+    __mpor_seq_assume((__t0_active || next_thread != 0));
+    __mpor_seq_assume((__t1_active || next_thread != 1));
+    __mpor_seq_assume((__t2_active || next_thread != 2));
+    __mpor_seq_assume((!((__g_14_m_locked && __t1_awaits___g_14_m)) || next_thread != 1));
+    __mpor_seq_assume((!((__g_14_m_locked && __t2_awaits___g_14_m)) || next_thread != 2));
+    __mpor_seq_assume((!((__t1_active && __t0_joins_t1)) || next_thread != 0));
+    __mpor_seq_assume((!((__t2_active && __t0_joins_t2)) || next_thread != 0));
 
     if (next_thread == 0) {
       switch (pc[0]) {

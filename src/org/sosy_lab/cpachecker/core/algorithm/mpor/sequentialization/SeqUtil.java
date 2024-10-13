@@ -184,7 +184,7 @@ public class SeqUtil {
               CExpressionAssignmentStatement activeAssign =
                   new CExpressionAssignmentStatement(
                       FileLocation.DUMMY,
-                      pThreadVars.active.get(pThread.id).idExpression,
+                      Objects.requireNonNull(pThreadVars.active.get(pThread)).idExpression,
                       SeqIntegerLiteralExpression.INT_0);
               stmts.add(new SeqThreadTerminationStatement(pThread.id, activeAssign));
 
@@ -208,7 +208,7 @@ public class SeqUtil {
                     PthreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
                 CExpressionAssignmentStatement activeAssign =
                     SeqStatements.buildExprAssign(
-                        pThreadVars.active.get(thread.id).idExpression,
+                        Objects.requireNonNull(pThreadVars.active.get(thread)).idExpression,
                         SeqIntegerLiteralExpression.INT_1);
                 stmts.add(new SeqThreadCreationStatement(activeAssign, pcUpdate));
                 break;
@@ -244,7 +244,7 @@ public class SeqUtil {
                 MPORThread targetThread =
                     PthreadUtil.extractThread(pThreadVars.joins.keySet(), edge);
                 CIdExpression targetThreadActive =
-                    pThreadVars.active.get(targetThread.id).idExpression;
+                    Objects.requireNonNull(pThreadVars.active.get(targetThread)).idExpression;
                 CIdExpression threadJoins =
                     Objects.requireNonNull(
                             Objects.requireNonNull(pThreadVars.joins.get(pThread))

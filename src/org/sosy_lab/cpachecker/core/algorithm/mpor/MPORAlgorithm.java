@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -90,6 +91,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * approximated as equivalent. Increasing this value is a major source of inefficiency.
    */
   public static final int EXECUTION_TRACE_TAIL_SIZE = 0;
+
+  public static CBinaryExpressionBuilder binExprBuilder = null;
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
@@ -424,11 +427,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     threads = getThreads(inputCfa, funcCallMap);
 
     ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
-    CBinaryExpressionBuilder binExprBuilder =
-        new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
-    substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads, binExprBuilder);
+    setBinaryExpressionBuilder(new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger));
+    substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads);
 
-    seq = new Sequentialization(threads.size(), binExprBuilder);
+    seq = new Sequentialization(threads.size());
   }
 
   // Input program rejections ====================================================================
@@ -466,7 +468,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         if (!funcType.isSupported) {
           checkArgument(
               !PthreadFuncType.callsPthreadFunc(edge, funcType),
-              "MPOR does not support this function call: " + edge.getCode());
+              "MPOR does not support this function call: " + "%s",
+              edge.getCode());
         }
       }
     }
@@ -663,5 +666,18 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     throw new IllegalArgumentException("pThreads does not contain the main thread");
+  }
+
+  // Static Variable Setters / Getters ===========================================================
+
+  public static CBinaryExpressionBuilder getBinaryExpressionBuilder() {
+    checkArgument(binExprBuilder != null, "binExprBuilder was not initialized yet");
+    return binExprBuilder;
+  }
+
+  public static void setBinaryExpressionBuilder(CBinaryExpressionBuilder pBinExprBuilder) {
+    checkNotNull(pBinExprBuilder);
+    checkArgument(binExprBuilder == null, "binExprBuilder was initialized already");
+    binExprBuilder = pBinExprBuilder;
   }
 }

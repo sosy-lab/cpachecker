@@ -47,7 +47,9 @@ public class SeqSwitchStatement implements SeqStatement {
     // TODO how do we manage the line parameter?
     //  at the moment we just use the threadId, but a thread simulation may contain multiple
     //  switch cases where assert_fail is called
-    //  the best idea is to map integers (line) to strings (code), then we can use the line
+    //  the best idea is to separate the final program string by "\n" and then map integers to all
+    //  created strings. then we can search for the assert fail sequentialization errors and replace
+    //  the placeholder int (best use -1) with the actual int value from the map.
     CStringLiteralExpression seqFileName =
         SeqStringLiteralExpression.buildStringLiteralExpr(
             SeqUtil.wrapInQuotationMarks(Sequentialization.getFileName()));
