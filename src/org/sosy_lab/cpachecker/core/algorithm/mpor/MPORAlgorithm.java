@@ -92,7 +92,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    */
   public static final int EXECUTION_TRACE_TAIL_SIZE = 0;
 
-  public static CBinaryExpressionBuilder binExprBuilder = null;
+  private static CBinaryExpressionBuilder binExprBuilder = null;
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {

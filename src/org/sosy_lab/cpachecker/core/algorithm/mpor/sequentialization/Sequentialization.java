@@ -562,7 +562,7 @@ public class Sequentialization {
       CIdExpression activeVar = SeqIdExpression.buildIntIdExpr(varName, initializer);
       rVars.put(thread, new ThreadActive(activeVar));
     }
-    return rVars.build();
+    return rVars.buildOrThrow();
   }
 
   private static ImmutableMap<CIdExpression, MutexLocked> mapMutexLockedVars(
