@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CBinaryExpression.class, name = "CBinaryExpression"),
-})
+@JsonSubTypes({@Type(value = CBinaryExpression.class, name = "CBinaryExpression")})
 public final class ABinaryExpressionMixin {}

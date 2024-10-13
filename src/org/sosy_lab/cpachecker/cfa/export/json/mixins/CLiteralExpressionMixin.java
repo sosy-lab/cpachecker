@@ -27,6 +27,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
   @Type(value = CFloatLiteralExpression.class, name = "CFloatLiteralExpression"),
   @Type(value = CImaginaryLiteralExpression.class, name = "CImaginaryLiteralExpression"),
   @Type(value = CIntegerLiteralExpression.class, name = "CIntegerLiteralExpression"),
-  @Type(value = CStringLiteralExpression.class, name = "CStringLiteralExpression"),
+  @Type(value = CStringLiteralExpression.class, name = "CStringLiteralExpression")
 })
 public final class CLiteralExpressionMixin {}

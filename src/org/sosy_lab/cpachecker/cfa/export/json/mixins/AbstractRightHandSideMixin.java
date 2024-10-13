@@ -21,6 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractRightHandSide;
  */
 @JsonSubTypes({
   @Type(value = AFunctionCallExpression.class, name = "AFunctionCallExpression"),
-  @Type(value = AbstractExpression.class, name = "AbstractExpression"),
+  @Type(value = AbstractExpression.class, name = "AbstractExpression")
 })
 public final class AbstractRightHandSideMixin {}

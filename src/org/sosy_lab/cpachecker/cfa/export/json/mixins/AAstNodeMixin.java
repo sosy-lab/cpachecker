@@ -49,6 +49,6 @@ import org.sosy_lab.cpachecker.cfa.export.json.serialization.SimpleNameIdGenerat
   @Type(value = ASimpleDeclaration.class, name = "ASimpleDeclaration"),
   @Type(value = AStatement.class, name = "AStatement"),
   @Type(value = AbstractAstNode.class, name = "Abstract"),
-  @Type(value = CAstNode.class, name = "C"),
+  @Type(value = CAstNode.class, name = "C")
 })
 public final class AAstNodeMixin {}

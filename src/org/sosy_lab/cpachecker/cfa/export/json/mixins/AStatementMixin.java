@@ -23,6 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 @JsonSubTypes({
   @Type(value = AFunctionCall.class, name = "AFunctionCall"),
   @Type(value = AbstractStatement.class, name = "AbstractStatement"),
-  @Type(value = CStatement.class, name = "CStatement"),
+  @Type(value = CStatement.class, name = "CStatement")
 })
 public final class AStatementMixin {}

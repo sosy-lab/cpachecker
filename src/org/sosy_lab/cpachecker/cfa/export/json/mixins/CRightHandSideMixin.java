@@ -21,6 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
  */
 @JsonSubTypes({
   @Type(value = CExpression.class, name = "CExpression"),
-  @Type(value = CFunctionCallExpression.class, name = "CFunctionCallExpression"),
+  @Type(value = CFunctionCallExpression.class, name = "CFunctionCallExpression")
 })
 public final class CRightHandSideMixin {}

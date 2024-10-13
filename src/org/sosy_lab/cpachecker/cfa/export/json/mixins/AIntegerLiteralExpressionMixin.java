@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CIntegerLiteralExpression.class, name = "CIntegerLiteralExpression"),
-})
+@JsonSubTypes({@Type(value = CIntegerLiteralExpression.class, name = "CIntegerLiteralExpression")})
 public final class AIntegerLiteralExpressionMixin {}

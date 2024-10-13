@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CCharLiteralExpression.class, name = "CCharLiteralExpression"),
-})
+@JsonSubTypes({@Type(value = CCharLiteralExpression.class, name = "CCharLiteralExpression")})
 public final class ACharLiteralExpressionMixin {}

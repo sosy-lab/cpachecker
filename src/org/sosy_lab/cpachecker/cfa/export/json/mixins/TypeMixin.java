@@ -35,6 +35,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 @JsonSubTypes({
   @JsonSubTypes.Type(value = AArrayType.class, name = "AArray"),
   @JsonSubTypes.Type(value = AFunctionType.class, name = "AFunction"),
-  @JsonSubTypes.Type(value = CType.class, name = "C"),
+  @JsonSubTypes.Type(value = CType.class, name = "C")
 })
 public final class TypeMixin {}

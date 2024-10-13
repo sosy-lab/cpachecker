@@ -23,6 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 @JsonSubTypes({
   @Type(value = AExpression.class, name = "AExpression"),
   @Type(value = AbstractRightHandSide.class, name = "AbstractRightHandSide"),
-  @Type(value = CRightHandSide.class, name = "CRightHandSide"),
+  @Type(value = CRightHandSide.class, name = "CRightHandSide")
 })
 public final class ARightHandSideMixin {}

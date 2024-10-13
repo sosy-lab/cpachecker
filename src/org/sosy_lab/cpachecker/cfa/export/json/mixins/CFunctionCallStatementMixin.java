@@ -24,9 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement;
  *
  * <p>It specifies the constructor to use during deserialization.
  */
-@JsonSubTypes({
-  @Type(value = CThreadOperationStatement.class, name = "CThreadOperationStatement"),
-})
+@JsonSubTypes({@Type(value = CThreadOperationStatement.class, name = "CThreadOperationStatement")})
 public final class CFunctionCallStatementMixin {
 
   @SuppressWarnings("unused")

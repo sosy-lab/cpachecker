@@ -23,6 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 @JsonSubTypes({
   @Type(value = ALeftHandSide.class, name = "ALeftHandSide"),
   @Type(value = AbstractExpression.class, name = "AbstractExpression"),
-  @Type(value = CExpression.class, name = "CExpression"),
+  @Type(value = CExpression.class, name = "CExpression")
 })
 public final class AExpressionMixin {}

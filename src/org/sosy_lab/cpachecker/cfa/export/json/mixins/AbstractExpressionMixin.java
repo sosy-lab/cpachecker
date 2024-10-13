@@ -33,6 +33,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
   @Type(value = CAddressOfLabelExpression.class, name = "CAddressOfLabelExpression"),
   @Type(value = CComplexCastExpression.class, name = "CComplexCastExpression"),
   @Type(value = CFieldReference.class, name = "CFieldReference"),
-  @Type(value = CTypeIdExpression.class, name = "CTypeIdExpression"),
+  @Type(value = CTypeIdExpression.class, name = "CTypeIdExpression")
 })
 public final class AbstractExpressionMixin {}

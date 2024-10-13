@@ -23,6 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 @JsonSubTypes({
   @Type(value = AExpressionAssignmentStatement.class, name = "AExpressionAssignmentStatement"),
   @Type(value = AFunctionCallAssignmentStatement.class, name = "AFunctionCallAssignmentStatement"),
-  @Type(value = CAssignment.class, name = "CAssignment"),
+  @Type(value = CAssignment.class, name = "CAssignment")
 })
 public final class AAssignmentMixin {}

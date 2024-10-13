@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CCastExpression.class, name = "CCastExpression"),
-})
+@JsonSubTypes({@Type(value = CCastExpression.class, name = "CCastExpression")})
 public final class ACastExpressionMixin {}

@@ -23,6 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 @JsonSubTypes({
   @Type(value = CArrayDesignator.class, name = "CArrayDesignator"),
   @Type(value = CArrayRangeDesignator.class, name = "CArrayRangeDesignator"),
-  @Type(value = CFieldDesignator.class, name = "CFieldDesignator"),
+  @Type(value = CFieldDesignator.class, name = "CFieldDesignator")
 })
 public final class CDesignatorMixin {}

@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CPointerExpression.class, name = "CPointerExpression"),
-})
+@JsonSubTypes({@Type(value = CPointerExpression.class, name = "CPointerExpression")})
 public final class APointerExpressionMixin {}

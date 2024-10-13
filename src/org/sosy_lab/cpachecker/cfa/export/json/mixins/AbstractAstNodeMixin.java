@@ -29,6 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
   @Type(value = AbstractRightHandSide.class, name = "AbstractRightHandSide"),
   @Type(value = AbstractSimpleDeclaration.class, name = "AbstractSimpleDeclaration"),
   @Type(value = AbstractStatement.class, name = "AbstractStatement"),
-  @Type(value = CDesignator.class, name = "CDesignator"),
+  @Type(value = CDesignator.class, name = "CDesignator")
 })
 public final class AbstractAstNodeMixin {}

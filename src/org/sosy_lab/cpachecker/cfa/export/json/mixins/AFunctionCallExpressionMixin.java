@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CFunctionCallExpression.class, name = "CFunctionCallExpression"),
-})
+@JsonSubTypes({@Type(value = CFunctionCallExpression.class, name = "CFunctionCallExpression")})
 public final class AFunctionCallExpressionMixin {}

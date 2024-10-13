@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CArrayType.class, name = "CArray"),
-})
+@JsonSubTypes({@Type(value = CArrayType.class, name = "CArray")})
 public final class AArrayTypeMixin {}

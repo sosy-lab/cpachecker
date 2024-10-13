@@ -24,9 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  *
  * <p>It specifies the constructor to use during deserialization.
  */
-@JsonSubTypes({
-  @Type(value = CFunctionTypeWithNames.class, name = "CFunctionWithNames"),
-})
+@JsonSubTypes({@Type(value = CFunctionTypeWithNames.class, name = "CFunctionWithNames")})
 public final class CFunctionTypeMixin {
 
   @SuppressWarnings("unused")

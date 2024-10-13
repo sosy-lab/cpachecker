@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CArraySubscriptExpression.class, name = "CArraySubscriptExpression"),
-})
+@JsonSubTypes({@Type(value = CArraySubscriptExpression.class, name = "CArraySubscriptExpression")})
 public final class AArraySubscriptExpressionMixin {}

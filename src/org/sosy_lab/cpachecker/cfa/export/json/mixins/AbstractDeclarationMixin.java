@@ -23,6 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 @JsonSubTypes({
   @Type(value = AFunctionDeclaration.class, name = "AFunctionDeclaration"),
   @Type(value = AVariableDeclaration.class, name = "AVariableDeclaration"),
-  @Type(value = CTypeDeclaration.class, name = "CTypeDeclaration"),
+  @Type(value = CTypeDeclaration.class, name = "CTypeDeclaration")
 })
 public final class AbstractDeclarationMixin {}

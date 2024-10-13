@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractReturnStatement;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = AbstractReturnStatement.class, name = "AbstractReturnStatement"),
-})
+@JsonSubTypes({@Type(value = AbstractReturnStatement.class, name = "AbstractReturnStatement")})
 public final class AReturnStatementMixin {}

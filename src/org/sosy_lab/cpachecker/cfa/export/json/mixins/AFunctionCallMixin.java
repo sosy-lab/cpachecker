@@ -23,6 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 @JsonSubTypes({
   @Type(value = AFunctionCallAssignmentStatement.class, name = "AFunctionCallAssignmentStatement"),
   @Type(value = AFunctionCallStatement.class, name = "AFunctionCallStatement"),
-  @Type(value = CFunctionCall.class, name = "CFunctionCall"),
+  @Type(value = CFunctionCall.class, name = "CFunctionCall")
 })
 public final class AFunctionCallMixin {}

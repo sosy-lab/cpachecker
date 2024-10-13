@@ -25,6 +25,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractLeftHandSide;
   @Type(value = AArraySubscriptExpression.class, name = "AArraySubscriptExpression"),
   @Type(value = ACastExpression.class, name = "ACastExpression"),
   @Type(value = AIdExpression.class, name = "AIdExpression"),
-  @Type(value = APointerExpression.class, name = "APointerExpression"),
+  @Type(value = APointerExpression.class, name = "APointerExpression")
 })
 public final class AbstractLeftHandSideMixin {}

@@ -37,6 +37,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
   @Type(value = CProblemType.class, name = "CProblem"),
   @Type(value = CSimpleType.class, name = "CSimple"),
   @Type(value = CTypedefType.class, name = "CTypedef"),
-  @Type(value = CVoidType.class, name = "CVoid"),
+  @Type(value = CVoidType.class, name = "CVoid")
 })
 public final class CTypeMixin {}

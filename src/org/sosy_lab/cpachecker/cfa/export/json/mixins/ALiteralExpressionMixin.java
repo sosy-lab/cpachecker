@@ -27,6 +27,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
   @Type(value = AFloatLiteralExpression.class, name = "AFloatLiteralExpression"),
   @Type(value = AIntegerLiteralExpression.class, name = "AIntegerLiteralExpression"),
   @Type(value = AStringLiteralExpression.class, name = "AStringLiteralExpression"),
-  @Type(value = CImaginaryLiteralExpression.class, name = "CImaginaryLiteralExpression"),
+  @Type(value = CImaginaryLiteralExpression.class, name = "CImaginaryLiteralExpression")
 })
 public final class ALiteralExpressionMixin {}

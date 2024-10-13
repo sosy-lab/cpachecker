@@ -29,6 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
   @Type(value = CReturnStatement.class, name = "CReturnStatement"),
   @Type(value = CRightHandSide.class, name = "CRightHandSide"),
   @Type(value = CSimpleDeclaration.class, name = "CSimpleDeclaration"),
-  @Type(value = CStatement.class, name = "CStatement"),
+  @Type(value = CStatement.class, name = "CStatement")
 })
 public final class CAstNodeMixin {}

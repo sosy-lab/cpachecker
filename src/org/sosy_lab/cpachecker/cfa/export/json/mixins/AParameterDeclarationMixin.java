@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CParameterDeclaration.class, name = "CParameterDeclaration"),
-})
+@JsonSubTypes({@Type(value = CParameterDeclaration.class, name = "CParameterDeclaration")})
 public final class AParameterDeclarationMixin {}

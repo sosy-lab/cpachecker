@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CFloatLiteralExpression.class, name = "CFloatLiteralExpression"),
-})
+@JsonSubTypes({@Type(value = CFloatLiteralExpression.class, name = "CFloatLiteralExpression")})
 public final class AFloatLiteralExpressionMixin {}

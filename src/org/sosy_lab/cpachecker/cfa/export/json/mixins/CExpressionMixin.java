@@ -31,6 +31,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
   @Type(value = CLeftHandSide.class, name = "CLeftHandSide"),
   @Type(value = CLiteralExpression.class, name = "CLiteralExpression"),
   @Type(value = CTypeIdExpression.class, name = "CTypeIdExpression"),
-  @Type(value = CUnaryExpression.class, name = "CUnaryExpression"),
+  @Type(value = CUnaryExpression.class, name = "CUnaryExpression")
 })
 public final class CExpressionMixin {}

@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CIdExpression.class, name = "CIdExpression"),
-})
+@JsonSubTypes({@Type(value = CIdExpression.class, name = "CIdExpression")})
 public final class AIdExpressionMixin {}

@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CInitializerExpression.class, name = "CInitializerExpression"),
-})
+@JsonSubTypes({@Type(value = CInitializerExpression.class, name = "CInitializerExpression")})
 public final class AInitializerExpressionMixin {}

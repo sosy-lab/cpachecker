@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CExpressionStatement.class, name = "CExpressionStatement"),
-})
+@JsonSubTypes({@Type(value = CExpressionStatement.class, name = "CExpressionStatement")})
 public final class AExpressionStatementMixin {}

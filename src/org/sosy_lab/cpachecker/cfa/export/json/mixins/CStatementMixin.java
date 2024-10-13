@@ -29,6 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
   @Type(value = CExpressionStatement.class, name = "CExpressionStatement"),
   @Type(value = CFunctionCall.class, name = "CFunctionCall"),
   @Type(value = CFunctionCallAssignmentStatement.class, name = "CFunctionCallAssignmentStatement"),
-  @Type(value = CFunctionCallStatement.class, name = "CFunctionCallStatement"),
+  @Type(value = CFunctionCallStatement.class, name = "CFunctionCallStatement")
 })
 public final class CStatementMixin {}

@@ -23,6 +23,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 @JsonSubTypes({
   @Type(value = CCompositeType.class, name = "CComposite"),
   @Type(value = CElaboratedType.class, name = "CElaborated"),
-  @Type(value = CEnumType.class, name = "CEnum"),
+  @Type(value = CEnumType.class, name = "CEnum")
 })
 public final class CComplexTypeMixin {}

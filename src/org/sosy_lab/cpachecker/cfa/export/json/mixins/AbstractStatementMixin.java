@@ -25,6 +25,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractStatement;
   @Type(value = AExpressionAssignmentStatement.class, name = "AExpressionAssignmentStatement"),
   @Type(value = AExpressionStatement.class, name = "AExpressionStatement"),
   @Type(value = AFunctionCallAssignmentStatement.class, name = "AFunctionCallAssignmentStatement"),
-  @Type(value = AFunctionCallStatement.class, name = "AFunctionCallStatement"),
+  @Type(value = AFunctionCallStatement.class, name = "AFunctionCallStatement")
 })
 public final class AbstractStatementMixin {}

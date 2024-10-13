@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CStringLiteralExpression.class, name = "CStringLiteralExpression"),
-})
+@JsonSubTypes({@Type(value = CStringLiteralExpression.class, name = "CStringLiteralExpression")})
 public final class AStringLiteralExpressionMixin {}

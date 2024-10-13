@@ -23,6 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 @JsonSubTypes({
   @Type(value = CFunctionDeclaration.class, name = "CFunctionDeclaration"),
   @Type(value = CTypeDeclaration.class, name = "CTypeDeclaration"),
-  @Type(value = CVariableDeclaration.class, name = "CVariableDeclaration"),
+  @Type(value = CVariableDeclaration.class, name = "CVariableDeclaration")
 })
 public final class CDeclarationMixin {}

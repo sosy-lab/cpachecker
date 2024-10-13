@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CFunctionType.class, name = "CFunction"),
-})
+@JsonSubTypes({@Type(value = CFunctionType.class, name = "CFunction")})
 public final class AbstractFunctionTypeMixin {}

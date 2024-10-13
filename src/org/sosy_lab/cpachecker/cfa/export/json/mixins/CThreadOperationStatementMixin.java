@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinSt
  */
 @JsonSubTypes({
   @Type(value = CThreadCreateStatement.class, name = "CThreadCreateStatement"),
-  @Type(value = CThreadJoinStatement.class, name = "CThreadJoinStatement"),
+  @Type(value = CThreadJoinStatement.class, name = "CThreadJoinStatement")
 })
 public final class CThreadOperationStatementMixin {
 

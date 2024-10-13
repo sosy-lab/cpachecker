@@ -23,6 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 @JsonSubTypes({
   @Type(value = CDeclaration.class, name = "CDeclaration"),
   @Type(value = CEnumerator.class, name = "CEnumerator"),
-  @Type(value = CParameterDeclaration.class, name = "CParameterDeclaration"),
+  @Type(value = CParameterDeclaration.class, name = "CParameterDeclaration")
 })
 public final class CSimpleDeclarationMixin {}

@@ -21,6 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
  */
 @JsonSubTypes({
   @Type(value = AbstractInitializer.class, name = "AbstractInitializer"),
-  @Type(value = CInitializer.class, name = "CInitializer"),
+  @Type(value = CInitializer.class, name = "CInitializer")
 })
 public final class AInitializerMixin {}

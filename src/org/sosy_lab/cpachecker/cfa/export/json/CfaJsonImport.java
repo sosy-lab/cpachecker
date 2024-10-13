@@ -28,6 +28,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.export.json.deserialization.IdentityKeyDeserializer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -109,7 +110,7 @@ public final class CfaJsonImport {
    * Configures and returns an {@link ObjectMapper} for importing CFA data from JSON.
    *
    * <p>This method sets up an ObjectMapper with a custom deserializer and key deserializers that
-   * are required by Jackson but are never actually called.
+   * are required by Jackson.
    *
    * @return a configured ObjectMapper for importing CFA data.
    * @throws IOException if an I/O error occurs during the configuration.
@@ -119,6 +120,9 @@ public final class CfaJsonImport {
     ObjectMapper objectMapper = new CfaJsonIO().getBasicCfaObjectMapper();
 
     SimpleModule simpleModule = new SimpleModule();
+
+    /* Add key deserializer for CCompositeType. */
+    simpleModule.addKeyDeserializer(CCompositeType.class, new IdentityKeyDeserializer());
 
     /* The following deserializers are required by jackson, but never called. */
 
@@ -148,7 +152,6 @@ public final class CfaJsonImport {
 
     simpleModule.addKeyDeserializer(CFAEdge.class, unusedKeyDeserializer);
     simpleModule.addKeyDeserializer(getStartingLocationClass(), unusedKeyDeserializer);
-    simpleModule.addKeyDeserializer(CCompositeType.class, unusedKeyDeserializer);
     simpleModule.addKeyDeserializer(CFANode.class, unusedKeyDeserializer);
     simpleModule.addKeyDeserializer(Pair.class, unusedKeyDeserializer);
 

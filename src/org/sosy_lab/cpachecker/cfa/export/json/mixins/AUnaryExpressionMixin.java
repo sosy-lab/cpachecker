@@ -18,7 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonSubTypes({
-  @Type(value = CUnaryExpression.class, name = "CUnaryExpression"),
-})
+@JsonSubTypes({@Type(value = CUnaryExpression.class, name = "CUnaryExpression")})
 public final class AUnaryExpressionMixin {}

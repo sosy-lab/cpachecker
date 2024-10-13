@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.export.json.deserialization.EdgeToPartitionsD
 import org.sosy_lab.cpachecker.cfa.export.json.deserialization.PartitionsDeserializer;
 import org.sosy_lab.cpachecker.cfa.export.json.serialization.EdgeToPartitionsTableToListConverter;
 import org.sosy_lab.cpachecker.cfa.export.json.serialization.PartitionSetToSortedListConverter;
+import org.sosy_lab.cpachecker.cfa.export.json.serialization.StringSetToSortedListConverter;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
@@ -30,17 +31,24 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 /**
  * This class is a mixin for {@link VariableClassification}.
  *
+ * <p>It sorts the {@link #relevantVariables} field during serialization to ensure a deterministic
+ * order.
+ *
  * <p>It converts the Set<Partition> fields to sorted lists of Partition objects during
  * serialization to ensure a deterministic order.
  *
  * <p>It sets the {@link PartitionsDeserializer} for all Set<Partition> fields.
  *
- * <p>It converts the edgeToPartitions field to a list of {@link EdgeToPartitionEntry} objects
- * during serialization and back to a Table object during deserialization.
+ * <p>It converts the {@link #edgeToPartitions} field to a list of {@link EdgeToPartitionEntry}
+ * objects during serialization and back to a Table object during deserialization.
  *
  * <p>It specifies the constructor to use during deserialization.
  */
 public final class VariableClassificationMixin {
+
+  @SuppressWarnings("unused")
+  @JsonSerialize(converter = StringSetToSortedListConverter.class)
+  private Set<String> relevantVariables;
 
   @SuppressWarnings("unused")
   @JsonSerialize(converter = PartitionSetToSortedListConverter.class)

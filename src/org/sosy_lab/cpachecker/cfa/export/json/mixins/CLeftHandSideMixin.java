@@ -27,6 +27,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
   @Type(value = CComplexCastExpression.class, name = "CComplexCastExpression"),
   @Type(value = CFieldReference.class, name = "CFieldReference"),
   @Type(value = CIdExpression.class, name = "CIdExpression"),
-  @Type(value = CPointerExpression.class, name = "CPointerExpression"),
+  @Type(value = CPointerExpression.class, name = "CPointerExpression")
 })
 public final class CLeftHandSideMixin {}

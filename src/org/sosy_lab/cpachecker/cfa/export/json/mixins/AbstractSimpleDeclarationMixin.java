@@ -23,6 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 @JsonSubTypes({
   @Type(value = AParameterDeclaration.class, name = "AParameterDeclaration"),
   @Type(value = AbstractDeclaration.class, name = "AbstractDeclaration"),
-  @Type(value = CEnumerator.class, name = "CEnumerator"),
+  @Type(value = CEnumerator.class, name = "CEnumerator")
 })
 public final class AbstractSimpleDeclarationMixin {}
