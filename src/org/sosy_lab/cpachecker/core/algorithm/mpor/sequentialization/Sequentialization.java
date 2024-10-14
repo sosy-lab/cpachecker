@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_va
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcStorage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionVars;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.MutexLocked;
@@ -89,7 +90,12 @@ public class Sequentialization {
   //  curly left / right brackets, newlines, etc.
   public static final int TAB_SIZE = 2;
 
-  private static String fileName = null;
+  /**
+   * The call to {@code __assert_fail("0", "{output_file_name}", -1,
+   * "__SEQUENTIALIZATION_ERROR__");}. The {@code -1} is adjusted to the actual line of code by
+   * {@link SequentializationWriter}.
+   */
+  private static String seqError = null;
 
   protected final int threadCount;
 
@@ -97,7 +103,7 @@ public class Sequentialization {
     threadCount = pThreadCount;
   }
 
-  /** Generates and returns the entire sequentialized program. */
+  /** Generates and returns the sequentialized program. */
   public String generateProgram(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions)
       throws UnrecognizedCodeException {
@@ -722,14 +728,14 @@ public class Sequentialization {
 
   // Static Variable Setters / Getters ===========================================================
 
-  public static String getFileName() {
-    checkArgument(fileName != null, "fileName was not initialized yet");
-    return fileName;
+  public static String getSeqError() {
+    checkArgument(seqError != null, "seqError was not initialized yet");
+    return seqError;
   }
 
-  public static void setFileName(String pFileName) {
-    checkNotNull(pFileName);
-    checkArgument(fileName == null, "fileName was initialized already");
-    fileName = pFileName;
+  public static void setSeqError(String pSeqError) {
+    checkNotNull(pSeqError);
+    checkArgument(seqError == null, "seqError was initialized already");
+    seqError = pSeqError;
   }
 }

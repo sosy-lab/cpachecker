@@ -195,8 +195,7 @@ public class SeqUtil {
               assert assigns != null;
               assert !assigns.isEmpty();
               CIdExpression returnPc = assigns.iterator().next().returnPcStorage.returnPc;
-              stmts.add(
-                  new SeqReturnValueAssignStatements(returnPc, assigns, pcUpdate, pThread.id));
+              stmts.add(new SeqReturnValueAssignStatements(returnPc, assigns, pcUpdate));
             }
 
           } else if (isExplicitlyHandledPthreadFunc(sub.cfaEdge)) {

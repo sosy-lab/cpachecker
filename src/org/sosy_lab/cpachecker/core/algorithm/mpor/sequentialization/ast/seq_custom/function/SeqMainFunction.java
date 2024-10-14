@@ -143,8 +143,7 @@ public class SeqMainFunction implements SeqFunction {
       }
       switchStatements.append(SeqSyntax.NEWLINE);
       CArraySubscriptExpression pcThreadId = SeqExpressions.buildPcSubscriptExpr(threadId);
-      SeqSwitchStatement switchCaseExpr =
-          new SeqSwitchStatement(thread.id, pcThreadId, entry.getValue(), 3);
+      SeqSwitchStatement switchCaseExpr = new SeqSwitchStatement(pcThreadId, entry.getValue(), 3);
       switchStatements.append(switchCaseExpr.toASTString());
 
       // append 2 newlines, except for last switch case (1 only)
@@ -171,6 +170,7 @@ public class SeqMainFunction implements SeqFunction {
         + switchStatements
         + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
         + SeqUtil.prependTabsWithNewline(1, SeqSyntax.CURLY_BRACKET_RIGHT)
+        // TODO assert_fail instead of return 0? the return statement should never be reached
         + SeqUtil.prependTabsWithNewline(
             1,
             SeqToken.RETURN

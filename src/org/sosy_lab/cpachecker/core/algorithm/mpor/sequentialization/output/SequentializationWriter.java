@@ -21,6 +21,10 @@ import java.util.logging.Level;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -55,7 +59,8 @@ public class SequentializationWriter {
   }
 
   public void write(String pSequentialization) {
-    String outputProgram = licenseComment + "\n" + sequentializationComment + pSequentialization;
+    String initProgram = licenseComment + "\n" + sequentializationComment + pSequentialization;
+    String finalProgram = createFinalProgram(initProgram);
     try {
       File parentDir = outputFile.getParentFile();
       // ensure the target directory exists
@@ -80,7 +85,7 @@ public class SequentializationWriter {
             () -> "MPOR SUCCESS. Sequentialization created: " + outputFile.getAbsolutePath());
         // write content to the file
         try (Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
-          writer.write(outputProgram);
+          writer.write(finalProgram);
         }
       }
     } catch (IOException e) {
@@ -134,7 +139,6 @@ public class SequentializationWriter {
             + licenseFilePath);
   }
 
-  // TODO info on assertion file line = threadId?
   private String createSequentializationComment(String pInputFilePath) {
     return "// This sequentialization (transformation of a parallel program into an equivalent \n"
         + "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker. \n"
@@ -147,5 +151,26 @@ public class SequentializationWriter {
         + "// Input program file: "
         + pInputFilePath
         + "\n\n";
+  }
+
+  /**
+   * Replaces all {@code -1} in {@code __assert_fail("0", "{output_file_name}", -1,
+   * "__SEQUENTIALIZATION_ERROR__");} with the actual line of code.
+   */
+  private String createFinalProgram(String pInitProgram) {
+    int currentLine = 1;
+    StringBuilder rFinal = new StringBuilder();
+    for (String line : Splitter.onPattern("\\r?\\n").split(pInitProgram)) {
+      if (line.contains(Sequentialization.getSeqError())) {
+        CFunctionCallExpression assertFailCall =
+            MPORAlgorithm.getSeqErrorCall(outputFileName, currentLine);
+        rFinal.append(line.replace(Sequentialization.getSeqError(), assertFailCall.toASTString()));
+      } else {
+        rFinal.append(line);
+      }
+      rFinal.append(SeqSyntax.NEWLINE);
+      currentLine++;
+    }
+    return rFinal.toString();
   }
 }

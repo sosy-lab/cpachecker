@@ -29,20 +29,16 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement pcUpdate;
 
-  private final int threadId;
-
   public SeqReturnValueAssignStatements(
       CIdExpression pReturnPc,
       ImmutableSet<FunctionReturnValueAssignment> pAssigns,
-      CExpressionAssignmentStatement pPcUpdate,
-      int pThreadId) {
+      CExpressionAssignmentStatement pPcUpdate) {
 
     checkArgument(!pAssigns.isEmpty(), "pAssigns must contain at least one entry");
 
     assigns = pAssigns;
     returnPc = pReturnPc;
     pcUpdate = pPcUpdate;
-    threadId = pThreadId;
   }
 
   @Override
@@ -56,8 +52,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
           new SeqCaseClause(
               caseLabelValue, ImmutableList.of(assignmentStatement), CaseBlockTerminator.BREAK));
     }
-    SeqSwitchStatement switchStatement =
-        new SeqSwitchStatement(threadId, returnPc, caseClauses.build(), 6);
+    SeqSwitchStatement switchStatement = new SeqSwitchStatement(returnPc, caseClauses.build(), 6);
     return SeqSyntax.NEWLINE
         + switchStatement.toASTString()
         + SeqSyntax.NEWLINE
