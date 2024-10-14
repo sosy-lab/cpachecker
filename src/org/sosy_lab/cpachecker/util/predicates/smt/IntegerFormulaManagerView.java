@@ -47,9 +47,10 @@ public class IntegerFormulaManagerView
   }
 
   /**
-   * Returns the remainder of the division of the two given Integer formulas. The result of the
-   * division (dividend/divisor) applied on the 2 Integer formulas used as quotient in the modulo
-   * operation is floored for negative divisors and rounded upwards for positive divisors.
+   * This method returns the remainder r of the division of dividend/divisor. It fulfills the
+   * equation n = q*d + r with n being the dividend, d being the divisor, and q being the quotient.
+   * The quotient is the result of the division of dividend/divisor, floored for negative divisors
+   * and rounded upwards for positive divisors.
    *
    * <p>If the dividend evaluates to zero (modulo-by-zero), either directly as value or indirectly
    * via an additional constraint, then the solver is allowed to choose an arbitrary value for the
