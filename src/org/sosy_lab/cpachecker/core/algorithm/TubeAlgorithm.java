@@ -53,52 +53,39 @@ public class TubeAlgorithm implements Algorithm{
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     AlgorithmStatus status = algorithm.run(reachedSet);
-
+    Set<TubeState> negatedStates = new HashSet<>();
+    Set<TubeState> notNegatedStates = new HashSet<>();
     for (AbstractState abstractState : reachedSet) {
-      ARGState state = (ARGState) abstractState;
-
-      if (state.getChildren().isEmpty()) { // This state is a leaf-node
-        TubeState tubeState = AbstractStates.extractStateByType(state, TubeState.class);
-
-        if (tubeState != null) {
-          String classification;
-          if (isTubeOverApprox(tubeState) && isTubeUnderApprox(tubeState)){
-            classification = "precise";
-          } else if (isTubeUnderApprox(tubeState)){
-            classification = "under";
-          } else if (isTubeOverApprox(tubeState)) {
-            classification = "over";
-          } else {
-            classification = "unclassified";
-          }
-          stateClassification.put(state, classification); // Save the classification
+      if (((ARGState) abstractState).getChildren().isEmpty()) {
+        TubeState tubeState = AbstractStates.extractStateByType(abstractState, TubeState.class);
+        if (isNegatedState(tubeState)) {
+          negatedStates.add(tubeState);
+        } else {
+          notNegatedStates.add(tubeState);
         }
       }
     }
-    Set<String> uniqueValues = new HashSet<>(stateClassification.values());
 
-    if (uniqueValues.size() == 1 && uniqueValues.contains("over")) {
-      logger.log(Level.INFO, "over");
-    } else if (uniqueValues.size() == 1 && uniqueValues.contains("under")) {
-      logger.log(Level.INFO, "under");
-    } else if (uniqueValues.contains("over") && uniqueValues.contains("under")) {
+    boolean isSound = negatedStates.stream().allMatch(s -> s.getErrorCounter() == 0);
+
+    boolean isUnderApprox = notNegatedStates.stream().allMatch(s -> s.getErrorCounter() > 0);
+
+    if(isSound && isUnderApprox){
       logger.log(Level.INFO, "precise");
-    } else {
+    }else if(isSound){
+      logger.log(Level.INFO, "over");
+    }else if(isUnderApprox){
+      logger.log(Level.INFO, "under");
+    }else{
       logger.log(Level.INFO, "unclassified");
     }
+
     return status;
   }
+    private boolean isNegatedState (TubeState pTubeState){
+      return pTubeState.isNegated();
+    }
 
-  private boolean isTubeUnderApprox(TubeState tubeState) {
-    // first rule: if there is no negation on the TubeState,
-    // and all leafs have an error count greater than 0,
-    // then the tube is under approx.
-    return !tubeState.isNegated() && tubeState.getErrorCounter() >= 1;
-  }
 
-  private boolean isTubeOverApprox(TubeState tubeState) {
-    // second rule: if there is at least one negation in the TubeState
-    // and all leafs have error count of 0, then the tube is over approx.
-    return tubeState.isNegated() && tubeState.getErrorCounter() == 0;
-  }
+
 }

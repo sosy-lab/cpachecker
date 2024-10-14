@@ -10,8 +10,11 @@ package org.sosy_lab.cpachecker.cpa.tube;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.Set;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -25,12 +28,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
@@ -41,7 +46,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 public class TubeState implements AbstractQueryableState, Partitionable, Serializable, Graphable,
-                                  FormulaReportingState {
+                                  FormulaReportingState, Targetable {
   /**
    * Represents a TubeState object that contains a map of integer to boolean formulas.
    */
@@ -178,9 +183,12 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
    */
   @Override
   public String toString() {
-    return "TubeState: {" +
-        "Asserts: " + asserts + "Boolean Expression: " + booleanExp + "Error Counter: " +
-            errorCounter + '}';
+    return "TubeState{" +
+        "asserts=" + asserts +
+        ", isNegated=" + isNegated +
+        ", booleanExp='" + booleanExp + '\'' +
+        ", errorCounter=" + errorCounter +
+        '}';
   }
 
   /**
@@ -234,5 +242,16 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
           "Statement cannot be converted into CExpression. Invalid statement: " + statement);
     }
     return expression;
+  }
+
+  @Override
+  public boolean isTarget() {
+    return cfaEdge.getSuccessor().getNumLeavingEdges() == 0 || (cfaEdge.getCode().contains("reach_error();")&&(cfaEdge.getEdgeType().equals(
+        CFAEdgeType.StatementEdge) || cfaEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)));
+  }
+
+  @Override
+  public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+    return ImmutableSet.of();
   }
 }

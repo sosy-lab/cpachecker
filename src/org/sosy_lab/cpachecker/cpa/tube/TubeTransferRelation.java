@@ -39,7 +39,8 @@ public class TubeTransferRelation extends SingleEdgeTransferRelation {
   public Collection<TubeState> getAbstractSuccessorsForEdge(
           AbstractState element, Precision prec, CFAEdge cfaEdge) {
     TubeState tubeState = (TubeState) element;
-    TubeState initialTubeState = new TubeState(cfaEdge,tubeState.getAsserts(), null, false, tubeState.getErrorCounter(), tubeState.getSupplier(), tubeState.getLogManager(),
+    TubeState initialTubeState = new TubeState(cfaEdge,tubeState.getAsserts(), null,
+        tubeState.isNegated(), tubeState.getErrorCounter(), tubeState.getSupplier(), tubeState.getLogManager(),
         tubeState.getCfa());
 
     if (cfaEdge.getCode().contains("reach_error();")&&(cfaEdge.getEdgeType().equals(CFAEdgeType.StatementEdge) || cfaEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge))) {
