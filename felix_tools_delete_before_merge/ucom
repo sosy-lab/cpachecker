@@ -1,0 +1,16 @@
+#!/bin/bash
+
+history_file=~/.bash_history
+
+# Check if the history file exists
+if [ -f "$history_file" ]; then
+    # If a parameter is provided, display only commands matching the parameter
+    if [ "$#" -eq 1 ]; then
+        grep "$1" "$history_file" | grep -v '.*ucom.*' | awk '!seen[$0]++' | sort
+    else
+        # If no parameter is provided, display all unique commands from history
+        awk '!seen[$0]++' "$history_file" | grep -v '.*ucom.*' | sort
+    fi
+else
+    echo "History file not found: $history_file"
+fi

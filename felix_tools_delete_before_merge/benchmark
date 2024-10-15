@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Directory to search
+DIR=$1
+
+# Check if directory is provided
+if [ -z "$DIR" ]; then
+  echo "Usage: $0 <directory>"
+  exit 1
+fi
+
+# Get list of .i files
+i_files=($(find "$DIR" -maxdepth 1 -type f -name "*.i"))
+
+# Get list of .c files
+c_files=($(find "$DIR" -maxdepth 1 -type f -name "*.c"))
+
+# Print .i files
+for i_file in "${i_files[@]}"; do
+  expexa $i_file $2
+done
+
+# Check for .c files without matching .i files
+for c_file in "${c_files[@]}"; do
+  base_name=$(basename "$c_file" .c)
+  if [[ ! " ${i_files[@]} " =~ " $DIR/$base_name.i " ]]; then
+    expexa $c_file $2
+  fi
+done

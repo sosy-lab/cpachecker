@@ -1,0 +1,86 @@
+#!/bin/bash
+
+cd ~/cpachecker
+
+#clear
+
+# Specify constants
+s="--show"
+l="--log"
+oufo="output"
+oufi="cfa.json"
+input_file_path=~/scripts/io/inputfile.txt
+output_file_path=~/scripts/io/file_sizes.txt
+
+# Check for optional argument to set infi
+if [ -n "$1" ] && [ "$1" != $s ] && [ "$1" != $l ]; then
+  infi="$1"
+  echo "$infi" > $input_file_path
+else
+  if [ -n "$2" ] && [ "$2" != $s ] && [ "$2" != $l ]; then
+    infi="$2"
+    echo "$infi" > $input_file_path
+  else
+    if [ -n "$3" ] && [ "$3" != $s ] && [ "$3" != $l ]; then
+      infi="$3"
+      echo "$infi" > $input_file_path
+    else
+      if [ -f $input_file_path ]; then
+      infi=$(cat $input_file_path)
+      else
+        echo "Input file not specified and could not be read from file."
+        exit 1
+      fi
+    fi
+  fi
+fi
+
+# Remove old data
+rm -rf $oufo
+
+so=~/scripts/io/script_output.txt
+parent_folder=$(basename $(dirname "$infi"))
+error_path="$HOME/scripts/io/errors/${parent_folder}.txt"
+
+# Generate CFA and export as JSON
+scripts/cpa.sh --generateCFA --option cfa.export.json=$oufi $infi --heap 13G --timelimit 360 > $so 2>&1
+
+if [ -s $so ]; then
+    echo "$infi"
+fi
+# Show line count
+#echo
+#wc -l $oufo/$oufi
+
+# Show file sizes
+
+# Get the byte sizes of the input and output files
+infi_size=$(stat --format="%s" $infi)
+oufi_size=$(stat --format="%s" $oufo/$oufi)
+
+# Calculate the coefficient
+coefficient=$(echo "scale=2; $oufi_size / $infi_size" | bc)
+
+# Print the sizes and the coefficient
+#echo
+#echo "$infi_size bytes => $oufi_size bytes, Coefficient: $coefficient"
+
+# Check for optional argument to save file sizes
+if [ "$1" == $l ] || [ "$2" == $l ] || [ "$3" == $l ]; then
+  # Check if the output variable is non-empty
+  if [ -s $so ]; then
+    echo "$infi">>$error_path
+    cat $so >> $error_path
+    echo "">>$error_path
+  else
+    echo "$infi, $infi_size, $oufi_size, $coefficient" >> $output_file_path
+  fi
+else
+  cat $so
+fi
+
+# Check for optional argument to prevent opening file in VSCode
+if [ "$1" == $s ] || [ "$2" == $s ] || [ "$3" == $s ]; then
+  # Open file in VSCode
+  code -r $oufo/$oufi
+fi

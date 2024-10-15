@@ -1,0 +1,19 @@
+#!/bin/bash
+
+cd ~/cpachecker
+
+clear
+
+# Specify constants
+oufo="output"
+oufi="cfa.json"
+input_file_path=~/scripts/io/inputfile.txt
+
+if [ -f $input_file_path ]; then
+  infi=$(cat $input_file_path)
+else
+  echo "Input file information could not be read from file."
+  exit 1
+fi
+
+scripts/cpa.sh --option cfa.import.json=$oufo/$oufi doc/examples/example.c --heap 20G --timelimit 1500

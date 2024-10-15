@@ -1,0 +1,20 @@
+#!/bin/bash
+
+folder=~/sv-benchmarks/c/
+start_folder=$1
+start_benchmarking=false
+
+# execute benchmark for all subfolders
+for subfolder in $folder*
+do
+  if [ -d "$subfolder" ]; then
+    if [ "$start_benchmarking" = false ] && [ "$(basename "$subfolder")" = "$start_folder" ]; then
+      start_benchmarking=true
+    fi
+
+    if [ "$start_benchmarking" = true ]; then
+      echo "Benchmarking $subfolder"
+      benchmark $subfolder --log
+    fi
+  fi
+done
