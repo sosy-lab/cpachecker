@@ -16,7 +16,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.KeyDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -68,26 +67,6 @@ public final class CfaJsonImport {
         getImportingObjectMapper().readValue(pCfaJsonFile.toFile(), CfaJsonData.class);
 
     return new MutableCFA(cfaJsonData.functions(), cfaJsonData.nodes(), cfaJsonData.metadata());
-  }
-
-  /**
-   * Reads a {@link JsonNode} from the specified file path.
-   *
-   * <p>The node represents the whole JSON content of the file.
-   *
-   * @param pCfaJsonFile The path to the JSON file, can be null.
-   * @return the JSON node read from the file.
-   * @throws JsonParseException if the JSON content is not valid.
-   * @throws JsonMappingException if the JSON content cannot be mapped to a JSON node.
-   * @throws IOException if an I/O error occurs while reading the file.
-   */
-  public JsonNode readJsonNode(@Nullable Path pCfaJsonFile)
-      throws JsonParseException, JsonMappingException, IOException {
-
-    checkNotNull(pCfaJsonFile, "No JSON file specified");
-
-    /* Read JsonNode from file. */
-    return getImportingObjectMapper().readTree(pCfaJsonFile.toFile());
   }
 
   /**
