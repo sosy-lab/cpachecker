@@ -41,6 +41,18 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
     assert checkFieldAccess();
   }
 
+  /**
+   * This constructor is required for JSON deserialization with Jackson.
+   *
+   * <p>It should not be used in any other context!
+   */
+  private CFieldReference(FileLocation pFileLocation, CType pType, CExpression pOwner) {
+    super(pFileLocation, pType);
+    name = "";
+    owner = pOwner;
+    isPointerDereference = false;
+  }
+
   private boolean checkFieldAccess() throws IllegalArgumentException {
     CType structType = owner.getExpressionType().getCanonicalType();
     if (structType instanceof CProblemType) {

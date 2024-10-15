@@ -27,7 +27,5 @@ public final class CFieldReferenceMixin {
   public CFieldReferenceMixin(
       @JsonProperty("fileLocation") FileLocation pFileLocation,
       @JsonProperty("type") CType pType,
-      @JsonProperty("name") String pName,
-      @JsonProperty("owner") CExpression pOwner,
-      @JsonProperty("isPointerDereference") boolean pIsPointerDereference) {}
+      @JsonProperty("owner") CExpression pOwner) {}
 }

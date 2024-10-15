@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+import org.sosy_lab.cpachecker.cfa.export.json.deserialization.TypeIdResolver;
 import org.sosy_lab.cpachecker.cfa.export.json.serialization.SimpleNameIdGenerator;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
@@ -22,7 +23,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 /**
  * This class is a mixin for {@link Type}.
  *
- * <p>Identity information is serialized to prevent infinite recursion.
+ * <p>Identity information is serialized to prevent infinite recursion. The {@link TypeIdResolver}
+ * is necessary to handle unresolved forward references.
  *
  * <p>Since this class has subtypes, Jackson needs to know which type to instantiate when it
  * encounters a {@link Type} object during deserialization. This additional information is
@@ -30,7 +32,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  *
  * <p>It sets the names to use for all relevant subtypes.
  */
-@JsonIdentityInfo(generator = SimpleNameIdGenerator.class, scope = Type.class, property = "typeId")
+@JsonIdentityInfo(
+    generator = SimpleNameIdGenerator.class,
+    resolver = TypeIdResolver.class,
+    scope = Type.class,
+    property = "typeId")
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "typeType")
 @JsonSubTypes({
   @JsonSubTypes.Type(value = AArrayType.class, name = "AArray"),
