@@ -41,6 +41,9 @@ public final class CfaJsonIO {
         /* Enable serialization with indentation and newlines. */
         .enable(SerializationFeature.INDENT_OUTPUT)
 
+        /* Use equality as identity criterion for object IDs. */
+        .enable(SerializationFeature.USE_EQUALITY_FOR_OBJECT_ID)
+
         /* Add modules. */
         .addModule(new CfaJsonModule())
         .addModule(new GuavaModule())
