@@ -88,6 +88,7 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <!-- exclude files where several properties are available -->
+    <exclude>../programs/benchmarks/ldv-regression/*.yml</exclude>
     <exclude>../programs/benchmarks/list-ext-properties/list-ext.yml</exclude>
     <exclude>../programs/benchmarks/list-ext-properties/list-ext_flag.yml</exclude>
     <exclude>../programs/benchmarks/list-ext-properties/test-0214_1.yml</exclude> <!-- flapping timeout/OOM -->
