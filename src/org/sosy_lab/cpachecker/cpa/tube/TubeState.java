@@ -27,6 +27,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.Factory;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -46,9 +48,15 @@ import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
+import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -136,11 +144,9 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
       throw new RuntimeException(pE);
     } catch (InterruptedException | UnrecognizedCodeException | InvalidConfigurationException pE) {
       throw new RuntimeException(pE);
+    } catch (ToFormulaException pE) {
+      throw new RuntimeException(pE);
     }
-/*      List<BooleanFormula> booleanFormulas = parseFormula(manager, exp, cfaEdge);
-      if (!booleanFormulas.isEmpty()) {
-        booleanFormula = manager.uninstantiate(booleanFormulas.get(0));
-      }*/
     return Objects.requireNonNullElseGet(booleanFormula,
         manager.getBooleanFormulaManager()::makeTrue);
   }
@@ -154,19 +160,30 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
   }
   BooleanFormula parseFormula(FormulaManagerView pFormulaManagerView, String entry, CFAEdge pCFAEdge)
       throws InvalidAutomatonException, InterruptedException, UnrecognizedCodeException,
-             InvalidConfigurationException {
+             InvalidConfigurationException, ToFormulaException {
     InvariantExchangeFormatTransformer transformer = new InvariantExchangeFormatTransformer(
         Configuration.defaultConfiguration(),logManager,ShutdownNotifier.createDummy(),cfa);
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(entry);
-    AExpression expression = transformer.createExpressionTreeFromString(Optional.of(entry),entry,cfaEdge.getLineNumber(),
-        callStack,new CProgramScope(cfa, logManager)).accept(new ToCExpressionVisitor(cfa.getMachineModel(), logManager));
-    String exp = expression.toASTString();
-    CStatement statements = CParserUtils.parseSingleStatement(exp, Factory.getParser(logManager, Factory.getDefaultOptions(), cfa.getMachineModel(), ShutdownNotifier.createDummy()),new CProgramScope(cfa, logManager));
+    Set<String> entries = new HashSet<>();
+    entries.add(entry);
+    PathFormulaManagerImpl pathFormulaManager =
+        new PathFormulaManagerImpl(pFormulaManagerView, Configuration.defaultConfiguration(),
+            logManager, ShutdownNotifier.createDummy(), cfa,
+            AnalysisDirection.FORWARD);
+    BooleanFormula expressions = CParserUtils.parseStatementsAsExpressionTree(entries,Optional.of(entry),
+        Factory.getParser(logManager, Factory.getDefaultOptions(), cfa.getMachineModel(), ShutdownNotifier.createDummy()),
+        new CProgramScope(cfa, logManager),ParserTools.create(ExpressionTrees.newFactory(),cfa.getMachineModel(), logManager)).accept(new ToFormulaVisitor(pFormulaManagerView,
+        pathFormulaManager, pathFormulaManager.makeEmptyPathFormula()));
+/*    AExpression expression = transformer.createExpressionTreeFromString(Optional.of(entry),entry,cfaEdge.getLineNumber(),
+        callStack,new CProgramScope(cfa, logManager)).accept(new ToCExpressionVisitor(cfa.getMachineModel(), logManager));*/
+    /*String exp = expressions.toString();*/
+    //String exp = expression.toParenthesizedASTString();
+ /*   CStatement statements = CParserUtils.parseSingleStatement(exp, Factory.getParser(logManager, Factory.getDefaultOptions(), cfa.getMachineModel(), ShutdownNotifier.createDummy()),new CProgramScope(cfa, logManager));
     CtoFormulaConverter converter = supplier.apply(pFormulaManagerView);
     CExpression cExpression = getcExpression(statements);
     BooleanFormula
-        booleanFormula = converter.makePredicate(cExpression, pCFAEdge, entry, SSAMap.emptySSAMap().builder());
+        booleanFormula = converter.makePredicate(cExpression, pCFAEdge, entry, SSAMap.emptySSAMap().builder());*/
     /*    Set<String> entries = new HashSet<>();
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(entry);
@@ -187,7 +204,7 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
     for (CExpression expression : expressions) {
       booleanFormulaList.add(
           converter.makePredicate(expression, pCFAEdge, entry, SSAMap.emptySSAMap().builder()));*/
-    return booleanFormula;
+    return expressions;
     }
 
 
@@ -196,16 +213,4 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
         .filter(Objects::nonNull)
         .collect(Collectors.toList());
   }*/
-  private static CExpression getcExpression(CStatement statement) {
-    CExpression expression = ((CExpressionStatement) statement).getExpression();
-    if (expression == null) {
-      throw new IllegalArgumentException(
-          "Statement cannot be converted into CExpression. Invalid statement: " + statement);
-    }
-    return expression;
-
-
-
-
-}
 }
