@@ -14,7 +14,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -105,6 +104,6 @@ public class TubeCPA extends AbstractCPA {
           asserts = ImmutableMap.of();
           logger.log(Level.SEVERE, "An error occurred while parsing the JSON file", e);
       }
-      return new TubeState(edge, asserts, null, false,0,supplier, logger, cfa);
+      return new TubeState(edge, asserts, null, false,0, supplier::apply, logger, cfa);
   }
 }

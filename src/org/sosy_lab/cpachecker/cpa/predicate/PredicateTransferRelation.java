@@ -431,13 +431,11 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     return replacePathFormula(pElement, newPathFormula);
   }
 
-  /** Returns a new state with a given pathFormula. All other fields stay equal. */
   private PredicateAbstractState replacePathFormula(
       PredicateAbstractState oldElement, PathFormula newPathFormula) {
     assert !oldElement.isAbstractionState();
     return mkNonAbstractionStateWithNewPathFormula(newPathFormula, oldElement);
   }
-
   private PredicateAbstractState strengthenSatCheck(PredicateAbstractState pElement, CFANode loc)
       throws SolverException, InterruptedException {
     logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");

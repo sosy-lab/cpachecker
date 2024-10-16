@@ -730,7 +730,7 @@ public class CoreComponentsFactory {
         algorithm = new FaultLocalizationByImport(config, algorithm, cfa, logger);
       }
       if (useTubeAlgorithm){
-        algorithm = new TubeAlgorithm(algorithm, logger);
+        algorithm = new TubeAlgorithm(algorithm, cpa, logger);
       }
     }
 

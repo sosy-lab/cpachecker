@@ -31,7 +31,7 @@ class PredicateCpaOptions {
           "Enables sat checks at abstraction location.\n"
               + "Infeasible paths are already excluded by transfer relation and not later by"
               + " precision adjustment. This property is required in proof checking.")
-  private boolean satCheckAtAbstraction = false;
+  private boolean satCheckAtAbstraction = true;
 
   @Option(secure = true, description = "check satisfiability when a target state has been found")
   private boolean targetStateSatCheck = false;

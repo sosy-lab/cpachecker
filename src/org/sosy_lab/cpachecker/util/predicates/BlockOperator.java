@@ -112,7 +112,7 @@ public class BlockOperator {
       secure = true,
       description =
           "force abstractions at program exit (program end, abort, etc.), regardless of threshold")
-  private boolean alwaysAtProgramExit = false;
+  private boolean alwaysAtProgramExit = true;
 
   @Option(
       secure = true,
