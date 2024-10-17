@@ -211,7 +211,7 @@ public class SMGTransferRelation
             smtSolver,
             formulaManager,
             converter,
-            new ConstraintsStatistics());
+            new ConstraintsStatistics(Configuration.defaultConfiguration(), logger));
 
     evaluator = pEvaluator;
     cfa = null;

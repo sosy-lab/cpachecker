@@ -8,15 +8,20 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints.refiner.precision;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.util.Precisions;
 
 /** Precision for {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}. */
 public interface ConstraintsPrecision extends Precision {
@@ -25,6 +30,36 @@ public interface ConstraintsPrecision extends Precision {
   boolean isTracked(Constraint pConstraint, CFANode pLocation);
 
   ConstraintsPrecision join(ConstraintsPrecision pOther);
+
+  /**
+   * This method iterates of every state of the reached set and joins their respective precision
+   * into one map.
+   *
+   * @param reached the set of reached states
+   * @return the join over precisions of states in the reached set
+   */
+  public static ConstraintsPrecision joinConstraintsPrecisionsInReachedSet(
+      UnmodifiableReachedSet reached) {
+    Preconditions.checkArgument(reached != null);
+    ConstraintsPrecision joinedPrecision = null;
+    for (Precision precision : reached.getPrecisions()) {
+      ConstraintsPrecision prec =
+          Precisions.extractPrecisionByType(precision, ConstraintsPrecision.class);
+      if (prec != null) {
+        if (joinedPrecision == null) {
+          if (prec instanceof FullConstraintsPrecision) {
+            return prec;
+          }
+          joinedPrecision = prec;
+        } else {
+          joinedPrecision.join(prec);
+        }
+      }
+    }
+    return joinedPrecision;
+  }
+
+  void serialize(Writer writer) throws IOException;
 
   ConstraintsPrecision withIncrement(Increment pIncrement);
 

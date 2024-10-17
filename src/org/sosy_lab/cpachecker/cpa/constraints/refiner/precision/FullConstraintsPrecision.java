@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints.refiner.precision;
 
+import java.io.IOException;
+import java.io.Writer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
@@ -31,6 +33,12 @@ public class FullConstraintsPrecision implements ConstraintsPrecision {
   public ConstraintsPrecision join(ConstraintsPrecision pOther) {
     throw new UnsupportedOperationException(
         FullConstraintsPrecision.class.getSimpleName() + " can't be joined");
+  }
+
+  @Override
+  public void serialize(final Writer pWriter) throws IOException {
+    // header
+    pWriter.write(this.getClass().getCanonicalName() + "\n\n");
   }
 
   @Override

@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -76,7 +77,9 @@ public class StateSimplifierTest {
   public StateSimplifierTest() throws InvalidConfigurationException {
     Configuration config =
         Configuration.builder().setOption("cpa.constraints.removeTrivial", "true").build();
-    simplifier = new StateSimplifier(config, new ConstraintsStatistics());
+    simplifier =
+        new StateSimplifier(
+            config, new ConstraintsStatistics(config, LogManager.createTestLogManager()));
   }
 
   @Test

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- This file is part of CPAchecker, -->
+<!-- a tool for configurable software verification: -->
+<!-- https://cpachecker.sosy-lab.org -->
+<!-- -->
+<!-- SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org> -->
+<!-- -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="SymbolicExpressionParserGeneration" default="generate-parser" basedir="./../../../../../../..">
+    <!-- basedir should be the "CPAchecker" directory -->
+
+    <property name="dir.parser" location="src/org/sosy_lab/cpachecker/cpa/constraints/contraint/" />
+    <property name="scanner.source" value="SymbolicExpressionScanner.jflex"/>
+    <property name="parser.source" value="SymbolicExpressionParser.cup"/>
+    <property name="scanner.target" value="SymbolicExpressionScanner"/>
+    <property name="parser.target" value="SymbolicExpressionParser"/>
+    <property name="symbols.target" value="SymExprSymbols"/>
+
+    <import file="${basedir}/build/build-parser.xml"/>
+</project>

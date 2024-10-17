@@ -146,7 +146,7 @@ public class SMGCPA
     predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
     constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config, logger);
 
-    statistics = new SMGCPAStatistics();
+    statistics = new SMGCPAStatistics(config, logger);
     precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
 

@@ -13,6 +13,9 @@ import static com.google.common.truth.Truth.assertThat;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -26,8 +29,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /** Unit tests for {@link ConstraintsMergeOperator} */
 public class ConstraintsMergeOperatorTest {
 
-  private final ConstraintsMergeOperator op =
-      new ConstraintsMergeOperator(new ConstraintsStatistics());
+  private final ConstraintsMergeOperator op;
   private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
   private final Type defType = CNumericTypes.INT;
 
@@ -39,6 +41,13 @@ public class ConstraintsMergeOperatorTest {
   private final Constraint posConst = factory.equal(idExp1, numExp1, defType, defType);
   private final Constraint negConst =
       (Constraint) factory.notEqual(idExp1, numExp1, defType, defType);
+
+  public ConstraintsMergeOperatorTest() throws InvalidConfigurationException {
+    op =
+        new ConstraintsMergeOperator(
+            new ConstraintsStatistics(
+                Configuration.defaultConfiguration(), LogManager.createTestLogManager()));
+  }
 
   @Test
   public void testMerge_mergePossible() {

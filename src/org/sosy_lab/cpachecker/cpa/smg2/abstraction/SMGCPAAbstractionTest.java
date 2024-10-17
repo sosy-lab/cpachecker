@@ -20,6 +20,8 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPATest0;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -50,12 +52,16 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void listAbstractionSpecifierSLLTest() throws SMGException, SMGSolverException {
+  public void listAbstractionSpecifierSLLTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 15;
     Value[] pointers = buildConcreteList(false, sllSize, listLength);
 
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
     // Check specifier for abstracted list
     for (int i = 0; i < listLength; i++) {
@@ -197,12 +203,16 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void listAbstractionSpecifierDLLTest() throws SMGException, SMGSolverException {
+  public void listAbstractionSpecifierDLLTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 15;
     Value[] pointers = buildConcreteList(true, dllSize, listLength);
 
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
     // Check specifier for abstracted list
     for (int i = 0; i < listLength; i++) {
@@ -344,7 +354,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void listSpecifierConcreteInBetweenTwoAbstractedSLLTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
 
     int listLength = 10;
     Value[] pointersFirstHalf = buildConcreteList(false, sllSize, listLength);
@@ -385,7 +395,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                 .orElseThrow());
 
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
 
     // Check correct ptr specifier of now abstracted list
@@ -425,7 +438,11 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     currentState =
         currentState.writeValueWithoutChecks(
             middleObj, hfo, pointerSizeInBits, SMGValue.zeroValue());
-    absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+    absFinder =
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
 
     for (int i = 0; i < listLength * 2 + 1; i++) {
@@ -462,7 +479,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void listSpecifierConcreteInBetweenTwoAbstractedDLLTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
 
     int listLength = 10;
     Value[] pointersFirstHalf = buildConcreteList(true, dllSize, listLength);
@@ -520,7 +537,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             currentState.getMemoryModel().getSMGValueFromValue(pointersConcrete[0]).orElseThrow());
 
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
 
     // Check correct ptr specifier of now abstracted list
@@ -560,7 +580,11 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     currentState =
         currentState.writeValueWithoutChecks(
             middleObj, hfo, pointerSizeInBits, SMGValue.zeroValue());
-    absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+    absFinder =
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
 
     for (int i = 0; i < listLength * 2 + 1; i++) {
@@ -606,7 +630,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * the given threshold.
    */
   @Test
-  public void listNotAbstractableSLLTest() {
+  public void listNotAbstractableSLLTest() throws InvalidConfigurationException {
     resetSMGStateAndVisitor();
     // TODO: this and DLL version
   }
@@ -617,7 +641,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * abstractable.
    */
   @Test
-  public void notEqualNestedListSLLTest() {
+  public void notEqualNestedListSLLTest() throws InvalidConfigurationException {
     resetSMGStateAndVisitor();
     // TODO: this and DLL version
   }
@@ -629,7 +653,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * not equal as their subjective lengths differ for each element of the top list.
    */
   @Test
-  public void nestedListMovingPointerSLLTest() {
+  public void nestedListMovingPointerSLLTest() throws InvalidConfigurationException {
     resetSMGStateAndVisitor();
     // TODO: this and DLL version
   }
@@ -638,7 +662,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void dllWithPointerOffsetsAbstractionTest() throws SMGException, SMGSolverException {
+  public void dllWithPointerOffsetsAbstractionTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 10;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
@@ -654,7 +679,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     // Abstract, check that first and last are not abstracted
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
 
     checkAbstractionOfLLWithConcreteFirstAndLast(
@@ -665,7 +693,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void sllWithPointerOffsetsAbstractionTest() throws SMGException, SMGSolverException {
+  public void sllWithPointerOffsetsAbstractionTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 10;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
@@ -681,7 +710,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     // Abstract, check that first and last are not abstracted
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
     assertThat(
             currentState.getMemoryModel().getSmg().getObjects().stream()
@@ -700,7 +732,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void sllWithPointerOffsetsNestedAbstractionTest() throws SMGException, SMGSolverException {
+  public void sllWithPointerOffsetsNestedAbstractionTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
@@ -744,7 +777,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     // Abstract
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     List<Set<SMGCandidate>> orderedListCandidatesByNesting = absFinder.getListCandidates();
     // There are 2 nesting levels, top and nested
     assertThat(orderedListCandidatesByNesting).hasSize(2);
@@ -881,7 +917,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void dllWithPointerOffsetsNestedAbstractionTest() throws SMGException, SMGSolverException {
+  public void dllWithPointerOffsetsNestedAbstractionTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
@@ -925,7 +962,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     // Abstract
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     List<Set<SMGCandidate>> orderedListCandidatesByNesting = absFinder.getListCandidates();
     // There are 2 nesting levels, top and nested
     assertThat(orderedListCandidatesByNesting).hasSize(2);
@@ -1076,7 +1116,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void sllWithSelfPointerWithOffsetsAbstractionTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     // Large enough for 3 pointers
     BigInteger listSize = sllSize.add(pointerSizeInBits);
@@ -1177,7 +1217,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
         // Abstract
         SMGCPAAbstractionManager absFinder =
-            new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+            new SMGCPAAbstractionManager(
+                currentState,
+                listLength,
+                new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
         currentState = absFinder.findAndAbstractLists();
 
         // Check abstraction
@@ -1271,7 +1314,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void dllWithSelfPointerWithOffsetsAbstractionTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     // Large enough for 3 pointers
     BigInteger listSize = dllSize.add(pointerSizeInBits);
@@ -1393,7 +1436,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
         // Abstract
         SMGCPAAbstractionManager absFinder =
-            new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+            new SMGCPAAbstractionManager(
+                currentState,
+                listLength,
+                new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
         currentState = absFinder.findAndAbstractLists();
 
         // Check abstraction
@@ -1508,7 +1554,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void sllWithSelfPointerWithOffsetsLeftMaterializationTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     // Large enough for 3 pointers
     BigInteger listSize = sllSize.add(pointerSizeInBits);
@@ -1611,7 +1657,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
         // Abstract
         SMGCPAAbstractionManager absFinder =
-            new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+            new SMGCPAAbstractionManager(
+                currentState,
+                listLength,
+                new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
         currentState = absFinder.findAndAbstractLists();
 
         // Abstraction is checked in the test for this abstraction
@@ -1770,7 +1819,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void sllLoopingWithSelfPointerWithOffsetsLeftMaterializationTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     // Large enough for 3 pointers
     BigInteger listSize = sllSize.add(pointerSizeInBits);
@@ -1878,7 +1927,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
         // Abstract
         SMGCPAAbstractionManager absFinder =
-            new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+            new SMGCPAAbstractionManager(
+                currentState,
+                listLength,
+                new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
         currentState = absFinder.findAndAbstractLists();
 
         // Abstraction is checked in the test for this abstraction
@@ -2033,7 +2085,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void dllWithSelfPointerWithOffsetsLeftMaterializationTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     // Large enough for 3 pointers
     BigInteger listSize = dllSize.add(pointerSizeInBits);
@@ -2158,7 +2210,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
         // Abstract
         SMGCPAAbstractionManager absFinder =
-            new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+            new SMGCPAAbstractionManager(
+                currentState,
+                listLength,
+                new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
         currentState = absFinder.findAndAbstractLists();
 
         // Abstraction is checked in the test for this abstraction
@@ -2345,7 +2400,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void dllLoopingWithSelfPointerWithOffsetsLeftMaterializationTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     // Large enough for 3 pointers
     BigInteger listSize = dllSize.add(pointerSizeInBits);
@@ -2479,7 +2534,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
         // Abstract
         SMGCPAAbstractionManager absFinder =
-            new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+            new SMGCPAAbstractionManager(
+                currentState,
+                listLength,
+                new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
         currentState = absFinder.findAndAbstractLists();
 
         // Abstraction is checked in the test for this abstraction
@@ -2672,7 +2730,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void dllWithSelfPointerWithOffsetsRightMaterializationTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     // Large enough for 3 pointers
     BigInteger listSize = dllSize.add(pointerSizeInBits);
@@ -2800,7 +2858,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
         // Abstract
         SMGCPAAbstractionManager absFinder =
-            new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+            new SMGCPAAbstractionManager(
+                currentState,
+                listLength,
+                new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
         currentState = absFinder.findAndAbstractLists();
 
         // Abstraction is checked in the test for this abstraction
@@ -2989,7 +3050,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void sllWithSelfPointerWithOffsetsRightMaterializationTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     // Large enough for 3 pointers
     BigInteger listSize = sllSize.add(pointerSizeInBits);
@@ -3081,7 +3142,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
         // Abstract
         SMGCPAAbstractionManager absFinder =
-            new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+            new SMGCPAAbstractionManager(
+                currentState,
+                listLength,
+                new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
         currentState = absFinder.findAndAbstractLists();
         numOfAbstrLists++;
 
@@ -3214,7 +3278,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void dllLoopingWithSelfPointersWithOffsetsRightMaterializationTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     // Large enough for 3 pointers
     BigInteger listSize = dllSize.add(pointerSizeInBits);
@@ -3367,7 +3431,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
         // Abstract
         SMGCPAAbstractionManager absFinder =
-            new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+            new SMGCPAAbstractionManager(
+                currentState,
+                listLength,
+                new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
         currentState = absFinder.findAndAbstractLists();
 
         // Abstraction is checked in the test for this abstraction
@@ -3590,7 +3657,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void sllLoopingWithSelfPointersWithOffsetsRightMaterializationTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     // Large enough for 3 pointers
     BigInteger listSize = sllSize.add(pointerSizeInBits);
@@ -3694,7 +3761,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
         // Abstract
         SMGCPAAbstractionManager absFinder =
-            new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+            new SMGCPAAbstractionManager(
+                currentState,
+                listLength,
+                new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
         currentState = absFinder.findAndAbstractLists();
 
         assertThat(topListPtrs.length).isEqualTo(listLength);
@@ -3847,7 +3917,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void loopingDllWithDistinctListElementLeftMaterializationTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     // from linux-list-lst-data.c
     /* next pointer target offset 64
     loop::head: SymbolicIdentifier[0](Value3[0,64) -> Optional[ -> (reg) [0] SMGObject5[0, 128)]) in loop::head[0, 64)
@@ -3983,7 +4053,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     // Abstract
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
     assertThat(currentState.getMemoryModel().getSmg().getNumberOfAbstractedLists()).isEqualTo(1);
 
@@ -4331,7 +4404,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void sllWithPointerOffsetsNestedFstMaterializationTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
@@ -4380,7 +4453,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     // Abstract
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
 
     Value nextPtr = topListPtrs[0];
@@ -4477,7 +4553,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void sllWithPointerOffsetsNestedFstMaterializationTest2()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
@@ -4526,7 +4602,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     // Abstract
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
 
     // This read does mat the next obj
@@ -4659,7 +4738,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void dllWithPointerOffsetsNestedFstMaterializationTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
@@ -4708,7 +4787,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     // Abstract
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
 
     Value nextPtr = topListPtrs[0];
@@ -4826,7 +4908,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void dllWithPointerOffsetsNestedFstMaterializationTest2()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
@@ -4875,7 +4957,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     // Abstract
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
 
     // This read does mat the next obj
@@ -5025,7 +5110,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void dllAbstractionNestingTest2() throws SMGException, SMGSolverException {
+  public void dllAbstractionNestingTest2()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
@@ -5084,7 +5170,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
       // Abstract
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+          new SMGCPAAbstractionManager(
+              currentState,
+              listLength,
+              new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
       List<Set<SMGCandidate>> orderedListCandidatesByNesting = absFinder.getListCandidates();
       // There are 2 nesting levels, top and nested
       assertThat(orderedListCandidatesByNesting).hasSize(2);
@@ -5101,7 +5190,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void dllAbstractionNestingTest() throws SMGException, SMGSolverException {
+  public void dllAbstractionNestingTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
@@ -5145,7 +5235,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     // Abstract
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     List<Set<SMGCandidate>> orderedListCandidatesByNesting = absFinder.getListCandidates();
     // There are 2 nesting levels, top and nested
     assertThat(orderedListCandidatesByNesting).hasSize(2);
@@ -5160,7 +5253,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void sllWithPointerOffsetsNestedNoAbstractionTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
@@ -5207,7 +5300,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
       // Abstract
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
+          new SMGCPAAbstractionManager(
+              currentState,
+              listLength,
+              new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
       currentState = absFinder.findAndAbstractLists();
       for (int all = 0; all < listLength + 2; all++) {
         Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
@@ -5366,7 +5462,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void sllWithPointerOffsetsNestedPartialAbstractionTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int listLength = 8;
     BigInteger otherPtrOffset = BigInteger.ZERO;
     BigInteger internalListPtrOffset = BigInteger.valueOf(32);
@@ -5413,7 +5509,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
       // Abstract
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+          new SMGCPAAbstractionManager(
+              currentState,
+              listLength - 1,
+              new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
       currentState = absFinder.findAndAbstractLists();
       for (int all = 0; all < listLength + 2; all++) {
         Optional<SMGStateAndOptionalSMGObjectAndOffset> derefedTopElem =
@@ -5594,7 +5693,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void nestedListSLLTest() throws SMGException, SMGSolverException {
+  public void nestedListSLLTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     // Smaller lengths are fine here, else this runs a while!
     // Increasing this is a good test for the overall performance of the SMGs!
     int listLength = 15;
@@ -5602,7 +5702,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     addSubListsToList(listLength, pointers, false);
 
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
     // 1 null obj + 1 top list + listLength nested
     assertThat(currentState.getMemoryModel().getHeapObjects()).hasSize(2 + listLength);
@@ -5634,7 +5737,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    */
   @Ignore
   @Test
-  public void nestedListMaterializationSLLTest() throws SMGException, SMGSolverException {
+  public void nestedListMaterializationSLLTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     // TODO: nested lists are somehow broken
     // Smaller lengths are fine here, else this runs a while!
     // Increasing this is a good test for the overall performance of the SMGs!
@@ -5645,7 +5749,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(nestedPointers).isNotEmpty();
 
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            listLength - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
 
     // 1 null obj + 1 top list + listLength nested
@@ -5781,7 +5888,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * identity.
    */
   @Test
-  public void nestedListDLLTest() {
+  public void nestedListDLLTest() throws InvalidConfigurationException {
     resetSMGStateAndVisitor();
     // TODO:
   }
@@ -5792,7 +5899,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * This works if we correctly check equality by shape and not pointer identity.
    */
   @Test
-  public void nestedListAbstractionSLLTest() {
+  public void nestedListAbstractionSLLTest() throws InvalidConfigurationException {
     resetSMGStateAndVisitor();
   }
 
@@ -5802,7 +5909,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * This works if we correctly check equality by shape and not pointer identity.
    */
   @Test
-  public void nestedListAbstractionDLLTest() {
+  public void nestedListAbstractionDLLTest() throws InvalidConfigurationException {
     resetSMGStateAndVisitor();
     // TODO:
   }
@@ -5815,12 +5922,16 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void correctPointerNestingSLLTest() throws SMGException, SMGSolverException {
+  public void correctPointerNestingSLLTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int lengthOfList = 10;
     resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(false, sllSize, lengthOfList);
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, lengthOfList - 1, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            lengthOfList - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
     // Now we have a 10+SLS
     // Deref a pointer not in the beginning or end, check that the list is consistent with the
@@ -5839,12 +5950,16 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void correctPointerNestingDLLTest() throws SMGException, SMGSolverException {
+  public void correctPointerNestingDLLTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int lengthOfList = 10;
     resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(true, dllSize, lengthOfList);
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, lengthOfList - 1, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            lengthOfList - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
     // Now we have a 10+SLS
     // Deref a pointer not in the beginning or end, check that the list is consistent with the
@@ -5863,7 +5978,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void correctZeroPlusAbsorptionSLLTest() throws SMGException, SMGSolverException {
+  public void correctZeroPlusAbsorptionSLLTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int lengthOfList = 10;
     nfo = BigInteger.ZERO;
     sllSize = pointerSizeInBits;
@@ -5872,7 +5988,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       resetSMGStateAndVisitor();
       Value[] pointers = buildConcreteList(false, sllSize, lengthOfList);
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(currentState, lengthOfList - 1, new SMGCPAStatistics());
+          new SMGCPAAbstractionManager(
+              currentState,
+              lengthOfList - 1,
+              new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
       currentState = absFinder.findAndAbstractLists();
       // Now we have a 10+SLS
       // Deref a pointer not in the beginning or end, check that the list is consistent with the
@@ -5897,7 +6016,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void correctLeftZeroPlusAbsorptionDLLTest() throws SMGException, SMGSolverException {
+  public void correctLeftZeroPlusAbsorptionDLLTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int lengthOfList = 10;
     nfo = BigInteger.ZERO;
     pfo = nfo.add(pointerSizeInBits);
@@ -5952,7 +6072,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       currentState = currentState.copyAndReplaceMemoryModel(newMemModel);
 
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(currentState, lengthOfList - 1, new SMGCPAStatistics());
+          new SMGCPAAbstractionManager(
+              currentState,
+              lengthOfList - 1,
+              new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
       currentState = absFinder.findAndAbstractLists();
       // Now we have a 10+DLS
       // Deref a pointer not in the beginning or end, check that the list is consistent with the
@@ -5981,7 +6104,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void correctZeroPlusAbsorptionDLLTest() throws SMGException, SMGSolverException {
+  public void correctZeroPlusAbsorptionDLLTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     int lengthOfList = 10;
     nfo = BigInteger.ZERO;
     pfo = nfo.add(pointerSizeInBits);
@@ -5991,7 +6115,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       resetSMGStateAndVisitor();
       Value[] pointers = buildConcreteList(true, dllSize, lengthOfList);
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(currentState, lengthOfList - 1, new SMGCPAStatistics());
+          new SMGCPAAbstractionManager(
+              currentState,
+              lengthOfList - 1,
+              new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
       currentState = absFinder.findAndAbstractLists();
       // Now we have a 10+SLS
       // Deref a pointer not in the beginning or end, check that the list is consistent with the
@@ -6075,13 +6202,17 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void zeroPlusRemovalSLLTest() throws SMGException, SMGSolverException {
+  public void zeroPlusRemovalSLLTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     // We use a small length, does not matter at all
     int sizeOfList = 3;
     resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(false, sllSize, sizeOfList);
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, sizeOfList, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            sizeOfList,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     // Now we have a 3+SLS
     currentState = absFinder.findAndAbstractLists();
     assertThat(
@@ -6134,13 +6265,17 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void zeroPlusRemovalDLLTest() throws SMGException, SMGSolverException {
+  public void zeroPlusRemovalDLLTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     // We use a small length, does not matter at all
     int sizeOfList = 3;
     resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(true, dllSize, sizeOfList);
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, sizeOfList - 1, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            sizeOfList - 1,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     // Now we have a 3+DLS
     currentState = absFinder.findAndAbstractLists();
     // Materialize the complete list; We should have 3 concrete objects again and a fourth 0+
@@ -6277,7 +6412,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void basicSLLFullAbstractionTest() throws SMGException, SMGSolverException {
+  public void basicSLLFullAbstractionTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     Value[] pointers = buildConcreteSLL();
 
     SMGStateAndOptionalSMGObjectAndOffset stateAndObjectAfterAbstraction =
@@ -6344,7 +6480,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void basicDLLFullAbstractionTest() throws SMGException, SMGSolverException {
+  public void basicDLLFullAbstractionTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     Value[] pointers =
         buildConcreteList(
             true, pointerSizeInBits.multiply(BigInteger.valueOf(3)), TEST_LIST_LENGTH);
@@ -6356,7 +6493,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, 3, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState, 3, new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
 
     SMGStateAndOptionalSMGObjectAndOffset stateAndObjectAfterAbstraction =
@@ -6402,7 +6540,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void basicSLLFullAbstractionWithExternalPointerTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     Value[] pointers =
         buildConcreteList(
             false, pointerSizeInBits.multiply(BigInteger.valueOf(2)), TEST_LIST_LENGTH);
@@ -6414,7 +6552,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, 3, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState, 3, new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
 
     SMGStateAndOptionalSMGObjectAndOffset stateAndObjectAfterAbstraction =
@@ -6467,7 +6606,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void basicDLLFullAbstractionWithExternalPointerTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     // Min abstraction length before the list is abstracted
     int minAbstractionLength = 3;
     Value[] pointers = buildConcreteList(true, dllSize, TEST_LIST_LENGTH);
@@ -6479,7 +6618,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, minAbstractionLength, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState,
+            minAbstractionLength,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
 
     SMGStateAndOptionalSMGObjectAndOffset stateAndObjectAfterAbstraction =
@@ -6546,7 +6688,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void basicDLLFullAbstractionWithExternalPointerMaterializationTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     Value[] pointers =
         buildConcreteList(
             true, pointerSizeInBits.multiply(BigInteger.valueOf(3)), TEST_LIST_LENGTH);
@@ -6558,7 +6700,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, 3, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState, 3, new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
 
     SMGObject prevObj = null;
@@ -6708,7 +6851,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @Test
   public void basicSLLFullAbstractionWithExternalPointerMaterializationTest()
-      throws SMGException, SMGSolverException {
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     Value[] pointers = buildConcreteSLL();
 
     SMGObject prevObj = null;
@@ -6856,7 +6999,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * @return all pointers to the list in order.
    * @throws SMGException never thrown
    */
-  private Value[] buildConcreteSLL() throws SMGException, SMGSolverException {
+  private Value[] buildConcreteSLL()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     Value[] pointers = buildConcreteList(false, sllSize, TEST_LIST_LENGTH);
 
     SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
@@ -6866,7 +7010,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
     SMGCPAAbstractionManager absFinder =
-        new SMGCPAAbstractionManager(currentState, 3, new SMGCPAStatistics());
+        new SMGCPAAbstractionManager(
+            currentState, 3, new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     currentState = absFinder.findAndAbstractLists();
     return pointers;
   }
@@ -7183,7 +7328,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
   // Build a list from behind and abstract (also materializes parts of the list in the process)
   @Test
-  public void basicSLLReverseAbstractionTest() throws SMGException, SMGSolverException {
+  public void basicSLLReverseAbstractionTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     // TODO: same with a pointer to a value and a pointer to a sublist/sublists in hfo
     // TODO: same with switched hfo and nfo
     // Min abstraction length before the list is abstracted
@@ -7318,7 +7464,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
       // abstract
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(currentState, minAbstractionLength, new SMGCPAStatistics());
+          new SMGCPAAbstractionManager(
+              currentState,
+              minAbstractionLength,
+              new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
       currentState = absFinder.findAndAbstractLists();
       // the pointer to the new element should point to minSize -1!
       // derefWOMat is the top of the list
@@ -7339,14 +7488,18 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   @Test
-  public void basicDLLDetectionTest() throws SMGException, SMGSolverException {
+  public void basicDLLDetectionTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     // Min abstraction length before the list is abstracted
     int minAbstractionLength = 3;
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
       resetSMGStateAndVisitor();
       SMGState state = createXLongExplicitDLLOnHeap(i, 1, 0, 0);
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(state, minAbstractionLength, new SMGCPAStatistics());
+          new SMGCPAAbstractionManager(
+              state,
+              minAbstractionLength,
+              new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
       ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
       if (i > minAbstractionLength - 1) {
         assertThat(candidates).hasSize(1);
@@ -7364,7 +7517,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void abstractReverseSLLTest() throws SMGException, SMGSolverException {
+  public void abstractReverseSLLTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     // Minimum abstraction length before a list is abstracted
     int minAbstractionLength = 5;
 
@@ -7372,7 +7526,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       resetSMGStateAndVisitor();
       SMGState state = createXLongExplicitSLLOnHeap(i, 1, 0);
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(state, minAbstractionLength, new SMGCPAStatistics());
+          new SMGCPAAbstractionManager(
+              state,
+              minAbstractionLength,
+              new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
       ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
       if (i < minAbstractionLength) {
         continue;
@@ -7412,7 +7569,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @SuppressWarnings("null")
   @Test
-  public void abstractSLLTest() throws SMGException, SMGSolverException {
+  public void abstractSLLTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     // Minimum abstraction length before a list is abstracted
     int minAbstractionLength = 3;
 
@@ -7420,7 +7578,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       resetSMGStateAndVisitor();
       SMGState state = createXLongExplicitSLLOnHeap(i, 1, 0);
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(state, minAbstractionLength, new SMGCPAStatistics());
+          new SMGCPAAbstractionManager(
+              state,
+              minAbstractionLength,
+              new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
       ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
       if (i < minAbstractionLength) {
         continue;
@@ -7457,14 +7618,18 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Ignore
   @SuppressWarnings("null")
   @Test
-  public void abstractDLLTest() throws SMGException, SMGSolverException {
+  public void abstractDLLTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     // Min abstraction length before the list is abstracted
     int minAbstractionLength = 3;
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
       resetSMGStateAndVisitor();
       SMGState state = createXLongExplicitDLLOnHeap(i, 1, 0, 0);
       SMGCPAAbstractionManager absFinder =
-          new SMGCPAAbstractionManager(state, minAbstractionLength, new SMGCPAStatistics());
+          new SMGCPAAbstractionManager(
+              state,
+              minAbstractionLength,
+              new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
       ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
       if (i < minAbstractionLength) {
         continue;
@@ -7512,7 +7677,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
   @Ignore
   @Test
-  public void abstractDLLLimitTest() throws SMGException, SMGSolverException {
+  public void abstractDLLLimitTest()
+      throws SMGException, SMGSolverException, InvalidConfigurationException {
     // Min abstraction length before the list is abstracted
     int minAbstractionLength = 3;
 
@@ -7523,7 +7689,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         resetSMGStateAndVisitor();
         SMGState state = createXLongExplicitDLLOnHeap(i, 1, 0, 0);
         SMGCPAAbstractionManager absFinder =
-            new SMGCPAAbstractionManager(state, minLength, new SMGCPAStatistics());
+            new SMGCPAAbstractionManager(
+                state,
+                minLength,
+                new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
         ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
         if (i < minLength) {
           assertThat(candidates.isEmpty()).isTrue();

@@ -97,7 +97,9 @@ public class SMGCPATest0 {
     pfo = nfo.add(pointerSizeInBits);
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
 
-    materializer = new SMGCPAMaterializer(logger, new SMGCPAStatistics());
+    materializer =
+        new SMGCPAMaterializer(
+            logger, new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
 
     smgOptions = new SMGOptions(Configuration.defaultConfiguration());
     evaluator =
@@ -107,15 +109,27 @@ public class SMGCPATest0 {
             SMGCPAExportOptions.getNoExportInstance(),
             smgOptions,
             makeTestSolver(machineModel, logger));
-    currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
+    currentState =
+        SMGState.of(
+            machineModel,
+            logger,
+            smgOptions,
+            evaluator,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     numericPointerSizeInBits = new NumericValue(pointerSizeInBits);
     currentState = currentState.copyAndAddDummyStackFrame();
   }
 
   // Resets state and visitor to an empty state
   @After
-  public void resetSMGStateAndVisitor() {
-    currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
+  public void resetSMGStateAndVisitor() throws InvalidConfigurationException {
+    currentState =
+        SMGState.of(
+            machineModel,
+            logger,
+            smgOptions,
+            evaluator,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
   }
 
   public static ConstraintsSolver makeTestSolver(
@@ -145,7 +159,7 @@ public class SMGCPATest0 {
         smtSolver,
         formulaManager,
         converter,
-        new ConstraintsStatistics());
+        new ConstraintsStatistics(Configuration.defaultConfiguration(), logger));
   }
 
   public void assertThatPointersPointToEqualAbstractedList(
@@ -670,7 +684,12 @@ public class SMGCPATest0 {
             smgOptions,
             SMGCPATest0.makeTestSolver(machineModel, logger));
     SMGState state =
-        SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
+        SMGState.of(
+            machineModel,
+            logger,
+            smgOptions,
+            evaluator,
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
     return state.copyAndReplaceMemoryModel(state.getMemoryModel().copyWithNewSMG(pSmg));
   }
 }

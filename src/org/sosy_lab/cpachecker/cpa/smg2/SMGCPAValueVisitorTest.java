@@ -165,7 +165,13 @@ public class SMGCPAValueVisitorTest {
     evaluator =
         new SMGCPAExpressionEvaluator(MACHINE_MODEL, logger, null, options, makeTestSolver());
 
-    currentState = SMGState.of(MACHINE_MODEL, logger, options, evaluator, new SMGCPAStatistics());
+    currentState =
+        SMGState.of(
+            MACHINE_MODEL,
+            logger,
+            options,
+            evaluator,
+            new SMGCPAStatistics(defaultOptionsNoPreciseRead, logger));
 
     visitor =
         new SMGCPAValueVisitor(
@@ -193,7 +199,7 @@ public class SMGCPAValueVisitorTest {
             AnalysisDirection.FORWARD);
 
     return new ConstraintsSolver(
-        config, smtSolver, formulaManager, converter, new ConstraintsStatistics());
+        config, smtSolver, formulaManager, converter, new ConstraintsStatistics(config, logger));
   }
 
   // Resets state and visitor to an empty state
@@ -204,7 +210,7 @@ public class SMGCPAValueVisitorTest {
             logger,
             new SMGOptions(Configuration.defaultConfiguration()),
             evaluator,
-            new SMGCPAStatistics());
+            new SMGCPAStatistics(Configuration.defaultConfiguration(), logger));
 
     visitor =
         new SMGCPAValueVisitor(

@@ -1,0 +1,304 @@
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java_cup.runtime.Scanner;
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
+import org.sosy_lab.cpachecker.cfa.types.java.JNullType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NullValue
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.UnknownValue;
+
+parser code {:
+  private MachineModel machineModel;
+  private Language language;
+  private SymbolicValueFactory symFactory = SymbolicValueFactory.getInstance();
+  
+  private boolean isNumeric(final JType type) {
+    if(type instanceof JSimpleType && 
+      !(((JSimpleType) type).getType().isFloatingPointType() || ((JSimpleType) type).getType().isIntegerType())) {
+      return true;
+    }
+    return false;
+  }
+  
+  private JType unboxNumeric(final JType type) {
+    if(type instanceof JClassType) {
+      switch(((JClassType) type).getName()) {
+        case "java.lang.Double":
+          return JSimpleType.getDouble();
+        case "java.lang.Float":
+          return JSimpleType.getFloat;
+        case "java.lang.Long":
+          return JSimpleType.getLong();
+        case "java.lang.Integer":
+          return JSimpleType.getInt();
+        case "java.lang.Character":
+          return JSimpleType.getChar();
+        case "java.lang.Short":
+          return JSimpleType.getShort();
+        case "java.lang.Byte":
+          return JSimpleType.getByte();
+        default: 
+          return type;
+      }
+    }
+    return type;  
+  }
+  
+  private CType computeArithmeticResultType(final CType typeOp1, final CType typeOp2) {
+    if(typeOp1.equals(CNumericTypes.LONG_DOUBLE) || typeOp2.equals(CNumericTypes.LONG_DOUBLE)) {
+      return CNumericTypes.LONG_DOUBLE;
+    }
+    if(typeOp1.equals(CNumericTypes.DOUBLE) || typeOp2.equals(CNumericTypes.DOUBLE)) {
+      return CNumericTypes.DOUBLE;
+    }
+    if(typeOp1.equals(CNumericTypes.FLOAT) || typeOp2.equals(CNumericTypes.FLOAT)) {
+      return CNumericTypes.FLOAT;
+    }
+    
+    /* TODO passt zu den Regeln nicht
+    if(typeOp1.equals(CNumericTypes.UNSIGNED_LONG_LONG_INT) || typeOp2.equals(CNumericTypes.UNSIGNED_LONG_LONG_INT)) {
+      return CNumericTypes.UNSIGNED_LONG_LONG_INT;
+    }
+    
+    
+    if(typeOp1.equals(CNumericTypes.FLOAT) || typeOp2.equals(CNumericTypes.FLOAT)) {
+      return CNumericTypes.FLOAT;
+    }
+    if(typeOp1.equals(CNumericTypes.FLOAT) || typeOp2.equals(CNumericTypes.FLOAT)) {
+      return CNumericTypes.FLOAT;
+    }
+    if(typeOp1.equals(CNumericTypes.FLOAT) || typeOp2.equals(CNumericTypes.FLOAT)) {
+      return CNumericTypes.FLOAT;
+    }*/
+    
+    return CNumericTypes.INT;
+  }
+  
+  private JType computeArithmeticResultType(final JType typeOp1, final JType typeOp2) {
+    JType unboxedType1 = unboxNumeric(typeOp1);
+    JType unboxedType2 = unboxNumeric(typeOp2);
+    if(isNumeric(unboxedType1) && isNumeric(unboxedType2)) {
+      JBasicType bType1 = ((JSimpleType) unboxedType1).getType();
+      JBasicType bType2 = ((JSimpleType) unboxedType2).getType();
+      
+      if(bType1.equals(JBasicType.DOUBLE) || bType2.equals(JBasicType.DOUBLE)) {
+          return JSimpleType.getDouble();
+      } else if(bType1.equals(JBasicType.FLOAT) || bType2.equals(JBasicType.FLOAT)) {
+          return JSimpleType.getFloat();
+      } else if(bType1.equals(JBasicType.LONG) || bType2.equals(JBasicType.LONG)) {
+        return JSimpleType.getLong();
+      } else if(bType1.equals(JBasicType.INT) || bType2.equals(JBasicType.INT)) {
+        return JSimpleType.getInt();
+      } else if(bType1.equals(JBasicType.CHAR) || bType2.equals(JBasicType.CHAR)) {
+        if(bType1.equals(JBasicType.CHAR) && bType2.equals(JBasicType.CHAR)) {
+          return JSimpleType.getChar();
+        } else {
+          return JSimpleType.getInt();
+        }
+      } else if(bType1.equals(JBasicType.SHORT) || bType2.equals(JBasicType.SHORT)) {
+        return JSimpleType.getShort();
+      } else {
+        return JSimpleType.getByte();
+      }
+    }
+    throw new IOException("Non-numeric type in arithmetic constraint.");
+  }
+  
+  private JType computeBinaryLogicResultType(final JType typeOp1, final JType typeOp2) {
+    if(typeOp1.equals(SimpleType.getBoolean()) && typeOp2.equals(SimpleType.getBoolean()))
+      return SimpleType.getBoolean();
+    return computeArithmeticResultType(typeOp1, typeOp2);
+  }
+  
+:};
+
+/* Preliminaries to set up and use the scanner.  */
+init with {: scanner.init();              :};
+scan with {: return scanner.next_token(); :};
+
+// Terminals
+terminal ADDRESS, POINTER, CAST;
+terminal LOGICAL_NOT, LOGICAL_AND, LOGICAL_OR;
+terminal BIN_XOR, BIN_AND, BIN_OR, BIN_NOT;
+terminal EQUALS, LESS_THAN, LESS_THAN_EQUALS;
+terminal LEFT_SHIFT, RIGHT_SHIFT, RIGHT_SHIFT_U, MOD, DIV, MUL, PLUS, MINUS, UNARY_MINUS;
+terminal UNKNOWN, NULL, TRUE, FALSE;
+terminal Integer INT;
+terminal UnsignedInteger UINT;
+terminal Short SHORT;
+terminal Byte BYTE;
+terminal Long LONG, ULONG;
+terminal Float FLOAT;
+terminal Double DOUBLE;
+terminal BigDecimal BIG_DECIMAL;
+terminal BigInteger BIG_INT;
+terminal Rational RATIONAL;
+terminal String VAR; 
+
+
+/* Non terminals */
+non terminal SymbolicExpression symExpr, binSymExpr, unarySymExpr, symVar, const;
+
+/* Precedences */
+
+/* The grammar */
+/* RATIONAL, BIG_INT, BIG_DECIMAL no regular data types, use the largest data type long and double, respectively for constants*/
+
+symExpr    ::= const:c       {: RESULT = c; :}
+            | VAR            {: RESULT = .............. :} // TODO ensure that correct type for language
+            | binSymExpr:e   {: RESULT = e; :}
+            | unarySymExpr:e {: RESULT = e; :}
+            ;
+             
+const      ::= UNKNOWN  {: RESULT = symFactory.asConstant(UnknownValue.getInstance(),  language==Language.JAVA? .JSimpleType.getUnspecified() : new CProblemType("unknown")); :} 
+             | NULL     {: RESULT = symFactory.asConstant(NullValue.getInstance(), language==Language.JAVA? new JNullType() : CNumericTypes.INT); :} 
+             | TRUE     {: RESULT = symFactory.asConstant(BooleanValue.valueOf(true), language==Language.JAVA? JSimpleType.getBoolean() : CNumericTypes.BOOL); :} 
+             | FALSE    {: RESULT = symFactory.asConstant(BooleanValue.valueOf(false), language==Language.JAVA? JSimpleType.getBoolean() : CNumericTypes.BOOL); :} 
+             | INT:n    {: RESULT = symFactory.asConstant(new NumericValue(n), language==Language.JAVA? JSimpleType.getInt() : CNumericTypes.INT); :} 
+             | UINT:n   {: RESULT = symFactory.asConstant(new NumericValue(n), language==Language.JAVA? JSimpleType.getInt() : CNumericTypes.UNSIGNED_INT); :}
+             | FLOAT:n  {: RESULT = symFactory.asConstant(new NumericValue(n), language==Language.JAVA? JSimpleType.getFloat() : CNumericTypes.FLOAT); :}
+             | DOUBLE:n {: RESULT = symFactory.asConstant(new NumericValue(n), language==Language.JAVA? JSimpleType.getDouble() : CNumericTypes.DOUBLE); :}
+             | LONG:n   {: RESULT = symFactory.asConstant(new NumericValue(n), language==Language.JAVA? JSimpleType.getLong(): CNumericTypes.LONG_INT); :}
+             | ULONG:n  {: RESULT = symFactory.asConstant(new NumericValue(n), language==Language.JAVA? JSimpleType.getLong(): CNumericTypes.UNSIGNED_LONG_INT); :}
+             | SHORT:n  {: RESULT = symFactory.asConstant(new NumericValue(n), language==Language.JAVA? JSimpleType.getShort() : CNumericTypes.SHORT_INT); :}
+             | BYTE:n   {: RESULT = symFactory.asConstant(new NumericValue(n), language==Language.JAVA? JSimpleType.getByte() : CNumericTypes.SHORT_INT); :}
+             | RATIONAL {: RESULT = symFactory.asConstant(new NumericValue(n), language==Language.JAVA? JSimpleType.getDouble() : CNumericTypes.DOUBLE);. :}
+             | BIG_INT  {: RESULT = symFactory.asConstant(new NumericValue(n), language==Language.JAVA? JSimpleType.getLong(): CNumericTypes.LONG_INT); :}
+             | BIG_DECIMAL {: RESULT = symFactory.asConstant(new NumericValue(n), language==Language.JAVA? JSimpleType.getDouble() : CNumericTypes.DOUBLE); :}
+             ;
+             
+binSymExpr ::= symExpr:e1 symExpr:e2 PLUS 
+               {: 
+                   Type rType = language==Language.JAVA? 
+                       computeBinaryLogicResultType((JType) e1.getType(), (JType) e2.getType()) :
+                       computeArithmeticResultType((CType) e1.getType(), (CType) e2.getType());
+                    RESULT = symFactory.add(e1, e2,  rType, rType);
+               :}
+             | symExpr:e1 symExpr:e2 MINUS 
+               {: 
+                   Type rType = language==Language.JAVA? 
+                       computeBinaryLogicResultType((JType) e1.getType(), (JType) e2.getType()) :
+                       computeArithmeticResultType((CType) e1.getType(), (CType) e2.getType());
+                    RESULT = symFactory.minus(e1, e2,  rType, rType); 
+               :}
+             | symExpr:e1 symExpr:e2 MUL 
+               {: 
+                   Type rType = language==Language.JAVA? 
+                       computeBinaryLogicResultType((JType) e1.getType(), (JType) e2.getType()) :
+                       computeArithmeticResultType((CType) e1.getType(), (CType) e2.getType());
+                    RESULT = symFactory.multiply(e1, e2,  rType, rType);
+               :}
+             | symExpr:e1 symExpr:e2 DIV 
+               {: 
+                   Type rType = language==Language.JAVA? 
+                       computeBinaryLogicResultType((JType) e1.getType(), (JType) e2.getType()) :
+                       computeArithmeticResultType((CType) e1.getType(), (CType) e2.getType());
+                    RESULT = symFactory.divide(e1, e2,  rType, rType);
+               :}
+             | symExpr:e1 symExpr:e2 MOD 
+               {: 
+                   Type rType = language==Language.JAVA? 
+                       computeBinaryLogicResultType((JType) e1.getType(), (JType) e2.getType()) :
+                       computeArithmeticResultType((CType) e1.getType(), (CType) e2.getType());
+                    RESULT = symFactory.modulo(e1, e2,  rType, rType); 
+                  }
+               :}
+             | symExpr:e1 symExpr:e2 LEFT_SHIFT 
+               {: if(language==Language.JAVA) {
+                    JType rType = computeArithmeticResultType((JType) e1.getType(), (JType) e2.getType());
+                    RESULT = symFactory.shiftLeft(e1, e2,  rType, rType); 
+                  } else {
+                    RESULT = symFactory.shiftLeft(e1, e2, ........); 
+                  }
+               :}
+             | symExpr:e1 symExpr:e2 RIGHT_SHIFT 
+               {: if(language==Language.JAVA) {
+                    JType rType = computeArithmeticResultType((JType) e1.getType(), (JType) e2.getType());
+                    RESULT = symFactory.shiftRightSigned(e1, e2,  rType, rType); 
+                  } else {
+                    RESULT = symFactory.shiftRightSigned(e1, e2, ........);
+                  }
+               :}
+             | symExpr:e1 symExpr:e2 RIGHT_SHIFT_U 
+               {: if(language==Language.JAVA) {
+                    JType rType = computeArithmeticResultType((JType) e1.getType(), (JType) e2.getType());
+                    RESULT = symFactory.shiftRightUnsigned(e1, e2,  rType, rType); 
+                  } else {
+                    throw new IOException("Operation >>> not supported by language.");
+                  }
+               :}  
+                     
+             | symExpr:e1 symExpr:e2 BIN_AND 
+               {: 
+                  Type rType = language==Language.JAVA? 
+                       computeBinaryLogicResultType((JType) e1.getType(), (JType) e2.getType()) :
+                       computeArithmeticResultType((CType) e1.getType(), (CType) e2.getType());
+                  RESULT = symFactory.binaryAnd(e1, e2, rType, rType);
+               :}
+             | symExpr:e1 symExpr:e2 BIN_OR 
+               {: 
+                    Type rType = language==Language.JAVA? 
+                       computeBinaryLogicResultType((JType) e1.getType(), (JType) e2.getType()) :
+                       computeArithmeticResultType((CType) e1.getType(), (CType) e2.getType());
+                    RESULT = symFactory.binaryOr(e1, e2,  rType, rType); 
+               :}
+             | symExpr:e1 symExpr:e2 BIN_XOR 
+               {: 
+                    Type rType = language==Language.JAVA? 
+                       computeBinaryLogicResultType((JType) e1.getType(), (JType) e2.getType()) :
+                       computeArithmeticResultType((CType) e1.getType(), (CType) e2.getType());
+                    RESULT = symFactory.binaryXor(e1, e2, rType, rType); 
+               :}
+             
+             | symExpr:e1 symExpr:e2 LESS_THAN 
+               {: if(language==Language.JAVA) { 
+                    RESULT = symFactory.lessThan(e1, e2, JSimpleType.getBoolean(), JSimpleType.getBoolean()); 
+                  } else { symFactory.lessThan(e1, e2, CSimpleType.INT, computeArithmeticResultType((CType) e1.getType(), (CType) e2.getType()));}
+               :}
+             | symExpr:e1 symExpr:e2 LESS_THAN_EQUALS 
+               {: if(language==Language.JAVA) { 
+                    RESULT = symFactory.lessThanOrEqual(e1, e2, JSimpleType.getBoolean(), JSimpleType.getBoolean()); 
+                  } else { 
+                    RESULT = symFactory.lessThanOrEqual(e1, e2, CSimpleType.INT, computeArithmeticResultType((CType) e1.getType(), (CType) e2.getType()).); 
+                  }
+               :}
+             | symExpr:e1 symExpr:e2 EQUALS 
+               {: if(language==Language.JAVA) { 
+                    RESULT = symFactory.equal(e1, e2, JSimpleType.getBoolean(), JSimpleType.getBoolean()); 
+                  } else { 
+                    RESULT = symFactory.equal(e1, e2, CSimpleType.INT, computeArithmeticResultType((CType) e1.getType(), (CType) e2.getType())); 
+                  } 
+               :}
+             | symExpr:e1 symExpr:e2 LOGICAL_AND 
+               {: if(language==Language.JAVA) { 
+                    RESULT = symFactory.logicalAnd(e1, e2, JSimpleType.getBoolean(), JSimpleType.getBoolean()); 
+                  } else { 
+                    RESULT = symFactory.logicalAnd(e1, e2, CSimpleType.INT, ....); 
+                  }
+               :}
+             | symExpr:e1 symExpr:e2 LOGICAL_OR 
+               {: if(language==Language.JAVA) { 
+                    RESULT = symFactory.logicalOr(e1, e2, JSimpleType.getBoolean(), JSimpleType.getBoolean()); 
+                  } else { 
+                    RESULT = symFactory.logicalOr(e1, e2, CSimpleType.INT, ....); 
+                  } 
+               :}
+             ;
+             
+unarySymExpr ::= symExpr:e BIN_NOT    {: RESULT = symFactory.binaryNot(e, e.getType()); :}
+              | symExpr:e LOGICAL_NOT {: RESULT = symFactory.logicalNot(e, e.getType()); :}
+              | symExpr:e CAST        {: RESULT = symFactory.cast(e,.....); :} // TODO need to save type
+              | symExpr:e POINTER     {: RESULT = symFactory.pointer(e, ...........); :}
+              | symExpr:e ADDRESS     {: RESULT = symFactory.addressOf(e, e.getType()); :}
+              | symExpr:e UNARY_MINUS {: RESULT = symFactory.negate(e, e.getType()); :}
+              ;
+ 

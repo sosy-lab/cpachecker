@@ -12,6 +12,8 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.BinaryConstraint;
@@ -161,12 +163,20 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
 
   @Override
   public ConstraintsPrecision join(final ConstraintsPrecision pOther) {
-    VariableTrackingConstraintsPrecision other = (VariableTrackingConstraintsPrecision) pOther;
+    if (pOther instanceof VariableTrackingConstraintsPrecision) {
+      VariableTrackingConstraintsPrecision other = (VariableTrackingConstraintsPrecision) pOther;
+      return new VariableTrackingConstraintsPrecision(
+          trackedFunctions,
+          trackedLocations,
+          trackedGlobal,
+          constraintsPrecision.join(other.getConstraintsPrecision()),
+          mustTrackAll);
+    }
     return new VariableTrackingConstraintsPrecision(
         trackedFunctions,
         trackedLocations,
         trackedGlobal,
-        constraintsPrecision.join(other.getConstraintsPrecision()),
+        constraintsPrecision.join(pOther),
         mustTrackAll);
   }
 
@@ -202,5 +212,10 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
       sb.append(trackedGlobal);
     }
     return sb.append("]").toString();
+  }
+
+  @Override
+  public void serialize(Writer pWriter) throws IOException {
+    constraintsPrecision.serialize(pWriter);
   }
 }

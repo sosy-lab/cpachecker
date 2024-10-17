@@ -12,7 +12,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,6 +55,10 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
       toUppercase = true)
   private PrecisionType precisionType = PrecisionType.CONSTRAINTS;
 
+  /*@Option(secure = true, description = "get an initial precision from file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)*/
+  private Path initialPrecisionFile = null;
+
   @Option(
       secure = true,
       description =
@@ -80,22 +87,45 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
       final Configuration pConfig, final CFA pCfa, final LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-
-    if (initialValuePrecisionFile != null) {
-      Preconditions.checkNotNull(pCfa);
-      delegate = transformValueToConstraintsPrecision(pCfa, pLogger);
-    } else {
-      // empty initial constraints precision
-      delegate =
-          switch (precisionType) {
-            case CONSTRAINTS -> ConstraintBasedConstraintsPrecision.getEmptyPrecision();
-            case LOCATION -> LocationBasedConstraintsPrecision.getEmptyPrecision();
-          };
-    }
+    delegate = initializePrecision(pLogger, pCfa);
   }
 
   private RefinableConstraintsPrecision(final ConstraintsPrecision pDelegate) {
     delegate = pDelegate;
+  }
+
+  private ConstraintsPrecision initializePrecision(final LogManager pLogger, final CFA pCfa) {
+    if (initialPrecisionFile == null && initialValuePrecisionFile == null) {
+      return createEmptyPrecision();
+    }
+
+    // Initialize precision
+    ConstraintsPrecision retPrec = null;
+    if (initialPrecisionFile != null) {
+      retPrec =
+          switch (precisionType) {
+            case CONSTRAINTS ->
+                ConstraintBasedConstraintsPrecision.restorePrecisionFromFile(
+                    initialPrecisionFile, pLogger, pCfa);
+            case LOCATION ->
+                LocationBasedConstraintsPrecision.restorePrecisionFromFile(
+                    initialPrecisionFile, pLogger, pCfa);
+          };
+    }
+
+    if (initialValuePrecisionFile != null) {
+      Preconditions.checkNotNull(pCfa);
+      retPrec = transformValueToConstraintsPrecision(pCfa, pLogger, retPrec);
+    }
+
+    return retPrec;
+  }
+
+  private ConstraintsPrecision createEmptyPrecision() {
+    return switch (precisionType) {
+      case CONSTRAINTS -> ConstraintBasedConstraintsPrecision.getEmptyPrecision();
+      case LOCATION -> LocationBasedConstraintsPrecision.getEmptyPrecision();
+    };
   }
 
   @Override
@@ -109,6 +139,11 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
     final ConstraintsPrecision otherDelegate = ((RefinableConstraintsPrecision) pOther).delegate;
 
     return new RefinableConstraintsPrecision(delegate.join(otherDelegate));
+  }
+
+  @Override
+  public void serialize(Writer pWriter) throws IOException {
+    delegate.serialize(pWriter);
   }
 
   @Override
@@ -135,23 +170,27 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
   }
 
   private ConstraintsPrecision transformValueToConstraintsPrecision(
-      final CFA pCfa, final LogManager pLogger) {
+      final CFA pCfa, final LogManager pLogger, @Nullable final ConstraintsPrecision pPrecAdd) {
     Set<String> trackedGlobalVariables = new HashSet<>();
     Multimap<String, String> trackedFunctionsVariables = HashMultimap.create();
     Multimap<CFANode, String> trackedLocationVariables = HashMultimap.create();
 
     restoreMappingFromFile(
         pCfa, pLogger, trackedGlobalVariables, trackedFunctionsVariables, trackedLocationVariables);
+
+    ConstraintsPrecision retPrec;
     switch (precisionType) {
       case CONSTRAINTS:
         // create a ConstraintBasedConstraintsPrecision, that tracks important variables of value
         // precision
-        return new VariableTrackingConstraintsPrecision(
-            trackedFunctionsVariables,
-            trackedLocationVariables,
-            trackedGlobalVariables,
-            ConstraintBasedConstraintsPrecision.getEmptyPrecision(),
-            mustTrackAll);
+        retPrec =
+            new VariableTrackingConstraintsPrecision(
+                trackedFunctionsVariables,
+                trackedLocationVariables,
+                trackedGlobalVariables,
+                ConstraintBasedConstraintsPrecision.getEmptyPrecision(),
+                mustTrackAll);
+        break;
 
       case LOCATION:
         // create LocationBasedConstraintsPrecision with important locations of value precision
@@ -173,10 +212,15 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
           }
         }
         Increment locInc = Increment.builder().locallyTracked(cfaMultiMap).build();
-        return LocationBasedConstraintsPrecision.getEmptyPrecision().withIncrement(locInc);
+        retPrec = LocationBasedConstraintsPrecision.getEmptyPrecision().withIncrement(locInc);
+        break;
       default:
         throw new AssertionError("Unsupported precision type");
     }
+    if (pPrecAdd != null) {
+      return retPrec.join(pPrecAdd);
+    }
+    return retPrec;
   }
 
   private void restoreMappingFromFile(

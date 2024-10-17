@@ -70,7 +70,8 @@ public class ValueTransferBasedStrongestPostOperator
 
     // Use name of this strongest post operator to differentiate from ConstraintsCPA
     constraintsStatistics =
-        new ConstraintsStatistics(ValueTransferBasedStrongestPostOperator.class.getSimpleName());
+        new ConstraintsStatistics(
+            ValueTransferBasedStrongestPostOperator.class.getSimpleName(), pLogger, pConfig);
 
     constraintsTransfer =
         new ConstraintsTransferRelation(

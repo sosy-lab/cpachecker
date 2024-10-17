@@ -81,7 +81,7 @@ public class ConstraintsCPA
   private final ConstraintsSolver constraintsSolver;
   private final Solver solver;
 
-  private final ConstraintsStatistics stats = new ConstraintsStatistics();
+  private final ConstraintsStatistics stats;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ConstraintsCPA.class);
@@ -92,6 +92,8 @@ public class ConstraintsCPA
       throws InvalidConfigurationException {
 
     pConfig.inject(this);
+
+    stats = new ConstraintsStatistics(pConfig, pLogger);
 
     logger = pLogger;
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);

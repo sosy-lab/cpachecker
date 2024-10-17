@@ -8,11 +8,22 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -20,6 +31,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /** Statistics of the {@link ConstraintsCPA} and all related components. */
+@Options(prefix = "cpa.constraints")
 public class ConstraintsStatistics implements Statistics {
 
   public final StatTimer trivialRemovalTime = new StatTimer("Time for trivial constraint removal");
@@ -61,20 +73,38 @@ public class ConstraintsStatistics implements Statistics {
 
   private String name;
 
+  private LogManager logger;
+
+  /*@Option(secure = true, description = "target file to hold the exported precision")
+  @FileOption(FileOption.Type.OUTPUT_FILE)*/
+  private Path precisionFile = null;
+
   /**
    * Creates a new <code>ConstraintsStatistics</code> object with a default name. This name is used
    * to identify the statistics in the output.
+   *
+   * @param pLogger logger for logging purposes.
+   * @throws InvalidConfigurationException if the configuration is invalid.
    */
-  public ConstraintsStatistics() {
-    name = ConstraintsCPA.class.getSimpleName();
+  public ConstraintsStatistics(final Configuration config, final LogManager pLogger)
+      throws InvalidConfigurationException {
+    this(ConstraintsCPA.class.getSimpleName(), pLogger, config);
   }
 
   /**
    * Creates a new <code>ConstraintsStatistics</code> object with the given name. This name is used
    * to identify the statistics in the output.
+   *
+   * @param pConfig the configuration.
+   * @param pLogger logger for logging purposes.
+   * @throws InvalidConfigurationException if the configuration is invalid.
    */
-  public ConstraintsStatistics(String pName) {
+  public ConstraintsStatistics(
+      final String pName, final LogManager pLogger, final Configuration pConfig)
+      throws InvalidConfigurationException {
     name = pName;
+    pConfig.inject(this, ConstraintsStatistics.class);
+    logger = pLogger;
   }
 
   @Override
@@ -109,11 +139,26 @@ public class ConstraintsStatistics implements Statistics {
         .putIfUpdatedAtLeastOnce(constraintNumberAfterAdj)
         .putIfUpdatedAtLeastOnce(constraintNumberBeforeAdj)
         .putIfUpdatedAtLeastOnce(adjustmentTime);
+
+    if (precisionFile != null) {
+      exportPrecision(reached);
+    }
   }
 
   @Nullable
   @Override
   public String getName() {
     return name;
+  }
+
+  private void exportPrecision(final UnmodifiableReachedSet reached) {
+    ConstraintsPrecision consolidatedPrecision =
+        ConstraintsPrecision.joinConstraintsPrecisionsInReachedSet(reached);
+    try (Writer writer = IO.openOutputFile(precisionFile, Charset.defaultCharset())) {
+      consolidatedPrecision.serialize(writer);
+    } catch (IOException | UnsupportedOperationException e) {
+      logger.logUserException(
+          Level.WARNING, e, "Could not write constraint-analysis precision to file");
+    }
   }
 }

@@ -14,10 +14,13 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.LongAdder;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -60,8 +63,9 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
   private StatCounter deterministicAssumptions =
       new StatCounter("Number of deterministic assumptions");
 
-  public SMGCPAStatistics() {
-    super("SMGCPA");
+  public SMGCPAStatistics(final Configuration config, final LogManager pLogger)
+      throws InvalidConfigurationException {
+    super("SMGCPA", pLogger, config);
   }
 
   @Override
