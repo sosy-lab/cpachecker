@@ -233,6 +233,7 @@ public final class TypeIdResolver extends SimpleObjectIdResolver {
     List<Field> fromFields = getAllFields(pFrom.getClass());
     Map<String, Field> toFieldMap =
         getAllFields(pTo.getClass()).stream()
+            .filter(field -> !field.getName().equals("serialVersionUID"))
             .collect(Collectors.toMap(Field::getName, field -> field));
 
     for (Field fromField : fromFields) {
