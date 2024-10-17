@@ -1126,7 +1126,7 @@ public class InvariantsState
         pFormula ->
             pFormula instanceof Variable
                 && !isExportableInScope(
-                    (((Variable<?>) pFormula).getMemoryLocation()), pFunctionScope);
+                    ((Variable<?>) pFormula).getMemoryLocation(), pFunctionScope);
 
     Set<BooleanFormula<CompoundInterval>> filteredApproximations = new LinkedHashSet<>();
     for (BooleanFormula<CompoundInterval> approximation : getApproximationFormulas()) {
