@@ -31,10 +31,9 @@ public final class CfaEdgeSetToSortedListConverter
 
   @Override
   public List<CFAEdge> convert(Set<CFAEdge> pSet) {
-    return pSet.stream()
-        .sorted(
-            Comparator.comparingInt((CFAEdge edge) -> edge.getPredecessor().getNodeNumber())
-                .thenComparingInt(edge -> edge.getSuccessor().getNodeNumber()))
-        .collect(ImmutableList.toImmutableList());
+    return ImmutableList.sortedCopyOf(
+        Comparator.comparingInt((CFAEdge edge) -> edge.getPredecessor().getNodeNumber())
+            .thenComparingInt(edge -> edge.getSuccessor().getNodeNumber()),
+        pSet);
   }
 }
