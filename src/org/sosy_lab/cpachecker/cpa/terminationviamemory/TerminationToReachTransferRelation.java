@@ -21,11 +21,13 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
 public class TerminationToReachTransferRelation extends SingleEdgeTransferRelation {
   private final FormulaManagerView fmgr;
@@ -74,14 +76,17 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       if (terminationState.getStoredValues().containsKey(locationState)) {
         newConstraintformula =
             constructConstraintFormula(
-                currentValues, terminationState.getNumberOfIterationsAtLoopHead(locationState));
+                predicateState.getPathFormula().getFormula(),
+                currentValues,
+                terminationState.getNumberOfIterationsAtLoopHead(locationState));
         terminationState.setNewStoredValues(
             locationState,
             newConstraintformula,
             terminationState.getNumberOfIterationsAtLoopHead(locationState));
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       } else {
-        newConstraintformula = constructConstraintFormula(currentValues, 0);
+        newConstraintformula = constructConstraintFormula(
+            predicateState.getPathFormula().getFormula(), currentValues, 0);
         terminationState.setNewStoredValues(locationState, newConstraintformula, 0);
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       }
@@ -95,22 +100,29 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
    * are of the form __Q__[name of variable][number of loop iterations].
    */
   private BooleanFormula constructConstraintFormula(
-      SSAMap pSSAMap, int pNumberOfIterationsAtLoopHead) {
+      Formula pFormula, SSAMap pSSAMap, int pNumberOfIterationsAtLoopHead) {
     BooleanFormula extendedFormula = bfmgr.makeTrue();
     for (String variable : pSSAMap.allVariables()) {
       String newVariable = "__Q__" + variable;
+      Formula originalVariable;
+      if (fmgr.extractVariables(pFormula).containsKey(variable + "@" + pSSAMap.getIndex(variable))) {
+        originalVariable = fmgr.extractVariables(pFormula).get(variable + "@" + pSSAMap.getIndex(variable));
+      } else {
+        originalVariable = fmgr.makeVariable(
+            ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
+            variable,
+            pSSAMap.getIndex(variable)
+        );
+      }
       extendedFormula =
           bfmgr.and(
               extendedFormula,
               fmgr.assignment(
                   fmgr.makeVariable(
-                      ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
+                      fmgr.getFormulaType(originalVariable),
                       newVariable,
                       pNumberOfIterationsAtLoopHead),
-                  fmgr.makeVariable(
-                      ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
-                      variable,
-                      pSSAMap.getIndex(variable))));
+                  originalVariable));
     }
     return extendedFormula;
   }
