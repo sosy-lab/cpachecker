@@ -219,8 +219,8 @@ public final class TypeIdResolver extends SimpleObjectIdResolver {
   /**
    * Copies the contents of fields from one {@link Type} object to another of the same type.
    *
-   * <p>This method ensures that all fields (except for "serialVersionUID") from the source object
-   * are copied to the target object. It adjusts field accessibility if necessary.
+   * <p>This method ensures that all changeable fields from the source object are copied to the
+   * target object. It adjusts field accessibility if necessary.
    *
    * @param pFrom The source {@link Type} object from which field values are copied.
    * @param pTo The target {@link Type} object to which field values are copied.
@@ -236,7 +236,8 @@ public final class TypeIdResolver extends SimpleObjectIdResolver {
             .collect(Collectors.toMap(Field::getName, field -> field));
 
     for (Field fromField : fromFields) {
-      if (fromField.getName().equals("serialVersionUID")) {
+      if (fromField.getName().equals("serialVersionUID")
+          || fromField.getName().startsWith("POINTER_TO_")) {
         continue;
       }
 

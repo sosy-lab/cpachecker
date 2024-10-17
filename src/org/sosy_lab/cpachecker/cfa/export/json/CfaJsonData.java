@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.export.json.deserialization.EdgeToPartitionsD
 import org.sosy_lab.cpachecker.cfa.export.json.deserialization.PartitionIdResolver;
 import org.sosy_lab.cpachecker.cfa.export.json.deserialization.PartitionsDeserializer;
 import org.sosy_lab.cpachecker.cfa.export.json.serialization.CfaEdgeIdGenerator;
+import org.sosy_lab.cpachecker.cfa.export.json.serialization.CfaEdgeSetToSortedListConverter;
 import org.sosy_lab.cpachecker.cfa.export.json.serialization.EdgeToPartitionsTableToListConverter;
 import org.sosy_lab.cpachecker.cfa.export.json.serialization.PartitionSetToSortedListConverter;
 import org.sosy_lab.cpachecker.cfa.export.json.serialization.PartitionsSerializer;
@@ -67,7 +68,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  */
 public record CfaJsonData(
     TreeMultimap<String, CFANode> nodes,
-    Set<CFAEdge> edges,
+    @JsonSerialize(converter = CfaEdgeSetToSortedListConverter.class) Set<CFAEdge> edges,
     NavigableMap<String, FunctionEntryNode> functions,
     @JsonSerialize(using = PartitionsSerializer.class)
         @JsonDeserialize(using = PartitionsDeserializer.class)
