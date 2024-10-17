@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.interval;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
 import java.io.Serial;
@@ -19,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -393,25 +395,52 @@ public class IntervalAnalysisState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView pMgr) {
+    return getFormulaApproximationWithSpecifiedVars(pMgr, Predicates.alwaysTrue(), true);
+  }
+
+  @Override
+  public BooleanFormula getScopedFormulaApproximation(
+      final FormulaManagerView pManager, final String pFunctionScope) {
+    return getFormulaApproximationWithSpecifiedVars(
+        pManager,
+        name ->
+            !name.startsWith("__CPAchecker_TMP_")
+                && !name.contains("::__CPAchecker_TMP_")
+                && (name.startsWith(pFunctionScope + "::") || !name.contains("::")),
+        false);
+  }
+
+  private BooleanFormula getFormulaApproximationWithSpecifiedVars(
+      final FormulaManagerView pMgr,
+      final Predicate<String> considerVar,
+      final boolean useQualifiedVarNames) {
     IntegerFormulaManager nfmgr = pMgr.getIntegerFormulaManager();
     List<BooleanFormula> result = new ArrayList<>();
     for (Entry<String, Interval> entry : intervals.entrySet()) {
-      Interval interval = entry.getValue();
-      if (interval.isEmpty()) {
-        // one invalid interval disqualifies the whole state
-        return pMgr.getBooleanFormulaManager().makeFalse();
-      }
+      if (considerVar.test(entry.getKey())) {
+        Interval interval = entry.getValue();
+        if (interval.isEmpty()) {
+          // one invalid interval disqualifies the whole state
+          return pMgr.getBooleanFormulaManager().makeFalse();
+        }
 
-      // we assume that everything is an SIGNED INTEGER
-      // and build "LOW <= X" and "X <= HIGH"
-      NumeralFormula var = nfmgr.makeVariable(entry.getKey());
-      Long low = interval.getLow();
-      Long high = interval.getHigh();
-      if (low != null && low != Long.MIN_VALUE) { // check for unbound interval
-        result.add(pMgr.makeLessOrEqual(nfmgr.makeNumber(low), var, true));
-      }
-      if (high != null && high != Long.MIN_VALUE) { // check for unbound interval
-        result.add(pMgr.makeGreaterOrEqual(nfmgr.makeNumber(high), var, true));
+        // we assume that everything is an SIGNED INTEGER
+        // and build "LOW <= X" and "X <= HIGH"
+        NumeralFormula var =
+            nfmgr.makeVariable(
+                useQualifiedVarNames
+                    ? entry.getKey()
+                    : (entry.getKey().contains("::")
+                        ? entry.getKey().substring(entry.getKey().indexOf("::") + 2)
+                        : entry.getKey()));
+        Long low = interval.getLow();
+        Long high = interval.getHigh();
+        if (low != null && low != Long.MIN_VALUE) { // check for unbound interval
+          result.add(pMgr.makeLessOrEqual(nfmgr.makeNumber(low), var, true));
+        }
+        if (high != null && high != Long.MIN_VALUE) { // check for unbound interval
+          result.add(pMgr.makeGreaterOrEqual(nfmgr.makeNumber(high), var, true));
+        }
       }
     }
     return pMgr.getBooleanFormulaManager().and(result);

@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -299,11 +300,10 @@ public class CExpressionInvariantExporter {
     Multimap<Pair<String, Integer>, BooleanFormula> byState = HashMultimap.create();
     int lineNumber;
     String sourceFileName;
-    CFANode loc;
-    CFAEdge edge;
 
+    CFAEdge edge;
     for (AbstractState state : pReachedSet) {
-      loc = AbstractStates.extractLocation(state);
+      CFANode loc = AbstractStates.extractLocation(state);
 
       if (loc != null && loc.getNumLeavingEdges() > 0) {
         edge = loc.getLeavingEdge(0);
@@ -320,7 +320,13 @@ public class CExpressionInvariantExporter {
         lineNumber = edge.getFileLocation().getStartingLineInOrigin();
         sourceFileName = edge.getFileLocation().getNiceFileName() + ":";
         if (pRequestedLines.contains(lineNumber)) {
-          BooleanFormula reported = AbstractStates.extractReportedFormulas(fmgr, state);
+          BooleanFormula reported =
+              AbstractStates.asIterable(state)
+                  .filter(FormulaReportingState.class)
+                  .transform(s -> s.getScopedFormulaApproximation(fmgr, loc.getFunctionName()))
+                  .stream()
+                  .collect(fmgr.getBooleanFormulaManager().toConjunction());
+
           if (!bfmgr.isTrue(reported)) {
             byState.put(Pair.of(withoutPrefix ? "" : sourceFileName, lineNumber), reported);
           }

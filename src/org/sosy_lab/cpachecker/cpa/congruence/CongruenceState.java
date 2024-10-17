@@ -127,6 +127,13 @@ public class CongruenceState
   }
 
   @Override
+  public BooleanFormula getScopedFormulaApproximation(
+      FormulaManagerView pManager, String pFunctionScope) {
+    return congruenceManager.toScopedFormulaApproximationUninstantiated(
+        pManager, this, pFunctionScope);
+  }
+
+  @Override
   public CFANode getNode() {
     return node;
   }

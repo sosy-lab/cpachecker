@@ -177,6 +177,17 @@ public class TerminationState extends AbstractSingleWrapperState
   }
 
   @Override
+  public BooleanFormula getScopedFormulaApproximation(
+      FormulaManagerView pManager, String pFunctionScope) {
+    if (unsatisfiedRankingRelation == null) {
+      return pManager.getBooleanFormulaManager().makeTrue();
+    } else {
+      return pManager.makeNot(
+          unsatisfiedRankingRelation.asApproximatedScopedFormula(pFunctionScope, pManager));
+    }
+  }
+
+  @Override
   public boolean isTarget() {
     return targetInformation != null || super.isTarget();
   }

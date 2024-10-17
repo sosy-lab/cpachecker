@@ -19,4 +19,10 @@ public interface FormulaReportingState extends AbstractState {
 
   /** Returns a non-instantiated formula over-approximating the state. */
   BooleanFormula getFormulaApproximation(FormulaManagerView manager);
+
+  /**
+   * Returns a non-instantiated formula over-approximating the state that only uses global variables
+   * and variables in given function scope. The formula should not use qualified names.
+   */
+  BooleanFormula getScopedFormulaApproximation(FormulaManagerView manager, String functionScope);
 }

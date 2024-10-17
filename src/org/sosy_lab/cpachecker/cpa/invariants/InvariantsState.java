@@ -96,6 +96,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
 /** Instances of this class represent states in the light-weight invariants analysis. */
 public class InvariantsState
@@ -1117,6 +1118,33 @@ public class InvariantsState
         .collect(pManager.getBooleanFormulaManager().toConjunction());
   }
 
+  @Override
+  public org.sosy_lab.java_smt.api.BooleanFormula getScopedFormulaApproximation(
+      FormulaManagerView pManager, String pFunctionScope) {
+    final ToBitvectorFormulaVisitor toBooleanFormulaVisitor =
+        new ToBitvectorFormulaVisitor(pManager, getFormulaResolver(), false);
+    Predicate<NumeralFormula<CompoundInterval>> isInvalidVar =
+        pFormula ->
+            pFormula instanceof Variable
+                && !isExportableInScope(
+                    (((Variable<?>) pFormula).getMemoryLocation()), pFunctionScope);
+
+    Set<BooleanFormula<CompoundInterval>> filteredApproximations = new LinkedHashSet<>();
+    for (BooleanFormula<CompoundInterval> approximation : getApproximationFormulas()) {
+      approximation = replaceInvalid(approximation, isInvalidVar);
+      Set<MemoryLocation> memLocs = approximation.accept(new CollectVarsVisitor<>());
+      if (!memLocs.isEmpty()
+          && Iterables.all(memLocs, memloc -> isExportableInScope(memloc, pFunctionScope))) {
+        filteredApproximations.add(approximation);
+      }
+    }
+
+    return filteredApproximations.stream()
+        .map(approximation -> approximation.accept(toBooleanFormulaVisitor, getEnvironment()))
+        .filter(f -> f != null)
+        .collect(pManager.getBooleanFormulaManager().toConjunction());
+  }
+
   ExpressionTree<Object> getFormulaApproximation(
       final FunctionEntryNode pFunctionEntryNode,
       Predicate<NumeralFormula<CompoundInterval>> pIsInvalidVarApproximationFormulas,
@@ -1920,6 +1948,25 @@ public class InvariantsState
     String functionName = pFunctionEntryNode.getFunctionName();
     return !pMemoryLocation.isOnFunctionStack()
         || pMemoryLocation.getFunctionName().equals(functionName);
+  }
+
+  private static boolean isExportableInScope(
+      final MemoryLocation pMemoryLocation, final String pFunctionScope) {
+    if (pMemoryLocation.getIdentifier().startsWith("__CPAchecker_TMP_")) {
+      return false;
+    }
+
+    if (pMemoryLocation
+        .getIdentifier()
+        .equals(VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE)) {
+      return false;
+    }
+    if (!isExportable(pMemoryLocation)) {
+      return false;
+    }
+
+    return !pMemoryLocation.isOnFunctionStack()
+        || pMemoryLocation.getFunctionName().equals(pFunctionScope);
   }
 
   private static boolean isExportable(@Nullable MemoryLocation pMemoryLocation) {

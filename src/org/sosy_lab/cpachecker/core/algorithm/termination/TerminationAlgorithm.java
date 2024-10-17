@@ -558,6 +558,36 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     @Override
+    public BooleanFormula getScopedFormulaApproximation(
+        FormulaManagerView pManager, final String pFunctionScope) {
+      try {
+        return pManager.renameFreeVariablesAndUFs(
+            pManager.translateFrom(
+                fmgr.filterLiterals(
+                    invariant,
+                    literal -> {
+                      for (String name : fmgr.extractVariableNames(literal)) {
+                        if (name.contains("::") && !name.startsWith(pFunctionScope)) {
+                          return false;
+                        }
+                      }
+                      return true;
+                    }),
+                fmgr),
+            name -> {
+              int separatorIndex = name.indexOf("::");
+              if (separatorIndex >= 0) {
+                return name.substring(separatorIndex + 2);
+              } else {
+                return name;
+              }
+            });
+      } catch (InterruptedException e) {
+        return pManager.getBooleanFormulaManager().makeTrue();
+      }
+    }
+
+    @Override
     public CFANode getLocationNode() {
       return location;
     }
