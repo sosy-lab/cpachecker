@@ -22,7 +22,10 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /*
- * Note: since we are using the ManagerViews here, we might end up using different theories internally compared to what one would expect in the test if a solver does not support a method. This is fine however, as if the solver does not support something, and we have a backup that works as expected, we are good.
+ * Note: since we are using the ManagerViews here, we might end up using different theories
+ * internally compared to what one would expect in the test if a solver does not support a method.
+ * This is fine however, as if the solver does not support something, and we have a backup that
+ * works as expected, we are good.
  */
 @RunWith(Parameterized.class)
 public class SolverOperationComparisonToProgrammingLanguageTest extends SolverViewBasedTest0 {
