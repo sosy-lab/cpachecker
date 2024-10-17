@@ -58,7 +58,9 @@ public class SolverOperationComparisonToProgrammingLanguageTest extends SolverVi
     requireIntegers();
     // The remainder() operation is based on the modulo() operation for Ints
     TruthJUnit.assume()
-        .withMessage("Solver %s does not support the modulo operator for the theory of integers")
+        .withMessage(
+            "Solver %s does not support the modulo operator for the theory of integers",
+            this.solverToUse())
         .that(this.solverToUse())
         .isNotEqualTo(Solvers.MATHSAT5);
     for (int dividend = -11; dividend <= 11; dividend++) {
@@ -83,7 +85,9 @@ public class SolverOperationComparisonToProgrammingLanguageTest extends SolverVi
     requireIntegers();
     // TODO: add a alternative implementation as backup based on modular congruence
     TruthJUnit.assume()
-        .withMessage("Solver %s does not support the modulo operator for the theory of integers")
+        .withMessage(
+            "Solver %s does not support the modulo operator for the theory of integers",
+            this.solverToUse())
         .that(this.solverToUse())
         .isNotEqualTo(Solvers.MATHSAT5);
     int dividend = -11;
@@ -128,7 +132,9 @@ public class SolverOperationComparisonToProgrammingLanguageTest extends SolverVi
     // TODO: add a Integer translation that behaves equally to smodulo() in
     // ReplaceBitvectorWithNumeralAndFunctionTheory.class
     TruthJUnit.assume()
-        .withMessage("Solver %s does not support the smodulo operator for the theory of bitvectors")
+        .withMessage(
+            "Solver %s does not support the smodulo operator for the theory of bitvectors",
+            this.solverToUse())
         .that(this.solverToUse())
         .isNoneOf(Solvers.OPENSMT, Solvers.SMTINTERPOL, Solvers.PRINCESS);
     int dividend = -11;
