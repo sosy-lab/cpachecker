@@ -1967,7 +1967,7 @@ public class InvariantsState
     }
 
     return !pMemoryLocation.isOnFunctionStack()
-        || pMemoryLocation.getFunctionName().equals(pFunctionScope);
+        || pMemoryLocation.getFunctionName().equals(pFunctionScope.getFunctionName());
   }
 
   private static boolean isExportable(@Nullable MemoryLocation pMemoryLocation) {
