@@ -625,12 +625,13 @@ public final class ValueAnalysisState
 
   @Override
   public BooleanFormula getScopedFormulaApproximation(
-      final FormulaManagerView pManager, final String pFunctionScope) {
+      final FormulaManagerView pManager, final FunctionEntryNode pFunctionScope) {
     return getFormulaApproximationWithSpecifiedVars(
         pManager,
         memLoc ->
             !memLoc.getIdentifier().startsWith("__CPAchecker_TMP_")
-                && (!memLoc.isOnFunctionStack() || memLoc.isOnFunctionStack(pFunctionScope)),
+                && (!memLoc.isOnFunctionStack()
+                    || memLoc.isOnFunctionStack(pFunctionScope.getFunctionName())),
         false);
   }
 

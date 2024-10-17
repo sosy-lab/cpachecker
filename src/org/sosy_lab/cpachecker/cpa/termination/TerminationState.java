@@ -18,6 +18,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelation;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -178,12 +179,13 @@ public class TerminationState extends AbstractSingleWrapperState
 
   @Override
   public BooleanFormula getScopedFormulaApproximation(
-      FormulaManagerView pManager, String pFunctionScope) {
+      FormulaManagerView pManager, FunctionEntryNode pFunctionScope) {
     if (unsatisfiedRankingRelation == null) {
       return pManager.getBooleanFormulaManager().makeTrue();
     } else {
       return pManager.makeNot(
-          unsatisfiedRankingRelation.asApproximatedScopedFormula(pFunctionScope, pManager));
+          unsatisfiedRankingRelation.asApproximatedScopedFormula(
+              pFunctionScope.getFunctionName(), pManager));
     }
   }
 

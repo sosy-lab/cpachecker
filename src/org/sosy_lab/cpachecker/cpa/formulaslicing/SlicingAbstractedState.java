@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -170,14 +171,16 @@ final class SlicingAbstractedState extends SlicingState
 
   @Override
   public BooleanFormula getScopedFormulaApproximation(
-      FormulaManagerView pManager, String pFunctionScope) {
+      FormulaManagerView pManager, FunctionEntryNode pFunctionScope) {
     Collection<BooleanFormula> filteredLemmas =
         lemmas.stream()
             .filter(
                 lemma ->
                     pManager.extractVariableNames(lemma).stream()
                         .allMatch(
-                            name -> !name.contains("::") || name.startsWith(pFunctionScope + "::")))
+                            name ->
+                                !name.contains("::")
+                                    || name.startsWith(pFunctionScope.getFunctionName() + "::")))
             .toList();
     if (filteredLemmas.isEmpty()) {
       return pManager.getBooleanFormulaManager().makeTrue();

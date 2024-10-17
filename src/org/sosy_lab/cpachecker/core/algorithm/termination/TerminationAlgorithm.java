@@ -559,7 +559,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     @Override
     public BooleanFormula getScopedFormulaApproximation(
-        FormulaManagerView pManager, final String pFunctionScope) {
+        FormulaManagerView pManager, final FunctionEntryNode pFunctionScope) {
       try {
         return pManager.renameFreeVariablesAndUFs(
             pManager.translateFrom(
@@ -567,7 +567,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                     invariant,
                     literal -> {
                       for (String name : fmgr.extractVariableNames(literal)) {
-                        if (name.contains("::") && !name.startsWith(pFunctionScope)) {
+                        if (name.contains("::")
+                            && !name.startsWith(pFunctionScope.getFunctionName())) {
                           return false;
                         }
                       }

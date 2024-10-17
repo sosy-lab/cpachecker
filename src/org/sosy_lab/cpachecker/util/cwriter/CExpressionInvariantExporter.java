@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -124,9 +126,11 @@ public class CExpressionInvariantExporter {
     if (onlyForSpecifiedLines) {
       if (exportInvariantsForLines != null && !pReachedSet.hasWaitingState()) {
         if (externalInvariantFile == null) {
-          exportInvariantsForRequestedLinesToSourceFileCopies(pReachedSet, pCfa.getFileNames());
+          exportInvariantsForRequestedLinesToSourceFileCopies(
+              pReachedSet, pCfa.getFileNames(), pCfa);
         } else {
-          exportInvariantsForRequestedLinesToFile(pReachedSet, pCfa.getFileNames().size() == 1);
+          exportInvariantsForRequestedLinesToFile(
+              pReachedSet, pCfa.getFileNames().size() == 1, pCfa);
         }
       }
     } else {
@@ -207,13 +211,13 @@ public class CExpressionInvariantExporter {
   }
 
   private void exportInvariantsForRequestedLinesToSourceFileCopies(
-      final UnmodifiableReachedSet pReachedSet, final List<Path> sourceFiles)
+      final UnmodifiableReachedSet pReachedSet, final List<Path> sourceFiles, final CFA pCfa)
       throws IOException, InterruptedException, SolverException {
     if (sourceFiles != null) {
       final boolean withoutPrefix = sourceFiles.size() == 1;
       Set<Integer> requestedLines = parseRequestedLines();
       Map<Pair<String, Integer>, BooleanFormula> invariantsPerLine =
-          extractInvariants(pReachedSet, requestedLines, withoutPrefix);
+          extractInvariants(pReachedSet, requestedLines, withoutPrefix, pCfa);
       String fileName = "";
       Pair<String, Integer> invariantKey;
       for (Path sourceFile : sourceFiles) {
@@ -247,14 +251,14 @@ public class CExpressionInvariantExporter {
   }
 
   private void exportInvariantsForRequestedLinesToFile(
-      final UnmodifiableReachedSet pReachedSet, final boolean withoutPrefix)
+      final UnmodifiableReachedSet pReachedSet, final boolean withoutPrefix, final CFA pCfa)
       throws IOException, InterruptedException, SolverException {
     if (externalInvariantFile != null
         && exportInvariantsForLines != null
         && !pReachedSet.hasWaitingState()) {
       Set<Integer> requestedLines = parseRequestedLines();
       Map<Pair<String, Integer>, BooleanFormula> invariantsPerLine =
-          extractInvariants(pReachedSet, requestedLines, withoutPrefix);
+          extractInvariants(pReachedSet, requestedLines, withoutPrefix, pCfa);
 
       try (Writer output = IO.openOutputFile(externalInvariantFile, Charset.defaultCharset())) {
         // export invariants in order
@@ -294,12 +298,14 @@ public class CExpressionInvariantExporter {
   private Map<Pair<String, Integer>, BooleanFormula> extractInvariants(
       final UnmodifiableReachedSet pReachedSet,
       final Set<Integer> pRequestedLines,
-      final boolean withoutPrefix) {
+      final boolean withoutPrefix,
+      final CFA pCfa) {
 
     // One formula per reported state.
     Multimap<Pair<String, Integer>, BooleanFormula> byState = HashMultimap.create();
     int lineNumber;
     String sourceFileName;
+    NavigableMap<String, FunctionEntryNode> functions = pCfa.getAllFunctions();
 
     CFAEdge edge;
     for (AbstractState state : pReachedSet) {
@@ -323,7 +329,10 @@ public class CExpressionInvariantExporter {
           BooleanFormula reported =
               AbstractStates.asIterable(state)
                   .filter(FormulaReportingState.class)
-                  .transform(s -> s.getScopedFormulaApproximation(fmgr, loc.getFunctionName()))
+                  .transform(
+                      s ->
+                          s.getScopedFormulaApproximation(
+                              fmgr, functions.get(loc.getFunctionName())))
                   .stream()
                   .collect(fmgr.getBooleanFormulaManager().toConjunction());
 

@@ -24,6 +24,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -400,13 +401,14 @@ public class IntervalAnalysisState
 
   @Override
   public BooleanFormula getScopedFormulaApproximation(
-      final FormulaManagerView pManager, final String pFunctionScope) {
+      final FormulaManagerView pManager, final FunctionEntryNode pFunctionScope) {
     return getFormulaApproximationWithSpecifiedVars(
         pManager,
         name ->
             !name.startsWith("__CPAchecker_TMP_")
                 && !name.contains("::__CPAchecker_TMP_")
-                && (name.startsWith(pFunctionScope + "::") || !name.contains("::")),
+                && (name.startsWith(pFunctionScope.getFunctionName() + "::")
+                    || !name.contains("::")),
         false);
   }
 

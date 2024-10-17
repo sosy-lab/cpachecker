@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.util.ApronManager;
@@ -769,7 +770,7 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
 
   @Override
   public BooleanFormula getScopedFormulaApproximation(
-      final FormulaManagerView pManager, final String pFunctionScope) {
+      final FormulaManagerView pManager, final FunctionEntryNode pFunctionScope) {
     BitvectorFormulaManager bitFmgr = pManager.getBitvectorFormulaManager();
     BooleanFormulaManager bFmgr = pManager.getBooleanFormulaManager();
     Tcons0[] constraints;
@@ -779,7 +780,8 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       throw new RuntimeException("An error occured while operating with the apron library", e);
     }
 
-    Texpr0ScopeCheckVisitor scopeChecker = new Texpr0ScopeCheckVisitor(pFunctionScope);
+    Texpr0ScopeCheckVisitor scopeChecker =
+        new Texpr0ScopeCheckVisitor(pFunctionScope.getFunctionName());
     return bFmgr.and(
         Lists.transform(
             Arrays.asList(constraints).stream()

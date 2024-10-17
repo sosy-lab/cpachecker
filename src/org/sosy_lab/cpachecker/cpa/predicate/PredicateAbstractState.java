@@ -128,14 +128,14 @@ public abstract sealed class PredicateAbstractState
 
     @Override
     public BooleanFormula getScopedFormulaApproximation(
-        final FormulaManagerView pManager, final String pFunctionScope) {
+        final FormulaManagerView pManager, final FunctionEntryNode pFunctionScope) {
       try {
         return pManager.renameFreeVariablesAndUFs(
             pManager.filterLiterals(
                 super.abstractionFormula.asFormulaFromOtherSolver(pManager),
                 literal -> {
                   for (String name : pManager.extractVariableNames(literal)) {
-                    if (name.contains("::") && !name.startsWith(pFunctionScope)) {
+                    if (name.contains("::") && !name.startsWith(pFunctionScope.getFunctionName())) {
                       return false;
                     }
                   }

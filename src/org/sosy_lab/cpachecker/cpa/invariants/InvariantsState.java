@@ -96,7 +96,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
 /** Instances of this class represent states in the light-weight invariants analysis. */
 public class InvariantsState
@@ -1120,7 +1119,7 @@ public class InvariantsState
 
   @Override
   public org.sosy_lab.java_smt.api.BooleanFormula getScopedFormulaApproximation(
-      FormulaManagerView pManager, String pFunctionScope) {
+      FormulaManagerView pManager, FunctionEntryNode pFunctionScope) {
     final ToBitvectorFormulaVisitor toBooleanFormulaVisitor =
         new ToBitvectorFormulaVisitor(pManager, getFormulaResolver(), false);
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVar =
@@ -1951,16 +1950,18 @@ public class InvariantsState
   }
 
   private static boolean isExportableInScope(
-      final MemoryLocation pMemoryLocation, final String pFunctionScope) {
+      final MemoryLocation pMemoryLocation, final FunctionEntryNode pFunctionScope) {
     if (pMemoryLocation.getIdentifier().startsWith("__CPAchecker_TMP_")) {
       return false;
     }
 
-    if (pMemoryLocation
-        .getIdentifier()
-        .equals(VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE)) {
+    if (pFunctionScope
+        .getReturnVariable()
+        .map(returnVar -> returnVar.getName().equals(pMemoryLocation.getIdentifier()))
+        .orElse(false)) {
       return false;
     }
+
     if (!isExportable(pMemoryLocation)) {
       return false;
     }

@@ -19,6 +19,7 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -233,14 +234,16 @@ public final class PolicyAbstractedState extends PolicyState
 
   @Override
   public BooleanFormula getScopedFormulaApproximation(
-      FormulaManagerView pManager, String pFunctionScope) {
+      FormulaManagerView pManager, FunctionEntryNode pFunctionScope) {
     Collection<BooleanFormula> filteredConstraints =
         manager.abstractStateToConstraints(pManager, this, false).stream()
             .filter(
                 constraint ->
                     pManager.extractVariableNames(constraint).stream()
                         .allMatch(
-                            name -> !name.contains("::") || name.startsWith(pFunctionScope + "::")))
+                            name ->
+                                !name.contains("::")
+                                    || name.startsWith(pFunctionScope.getFunctionName() + "::")))
             .toList();
     if (filteredConstraints.isEmpty()) {
       return pManager.getBooleanFormulaManager().makeTrue();
