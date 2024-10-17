@@ -33,6 +33,19 @@ public final class CTypedefType implements CType {
     realType = checkNotNull(pRealType);
   }
 
+  /**
+   * This constructor is required for JSON deserialization with Jackson.
+   *
+   * <p>It should not be used in any other context!
+   */
+  @SuppressWarnings("unused")
+  private CTypedefType() {
+    isConst = false;
+    isVolatile = false;
+    name = null;
+    realType = null;
+  }
+
   public String getName() {
     return name;
   }
