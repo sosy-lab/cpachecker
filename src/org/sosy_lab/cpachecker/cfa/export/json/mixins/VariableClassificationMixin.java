@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 /**
  * This class is a mixin for {@link VariableClassification}.
  *
- * <p>It sorts the {@link #relevantVariables} field during serialization to ensure a deterministic
- * order.
+ * <p>It sorts the {@link #relevantVariables} and {@link #addressedVariables} fields during
+ * serialization to ensure a deterministic order.
  *
  * <p>It converts the Set<Partition> fields to sorted lists of Partition objects during
  * serialization to ensure a deterministic order.
@@ -49,6 +49,10 @@ public final class VariableClassificationMixin {
   @SuppressWarnings("unused")
   @JsonSerialize(converter = StringSetToSortedListConverter.class)
   private Set<String> relevantVariables;
+
+  @SuppressWarnings("unused")
+  @JsonSerialize(converter = StringSetToSortedListConverter.class)
+  private Set<String> addressedVariables;
 
   @SuppressWarnings("unused")
   @JsonSerialize(converter = PartitionSetToSortedListConverter.class)
