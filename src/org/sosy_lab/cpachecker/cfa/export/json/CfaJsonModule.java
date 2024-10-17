@@ -166,13 +166,10 @@ import org.sosy_lab.cpachecker.cfa.export.json.mixins.CComplexCastExpressionMixi
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CComplexTypeDeclarationMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CComplexTypeMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CCompositeTypeMemberDeclarationMixin;
-import org.sosy_lab.cpachecker.cfa.export.json.mixins.CCompositeTypeMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CDeclarationEdgeMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CDeclarationMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CDesignatedInitializerMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CDesignatorMixin;
-import org.sosy_lab.cpachecker.cfa.export.json.mixins.CElaboratedTypeMixin;
-import org.sosy_lab.cpachecker.cfa.export.json.mixins.CEnumTypeMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CEnumeratorMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CExpressionAssignmentStatementMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CExpressionMixin;
@@ -206,7 +203,6 @@ import org.sosy_lab.cpachecker.cfa.export.json.mixins.CLeftHandSideMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CLiteralExpressionMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CParameterDeclarationMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CPointerExpressionMixin;
-import org.sosy_lab.cpachecker.cfa.export.json.mixins.CPointerTypeMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CProblemTypeMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CReturnStatementEdgeMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CReturnStatementMixin;
@@ -271,13 +267,9 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -385,13 +377,10 @@ public class CfaJsonModule extends SimpleModule {
     pContext.setMixInAnnotations(CComplexType.class, CComplexTypeMixin.class);
     pContext.setMixInAnnotations(
         CCompositeTypeMemberDeclaration.class, CCompositeTypeMemberDeclarationMixin.class);
-    pContext.setMixInAnnotations(CCompositeType.class, CCompositeTypeMixin.class);
     pContext.setMixInAnnotations(CDeclarationEdge.class, CDeclarationEdgeMixin.class);
     pContext.setMixInAnnotations(CDeclaration.class, CDeclarationMixin.class);
     pContext.setMixInAnnotations(CDesignatedInitializer.class, CDesignatedInitializerMixin.class);
     pContext.setMixInAnnotations(CDesignator.class, CDesignatorMixin.class);
-    pContext.setMixInAnnotations(CElaboratedType.class, CElaboratedTypeMixin.class);
-    pContext.setMixInAnnotations(CEnumType.class, CEnumTypeMixin.class);
     pContext.setMixInAnnotations(CEnumerator.class, CEnumeratorMixin.class);
     pContext.setMixInAnnotations(
         CExpressionAssignmentStatement.class, CExpressionAssignmentStatementMixin.class);
@@ -430,7 +419,6 @@ public class CfaJsonModule extends SimpleModule {
     pContext.setMixInAnnotations(CLiteralExpression.class, CLiteralExpressionMixin.class);
     pContext.setMixInAnnotations(CParameterDeclaration.class, CParameterDeclarationMixin.class);
     pContext.setMixInAnnotations(CPointerExpression.class, CPointerExpressionMixin.class);
-    pContext.setMixInAnnotations(CPointerType.class, CPointerTypeMixin.class);
     pContext.setMixInAnnotations(CProblemType.class, CProblemTypeMixin.class);
     pContext.setMixInAnnotations(CReturnStatementEdge.class, CReturnStatementEdgeMixin.class);
     pContext.setMixInAnnotations(CReturnStatement.class, CReturnStatementMixin.class);

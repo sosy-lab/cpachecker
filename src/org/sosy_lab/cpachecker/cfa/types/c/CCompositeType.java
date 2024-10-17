@@ -59,6 +59,21 @@ public final class CCompositeType implements CComplexType {
     members = ImmutableList.copyOf(pMembers);
   }
 
+  /**
+   * This constructor is required for JSON deserialization with Jackson.
+   *
+   * <p>It should not be used in any other context!
+   */
+  @SuppressWarnings("unused")
+  private CCompositeType() {
+    kind = null;
+    members = null;
+    name = null;
+    origName = null;
+    isConst = false;
+    isVolatile = false;
+  }
+
   private void checkMembers(List<CCompositeTypeMemberDeclaration> pMembers) {
     for (Iterator<CCompositeTypeMemberDeclaration> it = pMembers.iterator(); it.hasNext(); ) {
       CCompositeTypeMemberDeclaration member = it.next();

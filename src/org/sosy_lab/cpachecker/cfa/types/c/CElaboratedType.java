@@ -44,6 +44,21 @@ public final class CElaboratedType implements CComplexType {
     realType = pRealType;
   }
 
+  /**
+   * This constructor is required for JSON deserialization with Jackson.
+   *
+   * <p>It should not be used in any other context!
+   */
+  @SuppressWarnings("unused")
+  private CElaboratedType() {
+    isConst = false;
+    isVolatile = false;
+    kind = null;
+    name = null;
+    origName = "";
+    realType = null;
+  }
+
   @Override
   public String getName() {
     if (realType != null) {

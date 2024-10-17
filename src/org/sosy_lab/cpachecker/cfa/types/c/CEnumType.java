@@ -46,6 +46,22 @@ public final class CEnumType implements CComplexType {
     origName = pOrigName.intern();
   }
 
+  /**
+   * This constructor is required for JSON deserialization with Jackson.
+   *
+   * <p>It should not be used in any other context!
+   */
+  @SuppressWarnings("unused")
+  private CEnumType() {
+    compatibleType = null;
+    enumerators = null;
+    name = null;
+    origName = null;
+    isConst = false;
+    isVolatile = false;
+    hashCache = 0;
+  }
+
   @Override
   public boolean isConst() {
     return isConst;

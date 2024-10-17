@@ -33,6 +33,18 @@ public final class CPointerType implements CType {
     type = checkNotNull(pType);
   }
 
+  /**
+   * This constructor is required for JSON deserialization with Jackson.
+   *
+   * <p>It should not be used in any other context!
+   */
+  @SuppressWarnings("unused")
+  private CPointerType() {
+    type = null;
+    isConst = false;
+    isVolatile = false;
+  }
+
   @Override
   public boolean isConst() {
     return isConst;
