@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateI
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.LoopIterationBounding;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -51,6 +52,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
@@ -69,6 +71,17 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               + "as soon as the target states are discovered, which is done if "
               + "cpa.predicate.targetStateSatCheck=true.")
   private boolean checkTargetStates = true;
+
+  @Option(
+      name = "bmc.loopBound",
+      secure = true,
+      description =
+          "Bound for the number of complete loop unrollings"
+              + " of the program. The bound has to be 0 or positive, while -1 is used for no bound."
+              + " Works only if the LoopBoundCPA and the assumption storage CPA is enabled. If the"
+              + " LoopBoundCPAs bound is set, it is ignored and overwritten by this bound! "
+              + " (Default: -1)")
+  private int loopBound = -1;
 
   // Option copied from PathChecker, keep in sync (and hopefully remove at some point)
   @Option(
@@ -121,6 +134,41 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     cfa = pCFA;
 
     argWitnessExporter = new WitnessExporter(config, logger, specification, cfa);
+
+    overrideLoopBound(pCPA, pLogger);
+  }
+
+  /**
+   * Sets the loop bound in the LoopBoundCPA according to our BMC interpretation. See issue #1224
+   * for more details.
+   */
+  private void overrideLoopBound(ConfigurableProgramAnalysis pCPA, LogManager pLogger)
+      throws InvalidConfigurationException {
+    if (loopBound < -1) {
+      throw new InvalidConfigurationException(
+          "cpa.bmc.loopBound must be a non-negative value, but is set to " + loopBound);
+    }
+    LoopIterationBounding loopBoundingCPA = CPAs.retrieveCPA(pCPA, LoopIterationBounding.class);
+    if (loopBoundingCPA == null) {
+      throw new InvalidConfigurationException(
+          "The BMC algorithm is used, but no loop-bound CPA is configured.");
+    }
+    final int initialLoopBoundCPABound = loopBoundingCPA.getMaxLoopIterations();
+    if (initialLoopBoundCPABound != 0) {
+      // Warning
+      pLogger.log(
+          Level.WARNING,
+          "Loop-bound set via non-BMC algorithm config. Please use option ’bmc.loopBound’."
+              + " Continuing with loop-bound set to "
+              + loopBound
+              + ".");
+    }
+    // The LoopBoundCPA aborts for the number given, but our BMC is defined such that this number
+    // must
+    // be included. See issue #1224 for more details.
+    // -1 for unbounded loop iterations in BMC is here set to 0, as 0 is used for unbounded loop
+    // iterations in the LoopBoundCPA
+    CPAs.retrieveCPA(pCPA, LoopIterationBounding.class).setMaxLoopIterations(loopBound + 1);
   }
 
   @Override
