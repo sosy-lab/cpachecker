@@ -192,7 +192,6 @@ import org.sosy_lab.cpachecker.cfa.export.json.mixins.CFunctionReturnEdgeMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CFunctionSummaryEdgeMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CFunctionSummaryStatementEdgeMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CFunctionTypeMixin;
-import org.sosy_lab.cpachecker.cfa.export.json.mixins.CFunctionTypeWithNamesMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CIdExpressionMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CImaginaryLiteralExpressionMixin;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.CInitializerExpressionMixin;
@@ -268,7 +267,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -404,7 +402,6 @@ public class CfaJsonModule extends SimpleModule {
     pContext.setMixInAnnotations(
         CFunctionSummaryStatementEdge.class, CFunctionSummaryStatementEdgeMixin.class);
     pContext.setMixInAnnotations(CFunctionType.class, CFunctionTypeMixin.class);
-    pContext.setMixInAnnotations(CFunctionTypeWithNames.class, CFunctionTypeWithNamesMixin.class);
     pContext.setMixInAnnotations(CIdExpression.class, CIdExpressionMixin.class);
     pContext.setMixInAnnotations(
         CImaginaryLiteralExpression.class, CImaginaryLiteralExpressionMixin.class);

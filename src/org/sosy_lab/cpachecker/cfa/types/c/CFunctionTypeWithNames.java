@@ -42,6 +42,16 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
     parameters = ImmutableList.copyOf(pParameters);
   }
 
+  /**
+   * This constructor is required for JSON deserialization with Jackson.
+   *
+   * <p>It should not be used in any other context!
+   */
+  private CFunctionTypeWithNames() {
+    super(CVoidType.VOID, ImmutableList.of(), false);
+    parameters = null;
+  }
+
   public List<CParameterDeclaration> getParameterDeclarations() {
     return parameters;
   }
