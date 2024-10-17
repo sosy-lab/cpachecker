@@ -14,12 +14,13 @@ import com.fasterxml.jackson.annotation.ObjectIdGenerator;
 import com.fasterxml.jackson.annotation.ObjectIdResolver;
 import com.fasterxml.jackson.annotation.SimpleObjectIdResolver;
 import com.fasterxml.jackson.databind.util.ClassUtil;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonImport;
 import org.sosy_lab.cpachecker.cfa.export.json.mixins.TypeMixin;
@@ -103,10 +104,12 @@ public final class TypeIdResolver extends SimpleObjectIdResolver {
   public void bindItem(ObjectIdGenerator.IdKey pId, Object pObject) {
     checkArgument(
         (pId.type == SimpleNameIdGenerator.class),
-        "Wrong generator: " + pId.type.getSimpleName() + " is not SimpleNameIdGenerator");
+        "Wrong generator: %s is not SimpleNameIdGenerator",
+        pId.type.getSimpleName());
     checkArgument(
         (pObject instanceof Type),
-        "Wrong object: " + pObject.getClass().getSimpleName() + " is not a Type");
+        "Wrong object: %s is not a Type",
+        pObject.getClass().getSimpleName());
 
     if (placeholders.containsKey(pId)) {
       copyFieldContents((Type) pObject, placeholders.get(pId));
@@ -158,7 +161,8 @@ public final class TypeIdResolver extends SimpleObjectIdResolver {
   private Type createPlaceholder(ObjectIdGenerator.IdKey pId) {
     checkArgument(
         (pId.type == SimpleNameIdGenerator.class),
-        "Wrong generator: " + pId.type.getSimpleName() + " is not SimpleNameIdGenerator");
+        "Wrong generator: %s is not SimpleNameIdGenerator",
+        pId.type.getSimpleName());
 
     /* Types needed for construction. */
     CSimpleType simpleType =
@@ -234,7 +238,7 @@ public final class TypeIdResolver extends SimpleObjectIdResolver {
     Map<String, Field> toFieldMap =
         getAllFields(pTo.getClass()).stream()
             .filter(field -> !field.getName().equals("serialVersionUID"))
-            .collect(Collectors.toMap(Field::getName, field -> field));
+            .collect(ImmutableMap.toImmutableMap(Field::getName, field -> field));
 
     for (Field fromField : fromFields) {
       if (fromField.getName().equals("serialVersionUID")
@@ -266,6 +270,6 @@ public final class TypeIdResolver extends SimpleObjectIdResolver {
   private List<Field> getAllFields(Class<?> pClass) {
     return ClassUtil.findSuperClasses(pClass, Object.class, true).stream()
         .flatMap(superClass -> Stream.of(superClass.getDeclaredFields()))
-        .collect(Collectors.toList());
+        .collect(ImmutableList.toImmutableList());
   }
 }

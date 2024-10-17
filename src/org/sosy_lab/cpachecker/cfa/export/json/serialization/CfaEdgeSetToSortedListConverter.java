@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.cfa.export.json.serialization;
 
 import com.fasterxml.jackson.databind.util.StdConverter;
+import com.google.common.collect.ImmutableList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonData;
 import org.sosy_lab.cpachecker.cfa.export.json.CfaJsonExport;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -35,6 +35,6 @@ public final class CfaEdgeSetToSortedListConverter
         .sorted(
             Comparator.comparingInt((CFAEdge edge) -> edge.getPredecessor().getNodeNumber())
                 .thenComparingInt(edge -> edge.getSuccessor().getNodeNumber()))
-        .collect(Collectors.toList());
+        .collect(ImmutableList.toImmutableList());
   }
 }
