@@ -9,75 +9,108 @@
 package org.sosy_lab.cpachecker.cpa.tube;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.Factory;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
+/**
+ *
+ */
 public class TubeState implements AbstractQueryableState, Partitionable, Serializable, Graphable,
                                   FormulaReportingState {
+  /**
+   * Immutable map containing integer keys and string values representing asserts.
+   */
   private final ImmutableMap<Integer,String> asserts;
+  /**
+   * Retrieves the LogManager associated with this TubeState object.
+   *
+   * @return The LogManager instance associated with this TubeState.
+   */
   public LogManager getLogManager() {
     return logManager;
   }
+  /**
+   * Represents a LogManager instance that provides logging functionality for the TubeState class.
+   */
   private final LogManager logManager;
+  /**
+   * Flag indicating whether the variable is negated.
+   */
   private final boolean isNegated;
+  /**
+   * Represents the boolean expression associated with a TubeState object.
+   */
   private final String booleanExp;
+  /**
+   * Represents a Control Flow Automata (CFA) edge associated with a TubeState object.
+   */
   private final CFAEdge cfaEdge;
+  /**
+   * Represents a counter for tracking the number of errors encountered.
+   */
   private int errorCounter;
+  /**
+   * Represents a Control Flow Automaton associated with a TubeState object.
+   * This class provides access to various methods for handling the CFA, such as getting machine model,
+   * number of functions, function names, loop structure, variable classification, etc.
+   */
   private final CFA cfa;
+  /**
+   * Retrieves the supplier function used to obtain a {@link CtoFormulaConverter} based on the provided {@link FormulaManagerView}.
+   *
+   * @return The supplier function used to obtain a {@link CtoFormulaConverter}.
+   */
   public Function<FormulaManagerView, CtoFormulaConverter> getSupplier() {
     return supplier;
   }
 
 
+  /**
+   * Represents a supplier of CtoFormulaConverter instances based on a given FormulaManagerView.
+   */
   private final Function<FormulaManagerView, CtoFormulaConverter> supplier;
+
+  /**
+   * Constructs a TubeState object with the provided parameters.
+   *
+   * @param pCFAEdge The CFAEdge associated with the TubeState.
+   * @param pAssert A mapping of integers to strings representing asserts.
+   * @param exp The boolean expression for the TubeState.
+   * @param pIsNegated A boolean indicating whether the TubeState is negated.
+   * @param pError_counter The error counter value for the TubeState.
+   * @param pSupplier The function supplier for FormulaManagerView.
+   * @param pLogManager The log manager for the TubeState.
+   * @param pCfa The CFA associated with the TubeState.
+   */
   public TubeState(CFAEdge pCFAEdge, ImmutableMap<Integer, String> pAssert, String exp, boolean pIsNegated, int pError_counter,
                    Function<FormulaManagerView, CtoFormulaConverter> pSupplier, LogManager pLogManager, CFA pCfa){
     this.cfaEdge = pCFAEdge;
@@ -89,6 +122,13 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
     this.logManager = pLogManager;
     this.cfa = pCfa;
   }
+  /**
+   * Retrieves the assertion string at the specified line number in the TubeState object.
+   *
+   * @param lineNumber The line number where the assertion is located.
+   * @param negate True if the assertion should be negated, false otherwise.
+   * @return The assertion string at the specified line number. If negate is true, the negated form of the assertion is returned.
+   */
   public String getAssertAtLine(int lineNumber, boolean negate){
     String f = this.asserts.get(lineNumber);
     if (negate){
@@ -96,31 +136,79 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
     }
     return f;
   }
+  /**
+   * Retrieves the CFA associated with the TubeState object.
+   *
+   * @return The Control Flow Automaton (CFA) object related to the TubeState.
+   */
   public CFA getCfa() {
     return cfa;
   }
+  /**
+   * Retrieves the value indicating whether the TubeState object is negated.
+   *
+   * @return true if the TubeState object is negated, false otherwise
+   */
   public boolean getIsNegated() {return isNegated;}
+  /**
+   * Retrieves the CFAEdge object associated with this TubeState.
+   *
+   * @return The CFAEdge object representing the control flow edge.
+   */
   public CFAEdge getCfaEdge(){return this.cfaEdge;}
+  /**
+   * Retrieves the asserts stored in the TubeState object.
+   *
+   * @return The immutable map of integers to strings representing the asserts.
+   */
   public ImmutableMap<Integer, String> getAsserts() {
     return this.asserts;
   }
+  /**
+   * Retrieves the boolean expression associated with the TubeState object.
+   *
+   * @return The boolean expression stored in the TubeState object.
+   */
   public String getBooleanExp() {
     return booleanExp;
   }
+  /**
+   * Retrieves the error counter value of the TubeState object.
+   *
+   * @return The value of the error counter for the TubeState object.
+   */
   public int getErrorCounter(){
     return this.errorCounter;
   }
+  /**
+   * Increases the error counter by 1.
+   */
   public void incrementErrorCounter(){
   this.errorCounter += 1;
 }
+  /**
+   * Retrieves the name of the CPA associated with this AbstractQueryableState.
+   *
+   * @return The name of the CPA.
+   */
   @Override
   public String getCPAName() {
     return getClass().getSimpleName();
   }
+  /**
+   * Returns the partition key of the object indicating in which part of the partition the object belongs.
+   *
+   * @return The key indicating the part of the partition this object belongs to.
+   */
   @Override
   public @Nullable Object getPartitionKey() {
     return this;
   }
+  /**
+   * Returns a string representation of the TubeState object.
+   *
+   * @return A string containing the value of the asserts, isNegated, booleanExp, and errorCounter fields of the TubeState object.
+   */
   @Override
   public String toString() {
     return "TubeState{" +
@@ -130,6 +218,12 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
         ", errorCounter=" + errorCounter +
         '}';
   }
+  /**
+   * Retrieves the formula approximation for the TubeState object using the provided FormulaManagerView.
+   *
+   * @param manager The FormulaManagerView instance to use for obtaining the formula approximation.
+   * @return The BooleanFormula approximation of the TubeState object based on the boolean expression and CFAEdge.
+   */
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
     String exp = this.getBooleanExp();
@@ -140,77 +234,53 @@ public class TubeState implements AbstractQueryableState, Partitionable, Seriali
     BooleanFormula booleanFormula;
     try {
       booleanFormula = manager.uninstantiate(parseFormula(manager, exp,cfaEdge));
-    } catch (InvalidAutomatonException pE) {
-      throw new RuntimeException(pE);
-    } catch (InterruptedException | UnrecognizedCodeException | InvalidConfigurationException pE) {
-      throw new RuntimeException(pE);
-    } catch (ToFormulaException pE) {
+    } catch (InvalidAutomatonException | InterruptedException | UnrecognizedCodeException |
+             InvalidConfigurationException | ToFormulaException pE) {
       throw new RuntimeException(pE);
     }
     return Objects.requireNonNullElseGet(booleanFormula,
         manager.getBooleanFormulaManager()::makeTrue);
   }
+  /**
+   * Returns a label representation of the object in the DOT format.
+   *
+   * @return A string representation of the object.
+   */
   @Override
   public String toDOTLabel() {
     return toString();
   }
+  /**
+   * Indicates whether the method should be highlighted.
+   *
+   * @return true if the method should be highlighted, false otherwise
+   */
   @Override
   public boolean shouldBeHighlighted() {
     return false;
   }
+  /**
+   * Parses the given entry as a BooleanFormula using the provided FormulaManagerView,
+   * CFAEdge and other necessary information.
+   *
+   * @param pFormulaManagerView The FormulaManagerView instance to use for parsing.
+   * @param entry The entry to parse as a BooleanFormula.
+   * @param pCFAEdge The CFAEdge related to the entry.
+   * @return The parsed BooleanFormula.
+   * @throws InvalidAutomatonException
+   */
   BooleanFormula parseFormula(FormulaManagerView pFormulaManagerView, String entry, CFAEdge pCFAEdge)
       throws InvalidAutomatonException, InterruptedException, UnrecognizedCodeException,
              InvalidConfigurationException, ToFormulaException {
-    InvariantExchangeFormatTransformer transformer = new InvariantExchangeFormatTransformer(
-        Configuration.defaultConfiguration(),logManager,ShutdownNotifier.createDummy(),cfa);
-    Deque<String> callStack = new ArrayDeque<>();
-    callStack.push(entry);
     Set<String> entries = new HashSet<>();
     entries.add(entry);
     PathFormulaManagerImpl pathFormulaManager =
         new PathFormulaManagerImpl(pFormulaManagerView, Configuration.defaultConfiguration(),
             logManager, ShutdownNotifier.createDummy(), cfa,
             AnalysisDirection.FORWARD);
-    BooleanFormula expressions = CParserUtils.parseStatementsAsExpressionTree(entries,Optional.of(entry),
+    return CParserUtils.parseStatementsAsExpressionTree(entries,Optional.of(entry),
         Factory.getParser(logManager, Factory.getDefaultOptions(), cfa.getMachineModel(), ShutdownNotifier.createDummy()),
         new CProgramScope(cfa, logManager),ParserTools.create(ExpressionTrees.newFactory(),cfa.getMachineModel(), logManager)).accept(new ToFormulaVisitor(pFormulaManagerView,
         pathFormulaManager, pathFormulaManager.makeEmptyPathFormula()));
-/*    AExpression expression = transformer.createExpressionTreeFromString(Optional.of(entry),entry,cfaEdge.getLineNumber(),
-        callStack,new CProgramScope(cfa, logManager)).accept(new ToCExpressionVisitor(cfa.getMachineModel(), logManager));*/
-    /*String exp = expressions.toString();*/
-    //String exp = expression.toParenthesizedASTString();
- /*   CStatement statements = CParserUtils.parseSingleStatement(exp, Factory.getParser(logManager, Factory.getDefaultOptions(), cfa.getMachineModel(), ShutdownNotifier.createDummy()),new CProgramScope(cfa, logManager));
-    CtoFormulaConverter converter = supplier.apply(pFormulaManagerView);
-    CExpression cExpression = getcExpression(statements);
-    BooleanFormula
-        booleanFormula = converter.makePredicate(cExpression, pCFAEdge, entry, SSAMap.emptySSAMap().builder());*/
-    /*    Set<String> entries = new HashSet<>();
-    Deque<String> callStack = new ArrayDeque<>();
-    callStack.push(entry);
-    ExpressionTree<AExpression> tree = CParserUtils.parseStatementsAsExpressionTree(
-        ImmutableSet.of(entry),
-        Optional.of(entry),
-        Factory.getParser(logManager, Factory.getDefaultOptions(), cfa.getMachineModel(), ShutdownNotifier.createDummy()),
-        AutomatonWitnessV2ParserUtils.determineScopeForLine(
-            Optional.of(entry), callStack, cfaEdge.getLineNumber(), new CProgramScope(cfa, logManager)),
-        ParserTools.create(ExpressionTrees.newFactory(),cfa.getMachineModel(),logManager));
-   Collection<CStatement>
-        statements = CParserUtils.parseStatements(entries, Optional.ofNullable(entry),
-        Factory.getParser(logManager, CParser.Factory.getDefaultOptions(), cfa.getMachineModel(),
-            ShutdownNotifier.createDummy()), new CProgramScope(cfa, logManager), ParserTools.create(ExpressionTrees.newFactory(), cfa.getMachineModel(), logManager));
-    CtoFormulaConverter converter = supplier.apply(pFormulaManagerView);
-    List<CExpression> expressions = getCExpressions(statements);
-    List<BooleanFormula> booleanFormulaList = new ArrayList<>();
-    for (CExpression expression : expressions) {
-      booleanFormulaList.add(
-          converter.makePredicate(expression, pCFAEdge, entry, SSAMap.emptySSAMap().builder()));*/
-    return expressions;
     }
-
-
-/*  private static List<CExpression> getCExpressions(Collection<CStatement> statements) {
-    return statements.stream().map(statement -> ((CExpressionStatement) statement).getExpression())
-        .filter(Objects::nonNull)
-        .collect(Collectors.toList());
-  }*/
 }

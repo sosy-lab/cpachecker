@@ -13,14 +13,20 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 
 /**
- * Distributed analyses use independent blocks for analyzing simultaneously. These analyses stop at
- * target locations. This class states whether an analysis reached the entry or exit node of a
- * block.
+ * This class represents information about reaching the start of a target tube in a control flow graph.
  */
 public class TubeEntryReachedTargetInformation implements TargetInformation {
 
+  /**
+   * Represents a control flow graph node in the context of reaching the start of a target tube.
+   */
   private final CFANode node;
 
+  /**
+   * Construct an object to store information about reaching the start of a target tube in a control flow graph.
+   *
+   * @param pNode the CFANode that represents the start of the target tube
+   */
   public TubeEntryReachedTargetInformation(CFANode pNode) {
     node = pNode;
   }

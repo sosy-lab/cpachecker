@@ -14,7 +14,20 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+
+
+/**
+ * Represents the transfer relation for handling abstract successors of TubeState objects based on CFA edges.
+ */
 public class TubeTransferRelation extends SingleEdgeTransferRelation {
+  /**
+   * Retrieves the abstract successors for a given CFA edge based on the provided element, precision, and edge.
+   *
+   * @param element the abstract state before the edge transition
+   * @param prec the precision to consider for the transition
+   * @param cfaEdge the edge in the CFA for which successors are to be computed
+   * @return a collection of TubeState objects representing the abstract successors
+   */
   @Override
   public Collection<TubeState> getAbstractSuccessorsForEdge(
           AbstractState element, Precision prec, CFAEdge cfaEdge) {
@@ -25,7 +38,6 @@ public class TubeTransferRelation extends SingleEdgeTransferRelation {
         tubeState.getCfa());
 
     if (cfaEdge.getCode().contains("reach_error();")&&(cfaEdge.getEdgeType().equals(CFAEdgeType.StatementEdge) || cfaEdge.getCode().contains("reach_error();")&&cfaEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge))) {
-      //something here is making is in the if declaration, as the the function with the negated expression is still getting to this line of code. after line 16 if statement.
       initialTubeState.incrementErrorCounter();
       return ImmutableSet.of(initialTubeState);
     }
@@ -35,6 +47,13 @@ public class TubeTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableSet.of(initialTubeState);
     }
   }
+  /**
+   * Retrieves the successors for assertions based on the initialTubeState and CFAEdge.
+   *
+   * @param initialTubeState the initial TubeState before the edge transition
+   * @param cfaEdge the CFAEdge for which successors are to be computed
+   * @return a collection of TubeState objects representing the successors with assertions
+   */
   private Collection<TubeState> getSuccessorsForAssertions(TubeState initialTubeState, CFAEdge cfaEdge) {
     String exp = initialTubeState.getAssertAtLine(cfaEdge.getLineNumber(), false);
     String negExp = initialTubeState.getAssertAtLine(cfaEdge.getLineNumber(), true);

@@ -19,7 +19,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 
@@ -29,14 +28,22 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 class TubeCPAFactory extends AbstractCPAFactory {
 
   /**
-   * This variable represents a Control Flow Automaton (CFA).
+   * Enum that defines the analysis direction to be used in the software.
+   * It can be either FORWARD or BACKWARD direction.
    */
 
   private final AnalysisDirection analysisDirection;
 
+  /**
+   *
+   */
   private CFA cfa;
 
 
+  /**
+   *
+   * @param direction the analysis direction to be set for TubeCPAFactory
+   */
   public TubeCPAFactory(AnalysisDirection direction) {
     this.analysisDirection = direction;
   }
