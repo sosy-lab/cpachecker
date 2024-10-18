@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 Integration Tests
 -----------------
 
-Integration tests that are executed automatically by the [BuildBot](https://buildbot.sosy-lab.org/buildbot/waterfall)
+Integration tests that are executed automatically by the [BuildBot](https://buildbot.sosy-lab.org/cpachecker/)
 are defined by the files `../test/test-sets/integration-*.xml`.
 You can also execute these tests directly with BenchExec.
 All major projects and configurations within CPAchecker should be part of this test suite.
@@ -28,8 +28,7 @@ Run `ant tests` from the project root directory.
 An HTML report with the results will be generated as `JUnit.html`.
 Of course the unit tests can also be executed from within your IDE.
 
-These tests are also executed by [BuildBot](https://buildbot.sosy-lab.org/buildbot/waterfall) (only for trunk)
-and by [GitLab](https://gitlab.com/sosy-lab/software/cpachecker/pipelines) (for all branches).
+These tests are also executed by [GitLab CI](https://gitlab.com/sosy-lab/software/cpachecker/pipelines).
 
 Structure of Tests
 ------------------

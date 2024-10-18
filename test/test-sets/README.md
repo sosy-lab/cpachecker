@@ -22,7 +22,7 @@ is checked out in the directory `../programs/benchmarks`
 
 All files starting with `integration-` are used
 by our continuous-integration system
-[BuildBot](https://buildbot.sosy-lab.org/buildbot/waterfall).
+[BuildBot](https://buildbot.sosy-lab.org/cpachecker/).
 and executed for commits on trunk
 (with `integration-nightly-` being executed every few days).
 However, note that new files won't get picked up by BuildBot automatically,
