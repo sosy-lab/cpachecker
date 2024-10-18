@@ -1,0 +1,470 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="7 GB" cpuCores="2">
+
+<require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz"/>
+
+  <resultfiles>**/witness.*</resultfiles>
+
+  <option name="-tube"/>
+  <option name="-heap">10000M</option>
+  <option name="-benchmark"/>
+  <option name="-spec">sv-comp-reachability</option>
+  <option name="-timelimit">900 s</option>
+
+<rundefinition name="simple2_under">
+  <requiredfiles>../tasks/simple2/simple2_under.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/simple2/simple2_under.json</option>
+  <tasks>
+    <include>../tasks/simple2/simple2.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="simple2_precise">
+  <requiredfiles>../tasks/simple2/simple2_precise.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/simple2/simple2_precise.json</option>
+  <tasks>
+    <include>../tasks/simple2/simple2.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="simple2_unclassified">
+  <requiredfiles>../tasks/simple2/simple2_unclassified.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/simple2/simple2_unclassified.json</option>
+  <tasks>
+    <include>../tasks/simple2/simple2.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="simple2_over">
+  <requiredfiles>../tasks/simple2/simple2_over.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/simple2/simple2_over.json</option>
+  <tasks>
+    <include>../tasks/simple2/simple2.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="mod_precise">
+  <requiredfiles>../tasks/mod/mod_precise.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/mod/mod_precise.json</option>
+  <tasks>
+    <include>../tasks/mod/mod.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="mod_over">
+  <requiredfiles>../tasks/mod/mod_over.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/mod/mod_over.json</option>
+  <tasks>
+    <include>../tasks/mod/mod.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="mod_unclassified">
+  <requiredfiles>../tasks/mod/mod_unclassified.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/mod/mod_unclassified.json</option>
+  <tasks>
+    <include>../tasks/mod/mod.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="mod_under">
+  <requiredfiles>../tasks/mod/mod_under.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/mod/mod_under.json</option>
+  <tasks>
+    <include>../tasks/mod/mod.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="factors_unclassified">
+  <requiredfiles>../tasks/factors/factors_unclassified.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/factors/factors_unclassified.json</option>
+  <tasks>
+    <include>../tasks/factors/factors.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="factors_over">
+  <requiredfiles>../tasks/factors/factors_over.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/factors/factors_over.json</option>
+  <tasks>
+    <include>../tasks/factors/factors.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="factors_precise">
+  <requiredfiles>../tasks/factors/factors_precise.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/factors/factors_precise.json</option>
+  <tasks>
+    <include>../tasks/factors/factors.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="factors_under">
+  <requiredfiles>../tasks/factors/factors_under.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/factors/factors_under.json</option>
+  <tasks>
+    <include>../tasks/factors/factors.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="singleerror_over">
+  <requiredfiles>../tasks/singleerror/singleerror_over.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/singleerror/singleerror_over.json</option>
+  <tasks>
+    <include>../tasks/singleerror/singleerror.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="singleerror_precise">
+  <requiredfiles>../tasks/singleerror/singleerror_precise.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/singleerror/singleerror_precise.json</option>
+  <tasks>
+    <include>../tasks/singleerror/singleerror.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="singleerror_under">
+  <requiredfiles>../tasks/singleerror/singleerror_under.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/singleerror/singleerror_under.json</option>
+  <tasks>
+    <include>../tasks/singleerror/singleerror.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="singleerror_unclassified">
+  <requiredfiles>../tasks/singleerror/singleerror_unclassified.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/singleerror/singleerror_unclassified.json</option>
+  <tasks>
+    <include>../tasks/singleerror/singleerror.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="while_precise">
+  <requiredfiles>../tasks/while/while_precise.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/while/while_precise.json</option>
+  <tasks>
+    <include>../tasks/while/while.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="while_over">
+  <requiredfiles>../tasks/while/while_over.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/while/while_over.json</option>
+  <tasks>
+    <include>../tasks/while/while.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="while_under">
+  <requiredfiles>../tasks/while/while_under.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/while/while_under.json</option>
+  <tasks>
+    <include>../tasks/while/while.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="while_unclassified">
+  <requiredfiles>../tasks/while/while_unclassified.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/while/while_unclassified.json</option>
+  <tasks>
+    <include>../tasks/while/while.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="assert_under">
+  <requiredfiles>../tasks/assert/assert_under.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/assert/assert_under.json</option>
+  <tasks>
+    <include>../tasks/assert/assert.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="assert_unclassified">
+  <requiredfiles>../tasks/assert/assert_unclassified.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/assert/assert_unclassified.json</option>
+  <tasks>
+    <include>../tasks/assert/assert.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="assert_precise">
+  <requiredfiles>../tasks/assert/assert_precise.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/assert/assert_precise.json</option>
+  <tasks>
+    <include>../tasks/assert/assert.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="assert_over">
+  <requiredfiles>../tasks/assert/assert_over.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/assert/assert_over.json</option>
+  <tasks>
+    <include>../tasks/assert/assert.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="if_over">
+  <requiredfiles>../tasks/if/if_over.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/if/if_over.json</option>
+  <tasks>
+    <include>../tasks/if/if.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="if_unclassified">
+  <requiredfiles>../tasks/if/if_unclassified.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/if/if_unclassified.json</option>
+  <tasks>
+    <include>../tasks/if/if.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="if_precise">
+  <requiredfiles>../tasks/if/if_precise.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/if/if_precise.json</option>
+  <tasks>
+    <include>../tasks/if/if.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="if_under">
+  <requiredfiles>../tasks/if/if_under.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/if/if_under.json</option>
+  <tasks>
+    <include>../tasks/if/if.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="simple_precise">
+  <requiredfiles>../tasks/simple/simple_precise.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/simple/simple_precise.json</option>
+  <tasks>
+    <include>../tasks/simple/simple.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="simple_over">
+  <requiredfiles>../tasks/simple/simple_over.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/simple/simple_over.json</option>
+  <tasks>
+    <include>../tasks/simple/simple.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="simple_under">
+  <requiredfiles>../tasks/simple/simple_under.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/simple/simple_under.json</option>
+  <tasks>
+    <include>../tasks/simple/simple.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="simple_unclassified">
+  <requiredfiles>../tasks/simple/simple_unclassified.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/simple/simple_unclassified.json</option>
+  <tasks>
+    <include>../tasks/simple/simple.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="num_over">
+  <requiredfiles>../tasks/num/num_over.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/num/num_over.json</option>
+  <tasks>
+    <include>../tasks/num/num.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="num_precise">
+  <requiredfiles>../tasks/num/num_precise.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/num/num_precise.json</option>
+  <tasks>
+    <include>../tasks/num/num.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="num_under">
+  <requiredfiles>../tasks/num/num_under.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/num/num_under.json</option>
+  <tasks>
+    <include>../tasks/num/num.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="num_unclassified">
+  <requiredfiles>../tasks/num/num_unclassified.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/num/num_unclassified.json</option>
+  <tasks>
+    <include>../tasks/num/num.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="binarysort_precise">
+  <requiredfiles>../tasks/binarysort/binarysort_precise.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/binarysort/binarysort_precise.json</option>
+  <tasks>
+    <include>../tasks/binarysort/binarysort.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="binarysort_over">
+  <requiredfiles>../tasks/binarysort/binarysort_over.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/binarysort/binarysort_over.json</option>
+  <tasks>
+    <include>../tasks/binarysort/binarysort.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="binarysort_unclassified">
+  <requiredfiles>../tasks/binarysort/binarysort_unclassified.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/binarysort/binarysort_unclassified.json</option>
+  <tasks>
+    <include>../tasks/binarysort/binarysort.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="binarysort_under">
+  <requiredfiles>../tasks/binarysort/binarysort_under.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/binarysort/binarysort_under.json</option>
+  <tasks>
+    <include>../tasks/binarysort/binarysort.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="loop_precise">
+  <requiredfiles>../tasks/loop/loop_precise.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/loop/loop_precise.json</option>
+  <tasks>
+    <include>../tasks/loop/loop.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="loop_under">
+  <requiredfiles>../tasks/loop/loop_under.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/loop/loop_under.json</option>
+  <tasks>
+    <include>../tasks/loop/loop.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="loop_unclassified">
+  <requiredfiles>../tasks/loop/loop_unclassified.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/loop/loop_unclassified.json</option>
+  <tasks>
+    <include>../tasks/loop/loop.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="loop_over">
+  <requiredfiles>../tasks/loop/loop_over.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/loop/loop_over.json</option>
+  <tasks>
+    <include>../tasks/loop/loop.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="sort_unclassified">
+  <requiredfiles>../tasks/sort/sort_unclassified.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/sort/sort_unclassified.json</option>
+  <tasks>
+    <include>../tasks/sort/sort.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="sort_over">
+  <requiredfiles>../tasks/sort/sort_over.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/sort/sort_over.json</option>
+  <tasks>
+    <include>../tasks/sort/sort.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="sort_precise">
+  <requiredfiles>../tasks/sort/sort_precise.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/sort/sort_precise.json</option>
+  <tasks>
+    <include>../tasks/sort/sort.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="sort_under">
+  <requiredfiles>../tasks/sort/sort_under.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/sort/sort_under.json</option>
+  <tasks>
+    <include>../tasks/sort/sort.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="add_under">
+  <requiredfiles>../tasks/add/add_under.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/add/add_under.json</option>
+  <tasks>
+    <include>../tasks/add/add.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="add_precise">
+  <requiredfiles>../tasks/add/add_precise.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/add/add_precise.json</option>
+  <tasks>
+    <include>../tasks/add/add.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="add_over">
+  <requiredfiles>../tasks/add/add_over.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/add/add_over.json</option>
+  <tasks>
+    <include>../tasks/add/add.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="add_unclassified">
+  <requiredfiles>../tasks/add/add_unclassified.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/add/add_unclassified.json</option>
+  <tasks>
+    <include>../tasks/add/add.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="limit_over">
+  <requiredfiles>../tasks/limit/limit_over.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/limit/limit_over.json</option>
+  <tasks>
+    <include>../tasks/limit/limit.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="limit_unclassified">
+  <requiredfiles>../tasks/limit/limit_unclassified.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/limit/limit_unclassified.json</option>
+  <tasks>
+    <include>../tasks/limit/limit.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="limit_under">
+  <requiredfiles>../tasks/limit/limit_under.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/limit/limit_under.json</option>
+  <tasks>
+    <include>../tasks/limit/limit.c</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="limit_precise">
+  <requiredfiles>../tasks/limit/limit_precise.json</requiredfiles>
+  <option name="-setprop">tubeCPA.initialFile=../tasks/limit/limit_precise.json</option>
+  <tasks>
+    <include>../tasks/limit/limit.c</include>
+  </tasks>
+</rundefinition>
+
+
+  <columns>
+    <column title="UsedConfig">Used algorithm property</column>
+  </columns>
+
+
+</benchmark>
+

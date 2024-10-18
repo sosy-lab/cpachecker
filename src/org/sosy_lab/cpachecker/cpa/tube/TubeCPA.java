@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 public class TubeCPA extends AbstractCPA {
   /** Represents the path to a file containing tubes list. */
   @Option(secure = true, required = true, description = "List of files with tubes")
-  @FileOption(Type.OUTPUT_FILE)
+  @FileOption(Type.REQUIRED_INPUT_FILE)
   private Path initialFile;
 
   /** Private final variable that holds an instance of ObjectMapper. */
