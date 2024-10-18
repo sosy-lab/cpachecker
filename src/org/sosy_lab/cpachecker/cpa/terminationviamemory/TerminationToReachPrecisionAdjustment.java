@@ -15,7 +15,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -78,6 +77,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
 
     if (location.isLoopStart() && terminationState.getStoredValues().containsKey(locationState)) {
+      terminationState.putNewPathFormula(predicateState.getPathFormula().getFormula());
       for (int i = 0;
           i < terminationState.getNumberOfIterationsAtLoopHead(locationState) - 1;
           ++i) {
