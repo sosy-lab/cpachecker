@@ -12,7 +12,7 @@ Integration Tests
 -----------------
 
 Integration tests that are executed automatically by the [BuildBot](https://buildbot.sosy-lab.org/cpachecker/)
-are defined by the files `../test/test-sets/integration-*.xml`.
+for the main branch are defined by the files `../test/test-sets/integration-*.xml`.
 You can also execute these tests directly with BenchExec.
 All major projects and configurations within CPAchecker should be part of this test suite.
 To add tests for your project or configuration,

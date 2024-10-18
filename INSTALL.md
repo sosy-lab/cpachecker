@@ -76,12 +76,14 @@ Install CPAchecker -- Source
 2. Install `ant` (version 1.10.2 or later is required).  
    (Ubuntu: `sudo apt-get install ant`)
 
-3. Install Subversion.  
-   (Ubuntu: `sudo apt-get install subversion`)
+3. Install git.  
+   (Ubuntu: `sudo apt-get install git`)
 
-4. Checkout CPAchecker from SVN repository.  
-   URL: https://svn.sosy-lab.org/software/cpachecker/trunk
-   URL (read-only GIT mirror): https://github.com/sosy-lab/cpachecker
+4. Checkout CPAchecker from [repository](https://gitlab.com/sosy-lab/software/cpachecker):  
+   ```
+   git clone https://gitlab.com/sosy-lab/software/cpachecker.git
+   ```
+   As alternative, there is a read-only mirror on [GitHub](https://github.com/sosy-lab/cpachecker).
 
 5. Run `ant` in CPAchecker directory to build CPAchecker.  
    When building CPAchecker for the first time, this will automatically
