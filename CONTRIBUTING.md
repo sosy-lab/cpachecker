@@ -53,6 +53,11 @@ Development is done in branches. Please follow these guidelines:
 - Keep each branch restricted to one specific set of changes,
   do not mix unrelated changes in a single branch.
 
+- Consider creating a MR early and use the MR description
+  to explain the goal of the branch.
+  MRs are also useful for ongoing discussions and feedback
+  during the development, not just for final approvals.
+
 - While a branch exists, keep it close to the main branch,
   i.e., regularly merge the main branch into your branch.
   This allows you to detect merge conflicts early
