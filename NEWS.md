@@ -8,6 +8,13 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes since CPAchecker 3.1
+----------------------------
+* On 2024-10-18 the CPAchecker repository was migrated from Subversion to git  
+  Please see our [post on the migration](https://groups.google.com/g/cpachecker-users/c/1s6YbhvKq6Y/m/ElnLV4CkAAAJ)
+  for information on how to adjust your local repository if necessary.
+
+
 Changes from CPAchecker 2.4 to CPAchecker 3.0
 ---------------------------------------------
 * Default analysis no longer needs to be explicitly requested.  
