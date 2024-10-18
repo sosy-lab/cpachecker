@@ -228,6 +228,13 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       } else if (optionalIterationElement.isPresent()) {
         IterationElement iterationElement = optionalIterationElement.orElseThrow();
         astElementLocation = iterationElement.getCompleteElement().location();
+
+        if (iterationElement.getControllingExpression().isEmpty()) {
+          // This can only happen for an expression of the form `for(;;)`, which is an infinite
+          // loop. In this case we directly export the assumption waypoint and continue.
+          return ImmutableList.of(handleBranchingWaypoint(true, astElementLocation, assumeEdge));
+        }
+
         nodesBetweenConditionAndFirstBranch = iterationElement.getNodesBetweenConditionAndBody();
         nodesBetweenConditionAndSecondBranch = iterationElement.getNodesBetweenConditionAndExit();
       } else {
