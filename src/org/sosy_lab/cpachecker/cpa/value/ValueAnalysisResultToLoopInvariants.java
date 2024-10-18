@@ -1390,6 +1390,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
   private static class TwoVariableArithmeticInvariant extends CandidateInvariant {
     // TODO currently use Java semantics during computation
+    // construct C expressions and evaluate?
     private final MemoryLocation var1;
     private final MemoryLocation var2;
     private final boolean isFloatingPoint;
