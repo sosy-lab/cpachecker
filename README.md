@@ -11,8 +11,9 @@ SPDX-License-Identifier: Apache-2.0
 Getting Started with CPAchecker
 ===============================
 
-Installation Instructions:  [`INSTALL.md`](INSTALL.md)  
-Develop and Contribute:     [`doc/Developing.md`](doc/Developing.md)
+- [Installation Instructions](INSTALL.md)
+- [Contribution Guidelines](CONTRIBUTING.md)
+- [Development Instructions](doc/Developing.md)
 
 More documentation can be found in the [`doc/`](doc/) directory.
 
