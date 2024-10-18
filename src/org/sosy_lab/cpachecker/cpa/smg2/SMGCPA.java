@@ -92,9 +92,9 @@ public class SMGCPA
       secure = true,
       name = "merge",
       toUppercase = true,
-      values = "SEP",
+      values = {"SEP", "JOIN"},
       description = "which merge operator to use for the SMGCPA")
-  private String mergeType = "SEP";
+  private String mergeType = "JOIN";
 
   @Option(secure = true, description = "get an initial precision from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -225,7 +225,7 @@ public class SMGCPA
   public MergeOperator getMergeOperator() {
     return switch (mergeType) {
       case "SEP" -> MergeSepOperator.getInstance();
-      case "JOIN" -> new MergeJoinOperator(getAbstractDomain());
+      case "JOIN" -> new SMGMergeOperator(statistics);
       default -> throw new AssertionError("unknown mergetype for SMGCPA");
     };
   }
