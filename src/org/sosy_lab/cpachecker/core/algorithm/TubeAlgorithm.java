@@ -8,12 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm;
 
-
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -23,49 +21,43 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.tube.TubeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-
-import java.util.logging.Level;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * This class represents a TubeAlgorithm that performs additional operations on the reached set after running another algorithm.
+ * This class represents a TubeAlgorithm that performs additional operations on the reached set
+ * after running another algorithm.
  */
-
-
-public class TubeAlgorithm implements Algorithm{
-  /**
-   * A mapping of ARGState objects to their corresponding classification strings.
-   */
-  private Map<ARGState,String> stateClassification;
-  /**
-   * Represents an algorithm to be executed on a set of abstract states.
-   */
+public class TubeAlgorithm implements Algorithm {
+  /** Represents an algorithm to be executed on a set of abstract states. */
   private final Algorithm algorithm;
-  /**
-   * Represents a LogManager instance used for logging messages within the TubeAlgorithm class.
-   */
+
+  /** Represents a LogManager instance used for logging messages within the TubeAlgorithm class. */
   private final LogManager logger;
+
   /**
-   * Represents a Configurable Program Analysis that provides various components for static program analysis.
+   * Represents a Configurable Program Analysis that provides various components for static program
+   * analysis.
    *
-   * The ConfigurableProgramAnalysis interface contains methods to retrieve the abstract domain,
-   * transfer relation, merge operator, stop operator, as well as initial state and precision adjustment operators.
+   * <p>The ConfigurableProgramAnalysis interface contains methods to retrieve the abstract domain,
+   * transfer relation, merge operator, stop operator, as well as initial state and precision
+   * adjustment operators.
    */
   private final ConfigurableProgramAnalysis cpa;
+
   /**
-   * Initializes a TubeAlgorithm with the given Algorithm, ConfigurableProgramAnalysis, and LogManager.
+   * Initializes a TubeAlgorithm with the given Algorithm, ConfigurableProgramAnalysis, and
+   * LogManager.
    *
    * @param pAlgorithm The Algorithm to run before performing additional operations
    * @param pCPA The ConfigurableProgramAnalysis on which to operate
    * @param pLogger The LogManager for logging messages
    */
-  public TubeAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA, LogManager pLogger){
+  public TubeAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA, LogManager pLogger) {
     algorithm = pAlgorithm;
     cpa = pCPA;
     this.logger = pLogger;
-    this.stateClassification = new HashMap<>();
   }
 
   /**
@@ -81,12 +73,13 @@ public class TubeAlgorithm implements Algorithm{
   }
 
   /**
-   * Runs the algorithm on the given reached set and classifies the states within it as negated or not negated,
-   * based on specific criteria. Then, determines if the classification is sound and/or under approximation
-   * and logs the result accordingly.
+   * Runs the algorithm on the given reached set and classifies the states within it as negated or
+   * not negated, based on specific criteria. Then, determines if the classification is sound and/or
+   * under approximation and logs the result accordingly.
    *
    * @param reachedSet The set of states to run the algorithm on
-   * @return The status of the algorithm execution, indicating the soundness and precision of the results
+   * @return The status of the algorithm execution, indicating the soundness and precision of the
+   *     results
    * @throws CPAException If an error occurs during the analysis
    * @throws InterruptedException If the analysis is interrupted
    */
@@ -96,8 +89,11 @@ public class TubeAlgorithm implements Algorithm{
     Set<TubeState> negatedStates = new HashSet<>();
     Set<TubeState> notNegatedStates = new HashSet<>();
     for (AbstractState abstractState : reachedSet) {
-      if (((ARGState) abstractState).isTarget() || ((ARGState) abstractState).getChildren().isEmpty() && Objects.requireNonNull(
-          AbstractStates.extractLocation(abstractState)).getNumLeavingEdges() == 0) {
+      if (((ARGState) abstractState).isTarget()
+          || (((ARGState) abstractState).getChildren().isEmpty()
+              && Objects.requireNonNull(AbstractStates.extractLocation(abstractState))
+                      .getNumLeavingEdges()
+                  == 0)) {
         TubeState tubeState = AbstractStates.extractStateByType(abstractState, TubeState.class);
         assert tubeState != null;
         if (tubeState.getIsNegated()) {
@@ -111,19 +107,16 @@ public class TubeAlgorithm implements Algorithm{
     boolean isSound = negatedStates.stream().allMatch(s -> s.getErrorCounter() == 0);
     boolean isUnderApprox = notNegatedStates.stream().allMatch(s -> s.getErrorCounter() > 0);
 
-
-    if(isSound && isUnderApprox){
+    if (isSound && isUnderApprox) {
       logger.log(Level.INFO, "precise");
-    }else if(isSound){
+    } else if (isSound) {
       logger.log(Level.INFO, "over");
-    }else if(isUnderApprox){
+    } else if (isUnderApprox) {
       logger.log(Level.INFO, "under");
-    }else{
+    } else {
       logger.log(Level.INFO, "unclassified");
     }
 
     return status;
   }
-
-
 }

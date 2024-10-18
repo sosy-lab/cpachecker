@@ -37,92 +37,88 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+
 @Options(prefix = "tubeCPA")
 public class TubeCPA extends AbstractCPA {
-  /**
-   * Represents the path to a file containing tubes list.
-   */
-  @Option(
-      secure = true,
-      required = true,
-      description =
-          "List of files with tubes")
+  /** Represents the path to a file containing tubes list. */
+  @Option(secure = true, required = true, description = "List of files with tubes")
   @FileOption(Type.OUTPUT_FILE)
   private Path initialFile;
-  /**
-   * Private final variable that holds an instance of ObjectMapper.
-   */
+
+  /** Private final variable that holds an instance of ObjectMapper. */
   private final ObjectMapper om = new ObjectMapper();
-  /**
-   * Represents a LogManager object for handling logging functionalities.
-   */
+
+  /** Represents a LogManager object for handling logging functionalities. */
   private final LogManager logger;
-  /**
-   * Represents the Control Flow Automaton (CFA) associated with a program.
-   */
+
+  /** Represents the Control Flow Automaton (CFA) associated with a program. */
   private final CFA cfa;
 
   /**
-   * Represents a type handler for translating C types to formulas.
-   * This class provides methods for calculating the size and offset of types,
-   * as well as obtaining the pointer type for the given machine model.
+   * Represents a type handler for translating C types to formulas. This class provides methods for
+   * calculating the size and offset of types, as well as obtaining the pointer type for the given
+   * machine model.
    */
   CtoFormulaTypeHandler typeHandler;
+
   /**
-   * Represents a supplier function that accepts a FormulaManagerView and returns a CtoFormulaConverter.
+   * Represents a supplier function that accepts a FormulaManagerView and returns a
+   * CtoFormulaConverter.
    */
-  private  final Function<FormulaManagerView,CtoFormulaConverter> supplier;
-
-
-    /**
-     * Constructor for TubeCPA class.
-     *
-     * @param config the configuration for TubeCPA
-     * @param pLogger the logger for TubeCPA
-     * @param pShutdownNotifier the shutdown notifier for TubeCPA
-     * @param pCfa the CFA for TubeCPA
-     */
-    public TubeCPA(Configuration config, LogManager pLogger,ShutdownNotifier pShutdownNotifier, CFA pCfa) {
-        super("sep", "sep", new FlatLatticeDomain(), new TubeTransferRelation());
-        try {
-          config.inject(this);
-            this.logger = pLogger;
-            FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-            this.typeHandler = new CtoFormulaTypeHandler(pLogger, pCfa.getMachineModel());
-            supplier = formulaManager ->
-                    new CtoFormulaConverter(
-                            options,
-                            formulaManager,
-                            pCfa.getMachineModel(),
-                            pCfa.getVarClassification(),
-                            pLogger,
-                            pShutdownNotifier,
-                            typeHandler,
-                            AnalysisDirection.FORWARD);
-            this.cfa = pCfa;
-
-        } catch (InvalidConfigurationException pE) {
-            throw new RuntimeException(pE);
-        }
-    }
-
-    /**
-     * Parses a JSON file located at the given path and returns an ImmutableMap of integer keys and string values.
-     *
-     * @param jsonFilePath the path to the JSON file to be parsed
-     * @return an ImmutableMap containing integer keys and string values parsed from the JSON file
-     * @throws IOException if an error occurs during reading the JSON file
-     */
-    public ImmutableMap<Integer, String> parseJson(Path jsonFilePath) throws IOException {
-      TypeReference<Map<Integer, String>> typeRef = new TypeReference<Map<Integer, String>>() {};
-      Map<Integer, String> map = om.readValue(jsonFilePath.toFile(), typeRef);
-
-      return ImmutableMap.copyOf(map);
-    }
+  private final Function<FormulaManagerView, CtoFormulaConverter> supplier;
 
   /**
-   * Provides a factory method for creating instances of TubeCPAFactory.
-   * This method creates a new TubeCPAFactory instance with the analysis direction set to FORWARD.
+   * Constructor for TubeCPA class.
+   *
+   * @param config the configuration for TubeCPA
+   * @param pLogger the logger for TubeCPA
+   * @param pShutdownNotifier the shutdown notifier for TubeCPA
+   * @param pCfa the CFA for TubeCPA
+   */
+  public TubeCPA(
+      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa) {
+    super("sep", "sep", new FlatLatticeDomain(), new TubeTransferRelation());
+    try {
+      config.inject(this);
+      this.logger = pLogger;
+      FormulaEncodingOptions options = new FormulaEncodingOptions(config);
+      this.typeHandler = new CtoFormulaTypeHandler(pLogger, pCfa.getMachineModel());
+      supplier =
+          formulaManager ->
+              new CtoFormulaConverter(
+                  options,
+                  formulaManager,
+                  pCfa.getMachineModel(),
+                  pCfa.getVarClassification(),
+                  pLogger,
+                  pShutdownNotifier,
+                  typeHandler,
+                  AnalysisDirection.FORWARD);
+      this.cfa = pCfa;
+
+    } catch (InvalidConfigurationException pE) {
+      throw new RuntimeException(pE);
+    }
+  }
+
+  /**
+   * Parses a JSON file located at the given path and returns an ImmutableMap of integer keys and
+   * string values.
+   *
+   * @param jsonFilePath the path to the JSON file to be parsed
+   * @return an ImmutableMap containing integer keys and string values parsed from the JSON file
+   * @throws IOException if an error occurs during reading the JSON file
+   */
+  public ImmutableMap<Integer, String> parseJson(Path jsonFilePath) throws IOException {
+    TypeReference<Map<Integer, String>> typeRef = new TypeReference<Map<Integer, String>>() {};
+    Map<Integer, String> map = om.readValue(jsonFilePath.toFile(), typeRef);
+
+    return ImmutableMap.copyOf(map);
+  }
+
+  /**
+   * Provides a factory method for creating instances of TubeCPAFactory. This method creates a new
+   * TubeCPAFactory instance with the analysis direction set to FORWARD.
    *
    * @return a new TubeCPAFactory instance with analysis direction set to FORWARD
    */
@@ -139,7 +135,8 @@ public class TubeCPA extends AbstractCPA {
    * @param pCfa the CFA for TubeCPA
    * @return a new TubeCPA instance
    */
-  public static TubeCPA create(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA pCfa) {
+  public static TubeCPA create(
+      Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA pCfa) {
     return new TubeCPA(config, logger, pShutdownNotifier, pCfa);
   }
 
@@ -153,15 +150,15 @@ public class TubeCPA extends AbstractCPA {
    */
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
-          throws InterruptedException {
-      CFAEdge edge = node.getLeavingEdge(0);
-      ImmutableMap<Integer, String> asserts;
-      try {
-          asserts = parseJson(initialFile);
-      } catch (IOException e) {
-          asserts = ImmutableMap.of();
-          logger.log(Level.SEVERE, "An error occurred while parsing the JSON file", e);
-      }
-      return new TubeState(edge, asserts, null, false,0, supplier::apply, logger, cfa);
+      throws InterruptedException {
+    CFAEdge edge = node.getLeavingEdge(0);
+    ImmutableMap<Integer, String> asserts;
+    try {
+      asserts = parseJson(initialFile);
+    } catch (IOException e) {
+      asserts = ImmutableMap.of();
+      logger.log(Level.SEVERE, "An error occurred while parsing the JSON file", e);
+    }
+    return new TubeState(edge, asserts, null, false, 0, supplier, logger, cfa);
   }
 }

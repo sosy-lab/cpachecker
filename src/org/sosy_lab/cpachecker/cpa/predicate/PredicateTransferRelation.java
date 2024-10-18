@@ -436,6 +436,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     assert !oldElement.isAbstractionState();
     return mkNonAbstractionStateWithNewPathFormula(newPathFormula, oldElement);
   }
+
   private PredicateAbstractState strengthenSatCheck(PredicateAbstractState pElement, CFANode loc)
       throws SolverException, InterruptedException {
     logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");

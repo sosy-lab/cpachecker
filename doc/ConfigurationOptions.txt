@@ -60,7 +60,7 @@ rootDirectory = "."
 # SPDX-License-Identifier: Apache-2.0
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with ’,’ to seperate options. Optionname and value can
+# "Optionname=value" with â€™,â€™ to seperate options. Optionname and value can
 # be found in BtorOption or Boolector C Api.Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
@@ -159,7 +159,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+# SPDX-FileCopyrightText: 2014-2017 UniversitÃ© Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
@@ -2286,7 +2286,7 @@ cpa.predicate.blk.alwaysAtLoops = true
 
 # force abstractions at program exit (program end, abort, etc.), regardless
 # of threshold
-cpa.predicate.blk.alwaysAtProgramExit = false
+cpa.predicate.blk.alwaysAtProgramExit = true
 
 # abstractions at function calls/returns if threshold has been reached (no
 # effect if threshold = 0)
@@ -2785,7 +2785,7 @@ cpa.predicate.satCheck = 0
 # Enables sat checks at abstraction location.
 # Infeasible paths are already excluded by transfer relation and not later by
 # precision adjustment. This property is required in proof checking.
-cpa.predicate.satCheckAtAbstraction = false
+cpa.predicate.satCheckAtAbstraction = true
 
 # Call 'simplify' on generated formulas.
 cpa.predicate.simplifyGeneratedPathFormulas = false
@@ -5178,6 +5178,9 @@ traceformula.makeFlowSensitive = false
 # selector for equal statements (on the same line), set this option to true.
 # Note that enabling this option  also decreases the quality of results.
 traceformula.reduceSelectors = false
+
+# List of files with tubes
+tubeCPA.initialFile = no default value
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true

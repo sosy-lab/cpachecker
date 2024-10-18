@@ -1,5 +1,3 @@
-
-
 // This file is part of CPAchecker,
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
@@ -10,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.tube;
 
-
-
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -21,27 +17,19 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
-
-/**
- * A factory class for creating instances of TubeCPA.
- */
+/** A factory class for creating instances of TubeCPA. */
 class TubeCPAFactory extends AbstractCPAFactory {
 
   /**
-   * Enum that defines the analysis direction to be used in the software.
-   * It can be either FORWARD or BACKWARD direction.
+   * Enum that defines the analysis direction to be used in the software. It can be either FORWARD
+   * or BACKWARD direction.
    */
-
   private final AnalysisDirection analysisDirection;
 
-  /**
-   *
-   */
+  /** */
   private CFA cfa;
 
-
   /**
-   *
    * @param direction the analysis direction to be set for TubeCPAFactory
    */
   public TubeCPAFactory(AnalysisDirection direction) {
@@ -71,7 +59,6 @@ class TubeCPAFactory extends AbstractCPAFactory {
     return new TubeCPAFactory(AnalysisDirection.FORWARD);
   }
 
-
   /**
    * Creates an instance of ConfigurableProgramAnalysis using TubeCPA implementation.
    *
@@ -81,8 +68,8 @@ class TubeCPAFactory extends AbstractCPAFactory {
   @Override
   public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
     checkNotNull(cfa, "CFA instance needed to create LocationCPA");
-    return switch (analysisDirection){
-      case FORWARD ->  TubeCPA.create(getConfiguration(), getLogger(), getShutdownNotifier(), cfa);
+    return switch (analysisDirection) {
+      case FORWARD -> TubeCPA.create(getConfiguration(), getLogger(), getShutdownNotifier(), cfa);
       case BACKWARD -> null;
       default ->
           throw new AssertionError("AnalysisDirection " + analysisDirection + "does not exist");

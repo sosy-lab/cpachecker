@@ -200,11 +200,8 @@ public class CoreComponentsFactory {
       description = "restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
 
-  @Option(
-      secure = true,
-      description = "start the tube Algorithm to validate Tubes")
+  @Option(secure = true, description = "start the tube Algorithm to validate Tubes")
   private boolean useTubeAlgorithm = false;
-
 
   @Option(
       secure = true,
@@ -729,7 +726,7 @@ public class CoreComponentsFactory {
       if (useImportFaults) {
         algorithm = new FaultLocalizationByImport(config, algorithm, cfa, logger);
       }
-      if (useTubeAlgorithm){
+      if (useTubeAlgorithm) {
         algorithm = new TubeAlgorithm(algorithm, cpa, logger);
       }
     }

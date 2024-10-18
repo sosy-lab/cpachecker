@@ -8,22 +8,21 @@
 
 package org.sosy_lab.cpachecker.cpa.tube;
 
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 
 /**
- * This class represents information about reaching the start of a target tube in a control flow graph.
+ * This class represents information about reaching the start of a target tube in a control flow
+ * graph.
  */
 public class TubeEntryReachedTargetInformation implements TargetInformation {
 
-  /**
-   * Represents a control flow graph node in the context of reaching the start of a target tube.
-   */
+  /** Represents a control flow graph node in the context of reaching the start of a target tube. */
   private final CFANode node;
 
   /**
-   * Construct an object to store information about reaching the start of a target tube in a control flow graph.
+   * Construct an object to store information about reaching the start of a target tube in a control
+   * flow graph.
    *
    * @param pNode the CFANode that represents the start of the target tube
    */

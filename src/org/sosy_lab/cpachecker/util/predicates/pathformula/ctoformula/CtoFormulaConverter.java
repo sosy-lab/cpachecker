@@ -1724,6 +1724,7 @@ public class CtoFormulaConverter {
     return exp.accept(
         createCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
   }
+
   public final Formula buildTermForTubes(
       CRightHandSide exp,
       CFAEdge edge,
