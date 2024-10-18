@@ -76,10 +76,11 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       name = "bmc.loopBound",
       secure = true,
       description =
-          "Bound for the number of complete loop unrollings"
-              + " of the program. The bound has to be 0 or positive, while -1 is used for no bound."
-              + " Works only if the LoopBoundCPA and the assumption storage CPA is enabled. If the"
-              + " LoopBoundCPAs bound is set, it is ignored and overwritten by this bound! "
+          "Bound for the number of complete loop unrollings of the program. The bound has to be 0"
+              + " or positive. -1 sets no bound, meaning the LoopBoundCPAs bound"
+              + " (cpa.loopbound.maxLoopIterations) is used. Works only if the LoopBoundCPA and the"
+              + " assumption storage CPA is enabled. If the LoopBoundCPAs bound is set, it is"
+              + " ignored and overwritten by this bound in all cases but the default case! "
               + " (Default: -1)")
   private int loopBound = -1;
 
@@ -154,21 +155,24 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           "The BMC algorithm is used, but no loop-bound CPA is configured.");
     }
     final int initialLoopBoundCPABound = loopBoundingCPA.getMaxLoopIterations();
-    if (initialLoopBoundCPABound != 0) {
-      // Warning
-      pLogger.log(
-          Level.WARNING,
-          "Loop-bound set via non-BMC algorithm config. Please use option ’bmc.loopBound’."
-              + " Continuing with loop-bound set to "
-              + loopBound
-              + ".");
+    // The loop-bound should only change the LoopBoundCPA if it is specified,
+    //   otherwise we change existing configurations.
+    if (loopBound != -1) {
+      if (initialLoopBoundCPABound != 0) {
+        // Warning
+        pLogger.log(
+            Level.WARNING,
+            "Loop-bound set via non-BMC algorithm config. Please use option ’bmc.loopBound’."
+                + " Continuing with loop-bound set to "
+                + loopBound
+                + ".");
+      }
+      // The LoopBoundCPA aborts for the number given, but our BMC is defined such that this number
+      // must be included. See issue #1224 for more details.
+      // -1 for unbounded loop iterations in BMC is here set to 0, as 0 is used for unbounded loop
+      // iterations in the LoopBoundCPA
+      CPAs.retrieveCPA(pCPA, LoopIterationBounding.class).setMaxLoopIterations(loopBound + 1);
     }
-    // The LoopBoundCPA aborts for the number given, but our BMC is defined such that this number
-    // must
-    // be included. See issue #1224 for more details.
-    // -1 for unbounded loop iterations in BMC is here set to 0, as 0 is used for unbounded loop
-    // iterations in the LoopBoundCPA
-    CPAs.retrieveCPA(pCPA, LoopIterationBounding.class).setMaxLoopIterations(loopBound + 1);
   }
 
   @Override

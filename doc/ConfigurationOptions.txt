@@ -737,10 +737,11 @@ bmc.kinduction.reuse.pred.strategy = GLOBAL
              FUNCTION_AND_LOCAL]
 
 # Bound for the number of complete loop unrollings of the program. The bound
-# has to be 0 or positive, while -1 is used for no bound. Works only if the
-# LoopBoundCPA and the assumption storage CPA is enabled. If the
-# LoopBoundCPAs bound is set, it is ignored and overwritten by this bound! 
-# (Default: -1)
+# has to be 0 or positive. -1 sets no bound, meaning the LoopBoundCPAs bound
+# (cpa.loopbound.maxLoopIterations) is used. Works only if the LoopBoundCPA
+# and the assumption storage CPA is enabled. If the LoopBoundCPAs bound is
+# set, it is ignored and overwritten by this bound in all cases but the
+# default case!  (Default: -1)
 bmc.loopBound = -1
 
 # Propagates the interrupts of the invariant generator.
