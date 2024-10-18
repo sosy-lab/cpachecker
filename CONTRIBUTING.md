@@ -33,10 +33,11 @@ Commits
 - Split the commits into reasonable changesets.
 - Add meaningful commit messages that help other developers
   to understand what was done and (even more importantly!) *why* it was done.
-  This is especially important for revert commits
-  - do not just commit with the auto-generated commit message from git!
+  Please read [this post on how to write good commit messages](https://cbea.ms/git-commit/).
+  This is especially important for revert commits -
+  do not just commit with the auto-generated commit message from git!
 - Try to have separate commits for bugfixes, refactorings, and new code.
-- Make sure every commit is auto-formatted with [google-java-format](https://github.com/google/google-java-format/)
+- Make sure all committed code is auto-formatted with [google-java-format](https://github.com/google/google-java-format/)
   (install the respective plugin in your IDE!).
 
 Branches
@@ -45,14 +46,16 @@ Development is done in branches. Please follow these guidelines:
 
 - Give your branch a meaningful name that describes the project / goal of the branch.
   Your name should typically not be part of the branch name.
-  Include the issue number if one exists.
+  If an issue exists for your intended change,
+  consider creating the branch directly from the issue
+  or at least include the issue number in the branch name.
 
 - Keep each branch restricted to one specific set of changes,
   do not mix unrelated changes in a single branch.
 
 - While a branch exists, keep it close to the main branch,
   i.e., regularly merge the main branch into your branch.
-  This allows you to detect merge commits early
+  This allows you to detect merge conflicts early
   when it is often less effort to fix them.
 
 - Aim at integrating your branch into the main branch as soon as possible.
@@ -74,6 +77,6 @@ Development is done in branches. Please follow these guidelines:
   as long as it is approved by a core developer.
 
 - All branches are protected and force pushes are not allowed.
-  We clean up merged branches and delete them from time to time,
-  so please do not link to them from outside of the project,
+  We clean up merged branches and delete them from time to time.
+  So please do not link to them from outside of the project;
   use permalinks (with the git hash or a tag) instead.
