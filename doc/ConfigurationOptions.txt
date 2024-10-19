@@ -1858,7 +1858,7 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
-cpa.functionpointer.trackInvalidFunctionPointers = false
+cpa.functionpointer.trackInvalidFunctionPointers = true
 
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
