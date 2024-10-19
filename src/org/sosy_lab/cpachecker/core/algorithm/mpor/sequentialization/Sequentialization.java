@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
@@ -257,9 +258,8 @@ public class Sequentialization {
       CIntegerLiteralExpression threadId =
           SeqIntegerLiteralExpression.buildIntLiteralExpr(thread.id);
       CBinaryExpression nextThreadNotId =
-          MPORAlgorithm.getBinaryExpressionBuilder()
-              .buildBinaryExpression(
-                  SeqIdExpression.NEXT_THREAD, threadId, BinaryOperator.NOT_EQUALS);
+          SeqBinaryExpression.buildBinaryExpression(
+              SeqIdExpression.NEXT_THREAD, threadId, BinaryOperator.NOT_EQUALS);
       rExpressions.put(thread.id, nextThreadNotId);
     }
     return rExpressions.buildOrThrow();

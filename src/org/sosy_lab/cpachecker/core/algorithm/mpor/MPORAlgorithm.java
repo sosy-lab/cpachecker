@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -49,6 +48,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqStringLiteralExpression;
@@ -110,7 +110,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     Path inputFilePath = inputCfa.getFileNames().get(0);
     SequentializationWriter writer = new SequentializationWriter(logger, inputFilePath);
     CFunctionCallExpression seqErrorCall = getSeqErrorCall(writer.outputFileName, -1);
-    // TODO create a separate class holding all static values that are not final?
     Sequentialization.setSeqError(seqErrorCall.toASTString());
     writer.write(seq.generateProgram(substitutions));
 
@@ -439,7 +438,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     threads = getThreads(inputCfa, funcCallMap);
 
     ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
-    setBinaryExpressionBuilder(new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger));
+    SeqBinaryExpression.setBinaryExpressionBuilder(
+        new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger));
     substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads);
 
     seq = new Sequentialization(threads.size());
@@ -697,18 +697,5 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     throw new IllegalArgumentException("pThreads does not contain the main thread");
-  }
-
-  // Static Variable Setters / Getters ===========================================================
-
-  public static CBinaryExpressionBuilder getBinaryExpressionBuilder() {
-    checkArgument(binExprBuilder != null, "binExprBuilder was not initialized yet");
-    return binExprBuilder;
-  }
-
-  public static void setBinaryExpressionBuilder(CBinaryExpressionBuilder pBinExprBuilder) {
-    checkNotNull(pBinExprBuilder);
-    checkArgument(binExprBuilder == null, "binExprBuilder was initialized already");
-    binExprBuilder = pBinExprBuilder;
   }
 }

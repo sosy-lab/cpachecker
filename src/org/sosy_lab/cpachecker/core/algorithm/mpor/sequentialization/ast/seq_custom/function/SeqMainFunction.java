@@ -23,11 +23,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
@@ -125,9 +125,8 @@ public class SeqMainFunction implements SeqFunction {
           SeqIntegerLiteralExpression.buildIntLiteralExpr(thread.id);
       try {
         CBinaryExpression nextThreadEquals =
-            MPORAlgorithm.getBinaryExpressionBuilder()
-                .buildBinaryExpression(
-                    SeqIdExpression.NEXT_THREAD, threadId, BinaryOperator.EQUALS);
+            SeqBinaryExpression.buildBinaryExpression(
+                SeqIdExpression.NEXT_THREAD, threadId, BinaryOperator.EQUALS);
         // first switch case: use "if", otherwise "else if"
         SeqControlFlowStatementType stmtType =
             i == 0 ? SeqControlFlowStatementType.IF : SeqControlFlowStatementType.ELSE_IF;
@@ -204,14 +203,12 @@ public class SeqMainFunction implements SeqFunction {
     ImmutableList.Builder<SeqExpression> rParams = ImmutableList.builder();
     rParams.add(
         new SeqLogicalAndExpression(
-            MPORAlgorithm.getBinaryExpressionBuilder()
-                .buildBinaryExpression(
-                    SeqIntegerLiteralExpression.INT_0,
-                    SeqIdExpression.NEXT_THREAD,
-                    BinaryOperator.LESS_EQUAL),
-            MPORAlgorithm.getBinaryExpressionBuilder()
-                .buildBinaryExpression(
-                    SeqIdExpression.NEXT_THREAD, numThreads, BinaryOperator.LESS_THAN)));
+            SeqBinaryExpression.buildBinaryExpression(
+                SeqIntegerLiteralExpression.INT_0,
+                SeqIdExpression.NEXT_THREAD,
+                BinaryOperator.LESS_EQUAL),
+            SeqBinaryExpression.buildBinaryExpression(
+                SeqIdExpression.NEXT_THREAD, numThreads, BinaryOperator.LESS_THAN)));
     return rParams.build();
   }
 
@@ -219,11 +216,10 @@ public class SeqMainFunction implements SeqFunction {
     ImmutableList.Builder<SeqExpression> rParams = ImmutableList.builder();
     rParams.add(
         new CToSeqExpression(
-            MPORAlgorithm.getBinaryExpressionBuilder()
-                .buildBinaryExpression(
-                    SeqExpressions.buildPcSubscriptExpr(SeqIdExpression.NEXT_THREAD),
-                    SeqIntegerLiteralExpression.INT_EXIT_PC,
-                    BinaryOperator.NOT_EQUALS)));
+            SeqBinaryExpression.buildBinaryExpression(
+                SeqExpressions.buildPcSubscriptExpr(SeqIdExpression.NEXT_THREAD),
+                SeqIntegerLiteralExpression.INT_EXIT_PC,
+                BinaryOperator.NOT_EQUALS)));
     return rParams.build();
   }
 }

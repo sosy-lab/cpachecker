@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 
@@ -85,8 +85,7 @@ public class CSimpleDeclarationSubstitution implements Substitution {
       // only create a new expression if any operand was substituted (compare references)
       if (op1 != binExpr.getOperand1() || op2 != binExpr.getOperand2()) {
         try {
-          return MPORAlgorithm.getBinaryExpressionBuilder()
-              .buildBinaryExpression(op1, op2, binExpr.getOperator());
+          return SeqBinaryExpression.buildBinaryExpression(op1, op2, binExpr.getOperator());
         } catch (UnrecognizedCodeException e) {
           // "convert" exception -> no UnrecognizedCodeException in signature
           throw new RuntimeException(e);

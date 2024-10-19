@@ -8,9 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -27,8 +33,27 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDecl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqExpressions {
+
+  public static class SeqBinaryExpression {
+
+    private static CBinaryExpressionBuilder binExprBuilder = null;
+
+    public static CBinaryExpression buildBinaryExpression(
+        CExpression pOperand1, CExpression pOperand2, BinaryOperator pOperator)
+        throws UnrecognizedCodeException {
+
+      return binExprBuilder.buildBinaryExpression(pOperand1, pOperand2, pOperator);
+    }
+
+    public static void setBinaryExpressionBuilder(CBinaryExpressionBuilder pBinExprBuilder) {
+      checkNotNull(pBinExprBuilder);
+      checkArgument(binExprBuilder == null, "binExprBuilder was initialized already");
+      binExprBuilder = pBinExprBuilder;
+    }
+  }
 
   public static class SeqIntegerLiteralExpression {
 
