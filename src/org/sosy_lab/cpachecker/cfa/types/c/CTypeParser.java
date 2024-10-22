@@ -46,9 +46,6 @@ public class CTypeParser {
 
   private static CType parsePointerType(String input) {
     String content = extractInnerContent(input, "PointerType(");
-    if (content.equals("AlreadyVisitedType")) {
-      return CPointerType.POINTER_TO_VOID;
-    }
     List<String> parts = splitIgnoringNestedCommas(content);
 
     boolean isConst = Boolean.parseBoolean(parts.get(0));
@@ -113,8 +110,6 @@ public class CTypeParser {
     String name = parts.get(3);
     String origName = parts.get(4);
 
-    // check for complextype kind (STRUCT or UNION) and handle accordingly
-
     return new CElaboratedType(isConst, isVolatile, kind, name, origName, null);
   }
 
@@ -164,69 +159,35 @@ public class CTypeParser {
     String name = parts.get(3);
     String origName = parts.get(4);
 
-    // check for complextype kind (STRUCT or UNION) and handle accordingly
-
-    List<CCompositeType.CCompositeTypeMemberDeclaration> members = null;
-    if (parts.size() > 5 && !parts.get(5).equals("null")) {
-      members = new ArrayList<>();
-      String membersContent = parts.get(5).substring(1, parts.get(5).length() - 1);
-      List<String> memberStrings = splitIgnoringNestedCommas(membersContent);
-      for (String memberString : memberStrings) {
-        List<String> memberParts = new ArrayList<>();
-        int lastColonIndex = memberString.lastIndexOf(':');
-
-        if (lastColonIndex != -1) {
-          memberParts.add(memberString.substring(0, lastColonIndex).trim());
-          memberParts.add(memberString.substring(lastColonIndex + 1).trim());
-        } else {
-          throw new IllegalArgumentException("No colon found in member string: " + memberString);
-        }
-        CType memberType = parse(memberParts.get(0));
-        String memberName = memberParts.get(1);
-
-        members.add(new CCompositeType.CCompositeTypeMemberDeclaration(memberType, memberName));
-      }
-    }
-    return new CCompositeType(isConst, isVolatile, kind, members, name, origName);
+    return new CCompositeType(isConst, isVolatile, kind, name, origName);
   }
 
   private static CType parseEnumType(String input) {
     String content = extractInnerContent(input, "EnumType(");
     List<String> parts = splitIgnoringNestedCommas(content);
-
     boolean isConst = Boolean.parseBoolean(parts.get(0));
     boolean isVolatile = Boolean.parseBoolean(parts.get(1));
-    CSimpleType enumCompatibleType = (CSimpleType) parseSimpleType(parts.get(2));
-
-    String name = parts.get(4);
-    String originName = parts.get(5).equals("null") ? "" : parts.get(5);
-
-    String enumeratorsPart = parts.get(3);
+    String name = parts.get(2);
+    String origName = parts.get(3);
     List<CEnumerator> enumerators = new ArrayList<>();
-
-    if (enumeratorsPart.startsWith("[") && enumeratorsPart.endsWith("]")) {
-      String enumeratorsContent = enumeratorsPart.substring(1, enumeratorsPart.length() - 1);
-
-      if (!enumeratorsContent.isEmpty()) {
-        List<String> enumeratorStrings = splitIgnoringNestedCommas(enumeratorsContent);
-
-        for (String enumStr : enumeratorStrings) {
-          List<String> enumParts = Splitter.on("=").trimResults().splitToList(enumStr);
-
-          String enumeratorName = enumParts.get(0);
-          long value = Long.parseLong(enumParts.get(1));
-
-          enumerators.add(
-              new CEnumerator(
-                  FileLocation.DUMMY,
-                  enumeratorName,
-                  name + "::" + enumeratorName,
-                  BigInteger.valueOf(value)));
-        }
-      }
+    for (String enumStr :
+        splitIgnoringNestedCommas(parts.get(4).substring(1, parts.get(4).length() - 1))) {
+      List<String> enumParts = Splitter.on(" = ").splitToList(enumStr);
+      String enumeratorName = enumParts.get(0).trim();
+      long value = Long.parseLong(enumParts.get(1).trim());
+      enumerators.add(
+          new CEnumerator(
+              FileLocation.DUMMY,
+              enumeratorName,
+              name + "::" + enumeratorName,
+              BigInteger.valueOf(value)));
     }
 
-    return new CEnumType(isConst, isVolatile, enumCompatibleType, enumerators, name, originName);
+    CSimpleType enumCompatibleType =
+        new CSimpleType(
+            false, false, CBasicType.INT, false, false, false, false, false, false, false);
+
+    return new CEnumType(isConst, isVolatile, enumCompatibleType, enumerators, name, origName);
   }
 
   private static List<String> splitIgnoringNestedCommas(String input) {

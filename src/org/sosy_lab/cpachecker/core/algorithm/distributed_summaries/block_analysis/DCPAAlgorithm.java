@@ -224,16 +224,18 @@ public class DCPAAlgorithm {
 
     // Create new invariantsState which joins all invariantsStates of the blockEnds
     InvariantsCPA invariantsCPA = CPAs.retrieveCPA(dcpa.getCPA(), InvariantsCPA.class);
-    InvariantsState joinedInvariantsState =
-        (InvariantsState)
-            invariantsCPA.getInitialState(
-                block.getLast(), StateSpacePartition.getDefaultPartition());
-    for (InvariantsState invariantState :
-        FluentIterable.from(blockEnds)
-            .transform(b -> AbstractStates.extractStateByType(b, InvariantsState.class))) {
-      joinedInvariantsState = joinedInvariantsState.join(invariantState);
+    InvariantsState joinedInvariantsState = null;
+    if (invariantsCPA != null) {
+      joinedInvariantsState =
+          (InvariantsState)
+              invariantsCPA.getInitialState(
+                  block.getLast(), StateSpacePartition.getDefaultPartition());
+      for (InvariantsState invariantState :
+          FluentIterable.from(blockEnds)
+              .transform(b -> AbstractStates.extractStateByType(b, InvariantsState.class))) {
+        joinedInvariantsState = joinedInvariantsState.join(invariantState);
+      }
     }
-
     List<AbstractState> curr = new ArrayList<>();
     for (AbstractState wrappedState :
         Objects.requireNonNull(AbstractStates.extractStateByType(start, CompositeState.class))
@@ -241,7 +243,9 @@ public class DCPAAlgorithm {
       if (wrappedState instanceof PredicateAbstractState) {
         curr.add(state);
       } else if (wrappedState instanceof InvariantsState) {
-        curr.add(joinedInvariantsState);
+        if (joinedInvariantsState != null) {
+          curr.add(joinedInvariantsState);
+        }
       } else {
         curr.add(wrappedState);
       }

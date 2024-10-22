@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow;
 
-import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
@@ -25,7 +23,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class DistributedDataFlowAnalysisCPA
@@ -35,15 +32,12 @@ public class DistributedDataFlowAnalysisCPA
   private final SerializeOperator serializeOperator;
   private final DeserializeOperator deserializeOperator;
   private final BlockNode blockNode;
-  private final Map<MemoryLocation, CType> variableTypes;
 
   public DistributedDataFlowAnalysisCPA(InvariantsCPA pInvariantsCPA, BlockNode pNode, CFA pCFA) {
     invariantsCPA = pInvariantsCPA;
     blockNode = pNode;
-    variableTypes = invariantsCPA.getAllVariableTypes();
     serializeOperator = new SerializeDataflowAnalysisStateOperator();
-    deserializeOperator =
-        new DeserializeDataflowAnalysisStateOperator(invariantsCPA, pCFA, pNode, variableTypes);
+    deserializeOperator = new DeserializeDataflowAnalysisStateOperator(invariantsCPA, pCFA, pNode);
   }
 
   @Override
