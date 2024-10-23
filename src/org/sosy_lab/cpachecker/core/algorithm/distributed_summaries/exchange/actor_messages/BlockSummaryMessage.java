@@ -411,7 +411,9 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
       pJsonGenerator.writeNumberField("targetNodeNumber", pMessage.getTargetNodeNumber());
       pJsonGenerator.writeStringField("type", pMessage.getType().name());
       pJsonGenerator.writeStringField("payload", pMessage.getPayload().toJSONString());
-      pJsonGenerator.writeStringField("timestamp", timestampAsString);
+      if (timestampAsString != null) {
+        pJsonGenerator.writeStringField("timestamp", timestampAsString);
+      }
       pJsonGenerator.writeEndObject();
     }
   }
