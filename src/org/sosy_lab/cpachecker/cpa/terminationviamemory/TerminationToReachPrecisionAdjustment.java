@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.base.Function;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -89,7 +89,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         boolean isTargetStateReachable = false;
         BooleanFormula targetFormula =
             buildCycleFormula(
-                buildFullPathFormula(terminationState.getPathFormulas()),
+                terminationState.getPathFormulas(),
                 terminationState.getStoredValues().get(locationState),
                 ssaMap,
                 i);
@@ -126,17 +126,18 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   }
 
   private BooleanFormula buildCycleFormula(
-      BooleanFormula pFullPathFormula,
+      List<BooleanFormula> pFullPathFormula,
       List<BooleanFormula> storedValues,
       SSAMap pSSAMap,
       int pSSAIndex) {
-    BooleanFormula cycle = pFullPathFormula;
-    BooleanFormula extendedFormula;
+    BooleanFormula prefix = bfmgr.and(pFullPathFormula.subList(0, pSSAIndex+1));
+    BooleanFormula cycle = bfmgr.and(pFullPathFormula.subList(pSSAIndex, pFullPathFormula.size()));
+    Set<BooleanFormula> extendedFormula = new HashSet<>();
+    BooleanFormula newAssignment;
 
-    cycle = bfmgr.and(cycle, storedValues.get(pSSAIndex));
     for (String variable : pSSAMap.allVariables()) {
       String newVariable = "__Q__" + variable;
-      extendedFormula =
+      newAssignment =
           fmgr.assignment(
               fmgr.makeVariable(
                   ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
@@ -146,13 +147,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                   ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
                   variable,
                   pSSAMap.getIndex(variable)));
-      cycle = bfmgr.and(cycle, extendedFormula);
+      extendedFormula.add(newAssignment);
     }
+    cycle = bfmgr.and(prefix, storedValues.get(pSSAIndex), cycle, bfmgr.and(extendedFormula));
     return cycle;
-  }
-
-  private BooleanFormula buildFullPathFormula(Set<BooleanFormula> pPathFormulas) {
-    List<BooleanFormula> formulas = new ArrayList<>(pPathFormulas);
-    return bfmgr.and(formulas);
   }
 }

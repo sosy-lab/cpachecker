@@ -36,12 +36,12 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private Map<LocationState, Integer> numberOfIterations;
 
   /** Stores assumptions from path formula after i iterations of the loop */
-  private Set<BooleanFormula> pathFormulaForIteration;
+  private List<BooleanFormula> pathFormulaForIteration;
 
   public TerminationToReachState(
       Map<LocationState, List<BooleanFormula>> pStoredValues,
       Map<LocationState, Integer> pNumberOfIterations,
-      Set<BooleanFormula> pPathFormulaForIteration) {
+      List<BooleanFormula> pPathFormulaForIteration) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
@@ -92,7 +92,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     pathFormulaForIteration.add(pPathFormula);
   }
 
-  public Set<BooleanFormula> getPathFormulas() {
+  public List<BooleanFormula> getPathFormulas() {
     return pathFormulaForIteration;
   }
 

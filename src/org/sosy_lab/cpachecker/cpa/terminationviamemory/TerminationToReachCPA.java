@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.ArrayList;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -103,7 +103,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new TerminationToReachState(new HashMap<>(), new HashMap<>(), new HashSet<>());
+    return new TerminationToReachState(new HashMap<>(), new HashMap<>(), new ArrayList<>());
   }
 
   @Override

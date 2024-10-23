@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -50,7 +51,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         new TerminationToReachState(
             new HashMap<>(terminationState.getStoredValues()),
             new HashMap<>(terminationState.getNumberOfIterationsMap()),
-            new HashSet<>(terminationState.getPathFormulas())));
+            new ArrayList<>(terminationState.getPathFormulas())));
   }
 
   @Override
