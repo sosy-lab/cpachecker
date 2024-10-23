@@ -55,7 +55,7 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
       return invariantsCPA.getInitialState(
           blockNode.getFirst(), StateSpacePartition.getDefaultPartition());
     }
-    String booleanFormulaString = (String) abstractStateOptional.get();
+    String booleanFormulaString = (String) abstractStateOptional.orElseThrow();
     BooleanFormula<CompoundInterval> booleanFormula =
         StringToBooleanFormulaParser.parseBooleanFormula(booleanFormulaString);
     AcceptSpecifiedVariableSelection<CompoundInterval> collectVarsVariableSelection =
