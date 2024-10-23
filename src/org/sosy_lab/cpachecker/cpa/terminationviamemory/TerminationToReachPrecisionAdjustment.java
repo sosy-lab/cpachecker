@@ -127,7 +127,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           // Fix-point check only in the largest unrolling
           if (i == terminationState.getNumberOfIterationsAtLoopHead(locationState) - 2
               && checkFixpoint(interpolant, terminationState.getPossibleTransitionInvariant())) {
-            Optional.of(result.withAction(Action.BREAK));
+            return Optional.of(result.withAction(Action.BREAK));
           }
           terminationState.widenPossibleTransitionInvariant(
               bfmgr.or(
@@ -143,7 +143,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       BooleanFormula pInterpolant,
       BooleanFormula pPossibleTransitionInvariant) {
     try {
-      return solver.implies(pPossibleTransitionInvariant, pInterpolant);
+      return solver.implies(pInterpolant, pPossibleTransitionInvariant);
     } catch(Exception e) {
       return false;
     }
