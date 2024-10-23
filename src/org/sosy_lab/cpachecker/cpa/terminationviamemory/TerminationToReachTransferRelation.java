@@ -51,7 +51,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         new TerminationToReachState(
             new HashMap<>(terminationState.getStoredValues()),
             new HashMap<>(terminationState.getNumberOfIterationsMap()),
-            new ArrayList<>(terminationState.getPathFormulas())));
+            new ArrayList<>(terminationState.getPathFormulas()),
+            terminationState.getPossibleTransitionInvariant()));
   }
 
   @Override
@@ -103,7 +104,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       extendedFormula =
           bfmgr.and(
               extendedFormula,
-              fmgr.assignment(
+              fmgr.makeEqual(
                   fmgr.makeVariable(
                       ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
                       newVariable,

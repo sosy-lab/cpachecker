@@ -38,15 +38,20 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   /** Stores assumptions from path formula after i iterations of the loop */
   private List<BooleanFormula> pathFormulaForIteration;
 
+  /** Tries to overapproximate possible transitions inside the loop to reach fixpoint faster */
+  private BooleanFormula possibleTransitionInvariant;
+
   public TerminationToReachState(
       Map<LocationState, List<BooleanFormula>> pStoredValues,
       Map<LocationState, Integer> pNumberOfIterations,
-      List<BooleanFormula> pPathFormulaForIteration) {
+      List<BooleanFormula> pPathFormulaForIteration,
+      BooleanFormula pPossibleTransitionInvariant) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
     pathFormulaForIteration = pPathFormulaForIteration;
     isTarget = false;
+    possibleTransitionInvariant = pPossibleTransitionInvariant;
   }
 
   public void increaseNumberOfIterationsAtLoopHead(LocationState pLoopHead) {
@@ -94,6 +99,12 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   public List<BooleanFormula> getPathFormulas() {
     return pathFormulaForIteration;
+  }
+
+  public BooleanFormula getPossibleTransitionInvariant() {return possibleTransitionInvariant; }
+
+  public void widenPossibleTransitionInvariant(BooleanFormula pNewFact) {
+    possibleTransitionInvariant = pNewFact;
   }
 
   public void makeTarget() {

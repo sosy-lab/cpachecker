@@ -24,7 +24,9 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class SerializationInfoStorage {
 
@@ -33,7 +35,9 @@ public class SerializationInfoStorage {
   private CFAInfo cfaInfo;
   private final AutomatonInfo automatonInfo = new AutomatonInfo();
   private FormulaManagerView predicateFormulaManagerView;
+  private PathFormulaManager predicatePathFormulaManager;
   private FormulaManagerView assumptionFormulaManagerView;
+  private Solver predicateSolver;
   private AbstractionManager absManager;
   private ApronManager apronManager;
   private LogManager apronLogger;
@@ -75,6 +79,8 @@ public class SerializationInfoStorage {
         } else if (c instanceof PredicateCPA predicateCPA) {
           info.absManager = predicateCPA.getAbstractionManager();
           info.predicateFormulaManagerView = predicateCPA.getSolver().getFormulaManager();
+          info.predicatePathFormulaManager = predicateCPA.getPathFormulaManager();
+          info.predicateSolver = predicateCPA.getSolver();
         } else if (c instanceof LocationCPA locationCPA) {
           info.cfaInfo.storeLocationStateFactory(locationCPA.getStateFactory());
         } else if (c instanceof LocationCPABackwards locationCPA) {
@@ -101,6 +107,14 @@ public class SerializationInfoStorage {
 
   public FormulaManagerView getPredicateFormulaManagerView() {
     return checkNotNull(predicateFormulaManagerView);
+  }
+
+  public PathFormulaManager getPredicatePathFormulaManager() {
+    return checkNotNull(predicatePathFormulaManager);
+  }
+
+  public Solver getPredicateSolver() {
+    return checkNotNull(predicateSolver);
   }
 
   public AbstractionManager getAbstractionManager() {

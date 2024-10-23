@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
@@ -54,7 +55,16 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       CFA pCFA)
       throws InvalidConfigurationException {
     super("sep", "sep", null);
-    Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
+    Solver solver;
+    PathFormulaManager pathFmgr;
+    try {
+      solver = SerializationInfoStorage.getInstance().getPredicateSolver();
+      pathFmgr = SerializationInfoStorage.getInstance().getPredicatePathFormulaManager();
+    } finally {
+      if (SerializationInfoStorage.isSet()) {
+        SerializationInfoStorage.clear();
+      }
+    }
     FormulaEncodingWithPointerAliasingOptions options =
         new FormulaEncodingWithPointerAliasingOptions(pConfiguration);
     statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA);
@@ -72,23 +82,9 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
             pShutdownNotifier,
             ctoFormulaTypeHandler,
             AnalysisDirection.FORWARD);
-    try {
-      FormulaManagerView predFmgr;
-      if (SerializationInfoStorage.isSet()) {
-        predFmgr = SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
-      } else {
-        // This should never be triggered because TerminationCPA can only run with predicateCPA
-        // and cpa.predicate.enableSharedInformation set to true.
-        predFmgr = fmgr;
-      }
-      precisionAdjustment =
-          new TerminationToReachPrecisionAdjustment(
-              solver, statistics, pCFA, bfmgr, fmgr, predFmgr, ctoFormulaConverter);
-    } finally {
-      if (SerializationInfoStorage.isSet()) {
-        SerializationInfoStorage.clear();
-      }
-    }
+    precisionAdjustment =
+        new TerminationToReachPrecisionAdjustment(
+            solver, statistics, pCFA, bfmgr, fmgr, pathFmgr, ctoFormulaConverter, pConfiguration, pShutdownNotifier, pLogger);
   }
 
   public static CPAFactory factory() {
@@ -103,7 +99,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new TerminationToReachState(new HashMap<>(), new HashMap<>(), new ArrayList<>());
+    return new TerminationToReachState(new HashMap<>(), new HashMap<>(), new ArrayList<>(), bfmgr.makeFalse());
   }
 
   @Override
