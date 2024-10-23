@@ -129,7 +129,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               && checkFixpoint(interpolant, terminationState.getPossibleTransitionInvariant())) {
             Optional.of(result.withAction(Action.BREAK));
           }
-          System.out.println(interpolant);
           terminationState.widenPossibleTransitionInvariant(
               bfmgr.or(
                   interpolant,
