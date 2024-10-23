@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ac
 
 import java.time.Instant;
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummarySerializeUtil;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -20,11 +21,27 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
   private final boolean first;
   private final String origin;
 
+  /**
+   * Creates a new instance of this object.
+   */
+  BlockSummaryErrorConditionMessage(
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
+      BlockSummaryMessagePayload pPayload) {
+    this(pUniqueBlockId, pTargetNodeNumber, pPayload, null);
+  }
+
+  /**
+   * Creates a new instance of this object.
+   *
+   * @deprecated for debug mode only. use {@link #BlockSummaryErrorConditionMessage(String, int, BlockSummaryMessagePayload)} instead.
+   */
+  @Deprecated
   BlockSummaryErrorConditionMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
       BlockSummaryMessagePayload pPayload,
-      Instant pInstant) {
+      @Nullable Instant pInstant) {
     super(MessageType.ERROR_CONDITION, pUniqueBlockId, pTargetNodeNumber, pPayload, pInstant);
     first = extractFlag(BlockSummaryMessagePayload.FIRST, false);
     origin = (String) getPayload().getOrDefault(BlockSummaryMessagePayload.ORIGIN, "");

@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Map.Entry;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 
 public class BlockSummaryStatisticsMessage extends BlockSummaryMessage {
@@ -53,8 +54,21 @@ public class BlockSummaryStatisticsMessage extends BlockSummaryMessage {
   protected BlockSummaryStatisticsMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
+      BlockSummaryMessagePayload pPayload) {
+    this(pUniqueBlockId, pTargetNodeNumber, pPayload, null);
+  }
+
+  /**
+   * Creates a new instance of this object.
+   *
+   * @deprecated for debug mode only. use {@link #BlockSummaryStatisticsMessage(String, int, BlockSummaryMessagePayload)} instead.
+   */
+  @Deprecated
+  protected BlockSummaryStatisticsMessage(
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
       BlockSummaryMessagePayload pPayload,
-      Instant pTimeStamp) {
+      @Nullable Instant pTimeStamp) {
     super(MessageType.STATISTICS, pUniqueBlockId, pTargetNodeNumber, pPayload, pTimeStamp);
   }
 
