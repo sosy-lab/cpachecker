@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages;
 
 import java.time.Instant;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 
@@ -19,8 +20,22 @@ public class BlockSummaryResultMessage extends BlockSummaryMessage {
   protected BlockSummaryResultMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
+      BlockSummaryMessagePayload pPayload) {
+    this(pUniqueBlockId, pTargetNodeNumber, pPayload, null);
+  }
+
+
+  /**
+   * Creates a new instance of this object.
+   *
+   * @deprecated for debug mode only. use {@link #BlockSummaryResultMessage(String, int, BlockSummaryMessagePayload)} instead.
+   */
+  @Deprecated
+  protected BlockSummaryResultMessage(
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
       BlockSummaryMessagePayload pPayload,
-      Instant pTimeStamp) {
+      @Nullable Instant pTimeStamp) {
     super(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, pPayload, pTimeStamp);
     result = Result.valueOf((String) getPayload().get(BlockSummaryMessagePayload.RESULT));
   }

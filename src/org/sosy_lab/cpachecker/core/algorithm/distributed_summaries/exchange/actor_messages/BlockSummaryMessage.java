@@ -28,6 +28,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
@@ -50,7 +51,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
 
   // forwards an immutable hashmap
   private final BlockSummaryMessagePayload payload;
-  private final Instant timestamp;
+  private final @Nullable Instant timestamp;
 
   /**
    * Messages transports information between different {@link
@@ -72,14 +73,41 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
       MessageType pType,
       String pUniqueBlockId,
       int pTargetNodeNumber,
+      BlockSummaryMessagePayload pPayload) {
+    this(pType, pUniqueBlockId, pTargetNodeNumber, pPayload, null);
+  }
+
+  /**
+   * Messages transports information between different {@link
+   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis}.
+   * Messages consist of four parts. The type decide which information is guaranteed to be part of
+   * the payload. The unique block id {@code pUniqueBlockId} stores the block id from which this
+   * message originates from. The target node number {@code pTargetNodeNumber} provides the unique
+   * id of a {@link org.sosy_lab.cpachecker.cfa.model.CFANode}. This id is only relevant for
+   * messages that actually trigger an analysis: {@link BlockSummaryPostConditionMessage}, {@link
+   * BlockSummaryErrorConditionMessage}. Finally, the payload contains a map of key-value pairs that
+   * transport arbitrary information.
+   *
+   * @param pType the type of the message
+   * @param pUniqueBlockId the id of the worker/block that sends this message
+   * @param pTargetNodeNumber the location from which this message originated from
+   * @param pPayload a map that will be transformed into JSON.
+   * @param pTimeStamp optional timestamp for the message. This field should only be used for debugging.
+   *
+   * @deprecated for debug mode only. use {@link #BlockSummaryMessage(MessageType, String, int, BlockSummaryMessagePayload)} instead
+   */
+  @Deprecated
+  protected BlockSummaryMessage(
+      MessageType pType,
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
       BlockSummaryMessagePayload pPayload,
-      Instant pTimeStamp) {
+      @Nullable Instant pTimeStamp) {
     targetNodeNumber = pTargetNodeNumber;
     type = pType;
     payload = pPayload;
     uniqueBlockId = pUniqueBlockId;
     timestamp = pTimeStamp;
-    // when the message was created
   }
 
   public final String getPayloadJSON(Predicate<String> pKeyFilter) throws IOException {
@@ -143,8 +171,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
             .addAllEntries(pPayload)
             .addEntry(BlockSummaryMessagePayload.REACHABLE, Boolean.toString(pReachable))
             .buildPayload();
-    return new BlockSummaryPostConditionMessage(
-        pUniqueBlockId, pTargetNodeNumber, newPayload, Instant.now());
+    return new BlockSummaryPostConditionMessage(pUniqueBlockId, pTargetNodeNumber, newPayload);
   }
 
   public static BlockSummaryMessage newErrorConditionMessage(
@@ -159,8 +186,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
             .addEntry(BlockSummaryMessagePayload.FIRST, Boolean.toString(pFirst))
             .addEntry(BlockSummaryMessagePayload.ORIGIN, pOrigin)
             .buildPayload();
-    return new BlockSummaryErrorConditionMessage(
-        pUniqueBlockId, pTargetNodeNumber, newPayload, Instant.now());
+    return new BlockSummaryErrorConditionMessage(pUniqueBlockId, pTargetNodeNumber, newPayload);
   }
 
   public static BlockSummaryMessage newErrorConditionUnreachableMessage(
@@ -171,8 +197,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
         BlockSummaryMessagePayload.builder()
             .addEntry(BlockSummaryMessagePayload.REASON, denied)
             .addEntry("readable", denied)
-            .buildPayload(),
-        Instant.now());
+            .buildPayload());
   }
 
   public static BlockSummaryMessage newResultMessage(
@@ -181,7 +206,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
         BlockSummaryMessagePayload.builder()
             .addEntry(BlockSummaryMessagePayload.RESULT, pResult.name())
             .buildPayload();
-    return new BlockSummaryResultMessage(pUniqueBlockId, pTargetNodeNumber, payload, Instant.now());
+    return new BlockSummaryResultMessage(pUniqueBlockId, pTargetNodeNumber, payload);
   }
 
   public static BlockSummaryMessage newErrorMessage(String pUniqueBlockId, Throwable pException) {
@@ -191,8 +216,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
         BlockSummaryMessagePayload.builder()
             .addEntry(
                 BlockSummaryMessagePayload.EXCEPTION, Throwables.getStackTraceAsString(pException))
-            .buildPayload(),
-        Instant.now());
+            .buildPayload());
   }
 
   public static BlockSummaryMessage newStatisticsMessage(
@@ -202,8 +226,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
         0,
         BlockSummaryMessagePayload.builder()
             .addEntry(BlockSummaryMessagePayload.STATS, pStats)
-            .buildPayload(),
-        Instant.now());
+            .buildPayload());
   }
 
   public String getBlockId() {
@@ -347,20 +370,21 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
           BlockSummaryMessagePayload.builder()
               .addEntriesFromJSON(node.get("payload").asText())
               .buildPayload();
-      Instant timestamp = Instant.parse(node.get("timestamp").asText());
+      // Messages may have a timestamp, but we only use that for debugging.
+      // So we do not need to deserialize that from existing JSONs.
 
       return switch (type) {
         case FOUND_RESULT ->
-            new BlockSummaryResultMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+            new BlockSummaryResultMessage(uniqueBlockId, nodeNumber, payload);
         case ERROR ->
-            new BlockSummaryExceptionMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+            new BlockSummaryExceptionMessage(uniqueBlockId, nodeNumber, payload);
         case ERROR_CONDITION_UNREACHABLE ->
             new BlockSummaryErrorConditionUnreachableMessage(
-                uniqueBlockId, nodeNumber, payload, timestamp);
+                uniqueBlockId, nodeNumber, payload);
         case ERROR_CONDITION ->
-            new BlockSummaryErrorConditionMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+            new BlockSummaryErrorConditionMessage(uniqueBlockId, nodeNumber, payload);
         case BLOCK_POSTCONDITION ->
-            new BlockSummaryPostConditionMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+            new BlockSummaryPostConditionMessage(uniqueBlockId, nodeNumber, payload);
         default -> throw new AssertionError("Unknown MessageType " + type);
       };
     }
@@ -380,12 +404,14 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
         JsonGenerator pJsonGenerator,
         SerializerProvider pSerializerProvider)
         throws IOException {
+      Instant timestamp = pMessage.getTimestamp();
+      String timestampAsString = timestamp == null ? null : timestamp.toString();
       pJsonGenerator.writeStartObject();
       pJsonGenerator.writeStringField("uniqueBlockId", pMessage.getUniqueBlockId());
       pJsonGenerator.writeNumberField("targetNodeNumber", pMessage.getTargetNodeNumber());
       pJsonGenerator.writeStringField("type", pMessage.getType().name());
       pJsonGenerator.writeStringField("payload", pMessage.getPayload().toJSONString());
-      pJsonGenerator.writeStringField("timestamp", pMessage.getTimestamp().toString());
+      pJsonGenerator.writeStringField("timestamp", timestampAsString);
       pJsonGenerator.writeEndObject();
     }
   }

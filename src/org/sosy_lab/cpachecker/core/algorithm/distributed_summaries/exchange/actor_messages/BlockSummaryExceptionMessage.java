@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages;
 
 import java.time.Instant;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 
 public class BlockSummaryExceptionMessage extends BlockSummaryMessage {
@@ -18,8 +19,21 @@ public class BlockSummaryExceptionMessage extends BlockSummaryMessage {
   protected BlockSummaryExceptionMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
+      BlockSummaryMessagePayload pPayload) {
+    this(pUniqueBlockId, pTargetNodeNumber, pPayload, null);
+  }
+
+  /**
+   * Creates a new instance of this object.
+   *
+   * @deprecated for debug mode only. use {@link #BlockSummaryExceptionMessage(String, int, BlockSummaryMessagePayload)} instead.
+   */
+  @Deprecated
+  protected BlockSummaryExceptionMessage(
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
       BlockSummaryMessagePayload pPayload,
-      Instant pTimeStamp) {
+      @Nullable Instant pTimeStamp) {
     super(MessageType.ERROR, pUniqueBlockId, pTargetNodeNumber, pPayload, pTimeStamp);
     if (!getPayload().containsKey(BlockSummaryMessagePayload.EXCEPTION)) {
       throw new AssertionError(
