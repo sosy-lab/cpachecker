@@ -92,9 +92,10 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
    * @param pUniqueBlockId the id of the worker/block that sends this message
    * @param pTargetNodeNumber the location from which this message originated from
    * @param pPayload a map that will be transformed into JSON.
-   * @param pTimeStamp optional timestamp for the message. This field should only be used for debugging.
-   *
-   * @deprecated for debug mode only. use {@link #BlockSummaryMessage(MessageType, String, int, BlockSummaryMessagePayload)} instead
+   * @param pTimeStamp optional timestamp for the message. This field should only be used for
+   *     debugging.
+   * @deprecated for debug mode only. use {@link #BlockSummaryMessage(MessageType, String, int,
+   *     BlockSummaryMessagePayload)} instead
    */
   @Deprecated
   protected BlockSummaryMessage(
@@ -374,13 +375,10 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
       // So we do not need to deserialize that from existing JSONs.
 
       return switch (type) {
-        case FOUND_RESULT ->
-            new BlockSummaryResultMessage(uniqueBlockId, nodeNumber, payload);
-        case ERROR ->
-            new BlockSummaryExceptionMessage(uniqueBlockId, nodeNumber, payload);
+        case FOUND_RESULT -> new BlockSummaryResultMessage(uniqueBlockId, nodeNumber, payload);
+        case ERROR -> new BlockSummaryExceptionMessage(uniqueBlockId, nodeNumber, payload);
         case ERROR_CONDITION_UNREACHABLE ->
-            new BlockSummaryErrorConditionUnreachableMessage(
-                uniqueBlockId, nodeNumber, payload);
+            new BlockSummaryErrorConditionUnreachableMessage(uniqueBlockId, nodeNumber, payload);
         case ERROR_CONDITION ->
             new BlockSummaryErrorConditionMessage(uniqueBlockId, nodeNumber, payload);
         case BLOCK_POSTCONDITION ->

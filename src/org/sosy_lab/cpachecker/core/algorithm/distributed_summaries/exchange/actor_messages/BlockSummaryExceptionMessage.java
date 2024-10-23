@@ -17,16 +17,15 @@ public class BlockSummaryExceptionMessage extends BlockSummaryMessage {
   private final String errorMessage;
 
   protected BlockSummaryExceptionMessage(
-      String pUniqueBlockId,
-      int pTargetNodeNumber,
-      BlockSummaryMessagePayload pPayload) {
+      String pUniqueBlockId, int pTargetNodeNumber, BlockSummaryMessagePayload pPayload) {
     this(pUniqueBlockId, pTargetNodeNumber, pPayload, null);
   }
 
   /**
    * Creates a new instance of this object.
    *
-   * @deprecated for debug mode only. use {@link #BlockSummaryExceptionMessage(String, int, BlockSummaryMessagePayload)} instead.
+   * @deprecated for debug mode only. use {@link #BlockSummaryExceptionMessage(String, int,
+   *     BlockSummaryMessagePayload)} instead.
    */
   @Deprecated
   protected BlockSummaryExceptionMessage(
