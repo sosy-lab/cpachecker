@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2024 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow;
 
 import com.google.common.base.Splitter;
@@ -47,7 +55,7 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
       return invariantsCPA.getInitialState(
           blockNode.getFirst(), StateSpacePartition.getDefaultPartition());
     }
-    String booleanFormulaString = (String) abstractStateOptional.get();
+    String booleanFormulaString = (String) abstractStateOptional.orElseThrow();
     BooleanFormula<CompoundInterval> booleanFormula =
         StringToBooleanFormulaParser.parseBooleanFormula(booleanFormulaString);
     AcceptSpecifiedVariableSelection<CompoundInterval> collectVarsVariableSelection =

@@ -1,4 +1,14 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2024 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.types.c;
+
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 
@@ -96,7 +106,7 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
 
   @Override
   public String visit(CProblemType pProblemType) {
-    return "ProblemType(" + pProblemType.toString() + ")";
+    return "ProblemType(" + pProblemType + ")";
   }
 
   @Override
@@ -149,7 +159,7 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
       enumerators.append(enumerator.toASTString()).append(", ");
     }
     String originName = pEnumType.getOrigName();
-    if (originName == null || originName.isEmpty()) {
+    if (isNullOrEmpty(originName)) {
       originName = "null";
     }
     if (enumerators.length() > 0) {
