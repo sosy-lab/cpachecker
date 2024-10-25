@@ -293,7 +293,9 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
    * with {@link org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget}.
    */
   private static FunctionPointerTarget abstractInvalidTarget(FunctionPointerTarget pTarget) {
-    return (pTarget instanceof InvalidTarget) ? UnknownTarget.getInstance() : pTarget;
+    return (pTarget instanceof InvalidTarget || pTarget instanceof NullTarget)
+        ? UnknownTarget.getInstance()
+        : pTarget;
   }
 
   /**
