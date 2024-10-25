@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.FunctionPointerTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.InvalidTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFunctionTarget;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NullTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -127,7 +129,9 @@ class ExpressionValueVisitor
 
   @Override
   public FunctionPointerTarget visit(CIntegerLiteralExpression pE) {
-    return InvalidTarget.getInstance();
+    return pE.getValue().equals(BigInteger.ZERO)
+        ? NullTarget.getInstance()
+        : InvalidTarget.getInstance();
   }
 
   @Override

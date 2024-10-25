@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.FunctionPointerTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.InvalidTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFunctionTarget;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NullTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -162,7 +163,8 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
           FunctionPointerTarget v2 = getValue(e.getOperand2(), newState);
           logger.log(Level.ALL, "Operand1 value is", v1);
           logger.log(Level.ALL, "Operand2 value is", v2);
-          if (v1 instanceof NamedFunctionTarget && v2 instanceof NamedFunctionTarget) {
+          if ((v1 instanceof NamedFunctionTarget && v2 instanceof NamedFunctionTarget)
+              || (v1 instanceof NullTarget && v2 instanceof NullTarget)) {
             boolean eq = v1.equals(v2);
             if (eq != a.getTruthAssumption()) {
               logger.log(Level.FINE, "Should not go by the edge", a);

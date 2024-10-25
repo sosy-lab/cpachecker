@@ -112,6 +112,32 @@ public class FunctionPointerState
     }
   }
 
+  public static final class NullTarget implements FunctionPointerTarget, Serializable {
+    @Serial private static final long serialVersionUID = 4816211908759149770L;
+    private static final NullTarget instance = new NullTarget();
+
+    private NullTarget() {}
+
+    @Override
+    public String toString() {
+      return "0";
+    }
+
+    public static NullTarget getInstance() {
+      return instance;
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      return pObj instanceof NullTarget;
+    }
+
+    @Override
+    public int hashCode() {
+      return toString().hashCode();
+    }
+  }
+
   public static class Builder {
 
     private final FunctionPointerState oldState;
