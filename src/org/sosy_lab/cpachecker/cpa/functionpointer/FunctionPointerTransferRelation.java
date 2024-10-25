@@ -305,7 +305,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
    * {@link FunctionPointerState}.
    */
   private FunctionPointerTarget maybeAbstractInvalidTarget(FunctionPointerTarget pTarget) {
-    return trackInvalidFunctionPointers ? abstractInvalidTarget(pTarget) : pTarget;
+    return !trackInvalidFunctionPointers ? abstractInvalidTarget(pTarget) : pTarget;
   }
 
   private void handleEdge(final FunctionPointerState.Builder newState, CFAEdge pCfaEdge)
