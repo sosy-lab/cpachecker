@@ -79,11 +79,13 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       secure = true,
       description =
           "Bound for the number of complete loop unrollings of the program. The bound has to be 0"
-              + " or positive. -1 sets no bound, meaning the LoopBoundCPAs bound"
-              + " (cpa.loopbound.maxLoopIterations) is used. Works only if the LoopBoundCPA and the"
-              + " assumption storage CPA is enabled. If the LoopBoundCPAs bound is set, it is"
-              + " ignored and overwritten by this bound in all cases but the default case! "
-              + " (Default: -1)")
+              + " or positive. The default value, -1, disables this option. The option"
+              + " cpa.loopbound.maxLoopIterations can not be used if this option is used. However,"
+              + " this option only works if the LoopBoundCPA and the assumption storage CPA is"
+              + " enabled. If you want to set a loop-bound in the LoopBoundCPA, use the default"
+              + " case of this option! The loop-bound set here is not equal to the same value in"
+              + " the LoopBoundCPA, but other LoopBoundCPA options effect the value set here as if"
+              + " they were set by the LoopBoundCPA.")
   private int loopBound = -1;
 
   // Option copied from PathChecker, keep in sync (and hopefully remove at some point)
@@ -138,14 +140,14 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     argWitnessExporter = new WitnessExporter(config, logger, specification, cfa);
 
-    overrideLoopBound(pCPA, pLogger);
+    overrideLoopBound(pCPA);
   }
 
   /**
    * Sets the loop bound in the LoopBoundCPA according to our BMC interpretation. See issue #1224
    * for more details.
    */
-  private void overrideLoopBound(ConfigurableProgramAnalysis pCPA, LogManager pLogger)
+  private void overrideLoopBound(ConfigurableProgramAnalysis pCPA)
       throws InvalidConfigurationException {
     if (loopBound == -1) {
       return;
@@ -156,16 +158,13 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           "The BMC algorithm is used with a loop-bound, but no loop-bounding CPA is configured.");
     }
     final int initialLoopBoundCPABound = loopBoundingCPA.getMaxLoopIterations();
-    // The loop-bound should only change the LoopBoundCPA if it is specified,
-    //   otherwise we change existing configurations.
+    // The loop-bound should only change the LoopBoundCPA if it is not set.
     if (initialLoopBoundCPABound != 0) {
-      // Warning
-      pLogger.log(
-          Level.WARNING,
-          "Loop-bound set via non-BMC algorithm config. Please use option ’bmc.loopBound’."
-              + " Continuing with loop-bound set to "
-              + loopBound
-              + ".");
+      throw new InvalidConfigurationException(
+          "The BMC algorithm is used with a loop-bound set via the bmc.loopBound option and another"
+              + " option setting the loop-bound (e.g. the LoopBoundCPA). This is not allowed."
+              + " Please remove other loop-bounds from this configuration if you want to use"
+              + " bmc.loopBound.");
     }
     // The LoopBoundCPA aborts for the number given, but our BMC is defined such that this number
     // must be included. See issue #1224 for more details.
