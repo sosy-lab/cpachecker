@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.FunctionPointerTarget;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.InvalidTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFunctionTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -37,12 +38,9 @@ class ExpressionValueVisitor
     implements CRightHandSideVisitor<FunctionPointerTarget, UnrecognizedCodeException> {
 
   private final FunctionPointerState.Builder state;
-  private final FunctionPointerTarget targetForInvalidPointers;
 
-  ExpressionValueVisitor(
-      FunctionPointerState.Builder pElement, FunctionPointerTarget pTargetForInvalidPointers) {
+  ExpressionValueVisitor(FunctionPointerState.Builder pElement) {
     state = pElement;
-    targetForInvalidPointers = pTargetForInvalidPointers;
   }
 
   @Override
@@ -119,26 +117,26 @@ class ExpressionValueVisitor
 
   @Override
   public FunctionPointerTarget visit(CCharLiteralExpression pE) {
-    return targetForInvalidPointers;
+    return InvalidTarget.getInstance();
   }
 
   @Override
   public FunctionPointerTarget visit(CFloatLiteralExpression pE) {
-    return targetForInvalidPointers;
+    return InvalidTarget.getInstance();
   }
 
   @Override
   public FunctionPointerTarget visit(CIntegerLiteralExpression pE) {
-    return targetForInvalidPointers;
+    return InvalidTarget.getInstance();
   }
 
   @Override
   public FunctionPointerTarget visit(CStringLiteralExpression pE) {
-    return targetForInvalidPointers;
+    return InvalidTarget.getInstance();
   }
 
   @Override
   public FunctionPointerTarget visit(CImaginaryLiteralExpression pE) {
-    return targetForInvalidPointers;
+    return InvalidTarget.getInstance();
   }
 }

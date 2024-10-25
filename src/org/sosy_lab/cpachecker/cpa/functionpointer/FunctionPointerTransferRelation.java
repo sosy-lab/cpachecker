@@ -73,8 +73,6 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
               + " find calls to such pointers")
   private boolean trackInvalidFunctionPointers = false;
 
-  private final FunctionPointerTarget invalidFunctionPointerTarget;
-
   @Option(
       secure = true,
       description =
@@ -95,9 +93,6 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       throws InvalidConfigurationException {
     config.inject(this);
     logger = new LogManagerWithoutDuplicates(pLogger);
-
-    invalidFunctionPointerTarget =
-        trackInvalidFunctionPointers ? InvalidTarget.getInstance() : UnknownTarget.getInstance();
 
     if (ignoreInvalidFunctionPointerCalls && !trackInvalidFunctionPointers) {
       throw new InvalidConfigurationException(
@@ -291,6 +286,26 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
+  /**
+   * Replaces {@link org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.InvalidTarget}
+   * with {@link org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget}.
+   */
+  private static FunctionPointerTarget abstractInvalidTarget(FunctionPointerTarget pTarget) {
+    return (pTarget instanceof InvalidTarget) ? UnknownTarget.getInstance() : pTarget;
+  }
+
+  /**
+   * Abstract{@link org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.InvalidTarget}
+   * to {@link org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget}, but
+   * only if {@link #trackInvalidFunctionPointers} is set to <code>true</code>.
+   *
+   * <p>Abstracting invalid targets to unknown targets allows us to skip these values later in the
+   * {@link FunctionPointerState}.
+   */
+  private FunctionPointerTarget maybeAbstractInvalidTarget(FunctionPointerTarget pTarget) {
+    return trackInvalidFunctionPointers ? abstractInvalidTarget(pTarget) : pTarget;
+  }
+
   private void handleEdge(final FunctionPointerState.Builder newState, CFAEdge pCfaEdge)
       throws CPATransferException {
 
@@ -360,7 +375,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     String name = decl.getQualifiedName();
 
     // get initial value
-    FunctionPointerTarget initialValue = invalidFunctionPointerTarget;
+    FunctionPointerTarget initialValue = maybeAbstractInvalidTarget(InvalidTarget.getInstance());
 
     if (decl.getInitializer() != null) {
       CInitializer init = decl.getInitializer();
@@ -426,13 +441,13 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // used to get value in caller context
-    ExpressionValueVisitor v = new ExpressionValueVisitor(pNewState, invalidFunctionPointerTarget);
+    ExpressionValueVisitor v = new ExpressionValueVisitor(pNewState);
 
     for (int i = 0; i < formalParams.size(); i++) {
       String paramName = formalParams.get(i).getQualifiedName();
       CExpression actualArgument = arguments.get(i);
 
-      FunctionPointerTarget target = actualArgument.accept(v);
+      FunctionPointerTarget target = maybeAbstractInvalidTarget(actualArgument.accept(v));
       pNewState.setTarget(paramName, target);
 
       // TODO only do this if declared type is function pointer?
@@ -511,7 +526,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
   private FunctionPointerTarget getValue(CRightHandSide exp, FunctionPointerState.Builder element)
       throws UnrecognizedCodeException {
-    return exp.accept(new ExpressionValueVisitor(element, invalidFunctionPointerTarget));
+    return maybeAbstractInvalidTarget(exp.accept(new ExpressionValueVisitor(element)));
   }
 
   static String arrayElementVariable(CArraySubscriptExpression exp) {
