@@ -313,7 +313,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     //  The location has to point to the beginning of a statement.'
     // Therefore, an assumption waypoint needs to point to the beginning of the statement before
     // which it is valid
-    for (CFAEdge edge : edges) {
+    for (CFAEdge edge : edges.subList(0, edges.size() - 1)) {
 
       List<WaypointRecord> waypoints =
           buildWaypoints(edge, edgeToAssumptions, astCFARelation, edgeToCurrentExpressionIndex);
