@@ -276,6 +276,24 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   /**
+   * Create a target waypoint for a specification violation for the given edge
+   *
+   * @param pEdge the edge whose execution violates the specification
+   * @return a target waypoint pointing to the location in which the specification was violated. For
+   *     example for the `unreach-call` specification this is the call statement and for the
+   *     `no-overflow` specification this is the full expression whose execution caused the
+   *     violation
+   */
+  private WaypointRecord targetWaypoint(CFAEdge pEdge) {
+    return new WaypointRecord(
+        WaypointRecord.WaypointType.TARGET,
+        WaypointRecord.WaypointAction.FOLLOW,
+        null,
+        LocationRecord.createLocationRecordAtStart(
+            pEdge.getFileLocation(), pEdge.getPredecessor().getFunctionName()));
+  }
+
+  /**
    * Export the given counterexample to the path as a Witness version 2.0
    *
    * @param pCex the counterexample to be exported
@@ -331,14 +349,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // segment point. Therefore instead of creating a location record the way as is for assumptions,
     // this needs to be done using another function
     CFAEdge lastEdge = edges.get(edges.size() - 1);
-    segments.add(
-        SegmentRecord.ofOnlyElement(
-            new WaypointRecord(
-                WaypointRecord.WaypointType.TARGET,
-                WaypointRecord.WaypointAction.FOLLOW,
-                null,
-                LocationRecord.createLocationRecordAtStart(
-                    lastEdge.getFileLocation(), lastEdge.getPredecessor().getFunctionName()))));
+    segments.add(SegmentRecord.ofOnlyElement(targetWaypoint(lastEdge)));
 
     exportEntries(
         new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments.build()), pPath);
