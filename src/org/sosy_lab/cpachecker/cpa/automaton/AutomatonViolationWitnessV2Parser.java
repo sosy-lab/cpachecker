@@ -199,7 +199,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       IterationElement iterationElement = optionalIterationStructure.orElseThrow();
       nodesCondition = iterationElement.getControllingExpressionNodes().toSet();
       nodesThenBranch = iterationElement.getNodesBetweenConditionAndBody();
-      nodesElseBranch = iterationElement.getNodesBetweenConditionAndBody();
+      nodesElseBranch = iterationElement.getNodesBetweenConditionAndExit();
     } else {
       throw new AssertionError("This should never happen");
     }
