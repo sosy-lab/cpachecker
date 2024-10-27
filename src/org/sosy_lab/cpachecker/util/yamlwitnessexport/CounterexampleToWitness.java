@@ -29,25 +29,19 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
@@ -311,62 +305,17 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
     Property property = properties.iterator().next();
     if (property instanceof CommonVerificationProperty verificationProperty) {
-      // TODO: Refactor code to make it easier to understand. But this may be difficult, since there
-      // are many cases to consider
       if (verificationProperty == CommonVerificationProperty.OVERFLOW) {
         // The target waypoint needs to point to the full expression which caused the overflow
-        FileLocation location;
-        if (pEdge instanceof AssumeEdge assumeEdge) {
-          // Find out the full expression encompassing the expression
-          Optional<IfElement> optionalIfElement =
-              pAstCfaRelation.getIfStructureForConditionEdge(assumeEdge);
-          Optional<IterationElement> optionalIterationElement =
-              pAstCfaRelation.getTightestIterationStructureForNode(assumeEdge.getPredecessor());
-          if (optionalIfElement.isPresent()) {
-            location = optionalIfElement.orElseThrow().getConditionElement().location();
-          } else if (optionalIterationElement.isPresent()) {
-            Optional<ASTElement> optionalControlExpression =
-                optionalIterationElement.orElseThrow().getControllingExpression();
-
-            // When checking overflows if the controlling expression caused the overflow, it must be
-            // present
-            location = optionalControlExpression.orElseThrow().location();
-          } else {
-            return defaultTargetWaypoint(pEdge);
-          }
-        } else if (pEdge instanceof CStatementEdge statementEdge) {
-          // This should only consist of expression statements
-          Verify.verify(statementEdge.getStatement() instanceof CExpressionStatement);
-          location = pEdge.getFileLocation();
-        } else if (pEdge instanceof CDeclarationEdge declarationEdge) {
-          // We need to find out the full expression inside the declaration
-          CDeclaration declaration = declarationEdge.getDeclaration();
-          if (declaration instanceof CVariableDeclaration variableDeclaration) {
-            location = variableDeclaration.getInitializer().getFileLocation();
-          } else {
-            return defaultTargetWaypoint(pEdge);
-          }
-        } else if (pEdge instanceof CReturnStatementEdge returnStatementEdge) {
-          // We need to find out the full expression inside the return statement
-          location =
-              returnStatementEdge
-                  .getReturnStatement()
-                  .getReturnValue()
-                  // If an overflow is occurring in a return statement, the return value must be
-                  // present
-                  .orElseThrow()
-                  .getFileLocation();
-
-        } else {
-          return defaultTargetWaypoint(pEdge);
-        }
+        FileLocation fullExpressionLocation =
+            CFAUtils.getClosestFullExpression(pEdge, pAstCfaRelation);
 
         return new WaypointRecord(
             WaypointRecord.WaypointType.TARGET,
             WaypointRecord.WaypointAction.FOLLOW,
             null,
             LocationRecord.createLocationRecordAtStart(
-                location, pEdge.getPredecessor().getFunctionName()));
+                fullExpressionLocation, pEdge.getPredecessor().getFunctionName()));
       } else {
         // This is well-defined for the reeachability property, for all others violation witnesses
         // are not really well-defined

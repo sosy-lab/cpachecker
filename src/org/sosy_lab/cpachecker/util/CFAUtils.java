@@ -16,6 +16,7 @@ import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.base.Predicates;
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -34,6 +35,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
@@ -73,9 +75,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -90,6 +94,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -112,11 +117,17 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.ast.ASTElement;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.IfElement;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 
 public class CFAUtils {
 
@@ -503,6 +514,63 @@ public class CFAUtils {
 
   public static Map<Integer, CFANode> getMappingFromNodeIDsToCFANodes(CFA pCfa) {
     return Maps.uniqueIndex(pCfa.nodes(), CFANode::getNodeNumber);
+  }
+
+  /**
+   * This method returns the closest full expression encompassing the expression in the given edge.
+   * This is only well-defined for edges in C programs. The closest full expression is defined as
+   * either the single full expression inside the edge, or the single full expression that contains
+   * the expression inside the edge. Sometimes the full expression is the edge itself.s
+   *
+   * @param pEdge The edge for which the closest full expression should be found
+   * @param pAstCfaRelation The relation between the AST and the CFA
+   * @return The closest full expression encompassing the expression in the given edge
+   */
+  public static FileLocation getClosestFullExpression(
+      CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
+
+    if (pEdge instanceof AssumeEdge assumeEdge) {
+      // Find out the full expression encompassing the expression
+      Optional<IfElement> optionalIfElement =
+          pAstCfaRelation.getIfStructureForConditionEdge(assumeEdge);
+      Optional<IterationElement> optionalIterationElement =
+          pAstCfaRelation.getTightestIterationStructureForNode(assumeEdge.getPredecessor());
+      if (optionalIfElement.isPresent()) {
+        return optionalIfElement.orElseThrow().getConditionElement().location();
+      } else if (optionalIterationElement.isPresent()) {
+        Optional<ASTElement> optionalControlExpression =
+            optionalIterationElement.orElseThrow().getControllingExpression();
+
+        // When checking overflows if the controlling expression caused the overflow, it must be
+        // present
+        return optionalControlExpression.orElseThrow().location();
+      } else {
+        return pEdge.getFileLocation();
+      }
+    } else if (pEdge instanceof CStatementEdge statementEdge) {
+      // This should only consist of expression statements
+      Verify.verify(statementEdge.getStatement() instanceof CExpressionStatement);
+      return pEdge.getFileLocation();
+    } else if (pEdge instanceof CDeclarationEdge declarationEdge) {
+      // We need to find out the full expression inside the declaration
+      CDeclaration declaration = declarationEdge.getDeclaration();
+      if (declaration instanceof CVariableDeclaration variableDeclaration) {
+        return variableDeclaration.getInitializer().getFileLocation();
+      } else {
+        return pEdge.getFileLocation();
+      }
+    } else if (pEdge instanceof CReturnStatementEdge returnStatementEdge) {
+      // We need to find out the full expression inside the return statement
+      return returnStatementEdge
+          .getReturnStatement()
+          .getReturnValue()
+          // If an overflow is occurring in a return statement, the return value must be
+          // present
+          .orElseThrow()
+          .getFileLocation();
+    }
+
+    return pEdge.getFileLocation();
   }
 
   /**
