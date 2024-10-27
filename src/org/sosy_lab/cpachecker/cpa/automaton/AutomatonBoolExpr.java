@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 
@@ -418,6 +419,56 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       return o instanceof CheckMatchesColumnAndLine c
           && columnToReach == c.columnToReach
           && lineNumber == c.lineNumber;
+    }
+  }
+
+  /**
+   * Checks if the current edge begins or ends at the given line and the column lies between the
+   * starting column of the edge and the column at which the edge ends.
+   */
+  public static class CheckClosestFullExpressionMatchesColumnAndLine implements AutomatonBoolExpr {
+    private final int columnToReach;
+    private final int lineNumber;
+    private final AstCfaRelation astCfaRelation;
+
+    public CheckClosestFullExpressionMatchesColumnAndLine(
+        int pColumn, int pLineNumber, AstCfaRelation pAstCfaRelation) {
+      columnToReach = pColumn;
+      lineNumber = pLineNumber;
+      astCfaRelation = pAstCfaRelation;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      CFAEdge edge = pArgs.getCfaEdge();
+
+      FileLocation fullExpressionLocation = CFAUtils.getClosestFullExpression(edge, astCfaRelation);
+      int edgeNodeStartingColumn = fullExpressionLocation.getStartColumnInLine();
+
+      if (fullExpressionLocation.getStartingLineInOrigin() == lineNumber
+          && edgeNodeStartingColumn == columnToReach) {
+        return CONST_TRUE;
+      }
+
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCHES(line = " + lineNumber + ", column = " + columnToReach + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return columnToReach;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckClosestFullExpressionMatchesColumnAndLine c
+          && columnToReach == c.columnToReach
+          && lineNumber == c.lineNumber
+          && astCfaRelation.equals(c.astCfaRelation);
     }
   }
 

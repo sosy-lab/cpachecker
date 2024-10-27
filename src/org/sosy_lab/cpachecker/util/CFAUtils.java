@@ -540,10 +540,11 @@ public class CFAUtils {
       } else if (optionalIterationElement.isPresent()) {
         Optional<ASTElement> optionalControlExpression =
             optionalIterationElement.orElseThrow().getControllingExpression();
-
-        // When checking overflows if the controlling expression caused the overflow, it must be
-        // present
-        return optionalControlExpression.orElseThrow().location();
+        if (optionalControlExpression.isPresent()) {
+          return optionalControlExpression.orElseThrow().location();
+        } else {
+          return pEdge.getFileLocation();
+        }
       } else {
         return pEdge.getFileLocation();
       }
@@ -555,19 +556,27 @@ public class CFAUtils {
       // We need to find out the full expression inside the declaration
       CDeclaration declaration = declarationEdge.getDeclaration();
       if (declaration instanceof CVariableDeclaration variableDeclaration) {
-        return variableDeclaration.getInitializer().getFileLocation();
+        if (variableDeclaration.getInitializer() != null) {
+          return variableDeclaration.getInitializer().getFileLocation();
+        } else {
+          // TODO: I am unsure what the full expression would be in this case, but for the current
+          //  use cases it works
+          return pEdge.getFileLocation();
+        }
       } else {
         return pEdge.getFileLocation();
       }
     } else if (pEdge instanceof CReturnStatementEdge returnStatementEdge) {
       // We need to find out the full expression inside the return statement
-      return returnStatementEdge
-          .getReturnStatement()
-          .getReturnValue()
-          // If an overflow is occurring in a return statement, the return value must be
-          // present
-          .orElseThrow()
-          .getFileLocation();
+      Optional<CExpression> optionalReturnValue =
+          returnStatementEdge.getReturnStatement().getReturnValue();
+      if (optionalReturnValue.isPresent()) {
+        return optionalReturnValue.orElseThrow().getFileLocation();
+      } else {
+        // TODO: I am unsure what the full expression would be in this case, but for the current
+        //  use cases it works
+        return pEdge.getFileLocation();
+      }
     }
 
     return pEdge.getFileLocation();
