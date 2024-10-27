@@ -16,7 +16,6 @@ import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.base.Predicates;
-import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -79,7 +78,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -548,9 +546,9 @@ public class CFAUtils {
       } else {
         return pEdge.getFileLocation();
       }
-    } else if (pEdge instanceof CStatementEdge statementEdge) {
-      // This should only consist of expression statements
-      Verify.verify(statementEdge.getStatement() instanceof CExpressionStatement);
+    } else if (pEdge instanceof CStatementEdge) {
+      // This is composed of function calls, assignment statements, and expression statements
+      // all of them are also full expressions
       return pEdge.getFileLocation();
     } else if (pEdge instanceof CDeclarationEdge declarationEdge) {
       // We need to find out the full expression inside the declaration
