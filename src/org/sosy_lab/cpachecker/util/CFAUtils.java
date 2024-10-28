@@ -522,9 +522,17 @@ public class CFAUtils {
    * <ul>
    *   <li>1. when the edge represents a statement, it is the full expression contained in the
    *       statement, of which only one exists. This may be the edge itself in the case of an
-   *       expression statement.
-   *   <li>2. when the edge is an expression, it is the smallest full expression that contains it
+   *       expression statement. For example if `return x > 0;` is represented by the edge we look
+   *       for `x > 0`
+   *   <li>2. when the edge is an expression, we look for the full expression that contains the
+   *       expression inside the edge in the original source code. This is where the pCfaAstRelation
+   *       comes into play. For example for example if `x > 0` is the expression of the edge and is
+   *       part of the condition in `while (y != 0 && x > 0)` and therefore not a full expression we
+   *       search for the full expression `y != 0 && x > 0` which contains it.
    * </ul>
+   *
+   * In summary, we either search for the full expression contained in the edge or for the full
+   * expression containing the expression of the edge.
    *
    * @param pEdge The edge for which the closest full expression should be found
    * @param pAstCfaRelation The relation between the AST and the CFA
