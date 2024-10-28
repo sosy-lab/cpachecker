@@ -308,7 +308,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       if (verificationProperty == CommonVerificationProperty.OVERFLOW) {
         // The target waypoint needs to point to the full expression which caused the overflow
         FileLocation fullExpressionLocation =
-            CFAUtils.getClosestFullExpression(pEdge, pAstCfaRelation);
+            CFAUtils.getClosestFullExpression(pEdge, pAstCfaRelation).orElseThrow();
 
         return new WaypointRecord(
             WaypointRecord.WaypointType.TARGET,

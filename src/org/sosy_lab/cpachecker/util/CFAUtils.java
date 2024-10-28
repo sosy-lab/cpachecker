@@ -539,7 +539,7 @@ public class CFAUtils {
    * @return The location of the closest full expression either encompassing the expression or
    *     contained in the statement represented by the given edge
    */
-  public static FileLocation getClosestFullExpression(
+  public static Optional<FileLocation> getClosestFullExpression(
       CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
 
     if (pEdge instanceof AssumeEdge assumeEdge) {
@@ -549,50 +549,49 @@ public class CFAUtils {
       Optional<IterationElement> optionalIterationElement =
           pAstCfaRelation.getTightestIterationStructureForNode(assumeEdge.getPredecessor());
       if (optionalIfElement.isPresent()) {
-        return optionalIfElement.orElseThrow().getConditionElement().location();
+        return Optional.of(optionalIfElement.orElseThrow().getConditionElement().location());
       } else if (optionalIterationElement.isPresent()) {
         Optional<ASTElement> optionalControlExpression =
             optionalIterationElement.orElseThrow().getControllingExpression();
         if (optionalControlExpression.isPresent()) {
-          return optionalControlExpression.orElseThrow().location();
+          return Optional.of(optionalControlExpression.orElseThrow().location());
         } else {
-          return pEdge.getFileLocation();
+          return Optional.of(pEdge.getFileLocation());
         }
       } else {
-        return pEdge.getFileLocation();
+        // This can only happen for trinary operators, which are an expression
+        return Optional.of(pEdge.getFileLocation());
       }
     } else if (pEdge instanceof CStatementEdge) {
       // This is composed of function calls, assignment statements, and expression statements
       // all of them are also full expressions
-      return pEdge.getFileLocation();
+      return Optional.of(pEdge.getFileLocation());
     } else if (pEdge instanceof CDeclarationEdge declarationEdge) {
       // We need to find out the full expression inside the declaration
       CDeclaration declaration = declarationEdge.getDeclaration();
       if (declaration instanceof CVariableDeclaration variableDeclaration) {
         if (variableDeclaration.getInitializer() != null) {
-          return variableDeclaration.getInitializer().getFileLocation();
+          return Optional.of(variableDeclaration.getInitializer().getFileLocation());
         } else {
-          // TODO: I am unsure what the full expression would be in this case, but for the current
-          //  use cases it works
-          return pEdge.getFileLocation();
+          return Optional.empty();
         }
       } else {
-        return pEdge.getFileLocation();
+        return Optional.empty();
       }
     } else if (pEdge instanceof CReturnStatementEdge returnStatementEdge) {
       // We need to find out the full expression inside the return statement
       Optional<CExpression> optionalReturnValue =
           returnStatementEdge.getReturnStatement().getReturnValue();
       if (optionalReturnValue.isPresent()) {
-        return optionalReturnValue.orElseThrow().getFileLocation();
+        return Optional.of(optionalReturnValue.orElseThrow().getFileLocation());
       } else {
         // TODO: I am unsure what the full expression would be in this case, but for the current
         //  use cases it works
-        return pEdge.getFileLocation();
+        return Optional.empty();
       }
     }
 
-    return pEdge.getFileLocation();
+    return Optional.empty();
   }
 
   /**

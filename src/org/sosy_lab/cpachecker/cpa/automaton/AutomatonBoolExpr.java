@@ -443,7 +443,13 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      FileLocation fullExpressionLocation = CFAUtils.getClosestFullExpression(edge, astCfaRelation);
+      Optional<FileLocation> optionalFullExpressionLocation =
+          CFAUtils.getClosestFullExpression(edge, astCfaRelation);
+      if (optionalFullExpressionLocation.isEmpty()) {
+        return CONST_FALSE;
+      }
+
+      FileLocation fullExpressionLocation = optionalFullExpressionLocation.orElseThrow();
       int edgeNodeStartingColumn = fullExpressionLocation.getStartColumnInLine();
 
       if (fullExpressionLocation.getStartingLineInOrigin() == lineNumber
