@@ -46,6 +46,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
 
   private final BooleanFormulaManager booleanFormulaManager;
   private final NumeralFormulaManager<? super T, T> numericFormulaManager;
+  private final NumeralFormulaManagerView<? super T, T> numericFormulaManagerView;
   private final UFManager functionManager;
   private final FunctionDeclaration<T> bitwiseAndUfDecl;
   private final FunctionDeclaration<T> bitwiseOrUfDecl;
@@ -67,14 +68,15 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   ReplaceBitvectorWithNumeralAndFunctionTheory(
       FormulaWrappingHandler pWrappingHandler,
       BooleanFormulaManager pBooleanFormulaManager,
-      NumeralFormulaManager<? super T, T> rawNumericFormulaManager,
+      NumeralFormulaManagerView<? super T, T> pNumericFormulaManagerView,
       UFManager rawFunctionManager,
       Configuration pConfig)
       throws InvalidConfigurationException {
     super(pWrappingHandler);
     pConfig.inject(this);
     booleanFormulaManager = pBooleanFormulaManager;
-    numericFormulaManager = rawNumericFormulaManager;
+    numericFormulaManagerView = pNumericFormulaManagerView;
+    numericFormulaManager = numericFormulaManagerView.numeralFormulaManager;
     functionManager = rawFunctionManager;
 
     formulaType = numericFormulaManager.getFormulaType();
@@ -207,7 +209,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return wrap(
         getFormulaType(pNumber1),
-        getC99ReplacementForSMTlib2Division(unwrap(pNumber1), unwrap(pNumber2)));
+        numericFormulaManagerView.cDivide(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @DoNotCall
@@ -237,31 +239,6 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     } else {
       return makeUf(getFormulaType(numerator), moduloUfDecl, numerator, denominator);
     }
-  }
-
-  /**
-   * @see BitvectorFormulaManagerView#divide(BitvectorFormula, BitvectorFormula, boolean)
-   */
-  private Formula getC99ReplacementForSMTlib2Division(final T f1, final T f2) {
-
-    final T zero = numericFormulaManager.makeNumber(0);
-    final T additionalUnit =
-        booleanFormulaManager.ifThenElse(
-            numericFormulaManager.greaterOrEquals(f2, zero),
-            numericFormulaManager.makeNumber(1),
-            numericFormulaManager.makeNumber(-1));
-    final T div = numericFormulaManager.divide(f1, f2);
-
-    // IF   first operand is positive or is divisible by second operand
-    // THEN return plain division --> here C99 is equal to SMTlib2
-    // ELSE divide and add an additional unit towards the nearest infinity.
-
-    return booleanFormulaManager.ifThenElse(
-        booleanFormulaManager.or(
-            numericFormulaManager.greaterOrEquals(f1, zero),
-            numericFormulaManager.equal(numericFormulaManager.multiply(div, f2), f1)),
-        div,
-        numericFormulaManager.add(div, additionalUnit));
   }
 
   @Override

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
@@ -18,7 +19,8 @@ public class RationalFormulaManagerView
     implements RationalFormulaManager {
   RationalFormulaManagerView(
       FormulaWrappingHandler pWrappingHandler,
-      NumeralFormulaManager<NumeralFormula, RationalFormula> pManager) {
-    super(pWrappingHandler, pManager);
+      NumeralFormulaManager<NumeralFormula, RationalFormula> pNumeralManager,
+      BooleanFormulaManager pBooleanFormulaManager) {
+    super(pWrappingHandler, pNumeralManager, pBooleanFormulaManager);
   }
 }

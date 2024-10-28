@@ -227,9 +227,9 @@ public class FormulaManagerView {
     functionFormulaManager =
         new FunctionFormulaManagerView(wrappingHandler, manager.getUFManager());
 
+    integerFormulaManager = createIntegerFormulaManager(intOptions);
     bitvectorFormulaManager = createBitvectorFormulaManager(config);
     floatingPointFormulaManager = createFloatingPointFormulaManager();
-    integerFormulaManager = createIntegerFormulaManager(intOptions);
 
     logInfo();
   }
@@ -294,14 +294,14 @@ public class FormulaManagerView {
                 new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
                     wrappingHandler,
                     manager.getBooleanFormulaManager(),
-                    manager.getIntegerFormulaManager(),
+                    integerFormulaManager,
                     manager.getUFManager(),
                     config);
             case RATIONAL ->
                 new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
                     wrappingHandler,
                     manager.getBooleanFormulaManager(),
-                    manager.getRationalFormulaManager(),
+                    integerFormulaManager,
                     manager.getUFManager(),
                     config);
             default ->
@@ -1025,7 +1025,10 @@ public class FormulaManagerView {
       throws UnsupportedOperationException {
     if (rationalFormulaManager == null) {
       rationalFormulaManager =
-          new RationalFormulaManagerView(wrappingHandler, manager.getRationalFormulaManager());
+          new RationalFormulaManagerView(
+              wrappingHandler,
+              manager.getRationalFormulaManager(),
+              manager.getBooleanFormulaManager());
     }
     return rationalFormulaManager;
   }

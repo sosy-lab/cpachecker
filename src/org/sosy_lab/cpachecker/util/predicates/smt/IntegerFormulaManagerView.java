@@ -19,15 +19,13 @@ public class IntegerFormulaManagerView
     extends NumeralFormulaManagerView<IntegerFormula, IntegerFormula>
     implements IntegerFormulaManager {
   private final IntegerFormulaManager integerFormulaManager;
-  private final BooleanFormulaManager booleanFormulaManager;
 
   IntegerFormulaManagerView(
       FormulaWrappingHandler pWrappingHandler,
-      IntegerFormulaManager pManager,
+      IntegerFormulaManager pIntegerManager,
       BooleanFormulaManager pBooleanFormulaManager) {
-    super(pWrappingHandler, pManager);
-    integerFormulaManager = pManager;
-    booleanFormulaManager = pBooleanFormulaManager;
+    super(pWrappingHandler, pIntegerManager, pBooleanFormulaManager);
+    integerFormulaManager = pIntegerManager;
   }
 
   @Override
