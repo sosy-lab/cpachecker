@@ -376,10 +376,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  /**
-   * Checks if the current edge begins or ends at the given line and the column lies between the
-   * starting column of the edge and the column at which the edge ends.
-   */
+  /** Checks if the current edge begins at the given line and column. */
   public static class CheckMatchesColumnAndLine implements AutomatonBoolExpr {
     private final int columnToReach;
     private final int lineNumber;
