@@ -599,8 +599,6 @@ public class CFAUtils {
       if (optionalReturnValue.isPresent()) {
         return Optional.of(optionalReturnValue.orElseThrow().getFileLocation());
       } else {
-        // TODO: I am unsure what the full expression would be in this case, but for the current
-        //  use cases it works
         return Optional.empty();
       }
     }
