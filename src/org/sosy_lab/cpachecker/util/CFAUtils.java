@@ -554,10 +554,21 @@ public class CFAUtils {
       } else if (optionalIterationElement.isPresent()) {
         Optional<ASTElement> optionalControlExpression =
             optionalIterationElement.orElseThrow().getControllingExpression();
-        if (optionalControlExpression.isPresent()) {
+        Optional<ASTElement> optionalInitClause =
+            optionalIterationElement.orElseThrow().getInitClause();
+        Optional<ASTElement> optionalIterationExpression =
+            optionalIterationElement.orElseThrow().getIterationExpression();
+        if (optionalControlExpression.isPresent()
+            && optionalControlExpression.orElseThrow().edges().contains(pEdge)) {
           return Optional.of(optionalControlExpression.orElseThrow().location());
+        } else if (optionalInitClause.isPresent()
+            && optionalInitClause.orElseThrow().edges().contains(pEdge)) {
+          return Optional.of(optionalInitClause.orElseThrow().location());
+        } else if (optionalIterationExpression.isPresent()
+            && optionalIterationExpression.orElseThrow().edges().contains(pEdge)) {
+          return Optional.of(optionalIterationExpression.orElseThrow().location());
         } else {
-          return Optional.of(pEdge.getFileLocation());
+          return Optional.empty();
         }
       } else {
         // This can only happen for trinary operators, which are an expression
