@@ -515,14 +515,21 @@ public class CFAUtils {
   }
 
   /**
-   * This method returns the closest full expression encompassing the expression in the given edge.
-   * This is only well-defined for edges in C programs. The closest full expression is defined as
-   * either the single full expression inside the edge, or the single full expression that contains
-   * the expression inside the edge. Sometimes the full expression is the edge itself.s
+   * This method returns the closest full expression as defined in section 6.8 §4 of the C11
+   * standard) encompassing the expression in the given edge. This is only well-defined for edges in
+   * C programs. The closest full expression is defined as one of the following:
+   *
+   * <ul>
+   *   <li>1. when the edge represents a statement, it is the full expression contained in the
+   *       statement, of which only one exists. This may be the edge itself in the case of an
+   *       expression statement.
+   *   <li>2. when the edge is an expression, it is the smallest full expression that contains it
+   * </ul>
    *
    * @param pEdge The edge for which the closest full expression should be found
    * @param pAstCfaRelation The relation between the AST and the CFA
-   * @return The closest full expression encompassing the expression in the given edge
+   * @return The location of the closest full expression either encompassing the expression or
+   *     contained in the statement represented by the given edge
    */
   public static FileLocation getClosestFullExpression(
       CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
