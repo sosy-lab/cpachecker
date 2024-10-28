@@ -377,12 +377,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /**
-   * Checks if the closest full expression related to the current edge begins or ends at the given
-   * line and the column lies between the starting column of the edge and the column at which the
-   * edge ends.
-   *
-   * <p>The closest full expression is defined as in {@link
-   * CFAUtils#getClosestFullExpression(CFAEdge,AstCfaRelation)}.
+   * Checks if the current edge begins or ends at the given line and the column lies between the
+   * starting column of the edge and the column at which the edge ends.
    */
   public static class CheckMatchesColumnAndLine implements AutomatonBoolExpr {
     private final int columnToReach;
@@ -427,8 +423,12 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /**
-   * Checks if the current edge begins or ends at the given line and the column lies between the
-   * starting column of the edge and the column at which the edge ends.
+   * Checks if the closest full expression related to the current edge begins or ends at the given
+   * line and the column lies between the starting column of the edge and the column at which the
+   * edge ends.
+   *
+   * <p>The closest full expression is defined as in {@link
+   * CFAUtils#getClosestFullExpression(CFAEdge,AstCfaRelation)}.
    */
   public static class CheckClosestFullExpressionMatchesColumnAndLine implements AutomatonBoolExpr {
     private final int columnToReach;
