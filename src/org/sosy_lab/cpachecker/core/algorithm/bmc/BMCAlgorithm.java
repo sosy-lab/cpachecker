@@ -83,8 +83,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               + " cpa.loopbound.maxLoopIterations can not be used if this option is used. However,"
               + " this option only works if the LoopBoundCPA and the assumption storage CPA is"
               + " enabled. If you want to set a loop-bound in the LoopBoundCPA, use the default"
-              + " case of this option! The loop-bound set here is always one unit larger (+1) than"
-              + " if the same value were set in the LoopBoundCPA. Other LoopBoundCPA options effect"
+              + " case of this option! The loop-bound set here is always offset +1 compared"
+              + " to the same value set in the LoopBoundCPA. Other LoopBoundCPA options effect"
               + " the value set here as if they were set by the LoopBoundCPA.")
   private int loopBound = -1;
 
