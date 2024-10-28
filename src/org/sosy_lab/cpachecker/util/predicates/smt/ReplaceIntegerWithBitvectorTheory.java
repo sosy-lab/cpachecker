@@ -126,6 +126,12 @@ class ReplaceIntegerWithBitvectorTheory extends BaseManagerView implements Integ
 
   @Override
   public IntegerFormula divide(IntegerFormula pNumber1, IntegerFormula pNumber2) {
+    // FIXME: This is not correct. The BV divide behaves differently compared to int divide!
+    //   Example -11/-10 = 2 for INT, but 1 for BV
+    //   Solution: add a BV division method that behaves according to INT in SMTLib2. We just need
+    //   to add/subtract 1 unit from the result depending on the sign of the given divisor and
+    //   divided. (See the C conform Integer division method of ours in the
+    //   IntegerFormulaManagerView)
     return wrap(
         FormulaType.IntegerType, bvFormulaManager.divide(unwrap(pNumber1), unwrap(pNumber2), true));
   }
