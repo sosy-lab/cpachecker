@@ -56,8 +56,22 @@ output.path = "output/"
 rootDirectory = "."
 
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
+
+# Further options for Bitwuzla in addition to the default options. Format: 
+# "option_name=value" with ’,’ to separate options. Option names and values
+# can be found in the Bitwuzla documentation
+# online:https://bitwuzla.github.io/docs/cpp/enums/option.html#_CPPv4N8bitwuzla6OptionEExample:
+# "PRODUCE_MODELS=2,SAT_SOLVER=kissat".
+solver.bitwuzla.furtherOptions = ""
+
+# The SAT solver used by Bitwuzla.
+solver.bitwuzla.satSolver = CADICAL
+  enum:     [LINGELING, CMS, CADICAL, KISSAT]
 
 # Further options for Boolector in addition to the default options. Format: 
 # "Optionname=value" with ’,’ to seperate options. Optionname and value can
@@ -71,6 +85,21 @@ solver.boolector.satSolver = CADICAL
 
 # Counts all operations and interactions towards the SMT solver.
 solver.collectStatistics = false
+
+# apply additional validation checks for interpolation results
+solver.cvc5.validateInterpolants = false
+
+# Enable assertions that make sure that functions are only used in the
+# context that declared them.
+solver.debugMode.noSharedDeclarations = false
+
+# Enable assertions that make sure formula terms are only used in the context
+# that created them.
+solver.debugMode.noSharedFormulas = false
+
+# Enable assertions that make sure that solver instances are only used on the
+# thread that created them.
+solver.debugMode.threadLocal = false
 
 # Default rounding mode for floating point operations.
 solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
@@ -94,6 +123,20 @@ solver.mathsat5.loadOptimathsat5 = false
 # integer and rational arithmetic.
 solver.nonLinearArithmetic = USE
   enum:     [USE, APPROXIMATE_FALLBACK, APPROXIMATE_ALWAYS]
+
+# Algorithm for boolean interpolation
+solver.opensmt.algBool = 0
+
+# Algorithm for LRA interpolation
+solver.opensmt.algLra = 0
+
+# Algorithm for UF interpolation
+solver.opensmt.algUf = 0
+
+# SMT-LIB2 name of the logic to be used by the solver.
+solver.opensmt.logic = QF_AUFLIRA
+  enum:     [CORE, QF_AX, QF_UF, QF_IDL, QF_RDL, QF_LIA, QF_LRA, QF_ALIA, QF_ALRA,
+             QF_UFLIA, QF_UFLRA, QF_AUFLIA, QF_AUFLRA, QF_AUFLIRA]
 
 # Enable additional assertion checks within Princess. The main usage is
 # debugging. This option can cause a performance overhead.
@@ -125,7 +168,8 @@ solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
+             YICES2, BITWUZLA]
 
 # Sequentialize all solver actions to allow concurrent access!
 solver.synchronize = false
@@ -133,6 +177,9 @@ solver.synchronize = false
 # Use provers from a seperate context to solve queries. This allows more
 # parallelity when solving larger queries.
 solver.synchronized.useSeperateProvers = false
+
+# Apply additional checks to catch common user errors.
+solver.useDebugMode = false
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
@@ -2812,11 +2859,13 @@ cpa.predicate.solver.enableLoggingInSolver = false
 
 # deprecated name for solver.interpolationSolver
 cpa.predicate.solver.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
+             YICES2, BITWUZLA]
 
 # deprecated name for solver.solver
 cpa.predicate.solver.solver = MATHSAT5
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
+             YICES2, BITWUZLA]
 
 # C99 only defines the overflow of unsigned integer type.
 cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
@@ -4900,11 +4949,13 @@ solver.enableLoggingInSolver = false
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
+             YICES2, BITWUZLA]
 
 # Which SMT solver to use.
 solver.solver = MATHSAT5
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
+             YICES2, BITWUZLA]
 
 # Comma-separated list of files with specifications that should be checked
 # (cf. config/specification/ for examples). Property files as used in SV-COMP
