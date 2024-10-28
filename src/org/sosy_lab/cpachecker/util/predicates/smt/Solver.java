@@ -70,14 +70,14 @@ public final class Solver implements AutoCloseable {
   private boolean checkUFs = false;
 
   @Option(secure = true, description = "Which SMT solver to use.")
-  private Solvers solver = Solvers.MATHSAT5;
+  private Solvers solver = Solvers.BITWUZLA;
 
   @Option(
       secure = true,
       description =
           "Which solver to use specifically for interpolation (default is to use the main one).")
   @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE")
-  private @Nullable Solvers interpolationSolver = null;
+  private @Nullable Solvers interpolationSolver = Solvers.MATHSAT5;
 
   @Option(secure = true, description = "Extract and cache unsat cores for satisfiability checking")
   private boolean cacheUnsatCores = true;
