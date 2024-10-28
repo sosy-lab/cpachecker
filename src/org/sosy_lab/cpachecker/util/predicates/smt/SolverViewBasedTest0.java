@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
 /**
@@ -92,5 +93,22 @@ public class SolverViewBasedTest0 extends SolverBasedTest0 {
     // We should close the solver, but the super class does this, too,
     // and calling it twice can segfault.
     // solver.close();
+  }
+
+  /** Disables tests for solvers that don't support variables as divisors in Integer division. */
+  void requireNonLinearIntegerDivision() {
+    IntegerFormula res = null;
+    try {
+      res = imgr.divide(imgr.makeNumber(1), imgr.makeVariable("some_divisor"));
+    } catch (UnsupportedOperationException ignored) {
+      // Empty
+    }
+    assume()
+        .withMessage(
+            "Solver %s does not support the division operation for the theory of integers for"
+                + " non-linear interpretations",
+            solverToUse())
+        .that(res)
+        .isNotNull();
   }
 }
