@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include<assert.h>
+#include <assert.h>
 
 void reach_error() { assert(0); }
 
