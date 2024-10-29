@@ -535,6 +535,9 @@ public class CFAUtils {
    * In summary, we either search for the full expression contained in the edge or for the full
    * expression containing the expression of the edge.
    *
+   * <p>A current limitation of this functions is that it does not handle "compound-statement
+   * expressions" from GNU C like `i = ((void)) 999, 10000); `
+   *
    * @param pEdge The edge for which the closest full expression should be found
    * @param pAstCfaRelation The relation between the AST and the CFA
    * @return The location of the closest full expression either encompassing the expression or
