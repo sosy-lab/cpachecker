@@ -181,7 +181,7 @@ public class FormulaManagerView {
               + " integers, or for increased performance. If UNSUPPORTED, solvers can be used that"
               + " support none of the possible alternatives, but CPAchecker will crash if integers"
               + " are required by the analysis.")
-  private Theory encodeIntegerAs = Theory.INTEGER;
+  private Theory encodeIntegerAs = Theory.BITVECTOR;
 
   @VisibleForTesting
   public FormulaManagerView(
