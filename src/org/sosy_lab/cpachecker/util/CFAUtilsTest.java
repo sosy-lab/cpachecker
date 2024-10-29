@@ -9,8 +9,10 @@
 package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assert_;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Set;
@@ -53,7 +55,7 @@ public class CFAUtilsTest {
         return edge;
       }
     }
-    assertThat(false).isTrue();
+    assert_().fail();
     return null;
   }
 
@@ -86,25 +88,25 @@ public class CFAUtilsTest {
    */
   @Test
   public void testFullExpressionStartPosition() throws Exception {
-    testFullExpression("full-expression.c", Set.of("x + y"), 10, 10);
-    testFullExpression("full-expression.c", Set.of("x = 1"), 2, 11);
-    testFullExpression("full-expression.c", Set.of("y = 1"), 3, 11);
-    testFullExpression("full-expression.c", Set.of("x = 2"), 4, 3);
-    testFullExpression("full-expression.c", Set.of("y = 2"), 5, 3);
-    testFullExpression("full-expression.c", Set.of("x != 0"), 6, 10);
-    testFullExpression("full-expression.c", Set.of("y != 0"), 6, 10);
-    testFullExpression("full-expression.c", Set.of("z + w"), 13, 30);
-    testFullExpression("full-expression.c", Set.of("f()"), 16, 3);
-    testFullExpression("full-expression.c", Set.of("g(1, 2)"), 17, 3);
-    testFullExpression("full-expression.c", Set.of("j < 0"), 21, 8);
-    testFullExpression("full-expression.c", Set.of("i == 0"), 21, 8);
-    testFullExpression("full-expression.c", Set.of("i < 10"), 21, 25);
-    testFullExpression("full-expression.c", Set.of("j == 0"), 21, 25);
-    testFullExpression("full-expression.c", Set.of("i < 5"), 21, 43);
-    testFullExpression("full-expression.c", Set.of("i != 0"), 21, 43);
-    testFullExpression("full-expression.c", Set.of("s != q"), 27, 11);
-    testFullExpression("full-expression.c", Set.of("s == 1"), 27, 11);
-    testFullExpression("full-expression.c", Set.of("q == 2"), 27, 11);
-    testFullExpression("full-expression.c", Set.of("l = 0"), 28, 11);
+    testFullExpression("full-expression.c", ImmutableSet.of("x + y"), 10, 10);
+    testFullExpression("full-expression.c", ImmutableSet.of("x = 1"), 2, 11);
+    testFullExpression("full-expression.c", ImmutableSet.of("y = 1"), 3, 11);
+    testFullExpression("full-expression.c", ImmutableSet.of("x = 2"), 4, 3);
+    testFullExpression("full-expression.c", ImmutableSet.of("y = 2"), 5, 3);
+    testFullExpression("full-expression.c", ImmutableSet.of("x != 0"), 6, 10);
+    testFullExpression("full-expression.c", ImmutableSet.of("y != 0"), 6, 10);
+    testFullExpression("full-expression.c", ImmutableSet.of("z + w"), 13, 30);
+    testFullExpression("full-expression.c", ImmutableSet.of("f()"), 16, 3);
+    testFullExpression("full-expression.c", ImmutableSet.of("g(1, 2)"), 17, 3);
+    testFullExpression("full-expression.c", ImmutableSet.of("j < 0"), 21, 8);
+    testFullExpression("full-expression.c", ImmutableSet.of("i == 0"), 21, 8);
+    testFullExpression("full-expression.c", ImmutableSet.of("i < 10"), 21, 25);
+    testFullExpression("full-expression.c", ImmutableSet.of("j == 0"), 21, 25);
+    testFullExpression("full-expression.c", ImmutableSet.of("i < 5"), 21, 43);
+    testFullExpression("full-expression.c", ImmutableSet.of("i != 0"), 21, 43);
+    testFullExpression("full-expression.c", ImmutableSet.of("s != q"), 27, 11);
+    testFullExpression("full-expression.c", ImmutableSet.of("s == 1"), 27, 11);
+    testFullExpression("full-expression.c", ImmutableSet.of("q == 2"), 27, 11);
+    testFullExpression("full-expression.c", ImmutableSet.of("l = 0"), 28, 11);
   }
 }
