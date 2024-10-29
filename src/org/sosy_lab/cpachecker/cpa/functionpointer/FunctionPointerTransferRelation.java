@@ -384,7 +384,9 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     if (decl.getInitializer() != null) {
       CInitializer init = decl.getInitializer();
       if (init instanceof CInitializerExpression) {
-        initialValue = getValue(((CInitializerExpression) init).getExpression(), pNewState);
+        initialValue =
+            maybeAbstractInvalidTarget(
+                getValue(((CInitializerExpression) init).getExpression(), pNewState));
       }
     }
 
@@ -417,7 +419,8 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     String varName = getLeftHandSide(assignment.getLeftHandSide(), pCfaEdge);
 
     if (varName != null) {
-      FunctionPointerTarget target = getValue(assignment.getRightHandSide(), pNewState);
+      FunctionPointerTarget target =
+          maybeAbstractInvalidTarget(getValue(assignment.getRightHandSide(), pNewState));
       pNewState.setTarget(varName, target);
     }
   }
@@ -530,7 +533,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
   private FunctionPointerTarget getValue(CRightHandSide exp, FunctionPointerState.Builder element)
       throws UnrecognizedCodeException {
-    return maybeAbstractInvalidTarget(exp.accept(new ExpressionValueVisitor(element)));
+    return exp.accept(new ExpressionValueVisitor(element));
   }
 
   static String arrayElementVariable(CArraySubscriptExpression exp) {
