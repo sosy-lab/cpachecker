@@ -516,9 +516,10 @@ public class CFAUtils {
   }
 
   /**
-   * This method returns the closest full expression as defined in section (§6.8 (4) of the C11
-   * standard) encompassing the expression in the given edge. This is only well-defined for edges in
-   * C programs. The closest full expression is defined as one of the following:
+   * This method returns the location in the original program of the closest full expression as
+   * defined in section (§6.8 (4) of the C11 standard) encompassing the expression in the given
+   * edge. This is only well-defined for edges in C programs. The closest full expression is defined
+   * as one of the following:
    *
    * <ul>
    *   <li>1. when the edge represents a statement, it is the full expression contained in the
