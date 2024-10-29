@@ -88,25 +88,25 @@ public class CFAUtilsTest {
    */
   @Test
   public void testFullExpressionStartPosition() throws Exception {
-    testFullExpression("full-expression.c", ImmutableSet.of("x + y"), 10, 10);
-    testFullExpression("full-expression.c", ImmutableSet.of("x = 1"), 2, 11);
-    testFullExpression("full-expression.c", ImmutableSet.of("y = 1"), 3, 11);
-    testFullExpression("full-expression.c", ImmutableSet.of("x = 2"), 4, 3);
-    testFullExpression("full-expression.c", ImmutableSet.of("y = 2"), 5, 3);
-    testFullExpression("full-expression.c", ImmutableSet.of("x != 0"), 6, 10);
-    testFullExpression("full-expression.c", ImmutableSet.of("y != 0"), 6, 10);
-    testFullExpression("full-expression.c", ImmutableSet.of("z + w"), 13, 30);
-    testFullExpression("full-expression.c", ImmutableSet.of("f()"), 16, 3);
-    testFullExpression("full-expression.c", ImmutableSet.of("g(1, 2)"), 17, 3);
-    testFullExpression("full-expression.c", ImmutableSet.of("j < 0"), 21, 8);
-    testFullExpression("full-expression.c", ImmutableSet.of("i == 0"), 21, 8);
-    testFullExpression("full-expression.c", ImmutableSet.of("i < 10"), 21, 25);
-    testFullExpression("full-expression.c", ImmutableSet.of("j == 0"), 21, 25);
-    testFullExpression("full-expression.c", ImmutableSet.of("i < 5"), 21, 43);
-    testFullExpression("full-expression.c", ImmutableSet.of("i != 0"), 21, 43);
-    testFullExpression("full-expression.c", ImmutableSet.of("s != q"), 27, 11);
-    testFullExpression("full-expression.c", ImmutableSet.of("s == 1"), 27, 11);
-    testFullExpression("full-expression.c", ImmutableSet.of("q == 2"), 27, 11);
-    testFullExpression("full-expression.c", ImmutableSet.of("l = 0"), 28, 11);
+    testFullExpression("full-expression.c", ImmutableSet.of("x + y"), 18, 10);
+    testFullExpression("full-expression.c", ImmutableSet.of("x = 1"), 10, 11);
+    testFullExpression("full-expression.c", ImmutableSet.of("y = 1"), 11, 11);
+    testFullExpression("full-expression.c", ImmutableSet.of("x = 2"), 12, 3);
+    testFullExpression("full-expression.c", ImmutableSet.of("y = 2"), 13, 3);
+    testFullExpression("full-expression.c", ImmutableSet.of("x != 0"), 14, 10);
+    testFullExpression("full-expression.c", ImmutableSet.of("y != 0"), 14, 10);
+    testFullExpression("full-expression.c", ImmutableSet.of("z + w"), 21, 30);
+    testFullExpression("full-expression.c", ImmutableSet.of("f()"), 24, 3);
+    testFullExpression("full-expression.c", ImmutableSet.of("g(1, 2)"), 25, 3);
+    testFullExpression("full-expression.c", ImmutableSet.of("j < 0"), 29, 8);
+    testFullExpression("full-expression.c", ImmutableSet.of("i == 0"), 29, 8);
+    testFullExpression("full-expression.c", ImmutableSet.of("i < 10"), 29, 25);
+    testFullExpression("full-expression.c", ImmutableSet.of("j == 0"), 29, 25);
+    testFullExpression("full-expression.c", ImmutableSet.of("i < 5"), 29, 43);
+    testFullExpression("full-expression.c", ImmutableSet.of("i != 0"), 29, 43);
+    testFullExpression("full-expression.c", ImmutableSet.of("s != q"), 35, 11);
+    testFullExpression("full-expression.c", ImmutableSet.of("s == 1"), 35, 11);
+    testFullExpression("full-expression.c", ImmutableSet.of("q == 2"), 35, 11);
+    testFullExpression("full-expression.c", ImmutableSet.of("l = 0"), 36, 11);
   }
 }
