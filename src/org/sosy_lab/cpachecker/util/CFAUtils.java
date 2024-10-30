@@ -117,7 +117,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -595,8 +594,6 @@ public class CFAUtils {
       } else {
         return Optional.empty();
       }
-    } else if (pEdge instanceof CFunctionReturnEdge functionReturnEdge) {
-      return Optional.of(functionReturnEdge.getFileLocation());
     } else if (pEdge instanceof CReturnStatementEdge returnStatementEdge) {
       // We need to find out the full expression inside the return statement
       Optional<CExpression> optionalReturnValue =
