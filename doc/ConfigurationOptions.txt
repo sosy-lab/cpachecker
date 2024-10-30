@@ -3229,13 +3229,17 @@ cpa.smg2.abstraction.alwaysAtLoop = false
 # computations are performed (and iteration threshold was reached)
 cpa.smg2.abstraction.determinismThreshold = 85
 
-# toggle liveness abstraction if liveness abstraction is supposed to simply
-# abstract all variables away (invalidating memory) when unused, even if
-# there is valid outside pointers on them.
-cpa.smg2.abstraction.doEnforcePointerInsensitiveLiveness = true
+# toggle memory sensitive liveness abstraction. Liveness abstraction is
+# supposed to simply abstract all variables away (invalidating memory) when
+# unused, even if there is valid outside pointers on them. With this option
+# enabled, it is first checked if there is a valid address still pointing to
+# the variable before removing it. Liveness abstraction might be unsound
+# without this option.
+cpa.smg2.abstraction.doEnforcePointerSensitiveLiveness = true
 
 # toggle liveness abstraction. Is independent of CEGAR, but dependent on the
-# CFAs liveness variables being tracked.
+# CFAs liveness variables being tracked. Might be unsound for stack-based
+# memory structures like arrays.
 cpa.smg2.abstraction.doLivenessAbstraction = true
 
 # skip abstraction computations until the given number of iterations are
