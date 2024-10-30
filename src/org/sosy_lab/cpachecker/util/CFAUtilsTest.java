@@ -69,8 +69,7 @@ public class CFAUtilsTest {
         CFAUtils.getClosestFullExpression(edge, astCfaRelation);
     assertThat(optionalExpressionLocation).isPresent();
     FileLocation expressionLocation = optionalExpressionLocation.orElseThrow();
-    assertThat(expressionLocation.getStartingLineInOrigin())
-        .isEqualTo(pExpectedStartingLineInOrigin);
+    assertThat(expressionLocation.getStartingLineNumber()).isEqualTo(pExpectedStartingLineInOrigin);
     assertThat(expressionLocation.getStartColumnInLine()).isEqualTo(pExpectedStartColumnInLine);
   }
 
