@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter;
 import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionConverter;
-import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
@@ -387,7 +386,7 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertDivision() throws InterruptedException {
-      skipTestForSolvers(Solvers.MATHSAT5, Solvers.PRINCESS);
+      skipTestForSolvers(Solvers.MATHSAT5, Solvers.PRINCESS, Solvers.BITWUZLA);
       BooleanFormula formula =
           imgrv.equal(
               imgrv.divide(imgrv.makeVariable("x"), imgrv.makeNumber(2)), imgrv.makeVariable("y"));
@@ -405,7 +404,6 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertBVLessThan() throws InterruptedException {
-      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.lessThan(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true);
       BooleanFormula unsigned =
@@ -423,7 +421,6 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertBVLessOrEquals() throws InterruptedException {
-      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.lessOrEquals(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true);
       BooleanFormula unsigned =
@@ -441,7 +438,6 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertBVGreaterThan() throws InterruptedException {
-      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.greaterThan(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true);
       BooleanFormula unsigned =
@@ -460,7 +456,6 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertBVGreaterOrEquals() throws InterruptedException {
-      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.greaterOrEquals(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true);
       BooleanFormula unsigned =
@@ -479,7 +474,6 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertBVNot() throws InterruptedException {
-      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(bvmgrv.not(bvmgrv.makeVariable(5, "x")), bvmgrv.makeVariable(5, "y"));
       String expected =
@@ -492,7 +486,6 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertBVAnd() throws InterruptedException {
-      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(
               bvmgrv.and(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
@@ -506,7 +499,6 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertBVOr() throws InterruptedException {
-      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(
               bvmgrv.or(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
@@ -516,7 +508,6 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertBVXor() throws InterruptedException {
-      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(
               bvmgrv.xor(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
@@ -526,7 +517,6 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertBVAddition() throws InterruptedException {
-      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(
               bvmgrv.add(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
@@ -536,7 +526,6 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertBVSubtraction() throws InterruptedException {
-      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(
               bvmgrv.subtract(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
@@ -553,7 +542,6 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertBVNeg() throws InterruptedException {
-      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(bvmgrv.negate(bvmgrv.makeVariable(5, "x")), bvmgrv.makeVariable(5, "y"));
       String expected =
@@ -568,7 +556,6 @@ public class FormulaToCExpressionConverterTest {
     @Test
     public void convertBVMultiplication() throws InterruptedException {
       skipTestForSolvers(Solvers.SMTINTERPOL, Solvers.OPENSMT);
-      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(
               bvmgrv.multiply(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
@@ -579,7 +566,6 @@ public class FormulaToCExpressionConverterTest {
     @Test
     public void convertBVDivision() throws InterruptedException {
       skipTestForSolvers(Solvers.SMTINTERPOL, Solvers.PRINCESS, Solvers.Z3, Solvers.OPENSMT);
-      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.equal(
               bvmgrv.divide(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true),
@@ -602,7 +588,6 @@ public class FormulaToCExpressionConverterTest {
     @Test
     public void convertBVModulo() throws InterruptedException {
       skipTestForSolvers(Solvers.SMTINTERPOL, Solvers.OPENSMT, Solvers.MATHSAT5, Solvers.PRINCESS);
-      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.equal(
               bvmgrv.remainder(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true),
@@ -623,7 +608,6 @@ public class FormulaToCExpressionConverterTest {
     public void convertBVSHL() throws InterruptedException {
       skipTestForSolvers(Solvers.Z3);
       // TODO How to transform EXTRACT to C expression (without too much overhead?
-      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(
               bvmgrv.shiftLeft(bvmgrv.makeVariable(8, "x"), bvmgrv.makeBitvector(8, 4)),

@@ -29,6 +29,7 @@ public class SolverViewBasedTest0 extends SolverBasedTest0 {
   protected Solver solver;
   protected FormulaManagerView mgrv;
   protected BooleanFormulaManagerView bmgrv;
+  protected BitvectorFormulaManagerView bvmgrv;
   protected IntegerFormulaManagerView imgrv;
 
   @Override
@@ -85,6 +86,7 @@ public class SolverViewBasedTest0 extends SolverBasedTest0 {
     solver = new Solver(factory, solverToUse(), context, config, logger);
     mgrv = solver.getFormulaManager();
     bmgrv = mgrv.getBooleanFormulaManager();
+    bvmgrv = mgrv.getBitvectorFormulaManager();
     imgrv = mgrv.getIntegerFormulaManager();
   }
 

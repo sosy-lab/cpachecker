@@ -126,8 +126,27 @@ class ReplaceIntegerWithBitvectorTheory extends BaseManagerView implements Integ
 
   @Override
   public IntegerFormula divide(IntegerFormula pNumber1, IntegerFormula pNumber2) {
+    final BitvectorFormula bv1 = unwrap(pNumber1);
+    final BitvectorFormula bv2 = unwrap(pNumber2);
+
+    final BitvectorFormula zero = bvFormulaManager.makeBitvector(bitsize, 0);
+    final BitvectorFormula oneMore =
+        booleanFormulaManager.ifThenElse(
+            bvFormulaManager.greaterOrEquals(bv2, zero, true),
+            bvFormulaManager.makeBitvector(bitsize, 1),
+            bvFormulaManager.negate(bvFormulaManager.makeBitvector(bitsize, 1)));
+
+    final BitvectorFormula div = bvFormulaManager.divide(bv1, bv2, true);
+
     return wrap(
-        FormulaType.IntegerType, bvFormulaManager.divide(unwrap(pNumber1), unwrap(pNumber2), true));
+        FormulaType.IntegerType,
+        booleanFormulaManager.ifThenElse(
+            booleanFormulaManager.and(
+                bvFormulaManager.lessThan(bv1, zero, true),
+                booleanFormulaManager.not(
+                    bvFormulaManager.equal(bv1, bvFormulaManager.multiply(bv2, div)))),
+            bvFormulaManager.subtract(div, oneMore),
+            div));
   }
 
   @Override

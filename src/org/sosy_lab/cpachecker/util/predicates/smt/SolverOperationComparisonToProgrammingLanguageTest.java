@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -46,6 +47,14 @@ public class SolverOperationComparisonToProgrammingLanguageTest extends SolverVi
   @Override
   protected Solvers solverToUse() {
     return solverToUse;
+  }
+
+  @Override
+  protected ConfigurationBuilder createTestConfigBuilder() {
+    // Force the solver to emulate bitvector logic with integer formulas
+    // We will use this to test that division/modula still give the same results as in C even if
+    // integer logic is used.
+    return super.createTestConfigBuilder().setOption("cpa.predicate.encodeBitvectorsAs", "INTEGER");
   }
 
   // TODO: find mismatching/matching examples and test only those compared to the -11 - +11 range,
@@ -121,9 +130,11 @@ public class SolverOperationComparisonToProgrammingLanguageTest extends SolverVi
           continue;
         }
         int expectedRes = dividend / divisor;
-        IntegerFormula expectedResFormula = imgr.makeNumber(expectedRes);
-        IntegerFormula div = imgrv.cDivide(imgr.makeNumber(dividend), imgr.makeNumber(divisor));
-        BooleanFormula divEq = imgr.equal(div, expectedResFormula);
+        BitvectorFormula expectedResFormula = bvmgrv.makeBitvector(32, expectedRes);
+        BitvectorFormula div =
+            bvmgrv.divide(
+                bvmgrv.makeBitvector(32, dividend), bvmgrv.makeBitvector(32, divisor), true);
+        BooleanFormula divEq = bvmgrv.equal(div, expectedResFormula);
         assertThatFormula(divEq).isSatisfiable();
       }
     }
@@ -170,10 +181,11 @@ public class SolverOperationComparisonToProgrammingLanguageTest extends SolverVi
           continue;
         }
         int expectedRes = dividend % divisor;
-        IntegerFormula expectedResFormula = imgr.makeNumber(expectedRes);
+        BitvectorFormula expectedResFormula = bvmgrv.makeBitvector(32, expectedRes);
         BooleanFormula modEq =
-            imgr.equal(
-                imgrv.remainder(imgr.makeNumber(dividend), imgr.makeNumber(divisor)),
+            bvmgrv.equal(
+                bvmgrv.remainder(
+                    bvmgrv.makeBitvector(32, dividend), bvmgrv.makeBitvector(32, divisor), true),
                 expectedResFormula);
         assertThatFormula(modEq).isSatisfiable();
       }
@@ -198,7 +210,7 @@ public class SolverOperationComparisonToProgrammingLanguageTest extends SolverVi
     int divisor = 2;
     int expectedRes = dividend % divisor;
     IntegerFormula expectedResFormula = imgr.makeNumber(expectedRes);
-    IntegerFormula mod = imgrv.modulo(imgr.makeNumber(dividend), imgr.makeNumber(divisor));
+    IntegerFormula mod = imgr.modulo(imgr.makeNumber(dividend), imgr.makeNumber(divisor));
     BooleanFormula modEq = imgr.equal(mod, expectedResFormula);
     assertThatFormula(modEq).isUnsatisfiable();
   }
