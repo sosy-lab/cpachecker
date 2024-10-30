@@ -672,6 +672,10 @@ public class FormulaManagerView {
       t =
           getBitvectorFormulaManager()
               .remainder((BitvectorFormula) pF1, (BitvectorFormula) pF2, pSigned);
+    } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
+      t =
+          getFloatingPointFormulaManager()
+              .remainder((FloatingPointFormula) pF1, (FloatingPointFormula) pF2);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
