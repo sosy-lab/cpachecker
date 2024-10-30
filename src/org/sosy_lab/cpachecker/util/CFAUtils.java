@@ -516,10 +516,10 @@ public class CFAUtils {
   }
 
   /**
-   * This method returns the location in the original program of the closest full expression as
-   * defined in section (§6.8 (4) of the C11 standard) encompassing the expression in the given
-   * edge. This is only well-defined for edges in C programs. The closest full expression is defined
-   * as one of the following:
+   * This method returns the location in the "original program (i.e., before simplifications done by
+   * CPAchecker) of the closest full expression as defined in section (§6.8 (4) of the C11 standard)
+   * encompassing the expression in the given edge. This is only well-defined for edges in C
+   * programs. The closest full expression is defined as one of the following:
    *
    * <ul>
    *   <li>1. when the edge represents a statement, it is the full expression contained in the
@@ -536,8 +536,8 @@ public class CFAUtils {
    * In summary, we either search for the full expression contained in the edge or for the full
    * expression containing the expression of the edge.
    *
-   * <p>A current limitation of this functions is that it does not handle "compound-statement
-   * expressions" from GNU C like `i = ((void)) 999, 10000); `
+   * <p>There are many limitations for this functions, so please check inside the test {@link
+   * CFAUtilsTest#testFullExpression} for more details on what is supported and what is not.
    *
    * @param pEdge The edge for which the closest full expression should be found
    * @param pAstCfaRelation The relation between the AST and the CFA
