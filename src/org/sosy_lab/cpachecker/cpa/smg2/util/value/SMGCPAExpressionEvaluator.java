@@ -1799,7 +1799,7 @@ public class SMGCPAExpressionEvaluator {
     currentState =
         currentState.copyAndAddLocalVariable(paramSizeInBits, qualifiedVarName, parameterType);
     Optional<SMGObject> maybeObject =
-        currentState.getMemoryModel().getObjectForVisibleVariable(qualifiedVarName);
+        currentState.getMemoryModel().getObjectForVisibleVariable(qualifiedVarName, false);
     if (maybeObject.isEmpty()) {
       // If this is empty it means that the variable is on the blacklist, skip
       return currentState;

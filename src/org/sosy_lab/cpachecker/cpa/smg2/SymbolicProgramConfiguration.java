@@ -1206,12 +1206,28 @@ public class SymbolicProgramConfiguration {
    * Tries to search for a variable that is currently visible in the current {@link StackFrame} and
    * in the global variables and returns the variable if found. If it is not found, the {@link
    * Optional} will be empty. Note: this returns the SMGObject in which the value for the variable
-   * is written. Read with the correct type!
+   * is written. Read with the correct type! This will peek the previous stack frame if the current
+   * stack frame is not fully initialized.
    *
    * @param pName Name of the variable you want to search for as a {@link String}.
    * @return {@link Optional} that contains the variable if found, but is empty if not found.
    */
   public Optional<SMGObject> getObjectForVisibleVariable(String pName) {
+    return getObjectForVisibleVariable(pName, true);
+  }
+
+  /**
+   * Tries to search for a variable that is currently visible in the current {@link StackFrame} and
+   * in the global variables and returns the variable if found. If it is not found, the {@link
+   * Optional} will be empty. Note: this returns the SMGObject in which the value for the variable
+   * is written. Read with the correct type!
+   *
+   * @param pName Name of the variable you want to search for as a {@link String}.
+   * @param peekPreviousFrame peeks the previous frame if the current one is not fully initialized
+   *     and this parameter is true.
+   * @return {@link Optional} that contains the variable if found, but is empty if not found.
+   */
+  public Optional<SMGObject> getObjectForVisibleVariable(String pName, boolean peekPreviousFrame) {
     // globals
     if (globalVariableMapping.containsKey(pName)) {
       return Optional.of(globalVariableMapping.get(pName));
@@ -1221,7 +1237,7 @@ public class SymbolicProgramConfiguration {
     if (stackVariableMapping.isEmpty()) {
       return Optional.empty();
     }
-    // Only look in the current stack frame
+    // Only look in the current stack frame for now
     StackFrame currentFrame = stackVariableMapping.peek();
     if (pName.contains("::")) {
       String variableFunctionName = pName.substring(0, pName.indexOf(':'));
@@ -1240,6 +1256,16 @@ public class SymbolicProgramConfiguration {
         }
       }
     }
+
+    if (!peekPreviousFrame) {
+      if (currentFrame.containsVariable(pName)) {
+        return Optional.of(currentFrame.getVariable(pName));
+      } else {
+        // no variable found
+        return Optional.empty();
+      }
+    }
+
     int sizeOfVariables = currentFrame.getVariables().size();
     if (currentFrame.hasVariableArguments()) {
       sizeOfVariables = sizeOfVariables + currentFrame.getVariableArguments().size();
@@ -1255,12 +1281,13 @@ public class SymbolicProgramConfiguration {
         }
       }
     }
+
     if (currentFrame.containsVariable(pName)) {
       return Optional.of(currentFrame.getVariable(pName));
+    } else {
+      // no variable found
+      return Optional.empty();
     }
-
-    // no variable found
-    return Optional.empty();
   }
 
   /* Only used to reconstruct the state after interpolation! */

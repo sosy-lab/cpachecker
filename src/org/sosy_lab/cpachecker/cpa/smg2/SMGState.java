@@ -4151,7 +4151,7 @@ public class SMGState
       CFAEdge edge)
       throws SMGException, SMGSolverException {
     Optional<SMGObject> maybeVariableMemory =
-        getMemoryModel().getObjectForVisibleVariable(variableName);
+        getMemoryModel().getObjectForVisibleVariable(variableName, false);
 
     if (maybeVariableMemory.isEmpty()) {
       // Write to unknown variable
