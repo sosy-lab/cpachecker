@@ -293,6 +293,13 @@ public class LiveVariablesTransferRelation
       AssumeEdge cfaEdge, AExpression expression, boolean truthAssumption)
       throws CPATransferException {
 
+    // TODO: this is invalidly abstracting stack based memory. Ex:
+    //   int array[...] = {....};
+    //   int * var = array;
+    //   if (*var == 0) { // array is no longer live -> *var is invalid-deref
+    //  This is not trivial however, as we don't know that var is based on an array at this point.
+    //  It gets even more difficult for arbitrary pointer aliasing.
+
     // all variables in assumption become live
     BitSet out = state.getDataCopy();
     handleExpression(expression, out);
