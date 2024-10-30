@@ -9,10 +9,8 @@
 package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assert_;
 
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -48,14 +46,8 @@ public class CFAUtilsTest {
    * <p>DO NOT USE THIS IF YOU DO NOT KNOW EXACTLY WHAT CFA YOU ARE WORKING WITH!!!!!!!!!
    */
   private static CFAEdge getEdge(String pStringsInEdge, CFA pCFA) {
-    for (CFAEdge edge : CFAUtils.allEdges(pCFA)) {
-      if (FluentIterable.from(ImmutableSet.of(pStringsInEdge))
-          .allMatch(string -> edge.toString().contains(string))) {
-        return edge;
-      }
-    }
-    assert_().fail();
-    return null;
+    return Iterables.getOnlyElement(
+        CFAUtils.allEdges(pCFA).filter(edge -> edge.toString().contains(pStringsInEdge)));
   }
 
   private void testFullExpression(
@@ -91,18 +83,18 @@ public class CFAUtilsTest {
     testFullExpression(cfa, "y = 1", 11, 11);
     testFullExpression(cfa, "x = 2", 12, 3);
     testFullExpression(cfa, "y = 2", 13, 3);
-    testFullExpression(cfa, "x != 0", 14, 10);
-    testFullExpression(cfa, "y != 0", 14, 10);
+    testFullExpression(cfa, "[x != 0]", 14, 10);
+    testFullExpression(cfa, "[y != 0]", 14, 10);
     testFullExpression(cfa, "z + w", 21, 30);
-    testFullExpression(cfa, "f()", 24, 3);
-    testFullExpression(cfa, "g(1, 2)", 25, 3);
-    testFullExpression(cfa, "j < 0", 29, 8);
-    testFullExpression(cfa, "i == 0", 29, 8);
-    testFullExpression(cfa, "i < 10", 29, 25);
-    testFullExpression(cfa, "j == 0", 29, 25);
-    testFullExpression(cfa, "i < 5", 29, 43);
-    testFullExpression(cfa, "i != 0", 29, 43);
-    testFullExpression(cfa, "s != q", 35, 11);
+    testFullExpression(cfa, "{f()}", 24, 3);
+    testFullExpression(cfa, "{g(1, 2)}", 25, 3);
+    testFullExpression(cfa, "[j < 0]", 29, 8);
+    testFullExpression(cfa, "[i == 0]", 29, 8);
+    testFullExpression(cfa, "[i < 10]", 29, 25);
+    testFullExpression(cfa, "[j == 0]", 29, 25);
+    testFullExpression(cfa, "[i < 5]", 29, 43);
+    testFullExpression(cfa, "[i != 0]", 29, 43);
+    testFullExpression(cfa, "[s != q]", 35, 11);
     testFullExpression(cfa, "s == 1", 35, 11);
     testFullExpression(cfa, "q == 2", 35, 11);
     testFullExpression(cfa, "l = 0", 36, 11);
