@@ -115,6 +115,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
@@ -545,7 +546,7 @@ public class CFAUtils {
    *     contained in the statement represented by the given edge
    */
   public static Optional<FileLocation> getClosestFullExpression(
-      CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
+      CCfaEdge pEdge, AstCfaRelation pAstCfaRelation) {
 
     if (pEdge instanceof AssumeEdge assumeEdge) {
       // Find out the full expression encompassing the expression
