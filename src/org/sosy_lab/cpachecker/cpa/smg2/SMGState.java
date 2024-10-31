@@ -360,11 +360,12 @@ public class SMGState
         return false;
       case HAS_HEAP_OBJECTS:
         // Having heap objects is not an error on its own.
-        // However, when combined with program exit, we can detect property MemCleanup.
+        // However, when combined with program exit, we can detect the property MemCleanup.
         PersistentSet<SMGObject> heapObs = memoryModel.getHeapObjects();
         Preconditions.checkState(
             !heapObs.isEmpty() && heapObs.contains(SMGObject.nullInstance()),
             "NULL must always be a heap object");
+        heapObs = heapObs.removeAndCopy(SMGObject.nullInstance());
         // TODO: check the validity check!
         for (SMGObject object : heapObs) {
           if (!memoryModel.isObjectValid(object)) {
@@ -537,15 +538,13 @@ public class SMGState
    * @param pSPC the {@link SymbolicProgramConfiguration} to be used in the new state.
    * @param logManager the {@link LogManager} to be used in the new state.
    * @param opts {@link SMGOptions} to be used.
-   * @param pErrorInfo the {@link SMGErrorInfo} holding error information.
    * @return a new {@link SMGState} with the arguments given.
    */
-  public SMGState off(
+  public SMGState of(
       MachineModel pMachineModel,
       SymbolicProgramConfiguration pSPC,
       LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
-      List<SMGErrorInfo> pErrorInfo,
       SMGCPAExpressionEvaluator pEvaluator,
       SMGCPAStatistics pStatistics) {
     return new SMGState(
@@ -553,7 +552,7 @@ public class SMGState
         pSPC,
         logManager,
         opts,
-        pErrorInfo,
+        errorInfo,
         materializer,
         lastCheckedMemoryAccess,
         constraintsState,
