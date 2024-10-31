@@ -697,8 +697,6 @@ public class SMGCPABuiltins {
     return vv.evaluate(expr, SMGCPAExpressionEvaluator.getCanonicalType(functionCall));
   }
 
-  public static int malloc = 0;
-
   /**
    * Handles all allocation methods i.e. malloc Returns the pointer Value to the new memory region
    * (that may be written to 0 for the correct function i.e. calloc). This also returns a state for
@@ -717,7 +715,6 @@ public class SMGCPABuiltins {
   List<ValueAndSMGState> evaluateConfigurableAllocationFunction(
       CFunctionCallExpression functionCall, String functionName, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
-    malloc++;
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     for (ValueAndSMGState sizeAndState : getAllocateFunctionSize(pState, cfaEdge, functionCall)) {
