@@ -2629,6 +2629,30 @@ public class SMGState
   }
 
   /**
+   * To be used if a malloc(0) returned pointer is evaluated.
+   *
+   * @param readPointer the pointer {@link Value} that was evaluated.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withInvalidReadOfMallocZeroPointer(Value readPointer) {
+    if (readPointer instanceof AddressExpression addrExpr) {
+      readPointer = addrExpr.getMemoryAddress();
+    }
+    String errorMSG = "Invalid evaluation of malloc(0) returned address: " + readPointer + ".";
+    SMGValue smgPointer = getMemoryModel().getSMGValueFromValue(readPointer).orElseThrow();
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(
+                Collections.singleton(
+                    getMemoryModel().getSmg().getPTEdge(smgPointer).orElseThrow().pointsTo()));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
+  /**
    * Copy and update this {@link SMGState} with an error resulting from trying to write outside of
    * the range of the {@link SMGObject}. Returns an updated state with the error in it.
    *
@@ -6049,6 +6073,25 @@ public class SMGState
     // Careful when there is the same pointer twice in this obj
 
     return currentState;
+  }
+
+  /**
+   * True if the entered value is a pointer returned from malloc(0). These pointers are never
+   * allowed to be evaluated, but they may be assigned to other variables.
+   *
+   * @param pPointerValue some {@link Value}. Does not have to be a pointer.
+   * @return true if it is a pointers that has been returned by malloc(0).
+   */
+  public boolean isPointingToMallocZero(Value pPointerValue) {
+    if (pPointerValue instanceof AddressExpression addrExpr) {
+      pPointerValue = addrExpr.getMemoryAddress();
+    }
+    Optional<SMGValue> maybeSMGValue = getMemoryModel().getSMGValueFromValue(pPointerValue);
+    if (maybeSMGValue.isPresent()) {
+      SMGValue smgValue = maybeSMGValue.orElseThrow();
+      return getMemoryModel().isPointingToMallocZero(smgValue);
+    }
+    return false;
   }
 
   public SMGCPAStatistics getStatistics() {

@@ -915,6 +915,14 @@ public class SMGCPAValueVisitor
           Value readValue = readValueAndState.getValue();
           SMGState newState = readValueAndState.getState();
 
+          if (returnType instanceof CFunctionType
+              || ((CPointerType) returnType).getType() instanceof CFunctionType) {
+            // TODO: lift into more general place
+            if (newState.isPointingToMallocZero(readValue)) {
+              newState = newState.withInvalidReadOfMallocZeroPointer(readValue);
+            }
+          }
+
           Value addressValue;
           if (evaluator.isPointerValue(readValue, newState)) {
             addressValue = AddressExpression.withZeroOffset(readValue, returnType);
