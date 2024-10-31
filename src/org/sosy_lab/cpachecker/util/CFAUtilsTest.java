@@ -19,7 +19,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -59,7 +58,7 @@ public class CFAUtilsTest {
     AstCfaRelation astCfaRelation = pCFA.getAstCfaRelation();
     CFAEdge edge = getEdge(pStringsToIdentifyEdge, pCFA);
     Optional<FileLocation> optionalExpressionLocation =
-        CFAUtils.getClosestFullExpression((CCfaEdge) edge, astCfaRelation);
+        CFAUtils.getClosestFullExpression(edge, astCfaRelation);
     assertThat(optionalExpressionLocation).isPresent();
     FileLocation expressionLocation = optionalExpressionLocation.orElseThrow();
     assertThat(expressionLocation.getStartingLineNumber()).isEqualTo(pExpectedStartingLineInOrigin);
