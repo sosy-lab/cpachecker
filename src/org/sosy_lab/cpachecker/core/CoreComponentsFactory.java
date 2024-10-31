@@ -731,7 +731,7 @@ public class CoreComponentsFactory {
       }
       System.out.println("ERROR CONDITION: " + findErrorCondition);
       if (findErrorCondition ) {
-        algorithm = new FindErrorCondition(algorithm,cpa, config, logger, cfa);
+        algorithm = new FindErrorCondition(algorithm,cpa, config, logger,shutdownNotifier, cfa);
       }
     }
 
