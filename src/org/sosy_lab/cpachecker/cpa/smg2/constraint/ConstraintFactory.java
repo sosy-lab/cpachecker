@@ -231,10 +231,10 @@ public class ConstraintFactory {
         memoryRegionSizeInBits, calculationType, currentState);
   }
 
-  public Constraint getMemorySizeInBitsNotEqualsZeroConstraint(
-      Value memoryRegionSizeInBits, CType calculationType, SMGState currentState) {
+  public Constraint getNotEqualsZeroConstraint(
+      Value valueNotEqZero, CType calculationType, SMGState currentState) {
     final ExpressionTransformer transformer = getCTransformer();
-    return transformer.checkMemorySizeNotEqualsZero(
-        memoryRegionSizeInBits, calculationType, currentState);
+    // Yes this does add a != 0 constraint on the value correctly.
+    return transformer.getNotEqualsZeroConstraint(valueNotEqZero, calculationType, currentState);
   }
 }
