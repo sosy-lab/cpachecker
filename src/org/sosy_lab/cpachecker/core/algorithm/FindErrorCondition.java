@@ -20,8 +20,10 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -50,6 +52,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
@@ -62,6 +65,8 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   private final ConfigurableProgramAnalysis cpa;
   private final CFA cfa;
   private final LogManager logger;
+  private final Configuration config;
+  private final ShutdownNotifier shutdownNotifier;
 
   @Option(description = "Max Iterations")
   private int maxIterations = -1;
@@ -71,12 +76,16 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
       LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
       CFA pCfa) throws InvalidConfigurationException {
     pConfig.inject(this);
     algorithm = pAlgorithm;
     cpa = pCpa;
     cfa = pCfa;
     logger = pLogger;
+    config = pConfig;
+    shutdownNotifier = pShutdownNotifier;
+
   }
 
   @Override
@@ -87,7 +96,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       PredicateCPA predicateCPA = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, getClass());
       PathFormulaManager manager = predicateCPA.getPathFormulaManager();
       Solver solver = predicateCPA.getSolver();
-
+      Solver quantifier_solver = Solver.create(Configuration.builder().copyFrom(config).setOption("solver.solver", Solvers.Z3.name()).build(),logger,shutdownNotifier);
       AbstractState initialState = getInitialState();
       SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
       PathFormula exclude = manager.makeEmptyPathFormula();
@@ -97,14 +106,14 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       int currentIteration = 0;
       do {
         foundNewCounterexamples = false;
-        status = performReachabilityAnalysis(reachedSet, initialState, ssaBuilder, exclude, manager, solver);
+        status = performReachabilityAnalysis(reachedSet, initialState, ssaBuilder, exclude, manager, solver, quantifier_solver);
         FluentIterable<CounterexampleInfo> counterExamples = getCounterexamples(reachedSet);
 
         if (!counterExamples.isEmpty()) {
           foundNewCounterexamples = true;
           for (CounterexampleInfo cex : counterExamples) {
             PathFormula fullPath = manager.makeFormulaForPath(cex.getTargetPath().getFullPath());
-            exclude = updateExclusionFormula(exclude, fullPath, ssaBuilder, solver, manager);
+            exclude = updateExclusionFormula(exclude, fullPath, ssaBuilder, solver, manager, quantifier_solver);
           }
           initialState = updateInitialStateWithExclusions(initialState, exclude);
         }
@@ -128,7 +137,8 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       SSAMapBuilder ssaBuilder,
       PathFormula exclude,
       PathFormulaManager manager,
-      Solver solver) throws CPAException, InterruptedException, SolverException {
+      Solver solver,
+      Solver quantifier_solver) throws CPAException, InterruptedException, SolverException {
     reachedSet.clear();
     reachedSet.add(initialState,
         cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
@@ -138,7 +148,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     FluentIterable<CounterexampleInfo> counterExamples = getCounterexamples(reachedSet);
     for (CounterexampleInfo cex : counterExamples) {
       PathFormula fullPath = manager.makeFormulaForPath(cex.getTargetPath().getFullPath());
-      exclude = updateExclusionFormula(exclude, fullPath, ssaBuilder, solver, manager);
+      exclude = updateExclusionFormula(exclude, fullPath, ssaBuilder, solver, manager, quantifier_solver);
     }
 
     return status;
@@ -160,7 +170,8 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       PathFormula fullPath,
       SSAMapBuilder ssaBuilder,
       Solver solver,
-      PathFormulaManager manager) throws SolverException, InterruptedException {
+      PathFormulaManager manager,
+      Solver quantifier_solver) throws SolverException, InterruptedException {
     for (String variable : fullPath.getSsa().allVariables()) {
       if (!ssaBuilder.build().containsVariable(variable)) {
         ssaBuilder.setIndex(variable, fullPath.getSsa().getType(variable), 1);
@@ -168,8 +179,9 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     }
 
     BooleanFormula eliminated =
-        eliminateVariables(fullPath.getFormula(), entry -> !entry.getKey().contains("_nondet"),
-            solver);
+        eliminateVariables(quantifier_solver.getFormulaManager().translateFrom(fullPath.getFormula(), solver.getFormulaManager()), entry -> !entry.getKey().contains("_nondet"),
+            quantifier_solver);
+    eliminated = solver.getFormulaManager().translateFrom(eliminated, quantifier_solver.getFormulaManager());
     exclude = manager.makeAnd(exclude,
             solver.getFormulaManager().getBooleanFormulaManager().not(eliminated))
         .withContext(ssaBuilder.build(), fullPath.getPointerTargetSet());
