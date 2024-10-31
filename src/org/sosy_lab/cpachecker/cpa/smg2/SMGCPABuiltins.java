@@ -14,12 +14,17 @@ import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -45,11 +50,16 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffs
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 public class SMGCPABuiltins {
 
@@ -81,6 +91,9 @@ public class SMGCPABuiltins {
   private static final int MEMCPY_TARGET_PARAMETER = 0;
   private static final int MEMCPY_SOURCE_PARAMETER = 1;
   private static final int MEMCPY_SIZE_PARAMETER = 2;
+  private static final int MEMCMP_CMP_TARGET1_PARAMETER = 0;
+  private static final int MEMCMP_CMP_TARGET2_PARAMETER = 1;
+  private static final int MEMCMP_CMP_SIZE_PARAMETER = 2;
   private static final int MALLOC_PARAMETER = 0;
   private static final int STRCMP_FIRST_PARAMETER = 0;
   private static final int STRCMP_SECOND_PARAMETER = 1;
@@ -91,6 +104,7 @@ public class SMGCPABuiltins {
       Sets.newHashSet(
           "__VERIFIER_BUILTIN_PLOT",
           "memcpy",
+          "memcmp",
           "memset",
           "__builtin_alloca",
           "alloca",
@@ -225,6 +239,9 @@ public class SMGCPABuiltins {
 
       case "memcpy":
         return evaluateMemcpy(cFCExpression, pState, pCfaEdge);
+
+      case "memcmp":
+        return evaluateMemcmp(cFCExpression, pState, pCfaEdge);
 
       case "strcmp":
         return evaluateStrcmp(cFCExpression, pState, pCfaEdge);
@@ -680,6 +697,8 @@ public class SMGCPABuiltins {
     return vv.evaluate(expr, SMGCPAExpressionEvaluator.getCanonicalType(functionCall));
   }
 
+  public static int malloc = 0;
+
   /**
    * Handles all allocation methods i.e. malloc Returns the pointer Value to the new memory region
    * (that may be written to 0 for the correct function i.e. calloc). This also returns a state for
@@ -698,7 +717,7 @@ public class SMGCPABuiltins {
   List<ValueAndSMGState> evaluateConfigurableAllocationFunction(
       CFunctionCallExpression functionCall, String functionName, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
-
+    malloc++;
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     for (ValueAndSMGState sizeAndState : getAllocateFunctionSize(pState, cfaEdge, functionCall)) {
@@ -840,7 +859,7 @@ public class SMGCPABuiltins {
     }
     SMGState stateWithNewNonZeroHeap = pState;
     final Constraint sizeNotEqZeroConstraint =
-        constraintFactory.getMemorySizeInBitsNotEqualsZeroConstraint(sizeInBits, sizeType, pState);
+        constraintFactory.getNotEqualsZeroConstraint(sizeInBits, sizeType, pState);
 
     // If SAT -> size can be non zero
     SatisfiabilityAndSMGState satisfiabilityAndStateNotEqZero =
@@ -1492,6 +1511,494 @@ public class SMGCPABuiltins {
           evaluateMemcpy(
               currentState, targetObj, targetOffset, sourceObj, sourceOffset, sizeValue));
     }
+  }
+
+  /**
+   * int memcmp(const void *cmp1, const void *cmp2, size_t n) compares n bytes of cmp1 and cmp2 and
+   * returns an int based on the comparison. The comparison is done lexicographically. Undef
+   * behavior if either one pointer is 0 or we read beyond the sizes of either.
+   *
+   * @param functionCall the function call of the memcmp.
+   * @param pState current SMGState.
+   * @param cfaEdge current CFAEdge for debugging and error info.
+   * @return 1 or 0 depending on the equality of the bytes compared
+   * @throws CPATransferException in case of unhandled cases.
+   */
+  private List<ValueAndSMGState> evaluateMemcmp(
+      CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
+      throws CPATransferException {
+
+    // TODO: add overapproximation for value analysis based on option.
+    if (functionCall.getParameterExpressions().size() != 3) {
+      throw new UnrecognizedCodeException(
+          functionCall.getFunctionNameExpression().toASTString() + " needs 3 arguments.",
+          cfaEdge,
+          functionCall);
+    }
+
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+
+    CExpression targetExpr =
+        functionCall.getParameterExpressions().get(MEMCMP_CMP_TARGET1_PARAMETER);
+
+    while (targetExpr instanceof CCastExpression sourceCastExpr) {
+      targetExpr = sourceCastExpr.getOperand();
+    }
+
+    // First arg is &(something). E.g. address of an integer.
+    if ((targetExpr instanceof CUnaryExpression unary
+            && unary.getOperator().equals(UnaryOperator.AMPER))
+        || SMGCPAExpressionEvaluator.getCanonicalType(targetExpr.getExpressionType())
+            instanceof CPointerType) {
+      // Get the address.
+      // Address visitor will fail on this one
+      // Retrieve via value visitor
+      for (ValueAndSMGState targetAndState :
+          getFunctionParameterValue(MEMCMP_CMP_TARGET1_PARAMETER, functionCall, pState, cfaEdge)) {
+        SMGState currentState = targetAndState.getState();
+
+        Value targetAddress = targetAndState.getValue();
+        if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(targetAddress)) {
+          // Unknown addresses happen only of we don't have a memory associated
+          throw new SMGException(
+              "Error when evaluating the function " + functionCall + " in " + cfaEdge);
+          // resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          // continue;
+        } else if (!(targetAddress instanceof AddressExpression)) {
+          // The value can be unknown
+          throw new SMGException(
+              "Error when evaluating the function " + functionCall + " in " + cfaEdge);
+          // resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          // continue;
+        }
+        AddressExpression targetAddressExpr = (AddressExpression) targetAddress;
+        if (!targetAddressExpr.getOffset().isNumericValue()) {
+          throw new SMGException(
+              "Error when evaluating the function " + functionCall + " in " + cfaEdge);
+          // resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          // continue;
+        }
+
+        List<ValueAndSMGState> newTargetPointerAndStates =
+            evaluator.findOrcreateNewPointer(
+                targetAddressExpr.getMemoryAddress(),
+                targetAddressExpr.getOffset().asNumericValue().bigIntegerValue(),
+                currentState);
+        for (ValueAndSMGState newTargetPointerAndState : newTargetPointerAndStates) {
+          for (SMGStateAndOptionalSMGObjectAndOffset newTargetObjAndState :
+              newTargetPointerAndState
+                  .getState()
+                  .dereferencePointer(newTargetPointerAndState.getValue())) {
+            if (!newTargetObjAndState.hasSMGObjectAndOffset()
+                || !newTargetObjAndState.getOffsetForObject().isNumericValue()) {
+              throw new SMGException(
+                  "Error when evaluating the function " + functionCall + " in " + cfaEdge);
+              // continue;
+            }
+
+            evaluateMemcmpSecondStep(
+                newTargetObjAndState.getSMGObject(),
+                newTargetObjAndState.getOffsetForObject().asNumericValue().bigIntegerValue(),
+                newTargetObjAndState.getSMGState(),
+                functionCall,
+                cfaEdge,
+                resultBuilder);
+          }
+        }
+      }
+
+    } else {
+
+      // A pointer was entered as parameter, get the object.
+      // TODO: how to handle errors in the parameters here? Pull it out, catch, rethrow with
+      //  concrete
+      // error info? (= no valid pointer/memory region found)
+      for (SMGStateAndOptionalSMGObjectAndOffset destAndState :
+          functionCall
+              .getParameterExpressions()
+              .get(MEMCMP_CMP_TARGET1_PARAMETER)
+              .accept(new SMGCPAAddressVisitor(evaluator, pState, cfaEdge, logger, options))) {
+
+        SMGState currentState = destAndState.getSMGState();
+
+        if (!destAndState.hasSMGObjectAndOffset()) {
+          // Unknown addresses happen only of we don't have a memory associated
+          throw new SMGException(
+              "Error when evaluating the function " + functionCall + " in " + cfaEdge);
+          // resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          // continue;
+        }
+        SMGObject targetObj = destAndState.getSMGObject();
+        Value targetOffset = destAndState.getOffsetForObject();
+
+        if (!targetOffset.isNumericValue()) {
+          throw new SMGException(
+              "Error when evaluating the function " + functionCall + " in " + cfaEdge);
+          // resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          // continue;
+        }
+        evaluateMemcmpSecondStep(
+            targetObj,
+            targetOffset.asNumericValue().bigIntegerValue(),
+            currentState,
+            functionCall,
+            cfaEdge,
+            resultBuilder);
+      }
+    }
+    return resultBuilder.build();
+  }
+
+  // Evals second and third parameters of memcmp with given first (target)
+  private void evaluateMemcmpSecondStep(
+      SMGObject targetObj1,
+      BigInteger targetOffset1,
+      SMGState pCurrentState,
+      CFunctionCallExpression functionCall,
+      CFAEdge pCFAEdge,
+      ImmutableList.Builder<ValueAndSMGState> resultBuilder)
+      throws CPATransferException {
+
+    CExpression sourceExpr =
+        functionCall.getParameterExpressions().get(MEMCMP_CMP_TARGET2_PARAMETER);
+
+    while (sourceExpr instanceof CCastExpression sourceCastExpr) {
+      sourceExpr = sourceCastExpr.getOperand();
+    }
+
+    if ((sourceExpr instanceof CUnaryExpression unary
+            && unary.getOperator().equals(UnaryOperator.AMPER))
+        || SMGCPAExpressionEvaluator.getCanonicalType(sourceExpr.getExpressionType())
+            instanceof CPointerType) {
+      // Address visitor will fail on this one
+      // Retrieve via value visitor
+      for (ValueAndSMGState sourceAndState :
+          getFunctionParameterValue(
+              MEMCMP_CMP_TARGET2_PARAMETER, functionCall, pCurrentState, pCFAEdge)) {
+        SMGState currentState = sourceAndState.getState();
+
+        Value sourceAddress = sourceAndState.getValue();
+        if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(sourceAddress)) {
+          throw new SMGException(
+              "Error when evaluating the function " + functionCall + " in " + pCFAEdge);
+          // resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          // continue;
+        } else if (!(sourceAddress instanceof AddressExpression)) {
+          throw new SMGException(
+              "Error when evaluating the function " + functionCall + " in " + pCFAEdge);
+          // resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          // continue;
+        }
+        AddressExpression sourceAddressExpr = (AddressExpression) sourceAddress;
+        if (!sourceAddressExpr.getOffset().isNumericValue()) {
+          throw new SMGException(
+              "Error when evaluating the function " + functionCall + " in " + pCFAEdge);
+          // resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          // continue;
+        }
+
+        List<ValueAndSMGState> newSourcePointerAndStates =
+            evaluator.findOrcreateNewPointer(
+                sourceAddressExpr.getMemoryAddress(),
+                sourceAddressExpr.getOffset().asNumericValue().bigIntegerValue(),
+                currentState);
+        for (ValueAndSMGState newSourcePointerAndState : newSourcePointerAndStates) {
+          for (SMGStateAndOptionalSMGObjectAndOffset newTargetObj2AndState :
+              newSourcePointerAndState
+                  .getState()
+                  .dereferencePointer(newSourcePointerAndState.getValue())) {
+            if (!newTargetObj2AndState.hasSMGObjectAndOffset()
+                || !newTargetObj2AndState.getOffsetForObject().isNumericValue()) {
+              throw new SMGException(
+                  "Error when evaluating the function " + functionCall + " in " + pCFAEdge);
+              // continue;
+            }
+            evaluateMemcmpLastStep(
+                targetObj1,
+                targetOffset1,
+                newTargetObj2AndState.getSMGObject(),
+                newTargetObj2AndState.getOffsetForObject().asNumericValue().bigIntegerValue(),
+                newTargetObj2AndState.getSMGState(),
+                functionCall,
+                pCFAEdge,
+                resultBuilder);
+          }
+        }
+      }
+
+    } else {
+
+      for (SMGStateAndOptionalSMGObjectAndOffset sourceAndState :
+          functionCall
+              .getParameterExpressions()
+              .get(MEMCMP_CMP_TARGET2_PARAMETER)
+              .accept(
+                  new SMGCPAAddressVisitor(evaluator, pCurrentState, pCFAEdge, logger, options))) {
+
+        SMGState currentState = sourceAndState.getSMGState();
+        if (!sourceAndState.hasSMGObjectAndOffset()) {
+          // Unknown addresses happen only of we don't have a memory associated
+          throw new SMGException(
+              "Error when evaluating the function " + functionCall + " in " + pCFAEdge);
+          // resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          // continue;
+        }
+        SMGObject targetObj2 = sourceAndState.getSMGObject();
+        Value targetOffset2 = sourceAndState.getOffsetForObject();
+
+        if (!targetOffset2.isNumericValue()) {
+          // Unknown offset
+          throw new SMGException(
+              "Error when evaluating the function " + functionCall + " in " + pCFAEdge);
+          // resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          // continue;
+        }
+
+        evaluateMemcmpLastStep(
+            targetObj1,
+            targetOffset1,
+            targetObj2,
+            targetOffset2.asNumericValue().bigIntegerValue(),
+            currentState,
+            functionCall,
+            pCFAEdge,
+            resultBuilder);
+      }
+    }
+  }
+
+  // Evals the 3rd parameter to memcmp with the first 2 given as source and target
+  private void evaluateMemcmpLastStep(
+      SMGObject targetObj1,
+      BigInteger targetOffset1,
+      SMGObject targetObj2,
+      BigInteger targetOffset2,
+      SMGState pCurrentState,
+      CFunctionCallExpression functionCall,
+      CFAEdge pCFAEdge,
+      ImmutableList.Builder<ValueAndSMGState> resultBuilder)
+      throws CPATransferException {
+    for (ValueAndSMGState sizeAndState :
+        getFunctionParameterValue(
+            MEMCMP_CMP_SIZE_PARAMETER, functionCall, pCurrentState, pCFAEdge)) {
+
+      SMGState currentState = sizeAndState.getState();
+      Value sizeValue = sizeAndState.getValue();
+
+      if (!sizeValue.isNumericValue()) {
+        throw new SMGException(
+            "Error when evaluating third parameter of the function "
+                + functionCall
+                + " in "
+                + pCFAEdge);
+        // resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        // continue;
+      }
+
+      resultBuilder.add(
+          evaluateMemcmpComparison(
+              currentState,
+              targetObj1,
+              targetOffset1,
+              targetObj2,
+              targetOffset2,
+              sizeValue,
+              pCFAEdge));
+    }
+  }
+
+  private ValueAndSMGState evaluateMemcmpComparison(
+      SMGState pCurrentState,
+      SMGObject pTargetObj1,
+      BigInteger pTargetOffset1,
+      SMGObject pTargetObj2,
+      BigInteger pTargetOffset2,
+      Value pSizeValue,
+      CFAEdge pCFAEdge)
+      throws SMGException, SMGSolverException {
+
+    if (!pSizeValue.isNumericValue()) {
+      throw new SMGException(
+          "Size of comparison in function memcmp is not concrete and can not be handled in "
+              + pCFAEdge);
+    } else if (!pTargetObj1.getSize().isNumericValue()) {
+      throw new SMGException(
+          "Size of memory in first argument in function memcmp is not concrete and can not be"
+              + " handled in "
+              + pCFAEdge);
+    } else if (!pTargetObj2.getSize().isNumericValue()) {
+      throw new SMGException(
+          "Size of memory in second argument in function memcmp is not concrete and can not be"
+              + " handled in "
+              + pCFAEdge);
+    }
+
+    if (pTargetObj1.isZero() || pTargetObj2.isZero()) {
+      throw new SMGException("Function call memcmp has been called on 0 memory in " + pCFAEdge);
+    }
+
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> hvesByObjects =
+        pCurrentState.getMemoryModel().getSmg().getSMGObjectsWithSMGHasValueEdges();
+
+    SMGProveNequality nequalityCheck = new SMGProveNequality(pCurrentState);
+
+    BigInteger numericSizeArgument = pSizeValue.asNumericValue().bigIntegerValue();
+    BigInteger obj1FullOffset = pTargetOffset1.add(pTargetObj1.getOffset());
+    BigInteger obj2FullOffset = pTargetOffset2.add(pTargetObj2.getOffset());
+
+    if (pTargetObj1.equals(pTargetObj2) && obj1FullOffset.equals(obj2FullOffset)) {
+      return ValueAndSMGState.of(new NumericValue(BigInteger.ZERO), pCurrentState);
+    }
+
+    PersistentSet<SMGHasValueEdge> allHvesObj1 = hvesByObjects.get(pTargetObj1);
+
+    PersistentSet<SMGHasValueEdge> allHvesObj2 = hvesByObjects.get(pTargetObj2);
+
+    if (allHvesObj1 == null || allHvesObj1.isEmpty()) {
+      // If there are no edges, the values are random, so there is no order
+      return ValueAndSMGState.ofUnknownValue(pCurrentState);
+    } else if (allHvesObj2 == null || allHvesObj2.isEmpty()) {
+      // we know that there are edges in obj1 while 2 is unknown
+      return ValueAndSMGState.ofUnknownValue(pCurrentState);
+    }
+
+    if (pTargetObj1
+            .getSize()
+            .asNumericValue()
+            .bigIntegerValue()
+            .subtract(obj1FullOffset)
+            .compareTo(numericSizeArgument)
+        < 0) {
+      throw new SMGException(
+          "Size of comparison in function memcmp is larger than the given first objects size"
+              + " relative to its current offset in "
+              + pCFAEdge);
+    } else if (pTargetObj2
+            .getSize()
+            .asNumericValue()
+            .bigIntegerValue()
+            .subtract(obj2FullOffset)
+            .compareTo(numericSizeArgument)
+        < 0) {
+      throw new SMGException(
+          "Size of comparison in function memcmp is larger than the given second objects size"
+              + " relative to its current offset in "
+              + pCFAEdge);
+    }
+
+    // No Object is empty, but there might be edges in one when there are none in the other.
+    // First filter out all edges not (partially) covered by the size given, then check if there are
+    // edges covering the entire size argument.
+    // We normalize the offsets relative to the pointer offset.
+    SortedMap<BigInteger, SMGHasValueEdge> hvesObj1InSizeOrdered = new TreeMap<>();
+    for (SMGHasValueEdge hve : allHvesObj1) {
+      if (hve.getOffset().compareTo(numericSizeArgument) < 0
+          && hve.getOffset().add(hve.getSizeInBits()).compareTo(obj1FullOffset) >= 0) {
+        hvesObj1InSizeOrdered.put(hve.getOffset().subtract(obj1FullOffset), hve);
+      }
+    }
+
+    SortedMap<BigInteger, SMGHasValueEdge> hvesObj2InSizeOrdered = new TreeMap<>();
+    for (SMGHasValueEdge hve : allHvesObj2) {
+      if (hve.getOffset().compareTo(numericSizeArgument) < 0
+          && hve.getOffset().add(hve.getSizeInBits()).compareTo(obj2FullOffset) >= 0) {
+        hvesObj2InSizeOrdered.put(hve.getOffset().subtract(obj2FullOffset), hve);
+      }
+    }
+
+    Set<BigInteger> offsetToRemoveInBoth = new HashSet<>();
+
+    // Compare by equally sized blocks if possible first.
+    for (Entry<BigInteger, SMGHasValueEdge> offsetAndHve1 : hvesObj1InSizeOrdered.entrySet()) {
+      BigInteger offsetToCheck = offsetAndHve1.getKey();
+      SMGHasValueEdge hve1ForOffset = offsetAndHve1.getValue();
+      SMGHasValueEdge hve2ForOffset = hvesObj2InSizeOrdered.get(offsetToCheck);
+
+      if (hve2ForOffset == null) {
+        // If both offset and offset + size are inside the area to be checked and hve2ForOffset does
+        // not have an edge that overlapps with our current one, abort, return unknown
+        if (hve1ForOffset.getOffset().compareTo(obj1FullOffset) >= 0
+            && hve1ForOffset
+                    .getOffset()
+                    .add(hve1ForOffset.getSizeInBits())
+                    .compareTo(obj1FullOffset.add(numericSizeArgument))
+                < 0) {
+          return ValueAndSMGState.ofUnknownValue(pCurrentState);
+        }
+        // Not equal blocks, perform more detailed checks later.
+        continue;
+      }
+
+      if (!hve2ForOffset.getSizeInBits().equals(hve1ForOffset.getSizeInBits())) {
+        // Non-equal sized blocks, check with smaller blocks below.
+        continue;
+      }
+
+      SMGValue hve1SMGValue = hve1ForOffset.hasValue();
+      SMGValue hve2SMGValue = hve2ForOffset.hasValue();
+      Value hve1Value =
+          pCurrentState.getMemoryModel().getValueFromSMGValue(hve1SMGValue).orElseThrow();
+      Value hve2Value =
+          pCurrentState.getMemoryModel().getValueFromSMGValue(hve2SMGValue).orElseThrow();
+      if (hve1Value.isNumericValue() && hve2Value.isNumericValue()) {
+        // Lexicographical order
+        int lexOrder =
+            hve1Value
+                .asNumericValue()
+                .bigIntegerValue()
+                .compareTo(hve2Value.asNumericValue().bigIntegerValue());
+        if (lexOrder == 0) {
+          // equal. We will treat it as equal for now. Remove the blocks, check that all blocks have
+          // been removed later.
+          offsetToRemoveInBoth.add(offsetAndHve1.getKey());
+          continue;
+        } else {
+          return ValueAndSMGState.of(new NumericValue(BigInteger.valueOf(lexOrder)), pCurrentState);
+        }
+      }
+
+      if (!hve1Value.equals(hve2Value)
+          || nequalityCheck.proveInequality(hve1SMGValue, hve2SMGValue)) {
+        // Not equal.
+        // Return a new symbolic value that is not 0.
+        SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+        Value notZeroValue = factory.newIdentifier(null);
+        final ConstraintFactory constraintFactory =
+            ConstraintFactory.getInstance(
+                pCurrentState, machineModel, logger, options, evaluator, pCFAEdge);
+
+        final Constraint notEqZeroConstraint =
+            constraintFactory.getNotEqualsZeroConstraint(
+                notZeroValue, CNumericTypes.INT, pCurrentState);
+
+        return ValueAndSMGState.of(notZeroValue, pCurrentState.addConstraint(notEqZeroConstraint));
+
+      } else {
+        // Possibly equal. We will treat it as equal for now. Remove the blocks, check that all
+        // blocks have been removed later.
+        offsetToRemoveInBoth.add(offsetAndHve1.getKey());
+      }
+    }
+
+    for (BigInteger offsetToRemove : offsetToRemoveInBoth) {
+      hvesObj1InSizeOrdered.remove(offsetToRemove);
+      hvesObj2InSizeOrdered.remove(offsetToRemove);
+    }
+
+    if (hvesObj1InSizeOrdered.isEmpty() && hvesObj2InSizeOrdered.isEmpty()) {
+      // If there is nothing left, they are equal.
+      return ValueAndSMGState.of(new NumericValue(BigInteger.ZERO), pCurrentState);
+    }
+    // Equally sized blocks not possible, use read, as read can break down parts of edges correctly.
+    // TODO: implement me
+
+    if (hvesObj1InSizeOrdered.isEmpty() && hvesObj2InSizeOrdered.isEmpty()) {
+      // If there is nothing left, they are equal.
+      return ValueAndSMGState.of(new NumericValue(BigInteger.ZERO), pCurrentState);
+    }
+    // TODO: At this point we would need a solver, if we ever need it implement this case.
+    //  or return UNKNOWN.
+    throw new SMGException("Could not compare the memory regions given in memcmp in " + pCFAEdge);
   }
 
   /**
