@@ -2334,4 +2334,8 @@ public class SymbolicProgramConfiguration {
     }
     return newSPC.withNewValueMappings(newValueMapping.buildOrThrow());
   }
+
+  public boolean isPointingToMallocZero(SMGValue pReadSMGValue) {
+    return !mallocZeroMemory.isEmpty() && getSmg().isPointer(pReadSMGValue) && mallocZeroMemory.containsKey(getSmg().getPTEdge(pReadSMGValue).orElseThrow().pointsTo());
+  }
 }
