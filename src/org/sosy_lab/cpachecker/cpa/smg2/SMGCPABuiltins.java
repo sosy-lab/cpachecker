@@ -1839,9 +1839,36 @@ public class SMGCPABuiltins {
 
     SMGProveNequality nequalityCheck = new SMGProveNequality(pCurrentState);
 
-    BigInteger numericSizeArgument = pSizeValue.asNumericValue().bigIntegerValue();
+    BigInteger numericSizeArgumentInBits =
+        pSizeValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8));
     BigInteger obj1FullOffset = pTargetOffset1.add(pTargetObj1.getOffset());
     BigInteger obj2FullOffset = pTargetOffset2.add(pTargetObj2.getOffset());
+    BigInteger obj1FullOffsetPlusSizeArgInBits = obj1FullOffset.add(numericSizeArgumentInBits);
+    BigInteger obj2FullOffsetPlusSizeArgInBits = obj2FullOffset.add(numericSizeArgumentInBits);
+
+    if (pTargetObj1
+            .getSize()
+            .asNumericValue()
+            .bigIntegerValue()
+            .subtract(obj1FullOffset)
+            .compareTo(numericSizeArgumentInBits)
+        < 0) {
+      throw new SMGException(
+          "Size of comparison in function memcmp is larger than the given first objects size"
+              + " relative to its current offset in "
+              + pCFAEdge);
+    } else if (pTargetObj2
+            .getSize()
+            .asNumericValue()
+            .bigIntegerValue()
+            .subtract(obj2FullOffset)
+            .compareTo(numericSizeArgumentInBits)
+        < 0) {
+      throw new SMGException(
+          "Size of comparison in function memcmp is larger than the given second objects size"
+              + " relative to its current offset in "
+              + pCFAEdge);
+    }
 
     if (pTargetObj1.equals(pTargetObj2) && obj1FullOffset.equals(obj2FullOffset)) {
       return ValueAndSMGState.of(new NumericValue(BigInteger.ZERO), pCurrentState);
@@ -1859,46 +1886,28 @@ public class SMGCPABuiltins {
       return ValueAndSMGState.ofUnknownValue(pCurrentState);
     }
 
-    if (pTargetObj1
-            .getSize()
-            .asNumericValue()
-            .bigIntegerValue()
-            .subtract(obj1FullOffset)
-            .compareTo(numericSizeArgument)
-        < 0) {
-      throw new SMGException(
-          "Size of comparison in function memcmp is larger than the given first objects size"
-              + " relative to its current offset in "
-              + pCFAEdge);
-    } else if (pTargetObj2
-            .getSize()
-            .asNumericValue()
-            .bigIntegerValue()
-            .subtract(obj2FullOffset)
-            .compareTo(numericSizeArgument)
-        < 0) {
-      throw new SMGException(
-          "Size of comparison in function memcmp is larger than the given second objects size"
-              + " relative to its current offset in "
-              + pCFAEdge);
-    }
-
     // No Object is empty, but there might be edges in one when there are none in the other.
     // First filter out all edges not (partially) covered by the size given, then check if there are
     // edges covering the entire size argument.
-    // We normalize the offsets relative to the pointer offset.
     SortedMap<BigInteger, SMGHasValueEdge> hvesObj1InSizeOrdered = new TreeMap<>();
     for (SMGHasValueEdge hve : allHvesObj1) {
-      if (hve.getOffset().compareTo(numericSizeArgument) < 0
-          && hve.getOffset().add(hve.getSizeInBits()).compareTo(obj1FullOffset) >= 0) {
+      BigInteger hveOffset = hve.getOffset();
+      BigInteger hveOffsetPlusSize = hveOffset.add(hve.getSizeInBits());
+      // Either the hve starts in the compare area, or ends there
+      if (!(hveOffset.compareTo(obj1FullOffsetPlusSizeArgInBits) >= 0
+          || hveOffsetPlusSize.compareTo(obj1FullOffset) <= 0)) {
+        // We normalize the offsets for the initial offset of the pointer to the object.
         hvesObj1InSizeOrdered.put(hve.getOffset().subtract(obj1FullOffset), hve);
       }
     }
 
     SortedMap<BigInteger, SMGHasValueEdge> hvesObj2InSizeOrdered = new TreeMap<>();
     for (SMGHasValueEdge hve : allHvesObj2) {
-      if (hve.getOffset().compareTo(numericSizeArgument) < 0
-          && hve.getOffset().add(hve.getSizeInBits()).compareTo(obj2FullOffset) >= 0) {
+      BigInteger hveOffset = hve.getOffset();
+      BigInteger hveOffsetPlusSize = hveOffset.add(hve.getSizeInBits());
+      if (!(hveOffset.compareTo(obj2FullOffsetPlusSizeArgInBits) >= 0
+          || hveOffsetPlusSize.compareTo(obj2FullOffset) <= 0)) {
+        // We normalize the offsets for the initial offset of the pointer to the object.
         hvesObj2InSizeOrdered.put(hve.getOffset().subtract(obj2FullOffset), hve);
       }
     }
@@ -1908,17 +1917,18 @@ public class SMGCPABuiltins {
     // Compare by equally sized blocks if possible first.
     for (Entry<BigInteger, SMGHasValueEdge> offsetAndHve1 : hvesObj1InSizeOrdered.entrySet()) {
       BigInteger offsetToCheck = offsetAndHve1.getKey();
-      SMGHasValueEdge hve1ForOffset = offsetAndHve1.getValue();
-      SMGHasValueEdge hve2ForOffset = hvesObj2InSizeOrdered.get(offsetToCheck);
+      SMGHasValueEdge hve1ToCheck = offsetAndHve1.getValue();
+      // We normalized the offsets for the initial offsets of the pointers to the objects.
+      // So if there are equal blocks relative to the start offsets, they have the same offset now.
+      SMGHasValueEdge hve2ToCheck = hvesObj2InSizeOrdered.get(offsetToCheck);
 
-      if (hve2ForOffset == null) {
+      if (hve2ToCheck == null) {
         // If both offset and offset + size are inside the area to be checked and hve2ForOffset does
         // not have an edge that overlapps with our current one, abort, return unknown
-        if (hve1ForOffset.getOffset().compareTo(obj1FullOffset) >= 0
-            && hve1ForOffset
-                    .getOffset()
-                    .add(hve1ForOffset.getSizeInBits())
-                    .compareTo(obj1FullOffset.add(numericSizeArgument))
+        if (offsetToCheck.compareTo(obj1FullOffset) >= 0
+            && offsetToCheck
+                    .add(hve1ToCheck.getSizeInBits())
+                    .compareTo(obj1FullOffsetPlusSizeArgInBits)
                 < 0) {
           return ValueAndSMGState.ofUnknownValue(pCurrentState);
         }
@@ -1926,17 +1936,18 @@ public class SMGCPABuiltins {
         continue;
       }
 
-      if (!hve2ForOffset.getSizeInBits().equals(hve1ForOffset.getSizeInBits())) {
+      if (!hve1ToCheck.getSizeInBits().equals(hve2ToCheck.getSizeInBits())) {
         // Non-equal sized blocks, check with smaller blocks below.
         continue;
       }
 
-      SMGValue hve1SMGValue = hve1ForOffset.hasValue();
-      SMGValue hve2SMGValue = hve2ForOffset.hasValue();
+      SMGValue hve1SMGValue = hve1ToCheck.hasValue();
+      SMGValue hve2SMGValue = hve2ToCheck.hasValue();
       Value hve1Value =
           pCurrentState.getMemoryModel().getValueFromSMGValue(hve1SMGValue).orElseThrow();
       Value hve2Value =
           pCurrentState.getMemoryModel().getValueFromSMGValue(hve2SMGValue).orElseThrow();
+
       if (hve1Value.isNumericValue() && hve2Value.isNumericValue()) {
         // Lexicographical order
         int lexOrder =
@@ -1945,9 +1956,8 @@ public class SMGCPABuiltins {
                 .bigIntegerValue()
                 .compareTo(hve2Value.asNumericValue().bigIntegerValue());
         if (lexOrder == 0) {
-          // equal. We will treat it as equal for now. Remove the blocks, check that all blocks have
-          // been removed later.
-          offsetToRemoveInBoth.add(offsetAndHve1.getKey());
+          // Equal. Remove the blocks, check that all blocks have been removed later.
+          offsetToRemoveInBoth.add(offsetToCheck);
           continue;
         } else {
           return ValueAndSMGState.of(new NumericValue(BigInteger.valueOf(lexOrder)), pCurrentState);
@@ -1973,7 +1983,7 @@ public class SMGCPABuiltins {
       } else {
         // Possibly equal. We will treat it as equal for now. Remove the blocks, check that all
         // blocks have been removed later.
-        offsetToRemoveInBoth.add(offsetAndHve1.getKey());
+        offsetToRemoveInBoth.add(offsetToCheck);
       }
     }
 
