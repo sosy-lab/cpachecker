@@ -609,39 +609,46 @@ public class CFAUtils {
     } else if (pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge) {
       // A function return edge may be inside a another statement, so we first find the statement it
       // corresponds to and then get the full expression inside that statement
-      return Optional.of(
-          FileLocation.merge(
-              FluentIterable.from(
-                      pAstCfaRelation
-                          .getTightestStatementForStarting(
-                              pEdge.getFileLocation().getStartingLineNumber(),
-                              pEdge.getFileLocation().getStartColumnInLine())
-                          .edges())
-                  .filter(CStatementEdge.class)
-                  .transform(
-                      pStatementEdge -> {
-                        CStatement statement = pStatementEdge.getStatement();
-                        if (statement instanceof CAssignment assignment) {
-                          // In this case we may be looking at a declaration which was simplified
-                          // into two edges in the frontend. To handle this we see where the
-                          // FileLocation started to see if this statement
-                          CLeftHandSide leftHandSide = assignment.getLeftHandSide();
-                          FileLocation leftHandSideFileLocation = leftHandSide.getFileLocation();
-                          FileLocation pStatementEdgeFileLocation =
-                              pStatementEdge.getFileLocation();
-                          if (leftHandSideFileLocation.getStartingLineNumber()
-                                  == pStatementEdgeFileLocation.getStartingLineNumber()
-                              && leftHandSideFileLocation.getStartColumnInLine()
-                                  == pStatementEdgeFileLocation.getStartColumnInLine()) {
 
-                            return statement.getFileLocation();
-                          } else {
-                            return assignment.getRightHandSide().getFileLocation();
-                          }
-                        }
-                        return statement.getFileLocation();
-                      })
-                  .toList()));
+      // Statement edges are the only relevant parts of the edges in the statement containing the
+      // edge we are interested in, all other cases are added by the frontend and therefore not
+      // relevant
+      FluentIterable<CStatementEdge> statementEdges =
+          FluentIterable.from(
+                  pAstCfaRelation
+                      .getTightestStatementForStarting(
+                          pEdge.getFileLocation().getStartingLineNumber(),
+                          pEdge.getFileLocation().getStartColumnInLine())
+                      .edges())
+              .filter(CStatementEdge.class);
+
+      ImmutableList.Builder<FileLocation> candidateFileLocations = ImmutableList.builder();
+      for (CStatementEdge statementEdge : statementEdges) {
+        CStatement statement = statementEdge.getStatement();
+        if (statement instanceof CAssignment assignment) {
+          // In this case we may be looking at a declaration which was simplified
+          // into two edges in the frontend. To handle this we see where the
+          // FileLocation started to see if this statement
+          CLeftHandSide leftHandSide = assignment.getLeftHandSide();
+          FileLocation leftHandSideFileLocation = leftHandSide.getFileLocation();
+          FileLocation pStatementEdgeFileLocation = statementEdge.getFileLocation();
+
+          if (leftHandSideFileLocation.getStartingLineNumber()
+                  == pStatementEdgeFileLocation.getStartingLineNumber()
+              && leftHandSideFileLocation.getStartColumnInLine()
+                  == pStatementEdgeFileLocation.getStartColumnInLine()) {
+
+            candidateFileLocations.add(statement.getFileLocation());
+          } else {
+            candidateFileLocations.add(assignment.getRightHandSide().getFileLocation());
+          }
+        } else {
+          candidateFileLocations.add(statement.getFileLocation());
+        }
+      }
+
+      // merge all the possible locations together to get the correct location
+      return Optional.of(FileLocation.merge(candidateFileLocations.build()));
     }
 
     return Optional.empty();
