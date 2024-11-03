@@ -526,9 +526,7 @@ public class CFAUtils {
    *
    * <ul>
    *   <li>1. when the edge represents a statement, it is the full expression contained in the
-   *       statement, of which only one exists. This may be the edge itself in the case of an
-   *       expression statement. For example if `return x > 0;` is represented by the edge we look
-   *       for `x > 0`
+   *       statement, of which only one exists.
    *   <li>2. when the edge contains an expression, we look for the full expression that contains
    *       the expression inside the edge in the original source code. This is where the
    *       pCfaAstRelation comes into play. For example for example if `x > 0` is the expression of
