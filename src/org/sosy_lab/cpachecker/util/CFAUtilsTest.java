@@ -73,6 +73,9 @@ public class CFAUtilsTest {
    * Test that the results from the function {@link CFAUtils#getClosestFullExpression} match those
    * of a full expression as defined in §6.8 (4) of the C11 standard.
    *
+   * <p>Be aware that these tests are not exhaustive, some possible improvements are documented as
+   * <a href="https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1260">issue 1260</a>
+   *
    * @throws Exception in case the parsing of the program fails
    */
   @Test
