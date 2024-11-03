@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -80,7 +81,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -91,6 +91,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -605,27 +606,42 @@ public class CFAUtils {
       } else {
         return Optional.empty();
       }
-    } else if (pEdge instanceof CFunctionReturnEdge functionReturnEdge) {
-      CFunctionCall functionCall = functionReturnEdge.getFunctionCall();
-      if (functionCall
-          instanceof CFunctionCallAssignmentStatement functionCallAssignmentExpression) {
-        if (functionCallAssignmentExpression
-            .toString()
-            .equals(functionReturnEdge.getSummaryEdge().getRawStatement())) {
-          // The expression in the edge is a full expression
-          return Optional.of(functionCallAssignmentExpression.getFileLocation());
-        } else {
-          // In this case the raw statement is likely a declaration which was split into two edges
-          // by the preprocessing of the CFA
-          return Optional.of(functionCallAssignmentExpression.getRightHandSide().getFileLocation());
-        }
+    } else if (pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge) {
+      // A function return edge may be inside a another statement, so we first find the statement it
+      // corresponds to and then get the full expression inside that statement
+      return Optional.of(
+          FileLocation.merge(
+              FluentIterable.from(
+                      pAstCfaRelation
+                          .getTightestStatementForStarting(
+                              pEdge.getFileLocation().getStartingLineNumber(),
+                              pEdge.getFileLocation().getStartColumnInLine())
+                          .edges())
+                  .filter(CStatementEdge.class)
+                  .transform(
+                      pStatementEdge -> {
+                        CStatement statement = pStatementEdge.getStatement();
+                        if (statement instanceof CAssignment assignment) {
+                          // In this case we may be looking at a declaration which was simplified
+                          // into two edges in the frontend. To handle this we see where the
+                          // FileLocation started to see if this statement
+                          CLeftHandSide leftHandSide = assignment.getLeftHandSide();
+                          FileLocation leftHandSideFileLocation = leftHandSide.getFileLocation();
+                          FileLocation pStatementEdgeFileLocation =
+                              pStatementEdge.getFileLocation();
+                          if (leftHandSideFileLocation.getStartingLineNumber()
+                                  == pStatementEdgeFileLocation.getStartingLineNumber()
+                              && leftHandSideFileLocation.getStartColumnInLine()
+                                  == pStatementEdgeFileLocation.getStartColumnInLine()) {
 
-      } else {
-        return Optional.of(functionCall.getFileLocation());
-      }
-    } else if (pEdge instanceof CFunctionCallEdge functionCallEdge) {
-      CFunctionCall functionCall = functionCallEdge.getFunctionCall();
-      return Optional.of(functionCall.getFileLocation());
+                            return statement.getFileLocation();
+                          } else {
+                            return assignment.getRightHandSide().getFileLocation();
+                          }
+                        }
+                        return statement.getFileLocation();
+                      })
+                  .toList()));
     }
 
     return Optional.empty();

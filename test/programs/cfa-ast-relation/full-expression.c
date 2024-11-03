@@ -39,5 +39,7 @@ int main() {
 int rec(int x) {
    int p = rec(0);
    p = rec(2);
+   int q = rec(rec(3));
+   q = rec(rec(4));
    return rec(x - 2);
 }

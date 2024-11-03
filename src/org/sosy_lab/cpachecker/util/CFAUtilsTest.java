@@ -107,6 +107,8 @@ public class CFAUtilsTest {
     testFullExpression(cfa, "l = 0", 36, 11, 36, 14);
     testFullExpression(cfa, " rec: p = rec(0);}", 40, 12, 40, 18);
     testFullExpression(cfa, "rec: p = rec(2);}", 41, 4, 41, 14);
-    testFullExpression(cfa, "{rec(x - 2)}", 42, 11, 42, 21);
+    testFullExpression(cfa, "rec: __CPAchecker_TMP_0 = rec(3);}", 42, 12, 42, 23);
+    testFullExpression(cfa, "rec: __CPAchecker_TMP_1 = rec(4);}", 43, 4, 43, 19);
+    testFullExpression(cfa, "{rec(x - 2)}", 44, 11, 44, 21);
   }
 }
