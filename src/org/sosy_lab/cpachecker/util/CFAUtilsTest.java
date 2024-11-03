@@ -93,8 +93,8 @@ public class CFAUtilsTest {
     testFullExpression(cfa, "[x != 0]", 14, 10, 14, 26);
     testFullExpression(cfa, "[y != 0]", 14, 10, 14, 26);
     testFullExpression(cfa, "z + w", 21, 30, 21, 31 /* 35 */);
-    testFullExpression(cfa, "{f()}", 24, 3, 24, 7 /* 6 */);
-    testFullExpression(cfa, "{g(1, 2)}", 25, 3, 25, 11 /* 10 */);
+    testFullExpression(cfa, "{f()}", 24, 3, 24, 6);
+    testFullExpression(cfa, "{g(1, 2)}", 25, 3, 25, 10);
     testFullExpression(cfa, "[j < 0]", 29, 8, 29, 24 /* 23 */);
     testFullExpression(cfa, "[i == 0]", 29, 8, 29, 24 /* 23 */);
     testFullExpression(cfa, "[i < 10]", 29, 25, 29, 41);
@@ -105,5 +105,8 @@ public class CFAUtilsTest {
     testFullExpression(cfa, "s == 1", 35, 11, 35, 35);
     testFullExpression(cfa, "q == 2", 35, 11, 35, 35);
     testFullExpression(cfa, "l = 0", 36, 11, 36, 14);
+    testFullExpression(cfa, " rec: p = rec(0);}", 40, 12, 40, 18);
+    testFullExpression(cfa, "rec: p = rec(2);}", 41, 4, 41, 14);
+    testFullExpression(cfa, "{rec(x - 2)}", 42, 11, 42, 21);
   }
 }

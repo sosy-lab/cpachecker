@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -117,6 +118,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -603,8 +605,27 @@ public class CFAUtils {
       } else {
         return Optional.empty();
       }
+    } else if (pEdge instanceof CFunctionReturnEdge functionReturnEdge) {
+      CFunctionCall functionCall = functionReturnEdge.getFunctionCall();
+      if (functionCall
+          instanceof CFunctionCallAssignmentStatement functionCallAssignmentExpression) {
+        if (functionCallAssignmentExpression
+            .toString()
+            .equals(functionReturnEdge.getSummaryEdge().getRawStatement())) {
+          // The expression in the edge is a full expression
+          return Optional.of(functionCallAssignmentExpression.getFileLocation());
+        } else {
+          // In this case the raw statement is likely a declaration which was split into two edges
+          // by the preprocessing of the CFA
+          return Optional.of(functionCallAssignmentExpression.getRightHandSide().getFileLocation());
+        }
+
+      } else {
+        return Optional.of(functionCall.getFileLocation());
+      }
     } else if (pEdge instanceof CFunctionCallEdge functionCallEdge) {
-      return Optional.of(functionCallEdge.getFileLocation());
+      CFunctionCall functionCall = functionCallEdge.getFunctionCall();
+      return Optional.of(functionCall.getFileLocation());
     }
 
     return Optional.empty();

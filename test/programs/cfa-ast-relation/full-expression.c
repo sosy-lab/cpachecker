@@ -35,3 +35,9 @@ int main() {
   int p = s != q ? s == 1 : q == 2;
   int l = (0);
 }
+
+int rec(int x) {
+   int p = rec(0);
+   p = rec(2);
+   return rec(x - 2);
+}
