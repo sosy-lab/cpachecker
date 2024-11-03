@@ -50,7 +50,7 @@ public class CFAUtilsTest {
         CFAUtils.allEdges(pCFA).filter(edge -> edge.toString().contains(pStringsInEdge)));
   }
 
-  private void testFullExpression(
+  private void fullExpressionAtCorrectPosition(
       CFA pCFA,
       String pStringsToIdentifyEdge,
       int pExpectedStartingLine,
@@ -76,7 +76,7 @@ public class CFAUtilsTest {
    * @throws Exception in case the parsing of the program fails
    */
   @Test
-  public void testFullExpressionStartPosition() throws Exception {
+  public void testFullExpression() throws Exception {
     String programName = "full-expression.c";
     TestResults results = parseProgram(programName);
     CFA cfa = results.getCheckerResult().getCfa();
@@ -85,30 +85,30 @@ public class CFAUtilsTest {
     // The expected end position is sometimes wrong. This is on purpose in order to catch
     // regressions if something is done on our frontend. The comment after the expected value
     // denotes the correct expected value
-    testFullExpression(cfa, "x + y", 18, 10, 18, 11 /* 15 */);
-    testFullExpression(cfa, "x = 1", 10, 11, 10, 12);
-    testFullExpression(cfa, "y = 1", 11, 11, 11, 12);
-    testFullExpression(cfa, "x = 2", 12, 3, 12, 9 /* 8*/);
-    testFullExpression(cfa, "y = 2", 13, 3, 13, 9 /* 8*/);
-    testFullExpression(cfa, "[x != 0]", 14, 10, 14, 26);
-    testFullExpression(cfa, "[y != 0]", 14, 10, 14, 26);
-    testFullExpression(cfa, "z + w", 21, 30, 21, 31 /* 35 */);
-    testFullExpression(cfa, "{f()}", 24, 3, 24, 6);
-    testFullExpression(cfa, "{g(1, 2)}", 25, 3, 25, 10);
-    testFullExpression(cfa, "[j < 0]", 29, 8, 29, 24 /* 23 */);
-    testFullExpression(cfa, "[i == 0]", 29, 8, 29, 24 /* 23 */);
-    testFullExpression(cfa, "[i < 10]", 29, 25, 29, 41);
-    testFullExpression(cfa, "[j == 0]", 29, 25, 29, 41);
-    testFullExpression(cfa, "[i < 5]", 29, 43, 29, 58);
-    testFullExpression(cfa, "[i != 0]", 29, 43, 29, 58);
-    testFullExpression(cfa, "[s != q]", 35, 11, 35, 17 /* 35 */);
-    testFullExpression(cfa, "s == 1", 35, 11, 35, 35);
-    testFullExpression(cfa, "q == 2", 35, 11, 35, 35);
-    testFullExpression(cfa, "l = 0", 36, 11, 36, 14);
-    testFullExpression(cfa, " rec: p = rec(0);}", 40, 12, 40, 18);
-    testFullExpression(cfa, "rec: p = rec(2);}", 41, 4, 41, 14);
-    testFullExpression(cfa, "rec: __CPAchecker_TMP_0 = rec(3);}", 42, 12, 42, 23);
-    testFullExpression(cfa, "rec: __CPAchecker_TMP_1 = rec(4);}", 43, 4, 43, 19);
-    testFullExpression(cfa, "{rec(x - 2)}", 44, 11, 44, 21);
+    fullExpressionAtCorrectPosition(cfa, "x + y", 18, 10, 18, 11 /* 15 */);
+    fullExpressionAtCorrectPosition(cfa, "x = 1", 10, 11, 10, 12);
+    fullExpressionAtCorrectPosition(cfa, "y = 1", 11, 11, 11, 12);
+    fullExpressionAtCorrectPosition(cfa, "x = 2", 12, 3, 12, 9 /* 8*/);
+    fullExpressionAtCorrectPosition(cfa, "y = 2", 13, 3, 13, 9 /* 8*/);
+    fullExpressionAtCorrectPosition(cfa, "[x != 0]", 14, 10, 14, 26);
+    fullExpressionAtCorrectPosition(cfa, "[y != 0]", 14, 10, 14, 26);
+    fullExpressionAtCorrectPosition(cfa, "z + w", 21, 30, 21, 31 /* 35 */);
+    fullExpressionAtCorrectPosition(cfa, "{f()}", 24, 3, 24, 6);
+    fullExpressionAtCorrectPosition(cfa, "{g(1, 2)}", 25, 3, 25, 10);
+    fullExpressionAtCorrectPosition(cfa, "[j < 0]", 29, 8, 29, 24 /* 23 */);
+    fullExpressionAtCorrectPosition(cfa, "[i == 0]", 29, 8, 29, 24 /* 23 */);
+    fullExpressionAtCorrectPosition(cfa, "[i < 10]", 29, 25, 29, 41);
+    fullExpressionAtCorrectPosition(cfa, "[j == 0]", 29, 25, 29, 41);
+    fullExpressionAtCorrectPosition(cfa, "[i < 5]", 29, 43, 29, 58);
+    fullExpressionAtCorrectPosition(cfa, "[i != 0]", 29, 43, 29, 58);
+    fullExpressionAtCorrectPosition(cfa, "[s != q]", 35, 11, 35, 17 /* 35 */);
+    fullExpressionAtCorrectPosition(cfa, "s == 1", 35, 11, 35, 35);
+    fullExpressionAtCorrectPosition(cfa, "q == 2", 35, 11, 35, 35);
+    fullExpressionAtCorrectPosition(cfa, "l = 0", 36, 11, 36, 14);
+    fullExpressionAtCorrectPosition(cfa, " rec: p = rec(0);}", 40, 12, 40, 18);
+    fullExpressionAtCorrectPosition(cfa, "rec: p = rec(2);}", 41, 4, 41, 14);
+    fullExpressionAtCorrectPosition(cfa, "rec: __CPAchecker_TMP_0 = rec(3);}", 42, 12, 42, 23);
+    fullExpressionAtCorrectPosition(cfa, "rec: __CPAchecker_TMP_1 = rec(4);}", 43, 4, 43, 19);
+    fullExpressionAtCorrectPosition(cfa, "{rec(x - 2)}", 44, 11, 44, 21);
   }
 }
