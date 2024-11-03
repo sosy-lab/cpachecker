@@ -53,16 +53,20 @@ public class CFAUtilsTest {
   private void testFullExpression(
       CFA pCFA,
       String pStringsToIdentifyEdge,
-      int pExpectedStartingLineInOrigin,
-      int pExpectedStartColumnInLine) {
+      int pExpectedStartingLine,
+      int pExpectedStartColumnInLine,
+      int pExpectedEndingLine,
+      int pExpectedEndColumnInLine) {
     AstCfaRelation astCfaRelation = pCFA.getAstCfaRelation();
     CFAEdge edge = getEdge(pStringsToIdentifyEdge, pCFA);
     Optional<FileLocation> optionalExpressionLocation =
         CFAUtils.getClosestFullExpression(edge, astCfaRelation);
     assertThat(optionalExpressionLocation).isPresent();
     FileLocation expressionLocation = optionalExpressionLocation.orElseThrow();
-    assertThat(expressionLocation.getStartingLineNumber()).isEqualTo(pExpectedStartingLineInOrigin);
+    assertThat(expressionLocation.getStartingLineNumber()).isEqualTo(pExpectedStartingLine);
     assertThat(expressionLocation.getStartColumnInLine()).isEqualTo(pExpectedStartColumnInLine);
+    assertThat(expressionLocation.getEndingLineNumber()).isEqualTo(pExpectedEndingLine);
+    assertThat(expressionLocation.getEndColumnInLine()).isEqualTo(pExpectedEndColumnInLine);
   }
 
   /**
@@ -78,25 +82,28 @@ public class CFAUtilsTest {
     CFA cfa = results.getCheckerResult().getCfa();
     assertThat(cfa).isNotNull();
 
-    testFullExpression(cfa, "x + y", 18, 10);
-    testFullExpression(cfa, "x = 1", 10, 11);
-    testFullExpression(cfa, "y = 1", 11, 11);
-    testFullExpression(cfa, "x = 2", 12, 3);
-    testFullExpression(cfa, "y = 2", 13, 3);
-    testFullExpression(cfa, "[x != 0]", 14, 10);
-    testFullExpression(cfa, "[y != 0]", 14, 10);
-    testFullExpression(cfa, "z + w", 21, 30);
-    testFullExpression(cfa, "{f()}", 24, 3);
-    testFullExpression(cfa, "{g(1, 2)}", 25, 3);
-    testFullExpression(cfa, "[j < 0]", 29, 8);
-    testFullExpression(cfa, "[i == 0]", 29, 8);
-    testFullExpression(cfa, "[i < 10]", 29, 25);
-    testFullExpression(cfa, "[j == 0]", 29, 25);
-    testFullExpression(cfa, "[i < 5]", 29, 43);
-    testFullExpression(cfa, "[i != 0]", 29, 43);
-    testFullExpression(cfa, "[s != q]", 35, 11);
-    testFullExpression(cfa, "s == 1", 35, 11);
-    testFullExpression(cfa, "q == 2", 35, 11);
-    testFullExpression(cfa, "l = 0", 36, 11);
+    // The expected end position is sometimes wrong. This is on purpose in order to catch
+    // regressions if something is done on our frontend. The comment after the expected value
+    // denotes the correct expected value
+    testFullExpression(cfa, "x + y", 18, 10, 18, 11 /* 15 */);
+    testFullExpression(cfa, "x = 1", 10, 11, 10, 12);
+    testFullExpression(cfa, "y = 1", 11, 11, 11, 12);
+    testFullExpression(cfa, "x = 2", 12, 3, 12, 9 /* 8*/);
+    testFullExpression(cfa, "y = 2", 13, 3, 13, 9 /* 8*/);
+    testFullExpression(cfa, "[x != 0]", 14, 10, 14, 26);
+    testFullExpression(cfa, "[y != 0]", 14, 10, 14, 26);
+    testFullExpression(cfa, "z + w", 21, 30, 21, 31 /* 35 */);
+    testFullExpression(cfa, "{f()}", 24, 3, 24, 7 /* 6 */);
+    testFullExpression(cfa, "{g(1, 2)}", 25, 3, 25, 11 /* 10 */);
+    testFullExpression(cfa, "[j < 0]", 29, 8, 29, 24 /* 23 */);
+    testFullExpression(cfa, "[i == 0]", 29, 8, 29, 24 /* 23 */);
+    testFullExpression(cfa, "[i < 10]", 29, 25, 29, 41);
+    testFullExpression(cfa, "[j == 0]", 29, 25, 29, 41);
+    testFullExpression(cfa, "[i < 5]", 29, 43, 29, 58);
+    testFullExpression(cfa, "[i != 0]", 29, 43, 29, 58);
+    testFullExpression(cfa, "[s != q]", 35, 11, 35, 17 /* 35 */);
+    testFullExpression(cfa, "s == 1", 35, 11, 35, 35);
+    testFullExpression(cfa, "q == 2", 35, 11, 35, 35);
+    testFullExpression(cfa, "l = 0", 36, 11, 36, 14);
   }
 }
