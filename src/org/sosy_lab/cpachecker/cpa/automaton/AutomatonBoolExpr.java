@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
@@ -443,8 +444,12 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
+      if (!(edge instanceof CCfaEdge)) {
+        return CONST_FALSE;
+      }
+
       Optional<FileLocation> optionalFullExpressionLocation =
-          CFAUtils.getClosestFullExpression(edge, astCfaRelation);
+          CFAUtils.getClosestFullExpression((CCfaEdge) edge, astCfaRelation);
       if (optionalFullExpressionLocation.isEmpty()) {
         return CONST_FALSE;
       }

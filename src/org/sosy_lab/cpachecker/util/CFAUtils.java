@@ -117,6 +117,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
@@ -546,7 +547,7 @@ public class CFAUtils {
    *     contained in the statement represented by the given edge
    */
   public static Optional<FileLocation> getClosestFullExpression(
-      CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
+      CCfaEdge pEdge, AstCfaRelation pAstCfaRelation) {
 
     if (pEdge instanceof AssumeEdge assumeEdge) {
       // Find out the full expression encompassing the expression
@@ -577,12 +578,12 @@ public class CFAUtils {
         }
       } else {
         // This can only happen for trinary operators, which are an expression
-        return Optional.of(pEdge.getFileLocation());
+        return Optional.of(assumeEdge.getFileLocation());
       }
-    } else if (pEdge instanceof CStatementEdge) {
+    } else if (pEdge instanceof CStatementEdge statementEdge) {
       // This is composed of function calls, assignment statements, and expression statements
       // all of them are also full expressions
-      return Optional.of(pEdge.getFileLocation());
+      return Optional.of(statementEdge.getFileLocation());
     } else if (pEdge instanceof CDeclarationEdge declarationEdge) {
       // We need to find out the full expression inside the declaration
       CDeclaration declaration = declarationEdge.getDeclaration();
@@ -611,12 +612,14 @@ public class CFAUtils {
       // Statement edges are the only relevant parts of the edges in the statement containing the
       // edge we are interested in, all other cases are added by the frontend and therefore not
       // relevant
+      CFAEdge cfaEdge = (CFAEdge) pEdge;
+
       FluentIterable<CStatementEdge> statementEdges =
           FluentIterable.from(
                   pAstCfaRelation
                       .getTightestStatementForStarting(
-                          pEdge.getFileLocation().getStartingLineNumber(),
-                          pEdge.getFileLocation().getStartColumnInLine())
+                          cfaEdge.getFileLocation().getStartingLineNumber(),
+                          cfaEdge.getFileLocation().getStartColumnInLine())
                       .edges())
               .filter(CStatementEdge.class);
 

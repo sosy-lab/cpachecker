@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -307,8 +308,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     if (property instanceof CommonVerificationProperty verificationProperty) {
       if (verificationProperty == CommonVerificationProperty.OVERFLOW) {
         // The target waypoint needs to point to the full expression which caused the overflow
+        Verify.verify(pEdge instanceof CCfaEdge);
         FileLocation fullExpressionLocation =
-            CFAUtils.getClosestFullExpression(pEdge, pAstCfaRelation).orElseThrow();
+            CFAUtils.getClosestFullExpression((CCfaEdge) pEdge, pAstCfaRelation).orElseThrow();
 
         return new WaypointRecord(
             WaypointRecord.WaypointType.TARGET,
