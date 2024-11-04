@@ -17,10 +17,13 @@ import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -29,13 +32,22 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalAndExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalNotExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalOrExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause.CaseBlockTerminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
@@ -66,6 +78,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
+import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqUtil {
 
@@ -310,6 +324,15 @@ public class SeqUtil {
 
   // Helpers =====================================================================================
 
+  public static boolean isConstCPAcheckerTMPDeclaration(CFAEdge pEdge) {
+    if (pEdge instanceof CDeclarationEdge decEdge) {
+      if (decEdge.getDeclaration() instanceof CVariableDeclaration varDec) {
+        return isConstCPAcheckerTMP(varDec);
+      }
+    }
+    return false;
+  }
+
   public static boolean isConstCPAcheckerTMP(CVariableDeclaration pVarDec) {
     return pVarDec.getType().isConst()
         && !pVarDec.isGlobal()
@@ -320,6 +343,18 @@ public class SeqUtil {
     for (ThreadEdge threadEdge : pThreadEdges) {
       if (!(threadEdge.cfaEdge instanceof AssumeEdge)) {
         return false;
+      }
+    }
+    return true;
+  }
+
+  protected static boolean allEdgesLocal(List<ThreadEdge> pThreadEdges) {
+    GlobalAccessChecker gac = new GlobalAccessChecker();
+    for (ThreadEdge threadEdge : pThreadEdges) {
+      if (!(threadEdge.cfaEdge instanceof CFunctionSummaryEdge)) {
+        if (gac.hasGlobalAccess(threadEdge.cfaEdge)) {
+          return false;
+        }
       }
     }
     return true;
@@ -358,5 +393,27 @@ public class SeqUtil {
       return PthreadFuncType.getPthreadFuncType(pEdge).isExplicitlyHandled;
     }
     return false;
+  }
+
+  public static SeqFunctionCallExpression createPORAssumption(int pThreadId, int pPc)
+      throws UnrecognizedCodeException {
+
+    CIntegerLiteralExpression threadId = SeqIntegerLiteralExpression.buildIntLiteralExpr(pThreadId);
+    CBinaryExpression prevEquals =
+        SeqBinaryExpression.buildBinaryExpression(
+            SeqIdExpression.PREV_THREAD, threadId, BinaryOperator.EQUALS);
+    CBinaryExpression pcEquals =
+        SeqBinaryExpression.buildBinaryExpression(
+            SeqExpressions.buildPcSubscriptExpr(threadId),
+            SeqIntegerLiteralExpression.buildIntLiteralExpr(pPc),
+            BinaryOperator.EQUALS);
+    CToSeqExpression nextThread =
+        new CToSeqExpression(
+            SeqBinaryExpression.buildBinaryExpression(
+                SeqIdExpression.NEXT_THREAD, threadId, BinaryOperator.EQUALS));
+    SeqLogicalNotExpression notAnd = new SeqLogicalNotExpression(
+        new SeqLogicalAndExpression(prevEquals, pcEquals));
+    SeqLogicalOrExpression or = new SeqLogicalOrExpression(notAnd, nextThread);
+    return new SeqFunctionCallExpression(SeqIdExpression.ASSUME, ImmutableList.of(or));
   }
 }

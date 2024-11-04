@@ -56,7 +56,9 @@ public class SeqMainFunction implements SeqFunction {
 
   private final CIdExpression numThreads;
 
-  private final ImmutableList<SeqFunctionCallExpression> assumptions;
+  private final ImmutableList<SeqFunctionCallExpression> threadAssumptions;
+
+  private final ImmutableList<SeqFunctionCallExpression> porAssumptions;
 
   /** The thread-specific case clauses in the while loop. */
   private final ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses;
@@ -73,7 +75,8 @@ public class SeqMainFunction implements SeqFunction {
 
   public SeqMainFunction(
       int pNumThreads,
-      ImmutableList<SeqFunctionCallExpression> pAssumptions,
+      ImmutableList<SeqFunctionCallExpression> pThreadAssumptions,
+      ImmutableList<SeqFunctionCallExpression> pPORAssumptions,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses)
       throws UnrecognizedCodeException {
 
@@ -85,7 +88,8 @@ public class SeqMainFunction implements SeqFunction {
                 SeqToken.NUM_THREADS,
                 SeqInitializer.buildIntInitializer(
                     SeqIntegerLiteralExpression.buildIntLiteralExpr(pNumThreads))));
-    assumptions = pAssumptions;
+    threadAssumptions = pThreadAssumptions;
+    porAssumptions = pPORAssumptions;
     caseClauses = pCaseClauses;
 
     CInitializerList pcInitializerList =
@@ -119,7 +123,12 @@ public class SeqMainFunction implements SeqFunction {
   public String toASTString() {
     // create assume call strings
     StringBuilder assumptionStatements = new StringBuilder();
-    for (SeqFunctionCallExpression assumption : assumptions) {
+    for (SeqFunctionCallExpression assumption : threadAssumptions) {
+      String assumeStatement = assumption.toASTString() + SeqSyntax.SEMICOLON;
+      assumptionStatements.append(SeqUtil.prependTabsWithNewline(2, assumeStatement));
+    }
+    assumptionStatements.append(SeqSyntax.NEWLINE);
+    for (SeqFunctionCallExpression assumption : porAssumptions) {
       String assumeStatement = assumption.toASTString() + SeqSyntax.SEMICOLON;
       assumptionStatements.append(SeqUtil.prependTabsWithNewline(2, assumeStatement));
     }

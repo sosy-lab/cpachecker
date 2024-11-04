@@ -111,15 +111,17 @@ public class Sequentialization {
 
     StringBuilder rProgram = new StringBuilder();
 
+    ImmutableSet<MPORThread> threads = pSubstitutions.keySet();
+
     // add all original program declarations that are not substituted
     rProgram.append(SeqComment.UNCHANGED_DECLARATIONS);
-    for (MPORThread thread : pSubstitutions.keySet()) {
+    for (MPORThread thread : threads) {
       rProgram.append(createNonVarDecString(thread));
     }
     rProgram.append(SeqSyntax.NEWLINE);
 
     // add all var substitute declarations in the order global - local - params - return_pc
-    MPORThread mainThread = MPORAlgorithm.getMainThread(pSubstitutions.keySet());
+    MPORThread mainThread = MPORAlgorithm.getMainThread(threads);
     rProgram.append(createGlobalVarString(Objects.requireNonNull(pSubstitutions.get(mainThread))));
     for (var entry : pSubstitutions.entrySet()) {
       rProgram.append(createLocalVarString(entry.getKey().id, entry.getValue()));
@@ -129,7 +131,7 @@ public class Sequentialization {
     }
     rProgram.append(SeqComment.RETURN_PCS);
     ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> returnPcVars =
-        mapReturnPcVars(pSubstitutions.keySet());
+        mapReturnPcVars(threads);
     for (ImmutableMap<CFunctionDeclaration, CIdExpression> map : returnPcVars.values()) {
       for (CIdExpression returnPc : map.values()) {
         rProgram.append(returnPc.getDeclaration().toASTString()).append(SeqSyntax.NEWLINE);
@@ -141,7 +143,7 @@ public class Sequentialization {
     rProgram.append(SeqComment.THREAD_SIMULATION);
     ImmutableMap<ThreadEdge, SubstituteEdge> subEdges =
         SubstituteBuilder.substituteEdges(pSubstitutions);
-    ThreadVars threadVars = buildThreadVars(pSubstitutions.keySet(), subEdges);
+    ThreadVars threadVars = buildThreadVars(threads, subEdges);
     for (CIdExpression threadVar : threadVars.getIdExpressions()) {
       assert threadVar.getDeclaration() instanceof CVariableDeclaration;
       CVariableDeclaration varDec = (CVariableDeclaration) threadVar.getDeclaration();
@@ -166,16 +168,18 @@ public class Sequentialization {
     SeqAssumeFunction assume = new SeqAssumeFunction();
     rProgram.append(assume.toASTString()).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
-    // create thread simulation assumptions
-    ImmutableList<SeqFunctionCallExpression> assumptions =
-        createThreadSimulationAssumptions(threadVars);
     // TODO we also need to prune: update targetPc to -1 if we reach a thread exit node
     // create pruned (i.e. only non-empty) cases statements
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
         mapCaseClauses(pSubstitutions, subEdges, returnPcVars, threadVars);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
         pruneCaseClauses(caseClauses);
-    SeqMainFunction mainMethod = new SeqMainFunction(threadCount, assumptions, prunedCaseClauses);
+    // TODO create prunedThreadCfa here used for the por assumptions
+    SeqMainFunction mainMethod = new SeqMainFunction(
+        threadCount,
+        createThreadSimulationAssumptions(threadVars),
+        createPartialOrderReductionAssumptions(threads),
+        prunedCaseClauses);
     rProgram.append(mainMethod.toASTString());
 
     return rProgram.toString();
@@ -244,6 +248,34 @@ public class Sequentialization {
         SeqFunctionCallExpression assumeCall =
             new SeqFunctionCallExpression(SeqIdExpression.ASSUME, ImmutableList.of(assumption));
         rAssumptions.add(assumeCall);
+      }
+    }
+    return rAssumptions.build();
+  }
+
+  private ImmutableList<SeqFunctionCallExpression> createPartialOrderReductionAssumptions(
+      ImmutableSet<MPORThread> pThreads) throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<SeqFunctionCallExpression> rAssumptions = ImmutableList.builder();
+    for (MPORThread thread : pThreads) {
+      for (ThreadNode threadNode : thread.cfa.threadNodes) {
+        List<ThreadEdge> edges = threadNode.leavingEdges();
+        // IMPORTANT: this code is only "correct" if we handle const CPAchecker values atomically,
+        //  i.e. if all three statements are inside a single case block
+        if (edges.size() == 1 && SeqUtil.isConstCPAcheckerTMPDeclaration(edges.get(0).cfaEdge)) {
+          ThreadEdge edgeA = edges.get(0);
+          ThreadNode nodeB = edgeA.getSuccessor();
+          assert nodeB.leavingEdges().size() == 1;
+          ThreadEdge edgeB = nodeB.leavingEdges().get(0);
+          ThreadNode nodeC = edgeB.getSuccessor();
+          assert nodeC.leavingEdges().size() == 1;
+          ThreadEdge edgeC = nodeC.leavingEdges().get(0);
+          if (SeqUtil.allEdgesLocal(ImmutableList.of(edgeA, edgeB, edgeC))) {
+            rAssumptions.add(SeqUtil.createPORAssumption(thread.id, threadNode.pc));
+          }
+        } else if (SeqUtil.allEdgesLocal(edges)) {
+          rAssumptions.add(SeqUtil.createPORAssumption(thread.id, threadNode.pc));
+        }
       }
     }
     return rAssumptions.build();
