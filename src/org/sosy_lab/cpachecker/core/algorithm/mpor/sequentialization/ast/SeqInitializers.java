@@ -20,6 +20,9 @@ public class SeqInitializers {
 
   public static class SeqInitializer {
 
+    public static final CInitializer INT_MINUS_1 =
+        buildIntInitializer(SeqIntegerLiteralExpression.INT_MINUS_1);
+
     public static final CInitializer INT_0 = buildIntInitializer(SeqIntegerLiteralExpression.INT_0);
 
     public static final CInitializer INT_1 = buildIntInitializer(SeqIntegerLiteralExpression.INT_1);

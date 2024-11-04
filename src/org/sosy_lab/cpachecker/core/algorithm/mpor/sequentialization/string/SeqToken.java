@@ -61,6 +61,8 @@ public class SeqToken {
 
   public static final String PC = "pc";
 
+  public static final String PREV_THREAD = "prev_thread";
+
   public static final String RETURN = "return";
 
   public static final String __SEQUENTIALIZATION_ERROR__ = "\"__SEQUENTIALIZATION_ERROR__\"";

@@ -34,8 +34,11 @@ public class SeqDeclarations {
     protected static final CVariableDeclaration DUMMY_PC =
         buildVarDec(false, SeqArrayType.INT_ARRAY, SeqToken.PC, SeqInitializerList.EMPTY_LIST);
 
+    public static final CVariableDeclaration PREV_THREAD =
+        buildVarDec(false, SeqSimpleType.INT, SeqToken.PREV_THREAD, SeqInitializer.INT_MINUS_1);
+
     public static final CVariableDeclaration NEXT_THREAD =
-        buildVarDec(false, SeqSimpleType.INT, SeqToken.NEXT_THREAD, null);
+        buildVarDec(false, SeqSimpleType.INT, SeqToken.NEXT_THREAD, SeqInitializer.INT_MINUS_1);
 
     // TODO SubstituteBuilder.substituteVarDec also uses CVariableDeclaration constructor
     public static CVariableDeclaration buildVarDec(

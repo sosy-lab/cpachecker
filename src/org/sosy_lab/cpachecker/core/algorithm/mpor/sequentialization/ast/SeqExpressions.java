@@ -57,8 +57,11 @@ public class SeqExpressions {
 
   public static class SeqIntegerLiteralExpression {
 
+    // TODO use either exit_pc or termination_pc as name
     public static final CIntegerLiteralExpression INT_EXIT_PC =
         buildIntLiteralExpr(SeqUtil.TERMINATION_PC);
+
+    public static final CIntegerLiteralExpression INT_MINUS_1 = buildIntLiteralExpr(-1);
 
     public static final CIntegerLiteralExpression INT_0 = buildIntLiteralExpr(0);
 
@@ -75,6 +78,8 @@ public class SeqExpressions {
     public static final CIdExpression COND = buildIdExpr(SeqParameterDeclaration.COND);
 
     protected static final CIdExpression DUMMY_PC = buildIdExpr(SeqVariableDeclaration.DUMMY_PC);
+
+    public static final CIdExpression PREV_THREAD = buildIdExpr(SeqVariableDeclaration.PREV_THREAD);
 
     public static final CIdExpression NEXT_THREAD = buildIdExpr(SeqVariableDeclaration.NEXT_THREAD);
 

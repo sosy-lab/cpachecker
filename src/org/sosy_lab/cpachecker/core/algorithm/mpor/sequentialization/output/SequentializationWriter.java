@@ -58,6 +58,9 @@ public class SequentializationWriter {
     outputFile = new File(outputFilePath);
   }
 
+  // TODO also create .yml file for each sequentialized program that contains metadata
+  //  e.g. input program, num_treads, etc.
+
   public void write(String pSequentialization) {
     String initProgram = licenseComment + "\n" + sequentializationComment + pSequentialization;
     String finalProgram = createFinalProgram(initProgram);

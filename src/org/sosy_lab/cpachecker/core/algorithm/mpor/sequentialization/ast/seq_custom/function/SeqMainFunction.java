@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -64,6 +65,8 @@ public class SeqMainFunction implements SeqFunction {
 
   private final CFunctionCallAssignmentStatement assignNextThread;
 
+  private final CExpressionAssignmentStatement assignPrevThread;
+
   private final SeqFunctionCallExpression assumeNextThread;
 
   private final SeqFunctionCallExpression assumeThreadActive;
@@ -101,6 +104,10 @@ public class SeqMainFunction implements SeqFunction {
                 SeqIdExpression.VERIFIER_NONDET_INT,
                 ImmutableList.of(),
                 SeqFunctionDeclaration.VERIFIER_NONDET_INT));
+
+    assignPrevThread =
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY, SeqIdExpression.PREV_THREAD, SeqIdExpression.NEXT_THREAD);
 
     assumeNextThread =
         new SeqFunctionCallExpression(SeqIdExpression.ASSUME, assumeNextThreadParams());
@@ -157,14 +164,18 @@ public class SeqMainFunction implements SeqFunction {
         + SeqUtil.prependTabsWithNewline(1, numThreads.getDeclaration().toASTString())
         + SeqUtil.prependTabsWithNewline(1, declarePc.toASTString())
         + SeqSyntax.NEWLINE
+        + SeqUtil.prependTabsWithNewline(1, SeqVariableDeclaration.PREV_THREAD.toASTString())
+        + SeqUtil.prependTabsWithNewline(1, SeqVariableDeclaration.NEXT_THREAD.toASTString())
+        + SeqSyntax.NEWLINE
         + SeqUtil.prependTabsWithNewline(1, SeqUtil.appendOpeningCurly(whileTrue.toASTString()))
-        + SeqUtil.prependTabsWithNewline(2, SeqVariableDeclaration.NEXT_THREAD.toASTString())
         + SeqUtil.prependTabsWithNewline(2, assignNextThread.toASTString())
         + SeqSyntax.NEWLINE
         + SeqUtil.prependTabsWithNewline(2, assumeNextThread.toASTString() + SeqSyntax.SEMICOLON)
         + SeqUtil.prependTabsWithNewline(2, assumeThreadActive.toASTString() + SeqSyntax.SEMICOLON)
         + SeqSyntax.NEWLINE
         + assumptionStatements
+        + SeqSyntax.NEWLINE
+        + SeqUtil.prependTabsWithNewline(2, assignPrevThread.toASTString())
         + SeqSyntax.NEWLINE
         + switchStatements
         + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
