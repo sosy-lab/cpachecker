@@ -1116,12 +1116,14 @@ public class SMGCPAValueVisitor
       }
 
       if (!(value instanceof AddressExpression)) {
-        // The only valid pointer is numeric 0
+        // Non-pointer dereference, either numeric or symbolic
         Preconditions.checkArgument(
             (value.isNumericValue()
                     && value.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO))
                 || !evaluator.isPointerValue(value, currentState));
-        builder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        builder.add(
+            ValueAndSMGState.ofUnknownValue(
+                currentState.withUnknownPointerDereferenceWhenReading(value, cfaEdge)));
         continue;
       }
 
