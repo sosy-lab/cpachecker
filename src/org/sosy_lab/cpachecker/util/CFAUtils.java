@@ -612,14 +612,12 @@ public class CFAUtils {
       // Statement edges are the only relevant parts of the edges in the statement containing the
       // edge we are interested in, all other cases are added by the frontend and therefore not
       // relevant
-      CFAEdge cfaEdge = (CFAEdge) pEdge;
-
       FluentIterable<CStatementEdge> statementEdges =
           FluentIterable.from(
                   pAstCfaRelation
                       .getTightestStatementForStarting(
-                          cfaEdge.getFileLocation().getStartingLineNumber(),
-                          cfaEdge.getFileLocation().getStartColumnInLine())
+                          pEdge.getFileLocation().getStartingLineNumber(),
+                          pEdge.getFileLocation().getStartColumnInLine())
                       .edges())
               .filter(CStatementEdge.class);
 
