@@ -426,7 +426,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * edge ends.
    *
    * <p>The closest full expression is defined as in {@link
-   * CFAUtils#getClosestFullExpression(CFAEdge,AstCfaRelation)}.
+   * CFAUtils#getClosestFullExpression(CCfaEdge,AstCfaRelation)}.
    */
   public static class CheckClosestFullExpressionMatchesColumnAndLine implements AutomatonBoolExpr {
     private final int columnToReach;
