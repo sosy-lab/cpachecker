@@ -308,7 +308,6 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     if (property instanceof CommonVerificationProperty verificationProperty) {
       if (verificationProperty == CommonVerificationProperty.OVERFLOW) {
         // The target waypoint needs to point to the full expression which caused the overflow
-        Verify.verify(pEdge instanceof CCfaEdge);
         FileLocation fullExpressionLocation =
             CFAUtils.getClosestFullExpression((CCfaEdge) pEdge, pAstCfaRelation).orElseThrow();
 
