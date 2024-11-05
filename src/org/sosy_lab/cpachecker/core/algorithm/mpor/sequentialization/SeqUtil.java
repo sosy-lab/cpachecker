@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -106,6 +105,7 @@ public class SeqUtil {
 
     int originPc = pThreadNode.pc;
     ImmutableList.Builder<SeqCaseBlockStatement> stmts = ImmutableList.builder();
+    ImmutableList.Builder<ThreadEdge> threadEdges = ImmutableList.builder();
 
     // no edges -> exit node reached (assert fail or main / start routine exit node)
     if (pThreadNode.leavingEdges().isEmpty()) {
@@ -120,8 +120,10 @@ public class SeqUtil {
       stmts.add(new SeqReturnPcRetrievalStatement(retrieval.assignmentStatement));
 
     } else {
+      // TODO create separate methods here to handle the different cases for better overview
       boolean firstEdge = true;
       for (ThreadEdge threadEdge : pThreadNode.leavingEdges()) {
+        threadEdges.add(threadEdge);
         CFAEdge edge = threadEdge.cfaEdge;
         SubstituteEdge sub = pSubEdges.get(threadEdge);
         assert sub != null;
@@ -175,10 +177,12 @@ public class SeqUtil {
             ThreadNode successorA = threadEdge.getSuccessor();
             assert successorA.leavingEdges().size() == 1;
             ThreadEdge statementA = successorA.leavingEdges().iterator().next();
+            threadEdges.add(statementA);
             assert statementA.cfaEdge instanceof CStatementEdge;
             ThreadNode successorB = statementA.getSuccessor();
             assert successorB.leavingEdges().size() == 1;
             ThreadEdge statementB = successorB.leavingEdges().iterator().next();
+            threadEdges.add(statementB);
             assert statementB.cfaEdge instanceof CStatementEdge;
             pCoveredNodes.add(successorA);
             pCoveredNodes.add(successorB);
@@ -277,7 +281,11 @@ public class SeqUtil {
         }
       }
     }
-    return new SeqCaseClause(originPc, stmts.build(), CaseBlockTerminator.CONTINUE);
+    return new SeqCaseClause(
+        anyGlobalAccess(threadEdges.build()),
+        originPc,
+        stmts.build(),
+        CaseBlockTerminator.CONTINUE);
   }
 
   /** Returns ""pString"" */
@@ -348,16 +356,20 @@ public class SeqUtil {
     return true;
   }
 
-  protected static boolean allEdgesLocal(List<ThreadEdge> pThreadEdges) {
+  /**
+   * Returns {@code true} if any {@link CFAEdge} of the given {@link ThreadEdge}s read or write a
+   * global variable.
+   */
+  protected static boolean anyGlobalAccess(List<ThreadEdge> pThreadEdges) {
     GlobalAccessChecker gac = new GlobalAccessChecker();
     for (ThreadEdge threadEdge : pThreadEdges) {
       if (!(threadEdge.cfaEdge instanceof CFunctionSummaryEdge)) {
         if (gac.hasGlobalAccess(threadEdge.cfaEdge)) {
-          return false;
+          return true;
         }
       }
     }
-    return true;
+    return false;
   }
 
   /**
@@ -411,8 +423,8 @@ public class SeqUtil {
         new CToSeqExpression(
             SeqBinaryExpression.buildBinaryExpression(
                 SeqIdExpression.NEXT_THREAD, threadId, BinaryOperator.EQUALS));
-    SeqLogicalNotExpression notAnd = new SeqLogicalNotExpression(
-        new SeqLogicalAndExpression(prevEquals, pcEquals));
+    SeqLogicalNotExpression notAnd =
+        new SeqLogicalNotExpression(new SeqLogicalAndExpression(prevEquals, pcEquals));
     SeqLogicalOrExpression or = new SeqLogicalOrExpression(notAnd, nextThread);
     return new SeqFunctionCallExpression(SeqIdExpression.ASSUME, ImmutableList.of(or));
   }

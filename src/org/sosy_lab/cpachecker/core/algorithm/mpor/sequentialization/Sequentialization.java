@@ -175,11 +175,12 @@ public class Sequentialization {
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
         pruneCaseClauses(caseClauses);
     // TODO create prunedThreadCfa here used for the por assumptions
-    SeqMainFunction mainMethod = new SeqMainFunction(
-        threadCount,
-        createThreadSimulationAssumptions(threadVars),
-        createPartialOrderReductionAssumptions(threads),
-        prunedCaseClauses);
+    SeqMainFunction mainMethod =
+        new SeqMainFunction(
+            threadCount,
+            createThreadSimulationAssumptions(threadVars),
+            createPartialOrderReductionAssumptions(prunedCaseClauses),
+            prunedCaseClauses);
     rProgram.append(mainMethod.toASTString());
 
     return rProgram.toString();
@@ -254,27 +255,15 @@ public class Sequentialization {
   }
 
   private ImmutableList<SeqFunctionCallExpression> createPartialOrderReductionAssumptions(
-      ImmutableSet<MPORThread> pThreads) throws UnrecognizedCodeException {
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pPrunedCaseClauses)
+      throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqFunctionCallExpression> rAssumptions = ImmutableList.builder();
-    for (MPORThread thread : pThreads) {
-      for (ThreadNode threadNode : thread.cfa.threadNodes) {
-        List<ThreadEdge> edges = threadNode.leavingEdges();
-        // IMPORTANT: this code is only "correct" if we handle const CPAchecker values atomically,
-        //  i.e. if all three statements are inside a single case block
-        if (edges.size() == 1 && SeqUtil.isConstCPAcheckerTMPDeclaration(edges.get(0).cfaEdge)) {
-          ThreadEdge edgeA = edges.get(0);
-          ThreadNode nodeB = edgeA.getSuccessor();
-          assert nodeB.leavingEdges().size() == 1;
-          ThreadEdge edgeB = nodeB.leavingEdges().get(0);
-          ThreadNode nodeC = edgeB.getSuccessor();
-          assert nodeC.leavingEdges().size() == 1;
-          ThreadEdge edgeC = nodeC.leavingEdges().get(0);
-          if (SeqUtil.allEdgesLocal(ImmutableList.of(edgeA, edgeB, edgeC))) {
-            rAssumptions.add(SeqUtil.createPORAssumption(thread.id, threadNode.pc));
-          }
-        } else if (SeqUtil.allEdgesLocal(edges)) {
-          rAssumptions.add(SeqUtil.createPORAssumption(thread.id, threadNode.pc));
+    for (var entry : pPrunedCaseClauses.entrySet()) {
+      int threadId = entry.getKey().id;
+      for (SeqCaseClause caseClause : entry.getValue()) {
+        if (!caseClause.isGlobal) {
+          rAssumptions.add(SeqUtil.createPORAssumption(threadId, caseClause.caseLabel.value));
         }
       }
     }

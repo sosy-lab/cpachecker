@@ -754,6 +754,63 @@ int main() {
     __mpor_seq_assume((!((__t1_active && __t0_joins_t1)) || next_thread != 0));
     __mpor_seq_assume((!((__t2_active && __t0_joins_t2)) || next_thread != 0));
 
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 443)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 444)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 446)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 448)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 453)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 454)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 455)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 456)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 458)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 459)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 460)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 461)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 462)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 464)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 465)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 0 && (pc[0]) == 466)) || next_thread == 0));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 4)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 7)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 11)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 13)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 15)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 19)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 21)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 27)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 29)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 32)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 33)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 34)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 36)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 37)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 40)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 41)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 42)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 45)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 47)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 49)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 51)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 52)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 53)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 54)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 1 && (pc[1]) == 55)) || next_thread == 1));
+    __mpor_seq_assume((!((prev_thread == 2 && (pc[2]) == 0)) || next_thread == 2));
+    __mpor_seq_assume((!((prev_thread == 2 && (pc[2]) == 4)) || next_thread == 2));
+    __mpor_seq_assume((!((prev_thread == 2 && (pc[2]) == 8)) || next_thread == 2));
+    __mpor_seq_assume((!((prev_thread == 2 && (pc[2]) == 13)) || next_thread == 2));
+    __mpor_seq_assume((!((prev_thread == 2 && (pc[2]) == 15)) || next_thread == 2));
+    __mpor_seq_assume((!((prev_thread == 2 && (pc[2]) == 17)) || next_thread == 2));
+    __mpor_seq_assume((!((prev_thread == 2 && (pc[2]) == 22)) || next_thread == 2));
+    __mpor_seq_assume((!((prev_thread == 2 && (pc[2]) == 25)) || next_thread == 2));
+    __mpor_seq_assume((!((prev_thread == 2 && (pc[2]) == 28)) || next_thread == 2));
+    __mpor_seq_assume((!((prev_thread == 2 && (pc[2]) == 29)) || next_thread == 2));
+    __mpor_seq_assume((!((prev_thread == 2 && (pc[2]) == 30)) || next_thread == 2));
+    __mpor_seq_assume((!((prev_thread == 2 && (pc[2]) == 32)) || next_thread == 2));
+    __mpor_seq_assume((!((prev_thread == 2 && (pc[2]) == 33)) || next_thread == 2));
+    __mpor_seq_assume((!((prev_thread == 2 && (pc[2]) == 36)) || next_thread == 2));
+    __mpor_seq_assume((!((prev_thread == 2 && (pc[2]) == 37)) || next_thread == 2));
+
     prev_thread = next_thread;
 
     if (next_thread == 0) {
@@ -776,21 +833,21 @@ int main() {
         case 459: 
             switch (__return_pc_t0_empty) {
               case 443: __t0_23___CPAchecker_TMP_0 = -1; break;
-              default: __assert_fail("0", "mpor_seq__queue_longest.i", 779, "__SEQUENTIALIZATION_ERROR__");
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 836, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[0] = 460; continue;
         case 460: pc[0] = __return_pc_t0_empty; continue;
         case 461: 
             switch (__return_pc_t0_empty) {
               case 443: __t0_23___CPAchecker_TMP_0 = 0; break;
-              default: __assert_fail("0", "mpor_seq__queue_longest.i", 786, "__SEQUENTIALIZATION_ERROR__");
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 843, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[0] = 460; continue;
         case 462: __p0_20_q->head = 0; pc[0] = 464; continue;
         case 464: __p0_20_q->tail = 0; pc[0] = 465; continue;
         case 465: __p0_20_q->amount = 0; pc[0] = 466; continue;
         case 466: pc[0] = __return_pc_t0_init; continue;
-        default: __assert_fail("0", "mpor_seq__queue_longest.i", 793, "__SEQUENTIALIZATION_ERROR__");
+        default: __assert_fail("0", "mpor_seq__queue_longest.i", 850, "__SEQUENTIALIZATION_ERROR__");
       }
 
     } else if (next_thread == 1) {
@@ -822,7 +879,7 @@ int main() {
         case 34: 
             switch (__return_pc_t1_enqueue) {
               case 7: __t1_29___CPAchecker_TMP_0 = 0; break;
-              default: __assert_fail("0", "mpor_seq__queue_longest.i", 825, "__SEQUENTIALIZATION_ERROR__");
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 882, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[1] = 36; continue;
         case 36: pc[1] = __return_pc_t1_enqueue; continue;
@@ -830,7 +887,7 @@ int main() {
         case 40: 
             switch (__return_pc_t1_enqueue) {
               case 7: __t1_29___CPAchecker_TMP_0 = 0; break;
-              default: __assert_fail("0", "mpor_seq__queue_longest.i", 833, "__SEQUENTIALIZATION_ERROR__");
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 890, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[1] = 36; continue;
         case 41: __t1_active = 0; pc[1] = -1; continue;
@@ -842,18 +899,18 @@ int main() {
         case 52: 
             switch (__return_pc_t1_empty) {
               case 11: __t1_30___CPAchecker_TMP_1 = -1; break;
-              default: __assert_fail("0", "mpor_seq__queue_longest.i", 845, "__SEQUENTIALIZATION_ERROR__");
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 902, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[1] = 53; continue;
         case 53: pc[1] = __return_pc_t1_empty; continue;
         case 54: 
             switch (__return_pc_t1_empty) {
               case 11: __t1_30___CPAchecker_TMP_1 = 0; break;
-              default: __assert_fail("0", "mpor_seq__queue_longest.i", 852, "__SEQUENTIALIZATION_ERROR__");
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 909, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[1] = 53; continue;
         case 55: __return_pc_t1_reach_error = -1; pc[1] = 45; continue;
-        default: __assert_fail("0", "mpor_seq__queue_longest.i", 856, "__SEQUENTIALIZATION_ERROR__");
+        default: __assert_fail("0", "mpor_seq__queue_longest.i", 913, "__SEQUENTIALIZATION_ERROR__");
       }
 
     } else if (next_thread == 2) {
@@ -879,7 +936,7 @@ int main() {
         case 30: 
             switch (__return_pc_t2_dequeue) {
               case 12: __t2_35___CPAchecker_TMP_0 = __t2_36_x; break;
-              default: __assert_fail("0", "mpor_seq__queue_longest.i", 882, "__SEQUENTIALIZATION_ERROR__");
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 939, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[2] = 32; continue;
         case 32: pc[2] = __return_pc_t2_dequeue; continue;
@@ -887,11 +944,11 @@ int main() {
         case 36: 
             switch (__return_pc_t2_dequeue) {
               case 12: __t2_35___CPAchecker_TMP_0 = __t2_36_x; break;
-              default: __assert_fail("0", "mpor_seq__queue_longest.i", 890, "__SEQUENTIALIZATION_ERROR__");
+              default: __assert_fail("0", "mpor_seq__queue_longest.i", 947, "__SEQUENTIALIZATION_ERROR__");
             }
             pc[2] = 32; continue;
         case 37: __t2_active = 0; pc[2] = -1; continue;
-        default: __assert_fail("0", "mpor_seq__queue_longest.i", 894, "__SEQUENTIALIZATION_ERROR__");
+        default: __assert_fail("0", "mpor_seq__queue_longest.i", 951, "__SEQUENTIALIZATION_ERROR__");
       }
     }
   }

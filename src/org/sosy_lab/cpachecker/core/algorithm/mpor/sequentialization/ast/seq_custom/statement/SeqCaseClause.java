@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqT
 /** Represents a case clause, i.e. a case label and its case block. */
 public class SeqCaseClause implements SeqStatement {
 
+  /** The suffix of the case block, either {@code break;} or {@code continue;} */
   public enum CaseBlockTerminator {
     BREAK(SeqToken.BREAK),
     CONTINUE(SeqToken.CONTINUE);
@@ -32,6 +33,8 @@ public class SeqCaseClause implements SeqStatement {
 
   public final long id;
 
+  public final boolean isGlobal;
+
   public final SeqCaseLabel caseLabel;
 
   public final SeqCaseBlock caseBlock;
@@ -39,11 +42,13 @@ public class SeqCaseClause implements SeqStatement {
   public final CaseBlockTerminator caseBlockTerminator;
 
   public SeqCaseClause(
+      boolean pIsGlobal,
       int pCaseLabelValue,
       ImmutableList<SeqCaseBlockStatement> pCaseBlockStatements,
       CaseBlockTerminator pCaseBlockTerminator) {
 
     id = createNewId();
+    isGlobal = pIsGlobal;
     caseLabel = new SeqCaseLabel(pCaseLabelValue);
     caseBlock = new SeqCaseBlock(pCaseBlockStatements);
     caseBlockTerminator = pCaseBlockTerminator;
@@ -52,17 +57,19 @@ public class SeqCaseClause implements SeqStatement {
   /** Private constructor, only used during cloning process to keep the same id. */
   private SeqCaseClause(
       long pId,
+      boolean pIsGlobal,
       SeqCaseLabel pCaseLabel,
       SeqCaseBlock pCaseBlocks,
       CaseBlockTerminator pCaseBlockEndingType) {
     id = pId;
+    isGlobal = pIsGlobal;
     caseLabel = pCaseLabel;
     caseBlock = pCaseBlocks;
     caseBlockTerminator = pCaseBlockEndingType;
   }
 
   public SeqCaseClause cloneWithCaseLabel(SeqCaseLabel pCaseLabel) {
-    return new SeqCaseClause(id, pCaseLabel, caseBlock, caseBlockTerminator);
+    return new SeqCaseClause(id, isGlobal, pCaseLabel, caseBlock, caseBlockTerminator);
   }
 
   private static long createNewId() {
