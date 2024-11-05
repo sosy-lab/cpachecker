@@ -104,6 +104,9 @@ while [ $# -gt 0 ]; do
    "-generateReport")
        echo "Option -generateReport is not necessary anymore. Please open the HTML files produced by CPAchecker in the output directory."
        ;;
+   -XX:+*GC) # looks like an option for choosing a GC, skip our default
+       JAVA_GC=""
+       ;&  # and add it to JAVA_VM_ARGUMENTS
    -X*) # params starting with "-X" are used for JVM
        JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS $1"
        ;;
@@ -151,6 +154,20 @@ else
   echo "Running CPAchecker with default stack size (${JAVA_STACK_SIZE}). Specify a larger value with --stack if needed."
 fi
 
+# Determine garbage collector
+if [[ ! -v JAVA_GC ]]; then
+  # Recommendations are from BSc thesis
+  # "Evaluation of JVM Garbage Collectors for CPAchecker", Tobias Maget, 2024.
+  # https://www.sosy-lab.org/research/bib/All/index.html#MagetEvaluationJVMGarbageCollectorsCPAchecker
+  if [ "$BENCHMARK_MODE" = true ]; then
+    # SerialGC improves CPU time and memory consumption,
+    # and should provide more consistent performance.
+    JAVA_GC=-XX:+UseSerialGC
+  else
+    # This configuration of parallel GC is good overall for CPU time, wall time, and memory.
+    JAVA_GC="-XX:+UseParallelGC -XX:MinHeapFreeRatio=80"
+  fi
+fi
 
 if [ ! -z "$JAVA_VM_ARGUMENTS" ]; then
   echo "Running CPAchecker with the following extra VM options: $JAVA_VM_ARGUMENTS"
@@ -178,6 +195,7 @@ esac
 exec "$JAVA" \
     -XX:+PerfDisableSharedMem \
     -Djava.awt.headless=true \
+    $JAVA_GC \
     $JAVA_VM_ARGUMENTS \
     -Xss${JAVA_STACK_SIZE} \
     -Xmx${JAVA_HEAP_SIZE} \
