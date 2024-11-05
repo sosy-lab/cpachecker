@@ -2736,6 +2736,21 @@ public class SMGState
     return copyWithNewErrorInfo(newErrorInfo);
   }
 
+  public SMGState withInvalidDerefForRead(SMGObject objectDerefed, CFAEdge edge) {
+    Preconditions.checkArgument(!getMemoryModel().isObjectValid(objectDerefed));
+
+    String errorMSG = "valid-deref: invalid pointer dereference in : " + edge;
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(objectDerefed));
+
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
   private SMGState withInvalidDeref(SMGObject objectDerefed, CFAEdge edge) {
     Preconditions.checkArgument(
         getMemoryModel().isHeapObject(objectDerefed)

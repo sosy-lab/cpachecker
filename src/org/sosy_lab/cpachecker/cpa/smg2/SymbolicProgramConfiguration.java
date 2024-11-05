@@ -851,17 +851,14 @@ public class SymbolicProgramConfiguration {
     SMGObjectsAndValues reachable = smg.collectReachableObjectsAndValues(visibleObjects);
     Set<SMGObject> unreachableObjects =
         new HashSet<>(Sets.difference(smg.getObjects(), reachable.getObjects()));
-    Set<SMGValue> unreachableValues =
-        new HashSet<>(Sets.difference(smg.getValues().keySet(), reachable.getValues()));
-    // Remove 0 Value and object
+
+    // Remove 0 object
     unreachableObjects =
         unreachableObjects.stream()
             .filter(this::isObjectValid)
             .collect(ImmutableSet.toImmutableSet());
-    unreachableValues =
-        unreachableValues.stream().filter(v -> !v.isZero()).collect(ImmutableSet.toImmutableSet());
-    SMG newSmg =
-        smg.copyAndRemoveObjects(unreachableObjects).copyAndRemoveValues(unreachableValues);
+
+    SMG newSmg = smg.copyAndRemoveObjects(unreachableObjects);
     // copy into return collection
     PersistentSet<SMGObject> newHeapObjects = heapObjects;
     PersistentMap<SMGObject, BigInteger> newMemoryAddressAssumptionsMap =

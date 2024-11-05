@@ -38,8 +38,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
@@ -251,7 +253,7 @@ public class SMGCPABuiltins {
       // $FALL-THROUGH$
       case "printf":
         List<SMGState> checkedStates =
-            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
+            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
         return Collections3.transformedImmutableListCopy(
             checkedStates, ValueAndSMGState::ofUnknownValue);
 
@@ -468,20 +470,55 @@ public class SMGCPABuiltins {
    * @throws CPATransferException in case of errors the SMGCPA can not solve.
    */
   private List<SMGState> checkAllParametersForValidity(
-      SMGState pState, CFAEdge pCfaEdge, CFunctionCallExpression cFCExpression)
+      SMGState pState, CFAEdge pCfaEdge, CFunctionCallExpression cFCExpression, String functionName)
       throws CPATransferException {
     // check that we can safely read all args,
     // to avoid invalid-derefs like   int * p; printf("%d", *p);
     SMGState currentState = pState;
+    boolean isPrint = functionName.equals("printf");
     for (CExpression param : cFCExpression.getParameterExpressions()) {
+      SMGCPAValueVisitor valueVisitor =
+          new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger, options);
       if (param instanceof CPointerExpression
           || param instanceof CFieldReference
           || param instanceof CArraySubscriptExpression) {
-        SMGCPAValueVisitor valueVisitor =
-            new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger, options);
+
         for (ValueAndSMGState valueAndState : param.accept(valueVisitor)) {
           // We only want error states
           currentState = valueAndState.getState();
+        }
+      } else if (param instanceof CIdExpression idExpr) {
+        for (ValueAndSMGState valueAndState : param.accept(valueVisitor)) {
+          // We want error states from dereferences etc
+          currentState = valueAndState.getState();
+          if (isPrint
+              && idExpr.getExpressionType() instanceof CPointerType ptrType
+              && ptrType.getType() instanceof CSimpleType simpleType
+              && simpleType.getType().equals(CBasicType.CHAR)) {
+            Value address = valueAndState.getValue();
+            if (address instanceof AddressExpression addrExpr) {
+              ValueAndSMGState addressTransformedAndState =
+                  currentState.transformAddressExpression(addrExpr);
+              address = addressTransformedAndState.getValue();
+              currentState = addressTransformedAndState.getState();
+            }
+            if (address.isUnknown()) {
+              // Deref unknown value fails always
+              currentState = currentState.withUnknownPointerDereferenceWhenReading(address);
+            } else {
+              List<SMGStateAndOptionalSMGObjectAndOffset> deref =
+                  currentState.dereferencePointer(address);
+              Preconditions.checkArgument(deref.size() == 1);
+              SMGStateAndOptionalSMGObjectAndOffset targetAndState = deref.get(0);
+              currentState = targetAndState.getSMGState();
+              if (targetAndState.hasSMGObjectAndOffset()) {
+                SMGObject derefedObj = targetAndState.getSMGObject();
+                if (!currentState.getMemoryModel().isObjectValid(derefedObj)) {
+                  currentState = currentState.withInvalidDerefForRead(derefedObj, pCfaEdge);
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -522,7 +559,7 @@ public class SMGCPABuiltins {
       case ASSUME_SAFE:
       case ASSUME_EXTERNAL_ALLOCATED:
         List<SMGState> checkedStates =
-            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
+            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
         return Collections3.transformedImmutableListCopy(
             checkedStates, ValueAndSMGState::ofUnknownValue);
       default:
@@ -2322,10 +2359,4 @@ public class SMGCPABuiltins {
   }
 
   // TODO: strlen
-
-  public Collection<SMGState> checkAllParametersForValidity(
-      CFunctionCallExpression cFCExpression, SMGState pState, CFAEdge pCfaEdge)
-      throws CPATransferException {
-    return checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
-  }
 }

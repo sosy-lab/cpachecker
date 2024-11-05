@@ -28,8 +28,8 @@
         <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
     </rundefinition>
 
-    <rundefinition name="svcomp24">
-        <option name="--svcomp24--termination"/>
+    <rundefinition name="svcomp25">
+        <option name="--svcomp25--termination"/>
         <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
     </rundefinition>
 
