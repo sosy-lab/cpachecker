@@ -42,9 +42,7 @@ public class CFAUtilsTest {
   }
 
   /**
-   * Small helper function to get the edge from the CFA that contains the given strings.
-   *
-   * <p>DO NOT USE THIS IF YOU DO NOT KNOW EXACTLY WHAT CFA YOU ARE WORKING WITH!!!!!!!!!
+   * Get the edge from the CFA that contains the given string.
    */
   private static CFAEdge getEdge(String pStringsInEdge, CFA pCFA) {
     return Iterables.getOnlyElement(
