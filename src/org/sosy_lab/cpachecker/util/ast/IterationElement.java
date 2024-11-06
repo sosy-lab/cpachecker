@@ -93,11 +93,9 @@ public final class IterationElement extends BranchingElement {
   private void computeNodesBetweenConditionAndBody() {
     if (controllingExpression.isEmpty()) {
       nodesBetweenConditionAndBody =
-          FluentIterable.from(
-                  Sets.difference(
+          ImmutableSet.copyOf(Sets.difference(
                       transformedImmutableSetCopy(body.edges(), CFAEdge::getPredecessor),
-                      transformedImmutableSetCopy(body.edges(), CFAEdge::getSuccessor)))
-              .toSet();
+                      transformedImmutableSetCopy(body.edges(), CFAEdge::getSuccessor)));
       nodesBetweenConditionAndExit = ImmutableSet.of();
       return;
     }
