@@ -1274,7 +1274,11 @@ public class SMGCPABuiltins {
       Value maybeAddressValue = addressAndState.getValue();
       SMGState currentState = addressAndState.getState();
 
-      resultBuilder.addAll(currentState.free(maybeAddressValue, pFunctionCall, cfaEdge));
+      if (currentState.hasMemoryErrors() && options.isMemoryErrorTarget()) {
+        resultBuilder.add(currentState);
+      } else {
+        resultBuilder.addAll(currentState.free(maybeAddressValue, pFunctionCall, cfaEdge));
+      }
     }
 
     return resultBuilder.build();

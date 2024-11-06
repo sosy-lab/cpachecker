@@ -1173,6 +1173,7 @@ public class SMGCPAValueVisitor
                 .readValueWithPointerDereference(
                     currentState, pointerValue.getMemoryAddress(), offset, sizeInBits, returnType)
                 .get(0);
+        currentState = readValueAndState.getState();
 
         if (returnType instanceof CPointerType) {
           // In the pointer case we would need to encapsulate it again
