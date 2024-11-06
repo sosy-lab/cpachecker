@@ -230,9 +230,17 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         astElementLocation = iterationElement.getCompleteElement().location();
 
         if (iterationElement.getControllingExpression().isEmpty()) {
-          // This can only happen for an expression of the form `for(;;)`, which is an infinite
-          // loop. In this case we directly export the assumption waypoint and continue.
-          return ImmutableList.of(handleBranchingWaypoint(true, astElementLocation, assumeEdge));
+          // This can only happen for an expression of the form `for(A;;B)`, which is a loop which
+          // always evaluates to true. In this case an AssumeEdge will never be used, but a blank
+          // edge will be used instead
+          // TODO: Handle this case correctly by exporting useful information for this type of loop
+          return ImmutableList.of();
+        }
+
+        if (!iterationElement.getControllingExpression().orElseThrow().edges().contains(pEdge)) {
+          // In this case we have an assume edge inside the loop which has nothing to do with its
+          // controlling expression. This case should be ignored.
+          return ImmutableList.of();
         }
 
         nodesBetweenConditionAndFirstBranch = iterationElement.getNodesBetweenConditionAndBody();
