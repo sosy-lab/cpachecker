@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.util.ast.AstUtils.computeNodesConditionBoundaryNodes;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -89,6 +91,17 @@ public final class IterationElement extends BranchingElement {
   }
 
   private void computeNodesBetweenConditionAndBody() {
+    if (controllingExpression.isEmpty()) {
+      nodesBetweenConditionAndBody =
+          FluentIterable.from(
+                  Sets.difference(
+                      transformedImmutableSetCopy(body.edges(), CFAEdge::getPredecessor),
+                      transformedImmutableSetCopy(body.edges(), CFAEdge::getSuccessor)))
+              .toSet();
+      nodesBetweenConditionAndExit = ImmutableSet.of();
+      return;
+    }
+
     Pair<ImmutableSet<CFANode>, ImmutableSet<CFANode>> borderElements =
         computeNodesConditionBoundaryNodes(
             controllingExpression.orElseThrow().edges(),
