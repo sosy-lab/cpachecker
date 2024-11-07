@@ -71,11 +71,9 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -91,10 +89,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -118,10 +114,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
@@ -564,93 +556,30 @@ public class CFAUtils {
             optionalIterationElement.orElseThrow().getInitClause();
         Optional<ASTElement> optionalIterationExpression =
             optionalIterationElement.orElseThrow().getIterationExpression();
+        FileLocation location;
         if (optionalControlExpression.isPresent()
             && optionalControlExpression.orElseThrow().edges().contains(pEdge)) {
-          return Optional.of(optionalControlExpression.orElseThrow().location());
+          location = optionalControlExpression.orElseThrow().location();
         } else if (optionalInitClause.isPresent()
             && optionalInitClause.orElseThrow().edges().contains(pEdge)) {
-          return Optional.of(optionalInitClause.orElseThrow().location());
+          location = optionalInitClause.orElseThrow().location();
         } else if (optionalIterationExpression.isPresent()
             && optionalIterationExpression.orElseThrow().edges().contains(pEdge)) {
-          return Optional.of(optionalIterationExpression.orElseThrow().location());
+          location = optionalIterationExpression.orElseThrow().location();
         } else {
           return Optional.empty();
         }
+        // This fixes the column end of the location
+        return pAstCfaRelation.getNextExpressionLocationBasedOnOffset(location);
       } else {
         // This can only happen for trinary operators, which are an expression
         return Optional.of(assumeEdge.getFileLocation());
       }
-    } else if (pEdge instanceof CStatementEdge statementEdge) {
-      // This is composed of function calls, assignment statements, and expression statements
-      // all of them are also full expressions
-      return Optional.of(statementEdge.getFileLocation());
-    } else if (pEdge instanceof CDeclarationEdge declarationEdge) {
-      // We need to find out the full expression inside the declaration
-      CDeclaration declaration = declarationEdge.getDeclaration();
-      if (declaration instanceof CVariableDeclaration variableDeclaration) {
-        if (variableDeclaration.getInitializer() != null) {
-          return Optional.of(variableDeclaration.getInitializer().getFileLocation());
-        } else {
-          return Optional.empty();
-        }
-      } else {
-        return Optional.empty();
-      }
-    } else if (pEdge instanceof CReturnStatementEdge returnStatementEdge) {
-      // We need to find out the full expression inside the return statement
-      Optional<CExpression> optionalReturnValue =
-          returnStatementEdge.getReturnStatement().getReturnValue();
-      if (optionalReturnValue.isPresent()) {
-        return Optional.of(optionalReturnValue.orElseThrow().getFileLocation());
-      } else {
-        return Optional.empty();
-      }
-    } else if (pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge) {
-      // A function return edge may be inside a another statement, so we first find the statement it
-      // corresponds to and then get the full expression inside that statement
-
-      // Statement edges are the only relevant parts of the edges in the statement containing the
-      // edge we are interested in, all other cases are added by the frontend and therefore not
-      // relevant
-      FluentIterable<CStatementEdge> statementEdges =
-          FluentIterable.from(
-                  pAstCfaRelation
-                      .getTightestStatementForStarting(
-                          pEdge.getFileLocation().getStartingLineNumber(),
-                          pEdge.getFileLocation().getStartColumnInLine())
-                      .edges())
-              .filter(CStatementEdge.class);
-
-      ImmutableList.Builder<FileLocation> candidateFileLocations = ImmutableList.builder();
-      for (CStatementEdge statementEdge : statementEdges) {
-        CStatement statement = statementEdge.getStatement();
-        if (statement instanceof CAssignment assignment) {
-          // In this case we may be looking at a declaration which was simplified
-          // into two edges in the frontend. To handle this we see where the
-          // FileLocation started to see if this statement
-          CLeftHandSide leftHandSide = assignment.getLeftHandSide();
-          FileLocation leftHandSideFileLocation = leftHandSide.getFileLocation();
-          FileLocation pStatementEdgeFileLocation = statementEdge.getFileLocation();
-
-          if (leftHandSideFileLocation.getStartingLineNumber()
-                  == pStatementEdgeFileLocation.getStartingLineNumber()
-              && leftHandSideFileLocation.getStartColumnInLine()
-                  == pStatementEdgeFileLocation.getStartColumnInLine()) {
-
-            candidateFileLocations.add(statement.getFileLocation());
-          } else {
-            candidateFileLocations.add(assignment.getRightHandSide().getFileLocation());
-          }
-        } else {
-          candidateFileLocations.add(statement.getFileLocation());
-        }
-      }
-
-      // merge all the possible locations together to get the correct location
-      return Optional.of(FileLocation.merge(candidateFileLocations.build()));
     }
-
-    return Optional.empty();
+    // This works, since the edge contains the location of the statement from which the edge was
+    // generated. This means that when we take a look at the next possible expression we get the
+    // closest full expression to it
+    return pAstCfaRelation.getNextExpressionLocationBasedOnOffset(pEdge.getFileLocation());
   }
 
   /**

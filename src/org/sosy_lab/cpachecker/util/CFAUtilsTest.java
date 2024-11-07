@@ -86,18 +86,18 @@ public class CFAUtilsTest {
     // The expected end position is sometimes wrong. This is on purpose in order to catch
     // regressions if something is done on our frontend. The comment after the expected value
     // denotes the correct expected value
-    fullExpressionAtCorrectPosition(cfa, "x + y", 18, 10, 18, 11 /* 15 */);
+    fullExpressionAtCorrectPosition(cfa, "x + y", 18, 10, 18, 15);
     fullExpressionAtCorrectPosition(cfa, "x = 1", 10, 11, 10, 12);
     fullExpressionAtCorrectPosition(cfa, "y = 1", 11, 11, 11, 12);
-    fullExpressionAtCorrectPosition(cfa, "x = 2", 12, 3, 12, 9 /* 8*/);
-    fullExpressionAtCorrectPosition(cfa, "y = 2", 13, 3, 13, 9 /* 8*/);
+    fullExpressionAtCorrectPosition(cfa, "x = 2", 12, 3, 12, 8);
+    fullExpressionAtCorrectPosition(cfa, "y = 2", 13, 3, 13, 8);
     fullExpressionAtCorrectPosition(cfa, "[x != 0]", 14, 10, 14, 26);
     fullExpressionAtCorrectPosition(cfa, "[y != 0]", 14, 10, 14, 26);
-    fullExpressionAtCorrectPosition(cfa, "z + w", 21, 30, 21, 31 /* 35 */);
+    fullExpressionAtCorrectPosition(cfa, "z + w", 21, 30, 21, 35);
     fullExpressionAtCorrectPosition(cfa, "{f()}", 24, 3, 24, 6);
     fullExpressionAtCorrectPosition(cfa, "{g(1, 2)}", 25, 3, 25, 10);
-    fullExpressionAtCorrectPosition(cfa, "[j < 0]", 29, 8, 29, 24 /* 23 */);
-    fullExpressionAtCorrectPosition(cfa, "[i == 0]", 29, 8, 29, 24 /* 23 */);
+    fullExpressionAtCorrectPosition(cfa, "[j < 0]", 29, 8, 29, 23);
+    fullExpressionAtCorrectPosition(cfa, "[i == 0]", 29, 8, 29, 23);
     fullExpressionAtCorrectPosition(cfa, "[i < 10]", 29, 25, 29, 41);
     fullExpressionAtCorrectPosition(cfa, "[j == 0]", 29, 25, 29, 41);
     fullExpressionAtCorrectPosition(cfa, "[i < 5]", 29, 43, 29, 58);
