@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseLabel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionParameterAssignment;
@@ -168,13 +169,11 @@ public class Sequentialization {
     SeqAssumeFunction assume = new SeqAssumeFunction();
     rProgram.append(assume.toASTString()).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
-    // TODO we also need to prune: update targetPc to -1 if we reach a thread exit node
     // create pruned (i.e. only non-empty) cases statements
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
         mapCaseClauses(pSubstitutions, subEdges, returnPcVars, threadVars);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
         pruneCaseClauses(caseClauses);
-    // TODO create prunedThreadCfa here used for the por assumptions
     SeqMainFunction mainMethod =
         new SeqMainFunction(
             threadCount,
@@ -325,7 +324,10 @@ public class Sequentialization {
     return rCaseClauses.buildOrThrow();
   }
 
-  /** Prunes case clauses that contain only {@link SeqBlankStatement}s. */
+  /**
+   * Extracts {@link SeqCaseClause}s that are not {@link SeqBlankStatement}s from pCaseClauses and
+   * updates the {@code pc} accordingly.
+   */
   private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pruneCaseClauses(
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
@@ -358,6 +360,10 @@ public class Sequentialization {
     return rPruned.buildOrThrow();
   }
 
+  /**
+   * A helper mapping {@link SeqCaseClause}s to their {@link SeqCaseLabel} values, which are always
+   * {@code int} values in the sequentialization.
+   */
   private static ImmutableMap<Integer, SeqCaseClause> mapCaseLabelValueToCaseClauses(
       ImmutableList<SeqCaseClause> pCaseClauses) {
 
@@ -369,7 +375,9 @@ public class Sequentialization {
   }
 
   /**
-   * Recursively skips case clauses that are empty (i.e. contain only {@link SeqBlankStatement}).
+   * Returns the first {@link SeqCaseClause} in the {@code pc} chain that has no {@link
+   * SeqBlankStatement} and adjusts the origin {@code pc} (i.e. case labels of the form {@code case
+   * 42:}) accordingly.
    */
   private static SeqCaseClause handleCaseClausePrune(
       final ImmutableMap<Integer, SeqCaseClause> pCaseLabelValueMap,
@@ -382,7 +390,6 @@ public class Sequentialization {
         pSkipped.add(pCurrent);
         SeqBlankStatement blank = (SeqBlankStatement) stmt;
         SeqCaseClause nextCaseClause = pCaseLabelValueMap.get(blank.targetPc);
-        // TODO nextCaseClause null -> targetPc is EXIT_PC, needs to be handled separately
         if (nextCaseClause == null) {
           return pInit;
         }
