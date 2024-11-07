@@ -27,8 +27,6 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
 
 public class CFAUtilsTest {
 
-  private final Level logLevel = Level.FINEST;
-
   private TestResults parseProgram(String pProgramName) throws Exception {
     final Configuration config =
         TestDataTools.configurationForTest()
@@ -38,12 +36,10 @@ public class CFAUtilsTest {
     String test_dir = "test/programs/cfa-ast-relation/";
     Path program = Path.of(test_dir, pProgramName);
 
-    return CPATestRunner.run(config, program.toString(), logLevel);
+    return CPATestRunner.run(config, program.toString(), Level.FINEST);
   }
 
-  /**
-   * Get the edge from the CFA that contains the given string.
-   */
+  /** Get the edge from the CFA that contains the given string. */
   private static CFAEdge getEdge(String pStringsInEdge, CFA pCFA) {
     return Iterables.getOnlyElement(
         CFAUtils.allEdges(pCFA).filter(edge -> edge.toString().contains(pStringsInEdge)));
