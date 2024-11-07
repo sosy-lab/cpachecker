@@ -47,7 +47,11 @@ SET JAVA_ASSERTIONS=-ea
 
 :loop
 IF NOT [%1]==[] (
-  IF [%1]==[--benchmark] (
+  ECHO %1 | findstr /b /c:-X > nul
+  IF NOT errorlevel 1 (
+    REM params starting with "-X" are used for JVM
+    SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% %1"
+  ) ELSE IF [%1]==[--benchmark] (
     SET JAVA_ASSERTIONS=-da
     SET DEFAULT_HEAP_SIZE=xxxx
     SET "OPTIONS=%OPTIONS% %1"
