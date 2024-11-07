@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -416,14 +417,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       CFA pInputCfa)
       throws InvalidConfigurationException, CPAException, InterruptedException {
 
-    handleInitialInputProgramRejections(pInputCfa);
-
     cpa = pCpa;
     config = pConfiguration;
     logger = pLogManager;
     shutdownNotifier = pShutdownNotifier;
     specification = pSpecification;
     inputCfa = pInputCfa;
+
+    handleInitialInputProgramRejections(inputCfa);
 
     gac = new GlobalAccessChecker();
     PredicateCPA predicateCpa =
@@ -456,14 +457,38 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    *   <li>contains multiple files
    *   <li>has no call to {@code pthread_create} i.e. is not parallel
    *   <li>contains any unsupported {@code pthread} function, see {@link PthreadFuncType}
+   *   <li>contains a {@code pthread_create} call in a loop
+   *   <li>contains a recursive function call (both direct and indirect)
    * </ul>
    */
   private void handleInitialInputProgramRejections(CFA pInputCfa) {
-    checkArgument(
-        pInputCfa.getMetadata().getInputLanguage().equals(Language.C), "MPOR expects C program");
+    checkLanguageC(pInputCfa);
+    checkOneInputFile(pInputCfa);
+    checkParallelism(pInputCfa);
+    checkUnsupportedFunctions(pInputCfa);
+    checkPthreadCreateLoops(pInputCfa);
+    checkRecursiveFunctions(pInputCfa);
+  }
 
-    checkArgument(pInputCfa.getFileNames().size() == 1, "MPOR expects only one input program file");
+  private void checkLanguageC(CFA pInputCfa) {
+    if (!pInputCfa.getMetadata().getInputLanguage().equals(Language.C)) {
+      logger.log(
+          Level.SEVERE,
+          () -> "MPOR expects C program");
+      throw new AssertionError();
+    }
+  }
 
+  private void checkOneInputFile(CFA pInputCfa) {
+    if (pInputCfa.getFileNames().size() != 1) {
+      logger.log(
+          Level.SEVERE,
+          () -> "MPOR expects exactly one input file");
+      throw new AssertionError();
+    }
+  }
+
+  private void checkParallelism(CFA pInputCfa) {
     boolean isParallel = false;
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
@@ -471,25 +496,64 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         break;
       }
     }
-    checkArgument(
-        isParallel, "MPOR expects parallel C program with at least one pthread_create call");
+    if (!isParallel) {
+      logger.log(
+          Level.SEVERE,
+          () -> "MPOR expects parallel C program with at least one pthread_create call");
+      throw new AssertionError();
+    }
+  }
 
-    boolean unsupportedFunc = false;
+  private void checkUnsupportedFunctions(CFA pInputCfa) {
     for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
       for (PthreadFuncType funcType : PthreadFuncType.values()) {
         if (!funcType.isSupported) {
-          checkArgument(
-              !PthreadFuncType.callsPthreadFunc(edge, funcType),
-              "MPOR does not support this function call: " + "%s",
-              edge.getCode());
+          if (PthreadFuncType.callsPthreadFunc(edge, funcType)) {
+            logger.log(
+                Level.SEVERE,
+                () ->
+                    "MPOR does not support the function in line "
+                        + edge.getLineNumber()
+                        + ": "
+                        + edge.getCode());
+            throw new AssertionError();
+          }
         }
       }
     }
   }
 
   /**
+   * Recursively checks if any {@code pthread_create} call in pInputCfa can be reached from itself,
+   * i.e. if it is in a loop (or in a recursive call).
+   */
+  private void checkPthreadCreateLoops(CFA pInputCfa) {
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
+        if (MPORUtil.isSelfReachable(cfaEdge, Optional.empty(), new ArrayList<>(), cfaEdge)) {
+          logger.log(Level.SEVERE, () -> "MPOR does not support pthread_create calls in loops");
+          throw new AssertionError();
+        }
+      }
+    }
+  }
+
+  private void checkRecursiveFunctions(CFA pInputCfa) {
+    for (FunctionEntryNode entry : pInputCfa.entryNodes()) {
+      Optional<FunctionExitNode> exit = entry.getExitNode();
+      // "upcasting" exit from FunctionExitNode to CFANode is necessary here...
+      if (MPORUtil.isSelfReachable(entry, exit.map(node -> node), new ArrayList<>(), entry)) {
+        logger.log(
+            Level.SEVERE,
+            () -> "MPOR does not support recursive functions, both direct and indirect");
+        throw new AssertionError();
+      }
+    }
+  }
+
+  /**
    * Tries to extract the FunctionExitNode from the given FunctionEntryNode and throws an {@link
-   * IllegalArgumentException} if it isn't possible.
+   * IllegalArgumentException} if there is none.
    */
   public static FunctionExitNode getFunctionExitNode(FunctionEntryNode pFunctionEntryNode) {
     checkArgument(

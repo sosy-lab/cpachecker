@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -182,5 +183,68 @@ public final class MPORUtil {
    */
   public static <E> boolean shouldVisit(Set<E> pVisitedElem, E pNewElem) {
     return pVisitedElem.add(pNewElem);
+  }
+
+  /**
+   * Returns {@code true} if pOrigin can be reached through its successor {@link CFANode}. <br>
+   * If pStop is encountered in a path, it is not explored further, even if pOrigin may be in the
+   * path.
+   */
+  public static boolean isSelfReachable(
+      final CFAEdge pOrigin,
+      final Optional<CFAEdge> pStop,
+      List<CFAEdge> pVisited,
+      CFAEdge pCurrent) {
+
+    pVisited.add(pCurrent);
+    boolean foundPath = false;
+    for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrent.getSuccessor())) {
+      // ignore edges that lead to pStop
+      if (pStop.isPresent() && cfaEdge.equals(pStop.orElseThrow())) {
+        continue;
+        // self reach found
+      } else if (cfaEdge.equals(pOrigin)) {
+        return true;
+        // visit nodes only once, otherwise we trigger a stack overflow
+      } else if (!pVisited.contains(cfaEdge)) {
+        foundPath = isSelfReachable(pOrigin, pStop, pVisited, cfaEdge);
+        if (foundPath) {
+          break;
+        }
+      }
+    }
+    return foundPath;
+  }
+
+  /**
+   * Returns {@code true} if pOrigin can be reached through its leaving edges. <br>
+   * If pStop is encountered in a path, it is not explored further, even if pOrigin may be in the
+   * path.
+   */
+  public static boolean isSelfReachable(
+      final CFANode pOrigin,
+      final Optional<CFANode> pStop,
+      List<CFANode> pVisited,
+      CFANode pCurrent) {
+
+    pVisited.add(pCurrent);
+    boolean foundPath = false;
+    for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrent)) {
+      CFANode successor = cfaEdge.getSuccessor();
+      // ignore edges that lead to pStop
+      if (pStop.isPresent() && successor.equals(pStop.orElseThrow())) {
+        continue;
+        // self reach found
+      } else if (successor.equals(pOrigin)) {
+        return true;
+        // visit nodes only once, otherwise we might a stack overflow
+      } else if (!pVisited.contains(successor)) {
+        foundPath = isSelfReachable(pOrigin, pStop, pVisited, cfaEdge.getSuccessor());
+        if (foundPath) {
+          break;
+        }
+      }
+    }
+    return foundPath;
   }
 }
