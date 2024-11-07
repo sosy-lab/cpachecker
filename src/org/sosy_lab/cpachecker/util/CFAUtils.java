@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -285,7 +286,7 @@ public class CFAUtils {
    * @throws IllegalArgumentException if pCfaEdge cannot be cast accordingly
    */
   public static CExpression getParameterAtIndex(CFAEdge pCfaEdge, int pIndex) {
-    if (isCfaEdgeCFunctionCallStatement(pCfaEdge)) {
+    if (isCfaEdgeCFunctionCall(pCfaEdge)) {
       AAstNode aAstNode = pCfaEdge.getRawAST().orElseThrow();
       CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
       List<CExpression> cExpressions =
@@ -685,33 +686,25 @@ public class CFAUtils {
     return true;
   }
 
-  /**
-   * Returns true if the given CFAEdge is an instance of CFunctionCallStatement.
-   *
-   * @param pCfaEdge CFAEdge to be analyzed
-   * @return true if the given CFAEdge is an instance of CFunctionCallStatement
-   */
-  public static boolean isCfaEdgeCFunctionCallStatement(CFAEdge pCfaEdge) {
+  /** Returns true if the given {@link CFAEdge} contains a {@link CFunctionCall}. */
+  public static boolean isCfaEdgeCFunctionCall(CFAEdge pCfaEdge) {
     checkNotNull(pCfaEdge);
     Optional<AAstNode> aAstNode = pCfaEdge.getRawAST();
-    return aAstNode.isPresent() && aAstNode.orElseThrow() instanceof CFunctionCallStatement;
+    return aAstNode.isPresent() && aAstNode.orElseThrow() instanceof CFunctionCall;
   }
 
   /**
-   * This function does not check if pCfaEdge actually is a CFunctionCallStatement. Best use in
-   * combination with {@link CFAUtils#isCfaEdgeCFunctionCallStatement(CFAEdge)}.
-   *
-   * @param pCfaEdge CFAEdge that represents a CFunctionCallStatement
-   * @return the CFunctionCallStatement of the pCfaEdge if it exists
+   * This function does not check if pCfaEdge actually is a {@link CFunctionCall}. Best use in
+   * combination with {@link CFAUtils#isCfaEdgeCFunctionCall(CFAEdge)}.
    */
-  public static CFunctionCallStatement getCFunctionCallStatementFromCfaEdge(CFAEdge pCfaEdge) {
+  public static CFunctionCall getCFunctionCallFromCfaEdge(CFAEdge pCfaEdge) {
     checkNotNull(pCfaEdge);
-    return (CFunctionCallStatement) pCfaEdge.getRawAST().orElseThrow();
+    return (CFunctionCall) pCfaEdge.getRawAST().orElseThrow();
   }
 
   public static String getFunctionNameFromCfaEdge(CFAEdge pCfaEdge) {
-    checkArgument(CFAUtils.isCfaEdgeCFunctionCallStatement(pCfaEdge));
-    return CFAUtils.getCFunctionCallStatementFromCfaEdge(pCfaEdge)
+    checkArgument(CFAUtils.isCfaEdgeCFunctionCall(pCfaEdge));
+    return CFAUtils.getCFunctionCallFromCfaEdge(pCfaEdge)
         .getFunctionCallExpression()
         .getFunctionNameExpression()
         .toASTString();

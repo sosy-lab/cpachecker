@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -456,6 +457,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    *   <li>is not in C
    *   <li>contains multiple files
    *   <li>has no call to {@code pthread_create} i.e. is not parallel
+   *   <li>stores the value of a pthread_create call
    *   <li>contains any unsupported {@code pthread} function, see {@link PthreadFuncType}
    *   <li>contains a {@code pthread_create} call in a loop
    *   <li>contains a recursive function call (both direct and indirect)
@@ -464,36 +466,44 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private void handleInitialInputProgramRejections(CFA pInputCfa) {
     checkLanguageC(pInputCfa);
     checkOneInputFile(pInputCfa);
-    checkParallelism(pInputCfa);
+    checkPthreadCreateCalls(pInputCfa);
     checkUnsupportedFunctions(pInputCfa);
     checkPthreadCreateLoops(pInputCfa);
     checkRecursiveFunctions(pInputCfa);
+    // TODO it would be best to also reject pthread_t arrays? i.e. check if the CIdExpression is
+    //  an array
   }
 
   private void checkLanguageC(CFA pInputCfa) {
-    if (!pInputCfa.getMetadata().getInputLanguage().equals(Language.C)) {
-      logger.log(
-          Level.SEVERE,
-          () -> "MPOR expects C program");
+    Language language = pInputCfa.getMetadata().getInputLanguage();
+    if (!language.equals(Language.C)) {
+      logger.log(Level.SEVERE, () -> "MPOR does not support the language " + language);
       throw new AssertionError();
     }
   }
 
   private void checkOneInputFile(CFA pInputCfa) {
     if (pInputCfa.getFileNames().size() != 1) {
-      logger.log(
-          Level.SEVERE,
-          () -> "MPOR expects exactly one input file");
+      logger.log(Level.SEVERE, () -> "MPOR expects exactly one input file");
       throw new AssertionError();
     }
   }
 
-  private void checkParallelism(CFA pInputCfa) {
+  private void checkPthreadCreateCalls(CFA pInputCfa) {
     boolean isParallel = false;
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         isParallel = true;
-        break;
+        if (cfaEdge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
+          logger.log(
+              Level.SEVERE,
+              () ->
+                  "MPOR does not support the usage of pthread_create return values in line "
+                      + cfaEdge.getLineNumber()
+                      + ": "
+                      + cfaEdge.getCode());
+          throw new AssertionError();
+        }
       }
     }
     if (!isParallel) {
@@ -545,7 +555,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       if (MPORUtil.isSelfReachable(entry, exit.map(node -> node), new ArrayList<>(), entry)) {
         logger.log(
             Level.SEVERE,
-            () -> "MPOR does not support recursive functions, both direct and indirect");
+            () ->
+                "MPOR does not support the (in)direct recursive function "
+                    + entry.getFunctionName()
+                    + " in line "
+                    + entry.getFunction().getFileLocation().getStartingLineNumber());
         throw new AssertionError();
       }
     }

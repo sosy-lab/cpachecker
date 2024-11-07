@@ -177,7 +177,7 @@ public enum PthreadFuncType {
    * to pFuncType.
    */
   public static boolean callsPthreadFunc(CFAEdge pEdge, PthreadFuncType pFuncType) {
-    return CFAUtils.isCfaEdgeCFunctionCallStatement(pEdge)
+    return CFAUtils.isCfaEdgeCFunctionCall(pEdge)
         && CFAUtils.getFunctionNameFromCfaEdge(pEdge).equals(pFuncType.name);
   }
 
@@ -224,7 +224,7 @@ public enum PthreadFuncType {
   }
 
   public static PthreadFuncType getPthreadFuncType(CFAEdge pEdge) {
-    checkArgument(CFAUtils.isCfaEdgeCFunctionCallStatement(pEdge));
+    checkArgument(CFAUtils.isCfaEdgeCFunctionCall(pEdge));
     String funcName = CFAUtils.getFunctionNameFromCfaEdge(pEdge);
     for (PthreadFuncType funcType : PthreadFuncType.values()) {
       if (funcType.name.equals(funcName)) {
