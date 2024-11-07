@@ -379,19 +379,17 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     String name = decl.getQualifiedName();
 
     // get initial value
-    FunctionPointerTarget initialValue = maybeAbstractInvalidTarget(InvalidTarget.getInstance());
+    FunctionPointerTarget initialValue = InvalidTarget.getInstance();
 
     if (decl.getInitializer() != null) {
       CInitializer init = decl.getInitializer();
       if (init instanceof CInitializerExpression) {
-        initialValue =
-            maybeAbstractInvalidTarget(
-                getValue(((CInitializerExpression) init).getExpression(), pNewState));
+        initialValue = getValue(((CInitializerExpression) init).getExpression(), pNewState);
       }
     }
 
     // store declaration in abstract state
-    pNewState.setTarget(name, initialValue);
+    pNewState.setTarget(name, maybeAbstractInvalidTarget(initialValue));
   }
 
   private void handleStatement(
@@ -419,9 +417,8 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     String varName = getLeftHandSide(assignment.getLeftHandSide(), pCfaEdge);
 
     if (varName != null) {
-      FunctionPointerTarget target =
-          maybeAbstractInvalidTarget(getValue(assignment.getRightHandSide(), pNewState));
-      pNewState.setTarget(varName, target);
+      FunctionPointerTarget target = getValue(assignment.getRightHandSide(), pNewState);
+      pNewState.setTarget(varName, maybeAbstractInvalidTarget(target));
     }
   }
 
@@ -454,8 +451,8 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       String paramName = formalParams.get(i).getQualifiedName();
       CExpression actualArgument = arguments.get(i);
 
-      FunctionPointerTarget target = maybeAbstractInvalidTarget(actualArgument.accept(v));
-      pNewState.setTarget(paramName, target);
+      FunctionPointerTarget target = actualArgument.accept(v);
+      pNewState.setTarget(paramName, maybeAbstractInvalidTarget(target));
 
       // TODO only do this if declared type is function pointer?
     }
