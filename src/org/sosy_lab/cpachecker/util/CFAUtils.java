@@ -572,8 +572,10 @@ public class CFAUtils {
         // This fixes the column end of the location
         return pAstCfaRelation.getNextExpressionLocationBasedOnOffset(location);
       } else {
-        // This can only happen for trinary operators, which are an expression
-        return Optional.of(assumeEdge.getFileLocation());
+        // In this case the assume edge stems from another type of statement, like ternary
+        // operators. In this case we can take the location of the next possible expression which is
+        // contained in or equal to the statement from which the edge was created
+        return pAstCfaRelation.getNextExpressionLocationBasedOnOffset(pEdge.getFileLocation());
       }
     }
     // This works, since the edge contains the location of the statement from which the edge was

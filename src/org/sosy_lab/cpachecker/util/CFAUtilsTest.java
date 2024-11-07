@@ -83,9 +83,6 @@ public class CFAUtilsTest {
     CFA cfa = results.getCheckerResult().getCfa();
     assertThat(cfa).isNotNull();
 
-    // The expected end position is sometimes wrong. This is on purpose in order to catch
-    // regressions if something is done on our frontend. The comment after the expected value
-    // denotes the correct expected value
     fullExpressionAtCorrectPosition(cfa, "x + y", 18, 10, 18, 15);
     fullExpressionAtCorrectPosition(cfa, "x = 1", 10, 11, 10, 12);
     fullExpressionAtCorrectPosition(cfa, "y = 1", 11, 11, 11, 12);
@@ -102,7 +99,7 @@ public class CFAUtilsTest {
     fullExpressionAtCorrectPosition(cfa, "[j == 0]", 29, 25, 29, 41);
     fullExpressionAtCorrectPosition(cfa, "[i < 5]", 29, 43, 29, 58);
     fullExpressionAtCorrectPosition(cfa, "[i != 0]", 29, 43, 29, 58);
-    fullExpressionAtCorrectPosition(cfa, "[s != q]", 35, 11, 35, 17 /* 35 */);
+    fullExpressionAtCorrectPosition(cfa, "[s != q]", 35, 11, 35, 35);
     fullExpressionAtCorrectPosition(cfa, "s == 1", 35, 11, 35, 35);
     fullExpressionAtCorrectPosition(cfa, "q == 2", 35, 11, 35, 35);
     fullExpressionAtCorrectPosition(cfa, "l = 0", 36, 11, 36, 14);
