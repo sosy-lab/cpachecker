@@ -31,11 +31,14 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -468,10 +471,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     checkOneInputFile(pInputCfa);
     checkPthreadCreateCalls(pInputCfa);
     checkUnsupportedFunctions(pInputCfa);
+    checkPthreadFunctionReturnValues(pInputCfa);
+    // these are recursive and can be expensive, so they are last
     checkPthreadCreateLoops(pInputCfa);
     checkRecursiveFunctions(pInputCfa);
-    // TODO it would be best to also reject pthread_t arrays? i.e. check if the CIdExpression is
-    //  an array
   }
 
   private void checkLanguageC(CFA pInputCfa) {
@@ -494,15 +497,18 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         isParallel = true;
-        if (cfaEdge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
-          logger.log(
-              Level.SEVERE,
-              () ->
-                  "MPOR does not support the usage of pthread_create return values in line "
-                      + cfaEdge.getLineNumber()
-                      + ": "
-                      + cfaEdge.getCode());
-          throw new AssertionError();
+        CExpression expr = CFAUtils.getParameterAtIndex(cfaEdge, 0);
+        if (expr instanceof CUnaryExpression unaryExpr) {
+          if (unaryExpr.getOperand() instanceof CArraySubscriptExpression arraySubscriptExpr) {
+            logger.log(
+                Level.SEVERE,
+                () ->
+                    "MPOR does not support the usage of arrays as pthread_t identifiers in line "
+                        + cfaEdge.getLineNumber()
+                        + ": "
+                        + cfaEdge.getCode());
+            throw new AssertionError();
+          }
         }
       }
     }
@@ -528,6 +534,23 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                         + edge.getCode());
             throw new AssertionError();
           }
+        }
+      }
+    }
+  }
+
+  private void checkPthreadFunctionReturnValues(CFA pInputCfa) {
+    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
+      if (PthreadFuncType.callsAnyPthreadFunc(edge)) {
+        if (edge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
+          logger.log(
+              Level.SEVERE,
+              () ->
+                  "MPOR does not support pthread method return value assignments, see line "
+                      + edge.getLineNumber()
+                      + ": "
+                      + edge.getCode());
+          throw new AssertionError();
         }
       }
     }
