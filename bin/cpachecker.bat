@@ -47,6 +47,11 @@ IF NOT [%1]==[] (
   ECHO %1 | findstr /b /c:-X > nul
   IF NOT errorlevel 1 (
     REM params starting with "-X" are used for JVM
+    ECHO %1| findstr "^\-XX:+.*GC$" > nul
+    IF NOT errorlevel 1 (
+      REM looks like an option for choosing a GC, skip our default
+      SET JAVA_GC=ignore_default
+    )
     SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% %1"
   ) ELSE IF [%1]==[--benchmark] (
     SET BENCHMARK_MODE=true
@@ -134,6 +139,23 @@ IF NOT "%JAVA_HEAP_SIZE%"=="" (
   ECHO Running CPAchecker with default heap size !JAVA_HEAP_SIZE!. Specify a larger value with --heap if you have more RAM.
 )
 
+REM Determine garbage collector
+IF not defined JAVA_GC (
+  REM Recommendations are from BSc thesis
+  REM "Evaluation of JVM Garbage Collectors for CPAchecker", Tobias Maget, 2024.
+  REM https://www.sosy-lab.org/research/bib/All/index.html#MagetEvaluationJVMGarbageCollectorsCPAchecker
+  IF defined BENCHMARK_MODE (
+    REM SerialGC improves CPU time and memory consumption,
+    REM and should provide more consistent performance.
+    SET JAVA_GC=-XX:+UseSerialGC
+  ) ELSE (
+    REM This configuration of parallel GC is good overall for CPU time, wall time, and memory.
+    SET "JAVA_GC=-XX:+UseParallelGC -XX:MinHeapFreeRatio=80"
+  )
+) ELSE (
+  SET JAVA_GC=
+)
+
 REM Determine stack size
 IF NOT "%JAVA_STACK_SIZE%"=="" (
   ECHO Running CPAchecker with Java stack of size %JAVA_STACK_SIZE%.
@@ -160,6 +182,7 @@ REM PerfDisableSharedMem avoids hsperfdata in /tmp (disable it to connect easily
     -cp "%CLASSPATH%" ^
     -XX:+PerfDisableSharedMem ^
     -Djava.awt.headless=true ^
+    %JAVA_GC% ^
     %JAVA_VM_ARGUMENTS% ^
     -Xss%JAVA_STACK_SIZE% ^
     -Xmx%JAVA_HEAP_SIZE% ^
