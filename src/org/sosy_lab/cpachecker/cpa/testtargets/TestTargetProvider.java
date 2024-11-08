@@ -152,7 +152,7 @@ public class TestTargetProvider implements Statistics {
     if (instance == null
         || pCfa != instance.cfa
         || instance.type != pType
-        || instance.optimizationStrategies != pTargetOptimizationStrategies
+        || !instance.optimizationStrategies.equals(pTargetOptimizationStrategies)
         || instance.applyOptimizationsNested != pApplyOptimizationsNested) {
       instance =
           new TestTargetProvider(

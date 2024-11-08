@@ -13,6 +13,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Map;
 import java.util.Objects;
@@ -45,6 +46,8 @@ public final class AstCfaRelation {
 
   private final ImmutableSet<StatementElement> statementElements;
 
+  private final ImmutableSortedSet<FileLocation> expressionLocations;
+
   @LazyInit
   private ImmutableSortedMap<StartingLocation, ASTElement> startingLocationToTightestStatement =
       null;
@@ -73,7 +76,8 @@ public final class AstCfaRelation {
       ImmutableSet<StatementElement> pStatementElements,
       Map<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
       Map<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
-      Set<AVariableDeclaration> pGlobalVariables) {
+      Set<AVariableDeclaration> pGlobalVariables,
+      ImmutableSortedSet<FileLocation> pExpressionLocations) {
     ifElements = pIfElements;
     iterationStructures = pIterationStructures;
     statementOffsetsToLocations = pStatementOffsetsToLocations;
@@ -81,6 +85,7 @@ public final class AstCfaRelation {
     cfaNodeToAstLocalVariablesInScope = pCfaNodeToAstLocalVariablesInScope;
     cfaNodeToAstParametersInScope = pCfaNodeToAstParametersVariablesInScope;
     globalVariables = pGlobalVariables;
+    expressionLocations = pExpressionLocations;
   }
 
   /**
@@ -262,6 +267,20 @@ public final class AstCfaRelation {
     }
 
     return Optional.empty();
+  }
+
+  /**
+   * Get the expression whose location has an offset which is greater than or equal to the one of
+   * the location being provided and whose offset is closer than all other expressions to the given
+   * offset
+   *
+   * @param pLocation The location for which an expression is being searched for
+   * @return the location of the expression whose offset is greater than or equal to the one of *
+   *     the location being provided and whose offset is closer than all other expressions to the
+   *     given offset
+   */
+  public Optional<FileLocation> getNextExpressionLocationBasedOnOffset(FileLocation pLocation) {
+    return Optional.ofNullable(expressionLocations.ceiling(pLocation));
   }
 
   private void initializeMapFromStartingLocationToTightestStatement() {

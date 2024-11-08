@@ -198,7 +198,7 @@ public class ToBitvectorFormulaVisitor
     if (numerator == null || denominator == null) {
       return evaluate(pModulo, pEnvironment);
     }
-    return bvfmgr.modulo(numerator, denominator, true);
+    return bvfmgr.remainder(numerator, denominator, true);
   }
 
   @Override

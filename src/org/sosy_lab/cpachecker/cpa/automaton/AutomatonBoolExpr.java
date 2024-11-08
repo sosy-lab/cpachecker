@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
@@ -56,6 +57,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 
@@ -375,10 +377,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  /**
-   * Checks if the current edge begins or ends at the given line and the column lies between the
-   * starting column of the edge and the column at which the edge ends.
-   */
+  /** Checks if the current edge begins at the given line and column. */
   public static class CheckMatchesColumnAndLine implements AutomatonBoolExpr {
     private final int columnToReach;
     private final int lineNumber;
@@ -418,6 +417,70 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       return o instanceof CheckMatchesColumnAndLine c
           && columnToReach == c.columnToReach
           && lineNumber == c.lineNumber;
+    }
+  }
+
+  /**
+   * Checks if the closest full expression related to the current edge begins or ends at the given
+   * line and the column lies between the starting column of the edge and the column at which the
+   * edge ends.
+   *
+   * <p>The closest full expression is defined as in {@link
+   * CFAUtils#getClosestFullExpression(CCfaEdge,AstCfaRelation)}.
+   */
+  public static class CheckClosestFullExpressionMatchesColumnAndLine implements AutomatonBoolExpr {
+    private final int columnToReach;
+    private final int lineNumber;
+    private final AstCfaRelation astCfaRelation;
+
+    public CheckClosestFullExpressionMatchesColumnAndLine(
+        int pColumn, int pLineNumber, AstCfaRelation pAstCfaRelation) {
+      columnToReach = pColumn;
+      lineNumber = pLineNumber;
+      astCfaRelation = pAstCfaRelation;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      CFAEdge edge = pArgs.getCfaEdge();
+
+      if (!(edge instanceof CCfaEdge)) {
+        return CONST_FALSE;
+      }
+
+      Optional<FileLocation> optionalFullExpressionLocation =
+          CFAUtils.getClosestFullExpression((CCfaEdge) edge, astCfaRelation);
+      if (optionalFullExpressionLocation.isEmpty()) {
+        return CONST_FALSE;
+      }
+
+      FileLocation fullExpressionLocation = optionalFullExpressionLocation.orElseThrow();
+      int edgeNodeStartingColumn = fullExpressionLocation.getStartColumnInLine();
+
+      if (fullExpressionLocation.getStartingLineInOrigin() == lineNumber
+          && edgeNodeStartingColumn == columnToReach) {
+        return CONST_TRUE;
+      }
+
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCHES(line = " + lineNumber + ", column = " + columnToReach + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return columnToReach;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckClosestFullExpressionMatchesColumnAndLine c
+          && columnToReach == c.columnToReach
+          && lineNumber == c.lineNumber
+          && astCfaRelation.equals(c.astCfaRelation);
     }
   }
 

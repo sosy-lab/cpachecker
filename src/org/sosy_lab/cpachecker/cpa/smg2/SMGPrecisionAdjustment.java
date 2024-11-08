@@ -83,16 +83,19 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         secure = true,
         description =
             "toggle liveness abstraction. Is independent of CEGAR, but dependent on the CFAs"
-                + " liveness variables being tracked.")
+                + " liveness variables being tracked. Might be unsound for stack-based memory"
+                + " structures like arrays.")
     private boolean doLivenessAbstraction = true;
 
     @Option(
         secure = true,
         description =
-            "toggle liveness abstraction if liveness abstraction is supposed to simply abstract all"
-                + " variables away (invalidating memory) when unused, even if there is valid"
-                + " outside pointers on them.")
-    private boolean doEnforcePointerInsensitiveLiveness = true;
+            "toggle memory sensitive liveness abstraction. Liveness abstraction is supposed to"
+                + " simply abstract all variables away (invalidating memory) when unused, even if"
+                + " there is valid outside pointers on them. With this option enabled, it is first"
+                + " checked if there is a valid address still pointing to the variable before"
+                + " removing it. Liveness abstraction might be unsound without this option.")
+    private boolean doEnforcePointerSensitiveLiveness = true;
 
     @Option(
         secure = true,
@@ -174,8 +177,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       return listAbstractionMinimumLengthThreshold;
     }
 
-    public boolean isEnforcePointerInsensitiveLiveness() {
-      return doEnforcePointerInsensitiveLiveness;
+    public boolean isEnforcePointerSensitiveLiveness() {
+      return doEnforcePointerSensitiveLiveness;
     }
 
     public int getListAbstractionMaximumIncreaseLengthThreshold() {
@@ -474,22 +477,27 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
           if (!liveVariables
               .orElseThrow()
               .isVariableLive(qualifiedVarName, location.getLocationNode())) {
-            if (options.isEnforcePointerInsensitiveLiveness()) {
+            if (!options.isEnforcePointerSensitiveLiveness()) {
+              // TODO: LiveVariablesCPA fails to track stack based memory correctly and invalidates
+              //  e.g. arrays to early. Hence isEnforcePointerInsensitiveLiveness = true is unsound!
               currentState = currentState.invalidateVariable(variable);
+
             } else {
               // Don't invalidate memory that may have valid outside pointers to it that may keep it
               // alive!
               Optional<SMGObject> maybeVarObj =
                   currentState.getMemoryModel().getObjectForVariable(qualifiedVarName);
               if (maybeVarObj.isPresent()) {
+                // Does not contain itself
                 Set<SMGObject> allObjsPointingTowards =
                     currentState
                         .getMemoryModel()
                         .getSmg()
-                        .getAllSourcesForPointersPointingTowards(maybeVarObj.orElseThrow());
-                if (allObjsPointingTowards.isEmpty()
-                    || (allObjsPointingTowards.size() == 1
-                        && allObjsPointingTowards.contains(maybeVarObj.orElseThrow()))) {
+                        .getAllSourcesForPointersPointingTowards(maybeVarObj.orElseThrow())
+                        .stream()
+                        .filter(o -> !o.equals(maybeVarObj.orElseThrow()))
+                        .collect(ImmutableSet.toImmutableSet());
+                if (allObjsPointingTowards.isEmpty()) {
                   currentState = currentState.invalidateVariable(variable);
                 }
               }
