@@ -8,50 +8,22 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.tests;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.junit.Test;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.DirectedGraph;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
-public class MPORTests {
+public class MPORTest {
 
-  MPORAlgorithm algorithm;
+  public MPORTest() {}
 
-  public MPORTests(MPORAlgorithm pAlgorithm) {
-    algorithm = pAlgorithm;
-  }
-
-  public static void testCommutativity(
-      LogManager pLogManager,
-      PredicateTransferRelation pPtr,
-      PredicateAbstractState pAbstractState,
-      ImmutableSet<CFAEdge> pGlobalAccesses)
-      throws CPATransferException, InterruptedException {
-
-    for (CFAEdge edgeA : pGlobalAccesses) {
-      for (CFAEdge edgeB : pGlobalAccesses) {
-        if (!edgeA.equals(edgeB)) {
-          if (MPORUtil.doEdgesCommute(pPtr, pAbstractState, edgeA, edgeB)) {
-            // pLogManager.log(
-            // Level.INFO, "TRUE commute - " + edgeA.getCode() + " - " + edgeB.getCode());
-          } else {
-            // pLogManager.log(
-            // Level.INFO, "FALSE commute - " + edgeA.getCode() + " - " + edgeB.getCode());
-          }
-        }
-      }
-    }
-  }
-
-  public static void testDirectedGraphSccs() {
+  @Test
+  public void testDirectedGraphSccs() {
     DirectedGraph<Integer> directedGraph = new DirectedGraph<>();
     directedGraph.addNode(0);
     directedGraph.addNode(1);
@@ -66,19 +38,22 @@ public class MPORTests {
     directedGraph.addEdge(4, 3);
     ImmutableSet<ImmutableSet<Integer>> sccs = directedGraph.computeSCCs();
     ImmutableSet<Integer> maximalScc = sccs.iterator().next();
-    assert (maximalScc.contains(3) && maximalScc.contains(4));
+    assertTrue(maximalScc.contains(3) && maximalScc.contains(4));
   }
 
-  public static void testDirectedGraphCycles() {
+  @Test
+  public void testDirectedGraphTwoNodeCycle() {
     DirectedGraph<Integer> directedGraphA = new DirectedGraph<>();
     directedGraphA.addNode(0);
     directedGraphA.addNode(1);
     directedGraphA.addNode(2);
     directedGraphA.addEdge(0, 1);
-    directedGraphA.addEdge(1, 2);
-    directedGraphA.addEdge(2, 0);
-    assert directedGraphA.containsCycle();
+    directedGraphA.addEdge(1, 0);
+    assertTrue(directedGraphA.containsCycle());
+  }
 
+  @Test
+  public void testDirectedGraphMultipleNodeCycle() {
     DirectedGraph<Integer> directedGraphB = new DirectedGraph<>();
     directedGraphB.addNode(0);
     directedGraphB.addNode(1);
@@ -91,8 +66,11 @@ public class MPORTests {
     directedGraphB.addEdge(2, 3);
     directedGraphB.addEdge(2, 4);
     directedGraphB.addEdge(4, 0);
-    assert directedGraphB.containsCycle();
+    assertTrue(directedGraphB.containsCycle());
+  }
 
+  @Test
+  public void testDirectedGraphNoCycles() {
     DirectedGraph<Integer> directedGraphC = new DirectedGraph<>();
     directedGraphC.addNode(0);
     directedGraphC.addNode(1);
@@ -104,6 +82,6 @@ public class MPORTests {
     directedGraphC.addEdge(1, 2);
     directedGraphC.addEdge(2, 3);
     directedGraphC.addEdge(2, 4);
-    assert !directedGraphC.containsCycle();
+    assertFalse(directedGraphC.containsCycle());
   }
 }

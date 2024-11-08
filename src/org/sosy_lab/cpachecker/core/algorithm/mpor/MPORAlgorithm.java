@@ -472,6 +472,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     checkOneInputFile(pInputCfa);
     checkIsParallelProgram(pInputCfa);
     checkUnsupportedFunctions(pInputCfa);
+    checkPthreadArrayIdentifiers(pInputCfa);
     checkPthreadFunctionReturnValues(pInputCfa);
     // these are recursive and can be expensive, so they are last
     checkPthreadCreateLoops(pInputCfa);
@@ -729,11 +730,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // (Private) Helpers ===========================================================================
 
   private boolean isArraySubscriptExpression(CExpression pExpression) {
-
-    if (pExpression instanceof CArraySubscriptExpression array) {
+    if (pExpression instanceof CArraySubscriptExpression) {
       return true;
     } else if (pExpression instanceof CUnaryExpression unary) {
-      if (unary.getOperand() instanceof CArraySubscriptExpression array) {
+      if (unary.getOperand() instanceof CArraySubscriptExpression) {
         return true;
       }
     }
