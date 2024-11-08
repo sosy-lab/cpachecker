@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -139,7 +140,7 @@ public class DCPAAlgorithm {
     }
     alreadyReportedInfeasibility = true;
     return ImmutableSet.of(
-        BlockSummaryMessage.newBlockPostCondition(
+        BlockSummaryMessageFactory.newBlockPostCondition(
             block.getId(),
             block.getLast().getNodeNumber(),
             DCPAAlgorithms.appendStatus(
@@ -158,7 +159,7 @@ public class DCPAAlgorithm {
       BlockSummaryMessagePayload serialized =
           dcpa.serialize(blockEndState, reachedSet.getPrecision(blockEndState));
       messages.add(
-          BlockSummaryMessage.newBlockPostCondition(
+          BlockSummaryMessageFactory.newBlockPostCondition(
               block.getId(),
               block.getLast().getNodeNumber(),
               DCPAAlgorithms.appendStatus(status, serialized),
@@ -217,7 +218,7 @@ public class DCPAAlgorithm {
     BlockSummaryMessagePayload serialized =
         dcpa.serialize(blockEndState, reachedSet.getPrecision(Iterables.get(blockEnds, 0)));
     messages.add(
-        BlockSummaryMessage.newBlockPostCondition(
+        BlockSummaryMessageFactory.newBlockPostCondition(
             block.getId(),
             block.getLast().getNodeNumber(),
             DCPAAlgorithms.appendStatus(status, serialized),
@@ -298,7 +299,7 @@ public class DCPAAlgorithm {
       BlockSummaryMessagePayload serialized =
           dcpa.serialize(abstractState, reachedSet.getPrecision(path.getLastState()));
       messages.add(
-          BlockSummaryMessage.newErrorConditionMessage(
+          BlockSummaryMessageFactory.newErrorConditionMessage(
               block.getId(),
               block.getFirst().getNodeNumber(),
               DCPAAlgorithms.appendStatus(status, serialized),

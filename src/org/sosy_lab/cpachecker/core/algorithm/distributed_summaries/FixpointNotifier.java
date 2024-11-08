@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkState;
 import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
 
 public class FixpointNotifier {
 
@@ -41,7 +41,7 @@ public class FixpointNotifier {
   public void waiting(String id) throws InterruptedException {
     waiting.put(id, id);
     if (waiting.size() == connections) {
-      connection.write(BlockSummaryMessage.newResultMessage("root", 0, Result.TRUE));
+      connection.write(BlockSummaryMessageFactory.newResultMessage("root", 0, Result.TRUE));
     }
   }
 

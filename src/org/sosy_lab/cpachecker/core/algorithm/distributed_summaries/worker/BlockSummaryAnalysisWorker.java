@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -99,7 +100,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
           return dcpaAlgorithm.runAnalysisUnderCondition(
               (BlockSummaryErrorConditionMessage) message, true);
         } catch (Exception | Error e) {
-          return ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getBlockId(), e));
+          return ImmutableSet.of(BlockSummaryMessageFactory.newErrorMessage(getBlockId(), e));
         } finally {
           backwardAnalysisTime.stop();
         }
@@ -109,14 +110,15 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
           forwardAnalysisTime.start();
           return dcpaAlgorithm.runAnalysis((BlockSummaryPostConditionMessage) message);
         } catch (Exception | Error e) {
-          return ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getBlockId(), e));
+          return ImmutableSet.of(BlockSummaryMessageFactory.newErrorMessage(getBlockId(), e));
         } finally {
           forwardAnalysisTime.stop();
         }
       }
       case ERROR, FOUND_RESULT -> {
         shutdown = true;
-        return ImmutableSet.of(BlockSummaryMessage.newStatisticsMessage(getBlockId(), getStats()));
+        return ImmutableSet.of(
+            BlockSummaryMessageFactory.newStatisticsMessage(getBlockId(), getStats()));
       }
       case ERROR_CONDITION_UNREACHABLE, STATISTICS -> {
         return ImmutableSet.of();
@@ -160,7 +162,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     } catch (Exception | Error e) {
       logger.logException(Level.SEVERE, e, "Worker stopped working due to an error...");
       broadcastOrLogException(
-          ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getBlockId(), e)));
+          ImmutableSet.of(BlockSummaryMessageFactory.newErrorMessage(getBlockId(), e)));
       shutdown = true;
     }
   }

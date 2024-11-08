@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
 
 public class BlockSummaryRootWorker extends BlockSummaryWorker {
 
@@ -43,7 +44,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
       case ERROR_CONDITION -> {
         if (pMessage.getTargetNodeNumber() == root.getLast().getNodeNumber()) {
           yield ImmutableSet.of(
-              BlockSummaryMessage.newResultMessage(
+              BlockSummaryMessageFactory.newResultMessage(
                   root.getId(), root.getLast().getNodeNumber(), Result.FALSE));
         }
         yield ImmutableSet.of();
