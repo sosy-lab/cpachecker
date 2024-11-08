@@ -188,8 +188,8 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return uniqueBlockId;
   }
 
-  public @Nullable Instant getTimestamp() {
-    return timestamp;
+  public Optional<Instant> getTimestamp() {
+    return Optional.ofNullable(timestamp);
   }
 
   @Override
@@ -331,14 +331,14 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
         JsonGenerator pJsonGenerator,
         SerializerProvider pSerializerProvider)
         throws IOException {
-      Instant timestamp = pMessage.getTimestamp();
-      String timestampAsString = timestamp == null ? null : timestamp.toString();
+      Optional<Instant> timestamp = pMessage.getTimestamp();
       pJsonGenerator.writeStartObject();
       pJsonGenerator.writeStringField("uniqueBlockId", pMessage.getUniqueBlockId());
       pJsonGenerator.writeNumberField("targetNodeNumber", pMessage.getTargetNodeNumber());
       pJsonGenerator.writeStringField("type", pMessage.getType().name());
       pJsonGenerator.writeStringField("payload", pMessage.getPayload().toJSONString());
-      if (timestampAsString != null) {
+      if (timestamp.isPresent()) {
+        String timestampAsString = timestamp.orElseThrow().toString();
         pJsonGenerator.writeStringField("timestamp", timestampAsString);
       }
       pJsonGenerator.writeEndObject();
