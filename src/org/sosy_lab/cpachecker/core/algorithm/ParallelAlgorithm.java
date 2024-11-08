@@ -94,8 +94,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(
       secure = true,
-      description = "toggle to output all the files also for the unsuccessful analyses")
-  private boolean outputUnsuccessfullAnalysisFiles = false;
+      description = "toggle to write all the files also for the unsuccessful analyses")
+  private boolean writeUnsuccessfullAnalysisFiles = false;
 
   private static final String SUCCESS_MESSAGE =
       "One of the parallel analyses has finished successfully, cancelling all other runs.";
@@ -126,7 +126,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException, CPAException, InterruptedException {
     config.inject(this);
 
-    stats = new ParallelAlgorithmStatistics(pLogger, outputUnsuccessfullAnalysisFiles);
+    stats = new ParallelAlgorithmStatistics(pLogger, writeUnsuccessfullAnalysisFiles);
     globalConfig = config;
     logger = checkNotNull(pLogger);
     shutdownManager = ShutdownManager.createWithParent(checkNotNull(pShutdownNotifier));
@@ -549,11 +549,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     private final List<StatisticsEntry> allAnalysesStats = new CopyOnWriteArrayList<>();
     private int noOfAlgorithmsUsed = 0;
     private String successfulAnalysisName = null;
-    private final boolean outputUnsuccessfullAnalysisFiles;
+    private final boolean writeUnsuccessfullAnalysisFiles;
 
-    ParallelAlgorithmStatistics(LogManager pLogger, boolean pOutputUnsuccessfullAnalysisFiles) {
+    ParallelAlgorithmStatistics(LogManager pLogger, boolean pWriteUnsuccessfullAnalysisFiles) {
       logger = checkNotNull(pLogger);
-      outputUnsuccessfullAnalysisFiles = pOutputUnsuccessfullAnalysisFiles;
+      writeUnsuccessfullAnalysisFiles = pWriteUnsuccessfullAnalysisFiles;
     }
 
     public synchronized StatisticsEntry getNewSubStatistics(
@@ -620,7 +620,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       for (StatisticsEntry subStats : allAnalysesStats) {
         if (isSuccessfulAnalysis(subStats)) {
           successfullAnalysisStats = subStats;
-        } else if (outputUnsuccessfullAnalysisFiles) {
+        } else if (writeUnsuccessfullAnalysisFiles) {
           writeSubOutputFiles(pResult, subStats);
         }
       }
