@@ -259,7 +259,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return uniqueBlockId;
   }
 
-  public Instant getTimestamp() {
+  public @Nullable Instant getTimestamp() {
     return timestamp;
   }
 
