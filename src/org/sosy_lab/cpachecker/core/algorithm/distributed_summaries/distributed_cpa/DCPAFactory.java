@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.DistributedValueAnalysisCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
@@ -53,6 +54,7 @@ public class DCPAFactory {
       BlockNode pBlockNode,
       CFA pCFA,
       Configuration pConfiguration,
+      BlockSummaryMessageFactory pMessageFactory,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
@@ -64,6 +66,7 @@ public class DCPAFactory {
           pBlockNode,
           pCFA,
           pConfiguration,
+          pMessageFactory,
           pLogManager,
           pShutdownNotifier,
           integerToNodeMap);
@@ -82,7 +85,14 @@ public class DCPAFactory {
       return distribute(blockCPA, pBlockNode, integerToNodeMap);
     }
     if (pCPA instanceof ARGCPA argCPA) {
-      return distribute(argCPA, pBlockNode, pCFA, pConfiguration, pLogManager, pShutdownNotifier);
+      return distribute(
+          argCPA,
+          pBlockNode,
+          pCFA,
+          pConfiguration,
+          pMessageFactory,
+          pLogManager,
+          pShutdownNotifier);
     }
     if (pCPA instanceof CompositeCPA compositeCPA) {
       return distribute(
@@ -90,6 +100,7 @@ public class DCPAFactory {
           pBlockNode,
           pCFA,
           pConfiguration,
+          pMessageFactory,
           pLogManager,
           pShutdownNotifier,
           integerToNodeMap);
@@ -124,6 +135,7 @@ public class DCPAFactory {
       BlockNode pBlockNode,
       CFA pCFA,
       Configuration pConfiguration,
+      BlockSummaryMessageFactory pMessageFactory,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       Map<Integer, CFANode> pIntegerCFANodeMap)
@@ -133,6 +145,7 @@ public class DCPAFactory {
         pBlockNode,
         pCFA,
         pConfiguration,
+        pMessageFactory,
         pLogManager,
         pShutdownNotifier,
         pIntegerCFANodeMap);
@@ -153,6 +166,7 @@ public class DCPAFactory {
       BlockNode pBlockNode,
       CFA pCFA,
       Configuration pConfiguration,
+      BlockSummaryMessageFactory pMessageFactory,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       ImmutableMap<Integer, CFANode> pIntegerCFANodeMap)
@@ -162,7 +176,14 @@ public class DCPAFactory {
         builder = ImmutableMap.builder();
     for (ConfigurableProgramAnalysis wrappedCPA : pCompositeCPA.getWrappedCPAs()) {
       DistributedConfigurableProgramAnalysis dcpa =
-          distribute(wrappedCPA, pBlockNode, pCFA, pConfiguration, pLogManager, pShutdownNotifier);
+          distribute(
+              wrappedCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pMessageFactory,
+              pLogManager,
+              pShutdownNotifier);
       if (dcpa == null) {
         continue;
       }
@@ -177,6 +198,7 @@ public class DCPAFactory {
       BlockNode pBlockNode,
       CFA pCFA,
       Configuration pConfiguration,
+      BlockSummaryMessageFactory pMessageFactory,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
@@ -187,6 +209,7 @@ public class DCPAFactory {
             pBlockNode,
             pCFA,
             pConfiguration,
+            pMessageFactory,
             pLogManager,
             pShutdownNotifier));
   }

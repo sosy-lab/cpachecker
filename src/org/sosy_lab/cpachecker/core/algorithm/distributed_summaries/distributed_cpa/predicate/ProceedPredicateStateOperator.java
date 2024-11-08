@@ -24,8 +24,11 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
 
   private final Solver solver;
   private final BlockNode block;
+  private final BlockSummaryMessageFactory messageFactory;
 
-  public ProceedPredicateStateOperator(Solver pSolver, BlockNode pBlock) {
+  public ProceedPredicateStateOperator(
+      BlockSummaryMessageFactory pMessageFactory, Solver pSolver, BlockNode pBlock) {
+    messageFactory = pMessageFactory;
     solver = pSolver;
     block = pBlock;
   }
@@ -49,7 +52,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
     }
     if (solver.isUnsat(formula)) {
       return BlockSummaryMessageProcessing.stopWith(
-          BlockSummaryMessageFactory.newErrorConditionUnreachableMessage(block.getId(), "unsat"));
+          messageFactory.newErrorConditionUnreachableMessage(block.getId(), "unsat"));
     }
     return BlockSummaryMessageProcessing.proceed();
   }

@@ -22,6 +22,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public abstract class BlockSummaryWorker implements BlockSummaryActor {
 
+  private final BlockSummaryMessageFactory messageFactory;
   private final LogManager logger;
   private final String id;
 
@@ -34,10 +35,12 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
    *
    * @param pId the id of the worker
    */
-  protected BlockSummaryWorker(String pId, LogManager pLogger) {
+  protected BlockSummaryWorker(
+      String pId, BlockSummaryMessageFactory pMessageFactory, LogManager pLogger) {
     id = pId;
     receivedMessages = new StatCounter(pId + " received messages");
     sentMessages = new StatCounter(pId + " sent messages");
+    messageFactory = pMessageFactory;
     logger = pLogger;
   }
 
@@ -73,7 +76,7 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
     } catch (CPAException | InterruptedException | IOException | SolverException e) {
       logger.logfException(
           Level.SEVERE, e, "%s faced a problem while processing messages.", getId());
-      broadcastOrLogException(ImmutableList.of(BlockSummaryMessageFactory.newErrorMessage(getId(), e)));
+      broadcastOrLogException(ImmutableList.of(messageFactory.newErrorMessage(getId(), e)));
     } finally {
       logger.logf(Level.INFO, "Worker %s finished and shuts down.", id);
     }

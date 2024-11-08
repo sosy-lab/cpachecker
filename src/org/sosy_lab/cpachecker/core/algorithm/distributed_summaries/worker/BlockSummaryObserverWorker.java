@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryExceptionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryResultMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -38,8 +39,12 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   public record StatusAndResult(AlgorithmStatus status, Result result) {}
 
   public BlockSummaryObserverWorker(
-      String pId, BlockSummaryConnection pConnection, int pNumberOfBlocks, LogManager pLogger) {
-    super(pId, pLogger);
+      String pId,
+      BlockSummaryConnection pConnection,
+      int pNumberOfBlocks,
+      BlockSummaryMessageFactory pMessageFactory,
+      LogManager pLogger) {
+    super(pId, pMessageFactory, pLogger);
     shutdown = false;
     connection = pConnection;
     statusObserver = new StatusObserver();

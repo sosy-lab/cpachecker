@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnectionProvider;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -35,6 +36,8 @@ public class BlockSummaryWorkerBuilder {
 
   private final CFA cfa;
   private final Specification specification;
+
+  private final BlockSummaryMessageFactory messageFactory;
   private final List<WorkerGenerator> workerGenerators;
   private final BlockSummaryConnectionProvider<?> connectionProvider;
   private int additionalConnections;
@@ -42,9 +45,11 @@ public class BlockSummaryWorkerBuilder {
   public BlockSummaryWorkerBuilder(
       CFA pCFA,
       BlockSummaryConnectionProvider<?> pConnectionProvider,
-      Specification pSpecification) {
+      Specification pSpecification,
+      BlockSummaryMessageFactory pMessageFactory) {
     cfa = pCFA;
     specification = pSpecification;
+    messageFactory = pMessageFactory;
     // only one available for now
     connectionProvider = pConnectionProvider;
     workerGenerators = new ArrayList<>();
@@ -84,6 +89,7 @@ public class BlockSummaryWorkerBuilder {
                 pNode,
                 cfa,
                 specification,
+                messageFactory,
                 ShutdownManager.create(),
                 logger));
     return this;
@@ -114,7 +120,7 @@ public class BlockSummaryWorkerBuilder {
     workerGenerators.add(
         connection ->
             new BlockSummaryVisualizationWorker(
-                workerId, pBlockTree, connection, pOptions, logger));
+                workerId, pBlockTree, connection, pOptions, messageFactory, logger));
     return this;
   }
 
@@ -124,7 +130,8 @@ public class BlockSummaryWorkerBuilder {
     String workerId = "root-worker-" + nextId(pNode.getId());
     final LogManager logger = getLogger(pOptions, workerId);
     workerGenerators.add(
-        connection -> new BlockSummaryRootWorker(workerId, connection, pNode, logger));
+        connection ->
+            new BlockSummaryRootWorker(workerId, connection, pNode, messageFactory, logger));
     return this;
   }
 
@@ -147,6 +154,7 @@ public class BlockSummaryWorkerBuilder {
                 pMaxThreads,
                 pNode,
                 pOptions,
+                messageFactory,
                 logger));
     return this;
   }

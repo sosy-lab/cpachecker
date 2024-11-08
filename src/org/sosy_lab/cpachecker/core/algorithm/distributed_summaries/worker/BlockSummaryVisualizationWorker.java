@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualization.BlockSummaryMessageLogger;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -34,9 +35,10 @@ public class BlockSummaryVisualizationWorker extends BlockSummaryWorker {
       BlockGraph pTree,
       BlockSummaryConnection pConnection,
       BlockSummaryAnalysisOptions pOptions,
+      BlockSummaryMessageFactory pMessageFactory,
       LogManager pLogger)
       throws InvalidConfigurationException {
-    super(id, pLogger);
+    super(id, pMessageFactory, pLogger);
     logger = pLogger;
     connection = pConnection;
     messageLogger = new BlockSummaryMessageLogger(pTree, pOptions.getParentConfig());

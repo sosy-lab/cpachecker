@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryBlockSummaryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
@@ -98,6 +99,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       List<BlockSummaryMessage> oldMessages, List<BlockSummaryMessage> newMessages) {}
 
   private final Configuration configuration;
+  private final BlockSummaryMessageFactory messageFactory;
   private final LogManager logger;
   private final CFA initialCFA;
   private final ShutdownManager shutdownManager;
@@ -239,6 +241,9 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     shutdownManager = pShutdownManager;
     specification = pSpecification;
     options = new BlockSummaryAnalysisOptions(configuration);
+    // We inject the BlockSummaryMessageFactory into all other block-summary components from here
+    // because this is the outermost class for their setup.
+    messageFactory = new BlockSummaryMessageFactory();
     stats = new HashMap<>();
 
     if (Stream.concat(knownConditions.stream(), newConditions.stream())
@@ -333,7 +338,8 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
             new BlockSummaryWorkerBuilder(
                     cfa,
                     new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()),
-                    specification)
+                    specification,
+                    messageFactory)
                 .addAnalysisWorker(blockNode, options)
                 .build();
 
@@ -369,7 +375,9 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       // listen to messages
       try (BlockSummaryConnection mainThreadConnection = components.connections().get(0)) {
         FixpointNotifier.init(
-            mainThreadConnection, components.connections().size() + components.actors().size());
+            messageFactory,
+            mainThreadConnection,
+            components.connections().size() + components.actors().size());
         // run workers
         for (BlockSummaryActor worker : components.actors()) {
           Thread thread = new Thread(worker, worker.getId());
@@ -380,7 +388,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         LogManager observerLogger = getLogger(options, observerId);
         BlockSummaryObserverWorker observer =
             new BlockSummaryObserverWorker(
-                observerId, mainThreadConnection, blocks.size(), observerLogger);
+                observerId, mainThreadConnection, blocks.size(), messageFactory, observerLogger);
         // blocks the thread until result message is received
         StatusAndResult resultPair = observer.observe();
         Result result = resultPair.result();
@@ -481,7 +489,10 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     BlockSummaryWorkerBuilder builder =
         new BlockSummaryWorkerBuilder(
-                cfa, new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()), specification)
+                cfa,
+                new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()),
+                specification,
+                messageFactory)
             .createAdditionalConnections(1)
             .addRootWorker(blockGraph.getRoot(), options);
     for (BlockNode distinctNode : blocks) {
@@ -499,7 +510,10 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     BlockSummaryWorkerBuilder builder =
         new BlockSummaryWorkerBuilder(
-                cfa, new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()), specification)
+                cfa,
+                new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()),
+                specification,
+                messageFactory)
             .createAdditionalConnections(1)
             .addRootWorker(blockGraph.getRoot(), options);
     int sum =

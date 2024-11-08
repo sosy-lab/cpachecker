@@ -21,16 +21,24 @@ public class FixpointNotifier {
   private final int connections;
   private final ConcurrentHashMap<String, String> waiting;
   private static FixpointNotifier instance;
+  private final BlockSummaryMessageFactory messageFactory;
 
-  private FixpointNotifier(BlockSummaryConnection pConnection, int pConnections) {
+  private FixpointNotifier(
+      BlockSummaryConnection pConnection,
+      int pConnections,
+      BlockSummaryMessageFactory pMessageFactory) {
+    messageFactory = pMessageFactory;
     connection = pConnection;
     connections = pConnections;
     waiting = new ConcurrentHashMap<>();
   }
 
-  public static void init(BlockSummaryConnection connection, int connections) {
+  public static void init(
+      BlockSummaryMessageFactory pMessageFactory,
+      BlockSummaryConnection connection,
+      int connections) {
     // checkState(instance == null, "FixPointNotifier already initialized");
-    instance = new FixpointNotifier(connection, connections);
+    instance = new FixpointNotifier(connection, connections, pMessageFactory);
   }
 
   public static FixpointNotifier getInstance() {
@@ -41,7 +49,7 @@ public class FixpointNotifier {
   public void waiting(String id) throws InterruptedException {
     waiting.put(id, id);
     if (waiting.size() == connections) {
-      connection.write(BlockSummaryMessageFactory.newResultMessage("root", 0, Result.TRUE));
+      connection.write(messageFactory.newResultMessage("root", 0, Result.TRUE));
     }
   }
 

@@ -41,6 +41,7 @@ public class BlockSummaryHubAnalysisWorker extends BlockSummaryWorker {
   private final CFA cfa;
   private final Specification specification;
   private final ShutdownManager manager;
+  private final BlockSummaryMessageFactory messageFactory;
   private final LogManager logger;
   private final ConcurrentHashMap<String, BlockSummaryErrorConditionMessage> errorConditions;
   private final ConcurrentHashMap<String, BlockSummaryPostConditionMessage> preConditions;
@@ -64,8 +65,9 @@ public class BlockSummaryHubAnalysisWorker extends BlockSummaryWorker {
       int pMaxThreads,
       BlockNode pBlockNode,
       BlockSummaryAnalysisOptions pOptions,
+      BlockSummaryMessageFactory pMessageFactory,
       LogManager pLogger) {
-    super(pId, pLogger);
+    super(pId, pMessageFactory, pLogger);
     connection = pConnection;
     inactiveWorkers = new LinkedBlockingDeque<>();
     activeWorkers = Sets.newConcurrentHashSet();
@@ -75,6 +77,7 @@ public class BlockSummaryHubAnalysisWorker extends BlockSummaryWorker {
     cfa = pCFA;
     specification = pSpecification;
     manager = pShutdownManager;
+    messageFactory = pMessageFactory;
     logger = pLogger;
     errorConditions = new ConcurrentHashMap<>();
     preConditions = new ConcurrentHashMap<>();
@@ -118,7 +121,7 @@ public class BlockSummaryHubAnalysisWorker extends BlockSummaryWorker {
                 responses.addAll(worker.processMessage(pMessage));
                 inactiveWorkers.put(worker);
               } catch (Exception e) {
-                responses.add(BlockSummaryMessageFactory.newErrorMessage(block.getId(), e));
+                responses.add(messageFactory.newErrorMessage(block.getId(), e));
               }
               broadcastOrLogException(responses.build());
               threads.remove(Thread.currentThread());
@@ -138,7 +141,15 @@ public class BlockSummaryHubAnalysisWorker extends BlockSummaryWorker {
     }
     BlockSummaryAnalysisWorker analysisWorker =
         new BlockSummaryAnalysisWorker(
-            getId() + "-" + counter++, options, null, block, cfa, specification, manager, logger);
+            getId() + "-" + counter++,
+            options,
+            null,
+            block,
+            cfa,
+            specification,
+            messageFactory,
+            manager,
+            logger);
     inactiveWorkers.put(analysisWorker);
     return getWorker();
   }

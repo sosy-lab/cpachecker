@@ -40,6 +40,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
   private final DCPAAlgorithm dcpaAlgorithm;
   private final LogManager logger;
+  private final BlockSummaryMessageFactory messageFactory;
   private boolean shutdown;
 
   private final BlockSummaryConnection connection;
@@ -70,20 +71,28 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       BlockNode pBlock,
       CFA pCFA,
       Specification pSpecification,
+      BlockSummaryMessageFactory pMessageFactory,
       ShutdownManager pShutdownManager,
       LogManager pLogger)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
-    super("analysis-worker-" + pId, pLogger);
+    super("analysis-worker-" + pId, pMessageFactory, pLogger);
     block = pBlock;
     connection = pConnection;
 
     Configuration forwardConfiguration =
         Configuration.builder().loadFromFile(pOptions.getForwardConfiguration()).build();
 
+    messageFactory = pMessageFactory;
     logger = pLogger;
     dcpaAlgorithm =
         new DCPAAlgorithm(
-            logger, pBlock, pCFA, pSpecification, forwardConfiguration, pShutdownManager);
+            logger,
+            pBlock,
+            pCFA,
+            pSpecification,
+            forwardConfiguration,
+            pMessageFactory,
+            pShutdownManager);
   }
 
   public Collection<BlockSummaryMessage> runInitialAnalysis()
@@ -100,7 +109,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
           return dcpaAlgorithm.runAnalysisUnderCondition(
               (BlockSummaryErrorConditionMessage) message, true);
         } catch (Exception | Error e) {
-          return ImmutableSet.of(BlockSummaryMessageFactory.newErrorMessage(getBlockId(), e));
+          return ImmutableSet.of(messageFactory.newErrorMessage(getBlockId(), e));
         } finally {
           backwardAnalysisTime.stop();
         }
@@ -110,15 +119,14 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
           forwardAnalysisTime.start();
           return dcpaAlgorithm.runAnalysis((BlockSummaryPostConditionMessage) message);
         } catch (Exception | Error e) {
-          return ImmutableSet.of(BlockSummaryMessageFactory.newErrorMessage(getBlockId(), e));
+          return ImmutableSet.of(messageFactory.newErrorMessage(getBlockId(), e));
         } finally {
           forwardAnalysisTime.stop();
         }
       }
       case ERROR, FOUND_RESULT -> {
         shutdown = true;
-        return ImmutableSet.of(
-            BlockSummaryMessageFactory.newStatisticsMessage(getBlockId(), getStats()));
+        return ImmutableSet.of(messageFactory.newStatisticsMessage(getBlockId(), getStats()));
       }
       case ERROR_CONDITION_UNREACHABLE, STATISTICS -> {
         return ImmutableSet.of();
@@ -161,8 +169,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       super.run();
     } catch (Exception | Error e) {
       logger.logException(Level.SEVERE, e, "Worker stopped working due to an error...");
-      broadcastOrLogException(
-          ImmutableSet.of(BlockSummaryMessageFactory.newErrorMessage(getBlockId(), e)));
+      broadcastOrLogException(ImmutableSet.of(messageFactory.newErrorMessage(getBlockId(), e)));
       shutdown = true;
     }
   }
