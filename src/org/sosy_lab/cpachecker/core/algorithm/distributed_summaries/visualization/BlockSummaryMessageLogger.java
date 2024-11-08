@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualization;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.base.Predicate;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -63,11 +65,8 @@ public class BlockSummaryMessageLogger {
     Map<String, Object> messageToJSON = new HashMap<>();
     messageToJSON.put("type", pMessage.getType().name());
     Optional<Instant> maybeTimestamp = pMessage.getTimestamp();
-    if (maybeTimestamp.isEmpty()) {
-      throw new IllegalStateException(
-          "Trying to log message, but timestamp in message is missing. Try turning on debug mode"
+    checkState(!maybeTimestamp.isEmpty(), "Trying to log message, but timestamp in message is missing. Try turning on debug mode"
               + " for distributedSummaries.");
-    }
     Instant timestamp = maybeTimestamp.orElseThrow();
     BigInteger secondsToNano =
         BigInteger.valueOf(timestamp.getEpochSecond())
