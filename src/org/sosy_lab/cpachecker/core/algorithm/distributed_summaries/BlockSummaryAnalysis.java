@@ -235,7 +235,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     options = new BlockSummaryAnalysisOptions(configuration);
     // We inject the BlockSummaryMessageFactory into all other block-summary components from here
     // because this is the outermost class for their setup.
-    messageFactory = new BlockSummaryMessageFactory();
+    messageFactory = new BlockSummaryMessageFactory(options);
     stats = new HashMap<>();
 
     if (Stream.concat(knownConditions.stream(), newConditions.stream())
