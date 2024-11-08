@@ -460,7 +460,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    *   <li>is not in C
    *   <li>contains multiple files
    *   <li>has no call to {@code pthread_create} i.e. is not parallel
-   *   <li>stores the value of a pthread_create call
+   *   <li>uses arrays for {@code pthread_t} or {@code pthread_mutex_t} identifiers
+   *   <li>stores the return value of any pthread method call
    *   <li>contains any unsupported {@code pthread} function, see {@link PthreadFuncType}
    *   <li>contains a {@code pthread_create} call in a loop
    *   <li>contains a recursive function call (both direct and indirect)
@@ -469,7 +470,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private void handleInitialInputProgramRejections(CFA pInputCfa) {
     checkLanguageC(pInputCfa);
     checkOneInputFile(pInputCfa);
-    checkPthreadCreateCalls(pInputCfa);
+    checkIsParallelProgram(pInputCfa);
     checkUnsupportedFunctions(pInputCfa);
     checkPthreadFunctionReturnValues(pInputCfa);
     // these are recursive and can be expensive, so they are last
@@ -477,46 +478,65 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     checkRecursiveFunctions(pInputCfa);
   }
 
+  private void handleRejection(String pMessage) {
+    logger.log(Level.SEVERE, () -> pMessage);
+    throw new AssertionError();
+  }
+
   private void checkLanguageC(CFA pInputCfa) {
     Language language = pInputCfa.getMetadata().getInputLanguage();
     if (!language.equals(Language.C)) {
-      logger.log(Level.SEVERE, () -> "MPOR does not support the language " + language);
-      throw new AssertionError();
+      handleRejection("MPOR does not support the language " + language);
     }
   }
 
   private void checkOneInputFile(CFA pInputCfa) {
     if (pInputCfa.getFileNames().size() != 1) {
-      logger.log(Level.SEVERE, () -> "MPOR expects exactly one input file");
-      throw new AssertionError();
+      handleRejection("MPOR expects exactly one input file");
     }
   }
 
-  private void checkPthreadCreateCalls(CFA pInputCfa) {
+  private void checkIsParallelProgram(CFA pInputCfa) {
     boolean isParallel = false;
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         isParallel = true;
-        CExpression expr = CFAUtils.getParameterAtIndex(cfaEdge, 0);
-        if (expr instanceof CUnaryExpression unaryExpr) {
-          if (unaryExpr.getOperand() instanceof CArraySubscriptExpression arraySubscriptExpr) {
-            logger.log(
-                Level.SEVERE,
-                () ->
-                    "MPOR does not support the usage of arrays as pthread_t identifiers in line "
-                        + cfaEdge.getLineNumber()
-                        + ": "
-                        + cfaEdge.getCode());
-            throw new AssertionError();
-          }
-        }
+        break;
       }
     }
     if (!isParallel) {
-      logger.log(
-          Level.SEVERE,
-          () -> "MPOR expects parallel C program with at least one pthread_create call");
-      throw new AssertionError();
+      handleRejection("MPOR expects parallel C program with at least one pthread_create call");
+    }
+  }
+
+  private void checkPthreadArrayIdentifiers(CFA pInputCfa) {
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      for (PthreadFuncType funcType : PthreadFuncType.values()) {
+        if (funcType.isSupported && PthreadFuncType.callsPthreadFunc(cfaEdge, funcType)) {
+          if (funcType.hasPthreadTIndex()) {
+            int pthreadTIndex = funcType.getPthreadTIndex();
+            CExpression parameter = CFAUtils.getParameterAtIndex(cfaEdge, pthreadTIndex);
+            if (isArraySubscriptExpression(parameter)) {
+              handleRejection(
+                  "MPOR does not support arrays as pthread_t parameters in line"
+                      + cfaEdge.getLineNumber()
+                      + ": "
+                      + cfaEdge.getCode());
+            }
+          }
+          if (funcType.hasPthreadMutexTIndex()) {
+            int pthreadMutexTIndex = funcType.getPthreadMutexTIndex();
+            CExpression parameter = CFAUtils.getParameterAtIndex(cfaEdge, pthreadMutexTIndex);
+            if (isArraySubscriptExpression(parameter)) {
+              handleRejection(
+                  "MPOR does not support arrays as pthread_mutex_t parameters in line"
+                      + cfaEdge.getLineNumber()
+                      + ": "
+                      + cfaEdge.getCode());
+            }
+          }
+        }
+      }
     }
   }
 
@@ -525,14 +545,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       for (PthreadFuncType funcType : PthreadFuncType.values()) {
         if (!funcType.isSupported) {
           if (PthreadFuncType.callsPthreadFunc(edge, funcType)) {
-            logger.log(
-                Level.SEVERE,
-                () ->
-                    "MPOR does not support the function in line "
-                        + edge.getLineNumber()
-                        + ": "
-                        + edge.getCode());
-            throw new AssertionError();
+            handleRejection(
+                "MPOR does not support the function in line "
+                    + edge.getLineNumber()
+                    + ": "
+                    + edge.getCode());
           }
         }
       }
@@ -543,14 +560,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadFuncType.callsAnyPthreadFunc(edge)) {
         if (edge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
-          logger.log(
-              Level.SEVERE,
-              () ->
-                  "MPOR does not support pthread method return value assignments, see line "
-                      + edge.getLineNumber()
-                      + ": "
-                      + edge.getCode());
-          throw new AssertionError();
+          handleRejection(
+              "MPOR does not support pthread method return value assignments, see line "
+                  + edge.getLineNumber()
+                  + ": "
+                  + edge.getCode());
         }
       }
     }
@@ -564,8 +578,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         if (MPORUtil.isSelfReachable(cfaEdge, Optional.empty(), new ArrayList<>(), cfaEdge)) {
-          logger.log(Level.SEVERE, () -> "MPOR does not support pthread_create calls in loops");
-          throw new AssertionError();
+          handleRejection("MPOR does not support pthread_create calls in loops");
         }
       }
     }
@@ -576,14 +589,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       Optional<FunctionExitNode> exit = entry.getExitNode();
       // "upcasting" exit from FunctionExitNode to CFANode is necessary here...
       if (MPORUtil.isSelfReachable(entry, exit.map(node -> node), new ArrayList<>(), entry)) {
-        logger.log(
-            Level.SEVERE,
-            () ->
-                "MPOR does not support the (in)direct recursive function "
-                    + entry.getFunctionName()
-                    + " in line "
-                    + entry.getFunction().getFileLocation().getStartingLineNumber());
-        throw new AssertionError();
+        handleRejection(
+            "MPOR does not support the (in)direct recursive function "
+                + entry.getFunctionName()
+                + " in line "
+                + entry.getFunction().getFileLocation().getStartingLineNumber());
       }
     }
   }
@@ -717,6 +727,18 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   // (Private) Helpers ===========================================================================
+
+  private boolean isArraySubscriptExpression(CExpression pExpression) {
+
+    if (pExpression instanceof CArraySubscriptExpression array) {
+      return true;
+    } else if (pExpression instanceof CUnaryExpression unary) {
+      if (unary.getOperand() instanceof CArraySubscriptExpression array) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   /**
    * Checks if all threads in pState are at a CFANode whose leaving edges contains at least one

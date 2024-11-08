@@ -149,6 +149,10 @@ public enum PthreadFuncType {
     startRoutineIndex = pStartRoutineIndex;
   }
 
+  public boolean hasPthreadTIndex() {
+    return pthreadTIndex.isPresent();
+  }
+
   public int getPthreadTIndex() {
     checkArgument(pthreadTIndex.isPresent(), "this PthreadFuncType has no pthread_t param");
     return pthreadTIndex.orElseThrow();
@@ -159,6 +163,10 @@ public enum PthreadFuncType {
   public boolean isPthreadTPointer() {
     checkArgument(pthreadTIndex.isPresent(), "this PthreadFuncType has no pthread_t param");
     return isPthreadTPointer.orElseThrow();
+  }
+
+  public boolean hasPthreadMutexTIndex() {
+    return pthreadMutexTIndex.isPresent();
   }
 
   public int getPthreadMutexTIndex() {
