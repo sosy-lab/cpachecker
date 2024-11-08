@@ -135,14 +135,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
 
   @Option(
       description =
-          "Whether to spawn util workers. "
-              + "Util workers listen to every message and create visual output for debugging. "
-              + "Workers consume resources and should not be used for benchmarks.",
-      secure = true)
-  private boolean spawnUtilWorkers = false;
-
-  @Option(
-      description =
           "Change the queue type. ERRROR_CONDITION prioritizes the processing"
               + " ofErrorConditionMessages. DEFAULT does not differ between PostCondition and"
               + " ErrorCondition messages.",
@@ -499,7 +491,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       averageNumberOfEdges.setNextValue(distinctNode.getEdges().size());
       builder = builder.addAnalysisWorker(distinctNode, options);
     }
-    if (spawnUtilWorkers) {
+    if (options.isDebugModeEnabled()) {
       builder = builder.addVisualizationWorker(blockGraph, options);
     }
     return builder.build();
@@ -530,7 +522,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       int coresForBlock = Integer.max(1, (int) Math.round(percentage * cores));
       builder = builder.addHubWorker(distinctNode, options, shutdownManager, coresForBlock);
     }
-    if (spawnUtilWorkers) {
+    if (options.isDebugModeEnabled()) {
       builder = builder.addVisualizationWorker(blockGraph, options);
     }
     return builder.build();

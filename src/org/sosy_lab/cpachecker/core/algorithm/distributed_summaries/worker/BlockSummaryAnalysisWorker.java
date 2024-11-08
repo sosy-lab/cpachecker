@@ -91,6 +91,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
             pCFA,
             pSpecification,
             forwardConfiguration,
+            pOptions,
             pMessageFactory,
             pShutdownManager);
   }
