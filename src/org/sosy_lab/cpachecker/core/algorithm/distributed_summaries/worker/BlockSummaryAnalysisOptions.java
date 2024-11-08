@@ -16,10 +16,20 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
-@Options(prefix = "distributedSummaries.worker")
+@Options(prefix = "distributedSummaries")
 public class BlockSummaryAnalysisOptions {
 
   @Option(
+      name = "debug",
+      description =
+          "Whether to enable debug mode of block-summary analysis. This creates visual output for"
+              + " debugging and exports additional metadata.Creating this information consumes"
+              + " resources and should not be used for benchmarks.",
+      secure = true)
+  private boolean debug = false;
+
+  @Option(
+      name = "worker.forwardConfiguration",
       description = "Configuration for forward analysis in computation of distributed summaries",
       secure = true)
   @FileOption(Type.OPTIONAL_INPUT_FILE)
@@ -27,6 +37,7 @@ public class BlockSummaryAnalysisOptions {
       Path.of("config/distributed-block-summaries/predicateAnalysis-block-forward.properties");
 
   @Option(
+      name = "worker.logDirectory",
       description =
           "Destination directory for the logfiles of all BlockSummaryWorkers. The logfiles have the"
               + " same name as the ID of the worker.",
@@ -39,6 +50,10 @@ public class BlockSummaryAnalysisOptions {
   public BlockSummaryAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
     parentConfig = pConfig;
+  }
+
+  public boolean isDebugModeEnabled() {
+    return debug;
   }
 
   public Path getForwardConfiguration() {

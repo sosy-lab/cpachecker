@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.DistributedValueAnalysisCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
@@ -54,6 +55,7 @@ public class DCPAFactory {
       BlockNode pBlockNode,
       CFA pCFA,
       Configuration pConfiguration,
+      BlockSummaryAnalysisOptions pOptions,
       BlockSummaryMessageFactory pMessageFactory,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier)
@@ -66,6 +68,7 @@ public class DCPAFactory {
           pBlockNode,
           pCFA,
           pConfiguration,
+          pOptions,
           pMessageFactory,
           pLogManager,
           pShutdownNotifier,
@@ -90,6 +93,7 @@ public class DCPAFactory {
           pBlockNode,
           pCFA,
           pConfiguration,
+          pOptions,
           pMessageFactory,
           pLogManager,
           pShutdownNotifier);
@@ -100,6 +104,7 @@ public class DCPAFactory {
           pBlockNode,
           pCFA,
           pConfiguration,
+          pOptions,
           pMessageFactory,
           pLogManager,
           pShutdownNotifier,
@@ -135,6 +140,7 @@ public class DCPAFactory {
       BlockNode pBlockNode,
       CFA pCFA,
       Configuration pConfiguration,
+      BlockSummaryAnalysisOptions pOptions,
       BlockSummaryMessageFactory pMessageFactory,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
@@ -145,6 +151,7 @@ public class DCPAFactory {
         pBlockNode,
         pCFA,
         pConfiguration,
+        pOptions,
         pMessageFactory,
         pLogManager,
         pShutdownNotifier,
@@ -166,6 +173,7 @@ public class DCPAFactory {
       BlockNode pBlockNode,
       CFA pCFA,
       Configuration pConfiguration,
+      BlockSummaryAnalysisOptions pOptions,
       BlockSummaryMessageFactory pMessageFactory,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
@@ -181,6 +189,7 @@ public class DCPAFactory {
               pBlockNode,
               pCFA,
               pConfiguration,
+              pOptions,
               pMessageFactory,
               pLogManager,
               pShutdownNotifier);
@@ -198,6 +207,7 @@ public class DCPAFactory {
       BlockNode pBlockNode,
       CFA pCFA,
       Configuration pConfiguration,
+      BlockSummaryAnalysisOptions pOptions,
       BlockSummaryMessageFactory pMessageFactory,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier)
@@ -209,6 +219,7 @@ public class DCPAFactory {
             pBlockNode,
             pCFA,
             pConfiguration,
+            pOptions,
             pMessageFactory,
             pLogManager,
             pShutdownNotifier));

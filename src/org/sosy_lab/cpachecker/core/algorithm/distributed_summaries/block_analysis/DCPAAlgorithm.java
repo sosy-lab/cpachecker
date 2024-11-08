@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -103,6 +104,7 @@ public class DCPAAlgorithm {
       CFA pCFA,
       Specification pSpecification,
       Configuration pConfiguration,
+      BlockSummaryAnalysisOptions pOptions,
       BlockSummaryMessageFactory pMessageFactory,
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException {
@@ -125,6 +127,7 @@ public class DCPAAlgorithm {
             pBlock,
             pCFA,
             pConfiguration,
+            pOptions,
             pMessageFactory,
             pLogger,
             pShutdownManager.getNotifier());

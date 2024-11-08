@@ -15,8 +15,6 @@ import java.util.Objects;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -31,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -45,7 +44,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix = "distributedSummaries.predicate")
 public class DistributedPredicateCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
   private final PredicateCPA predicateCPA;
@@ -60,22 +58,20 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final boolean hasRootAsPredecessor;
   private final ProceedPredicateStateOperator proceedOperator;
 
-  @Option(secure = true, description = "Write readable formulas to log file.")
-  private boolean writeReadableFormulas = false;
-
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA,
       BlockNode pNode,
       CFA pCFA,
       Configuration pConfiguration,
+      BlockSummaryAnalysisOptions pOptions,
       BlockSummaryMessageFactory pMessageFactory,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       Map<Integer, CFANode> pIdToNodeMap)
       throws InvalidConfigurationException {
-    pConfiguration.inject(this);
     predicateCPA = pPredicateCPA;
     hasRootAsPredecessor = pNode.getPredecessorIds().stream().anyMatch(id -> id.equals("root"));
+    final boolean writeReadableFormulas = pOptions.isDebugModeEnabled();
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
     serializePrecisionOperator =

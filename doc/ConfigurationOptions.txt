@@ -4043,6 +4043,11 @@ distributedSummaries.allowSingleBlockDecompositionWhenMerging = false
 # Where to store the block graph in JSON format
 distributedSummaries.blockCFAFile = "block_analysis/blocks.json"
 
+# Whether to enable debug mode of block-summary analysis. This creates visual
+# output for debugging and exports additional metadata.Creating this
+# information consumes resources and should not be used for benchmarks.
+distributedSummaries.debug = false
+
 # Allows to set the algorithm for decomposing the CFA. LINEAR_DECOMPOSITION
 # creates blocks from each merge/branching point to the next merge/branching
 # point. MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION.
@@ -4079,19 +4084,11 @@ distributedSummaries.newConditions = []
 # Where to write responses
 distributedSummaries.outputMessages = "messages/"
 
-# Write readable formulas to log file.
-distributedSummaries.predicate.writeReadableFormulas = false
-
 # Change the queue type. ERRROR_CONDITION prioritizes the processing
 # ofErrorConditionMessages. DEFAULT does not differ between PostCondition and
 # ErrorCondition messages.
 distributedSummaries.queue = DEFAULT
   enum:     [ERROR_CONDITION, DEFAULT]
-
-# Whether to spawn util workers. Util workers listen to every message and
-# create visual output for debugging. Workers consume resources and should
-# not be used for benchmarks.
-distributedSummaries.spawnUtilWorkers = false
 
 # Whether to spawn a worker for only one block id
 distributedSummaries.spawnWorkerForId = ""
