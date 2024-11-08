@@ -613,8 +613,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       for (StatisticsEntry subStats : allAnalysesStats) {
         if (isSuccessfulAnalysis(subStats)) {
           successfullAnalysisStats = subStats;
-        } else {
-          writeSubOutputFiles(pResult, subStats);
         }
       }
       if (successfullAnalysisStats != null) {
