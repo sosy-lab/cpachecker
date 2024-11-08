@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -61,10 +62,17 @@ public class BlockSummaryMessageLogger {
       throws IOException {
     Map<String, Object> messageToJSON = new HashMap<>();
     messageToJSON.put("type", pMessage.getType().name());
+    Optional<Instant> maybeTimestamp = pMessage.getTimestamp();
+    if (maybeTimestamp.isEmpty()) {
+      throw new IllegalStateException(
+          "Trying to log message, but timestamp in message is missing. Try turning on debug mode"
+              + " for distributedSummaries.");
+    }
+    Instant timestamp = maybeTimestamp.orElseThrow();
     BigInteger secondsToNano =
-        BigInteger.valueOf(pMessage.getTimestamp().getEpochSecond())
+        BigInteger.valueOf(timestamp.getEpochSecond())
             .multiply(BigInteger.valueOf(1000000000))
-            .add(BigInteger.valueOf(pMessage.getTimestamp().getNano()));
+            .add(BigInteger.valueOf(timestamp.getNano()));
     messageToJSON.put("timestamp", secondsToNano.toString());
     messageToJSON.put("hashCode", hashCode);
     messageToJSON.put("from", pMessage.getUniqueBlockId());
