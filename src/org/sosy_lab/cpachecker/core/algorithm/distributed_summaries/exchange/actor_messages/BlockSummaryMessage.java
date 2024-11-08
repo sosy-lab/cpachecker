@@ -21,15 +21,12 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
-import com.google.common.base.Throwables;
 import java.io.IOException;
 import java.io.Serial;
 import java.time.Instant;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver;
@@ -160,74 +157,6 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
       }
       return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
     }
-  }
-
-  public static BlockSummaryMessage newBlockPostCondition(
-      String pUniqueBlockId,
-      int pTargetNodeNumber,
-      BlockSummaryMessagePayload pPayload,
-      boolean pReachable) {
-    BlockSummaryMessagePayload newPayload =
-        BlockSummaryMessagePayload.builder()
-            .addAllEntries(pPayload)
-            .addEntry(BlockSummaryMessagePayload.REACHABLE, Boolean.toString(pReachable))
-            .buildPayload();
-    return new BlockSummaryPostConditionMessage(pUniqueBlockId, pTargetNodeNumber, newPayload);
-  }
-
-  public static BlockSummaryMessage newErrorConditionMessage(
-      String pUniqueBlockId,
-      int pTargetNodeNumber,
-      BlockSummaryMessagePayload pPayload,
-      boolean pFirst,
-      String pOrigin) {
-    BlockSummaryMessagePayload newPayload =
-        BlockSummaryMessagePayload.builder()
-            .addAllEntries(pPayload)
-            .addEntry(BlockSummaryMessagePayload.FIRST, Boolean.toString(pFirst))
-            .addEntry(BlockSummaryMessagePayload.ORIGIN, pOrigin)
-            .buildPayload();
-    return new BlockSummaryErrorConditionMessage(pUniqueBlockId, pTargetNodeNumber, newPayload);
-  }
-
-  public static BlockSummaryMessage newErrorConditionUnreachableMessage(
-      String pUniqueBlockId, String denied) {
-    return new BlockSummaryErrorConditionUnreachableMessage(
-        pUniqueBlockId,
-        0,
-        BlockSummaryMessagePayload.builder()
-            .addEntry(BlockSummaryMessagePayload.REASON, denied)
-            .addEntry("readable", denied)
-            .buildPayload());
-  }
-
-  public static BlockSummaryMessage newResultMessage(
-      String pUniqueBlockId, int pTargetNodeNumber, Result pResult) {
-    BlockSummaryMessagePayload payload =
-        BlockSummaryMessagePayload.builder()
-            .addEntry(BlockSummaryMessagePayload.RESULT, pResult.name())
-            .buildPayload();
-    return new BlockSummaryResultMessage(pUniqueBlockId, pTargetNodeNumber, payload);
-  }
-
-  public static BlockSummaryMessage newErrorMessage(String pUniqueBlockId, Throwable pException) {
-    return new BlockSummaryExceptionMessage(
-        pUniqueBlockId,
-        0,
-        BlockSummaryMessagePayload.builder()
-            .addEntry(
-                BlockSummaryMessagePayload.EXCEPTION, Throwables.getStackTraceAsString(pException))
-            .buildPayload());
-  }
-
-  public static BlockSummaryMessage newStatisticsMessage(
-      String pUniqueBlockId, Map<String, Object> pStats) {
-    return new BlockSummaryStatisticsMessage(
-        pUniqueBlockId,
-        0,
-        BlockSummaryMessagePayload.builder()
-            .addEntry(BlockSummaryMessagePayload.STATS, pStats)
-            .buildPayload());
   }
 
   public String getBlockId() {

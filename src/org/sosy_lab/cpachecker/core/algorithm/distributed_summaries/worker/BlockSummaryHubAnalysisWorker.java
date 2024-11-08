@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -117,7 +118,7 @@ public class BlockSummaryHubAnalysisWorker extends BlockSummaryWorker {
                 responses.addAll(worker.processMessage(pMessage));
                 inactiveWorkers.put(worker);
               } catch (Exception e) {
-                responses.add(BlockSummaryMessage.newErrorMessage(block.getId(), e));
+                responses.add(BlockSummaryMessageFactory.newErrorMessage(block.getId(), e));
               }
               broadcastOrLogException(responses.build());
               threads.remove(Thread.currentThread());

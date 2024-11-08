@@ -15,6 +15,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -72,7 +73,7 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
     } catch (CPAException | InterruptedException | IOException | SolverException e) {
       logger.logfException(
           Level.SEVERE, e, "%s faced a problem while processing messages.", getId());
-      broadcastOrLogException(ImmutableList.of(BlockSummaryMessage.newErrorMessage(getId(), e)));
+      broadcastOrLogException(ImmutableList.of(BlockSummaryMessageFactory.newErrorMessage(getId(), e)));
     } finally {
       logger.logf(Level.INFO, "Worker %s finished and shuts down.", id);
     }

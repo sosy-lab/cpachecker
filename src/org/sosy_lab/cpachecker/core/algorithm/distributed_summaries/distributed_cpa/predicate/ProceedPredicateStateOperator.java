@@ -12,7 +12,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -49,7 +49,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
     }
     if (solver.isUnsat(formula)) {
       return BlockSummaryMessageProcessing.stopWith(
-          BlockSummaryMessage.newErrorConditionUnreachableMessage(block.getId(), "unsat"));
+          BlockSummaryMessageFactory.newErrorConditionUnreachableMessage(block.getId(), "unsat"));
     }
     return BlockSummaryMessageProcessing.proceed();
   }
