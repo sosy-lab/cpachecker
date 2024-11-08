@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -157,16 +158,20 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       CExpression exp = a.getExpression();
       if (exp instanceof CBinaryExpression e) {
         BinaryOperator op = e.getOperator();
-        if (op == BinaryOperator.EQUALS) {
+        // Special handling for == and != comparisons between function pointers
+        if (e.getCalculationType() instanceof CPointerType calculationType
+            && calculationType.getType() instanceof CFunctionType
+            && (op == BinaryOperator.EQUALS || op == BinaryOperator.NOT_EQUALS)) {
           FunctionPointerState.Builder newState = oldState.createBuilder();
           FunctionPointerTarget v1 = getValue(e.getOperand1(), newState);
           FunctionPointerTarget v2 = getValue(e.getOperand2(), newState);
           logger.log(Level.ALL, "Operand1 value is", v1);
           logger.log(Level.ALL, "Operand2 value is", v2);
           if ((v1 instanceof NamedFunctionTarget && v2 instanceof NamedFunctionTarget)
-              || (v1 instanceof NullTarget && v2 instanceof NullTarget)) {
-            boolean eq = v1.equals(v2);
-            if (eq != a.getTruthAssumption()) {
+              || v1 instanceof NullTarget
+              || v2 instanceof NullTarget) {
+            boolean result = (op == BinaryOperator.EQUALS) ? v1.equals(v2) : !v1.equals(v2);
+            if (result != a.getTruthAssumption()) {
               logger.log(Level.FINE, "Should not go by the edge", a);
               return false; // should not go by this edge
             } else {
