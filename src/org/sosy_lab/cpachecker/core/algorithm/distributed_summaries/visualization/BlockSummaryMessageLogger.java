@@ -65,8 +65,10 @@ public class BlockSummaryMessageLogger {
     Map<String, Object> messageToJSON = new HashMap<>();
     messageToJSON.put("type", pMessage.getType().name());
     Optional<Instant> maybeTimestamp = pMessage.getTimestamp();
-    checkState(!maybeTimestamp.isEmpty(), "Trying to log message, but timestamp in message is missing. Try turning on debug mode"
-              + " for distributedSummaries.");
+    checkState(
+        !maybeTimestamp.isEmpty(),
+        "Trying to log message, but timestamp in message is missing. Try turning on debug mode"
+            + " for distributedSummaries.");
     Instant timestamp = maybeTimestamp.orElseThrow();
     BigInteger secondsToNano =
         BigInteger.valueOf(timestamp.getEpochSecond())
