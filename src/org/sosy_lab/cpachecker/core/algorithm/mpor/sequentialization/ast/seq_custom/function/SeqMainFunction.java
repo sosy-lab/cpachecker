@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
@@ -56,6 +57,8 @@ public class SeqMainFunction implements SeqFunction {
 
   private final CIdExpression numThreads;
 
+  private final ImmutableList<SeqLogicalAndExpression> threadAssertions;
+
   private final ImmutableList<SeqFunctionCallExpression> threadAssumptions;
 
   private final ImmutableList<SeqFunctionCallExpression> porAssumptions;
@@ -75,6 +78,7 @@ public class SeqMainFunction implements SeqFunction {
 
   public SeqMainFunction(
       int pNumThreads,
+      ImmutableList<SeqLogicalAndExpression> pThreadAssertions,
       ImmutableList<SeqFunctionCallExpression> pThreadAssumptions,
       ImmutableList<SeqFunctionCallExpression> pPORAssumptions,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses)
@@ -88,6 +92,7 @@ public class SeqMainFunction implements SeqFunction {
                 SeqToken.NUM_THREADS,
                 SeqInitializer.buildIntInitializer(
                     SeqIntegerLiteralExpression.buildIntLiteralExpr(pNumThreads))));
+    threadAssertions = pThreadAssertions;
     threadAssumptions = pThreadAssumptions;
     porAssumptions = pPORAssumptions;
     caseClauses = pCaseClauses;
@@ -121,19 +126,31 @@ public class SeqMainFunction implements SeqFunction {
 
   @Override
   public String toASTString() {
+    // create assertion checks
+    StringBuilder assertions = new StringBuilder();
+    String seqError = Sequentialization.getSeqErrorFunctionCall();
+    for (SeqLogicalAndExpression assertion : threadAssertions) {
+      SeqControlFlowStatement ifStmt =
+          new SeqControlFlowStatement(assertion, SeqControlFlowStatementType.IF);
+      assertions.append(
+          SeqUtil.prependTabsWithNewline(2, SeqUtil.appendOpeningCurly(ifStmt.toASTString())));
+      assertions.append(SeqUtil.prependTabsWithNewline(3, SeqUtil.appendClosingCurly(seqError)));
+    }
+
     // create assume call strings
-    StringBuilder assumptionStatements = new StringBuilder();
+    StringBuilder assumptions = new StringBuilder();
     for (SeqFunctionCallExpression assumption : threadAssumptions) {
       String assumeStatement = assumption.toASTString() + SeqSyntax.SEMICOLON;
-      assumptionStatements.append(SeqUtil.prependTabsWithNewline(2, assumeStatement));
+      assumptions.append(SeqUtil.prependTabsWithNewline(2, assumeStatement));
     }
-    assumptionStatements.append(SeqSyntax.NEWLINE);
+    assumptions.append(SeqSyntax.NEWLINE);
     for (SeqFunctionCallExpression assumption : porAssumptions) {
       String assumeStatement = assumption.toASTString() + SeqSyntax.SEMICOLON;
-      assumptionStatements.append(SeqUtil.prependTabsWithNewline(2, assumeStatement));
+      assumptions.append(SeqUtil.prependTabsWithNewline(2, assumeStatement));
     }
+
     // create switch statement string
-    StringBuilder switchStatements = new StringBuilder();
+    StringBuilder switches = new StringBuilder();
     int i = 0;
     for (var entry : caseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
@@ -147,7 +164,7 @@ public class SeqMainFunction implements SeqFunction {
         SeqControlFlowStatementType stmtType =
             i == 0 ? SeqControlFlowStatementType.IF : SeqControlFlowStatementType.ELSE_IF;
         SeqControlFlowStatement stmt = new SeqControlFlowStatement(nextThreadEquals, stmtType);
-        switchStatements.append(
+        switches.append(
             SeqUtil.prependTabsWithoutNewline(
                 2,
                 i == 0
@@ -156,14 +173,13 @@ public class SeqMainFunction implements SeqFunction {
       } catch (UnrecognizedCodeException e) {
         throw new RuntimeException(e);
       }
-      switchStatements.append(SeqSyntax.NEWLINE);
+      switches.append(SeqSyntax.NEWLINE);
       CArraySubscriptExpression pcThreadId = SeqExpressions.buildPcSubscriptExpr(threadId);
       SeqSwitchStatement switchCaseExpr = new SeqSwitchStatement(pcThreadId, entry.getValue(), 3);
-      switchStatements.append(switchCaseExpr.toASTString());
+      switches.append(switchCaseExpr.toASTString());
 
       // append 2 newlines, except for last switch case (1 only)
-      switchStatements.append(
-          SeqUtil.repeat(SeqSyntax.NEWLINE, i == caseClauses.size() - 1 ? 1 : 2));
+      switches.append(SeqUtil.repeat(SeqSyntax.NEWLINE, i == caseClauses.size() - 1 ? 1 : 2));
       i++;
     }
     return getDeclarationWithParameterNames()
@@ -177,16 +193,17 @@ public class SeqMainFunction implements SeqFunction {
         + SeqUtil.prependTabsWithNewline(1, SeqVariableDeclaration.NEXT_THREAD.toASTString())
         + SeqSyntax.NEWLINE
         + SeqUtil.prependTabsWithNewline(1, SeqUtil.appendOpeningCurly(whileTrue.toASTString()))
-        + SeqUtil.prependTabsWithNewline(2, assignNextThread.toASTString())
+        + assertions
         + SeqSyntax.NEWLINE
+        + SeqUtil.prependTabsWithNewline(2, assignNextThread.toASTString())
         + SeqUtil.prependTabsWithNewline(2, assumeNextThread.toASTString() + SeqSyntax.SEMICOLON)
         + SeqUtil.prependTabsWithNewline(2, assumeThreadActive.toASTString() + SeqSyntax.SEMICOLON)
         + SeqSyntax.NEWLINE
-        + assumptionStatements
+        + assumptions
         + SeqSyntax.NEWLINE
         + SeqUtil.prependTabsWithNewline(2, assignPrevThread.toASTString())
         + SeqSyntax.NEWLINE
-        + switchStatements
+        + switches
         + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
         + SeqUtil.prependTabsWithNewline(1, SeqSyntax.CURLY_BRACKET_RIGHT)
         // TODO assert_fail instead of return 0? the return statement should never be reached

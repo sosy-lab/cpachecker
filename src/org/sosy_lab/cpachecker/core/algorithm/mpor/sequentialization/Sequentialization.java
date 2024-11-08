@@ -177,12 +177,42 @@ public class Sequentialization {
     SeqMainFunction mainMethod =
         new SeqMainFunction(
             threadCount,
+            createThreadSimulationAssertions(threadVars),
             createThreadSimulationAssumptions(threadVars),
             createPartialOrderReductionAssumptions(prunedCaseClauses),
             prunedCaseClauses);
     rProgram.append(mainMethod.toASTString());
 
     return rProgram.toString();
+  }
+
+  private ImmutableList<SeqLogicalAndExpression> createThreadSimulationAssertions(
+      ThreadVars pThreadVars) throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<SeqLogicalAndExpression> rAssertions = ImmutableList.builder();
+    // add assertion over awaits: ti_awaits_m && !(ti_active) ==> assert_fail
+    for (var lockedEntry : pThreadVars.awaits.entrySet()) {
+      ThreadActive active = pThreadVars.active.get(lockedEntry.getKey());
+      assert active != null;
+      for (var value : lockedEntry.getValue().entrySet()) {
+        rAssertions.add(
+            new SeqLogicalAndExpression(
+                new CToSeqExpression(value.getValue().idExpression),
+                new SeqLogicalNotExpression(active.idExpression)));
+      }
+    }
+    // add assertion over joins: tj_joins_ti && !(tj_active) ==> assert_fail
+    for (var lockedEntry : pThreadVars.joins.entrySet()) {
+      ThreadActive active = pThreadVars.active.get(lockedEntry.getKey());
+      assert active != null;
+      for (var value : lockedEntry.getValue().entrySet()) {
+        rAssertions.add(
+            new SeqLogicalAndExpression(
+                new CToSeqExpression(value.getValue().idExpression),
+                new SeqLogicalNotExpression(active.idExpression)));
+      }
+    }
+    return rAssertions.build();
   }
 
   /**
@@ -759,6 +789,11 @@ public class Sequentialization {
   public static String getSeqError() {
     checkArgument(seqError != null, "seqError was not initialized yet");
     return seqError;
+  }
+
+  public static String getSeqErrorFunctionCall() {
+    checkArgument(seqError != null, "seqError was not initialized yet");
+    return seqError + SeqSyntax.SEMICOLON;
   }
 
   public static void setSeqError(String pSeqError) {

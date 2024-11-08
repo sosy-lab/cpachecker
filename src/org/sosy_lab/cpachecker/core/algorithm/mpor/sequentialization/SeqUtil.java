@@ -316,6 +316,11 @@ public class SeqUtil {
     return pString + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT;
   }
 
+  /** Returns "pString }" */
+  public static String appendClosingCurly(String pString) {
+    return pString + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_RIGHT;
+  }
+
   /** Returns pString with the specified amount of tabs as prefix and adds a new line \n. */
   public static String prependTabsWithNewline(int pTabs, String pString) {
     return prependTabsWithoutNewline(pTabs, pString) + SeqSyntax.NEWLINE;
