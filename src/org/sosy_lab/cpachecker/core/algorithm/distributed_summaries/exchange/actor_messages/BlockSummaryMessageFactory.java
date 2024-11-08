@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 
 public class BlockSummaryMessageFactory {
 
-  public static BlockSummaryMessage newBlockPostCondition(
+  public BlockSummaryMessage newBlockPostCondition(
       String pUniqueBlockId,
       int pTargetNodeNumber,
       BlockSummaryMessagePayload pPayload,
@@ -28,7 +28,7 @@ public class BlockSummaryMessageFactory {
     return new BlockSummaryPostConditionMessage(pUniqueBlockId, pTargetNodeNumber, newPayload);
   }
 
-  public static BlockSummaryMessage newErrorConditionMessage(
+  public BlockSummaryMessage newErrorConditionMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
       BlockSummaryMessagePayload pPayload,
@@ -43,7 +43,7 @@ public class BlockSummaryMessageFactory {
     return new BlockSummaryErrorConditionMessage(pUniqueBlockId, pTargetNodeNumber, newPayload);
   }
 
-  public static BlockSummaryMessage newErrorConditionUnreachableMessage(
+  public BlockSummaryMessage newErrorConditionUnreachableMessage(
       String pUniqueBlockId, String denied) {
     return new BlockSummaryErrorConditionUnreachableMessage(
         pUniqueBlockId,
@@ -54,7 +54,7 @@ public class BlockSummaryMessageFactory {
             .buildPayload());
   }
 
-  public static BlockSummaryMessage newResultMessage(
+  public BlockSummaryMessage newResultMessage(
       String pUniqueBlockId, int pTargetNodeNumber, Result pResult) {
     BlockSummaryMessagePayload payload =
         BlockSummaryMessagePayload.builder()
@@ -63,7 +63,7 @@ public class BlockSummaryMessageFactory {
     return new BlockSummaryResultMessage(pUniqueBlockId, pTargetNodeNumber, payload);
   }
 
-  public static BlockSummaryMessage newErrorMessage(String pUniqueBlockId, Throwable pException) {
+  public BlockSummaryMessage newErrorMessage(String pUniqueBlockId, Throwable pException) {
     return new BlockSummaryExceptionMessage(
         pUniqueBlockId,
         0,
@@ -73,7 +73,7 @@ public class BlockSummaryMessageFactory {
             .buildPayload());
   }
 
-  public static BlockSummaryMessage newStatisticsMessage(
+  public BlockSummaryMessage newStatisticsMessage(
       String pUniqueBlockId, Map<String, Object> pStats) {
     return new BlockSummaryStatisticsMessage(
         pUniqueBlockId,

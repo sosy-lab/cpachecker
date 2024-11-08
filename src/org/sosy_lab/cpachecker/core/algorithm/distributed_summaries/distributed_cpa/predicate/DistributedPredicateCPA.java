@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -67,6 +68,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
       BlockNode pNode,
       CFA pCFA,
       Configuration pConfiguration,
+      BlockSummaryMessageFactory pMessageFactory,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       Map<Integer, CFANode> pIdToNodeMap)
@@ -82,7 +84,8 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
             predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), threadSafeCopy::get);
-    proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver(), pNode);
+    proceedOperator =
+        new ProceedPredicateStateOperator(pMessageFactory, predicateCPA.getSolver(), pNode);
     backwardManager =
         new PathFormulaManagerImpl(
             pPredicateCPA.getSolver().getFormulaManager(),

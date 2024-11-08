@@ -23,11 +23,17 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
 
   private final BlockNode root;
   private final BlockSummaryConnection connection;
+  private final BlockSummaryMessageFactory messageFactory;
+
   private boolean shutdown;
 
   BlockSummaryRootWorker(
-      String pId, BlockSummaryConnection pConnection, BlockNode pNode, LogManager pLogger) {
-    super(pId, pLogger);
+      String pId,
+      BlockSummaryConnection pConnection,
+      BlockNode pNode,
+      BlockSummaryMessageFactory pMessageFactory,
+      LogManager pLogger) {
+    super(pId, pMessageFactory, pLogger);
     checkArgument(
         pNode.isRoot() && pNode.isEmpty() && pNode.getLast().equals(pNode.getFirst()),
         "Root node must be empty and cannot have predecessors: " + "%s",
@@ -36,6 +42,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
     connection = pConnection;
     shutdown = false;
     root = pNode;
+    messageFactory = pMessageFactory;
   }
 
   @Override
@@ -44,7 +51,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
       case ERROR_CONDITION -> {
         if (pMessage.getTargetNodeNumber() == root.getLast().getNodeNumber()) {
           yield ImmutableSet.of(
-              BlockSummaryMessageFactory.newResultMessage(
+              messageFactory.newResultMessage(
                   root.getId(), root.getLast().getNodeNumber(), Result.FALSE));
         }
         yield ImmutableSet.of();

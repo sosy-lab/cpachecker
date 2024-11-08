@@ -88,6 +88,8 @@ public class DCPAAlgorithm {
   private final Map<Set<String>, BlockSummaryErrorConditionMessage> errors;
   private final LogManager logger;
 
+  private final BlockSummaryMessageFactory messageFactory;
+
   // forward analysis variables
   private AlgorithmStatus status;
   private boolean alreadyReportedInfeasibility;
@@ -99,8 +101,10 @@ public class DCPAAlgorithm {
       CFA pCFA,
       Specification pSpecification,
       Configuration pConfiguration,
+      BlockSummaryMessageFactory pMessageFactory,
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException {
+    messageFactory = pMessageFactory;
     alreadyReportedInfeasibility = false;
     AnalysisComponents parts =
         DCPAAlgorithmFactory.createAlgorithm(
@@ -115,7 +119,13 @@ public class DCPAAlgorithm {
     logger = pLogger;
     dcpa =
         DCPAFactory.distribute(
-            cpa, pBlock, pCFA, pConfiguration, pLogger, pShutdownManager.getNotifier());
+            cpa,
+            pBlock,
+            pCFA,
+            pConfiguration,
+            pMessageFactory,
+            pLogger,
+            pShutdownManager.getNotifier());
     // prepare reached set and initial elements
     reachedSet = parts.reached();
     checkNotNull(reachedSet, "BlockAnalysis requires the initial reachedSet");
@@ -140,7 +150,7 @@ public class DCPAAlgorithm {
     }
     alreadyReportedInfeasibility = true;
     return ImmutableSet.of(
-        BlockSummaryMessageFactory.newBlockPostCondition(
+        messageFactory.newBlockPostCondition(
             block.getId(),
             block.getLast().getNodeNumber(),
             DCPAAlgorithms.appendStatus(
@@ -159,7 +169,7 @@ public class DCPAAlgorithm {
       BlockSummaryMessagePayload serialized =
           dcpa.serialize(blockEndState, reachedSet.getPrecision(blockEndState));
       messages.add(
-          BlockSummaryMessageFactory.newBlockPostCondition(
+          messageFactory.newBlockPostCondition(
               block.getId(),
               block.getLast().getNodeNumber(),
               DCPAAlgorithms.appendStatus(status, serialized),
@@ -218,7 +228,7 @@ public class DCPAAlgorithm {
     BlockSummaryMessagePayload serialized =
         dcpa.serialize(blockEndState, reachedSet.getPrecision(Iterables.get(blockEnds, 0)));
     messages.add(
-        BlockSummaryMessageFactory.newBlockPostCondition(
+        messageFactory.newBlockPostCondition(
             block.getId(),
             block.getLast().getNodeNumber(),
             DCPAAlgorithms.appendStatus(status, serialized),
@@ -299,7 +309,7 @@ public class DCPAAlgorithm {
       BlockSummaryMessagePayload serialized =
           dcpa.serialize(abstractState, reachedSet.getPrecision(path.getLastState()));
       messages.add(
-          BlockSummaryMessageFactory.newErrorConditionMessage(
+          messageFactory.newErrorConditionMessage(
               block.getId(),
               block.getFirst().getNodeNumber(),
               DCPAAlgorithms.appendStatus(status, serialized),
