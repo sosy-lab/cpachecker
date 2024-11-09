@@ -55,7 +55,9 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 
 public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
-  private Set<Path> filesWitnessesWrittenTo = new HashSet<>();
+  private final Set<Path> filesWitnessesWrittenTo = new HashSet<>();
+
+  private boolean warningMessagePrinted = false;
 
   public CounterexampleToWitness(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
@@ -421,11 +423,14 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {
       Path outputFile = pOutputFileTemplate.getPath(uniqueId, YAMLWitnessVersion.V2.toString());
       if (filesWitnessesWrittenTo.contains(outputFile)) {
-        logger.log(
-            Level.INFO,
-            "A witness has already been exported to the file: "
-                + outputFile
-                + ". Skipping this witness, to not overwrite it.");
+        if (!warningMessagePrinted) {
+          logger.log(
+              Level.INFO,
+              "A witness has already been exported to the file: "
+                  + outputFile
+                  + ". Skipping any further witness, to not overwrite it.");
+          warningMessagePrinted = true;
+        }
         continue;
       }
 
