@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,6 +54,8 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEnt
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 
 public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
+
+  private Set<Path> filesWitnessesWrittenTo = new HashSet<>();
 
   public CounterexampleToWitness(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
@@ -417,6 +420,16 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       throws IOException {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {
       Path outputFile = pOutputFileTemplate.getPath(uniqueId, YAMLWitnessVersion.V2.toString());
+      if (filesWitnessesWrittenTo.contains(outputFile)) {
+        logger.log(
+            Level.INFO,
+            "A witness has already been exported to the file: "
+                + outputFile
+                + ". Skipping this witness, to not overwrite it.");
+        continue;
+      }
+
+      filesWitnessesWrittenTo.add(outputFile);
       switch (witnessVersion) {
         case V2 -> exportWitnessVersion2(pCex, outputFile);
         case V2d1 ->
