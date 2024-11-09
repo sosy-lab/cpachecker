@@ -44,7 +44,7 @@ public class MPORTest {
 
   private void testCompilable(String pProgramPath) {
     String command =
-        ".scripts/cpa.sh --predicateAnalysis --option analysis.algorithm.MPOR=true " + pProgramPath;
+        "./scripts/cpa.sh --predicateAnalysis --option analysis.algorithm.MPOR=true " + pProgramPath;
     try {
       // run the command with ProcessBuilder
       ProcessBuilder processBuilder = new ProcessBuilder(command);

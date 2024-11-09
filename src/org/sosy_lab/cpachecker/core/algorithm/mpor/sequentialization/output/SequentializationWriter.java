@@ -97,7 +97,7 @@ public class SequentializationWriter {
     } catch (IOException e) {
       logManager.log(
           Level.SEVERE,
-          () -> "An IO error occurred while writing the outputProgram: " + e.getMessage());
+          () -> "MPOR FAIL. An IO error occurred while writing the outputProgram: " + e.getMessage());
       System.exit(-1);
     }
   }
