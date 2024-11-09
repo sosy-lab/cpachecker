@@ -186,6 +186,10 @@ public class Sequentialization {
     return rProgram.toString();
   }
 
+  // TODO problem: methods such as pthread_cancel allow the termination of another thread.
+  //  so if thread i waits for a mutex or a thread, then another thread can cancel i
+  //  and the invariants will not hold
+  //  -> once we support intermediary thread terminations, remove these invariants
   private ImmutableList<SeqLogicalAndExpression> createThreadSimulationAssertions(
       ThreadVars pThreadVars) throws UnrecognizedCodeException {
 

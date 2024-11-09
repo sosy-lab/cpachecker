@@ -74,6 +74,7 @@ public class SequentializationWriter {
                 "MPOR FAIL. No sequentialization created, make sure the target directory exists in"
                     + " CPAchecker: "
                     + targetDirectory);
+        System.exit(-1);
 
         // ensure the file does not exist already (no overwriting)
       } else if (!outputFile.createNewFile()) {
@@ -82,19 +83,22 @@ public class SequentializationWriter {
             () ->
                 "MPOR FAIL. No sequentialization created, file exists already: "
                     + outputFile.getAbsolutePath());
+        System.exit(-1);
       } else {
-        logManager.log(
-            Level.INFO,
-            () -> "MPOR SUCCESS. Sequentialization created: " + outputFile.getAbsolutePath());
         // write content to the file
         try (Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
           writer.write(finalProgram);
         }
+        logManager.log(
+            Level.INFO,
+            () -> "MPOR SUCCESS. Sequentialization created: " + outputFile.getAbsolutePath());
+        System.exit(0);
       }
     } catch (IOException e) {
       logManager.log(
           Level.SEVERE,
           () -> "An IO error occurred while writing the outputProgram: " + e.getMessage());
+      System.exit(-1);
     }
   }
 
@@ -130,16 +134,22 @@ public class SequentializationWriter {
           }
         }
       } else {
-        logManager.log(Level.SEVERE, () -> "No <copyright> element found.");
+        logManager.log(Level.SEVERE, () -> "MPOR FAIL. No <copyright> element found.");
+        System.exit(-1);
       }
     } catch (Exception e) {
       logManager.log(
           Level.SEVERE,
-          () -> "An exception occurred while extracting the license: " + e.getMessage());
+          () -> "MPOR FAIL. An exception occurred while extracting the license: " + e.getMessage());
+      System.exit(-1);
     }
-    throw new AssertionError(
-        "MPOR FAIL. No sequentialization created, could not extract the license from "
-            + licenseFilePath);
+    logManager.log(
+        Level.SEVERE,
+        () ->
+            "MPOR FAIL. No sequentialization created, could not extract the license from "
+                + licenseFilePath);
+    System.exit(-1);
+    throw new AssertionError(); // not reachable but still necessary...
   }
 
   private String createSequentializationComment(String pInputFilePath) {

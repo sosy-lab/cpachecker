@@ -10,9 +10,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.tests;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.File;
+import java.io.IOException;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.DirectedGraph;
 
@@ -21,6 +25,62 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.DirectedGraph;
 public class MPORTest {
 
   public MPORTest() {}
+
+  @Test
+  public void testSeqCompilable() {
+    ImmutableList<String> programPaths =
+        ImmutableList.of(
+            "test/programs/mpor_seq/compilable_test/fib_safe-5.i",
+            "test/programs/mpor_seq/compilable_test/queue_longest.i",
+            "test/programs/mpor_seq/compilable_test/singleton-b.i",
+            "test/programs/mpor_seq/compilable_test/ring_2w1r-2.i",
+            "test/programs/mpor_seq/compilable_test/divinefifo-bug_1w1r.i");
+    for (String programPath : programPaths) {
+      testCompilable(programPath);
+    }
+    // delete the seqs again after testing (only files, not folders)
+    deleteFilesInFolder("test/programs/mpor_seq/");
+  }
+
+  private void testCompilable(String pProgramPath) {
+    String command =
+        ".scripts/cpa.sh --predicateAnalysis --option analysis.algorithm.MPOR=true " + pProgramPath;
+    try {
+      // run the command with ProcessBuilder
+      ProcessBuilder processBuilder = new ProcessBuilder(command);
+      processBuilder.redirectErrorStream(true); // Combine stdout and stderr
+      Process process = processBuilder.start();
+      // wait for command to complete and make sure that MPOR succeeds
+      int exitCode = process.waitFor();
+      if (exitCode != 0) {
+        fail();
+      }
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      fail();
+    }
+  }
+
+  private void deleteFilesInFolder(String pFolderPath) {
+    File directory = new File(pFolderPath);
+    if (directory.isDirectory()) {
+      File[] files = directory.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          // check if it's a file (not a directory) and delete it
+          if (file.isFile()) {
+            if (!file.delete()) {
+              fail("Failed to delete file: " + file.getName());
+            }
+          }
+        }
+      } else {
+        fail("Failed to list files in directory: " + pFolderPath);
+      }
+    } else {
+      fail("The provided path is not a directory.");
+    }
+  }
 
   @Test
   public void testDirectedGraphSccs() {
