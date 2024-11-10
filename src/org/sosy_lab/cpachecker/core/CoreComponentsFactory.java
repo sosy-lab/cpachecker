@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.DARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummaryAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
@@ -192,6 +193,12 @@ public class CoreComponentsFactory {
       name = "useTestCaseGeneratorAlgorithm",
       description = "generate test cases for covered test targets")
   private boolean useTestCaseGeneratorAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "useConcolic",
+      description = "generate test cases using the Concolic Execution algorithm")
+  private boolean useConcolic = false;
 
   @Option(
       secure = true,
@@ -385,6 +392,12 @@ public class CoreComponentsFactory {
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
+
+  @Option(
+      secure = true,
+      name = "concolicCoverageCriterion",
+      description = "type of coverage criterion to use, condition, block, or error")
+  private String concolicCoverageCriterion = "block";
 
   private final Configuration config;
   private final LogManager logger;
@@ -649,6 +662,18 @@ public class CoreComponentsFactory {
         algorithm =
             new TestCaseGeneratorAlgorithm(
                 algorithm, cfa, config, cpa, logger, shutdownNotifier, specification);
+      }
+
+      if (useConcolic) {
+        System.out.println("Using Concolic Execution");
+        try {
+          algorithm = new ConcolicAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa, concolicCoverageCriterion);
+        } catch (Exception e) {
+          System.out.println("Exception in ConcolicAlgorithm");
+          System.out.println(e.toString());
+          throw new Error(e.toString());
+        }
+        //        algorithm = new ConcolicAlgorithm(config, logger, shutdownNotifier, cfa);
       }
 
       if (collectAssumptions) {

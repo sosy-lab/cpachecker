@@ -873,7 +873,8 @@ public class ValueAnalysisTransferRelation
     final Optional<MemoryLocation> memLoc = getMemoryLocation(leftSide, newValue, evv);
 
     if (memLoc.isPresent()) {
-      if (!newValue.isUnknown()) {
+      // TODO
+      if (newValue != null && !newValue.isUnknown()) {
         newElement.assignConstant(memLoc.orElseThrow(), newValue, leftSideType);
 
       } else {
@@ -1235,7 +1236,7 @@ public class ValueAnalysisTransferRelation
     private final RTTState jortState;
 
     public FieldAccessExpressionValueVisitor(RTTState pJortState, ValueAnalysisState pState) {
-      super(pState, functionName, machineModel, logger);
+      super(pState, functionName, machineModel, logger, stats.getName());
       jortState = pJortState;
     }
 
@@ -1740,7 +1741,8 @@ public class ValueAnalysisTransferRelation
           logger,
           valuesFromFile);
     } else if (options.isIgnoreFunctionValue()) {
-      return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
+      return new ExpressionValueVisitor(
+          pState, pFunctionName, machineModel, logger, stats.getName());
     } else {
       return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     }

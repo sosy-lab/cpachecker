@@ -109,6 +109,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * This Visitor implements an evaluation strategy of simply typed expressions. An expression is
@@ -2438,6 +2439,12 @@ public abstract class AbstractExpressionValueVisitor
       final MachineModel machineModel,
       final LogManagerWithoutDuplicates logger,
       final FileLocation fileLocation) {
+
+    // TODO
+    if (value == null){
+      System.err.println("value is null");
+      return value;
+    }
 
     if (!value.isExplicitlyKnown()) {
       return castIfSymbolic(value, targetType);

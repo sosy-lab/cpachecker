@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Optional;
@@ -290,7 +291,7 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
 
     private ForgettingCompositeState removeAllConstraints(final ForgettingCompositeState pState) {
       return new ForgettingCompositeState(
-          pState.getValueState(), new ConstraintsState(new HashSet<>()));
+          pState.getValueState(), new ConstraintsState(new ArrayList<>()));
     }
   }
 }

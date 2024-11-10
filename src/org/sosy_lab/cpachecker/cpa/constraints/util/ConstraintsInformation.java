@@ -8,22 +8,24 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints.util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
 /** Information about {@link Constraint}s needed for symbolic interpolation. */
 public final class ConstraintsInformation {
 
-  public static final ConstraintsInformation EMPTY = new ConstraintsInformation(ImmutableSet.of());
+  public static final ConstraintsInformation EMPTY = new ConstraintsInformation(ImmutableList.of());
 
-  private final Set<Constraint> constraints;
+  private final List<Constraint> constraints;
 
-  public ConstraintsInformation(final Set<Constraint> pConstraints) {
+  public ConstraintsInformation(final List<Constraint> pConstraints) {
     constraints = pConstraints;
   }
 
-  public Set<Constraint> getConstraints() {
+  public List<Constraint> getConstraints() {
     return constraints;
   }
 

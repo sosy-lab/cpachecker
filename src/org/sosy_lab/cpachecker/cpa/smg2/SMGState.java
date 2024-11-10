@@ -219,7 +219,7 @@ public class SMGState
         statistics);
   }
 
-  private SMGState copyWithNewConstraints(Set<Constraint> pConstraints) {
+  private SMGState copyWithNewConstraints(List<Constraint> pConstraints) {
     checkNotNull(pConstraints);
     return new SMGState(
         machineModel,
@@ -1464,7 +1464,7 @@ public class SMGState
   @Nullable SMGState removeOldConstraints() {
     ConstantSymbolicExpressionLocator symIdentVisitor =
         ConstantSymbolicExpressionLocator.getInstance();
-    ImmutableSet.Builder<Constraint> constraints = ImmutableSet.builder();
+    ImmutableList.Builder<Constraint> constraints = ImmutableList.builder();
     // First, get all SMGValues for possible identifier
     Map<SymbolicValue, Set<SMGValue>> identToAllValues = new HashMap<>();
     for (Entry<Wrapper<Value>, SMGValue> mapping :
@@ -1503,7 +1503,7 @@ public class SMGState
             constraints.add(constraint);
             break;
           }
-          ImmutableSet.Builder<Constraint> tmpCopy = ImmutableSet.builder();
+          ImmutableList.Builder<Constraint> tmpCopy = ImmutableList.builder();
           for (Constraint constraintToCopy : getConstraints()) {
             if (constraintToCopy != constraint) {
               tmpCopy.add(constraintToCopy);
@@ -2899,7 +2899,7 @@ public class SMGState
     if (pValue instanceof SymbolicExpression symExpr) {
       symIdents = symExpr.accept(SymbolicIdentifierLocator.getInstance());
     }
-    Set<Constraint> constraints = getConstraints();
+    List<Constraint> constraints = getConstraints();
     if (!symIdents.isEmpty()) {
       for (Constraint co : constraints) {
         Set<SymbolicIdentifier> symIdentsConstr =

@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -59,7 +61,7 @@ public final class ForgettingCompositeState implements ForgetfulState<ValueAnaly
 
   public void forget(final Constraint pConstraint) {
     assert constraints.contains(pConstraint);
-    Set<Constraint> withoutConstraint = new HashSet<>(constraints);
+    List<Constraint> withoutConstraint = new ArrayList<>(constraints);
     withoutConstraint.remove(pConstraint);
     constraints =
         new ConstraintsState(withoutConstraint).copyWithSatisfyingModel(constraints.getModel());

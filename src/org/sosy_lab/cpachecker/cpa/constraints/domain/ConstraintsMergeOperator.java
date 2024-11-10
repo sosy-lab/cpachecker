@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -59,7 +62,7 @@ public class ConstraintsMergeOperator implements MergeOperator {
       return stateToWeaken;
     }
 
-    Set<Constraint> weakenedConstraints = new HashSet<>(stateToWeaken);
+    List<Constraint> weakenedConstraints = new ArrayList<>(stateToWeaken);
 
     Constraint lastConstraintOfState1 =
         stateToUseForWeakening.getLastAddedConstraint().orElseThrow();
@@ -88,7 +91,7 @@ public class ConstraintsMergeOperator implements MergeOperator {
     } else {
       // only keep information about the last satisfying model.
       // Because we delete constraints, the definite assignments may not be definite anymore.
-      return new ConstraintsState(ImmutableSet.copyOf(weakenedConstraints))
+      return new ConstraintsState(ImmutableList.copyOf(weakenedConstraints))
           .copyWithSatisfyingModel(stateToWeaken.getModel());
     }
   }

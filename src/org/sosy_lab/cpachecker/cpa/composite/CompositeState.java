@@ -39,6 +39,7 @@ public class CompositeState
         Graphable,
         Splitable {
   @Serial private static final long serialVersionUID = -5143296331663510680L;
+  //TODO final removed
   private final ImmutableList<AbstractState> states;
   private transient Object partitionKey; // lazily initialized
   private transient Comparable<?> pseudoPartitionKey; // lazily initialized
@@ -51,6 +52,7 @@ public class CompositeState
   int getNumberOfStates() {
     return states.size();
   }
+
 
   @Override
   public boolean isTarget() {

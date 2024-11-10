@@ -13,8 +13,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -40,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithm.ConcolicInput;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -54,8 +57,12 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** Transfer relation for Symbolic Execution Analysis. */
@@ -144,6 +151,7 @@ public class ConstraintsTransferRelation
   @Override
   protected ConstraintsState handleAssumption(
       AssumeEdge pCfaEdge, AExpression pExpression, boolean pTruthAssumption) {
+//    state = getNewState(state, pExpression, new ConstraintFactory() , pTruthAssumption);
     return state;
   }
 
@@ -286,12 +294,21 @@ public class ConstraintsTransferRelation
     newStates.add(initialStateToStrengthen);
 
     boolean nothingChanged = true;
+    int valueStateIndex = 0;
 
-    for (AbstractState currStrengtheningState : pStrengtheningStates) {
+    for (AbstractState currStrengtheningState : pStrengtheningStates) { //TODO checken ob concolic, um sicher zu gehen
+      // 2 AbstractStates for symbolic and concrete analysis, only use symbolic for constraints
+      // Concrete constraints are always trivial and replace the symbolic ones
+      // Symbolic comes first, skip second state if instanceof ValueAnalysisState
+
       ConstraintsState currStateToStrengthen = newStates.get(0);
       StrengthenOperator strengthenOperator = null;
 
       if (currStrengtheningState instanceof ValueAnalysisState) {
+        valueStateIndex++;
+        if (valueStateIndex == 2) {
+          continue;
+        }
         strengthenOperator = new ValueAnalysisStrengthenOperator();
 
       } else if (currStrengtheningState instanceof AutomatonState) {
@@ -351,7 +368,7 @@ public class ConstraintsTransferRelation
   private final class ValueAnalysisStrengthenOperator implements StrengthenOperator {
 
     @Override
-    public Optional<Collection<ConstraintsState>> strengthen(
+    public Optional<Collection<ConstraintsState>> strengthen( //! TODO
         final ConstraintsState pStateToStrengthen,
         final AbstractState pValueState,
         final String pFunctionName,
@@ -362,6 +379,10 @@ public class ConstraintsTransferRelation
 
       if (!(pCfaEdge instanceof AssumeEdge)) {
         return Optional.empty();
+      }
+
+      if (pCfaEdge.toString().contains("tmp_ndt_10")){
+        System.out.println("tmp_ndt_10");
       }
 
       final ValueAnalysisState valueState = (ValueAnalysisState) pValueState;

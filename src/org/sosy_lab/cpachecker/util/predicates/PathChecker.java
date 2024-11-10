@@ -300,7 +300,7 @@ public class PathChecker {
    * @param pPath calculate the precise list of SSAMaps for this path.
    * @return the PathFormula and the precise list of SSAMaps for the given path.
    */
-  private Pair<PathFormula, List<SSAMap>> createPrecisePathFormula(ARGPath pPath)
+  Pair<PathFormula, List<SSAMap>> createPrecisePathFormula(ARGPath pPath)
       throws CPATransferException, InterruptedException {
 
     List<SSAMap> ssaMaps = new ArrayList<>(pPath.size());
@@ -363,7 +363,7 @@ public class PathChecker {
     return pathFormula;
   }
 
-  private ImmutableList<ValueAssignment> getModel(ProverEnvironment thmProver) {
+  ImmutableList<ValueAssignment> getModel(ProverEnvironment thmProver) {
     try {
       return thmProver.getModelAssignments();
     } catch (SolverException e) {

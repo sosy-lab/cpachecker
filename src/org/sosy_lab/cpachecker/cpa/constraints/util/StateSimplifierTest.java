@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.util;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -128,7 +129,7 @@ public class StateSimplifierTest {
 
   private ConstraintsState getSampleConstraints() {
     return new ConstraintsState(
-        ImmutableSet.of(
+        ImmutableList.of(
             group1Constraint1, group1Constraint2, group2Constraint1, group2Constraint2));
   }
 

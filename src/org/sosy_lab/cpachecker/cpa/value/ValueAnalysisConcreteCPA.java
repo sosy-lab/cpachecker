@@ -62,8 +62,8 @@ import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
-@Options(prefix = "cpa.value")
-public class ValueAnalysisCPA extends AbstractCPA
+@Options(prefix = "cpa.valueConcrete")
+public class ValueAnalysisConcreteCPA extends ValueAnalysisCPA
     implements ConfigurableProgramAnalysisWithBAM,
         StatisticsProvider,
         ProofCheckerCPA,
@@ -111,11 +111,11 @@ public class ValueAnalysisCPA extends AbstractCPA
   private UnknownValueStrategy unknownValueStrategy = UnknownValueStrategy.DISCARD;
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ValueAnalysisCPA.class);
+    return AutomaticCPAFactory.forType(ValueAnalysisConcreteCPA.class);
   }
 
   private VariableTrackingPrecision precision;
-  private final ValueAnalysisCPAStatistics statistics;
+  private final ValueAnalysisConcreteCPAStatistics statistics;
   private final StateToFormulaWriter writer;
 
   private final Configuration config;
@@ -135,21 +135,21 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private SymbolicStatistics symbolicStats;
 
-  protected ValueAnalysisCPA(
-      Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa)
+  public ValueAnalysisConcreteCPA(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException {
-    super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
-    this.config = config;
-    this.logger = logger;
+    super( pConfig,  pLogger,  pShutdownNotifier,  pCfa);
+    this.config = pConfig;
+    this.logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    this.cfa = cfa;
+    this.cfa = pCfa;
 
-    config.inject(this, ValueAnalysisCPA.class);
+    config.inject(this, ValueAnalysisConcreteCPA.class);
 
     predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
 
     precision = initializePrecision(config, cfa);
-    statistics = new ValueAnalysisCPAStatistics(this, cfa, config, logger, pShutdownNotifier);
+    statistics = new ValueAnalysisConcreteCPAStatistics(this, cfa, config, logger, pShutdownNotifier);
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
     errorPathAllocator =
         new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());

@@ -303,6 +303,15 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     child.parents.remove(this);
   }
 
+  public void deleteChildren() {
+    for (ARGState child : this.children) {
+      assert children.contains(child);
+      assert child.parents.contains(this);
+      child.parents.remove(this);
+    }
+    this.children.clear();
+  }
+
   // counterexample
 
   /** Store additional information about the counterexample that leads to this target state. */

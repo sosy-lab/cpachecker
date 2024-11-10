@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ForwardingList;
 import com.google.common.collect.ForwardingSet;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -27,11 +28,15 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
  * State for Constraints Analysis. Stores path constraints and information about their
  * satisfiability. This class is immutable.
  */
-public final class ConstraintsState extends ForwardingSet<Constraint>
+public final class ConstraintsState extends ForwardingList<Constraint>
     implements AbstractState, Graphable {
 
-  /** The constraints of this state */
-  private final ImmutableSet<Constraint> constraints;
+  /**
+   * The constraints of this state foe Concolic Execution, the insertion order is relevant, use a
+   * list here
+   */
+  // todo if concolic?
+  public final ImmutableList<Constraint> constraints;
 
   /**
    * The last constraint added to this state. This does not have to be the last constraint in {@link
@@ -46,18 +51,18 @@ public final class ConstraintsState extends ForwardingSet<Constraint>
 
   /** Creates a new, initial <code>ConstraintsState</code> object. */
   public ConstraintsState() {
-    this(ImmutableSet.of());
+    this(ImmutableList.of());
   }
 
-  public ConstraintsState(final Set<Constraint> pConstraints) {
-    constraints = ImmutableSet.copyOf(pConstraints);
+  public ConstraintsState(final List<Constraint> pConstraints) {
+    constraints = ImmutableList.copyOf(pConstraints);
     lastModelAsAssignment = ImmutableList.of();
     definiteAssignment = ImmutableList.of();
     lastAddedConstraint = Optional.empty();
   }
 
   private ConstraintsState(
-      final ImmutableSet<Constraint> pConstraints,
+      final ImmutableList<Constraint> pConstraints,
       final Optional<Constraint> pLastAddedConstraint,
       final ImmutableList<ValueAssignment> lastSatisfyingModel,
       final ImmutableList<ValueAssignment> knownDefiniteAssignments) {
@@ -68,7 +73,7 @@ public final class ConstraintsState extends ForwardingSet<Constraint>
   }
 
   @Override
-  protected ImmutableSet<Constraint> delegate() {
+  protected ImmutableList<Constraint> delegate() {
     return constraints;
   }
 
@@ -93,10 +98,29 @@ public final class ConstraintsState extends ForwardingSet<Constraint>
     checkNotNull(pConstraints);
 
     Optional<Constraint> addedConstraint = Optional.of(pConstraints.get(pConstraints.size() - 1));
-    ImmutableSet<Constraint> newConstraints =
-        ImmutableSet.<Constraint>builder().addAll(constraints).addAll(pConstraints).build();
+    ImmutableList<Constraint> newConstraints =
+        ImmutableList.<Constraint>builder().addAll(constraints).addAll(pConstraints).build();
     return new ConstraintsState(
         newConstraints, addedConstraint, lastModelAsAssignment, definiteAssignment);
+  }
+
+  /**
+   * Creates a copy of this ConstraintsState with the given {@link Constraint constraints} added to
+   * this state.
+   *
+   * @param pConstraints the <code>Constraint</code>s to add to the new copy of the state
+   * @return the copy of this ConstraintsState with the added constraints
+   */
+  public ConstraintsState cloneWithNewConstraints(List<Constraint> pConstraints) throws Exception {
+    checkNotNull(pConstraints);
+    if (pConstraints.isEmpty()) {
+      throw new Exception("Error, pConstraints.size() == 0");
+    }
+    Optional<Constraint> addedConstraint = Optional.of(pConstraints.get(pConstraints.size() - 1));
+    ImmutableList<Constraint> newConstraints =
+        ImmutableList.<Constraint>builder().addAll(pConstraints).build();
+    return new ConstraintsState(
+        newConstraints, addedConstraint, ImmutableList.of(), ImmutableList.of());
   }
 
   public Optional<Constraint> getLastAddedConstraint() {

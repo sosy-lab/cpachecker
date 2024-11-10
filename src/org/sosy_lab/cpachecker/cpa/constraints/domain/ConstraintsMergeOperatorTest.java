@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -42,7 +44,7 @@ public class ConstraintsMergeOperatorTest {
 
   @Test
   public void testMerge_mergePossible() {
-    Set<Constraint> constraints = getConstraints();
+    List<Constraint> constraints = getConstraints();
 
     ConstraintsState baseState = new ConstraintsState(constraints);
     ConstraintsState state1 = baseState.copyWithNew(posConst);
@@ -56,8 +58,8 @@ public class ConstraintsMergeOperatorTest {
     assertThat(mergeResult).isEqualTo(baseState);
   }
 
-  private Set<Constraint> getConstraints() {
-    Set<Constraint> constraints = new HashSet<>();
+  private List<Constraint> getConstraints() {
+    List<Constraint> constraints = new ArrayList<>();
 
     // this results in a new symbolic identifier at every method call
     SymbolicExpression idExp2 = factory.asConstant(factory.newIdentifier(memLoc1), defType);

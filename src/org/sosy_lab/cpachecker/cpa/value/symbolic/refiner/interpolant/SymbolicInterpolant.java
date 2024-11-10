@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -74,7 +76,7 @@ public final class SymbolicInterpolant
     return valueInterpolant.getMemoryLocations();
   }
 
-  public Set<Constraint> getConstraints() {
+  public List<Constraint> getConstraints() {
     return constraintsInformation.getConstraints();
   }
 
@@ -108,7 +110,7 @@ public final class SymbolicInterpolant
     // Just use all the constraints of both interpolants.
     // We can't check at this point whether they are contradicting without creating a solver
     // environment, unfortunately.
-    Set<Constraint> allConstraints = new HashSet<>(constraintsInformation.getConstraints());
+    List<Constraint> allConstraints = new ArrayList<>(constraintsInformation.getConstraints());
     allConstraints.addAll(pOtherConstraintsInfo.getConstraints());
     return new ConstraintsInformation(allConstraints);
   }

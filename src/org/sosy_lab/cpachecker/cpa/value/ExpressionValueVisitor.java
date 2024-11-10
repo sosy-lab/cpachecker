@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import java.math.BigInteger;
 import java.util.Objects;
+import com.google.common.base.Optional;
 import java.util.OptionalLong;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -18,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -33,6 +36,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.NondetLocation;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -40,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -50,8 +56,18 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   private boolean missingPointer = false;
 
+  private String cpaName;
+
   // This state is read-only! No writing or modification allowed!
   protected final ValueAnalysisState readableState;
+
+  // taken from legion
+  // If a memory location is encountered for which the assigned value would
+  // be unknown, e.g. a __VERIFIER_nondet_* function, and a
+  // {@link MemoryLocationValueHandler} would produce a value, this can be
+  // avoided providing the {@link NondeterministicValueProvider} with values
+  // which are already known in order to set them.
+  private final LogManagerWithoutDuplicates logger;
 
   /**
    * This Visitor returns the numeral value for an expression.
@@ -60,14 +76,26 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    * @param pFunctionName current scope, used only for variable-names
    * @param pMachineModel where to get info about types, for casting and overflows
    * @param pLogger logging
+   * @param pCpaName String name of the CPA that uses this visitor
    */
   public ExpressionValueVisitor(
       ValueAnalysisState pState,
       String pFunctionName,
       MachineModel pMachineModel,
-      LogManagerWithoutDuplicates pLogger) {
+      LogManagerWithoutDuplicates pLogger,
+      String pCpaName) {
     super(pFunctionName, pMachineModel, pLogger);
     readableState = pState;
+    this.logger = pLogger;
+    this.cpaName = pCpaName;
+  }
+
+  public ExpressionValueVisitor(
+      ValueAnalysisState pState,
+      String pFunctionName,
+      MachineModel pMachineModel,
+      LogManagerWithoutDuplicates pLogger) {
+    this(pState, pFunctionName, pMachineModel, pLogger, "unknown");
   }
 
   /* additional methods */
@@ -435,5 +463,70 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   public ValueAnalysisState getState() {
     return readableState;
+  }
+
+  // taken from legion
+  /**
+   * This will check, if the function call in question is a nondeterministic one (and would return
+   * an unknown Value) and if values were preloaded.
+   *
+   * <p>If this is the case, the preloaded Value will be short-curcuited. Else, the regular
+   * visit-logic is run.
+   */
+  @Override
+  public Value visit(CFunctionCallExpression pLastFunctionCallExpression) // Pair<Value, Value>
+      throws UnrecognizedCodeException {
+    // only give concrete values to the ValueAnalysisConcreteCPA
+    if (cpaName.equals("ValueAnalysisCPA")) {
+      return super.visit(pLastFunctionCallExpression);
+    } else if (cpaName.equals("unknown")) {
+      throw new Error("CPA name is unknown");
+    }
+    if (cpaName.equals("ValueAnalysisConcreteCPA")) {
+
+      CExpression functionNameExp = pLastFunctionCallExpression.getFunctionNameExpression();
+
+      if (functionNameExp instanceof CIdExpression) {
+        String calledFunctionName = ((CIdExpression) functionNameExp).getName();
+        if (calledFunctionName.startsWith("__VERIFIER_nondet_")) {
+
+          NondetLocation thisLocation = new NondetLocation(
+              pLastFunctionCallExpression.getFileLocation().getFileName().toString(),
+              pLastFunctionCallExpression.getFileLocation().getStartingLineNumber(),
+              pLastFunctionCallExpression.getFileLocation().getStartColumnInLine(),
+              pLastFunctionCallExpression.getFileLocation().getEndColumnInLine());
+
+          CType expressionType = pLastFunctionCallExpression.getExpressionType();
+          Optional<Value> value =
+              ConcolicAlgorithm.nonDetValueProvider.getNextNondetValueFor(
+                  expressionType,
+                  thisLocation);
+          if (value.isPresent()) {
+            logger.log(Level.FINEST, "Used preloaded value", value);
+            System.out.println("Used preloaded value: " + value.get());
+            ConcolicAlgorithm.nonDetValueProvider.setValueToReturnedValueHistory(value.get(), thisLocation);
+            return value
+                .get(); // Pair.of(value.get(), super.visit(pIastFunctionCallExpression)); // Value
+          } else {
+            // get random value
+            Value randomValue =
+                ConcolicAlgorithm.nonDetValueProvider.getRandomValue(expressionType);
+            ConcolicAlgorithm.nonDetValueProvider.setValueToReturnedValueHistory(randomValue, thisLocation);
+            System.out.println("Used random value: " + randomValue);
+            return randomValue;
+          }
+        }
+      }
+
+      // should not be executed, otherwise: generate random value?
+      // CPointerType ignored through this
+      if (pLastFunctionCallExpression.getFunctionNameExpression().toString().equals("malloc")
+          || pLastFunctionCallExpression.getFunctionNameExpression().toString().equals("calloc")) {
+        throw new Error("calls to malloc or calloc are not supported");
+      }
+      return super.visit(pLastFunctionCallExpression);
+    } else {
+      return super.visit(pLastFunctionCallExpression);
+    }
   }
 }

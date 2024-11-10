@@ -11,9 +11,11 @@ package org.sosy_lab.cpachecker.cpa.constraints.util;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.Iterables;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -21,6 +23,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithm;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
@@ -92,7 +95,7 @@ public class StateSimplifier {
 
   /** Removes all trivial constraints from the given state. */
   public ConstraintsState removeTrivialConstraints(final ConstraintsState pState) {
-    Set<Constraint> reducedConstraints = new HashSet<>(pState);
+    List<Constraint> reducedConstraints = new ArrayList<>(pState);
     reducedConstraints.removeIf(this::isTrivial);
 
     stats.removedTrivial.setNextValue(pState.size() - reducedConstraints.size());
@@ -122,7 +125,7 @@ public class StateSimplifier {
       final ConstraintsState pState, final ValueAnalysisState pValueState) {
     final Map<ActivityInfo, Set<ActivityInfo>> symIdActivity = getInitialActivityMap(pState);
     final Set<SymbolicIdentifier> symbolicValues = getExistingSymbolicIds(pValueState);
-    Set<Constraint> reducedConstraints = new HashSet<>(pState);
+    List<Constraint> reducedConstraints = new ArrayList<>(pState);
 
     for (Entry<ActivityInfo, Set<ActivityInfo>> e : symIdActivity.entrySet()) {
       final ActivityInfo s = e.getKey();
@@ -134,7 +137,8 @@ public class StateSimplifier {
           break;
         case ACTIVE:
         case UNUSED:
-          if (!symbolicValues.contains(currId)) {
+          // don't remove constraints when ConcolicAlgorithm is used
+          if (!ConcolicAlgorithm.isInitialized() && !symbolicValues.contains(currId)) {
             boolean canBeRemoved;
             if (s.getUsingConstraints().size() < 2) {
               // the symbolic identifier only occurs in one constraint and is not active,

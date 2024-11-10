@@ -365,7 +365,7 @@ public class SymbolicValueAnalysisRefiner
       nextConstraints = nextState.getConstraintsState();
       ConstraintsState oldConstraints = currentState.getConstraintsState();
 
-      Set<Constraint> tempSet = new HashSet<>(nextConstraints);
+      List<Constraint> tempSet = new ArrayList<>(nextConstraints);
       tempSet.removeAll(oldConstraints);
       ConstraintsState newConstraints = new ConstraintsState(tempSet);
 

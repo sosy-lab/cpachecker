@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.constraints.refiner;
 
 import com.google.common.base.Function;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -58,7 +60,7 @@ public class ConstraintsPrecisionAdjustment implements PrecisionAdjustment {
 
     stats.adjustmentTime.start();
     try {
-      Set<Constraint> adjustedConstraints = new HashSet<>(pStateToAdjust);
+      List<Constraint> adjustedConstraints = new ArrayList<>(pStateToAdjust);
       for (Constraint c : pStateToAdjust) {
         constraintsBefore++;
         CFANode currentLocation = AbstractStates.extractLocation(pFullState);

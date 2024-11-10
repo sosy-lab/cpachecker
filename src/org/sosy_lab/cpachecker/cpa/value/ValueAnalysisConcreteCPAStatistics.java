@@ -36,7 +36,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "cpa.value")
-public class ValueAnalysisCPAStatistics implements Statistics {
+public class ValueAnalysisConcreteCPAStatistics extends ValueAnalysisCPAStatistics
+    implements Statistics {
 
   @Option(secure = true, description = "target file to hold the exported precision")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -59,38 +60,18 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   private StatCounter assumptions = new StatCounter("Number of assumptions");
   private StatCounter deterministicAssumptions =
       new StatCounter("Number of deterministic assumptions");
-  private final ValueAnalysisCPA cpa;
+  private final ValueAnalysisConcreteCPA cpa;
   private final LogManager logger;
   private final ValueAnalysisResultToLoopInvariants loopInvGenExporter;
 
-  public ValueAnalysisCPAStatistics(
-      ValueAnalysisCPA pCpa,
-      final CFA cfa,
-      Configuration config,
-      final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
-    this.cpa = pCpa;
-    logger = pLogger;
-    if (loopInvariantsFile != null) {
-      loopInvGenExporter =
-          new ValueAnalysisResultToLoopInvariants(
-              cfa.getAllLoopHeads().orElse(null), config, logger, pShutdownNotifier, cfa);
-    } else {
-      loopInvGenExporter = null;
-    }
-
-    config.inject(this, ValueAnalysisCPAStatistics.class);
-  }
-
-  // For ValueAnalysisConcreteCPA
-  public ValueAnalysisCPAStatistics(
+  public ValueAnalysisConcreteCPAStatistics(
       ValueAnalysisConcreteCPA pCpa,
       final CFA cfa,
       Configuration config,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
+    super(pCpa, cfa, config, pLogger, pShutdownNotifier);
     this.cpa = pCpa;
     logger = pLogger;
     if (loopInvariantsFile != null) {
@@ -101,12 +82,12 @@ public class ValueAnalysisCPAStatistics implements Statistics {
       loopInvGenExporter = null;
     }
 
-    config.inject(this, ValueAnalysisCPAStatistics.class);
+    config.inject(this, ValueAnalysisConcreteCPAStatistics.class);
   }
 
   @Override
   public String getName() {
-    return "ValueAnalysisCPA";
+    return "ValueAnalysisConcreteCPA";
   }
 
   @Override

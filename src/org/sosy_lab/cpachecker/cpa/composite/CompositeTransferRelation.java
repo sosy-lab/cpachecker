@@ -20,6 +20,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,14 +28,21 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
@@ -81,14 +89,69 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     AbstractStateWithLocations locState =
         extractStateByType(compositeState, AbstractStateWithLocations.class);
     results = new ArrayList<>(2);
+    int test = 0;
+    List<CFAEdge> allEdges = null;
     if (locState == null) {
       getAbstractSuccessors(compositeState, compositePrecision, results);
     } else {
-      for (CFAEdge edge : locState.getOutgoingEdges()) {
+      // TODO if concolic
+      // avoid having multiple edges in the composite state, where one is a function call edge and
+      // the other is a function summary edge -> this would fork the state space
+      List<CFAEdge> edges = Lists.newArrayList(locState.getOutgoingEdges());
+      allEdges = edges;
+
+      // todo remove, fixed
+      //      if (edges.size() == 2) {
+      //        boolean hasFunctionCallEdge = false;
+      //        boolean hasCFunctionSummaryStatementEdgeEdge = false;
+      //        for (CFAEdge cfaEdge : edges) {
+      //          if (cfaEdge instanceof CFunctionCallEdge) {
+      //            // Detect if there's a FunctionCallEdge
+      //            hasFunctionCallEdge = true;
+      //          } else if (cfaEdge instanceof CFunctionSummaryStatementEdge) {
+      //            hasCFunctionSummaryStatementEdgeEdge = true;
+      //          }
+      //        }
+      //        if (hasFunctionCallEdge && hasCFunctionSummaryStatementEdgeEdge) {
+      //          edges =
+      //              edges.stream().filter(e -> !(e instanceof
+      // CFunctionSummaryStatementEdge)).toList();
+      //        }
+      //      }
+      if (edges.size() > 1
+          && !(edges.size() == 2
+              && edges.get(0) instanceof CAssumeEdge
+              && edges.get(1) instanceof CAssumeEdge)) {
+        test = edges.size();
+        //        System.out.println("edges size is not 1");
+        //        throw new Error("edges size is not 1");
+      }
+      //      ConcolicAlgorithm.tmpcounter = ConcolicAlgorithm.tmpcounter + 1;
+      //      if (ConcolicAlgorithm.tmpcounter >= 1000) {
+      //        edges = edges.subList(0, 0);
+      //      }
+      //      System.out.println(edges);
+
+      for (CFAEdge edge : edges) {
+        //        if (edge instanceof CAssumeEdge) {
+        //          System.out.println("edge instanceof CAssumeEdge");
+
+        //          if(edge.getRawStatement().contains("tmp_ndt_9")){
+        //                System.out.println("tmp_ndt_9");
+        //          }
+        //        }
         getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
       }
     }
 
+    if (test > 1 && results.size() > 1) {
+      System.out.println("test > 1  && results.size() > 1");
+      System.out.println(allEdges);
+    }
+    if (results.size() > 1) {
+      System.out.println("results.size() > 1");
+      System.out.println(allEdges);
+    }
     return results;
   }
 

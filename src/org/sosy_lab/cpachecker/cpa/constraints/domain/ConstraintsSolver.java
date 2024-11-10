@@ -157,7 +157,7 @@ public class ConstraintsSolver {
    */
   public Satisfiability checkUnsat(Constraint pConstraintToCheck, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException, SolverException {
-    ConstraintsState s = new ConstraintsState(Collections.singleton(pConstraintToCheck));
+    ConstraintsState s = new ConstraintsState(ImmutableList.of(pConstraintToCheck));
     return checkUnsat(s, pFunctionName).satisfiability();
   }
 
@@ -182,7 +182,10 @@ public class ConstraintsSolver {
       stats.timeForSolving.start();
 
       boolean unsat;
-      ImmutableSet<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
+      // TODO getRelevantConstraints analysieren
+      //  -> für concolic alle relevant
+//      ImmutableSet<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
+      ImmutableSet<Constraint> relevantConstraints = ImmutableSet.copyOf(new HashSet<>(pConstraints));
 
       Collection<BooleanFormula> constraintsAsFormulas =
           getFullFormula(relevantConstraints, pFunctionName);
@@ -261,6 +264,10 @@ public class ConstraintsSolver {
     return booleanFormulaManager.implication(pLiteral, pFormula);
   }
 
+  // TODO
+  //  verstehen:
+  //  fügt nur die Constraints hinzu, die einen Identifier beinhalten, der auch im letzten Constraint vorkommt
+  //  vermutlich, soll nur der letzte Constraint gechecked werden
   private ImmutableSet<Constraint> getRelevantConstraints(ConstraintsState pConstraints) {
     ImmutableSet.Builder<Constraint> relevantConstraints = ImmutableSet.builder();
     if (performMinimalSatCheck && pConstraints.getLastAddedConstraint().isPresent()) {

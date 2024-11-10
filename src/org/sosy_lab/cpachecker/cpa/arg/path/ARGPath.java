@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class ARGPath extends AbstractAppender {
 
   private final ImmutableList<ARGState> states;
+  private List<ARGState> tmpAllStates = new ArrayList<>();
   private final List<CFAEdge> edges; // immutable, but may contain null
 
   @SuppressFBWarnings(
@@ -77,6 +78,97 @@ public class ARGPath extends AbstractAppender {
 
     edges = Collections.unmodifiableList(edgesBuilder);
     assert states.size() - 1 == edges.size();
+  }
+
+  // TODO should be unused
+  // finds longest path in pStates and uses this one for the ARGPath
+  public ARGPath(List<ARGState> pStates, boolean foo) {
+    //    checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
+    //    states = ImmutableList.copyOf(pStates);
+    //
+    //    List<CFAEdge> edgesBuilder = new ArrayList<>(states.size() - 1);
+    //    for (int i = 0; i < states.size() - 1; i++) {
+    //      ARGState parent = states.get(i);
+    //      ARGState child = states.get(i + 1);
+    //      edgesBuilder.add(parent.getEdgeToChild(child)); // may return null
+    //    }
+    //
+    //    edges = Collections.unmodifiableList(edgesBuilder);
+    //    assert states.size() - 1 == edges.size();
+
+    // ---------------------
+    checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
+    tmpAllStates = pStates;
+    ARGState firstState = pStates.get(0);
+    List<ARGState> newList = new ArrayList<>();
+    newList.add(firstState);
+    states = ImmutableList.copyOf(getLongestPath(newList).getFirstNotNull());
+
+    List<CFAEdge> edgesBuilder = new ArrayList<>(states.size() - 1);
+    for (int i = 0; i < states.size() - 1; i++) {
+      ARGState parent = states.get(i);
+      ARGState child = states.get(i + 1);
+      edgesBuilder.add(parent.getEdgeToChild(child)); // may return null
+    }
+
+    edges = Collections.unmodifiableList(edgesBuilder);
+    assert states.size() - 1 == edges.size();
+    if(tmpAllStates.size() != states.size()) {
+      System.out.println("Size mismatch");
+    }
+
+    // ---------------
+
+    //        List<CFAEdge> edgesBuilder = new ArrayList<>(states.size() - 1);
+    //        // TODO if concolic
+    //        ARGState parent = states.get(0);
+    //        while (true) {
+    //          ARGState child = null;
+    //          try {
+    //            child =
+    //                parent.getChildren().iterator().next(); // TODO check if there is more than
+    // one
+    ////     child
+    //          } catch (Exception e) {
+    //            System.out.println("No child found 1");
+    //            break;
+    //          }
+    //          CFAEdge edge = parent.getEdgeToChild(child);
+    //          if (edge == null) {
+    //            System.out.println("No edge found");
+    //          }
+    //          edgesBuilder.add(edge); // may return null
+    //          parent = child;
+    //        }
+    //
+    //        edges = Collections.unmodifiableList(edgesBuilder);
+    //        assert states.size() - 1 == edges.size();
+  }
+
+  private Pair<List<ARGState>, Integer> getLongestPath(List<ARGState> pARGStates) {
+    ARGState state = pARGStates.get(pARGStates.size() - 1);
+    if (state.getChildren().isEmpty()) {
+      return Pair.of(pARGStates, 1); // Base case: leaf node
+    }
+
+    int maxLength = 0;
+    List<ARGState> longestList = null;
+    for (ARGState child : state.getChildren()) {
+      if (!tmpAllStates.contains(child)) {
+        continue; // skip the child if it is not in the original list
+      }
+      List<ARGState> newList = new ArrayList<>(pARGStates);
+      newList.add(child);
+      newList = getLongestPath(newList).getFirstNotNull();
+      if (newList.size() > maxLength) {
+        maxLength = newList.size();
+        longestList = newList;
+      }
+    }
+    if (longestList == null) {
+      return Pair.of(pARGStates, 1);
+    }
+    return Pair.of(longestList, longestList.size()); // Include the current state in the path length
   }
 
   public ARGPath(List<ARGState> pStates, List<CFAEdge> pEdges) {

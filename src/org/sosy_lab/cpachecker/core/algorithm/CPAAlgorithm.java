@@ -210,6 +210,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  // taken from legion
+  public TransferRelation getTransferRelation() {
+    return transferRelation;
+  }
+
   public static CPAAlgorithm create(
       ConfigurableProgramAnalysis cpa,
       LogManager logger,
@@ -235,7 +240,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final AlgorithmStatus status;
 
-  private CPAAlgorithm(
+  public CPAAlgorithm(
       ConfigurableProgramAnalysis cpa,
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,
