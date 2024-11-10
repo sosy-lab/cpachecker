@@ -10,9 +10,15 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.state;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 
 public class ExecutionTrace {
+
+  /**
+   * The number of {@link CFAEdge}s to be considered at the end of two {@link ExecutionTrace}s to be
+   * approximated as equivalent.
+   */
+  public static final int TAIL_SIZE = 1;
+
   public final ImmutableList<CFAEdge> edges;
 
   public ExecutionTrace(ImmutableList<CFAEdge> pEdges) {
@@ -20,16 +26,14 @@ public class ExecutionTrace {
   }
 
   /**
-   * Returns the {@link MPORAlgorithm#EXECUTION_TRACE_TAIL_SIZE} last elements of {@link
-   * ExecutionTrace#edges}.
+   * Returns the {@link ExecutionTrace#TAIL_SIZE} last elements of {@link ExecutionTrace#edges}.
    *
-   * @return a list containing the {@link MPORAlgorithm#EXECUTION_TRACE_TAIL_SIZE} last elements of
-   *     {@link ExecutionTrace#edges}
+   * @return a list containing the {@link ExecutionTrace#TAIL_SIZE} last elements of {@link
+   *     ExecutionTrace#edges}
    */
   public ImmutableList<CFAEdge> tail() {
     int traceSize = edges.size();
-    return edges.subList(
-        Math.max(traceSize - MPORAlgorithm.EXECUTION_TRACE_TAIL_SIZE, 0), traceSize);
+    return edges.subList(Math.max(traceSize - TAIL_SIZE, 0), traceSize);
   }
 
   /**

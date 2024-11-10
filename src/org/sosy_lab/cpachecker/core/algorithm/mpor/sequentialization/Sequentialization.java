@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -786,27 +784,5 @@ public class Sequentialization {
         mapReturnValueAssignments(pThread, pSubEdges, returnPcStorages),
         returnPcStorages,
         mapReturnPcRetrievals(pThread, pReturnPcVars.get(pThread)));
-  }
-
-  // Static Variable Setters / Getters ===========================================================
-
-  public static boolean isSeqErrorSet() {
-    return seqError != null;
-  }
-
-  public static String getSeqError() {
-    checkArgument(seqError != null, "seqError was not initialized yet");
-    return seqError;
-  }
-
-  public static String getSeqErrorFunctionCall() {
-    checkArgument(seqError != null, "seqError was not initialized yet");
-    return seqError + SeqSyntax.SEMICOLON;
-  }
-
-  public static void setSeqError(String pSeqError) {
-    checkNotNull(pSeqError);
-    checkArgument(seqError == null, "seqError was initialized already");
-    seqError = pSeqError;
   }
 }

@@ -24,8 +24,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORStatics;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
@@ -128,7 +128,7 @@ public class SeqMainFunction implements SeqFunction {
   public String toASTString() {
     // create assertion checks
     StringBuilder assertions = new StringBuilder();
-    String seqError = Sequentialization.getSeqErrorFunctionCall();
+    String seqError = MPORStatics.seqError() + SeqSyntax.SEMICOLON;
     for (SeqLogicalAndExpression assertion : threadAssertions) {
       SeqControlFlowStatement ifStmt =
           new SeqControlFlowStatement(assertion, SeqControlFlowStatementType.IF);

@@ -24,7 +24,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cmdline.Output;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORStatics;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.w3c.dom.Document;
@@ -166,10 +166,10 @@ public class SequentializationWriter {
     int currentLine = 1;
     StringBuilder rFinal = new StringBuilder();
     for (String line : Splitter.onPattern("\\r?\\n").split(pInitProgram)) {
-      if (line.contains(Sequentialization.getSeqError())) {
+      if (line.contains(MPORStatics.seqError())) {
         CFunctionCallExpression assertFailCall =
             MPORAlgorithm.getSeqErrorCall(outputFileName, currentLine);
-        rFinal.append(line.replace(Sequentialization.getSeqError(), assertFailCall.toASTString()));
+        rFinal.append(line.replace(MPORStatics.seqError(), assertFailCall.toASTString()));
       } else {
         rFinal.append(line);
       }

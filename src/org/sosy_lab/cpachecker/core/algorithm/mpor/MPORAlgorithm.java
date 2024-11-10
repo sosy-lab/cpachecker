@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -47,13 +46,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqStringLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.state.ExecutionTrace;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
@@ -86,12 +83,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // TODO (not sure if important for our algorithm) PredicateAbstractState.abstractLocations
   //  contains all CFANodes visited so far
 
-  /**
-   * The number of {@link CFAEdge}s to be considered at the end of two {@link ExecutionTrace}s to be
-   * approximated as equivalent. Increasing this value is a major source of inefficiency.
-   */
-  public static final int EXECUTION_TRACE_TAIL_SIZE = 0;
-
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     String program = outputSequentialization();
@@ -102,8 +93,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     Path inputFilePath = inputCfa.getFileNames().get(0);
     SequentializationWriter writer = new SequentializationWriter(logger, inputFilePath);
     CFunctionCallExpression seqErrorCall = getSeqErrorCall(writer.outputFileName, -1);
-    if (!Sequentialization.isSeqErrorSet()) {
-      Sequentialization.setSeqError(seqErrorCall.toASTString());
+    if (!MPORStatics.isSeqErrorSet()) {
+      MPORStatics.setSeqError(seqErrorCall.toASTString());
     }
     return writer.write(seq.generateProgram(substitutions));
   }
@@ -175,8 +166,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     threads = getThreads(inputCfa, funcCallMap);
 
     ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
-    SeqBinaryExpression.setBinaryExpressionBuilder(
-        new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger));
+    MPORStatics.setBinExprBuilder(new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger));
     substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads);
 
     seq = new Sequentialization(threads.size());
@@ -209,8 +199,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
     // in tests, we may use the same CPAchecker instance -> builder is init already
-    if (!SeqBinaryExpression.isBinaryExpressionBuilderSet()) {
-      SeqBinaryExpression.setBinaryExpressionBuilder(
+    if (!MPORStatics.isBinExprBuilderSet()) {
+      MPORStatics.setBinExprBuilder(
           new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger));
     }
     substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads);

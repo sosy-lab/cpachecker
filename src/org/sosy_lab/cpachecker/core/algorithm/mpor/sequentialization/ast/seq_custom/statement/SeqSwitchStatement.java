@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORStatics;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
@@ -42,7 +42,7 @@ public class SeqSwitchStatement implements SeqStatement {
         SeqToken.DEFAULT
             + SeqSyntax.COLON
             + SeqSyntax.SPACE
-            + Sequentialization.getSeqError()
+            + MPORStatics.seqError()
             + SeqSyntax.SEMICOLON;
     return SeqUtil.repeat(SeqSyntax.TAB, tabs)
         + SeqUtil.appendOpeningCurly(switchExpression.toASTString())
