@@ -517,20 +517,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     checkRecursiveFunctions(pInputCfa);
   }
 
-  private void handleRejection(String pMessage) {
-    throw Output.fatalError(pMessage);
-  }
-
   private void checkLanguageC(CFA pInputCfa) {
     Language language = pInputCfa.getMetadata().getInputLanguage();
     if (!language.equals(Language.C)) {
-      handleRejection("MPOR does not support the language " + language);
+      throw Output.fatalError("MPOR does not support the language %s", language);
     }
   }
 
   private void checkOneInputFile(CFA pInputCfa) {
     if (pInputCfa.getFileNames().size() != 1) {
-      handleRejection("MPOR expects exactly one input file");
+      throw Output.fatalError("MPOR expects exactly one input file");
     }
   }
 
@@ -543,7 +539,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     if (!isParallel) {
-      handleRejection("MPOR expects parallel C program with at least one pthread_create call");
+      throw Output.fatalError(
+          "MPOR expects parallel C program with at least one pthread_create call");
     }
   }
 
@@ -555,22 +552,18 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             int pthreadTIndex = funcType.getPthreadTIndex();
             CExpression parameter = CFAUtils.getParameterAtIndex(cfaEdge, pthreadTIndex);
             if (isArraySubscriptExpression(parameter)) {
-              handleRejection(
-                  "MPOR does not support arrays as pthread_t parameters in line"
-                      + cfaEdge.getLineNumber()
-                      + ": "
-                      + cfaEdge.getCode());
+              throw Output.fatalError(
+                  "MPOR does not support arrays as pthread_t parameters in line %s: %s",
+                  cfaEdge.getLineNumber(), cfaEdge.getCode());
             }
           }
           if (funcType.hasPthreadMutexTIndex()) {
             int pthreadMutexTIndex = funcType.getPthreadMutexTIndex();
             CExpression parameter = CFAUtils.getParameterAtIndex(cfaEdge, pthreadMutexTIndex);
             if (isArraySubscriptExpression(parameter)) {
-              handleRejection(
-                  "MPOR does not support arrays as pthread_mutex_t parameters in line"
-                      + cfaEdge.getLineNumber()
-                      + ": "
-                      + cfaEdge.getCode());
+              throw Output.fatalError(
+                  "MPOR does not support arrays as pthread_mutex_t parameters in line %s: %s",
+                  cfaEdge.getLineNumber(), cfaEdge.getCode());
             }
           }
         }
@@ -583,11 +576,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       for (PthreadFuncType funcType : PthreadFuncType.values()) {
         if (!funcType.isSupported) {
           if (PthreadFuncType.callsPthreadFunc(edge, funcType)) {
-            handleRejection(
-                "MPOR does not support the function in line "
-                    + edge.getLineNumber()
-                    + ": "
-                    + edge.getCode());
+            throw Output.fatalError(
+                "MPOR does not support the function in line %s: %s",
+                edge.getLineNumber(), edge.getCode());
           }
         }
       }
@@ -598,11 +589,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadFuncType.callsAnyPthreadFunc(edge)) {
         if (edge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
-          handleRejection(
-              "MPOR does not support pthread method return value assignments, see line "
-                  + edge.getLineNumber()
-                  + ": "
-                  + edge.getCode());
+          throw Output.fatalError(
+              "MPOR does not support pthread method return value assignments, see line %s: %s",
+              edge.getLineNumber(), edge.getCode());
         }
       }
     }
@@ -616,7 +605,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         if (MPORUtil.isSelfReachable(cfaEdge, Optional.empty(), new ArrayList<>(), cfaEdge)) {
-          handleRejection("MPOR does not support pthread_create calls in loops");
+          throw Output.fatalError("MPOR does not support pthread_create calls in loops");
         }
       }
     }
@@ -627,11 +616,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       Optional<FunctionExitNode> exit = entry.getExitNode();
       // "upcasting" exit from FunctionExitNode to CFANode is necessary here...
       if (MPORUtil.isSelfReachable(entry, exit.map(node -> node), new ArrayList<>(), entry)) {
-        handleRejection(
-            "MPOR does not support the (in)direct recursive function "
-                + entry.getFunctionName()
-                + " in line "
-                + entry.getFunction().getFileLocation().getStartingLineNumber());
+        throw Output.fatalError(
+            "MPOR does not support the (in)direct recursive function %s in line %s",
+            entry.getFunctionName(), entry.getFunction().getFileLocation().getStartingLineNumber());
       }
     }
   }

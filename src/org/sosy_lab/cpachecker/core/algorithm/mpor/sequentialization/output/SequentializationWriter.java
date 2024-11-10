@@ -96,7 +96,7 @@ public class SequentializationWriter {
       }
     } catch (IOException e) {
       throw Output.fatalError(
-          "MPOR FAIL. An IO error occurred while writing the outputProgram: " + e.getMessage());
+          "MPOR FAIL. An IO error occurred while writing the outputProgram: %s", e.getMessage());
     }
     return finalProgram;
   }
@@ -137,11 +137,11 @@ public class SequentializationWriter {
       }
     } catch (Exception e) {
       throw Output.fatalError(
-          "MPOR FAIL. An exception occurred while extracting the license: " + e.getMessage());
+          "MPOR FAIL. An exception occurred while extracting the license: %s", e.getMessage());
     }
     throw Output.fatalError(
-        "MPOR FAIL. No sequentialization created, could not extract the license from "
-            + licenseFilePath);
+        "MPOR FAIL. No sequentialization created, could not extract the license from %s",
+        licenseFilePath);
   }
 
   private String createSequentializationComment(String pInputFilePath) {
