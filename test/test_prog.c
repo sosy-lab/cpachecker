@@ -5,7 +5,7 @@ int main() {
   if ((x & 1) == 0) {x = x/2;}
   int i = 3;
   while (i <= x) {
-    while (x % i == 0) {
+    while (is_divisible(x,i)) {
             x = x / i;
     }
     i += 2;
@@ -15,4 +15,8 @@ int main() {
     return 1; // error condition
   }
   else return 0;
+}
+
+inline int is_divisible(int a, int b) {
+    return a % b == 0;
 }
