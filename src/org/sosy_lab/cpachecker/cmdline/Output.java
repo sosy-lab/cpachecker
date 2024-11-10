@@ -17,7 +17,7 @@ import org.sosy_lab.common.io.IO;
 
 /** Utilities for output while we do not yet have a logger */
 @SuppressForbidden("System.out in this class is ok")
-final class Output {
+public final class Output {
 
   private Output() {}
 
@@ -35,7 +35,7 @@ final class Output {
    */
   @TerminatesExecution
   @FormatMethod
-  static RuntimeException fatalError(String msg, Object... args) {
+  public static RuntimeException fatalError(String msg, Object... args) {
     coloredOutput(ERROR_COLOR, msg, args);
     System.exit(CPAMain.ERROR_EXIT_CODE);
     return new RuntimeException("never reached");

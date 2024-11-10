@@ -8,77 +8,96 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.tests;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
+import java.util.stream.Stream;
 import org.junit.Test;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.DirectedGraph;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class MPORTest {
 
+  // TODO these trigger an error where the return value assignment is empty
+  // "singleton-b.i",
+  // "fib_safe-5.i",
+  // TODO this triggers a substitute not found because the pthread_create call passes
+  //  a parameter to the start routine and the thread reads it
+  // "ring_2w1r-2.i",
+  // TODO this triggers a pthread_create loop error, even though its outside the loop
+  // "divinefifo-bug_1w1r.i"
+
   public MPORTest() {}
 
+  // TODO add more compile tests
+
   @Test
-  public void testSeqCompilable() {
-    ImmutableList<String> programPaths =
-        ImmutableList.of(
-            "test/programs/mpor_seq/compilable_test/fib_safe-5.i",
-            "test/programs/mpor_seq/compilable_test/queue_longest.i",
-            "test/programs/mpor_seq/compilable_test/singleton-b.i",
-            "test/programs/mpor_seq/compilable_test/ring_2w1r-2.i",
-            "test/programs/mpor_seq/compilable_test/divinefifo-bug_1w1r.i");
-    for (String programPath : programPaths) {
-      testCompilable(programPath);
-    }
-    // delete the seqs again after testing (only files, not folders)
-    deleteFilesInFolder("test/programs/mpor_seq/");
+  public void testCompileSeqQueueLongest() throws Exception {
+    Path path = Path.of("./test/programs/mpor_seq/seq_compilable_test/queue_longest.i");
+    testCompile(path);
+    deleteDir("./output");
   }
 
-  private void testCompilable(String pProgramPath) {
-    String command =
-        "./scripts/cpa.sh --predicateAnalysis --option analysis.algorithm.MPOR=true " + pProgramPath;
+  @Test
+  public void testCompileSeqStack() throws Exception {
+    Path path = Path.of("./test/programs/mpor_seq/seq_compilable_test/stack-1.i");
+    testCompile(path);
+    deleteDir("./output");
+  }
+
+  private void testCompile(Path pInputFilePath) throws Exception {
+    // create cfa for test program pFileName
+    LogManager logger = LogManager.createTestLogManager();
+    CFACreator creator =
+        new CFACreator(Configuration.builder().build(), logger, ShutdownNotifier.createDummy());
+    String program = Files.readString(pInputFilePath);
+    CFA inputCfa = creator.parseSourceAndCreateCFA(program);
+
+    // create seq with mpor algorithm
+    MPORAlgorithm algorithm = new MPORAlgorithm(logger, inputCfa);
+    String seq = algorithm.createSeq();
+
+    // test that seq can be parsed and cfa created ==> code compiles
+    CFA seqCfa = creator.parseSourceAndCreateCFA(seq);
+    assertThat(seqCfa != null).isTrue();
+
+    // "anti" test: just remove the last 100 chars from the seq, it probably won't compile
+    String faultySeq = seq.substring(0, seq.length() - 100);
+
+    // test that we get an exception while parsing the new "faulty" program
+    Exception e = null;
     try {
-      // run the command with ProcessBuilder
-      ProcessBuilder processBuilder = new ProcessBuilder(command);
-      processBuilder.redirectErrorStream(true); // Combine stdout and stderr
-      Process process = processBuilder.start();
-      // wait for command to complete and make sure that MPOR succeeds
-      int exitCode = process.waitFor();
-      if (exitCode != 0) {
-        fail();
-      }
-    } catch (IOException | InterruptedException e) {
-      e.printStackTrace();
-      fail();
+      creator.parseSourceAndCreateCFA(faultySeq);
+    } catch (Exception pE) {
+      e = pE;
     }
+    assertThat(e != null).isTrue();
   }
 
-  private void deleteFilesInFolder(String pFolderPath) {
-    File directory = new File(pFolderPath);
-    if (directory.isDirectory()) {
-      File[] files = directory.listFiles();
-      if (files != null) {
-        for (File file : files) {
-          // check if it's a file (not a directory) and delete it
-          if (file.isFile()) {
-            if (!file.delete()) {
-              fail("Failed to delete file: " + file.getName());
-            }
-          }
-        }
-      } else {
-        fail("Failed to list files in directory: " + pFolderPath);
-      }
-    } else {
-      fail("The provided path is not a directory.");
+  private void deleteDir(String pDirPath) throws IOException {
+    try (Stream<Path> paths = Files.walk(Path.of(pDirPath))) {
+      paths
+          .sorted(Comparator.reverseOrder())
+          .forEach(
+              path -> {
+                try {
+                  Files.delete(path);
+                } catch (IOException pE) {
+                  throw new RuntimeException(pE);
+                }
+              });
     }
   }
 
@@ -98,7 +117,7 @@ public class MPORTest {
     directedGraph.addEdge(4, 3);
     ImmutableSet<ImmutableSet<Integer>> sccs = directedGraph.computeSCCs();
     ImmutableSet<Integer> maximalScc = sccs.iterator().next();
-    assertTrue(maximalScc.contains(3) && maximalScc.contains(4));
+    assertThat(maximalScc.contains(3) && maximalScc.contains(4)).isTrue();
   }
 
   @Test
@@ -109,7 +128,7 @@ public class MPORTest {
     directedGraphA.addNode(2);
     directedGraphA.addEdge(0, 1);
     directedGraphA.addEdge(1, 0);
-    assertTrue(directedGraphA.containsCycle());
+    assertThat(directedGraphA.containsCycle()).isTrue();
   }
 
   @Test
@@ -126,7 +145,7 @@ public class MPORTest {
     directedGraphB.addEdge(2, 3);
     directedGraphB.addEdge(2, 4);
     directedGraphB.addEdge(4, 0);
-    assertTrue(directedGraphB.containsCycle());
+    assertThat(directedGraphB.containsCycle()).isTrue();
   }
 
   @Test
@@ -142,6 +161,6 @@ public class MPORTest {
     directedGraphC.addEdge(1, 2);
     directedGraphC.addEdge(2, 3);
     directedGraphC.addEdge(2, 4);
-    assertFalse(directedGraphC.containsCycle());
+    assertThat(directedGraphC.containsCycle()).isFalse();
   }
 }

@@ -41,6 +41,10 @@ public class SeqExpressions {
 
     private static CBinaryExpressionBuilder binExprBuilder = null;
 
+    public static boolean isBinaryExpressionBuilderSet() {
+      return binExprBuilder != null;
+    }
+
     public static CBinaryExpression buildBinaryExpression(
         CExpression pOperand1, CExpression pOperand2, BinaryOperator pOperator)
         throws UnrecognizedCodeException {

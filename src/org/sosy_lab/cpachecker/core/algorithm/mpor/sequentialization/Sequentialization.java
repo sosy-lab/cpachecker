@@ -790,6 +790,10 @@ public class Sequentialization {
 
   // Static Variable Setters / Getters ===========================================================
 
+  public static boolean isSeqErrorSet() {
+    return seqError != null;
+  }
+
   public static String getSeqError() {
     checkArgument(seqError != null, "seqError was not initialized yet");
     return seqError;

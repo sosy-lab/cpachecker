@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cmdline.Output;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -74,14 +74,13 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 
@@ -112,13 +111,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
-    Path inputFilePath = inputCfa.getFileNames().get(0);
-    SequentializationWriter writer = new SequentializationWriter(logger, inputFilePath);
-    CFunctionCallExpression seqErrorCall = getSeqErrorCall(writer.outputFileName, -1);
-    Sequentialization.setSeqError(seqErrorCall.toASTString());
-    writer.write(seq.generateProgram(substitutions));
-
-    checkForCorrectInitialState(pReachedSet, threads);
+    /*checkForCorrectInitialState(pReachedSet, threads);
 
     // if there is only one element in pReachedSet, it is our initial AbstractState
     PredicateAbstractState initAbstractState =
@@ -126,7 +119,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             pReachedSet.asCollection().iterator().next(), PredicateAbstractState.class);
     MPORState initState = stateBuilder.createInitState(threads, initAbstractState);
 
-    handleState(initState);
+    handleState(initState);*/
 
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
@@ -450,6 +443,50 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     seq = new Sequentialization(threads.size());
   }
 
+  // TODO change visibility of this constructor later
+  /** Use this constructor only for test purposes. */
+  public MPORAlgorithm(LogManager pLogManager, CFA pInputCfa) throws InvalidConfigurationException {
+
+    cpa = null;
+    config = null;
+    logger = pLogManager;
+    shutdownNotifier = null;
+    specification = null;
+    inputCfa = pInputCfa;
+
+    handleInitialInputProgramRejections(inputCfa);
+
+    gac = new GlobalAccessChecker();
+    ptr = null;
+
+    funcCallMap = getFunctionCallMap(inputCfa);
+
+    threadBuilder = new ThreadBuilder(funcCallMap);
+    stateBuilder = null;
+
+    threads = getThreads(inputCfa, funcCallMap);
+
+    ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
+    // in tests, we may use the same CPAchecker instance -> builder is init already
+    if (!SeqBinaryExpression.isBinaryExpressionBuilderSet()) {
+      SeqBinaryExpression.setBinaryExpressionBuilder(
+          new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger));
+    }
+    substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads);
+
+    seq = new Sequentialization(threads.size());
+  }
+
+  public String createSeq() throws UnrecognizedCodeException {
+    Path inputFilePath = inputCfa.getFileNames().get(0);
+    SequentializationWriter writer = new SequentializationWriter(logger, inputFilePath);
+    CFunctionCallExpression seqErrorCall = getSeqErrorCall(writer.outputFileName, -1);
+    if (!Sequentialization.isSeqErrorSet()) {
+      Sequentialization.setSeqError(seqErrorCall.toASTString());
+    }
+    return writer.write(seq.generateProgram(substitutions));
+  }
+
   // Input program rejections ====================================================================
 
   /**
@@ -468,6 +505,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * </ul>
    */
   private void handleInitialInputProgramRejections(CFA pInputCfa) {
+    // TODO check for preprocessed files (all files must have .i ending)
     checkLanguageC(pInputCfa);
     checkOneInputFile(pInputCfa);
     checkIsParallelProgram(pInputCfa);
@@ -480,8 +518,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   private void handleRejection(String pMessage) {
-    logger.log(Level.SEVERE, () -> pMessage);
-    throw new AssertionError();
+    throw Output.fatalError(pMessage);
   }
 
   private void checkLanguageC(CFA pInputCfa) {

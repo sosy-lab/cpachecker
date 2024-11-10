@@ -22,6 +22,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cmdline.Output;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
@@ -34,7 +35,7 @@ public class SequentializationWriter {
 
   private static final String licenseFilePath = ".idea/copyright/CPAchecker.xml";
 
-  private static final String targetDirectory = "test/programs/mpor_seq/";
+  private static final String targetDirectory = "output/";
 
   private static final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
@@ -52,38 +53,38 @@ public class SequentializationWriter {
     logManager = pLogManager;
     licenseComment = extractLicenseComment();
     sequentializationComment = createSequentializationComment(pInputFilePath.toString());
-    String inputFileName = pInputFilePath.getFileName().toString();
-    outputFileName = "mpor_seq__" + inputFileName;
+    outputFileName = "mpor_seq__" + processInputFileName(pInputFilePath);
     String outputFilePath = targetDirectory + outputFileName;
     outputFile = new File(outputFilePath);
+  }
+
+  private String processInputFileName(Path pInputFilePath) {
+    String inputFileName = pInputFilePath.getFileName().toString();
+    return inputFileName.endsWith(".i") ? inputFileName : inputFileName + ".i";
   }
 
   // TODO also create .yml file for each sequentialized program that contains metadata
   //  e.g. input program, num_treads, etc.
 
-  public void write(String pSequentialization) {
+  public String write(String pSequentialization) {
     String initProgram = licenseComment + "\n" + sequentializationComment + pSequentialization;
     String finalProgram = createFinalProgram(initProgram);
     try {
       File parentDir = outputFile.getParentFile();
       // ensure the target directory exists
       if (!parentDir.exists()) {
-        logManager.log(
-            Level.SEVERE,
-            () ->
-                "MPOR FAIL. No sequentialization created, make sure the target directory exists in"
-                    + " CPAchecker: "
-                    + targetDirectory);
-        System.exit(-1);
-
+        if (parentDir.mkdirs()) {
+          logManager.log(Level.INFO, "Directory created: " + targetDirectory);
+        } else {
+          throw Output.fatalError(
+              "MPOR FAIL. No sequentialization created, could not create target directory: %s",
+              targetDirectory);
+        }
         // ensure the file does not exist already (no overwriting)
       } else if (!outputFile.createNewFile()) {
-        logManager.log(
-            Level.SEVERE,
-            () ->
-                "MPOR FAIL. No sequentialization created, file exists already: "
-                    + outputFile.getAbsolutePath());
-        System.exit(-1);
+        throw Output.fatalError(
+            "MPOR FAIL. No sequentialization created, file exists already: %s",
+            outputFile.getAbsolutePath());
       } else {
         // write content to the file
         try (Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
@@ -92,14 +93,12 @@ public class SequentializationWriter {
         logManager.log(
             Level.INFO,
             () -> "MPOR SUCCESS. Sequentialization created: " + outputFile.getAbsolutePath());
-        System.exit(0);
       }
     } catch (IOException e) {
-      logManager.log(
-          Level.SEVERE,
-          () -> "MPOR FAIL. An IO error occurred while writing the outputProgram: " + e.getMessage());
-      System.exit(-1);
+      throw Output.fatalError(
+          "MPOR FAIL. An IO error occurred while writing the outputProgram: " + e.getMessage());
     }
+    return finalProgram;
   }
 
   private String extractLicenseComment() {
@@ -134,22 +133,15 @@ public class SequentializationWriter {
           }
         }
       } else {
-        logManager.log(Level.SEVERE, () -> "MPOR FAIL. No <copyright> element found.");
-        System.exit(-1);
+        throw Output.fatalError("MPOR FAIL. No <copyright> element found.");
       }
     } catch (Exception e) {
-      logManager.log(
-          Level.SEVERE,
-          () -> "MPOR FAIL. An exception occurred while extracting the license: " + e.getMessage());
-      System.exit(-1);
+      throw Output.fatalError(
+          "MPOR FAIL. An exception occurred while extracting the license: " + e.getMessage());
     }
-    logManager.log(
-        Level.SEVERE,
-        () ->
-            "MPOR FAIL. No sequentialization created, could not extract the license from "
-                + licenseFilePath);
-    System.exit(-1);
-    throw new AssertionError(); // not reachable but still necessary...
+    throw Output.fatalError(
+        "MPOR FAIL. No sequentialization created, could not extract the license from "
+            + licenseFilePath);
   }
 
   private String createSequentializationComment(String pInputFilePath) {
