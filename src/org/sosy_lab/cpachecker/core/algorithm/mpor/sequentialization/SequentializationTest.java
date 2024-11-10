@@ -6,11 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.tests;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,12 +22,11 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.DirectedGraph;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
-public class MPORTest {
+public class SequentializationTest {
 
   // TODO these trigger an error where the return value assignment is empty
   // "singleton-b.i",
@@ -39,7 +37,7 @@ public class MPORTest {
   // TODO this triggers a pthread_create loop error, even though its outside the loop
   // "divinefifo-bug_1w1r.i"
 
-  public MPORTest() {}
+  public SequentializationTest() {}
 
   // TODO add more compile tests
 
@@ -66,7 +64,7 @@ public class MPORTest {
     CFA inputCfa = creator.parseSourceAndCreateCFA(program);
 
     // create seq with mpor algorithm
-    MPORAlgorithm algorithm = new MPORAlgorithm(logger, inputCfa);
+    MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa);
     String seq = algorithm.createSeq();
 
     // test that seq can be parsed and cfa created ==> code compiles
@@ -80,7 +78,7 @@ public class MPORTest {
     boolean fail = false;
     try {
       creator.parseSourceAndCreateCFA(faultySeq);
-    } catch (Exception e) {
+    } catch (Exception exception) {
       fail = true;
     }
     assertThat(fail).isTrue();
@@ -99,68 +97,5 @@ public class MPORTest {
                 }
               });
     }
-  }
-
-  @Test
-  public void testDirectedGraphSccs() {
-    DirectedGraph<Integer> directedGraph = new DirectedGraph<>();
-    directedGraph.addNode(0);
-    directedGraph.addNode(1);
-    directedGraph.addNode(2);
-    directedGraph.addNode(3);
-    directedGraph.addNode(4);
-    directedGraph.addEdge(0, 1);
-    directedGraph.addEdge(0, 2);
-    directedGraph.addEdge(1, 2);
-    directedGraph.addEdge(2, 3);
-    directedGraph.addEdge(3, 4);
-    directedGraph.addEdge(4, 3);
-    ImmutableSet<ImmutableSet<Integer>> sccs = directedGraph.computeSCCs();
-    ImmutableSet<Integer> maximalScc = sccs.iterator().next();
-    assertThat(maximalScc.contains(3) && maximalScc.contains(4)).isTrue();
-  }
-
-  @Test
-  public void testDirectedGraphTwoNodeCycle() {
-    DirectedGraph<Integer> directedGraphA = new DirectedGraph<>();
-    directedGraphA.addNode(0);
-    directedGraphA.addNode(1);
-    directedGraphA.addNode(2);
-    directedGraphA.addEdge(0, 1);
-    directedGraphA.addEdge(1, 0);
-    assertThat(directedGraphA.containsCycle()).isTrue();
-  }
-
-  @Test
-  public void testDirectedGraphMultipleNodeCycle() {
-    DirectedGraph<Integer> directedGraphB = new DirectedGraph<>();
-    directedGraphB.addNode(0);
-    directedGraphB.addNode(1);
-    directedGraphB.addNode(2);
-    directedGraphB.addNode(3);
-    directedGraphB.addNode(4);
-    directedGraphB.addEdge(0, 1);
-    directedGraphB.addEdge(0, 2);
-    directedGraphB.addEdge(1, 2);
-    directedGraphB.addEdge(2, 3);
-    directedGraphB.addEdge(2, 4);
-    directedGraphB.addEdge(4, 0);
-    assertThat(directedGraphB.containsCycle()).isTrue();
-  }
-
-  @Test
-  public void testDirectedGraphNoCycles() {
-    DirectedGraph<Integer> directedGraphC = new DirectedGraph<>();
-    directedGraphC.addNode(0);
-    directedGraphC.addNode(1);
-    directedGraphC.addNode(2);
-    directedGraphC.addNode(3);
-    directedGraphC.addNode(4);
-    directedGraphC.addEdge(0, 1);
-    directedGraphC.addEdge(0, 2);
-    directedGraphC.addEdge(1, 2);
-    directedGraphC.addEdge(2, 3);
-    directedGraphC.addEdge(2, 4);
-    assertThat(directedGraphC.containsCycle()).isFalse();
   }
 }

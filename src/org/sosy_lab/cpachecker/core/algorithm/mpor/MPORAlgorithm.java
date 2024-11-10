@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cmdline.Output;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.directed_graph.DirectedGraph;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
@@ -443,9 +444,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     seq = new Sequentialization(threads.size());
   }
 
-  // TODO change visibility of this constructor later
+  public static MPORAlgorithm testInstance(LogManager pLogManager, CFA pInputCfa) {
+    return new MPORAlgorithm(pLogManager, pInputCfa);
+  }
+
   /** Use this constructor only for test purposes. */
-  public MPORAlgorithm(LogManager pLogManager, CFA pInputCfa) throws InvalidConfigurationException {
+  private MPORAlgorithm(LogManager pLogManager, CFA pInputCfa) {
 
     cpa = null;
     config = null;
