@@ -235,14 +235,7 @@ public class ConcolicAlgorithm implements Algorithm {
 //          childInputs.stream().filter(ci -> !ci.isNewPath && ci.score() == 0).toList();
 //      if (!tmp.isEmpty()) System.out.println("tmp: " + tmp.size());
       workList.addAll(childInputs);
-      // TODO !!!!!
-      if (visitedPaths.size() > 1000) {
-        // if (visitedPaths.size() > 100) -> remove inputs that will probably not lead to a new path
-        // to prevent endless loop
-        System.out.println("visitedPaths.size() > 1000");
-        workList.removeIf(ci -> ci.score == 0);
-      }
-    }
+     }
     // clear Waitlist for nice end result in the console
     reachedSet.clearWaitlist();
     return AlgorithmStatus.SOUND_AND_PRECISE;
