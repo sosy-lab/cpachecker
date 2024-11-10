@@ -14,8 +14,9 @@ int main() {
       i = i + 2;
     }
   }
-  assert(x == 1);
-    //reach_error();
-    //return 1; // error condition
-  return 0;
+  if (x != 1) {
+    reach_error();
+    return 1; // error condition
+  }
+  else return 0;
 }
