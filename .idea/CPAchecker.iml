@@ -1,15 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<!--
-This file is part of CPAchecker,
-a tool for configurable software verification:
-https://cpachecker.sosy-lab.org
-
-SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-
-SPDX-License-Identifier: Apache-2.0
--->
-
 <module type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager">
     <output url="file://$MODULE_DIR$/classes" />
@@ -76,6 +65,69 @@ SPDX-License-Identifier: Apache-2.0
         </SOURCES>
         <jarDirectory url="file://$MODULE_DIR$/lib" recursive="false" />
         <jarDirectory url="file://$MODULE_DIR$/lib" recursive="false" type="SOURCES" />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/lib/java/build" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+        <jarDirectory url="file://$MODULE_DIR$/lib/java/build" recursive="false" />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/lib/java/checkstyle" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+        <jarDirectory url="file://$MODULE_DIR$/lib/java/checkstyle" recursive="false" />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/lib/java/format-source" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+        <jarDirectory url="file://$MODULE_DIR$/lib/java/format-source" recursive="false" />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/lib/java/runtime" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="file://$MODULE_DIR$/lib/java/runtime" />
+        </SOURCES>
+        <jarDirectory url="file://$MODULE_DIR$/lib/java/runtime" recursive="false" />
+        <jarDirectory url="file://$MODULE_DIR$/lib/java/runtime" recursive="false" type="SOURCES" />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/lib/java/spotbugs" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+        <jarDirectory url="file://$MODULE_DIR$/lib/java/spotbugs" recursive="false" />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/lib/java/test" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+        <jarDirectory url="file://$MODULE_DIR$/lib/java/test" recursive="false" />
       </library>
     </orderEntry>
   </component>
