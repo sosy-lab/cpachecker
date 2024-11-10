@@ -198,10 +198,10 @@ public class Sequentialization {
     for (var lockedEntry : pThreadVars.awaits.entrySet()) {
       ThreadActive active = pThreadVars.active.get(lockedEntry.getKey());
       assert active != null;
-      for (var value : lockedEntry.getValue().entrySet()) {
+      for (ThreadAwaitsMutex awaits : lockedEntry.getValue().values()) {
         rAssertions.add(
             new SeqLogicalAndExpression(
-                new CToSeqExpression(value.getValue().idExpression),
+                new CToSeqExpression(awaits.idExpression),
                 new SeqLogicalNotExpression(active.idExpression)));
       }
     }
@@ -209,10 +209,10 @@ public class Sequentialization {
     for (var lockedEntry : pThreadVars.joins.entrySet()) {
       ThreadActive active = pThreadVars.active.get(lockedEntry.getKey());
       assert active != null;
-      for (var value : lockedEntry.getValue().entrySet()) {
+      for (ThreadJoinsThread joins : lockedEntry.getValue().values()) {
         rAssertions.add(
             new SeqLogicalAndExpression(
-                new CToSeqExpression(value.getValue().idExpression),
+                new CToSeqExpression(joins.idExpression),
                 new SeqLogicalNotExpression(active.idExpression)));
       }
     }

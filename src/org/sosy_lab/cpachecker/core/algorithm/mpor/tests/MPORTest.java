@@ -77,13 +77,13 @@ public class MPORTest {
     String faultySeq = seq.substring(0, seq.length() - 100);
 
     // test that we get an exception while parsing the new "faulty" program
-    Exception e = null;
+    boolean fail = false;
     try {
       creator.parseSourceAndCreateCFA(faultySeq);
-    } catch (Exception pE) {
-      e = pE;
+    } catch (Exception e) {
+      fail = true;
     }
-    assertThat(e != null).isTrue();
+    assertThat(fail).isTrue();
   }
 
   private void deleteDir(String pDirPath) throws IOException {
