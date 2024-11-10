@@ -106,6 +106,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
 
 /**
  * Creates assumption along an error path based on a given {@link CFAEdge} edge and a given {@link
@@ -1431,6 +1432,15 @@ public class AssumptionToEdgeAllocator {
           return UnknownValueLiteral.getInstance();
         }
         return ExplicitValueLiteral.valueOf(BigDecimal.valueOf(floatValue), pType);
+      } else if (pValue instanceof FloatingPointNumber floatingPointNumber) {
+        // The class FloatingPointNumber from Java SMT does not allow us to check if something is a
+        // float or a double, so we just overapproximate using a double
+        double doubleValue = floatingPointNumber.doubleValue();
+        if (Double.isInfinite(doubleValue) || Double.isNaN(doubleValue)) {
+          // TODO return correct value
+          return UnknownValueLiteral.getInstance();
+        }
+        return ExplicitValueLiteral.valueOf(BigDecimal.valueOf(doubleValue), pType);
       }
 
       BigDecimal val;
