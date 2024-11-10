@@ -2090,6 +2090,9 @@ cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
 # initial predicates are added as atomic predicates
 cpa.predicate.abstraction.initialPredicates.splitIntoAtoms = false
 
+# get supplementary lemmata for the initial predicats from a list of files
+cpa.predicate.abstraction.lemmata = []
+
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
 

@@ -26,6 +26,7 @@ import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -70,6 +71,13 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
               + " doc/examples/predmap.txt for an example)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> predicatesFiles = ImmutableList.of();
+
+  @Option(
+      secure = true,
+      name = "abstraction.lemmata",
+      description = "get supplementary lemmata for the initial predicats from a list of files")
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  private List<Path> lemmataFiles = ImmutableList.of();
 
   @Option(
       secure = true,
@@ -206,6 +214,15 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
           logger.logUserException(Level.WARNING, e, "Could not read predicate map");
         }
       }
+      if (!lemmataFiles.isEmpty()) {
+        for (Path lemmataFile : lemmataFiles) {
+          try {
+            Lemma.parseLemmaFromYAML(lemmataFile);
+          } catch (IOException e) {
+            logger.logUserException(Level.WARNING, e, "Could not read lemmata file");
+          }
+        }
+      }
     }
 
     return result;
@@ -321,7 +338,9 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     return builder.build();
   }
 
-  /** Extracts the given {@link ExpressionTree}'s leaf nodes and adds them to the given builder. */
+  /**
+   * Extracts the given {@link ExpressionTree}'s leaf nodes and adds them to the given builder.
+   */
   private void split0(
       ExpressionTree<AExpression> pExpr,
       ImmutableSet.Builder<ExpressionTree<AExpression>> pSetBuilder) {
@@ -336,7 +355,9 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     }
   }
 
-  /** Read the (initial) precision (predicates to track) from a file. */
+  /**
+   * Read the (initial) precision (predicates to track) from a file.
+   */
   public PredicatePrecision prepareInitialPredicates()
       throws InvalidConfigurationException, InterruptedException {
     PredicatePrecision result = internalPrepareInitialPredicates();

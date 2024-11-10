@@ -18,7 +18,8 @@ import java.util.Objects;
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "entry_type", visible = true)
 @JsonSubTypes({
   @JsonSubTypes.Type(value = InvariantSetEntry.class, name = "invariant_set"),
-  @JsonSubTypes.Type(value = ViolationSequenceEntry.class, name = "violation_sequence")
+  @JsonSubTypes.Type(value = ViolationSequenceEntry.class, name = "violation_sequence"),
+    @JsonSubTypes.Type(value = LemmaSetEntry.class, name = "lemma_set")
 })
 public abstract class AbstractEntry {
 

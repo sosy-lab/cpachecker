@@ -1,0 +1,3 @@
+- entry_type: lemma_set
+  value: "integer maxArray(int *a, integer l) =
+    l == 1 ? a[0] : max(a[l-1],maxArray(a,l-1))"

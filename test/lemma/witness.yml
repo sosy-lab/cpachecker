@@ -1,0 +1,15 @@
+- entry_type: invariant_set
+  metadata:
+    format_version: "2.0"
+    producer:
+      name: "Handcrafted"
+  content:
+    - invariant:
+        type: location_invariant
+        location:
+          file_name: "example.c"
+          line: 10
+          column: 3
+          function: max
+        value: "m == maxArray(a,l)"
+        format: c_expression
