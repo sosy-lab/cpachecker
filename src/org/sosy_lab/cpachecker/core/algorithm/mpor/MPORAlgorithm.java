@@ -374,8 +374,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final ShutdownNotifier shutdownNotifier;
 
-  private final Specification specification;
-
   private final CFA inputCfa;
 
   private final GlobalAccessChecker gac;
@@ -411,7 +409,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       Configuration pConfiguration,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      Specification pSpecification,
       CFA pInputCfa)
       throws InvalidConfigurationException, CPAException, InterruptedException {
 
@@ -419,7 +416,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     config = pConfiguration;
     logger = pLogManager;
     shutdownNotifier = pShutdownNotifier;
-    specification = pSpecification;
     inputCfa = pInputCfa;
 
     handleInitialInputProgramRejections(inputCfa);
@@ -455,7 +451,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     config = null;
     logger = pLogManager;
     shutdownNotifier = null;
-    specification = null;
     inputCfa = pInputCfa;
 
     handleInitialInputProgramRejections(inputCfa);
