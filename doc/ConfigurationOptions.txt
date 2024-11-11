@@ -4501,6 +4501,9 @@ overflow.useLiveness = true
 # properly.
 parallelAlgorithm.configFiles = no default value
 
+# toggle to share the reached set from a analysis to the other analyses
+parallelAlgorithm.shareReachedSet = true
+
 # toggle to write all the files also for the unsuccessful analyses
 parallelAlgorithm.writeUnsuccessfulAnalysisFiles = false
 
