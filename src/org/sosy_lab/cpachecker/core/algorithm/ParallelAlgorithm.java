@@ -97,11 +97,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       description = "toggle to write all the files also for the unsuccessful analyses")
   private boolean writeUnsuccessfulAnalysisFiles = false;
 
-  @Option(
-      secure = true,
-      description = "toggle to share the reached set from a analysis to the other analyses")
-  private boolean shareReachedSet = true;
-
   private static final String SUCCESS_MESSAGE =
       "One of the parallel analyses has finished successfully, cancelling all other runs.";
 
@@ -384,7 +379,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             });
       }
 
-      if (!supplyRefinableReached || !shareReachedSet) {
+      if (!supplyRefinableReached) {
         status = algorithm.run(currentReached);
       } else {
         boolean stopAnalysis = true;
