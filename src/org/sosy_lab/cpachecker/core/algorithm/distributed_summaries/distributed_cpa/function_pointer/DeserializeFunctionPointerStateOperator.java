@@ -49,6 +49,9 @@ public class DeserializeFunctionPointerStateOperator implements DeserializeOpera
         case "I":
           builder.setTarget(parts.get(1), FunctionPointerState.InvalidTarget.getInstance());
           break;
+        case "0":
+          builder.setTarget(parts.get(1), FunctionPointerState.NullTarget.getInstance());
+          break;
         case "U":
           builder.setTarget(parts.get(1), FunctionPointerState.UnknownTarget.getInstance());
           break;
