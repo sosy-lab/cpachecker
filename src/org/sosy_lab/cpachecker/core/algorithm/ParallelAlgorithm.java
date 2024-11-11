@@ -242,6 +242,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException, CPAException, InterruptedException {
     final Path singleConfigFileName = pSingleConfigFileName.value();
     final boolean supplyReached;
+    final boolean supplyRefinable;
     final boolean supplyRefinableReached;
 
     final Configuration singleConfig = createSingleConfig(singleConfigFileName, logger);
@@ -258,10 +259,17 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           switch (pSingleConfigFileName.annotation().orElseThrow()) {
             case "supply-reached" -> {
               supplyReached = true;
+              supplyRefinable = false;
+              yield false;
+            }
+            case "supply-refinable" -> {
+              supplyReached = false;
+              supplyRefinable = true;
               yield false;
             }
             case "supply-reached-refinable" -> {
               supplyReached = false;
+              supplyRefinable = false;
               yield true;
             }
             default ->
@@ -273,6 +281,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           };
     } else {
       supplyReached = false;
+      supplyRefinable = false;
       supplyRefinableReached = false;
     }
 
@@ -332,6 +341,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               singleLogger,
               cpa,
               supplyReached,
+              supplyRefinable,
               supplyRefinableReached,
               coreComponents,
               statisticsEntry);
@@ -347,6 +357,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       final LogManager singleLogger,
       final ConfigurableProgramAnalysis cpa,
       final boolean supplyReached,
+      final boolean supplyRefinable,
       final boolean supplyRefinableReached,
       final CoreComponentsFactory coreComponents,
       final StatisticsEntry pStatisticsEntry)
@@ -396,7 +407,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           Preconditions.checkState(status != null, "algorithm should run at least once.");
 
           // check if we could prove the program to be safe
-          if (status.isSound()
+          if (!supplyRefinable
+              && status.isSound()
               && !from(currentReached)
                   .anyMatch(or(AbstractStates::isTargetState, AbstractStates::hasAssumptions))) {
             ReachedSet oldReachedSet = oldReached.get();
@@ -427,7 +439,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             }
           }
 
-          if (status.isSound()) {
+          if (!supplyRefinable && status.isSound()) {
             singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
             ReachedSet oldReachedSet = oldReached.get();
             if (oldReachedSet != null) {
@@ -450,6 +462,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       // are fulfilled
       if (!currentReached.hasWaitingState()
           && supplyReached
+          && !supplyRefinable
           && !supplyRefinableReached
           && status.isPrecise()
           && status.isSound()) {
