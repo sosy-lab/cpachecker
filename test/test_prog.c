@@ -6,7 +6,7 @@ int main() {
     reach_error(); // Error State 1
     return 1;
   }
-  if ((x & 1) == 0) { // Error Condition -> x is even
+  if (x == 2) { // Error Condition -> x is even
     reach_error(); // Error State 2
     return 1;
   }
