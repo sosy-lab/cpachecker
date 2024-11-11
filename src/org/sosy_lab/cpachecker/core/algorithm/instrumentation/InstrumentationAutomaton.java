@@ -281,11 +281,7 @@ public class InstrumentationAutomaton {
                                         ? " = alloca(sizeof("
                                             + getAllocationForPointer(entry.getValue())
                                             + "))"
-                                        : "")
-                                        + (entry.getValue().equals("int") // Todo: check for int and uint
-                                        ? " = __VERIFIER_nondet_int()" // Todo: Maybe generic type
-                                        : "")
-                                    )
+                                        : ""))
                         .collect(Collectors.joining("; "))
                     + (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
             InstrumentationOrder.BEFORE,
@@ -295,23 +291,23 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("[cond]"),
             new InstrumentationOperation(
-                "if("
-                + liveVariablesAndTypes.entrySet().stream()
+                "if(__VERIFIER_nondet_int() && saved_"
+                    + pIndex
+                    + " == 0) { saved_"
+                    + pIndex
+                    + " =1; "
+                    + liveVariablesAndTypes.entrySet().stream()
                         .map(
                             (entry) ->
-                                "("
-                                    + getDereferencesForPointer(entry.getValue())
-                                    + entry.getKey()
-                                    + " == "
-                                    + getDereferencesForPointer(entry.getValue())
+                                getDereferencesForPointer(entry.getValue())
                                     + entry.getKey()
                                     + "_instr_"
                                     + pIndex
-                                    + ")")
-                        .collect(Collectors.joining("&&"))
-                + ") { saved_"
-                    + pIndex
-                    + " =1; "
+                                    + " = "
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey())
+                        .collect(Collectors.joining("; "))
+                    + (!liveVariablesAndTypes.isEmpty() ? "; " : "")
                     + "} else { __VERIFIER_assert((saved_"
                     + pIndex
                     + " == 0)"
