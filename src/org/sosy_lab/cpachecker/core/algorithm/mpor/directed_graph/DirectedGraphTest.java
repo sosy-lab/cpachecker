@@ -11,11 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.directed_graph;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.Test;
 
-@SuppressWarnings("unused")
-@SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class DirectedGraphTest {
 
   @Test

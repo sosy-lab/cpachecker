@@ -10,12 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.stream.Stream;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -24,8 +20,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 
-@SuppressWarnings("unused")
-@SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class SequentializationTest {
 
   // TODO these trigger an error where the return value assignment is empty
@@ -37,22 +31,18 @@ public class SequentializationTest {
   // TODO this triggers a pthread_create loop error, even though its outside the loop
   // "divinefifo-bug_1w1r.i"
 
-  public SequentializationTest() {}
-
   // TODO add more compile tests
 
   @Test
   public void testCompileSeqQueueLongest() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable_test/queue_longest.i");
     testCompile(path);
-    deleteDir("./output");
   }
 
   @Test
   public void testCompileSeqStack() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable_test/stack-1.i");
     testCompile(path);
-    deleteDir("./output");
   }
 
   private void testCompile(Path pInputFilePath) throws Exception {
@@ -82,20 +72,5 @@ public class SequentializationTest {
       fail = true;
     }
     assertThat(fail).isTrue();
-  }
-
-  private void deleteDir(String pDirPath) throws IOException {
-    try (Stream<Path> paths = Files.walk(Path.of(pDirPath))) {
-      paths
-          .sorted(Comparator.reverseOrder())
-          .forEach(
-              path -> {
-                try {
-                  Files.delete(path);
-                } catch (IOException exception) {
-                  throw new RuntimeException(exception);
-                }
-              });
-    }
   }
 }
