@@ -9,12 +9,14 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -280,17 +282,27 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   /** Sees if any successor of the current edge fulfills {@link CheckEntersElement} */
   public static class CheckReachesElement implements AutomatonBoolExpr {
 
+    private final ImmutableSet<CFAEdge> incomingFrontierEdges;
+
     private final ASTElement elementToEnter;
 
     public CheckReachesElement(ASTElement pElement) {
       elementToEnter = pElement;
+      incomingFrontierEdges =
+          FluentIterable.from(
+                  Sets.difference(
+                      transformedImmutableSetCopy(pElement.edges(), CFAEdge::getPredecessor),
+                      transformedImmutableSetCopy(pElement.edges(), CFAEdge::getSuccessor)))
+              .transformAndConcat(CFAUtils::allLeavingEdges)
+              .filter(edge -> pElement.edges().contains(edge))
+              .toSet();
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
       if (CFAUtils.leavingEdges(edge.getSuccessor())
-          .anyMatch(e -> elementToEnter.edges().contains(e))) {
+          .anyMatch(e -> incomingFrontierEdges.contains(e))) {
         return CONST_TRUE;
       }
 

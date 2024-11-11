@@ -29,6 +29,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -157,12 +158,27 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       return Optional.empty();
     }
 
-    return Optional.of(
-        handleAssumptionWaypoint(
-            ImmutableList.of(
-                pEdgeToAssumptions.get(pEdge).get(edgeToCurrentExpressionIndex.get(pEdge))),
-            pEdge,
-            pAstCfaRelation));
+    ImmutableList<AExpressionStatement> assumptions =
+        ImmutableList.of(
+            pEdgeToAssumptions.get(pEdge).get(edgeToCurrentExpressionIndex.get(pEdge)));
+
+    // We should not export any assumptions which contains a restriction on the value where a
+    // pointer points to in memory, since this may change or not even be valid. CPAchecker tracks
+    // this information internally, but it is meaningless to the user. This is a heuristic to avoid
+    // exporting this information.
+    //
+    // One example of such a case happens in:
+    // sv-benchmarks/c/termination-recursive-malloc/rec_malloc_ex6.i
+    // where the assumption `p1 == 8LL` is present, where p1 is a pointer.
+    ComparesPointerWithNonPointer visitor = new ComparesPointerWithNonPointer();
+    if (FluentIterable.from(assumptions)
+        .transform(AExpressionStatement::getExpression)
+        .filter(CExpression.class)
+        .anyMatch(stmt -> stmt.accept(visitor))) {
+      return Optional.empty();
+    }
+
+    return Optional.of(handleAssumptionWaypoint(assumptions, pEdge, pAstCfaRelation));
   }
 
   /**
