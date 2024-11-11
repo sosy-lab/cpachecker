@@ -4502,6 +4502,9 @@ overflow.useLiveness = true
 parallelAlgorithm.configFiles = no default value
 
 # toggle to write all the files also for the unsuccessful analyses
+parallelAlgorithm.shareReachedSet = true
+
+# toggle to disable sharing of the reached set across the analyses
 parallelAlgorithm.writeUnsuccessfulAnalysisFiles = false
 
 # The command line for calling the clang preprocessor. May contain binary
