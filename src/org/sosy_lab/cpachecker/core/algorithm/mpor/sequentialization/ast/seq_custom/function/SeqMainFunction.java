@@ -206,13 +206,7 @@ public class SeqMainFunction implements SeqFunction {
         + switches
         + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
         + SeqUtil.prependTabsWithNewline(1, SeqSyntax.CURLY_BRACKET_RIGHT)
-        // TODO assert_fail instead of return 0? the return statement should never be reached
-        + SeqUtil.prependTabsWithNewline(
-            1,
-            SeqToken.RETURN
-                + SeqSyntax.SPACE
-                + SeqIntegerLiteralExpression.INT_0.toASTString()
-                + SeqSyntax.SEMICOLON)
+        + SeqUtil.prependTabsWithNewline(1, MPORStatics.seqError() + SeqSyntax.SEMICOLON)
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 
