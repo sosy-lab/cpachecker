@@ -66,7 +66,7 @@ public class SequentializationWriter {
   // TODO also create .yml file for each sequentialized program that contains metadata
   //  e.g. input program, num_treads, etc.
 
-  public String write(String pSequentialization) {
+  public void write(String pSequentialization) {
     String initProgram = licenseComment + "\n" + sequentializationComment + pSequentialization;
     String finalProgram = createFinalProgram(initProgram);
     try {
@@ -98,7 +98,6 @@ public class SequentializationWriter {
       throw Output.fatalError(
           "MPOR FAIL. An IO error occurred while writing the outputProgram: %s", e.getMessage());
     }
-    return finalProgram;
   }
 
   private String extractLicenseComment() {

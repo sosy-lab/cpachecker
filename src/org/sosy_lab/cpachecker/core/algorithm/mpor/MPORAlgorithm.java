@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -86,19 +85,23 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    outputSequentialization();
+    Path inputFilePath = inputCfa.getFileNames().get(0);
+    SequentializationWriter writer = new SequentializationWriter(logger, inputFilePath);
+    writer.write(buildSequentialization(writer.outputFileName));
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  @CanIgnoreReturnValue
-  public String outputSequentialization() throws UnrecognizedCodeException {
-    Path inputFilePath = inputCfa.getFileNames().get(0);
-    SequentializationWriter writer = new SequentializationWriter(logger, inputFilePath);
-    CFunctionCallExpression seqErrorCall = getSeqErrorCall(writer.outputFileName, -1);
+  private void initSeqError(String pOutputFileName) {
     if (!MPORStatics.isSeqErrorSet()) {
+      CFunctionCallExpression seqErrorCall = getSeqErrorCall(pOutputFileName, -1);
       MPORStatics.setSeqError(seqErrorCall.toASTString());
     }
-    return writer.write(seq.generateProgram(substitutions));
+  }
+
+  public String buildSequentialization(String pOutputFileName) throws UnrecognizedCodeException {
+
+    initSeqError(pOutputFileName);
+    return seq.generateProgram(substitutions);
   }
 
   private final ConfigurableProgramAnalysis cpa;

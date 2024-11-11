@@ -36,12 +36,14 @@ public class SequentializationTest {
   @Test
   public void testCompileSeqQueueLongest() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable_test/queue_longest.i");
+    assertThat(Files.exists(path)).isTrue();
     testCompile(path);
   }
 
   @Test
   public void testCompileSeqStack() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable_test/stack-1.i");
+    assertThat(Files.exists(path)).isTrue();
     testCompile(path);
   }
 
@@ -55,7 +57,7 @@ public class SequentializationTest {
 
     // create seq with mpor algorithm
     MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa);
-    String seq = algorithm.outputSequentialization();
+    String seq = algorithm.buildSequentialization("test_seq.i");
 
     // test that seq can be parsed and cfa created ==> code compiles
     CFA seqCfa = creator.parseSourceAndCreateCFA(seq);
