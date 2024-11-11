@@ -73,6 +73,11 @@ import org.sosy_lab.cpachecker.util.CPAs;
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
+  public enum InstanceType {
+    PRODUCTION,
+    TEST
+  }
+
   // TODO remove all @SuppressWarnings once finished
 
   // TODO (not sure if important for our algorithm) PredicateAbstractState.abstractLocations
@@ -151,6 +156,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     shutdownNotifier = pShutdownNotifier;
     inputCfa = pInputCfa;
 
+    MPORStatics.setInstanceType(InstanceType.PRODUCTION);
     InputRejections.handleInitialRejections(inputCfa);
 
     gac = new GlobalAccessChecker();
@@ -178,13 +184,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /** Use this constructor only for test purposes. */
   private MPORAlgorithm(LogManager pLogManager, CFA pInputCfa) {
-
     cpa = null;
     config = null;
     logger = pLogManager;
     shutdownNotifier = null;
     inputCfa = pInputCfa;
 
+    MPORStatics.setInstanceType(InstanceType.TEST);
     InputRejections.handleInitialRejections(inputCfa);
 
     gac = new GlobalAccessChecker();

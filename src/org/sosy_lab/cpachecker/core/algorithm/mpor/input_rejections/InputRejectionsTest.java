@@ -34,9 +34,8 @@ public class InputRejectionsTest {
         new CFACreator(Configuration.builder().build(), logger, ShutdownNotifier.createDummy());
     String program = Files.readString(pInputFilePath);
     CFA inputCfa = creator.parseSourceAndCreateCFA(program);
-
-    // create seq with mpor algorithm
-    Exception exception =
+    // test if MPORAlgorithm rejects program with correct pInputRejection
+    RuntimeException exception =
         assertThrows(RuntimeException.class, () -> MPORAlgorithm.testInstance(logger, inputCfa));
     assertThat(exception.getMessage().contains(pInputRejection)).isTrue();
   }

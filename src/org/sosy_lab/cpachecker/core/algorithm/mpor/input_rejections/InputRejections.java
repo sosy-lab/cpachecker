@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cmdline.Output;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORStatics;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -84,13 +85,19 @@ public class InputRejections {
   private static void checkLanguageC(CFA pInputCfa) {
     Language language = pInputCfa.getMetadata().getInputLanguage();
     if (!language.equals(Language.C)) {
-      throw Output.fatalError(LANGUAGE_NOT_C);
+      switch (MPORStatics.instanceType()) {
+        case PRODUCTION -> throw Output.fatalError(LANGUAGE_NOT_C);
+        case TEST -> throw new RuntimeException(LANGUAGE_NOT_C);
+      }
     }
   }
 
   private static void checkOneInputFile(CFA pInputCfa) {
     if (pInputCfa.getFileNames().size() != 1) {
-      throw Output.fatalError(MULTIPLE_INPUT_FILES);
+      switch (MPORStatics.instanceType()) {
+        case PRODUCTION -> throw Output.fatalError(MULTIPLE_INPUT_FILES);
+        case TEST -> throw new RuntimeException(MULTIPLE_INPUT_FILES);
+      }
     }
   }
 
@@ -103,7 +110,10 @@ public class InputRejections {
       }
     }
     if (!isParallel) {
-      throw Output.fatalError(NOT_PARALLEL);
+      switch (MPORStatics.instanceType()) {
+        case PRODUCTION -> throw Output.fatalError(NOT_PARALLEL);
+        case TEST -> throw new RuntimeException(NOT_PARALLEL);
+      }
     }
   }
 
@@ -164,7 +174,10 @@ public class InputRejections {
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         if (MPORUtil.isSelfReachable(cfaEdge, Optional.empty(), new ArrayList<>(), cfaEdge)) {
-          throw Output.fatalError(PTHREAD_CREATE_LOOP);
+          switch (MPORStatics.instanceType()) {
+            case PRODUCTION -> throw Output.fatalError(PTHREAD_CREATE_LOOP);
+            case TEST -> throw new RuntimeException(PTHREAD_CREATE_LOOP);
+          }
         }
       }
     }
