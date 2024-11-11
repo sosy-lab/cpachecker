@@ -183,6 +183,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
             quantifier_solver);
     //eliminated = solver.getFormulaManager().translateFrom(eliminated, quantifier_solver.getFormulaManager());
     eliminated = solver.getFormulaManager().simplify(eliminated);
+    logger.log(Level.INFO,"Elemenated:" + eliminated);
     //exclude path formula to ignore already covered paths.
     exclude = manager.makeAnd(exclude,
             solver.getFormulaManager().getBooleanFormulaManager().not(eliminated))
@@ -192,7 +193,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     FormulaToCVisitor visitor = new FormulaToCVisitor(solver.getFormulaManager(), id->id);
     solver.getFormulaManager().visit(exclude.getFormula(), visitor);
 
-    System.out.println("Error Condition: " + visitor.getString());
+    logger.log(Level.INFO,"Error Condition: " + visitor.getString());
     return exclude;
   }
 
