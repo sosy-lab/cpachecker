@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -85,10 +86,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    String program = outputSequentialization();
+    outputSequentialization();
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
+  @CanIgnoreReturnValue
   public String outputSequentialization() throws UnrecognizedCodeException {
     Path inputFilePath = inputCfa.getFileNames().get(0);
     SequentializationWriter writer = new SequentializationWriter(logger, inputFilePath);

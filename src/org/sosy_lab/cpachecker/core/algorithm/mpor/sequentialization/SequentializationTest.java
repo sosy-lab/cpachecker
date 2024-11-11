@@ -92,8 +92,8 @@ public class SequentializationTest {
               path -> {
                 try {
                   Files.delete(path);
-                } catch (IOException pE) {
-                  throw new RuntimeException(pE);
+                } catch (IOException exception) {
+                  throw new RuntimeException(exception);
                 }
               });
     }
