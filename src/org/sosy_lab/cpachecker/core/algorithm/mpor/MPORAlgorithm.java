@@ -92,6 +92,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   private void initSeqError(String pOutputFileName) {
+    // TODO given that this check is only used in Testing, we should change it...
     if (!MPORStatics.isSeqErrorSet()) {
       CFunctionCallExpression seqErrorCall = getSeqErrorCall(pOutputFileName, -1);
       MPORStatics.setSeqError(seqErrorCall.toASTString());
@@ -190,7 +191,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     shutdownNotifier = null;
     inputCfa = pInputCfa;
 
-    MPORStatics.setInstanceType(InstanceType.TEST);
+    if (!MPORStatics.isInstanceTypeSet()) {
+      MPORStatics.setInstanceType(InstanceType.TEST);
+    }
     InputRejections.handleInitialRejections(inputCfa);
 
     gac = new GlobalAccessChecker();

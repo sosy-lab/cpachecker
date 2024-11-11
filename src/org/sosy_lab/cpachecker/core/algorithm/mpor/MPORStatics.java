@@ -21,6 +21,10 @@ public class MPORStatics {
 
   private static InstanceType instanceType = null;
 
+  public static boolean isInstanceTypeSet() {
+    return instanceType != null;
+  }
+  
   public static InstanceType instanceType() {
     checkArgument(instanceType != null, "instanceType was not initialized yet");
     return instanceType;
