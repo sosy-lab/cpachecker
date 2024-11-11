@@ -1408,6 +1408,16 @@ public class AssumptionToEdgeAllocator {
       return new ValueLiterals();
     }
 
+    private static boolean isSinglePrecision(FloatingPointNumber pFloatingPointNumber) {
+      return pFloatingPointNumber.getExponentSize() == 8
+          && pFloatingPointNumber.getMantissaSize() == 23;
+    }
+
+    private static boolean isDoublePrecision(FloatingPointNumber pFloatingPointNumber) {
+      return pFloatingPointNumber.getExponentSize() == 11
+          && pFloatingPointNumber.getMantissaSize() == 52;
+    }
+
     private ValueLiteral handleFloatingPointNumbers(Object pValue, CSimpleType pType) {
 
       if (pValue instanceof Rational) {
@@ -1433,13 +1443,17 @@ public class AssumptionToEdgeAllocator {
         }
         return ExplicitValueLiteral.valueOf(BigDecimal.valueOf(floatValue), pType);
       } else if (pValue instanceof FloatingPointNumber floatingPointNumber) {
-        // The class FloatingPointNumber from Java SMT does not allow us to check if something is a
-        // float or a double, so we just overapproximate using a double
-        double doubleValue = floatingPointNumber.doubleValue();
-        if (Double.isInfinite(doubleValue) || Double.isNaN(doubleValue)) {
-          // TODO return correct value
+        if (!isDoublePrecision(floatingPointNumber) && !isSinglePrecision(floatingPointNumber)) {
+          // TODO return correct value once we have arbitrary floats
           return UnknownValueLiteral.getInstance();
         }
+
+        double doubleValue = floatingPointNumber.doubleValue();
+        if (Double.isInfinite(doubleValue) || Double.isNaN(doubleValue)) {
+          // TODO return correct value once we have arbitrary floats
+          return UnknownValueLiteral.getInstance();
+        }
+
         return ExplicitValueLiteral.valueOf(BigDecimal.valueOf(doubleValue), pType);
       }
 
