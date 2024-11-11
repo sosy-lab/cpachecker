@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejections.InputRejections;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
@@ -91,8 +93,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     }
   }
 
+  @CanIgnoreReturnValue
   public String buildSequentialization(String pOutputFileName) throws UnrecognizedCodeException {
-
     initSeqError(pOutputFileName);
     return seq.generateProgram(substitutions);
   }
@@ -149,7 +151,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     shutdownNotifier = pShutdownNotifier;
     inputCfa = pInputCfa;
 
-    ProgramRejections.handleInitialRejections(inputCfa);
+    InputRejections.handleInitialRejections(inputCfa);
 
     gac = new GlobalAccessChecker();
     PredicateCPA predicateCpa =
@@ -183,7 +185,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     shutdownNotifier = null;
     inputCfa = pInputCfa;
 
-    ProgramRejections.handleInitialRejections(inputCfa);
+    InputRejections.handleInitialRejections(inputCfa);
 
     gac = new GlobalAccessChecker();
     ptr = null;
@@ -269,7 +271,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     // add the main thread
     FunctionEntryNode mainEntryNode = pCfa.getMainFunction();
-    FunctionExitNode mainExitNode = ProgramRejections.getFunctionExitNode(mainEntryNode);
+    FunctionExitNode mainExitNode = InputRejections.getFunctionExitNode(mainEntryNode);
     assert threadBuilder != null;
     rThreads.add(threadBuilder.createThread(Optional.empty(), mainEntryNode, mainExitNode));
 
@@ -282,7 +284,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         CFunctionType startRoutine = PthreadUtil.extractStartRoutine(cfaEdge);
         FunctionEntryNode entryNode =
             CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, startRoutine);
-        FunctionExitNode exitNode = ProgramRejections.getFunctionExitNode(entryNode);
+        FunctionExitNode exitNode = InputRejections.getFunctionExitNode(entryNode);
         rThreads.add(
             threadBuilder.createThread(Optional.ofNullable(pthreadT), entryNode, exitNode));
       }

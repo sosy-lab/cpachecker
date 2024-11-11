@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejections;
 
 import java.util.ArrayList;
 import java.util.Optional;
@@ -20,10 +20,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cmdline.Output;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class ProgramRejections {
+public class InputRejections {
 
   public static final String LANGUAGE_NOT_C = "MPOR only supports language C";
 

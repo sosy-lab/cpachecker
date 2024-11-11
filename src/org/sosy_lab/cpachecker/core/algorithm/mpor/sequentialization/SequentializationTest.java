@@ -35,14 +35,14 @@ public class SequentializationTest {
 
   @Test
   public void testCompileSeqQueueLongest() throws Exception {
-    Path path = Path.of("./test/programs/mpor_seq/seq_compilable_test/queue_longest.i");
+    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/queue_longest.i");
     assertThat(Files.exists(path)).isTrue();
     testCompile(path);
   }
 
   @Test
   public void testCompileSeqStack() throws Exception {
-    Path path = Path.of("./test/programs/mpor_seq/seq_compilable_test/stack-1.i");
+    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/stack-1.i");
     assertThat(Files.exists(path)).isTrue();
     testCompile(path);
   }
