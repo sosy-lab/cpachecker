@@ -193,7 +193,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     FormulaToCVisitor visitor = new FormulaToCVisitor(solver.getFormulaManager(), id->id);
     solver.getFormulaManager().visit(exclude.getFormula(), visitor);
 
-    logger.log(Level.INFO,"Error Condition: " + visitor.getString());
+    logger.log(Level.INFO,"Error Condition: " + solver.getFormulaManager().simplify(exclude.getFormula()));
     return exclude;
   }
 
