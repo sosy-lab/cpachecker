@@ -13,24 +13,18 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -39,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cmdline.Output;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -148,7 +141,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       CFA pInputCfa)
-      throws InvalidConfigurationException, UnrecognizedCodeException {
+      throws InvalidConfigurationException {
 
     cpa = pCpa;
     config = pConfiguration;
@@ -156,7 +149,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     shutdownNotifier = pShutdownNotifier;
     inputCfa = pInputCfa;
 
-    handleInitialInputProgramRejections(inputCfa);
+    ProgramRejections.handleInitialRejections(inputCfa);
 
     gac = new GlobalAccessChecker();
     PredicateCPA predicateCpa =
@@ -190,7 +183,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     shutdownNotifier = null;
     inputCfa = pInputCfa;
 
-    handleInitialInputProgramRejections(inputCfa);
+    ProgramRejections.handleInitialRejections(inputCfa);
 
     gac = new GlobalAccessChecker();
     ptr = null;
@@ -211,154 +204,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads);
 
     seq = new Sequentialization(threads.size());
-  }
-
-  // Input program rejections ====================================================================
-
-  /**
-   * Handles initial (i.e. more may come at later stages of the MPOR transformation) input program
-   * rejections and throws an {@link IllegalArgumentException} if the input program...
-   *
-   * <ul>
-   *   <li>is not in C
-   *   <li>contains multiple files
-   *   <li>has no call to {@code pthread_create} i.e. is not parallel
-   *   <li>uses arrays for {@code pthread_t} or {@code pthread_mutex_t} identifiers
-   *   <li>stores the return value of any pthread method call
-   *   <li>contains any unsupported {@code pthread} function, see {@link PthreadFuncType}
-   *   <li>contains a {@code pthread_create} call in a loop
-   *   <li>contains a recursive function call (both direct and indirect)
-   * </ul>
-   */
-  private void handleInitialInputProgramRejections(CFA pInputCfa) {
-    // TODO check for preprocessed files (all files must have .i ending)
-    checkLanguageC(pInputCfa);
-    checkOneInputFile(pInputCfa);
-    checkIsParallelProgram(pInputCfa);
-    checkUnsupportedFunctions(pInputCfa);
-    checkPthreadArrayIdentifiers(pInputCfa);
-    checkPthreadFunctionReturnValues(pInputCfa);
-    // these are recursive and can be expensive, so they are last
-    checkPthreadCreateLoops(pInputCfa);
-    checkRecursiveFunctions(pInputCfa);
-  }
-
-  private void checkLanguageC(CFA pInputCfa) {
-    Language language = pInputCfa.getMetadata().getInputLanguage();
-    if (!language.equals(Language.C)) {
-      throw Output.fatalError("MPOR does not support the language %s", language);
-    }
-  }
-
-  private void checkOneInputFile(CFA pInputCfa) {
-    if (pInputCfa.getFileNames().size() != 1) {
-      throw Output.fatalError("MPOR expects exactly one input file");
-    }
-  }
-
-  private void checkIsParallelProgram(CFA pInputCfa) {
-    boolean isParallel = false;
-    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
-        isParallel = true;
-        break;
-      }
-    }
-    if (!isParallel) {
-      throw Output.fatalError(
-          "MPOR expects parallel C program with at least one pthread_create call");
-    }
-  }
-
-  private void checkPthreadArrayIdentifiers(CFA pInputCfa) {
-    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      for (PthreadFuncType funcType : PthreadFuncType.values()) {
-        if (funcType.isSupported && PthreadFuncType.callsPthreadFunc(cfaEdge, funcType)) {
-          if (funcType.hasPthreadTIndex()) {
-            int pthreadTIndex = funcType.getPthreadTIndex();
-            CExpression parameter = CFAUtils.getParameterAtIndex(cfaEdge, pthreadTIndex);
-            if (isArraySubscriptExpression(parameter)) {
-              throw Output.fatalError(
-                  "MPOR does not support arrays as pthread_t parameters in line %s: %s",
-                  cfaEdge.getLineNumber(), cfaEdge.getCode());
-            }
-          }
-          if (funcType.hasPthreadMutexTIndex()) {
-            int pthreadMutexTIndex = funcType.getPthreadMutexTIndex();
-            CExpression parameter = CFAUtils.getParameterAtIndex(cfaEdge, pthreadMutexTIndex);
-            if (isArraySubscriptExpression(parameter)) {
-              throw Output.fatalError(
-                  "MPOR does not support arrays as pthread_mutex_t parameters in line %s: %s",
-                  cfaEdge.getLineNumber(), cfaEdge.getCode());
-            }
-          }
-        }
-      }
-    }
-  }
-
-  private void checkUnsupportedFunctions(CFA pInputCfa) {
-    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
-      for (PthreadFuncType funcType : PthreadFuncType.values()) {
-        if (!funcType.isSupported) {
-          if (PthreadFuncType.callsPthreadFunc(edge, funcType)) {
-            throw Output.fatalError(
-                "MPOR does not support the function in line %s: %s",
-                edge.getLineNumber(), edge.getCode());
-          }
-        }
-      }
-    }
-  }
-
-  private void checkPthreadFunctionReturnValues(CFA pInputCfa) {
-    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
-      if (PthreadFuncType.callsAnyPthreadFunc(edge)) {
-        if (edge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
-          throw Output.fatalError(
-              "MPOR does not support pthread method return value assignments, see line %s: %s",
-              edge.getLineNumber(), edge.getCode());
-        }
-      }
-    }
-  }
-
-  /**
-   * Recursively checks if any {@code pthread_create} call in pInputCfa can be reached from itself,
-   * i.e. if it is in a loop (or in a recursive call).
-   */
-  private void checkPthreadCreateLoops(CFA pInputCfa) {
-    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
-        if (MPORUtil.isSelfReachable(cfaEdge, Optional.empty(), new ArrayList<>(), cfaEdge)) {
-          throw Output.fatalError("MPOR does not support pthread_create calls in loops");
-        }
-      }
-    }
-  }
-
-  private void checkRecursiveFunctions(CFA pInputCfa) {
-    for (FunctionEntryNode entry : pInputCfa.entryNodes()) {
-      Optional<FunctionExitNode> exit = entry.getExitNode();
-      // "upcasting" exit from FunctionExitNode to CFANode is necessary here...
-      if (MPORUtil.isSelfReachable(entry, exit.map(node -> node), new ArrayList<>(), entry)) {
-        throw Output.fatalError(
-            "MPOR does not support the (in)direct recursive function %s in line %s",
-            entry.getFunctionName(), entry.getFunction().getFileLocation().getStartingLineNumber());
-      }
-    }
-  }
-
-  /**
-   * Tries to extract the FunctionExitNode from the given FunctionEntryNode and throws an {@link
-   * IllegalArgumentException} if there is none.
-   */
-  public static FunctionExitNode getFunctionExitNode(FunctionEntryNode pFunctionEntryNode) {
-    if (pFunctionEntryNode.getExitNode().isEmpty()) {
-      throw Output.fatalError(
-          "MPOR expects the main function and all start routines to contain a FunctionExitNode");
-    }
-    return pFunctionEntryNode.getExitNode().orElseThrow();
   }
 
   // Variable Initializers =======================================================================
@@ -424,7 +269,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     // add the main thread
     FunctionEntryNode mainEntryNode = pCfa.getMainFunction();
-    FunctionExitNode mainExitNode = getFunctionExitNode(mainEntryNode);
+    FunctionExitNode mainExitNode = ProgramRejections.getFunctionExitNode(mainEntryNode);
     assert threadBuilder != null;
     rThreads.add(threadBuilder.createThread(Optional.empty(), mainEntryNode, mainExitNode));
 
@@ -437,25 +282,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         CFunctionType startRoutine = PthreadUtil.extractStartRoutine(cfaEdge);
         FunctionEntryNode entryNode =
             CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, startRoutine);
-        FunctionExitNode exitNode = getFunctionExitNode(entryNode);
+        FunctionExitNode exitNode = ProgramRejections.getFunctionExitNode(entryNode);
         rThreads.add(
             threadBuilder.createThread(Optional.ofNullable(pthreadT), entryNode, exitNode));
       }
     }
     return rThreads.build();
-  }
-
-  // (Private) Helpers ===========================================================================
-
-  private boolean isArraySubscriptExpression(CExpression pExpression) {
-    if (pExpression instanceof CArraySubscriptExpression) {
-      return true;
-    } else if (pExpression instanceof CUnaryExpression unary) {
-      if (unary.getOperand() instanceof CArraySubscriptExpression) {
-        return true;
-      }
-    }
-    return false;
   }
 
   /**
