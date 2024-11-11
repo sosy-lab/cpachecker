@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejections;
 
+import com.google.errorprone.annotations.FormatMethod;
+import com.google.errorprone.annotations.FormatString;
 import java.util.ArrayList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -38,18 +40,18 @@ public class InputRejections {
       "MPOR does not support pthread_create calls in loops (or recursive functions)";
 
   public static final String NO_PTHREAD_T_ARRAYS =
-      "MPOR does not support arrays as pthread_t parameters in line ";
+      "MPOR does not support arrays as pthread_t parameters in line %s: %s";
 
   public static final String NO_PTHREAD_MUTEX_T_ARRAYS =
-      "MPOR does not support arrays as pthread_mutex_t parameters in line ";
+      "MPOR does not support arrays as pthread_mutex_t parameters in line %s: %s";
 
-  public static final String UNSUPPORTED_FUNC = "MPOR does not support the function in line ";
+  public static final String UNSUPPORTED_FUNC = "MPOR does not support the function in line %s: %s";
 
   public static final String PTHREAD_RETURN_VALUES =
-      "MPOR does not support pthread method return value assignments in line ";
+      "MPOR does not support pthread method return value assignments in line %s: %s";
 
   public static final String RECURSIVE_FUNCTION =
-      "MPOR does not support the (in)direct recursive function in line ";
+      "MPOR does not support the (in)direct recursive function in line %s: %s";
 
   public static final String NO_FUNC_EXIT_NODE =
       "MPOR expects the main function and all start routines to contain a FunctionExitNode";
@@ -82,22 +84,25 @@ public class InputRejections {
     checkRecursiveFunctions(pInputCfa);
   }
 
+  @FormatMethod
+  private static void handleRejection(@FormatString final String pMessage, Object... args) {
+    switch (MPORStatics.instanceType()) {
+      case PRODUCTION -> throw Output.fatalError(pMessage, args);
+      case TEST -> throw new RuntimeException(String.format(pMessage, args));
+      default -> throw Output.fatalError("Invalid InstanceType: %s", MPORStatics.instanceType());
+    }
+  }
+
   private static void checkLanguageC(CFA pInputCfa) {
     Language language = pInputCfa.getMetadata().getInputLanguage();
     if (!language.equals(Language.C)) {
-      switch (MPORStatics.instanceType()) {
-        case PRODUCTION -> throw Output.fatalError(LANGUAGE_NOT_C);
-        case TEST -> throw new RuntimeException(LANGUAGE_NOT_C);
-      }
+      handleRejection(LANGUAGE_NOT_C);
     }
   }
 
   private static void checkOneInputFile(CFA pInputCfa) {
     if (pInputCfa.getFileNames().size() != 1) {
-      switch (MPORStatics.instanceType()) {
-        case PRODUCTION -> throw Output.fatalError(MULTIPLE_INPUT_FILES);
-        case TEST -> throw new RuntimeException(MULTIPLE_INPUT_FILES);
-      }
+      handleRejection(MULTIPLE_INPUT_FILES);
     }
   }
 
@@ -110,10 +115,7 @@ public class InputRejections {
       }
     }
     if (!isParallel) {
-      switch (MPORStatics.instanceType()) {
-        case PRODUCTION -> throw Output.fatalError(NOT_PARALLEL);
-        case TEST -> throw new RuntimeException(NOT_PARALLEL);
-      }
+      handleRejection(NOT_PARALLEL);
     }
   }
 
@@ -125,16 +127,15 @@ public class InputRejections {
             int pthreadTIndex = funcType.getPthreadTIndex();
             CExpression parameter = CFAUtils.getParameterAtIndex(cfaEdge, pthreadTIndex);
             if (isArraySubscriptExpression(parameter)) {
-              throw Output.fatalError(
-                  NO_PTHREAD_T_ARRAYS + "%s: %s", cfaEdge.getLineNumber(), cfaEdge.getCode());
+              handleRejection(NO_PTHREAD_T_ARRAYS, cfaEdge.getLineNumber(), cfaEdge.getCode());
             }
           }
           if (funcType.hasPthreadMutexTIndex()) {
             int pthreadMutexTIndex = funcType.getPthreadMutexTIndex();
             CExpression parameter = CFAUtils.getParameterAtIndex(cfaEdge, pthreadMutexTIndex);
             if (isArraySubscriptExpression(parameter)) {
-              throw Output.fatalError(
-                  NO_PTHREAD_MUTEX_T_ARRAYS + "%s: %s", cfaEdge.getLineNumber(), cfaEdge.getCode());
+              handleRejection(
+                  NO_PTHREAD_MUTEX_T_ARRAYS, cfaEdge.getLineNumber(), cfaEdge.getCode());
             }
           }
         }
@@ -147,8 +148,7 @@ public class InputRejections {
       for (PthreadFuncType funcType : PthreadFuncType.values()) {
         if (!funcType.isSupported) {
           if (PthreadFuncType.callsPthreadFunc(edge, funcType)) {
-            throw Output.fatalError(
-                UNSUPPORTED_FUNC + "%s: %s", edge.getLineNumber(), edge.getCode());
+            handleRejection(UNSUPPORTED_FUNC, edge.getLineNumber(), edge.getCode());
           }
         }
       }
@@ -159,8 +159,7 @@ public class InputRejections {
     for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadFuncType.callsAnyPthreadFunc(edge)) {
         if (edge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
-          throw Output.fatalError(
-              PTHREAD_RETURN_VALUES + "%s: %s", edge.getLineNumber(), edge.getCode());
+          handleRejection(PTHREAD_RETURN_VALUES, edge.getLineNumber(), edge.getCode());
         }
       }
     }
@@ -174,10 +173,7 @@ public class InputRejections {
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         if (MPORUtil.isSelfReachable(cfaEdge, Optional.empty(), new ArrayList<>(), cfaEdge)) {
-          switch (MPORStatics.instanceType()) {
-            case PRODUCTION -> throw Output.fatalError(PTHREAD_CREATE_LOOP);
-            case TEST -> throw new RuntimeException(PTHREAD_CREATE_LOOP);
-          }
+          handleRejection(PTHREAD_CREATE_LOOP);
         }
       }
     }
@@ -188,8 +184,8 @@ public class InputRejections {
       Optional<FunctionExitNode> exit = entry.getExitNode();
       // "upcasting" exit from FunctionExitNode to CFANode is necessary here...
       if (MPORUtil.isSelfReachable(entry, exit.map(node -> node), new ArrayList<>(), entry)) {
-        throw Output.fatalError(
-            RECURSIVE_FUNCTION + "%s: %s",
+        handleRejection(
+            RECURSIVE_FUNCTION,
             entry.getFunction().getFileLocation().getStartingLineNumber(),
             entry.getFunctionName());
       }
@@ -202,7 +198,7 @@ public class InputRejections {
    */
   public static FunctionExitNode getFunctionExitNode(FunctionEntryNode pFunctionEntryNode) {
     if (pFunctionEntryNode.getExitNode().isEmpty()) {
-      throw Output.fatalError(NO_FUNC_EXIT_NODE);
+      handleRejection(NO_FUNC_EXIT_NODE);
     }
     return pFunctionEntryNode.getExitNode().orElseThrow();
   }
