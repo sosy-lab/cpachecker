@@ -36,10 +36,8 @@ public class InputRejectionsTest {
     CFA inputCfa = creator.parseSourceAndCreateCFA(program);
 
     // create seq with mpor algorithm
-    MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa);
     Exception exception =
-        assertThrows(
-            RuntimeException.class, () -> algorithm.buildSequentialization("mpor_seq__test.i"));
+        assertThrows(RuntimeException.class, () -> MPORAlgorithm.testInstance(logger, inputCfa));
     assertThat(exception.getMessage().contains(pInputRejection)).isTrue();
   }
 
@@ -51,15 +49,13 @@ public class InputRejectionsTest {
 
   @Test
   public void testRejectIndirectRecursion() throws Exception {
-    Path inputFilePath =
-        Path.of("./test/programs/mpor_seq/input_rejections/indirect_recursion.i");
+    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/indirect_recursion.i");
     testExpectedRejection(inputFilePath, InputRejections.RECURSIVE_FUNCTION);
   }
 
   @Test
   public void testRejectPthreadCreateLoop() throws Exception {
-    Path inputFilePath =
-        Path.of("./test/programs/mpor_seq/input_rejections/pthread_create_loop.i");
+    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/pthread_create_loop.i");
     testExpectedRejection(inputFilePath, InputRejections.PTHREAD_CREATE_LOOP);
   }
 }
