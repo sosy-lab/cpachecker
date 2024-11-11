@@ -384,7 +384,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             });
       }
 
-      if (!supplyRefinableReached) {
+      if (!supplyRefinableReached || !shareReachedSet) {
         status = algorithm.run(currentReached);
       } else {
         boolean stopAnalysis = true;
@@ -435,7 +435,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           if (status.isSound()) {
             singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
             ReachedSet oldReachedSet = oldReached.get();
-            if (oldReachedSet != null && shareReachedSet) {
+            if (oldReachedSet != null) {
               aggregatedReachedSetManager.updateReachedSet(oldReachedSet, currentReached);
             } else {
               aggregatedReachedSetManager.addReachedSet(currentReached);
