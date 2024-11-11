@@ -23,6 +23,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 
 public class InputRejectionsTest {
 
+  /**
+   * Tests for pInputFilePath if it throws an {@link RuntimeException} with the message
+   * pInputRejection in it.
+   */
   private void testExpectedRejection(Path pInputFilePath, String pInputRejection) throws Exception {
     // create cfa for test program pFileName
     LogManager logger = LogManager.createTestLogManager();
@@ -41,14 +45,21 @@ public class InputRejectionsTest {
 
   @Test
   public void testRejectDirectRecursion() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/direction_recursion.i");
+    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/direct_recursion.i");
     testExpectedRejection(inputFilePath, InputRejections.RECURSIVE_FUNCTION);
   }
 
   @Test
   public void testRejectIndirectRecursion() throws Exception {
     Path inputFilePath =
-        Path.of("./test/programs/mpor_seq/input_rejections/indirection_recursion.i");
+        Path.of("./test/programs/mpor_seq/input_rejections/indirect_recursion.i");
     testExpectedRejection(inputFilePath, InputRejections.RECURSIVE_FUNCTION);
+  }
+
+  @Test
+  public void testRejectPthreadCreateLoop() throws Exception {
+    Path inputFilePath =
+        Path.of("./test/programs/mpor_seq/input_rejections/pthread_create_loop.i");
+    testExpectedRejection(inputFilePath, InputRejections.PTHREAD_CREATE_LOOP);
   }
 }
