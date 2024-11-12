@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithm.ConcolicInput;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;

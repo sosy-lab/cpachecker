@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithmRandom;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummaryAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
@@ -199,6 +200,12 @@ public class CoreComponentsFactory {
       name = "useConcolic",
       description = "generate test cases using the Concolic Execution algorithm")
   private boolean useConcolic = false;
+
+  @Option(
+      secure = true,
+      name = "concolicSearchAlgorithm",
+      description = "search algorithm for concolic execution")
+  private String concolicSearchAlgorithm = "generational";
 
   @Option(
       secure = true,
@@ -667,13 +674,54 @@ public class CoreComponentsFactory {
       if (useConcolic) {
         System.out.println("Using Concolic Execution");
         try {
-          algorithm = new ConcolicAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa, concolicCoverageCriterion);
+          switch (concolicSearchAlgorithm) {
+            case "generational":
+              System.out.println("Using Generational Search Algorithm");
+              algorithm =
+                  new ConcolicAlgorithm(
+                      algorithm,
+                      cpa,
+                      config,
+                      logger,
+                      shutdownNotifier,
+                      cfa,
+                      concolicCoverageCriterion);
+              break;
+            case "random":
+              System.out.println("Using Random Search Algorithm");
+              algorithm =
+                  new ConcolicAlgorithmRandom(
+                      algorithm,
+                      cpa,
+                      config,
+                      logger,
+                      shutdownNotifier,
+                      cfa,
+                      concolicCoverageCriterion,
+                      concolicSearchAlgorithm);
+              break;
+            case "DFS":
+              System.out.println("Using DFS Search Algorithm");
+              algorithm =
+                  new ConcolicAlgorithmRandom(
+                      algorithm,
+                      cpa,
+                      config,
+                      logger,
+                      shutdownNotifier,
+                      cfa,
+                      concolicCoverageCriterion,
+                      concolicSearchAlgorithm);
+              break;
+            default:
+              throw new InvalidConfigurationException(
+                  "Unknown concolic search algorithm: " + concolicSearchAlgorithm);
+          }
         } catch (Exception e) {
           System.out.println("Exception in ConcolicAlgorithm");
           System.out.println(e.toString());
           throw new Error(e.toString());
         }
-        //        algorithm = new ConcolicAlgorithm(config, logger, shutdownNotifier, cfa);
       }
 
       if (collectAssumptions) {

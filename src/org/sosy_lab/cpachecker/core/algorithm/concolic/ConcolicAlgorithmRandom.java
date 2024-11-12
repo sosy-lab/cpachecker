@@ -14,12 +14,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -36,18 +36,16 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithm.CoverageCriterion;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -65,8 +63,9 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
+@SuppressWarnings("Duplicates")
 @Options(prefix = "concolic")
-public class ConcolicAlgorithm implements Algorithm {
+public class ConcolicAlgorithmRandom implements Algorithm {
 
   //  @Option(
   //      secure = true,
@@ -87,6 +86,7 @@ public class ConcolicAlgorithm implements Algorithm {
   //   AssumeEdges for condition coverage
   //   blocks after the AssumeEdge for block coverage
   private final Set<AbstractCFAEdge> visitedBlocks;
+  private final Set<List<Constraint>> checkedConstraints;
   private final Set<List<CFAEdge>> visitedPaths;
 
   // TODO remove public -> Singleton in NondeterministicValueProvider?
@@ -96,8 +96,10 @@ public class ConcolicAlgorithm implements Algorithm {
 
   private final ConstraintsCPA constraintsCPA;
   TestCaseExporter exporter;
-  CPAAlgorithm concreteAlgorithmCE; // for the concrete execution
-  private final ConfigurableProgramAnalysis argCpaCE;
+  //  CPAAlgorithm concreteAlgorithmCE; // for the concrete execution
+  //  private final ConfigurableProgramAnalysis argCpaCE;
+  private Random rnd;
+  private SearchAlgorithm searchAlgorithm;
 
   // deterministic comparator
   //  public class DeterministicConcolicInputComparator implements Comparator<ConcolicInput> {
@@ -109,17 +111,27 @@ public class ConcolicAlgorithm implements Algorithm {
   //    }
   //  }
 
-  public ConcolicAlgorithm(
+  public ConcolicAlgorithmRandom(
       Algorithm pAlgorithm,
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
-      String concolicCoverageCriterion)
+      String concolicCoverageCriterion,
+      String pSearchAlgorithm)
       throws Exception {
+    if (pSearchAlgorithm.equals("random")) {
+      this.searchAlgorithm = SearchAlgorithm.RANDOM;
+    } else if (pSearchAlgorithm.equals("DFS")) {
+      this.searchAlgorithm = SearchAlgorithm.DFS;
+    } else {
+      throw new Error("SearchAlgorithm not known");
+    }
+    //    this.searchAlgorithm = pSearchAlgorithm;
     isInitialized = true;
     this.visitedBlocks = new HashSet<>();
+    this.checkedConstraints = new HashSet<>();
     this.visitedPaths = new HashSet<>();
     if (Objects.equals(concolicCoverageCriterion, "condition")) {
       this.coverageCriterion = CoverageCriterion.CONDITION;
@@ -138,20 +150,11 @@ public class ConcolicAlgorithm implements Algorithm {
     this.machineModel = cfa.getMachineModel();
 
     this.constraintsCPA =
-        CPAs.retrieveCPAOrFail(cpa, ConstraintsCPA.class, ConcolicAlgorithm.class);
+        CPAs.retrieveCPAOrFail(cpa, ConstraintsCPA.class, ConcolicAlgorithmRandom.class);
 
     this.constraintsSolver = constraintsCPA.getSolver();
-
-    Configuration configCE = null;
-    if (coverageCriterion == CoverageCriterion.CONDITION) {
-      configCE =
-          Configuration.builder().loadFromFile("config/concolic-only-concrete.properties").build();
-    } else if (coverageCriterion == CoverageCriterion.ERROR) {
-      configCE =
-          Configuration.builder()
-              .loadFromFile("config/concolic-only-concrete-error-coverage.properties")
-              .build();
-    }
+    Configuration configCE =
+        Configuration.builder().loadFromFile("config/concolic-only-concrete.properties").build();
 
     ValueAnalysisConcreteCPA concreteCPACE =
         new ValueAnalysisConcreteCPA(configCE, logger, shutdownNotifier, cfa);
@@ -169,32 +172,34 @@ public class ConcolicAlgorithm implements Algorithm {
             .setLogger(logger)
             .createInstance();
 
-    List<ConfigurableProgramAnalysis> analysesCE = new ArrayList<>();
-    analysesCE.add(locationCpaCE);
-    analysesCE.add(concreteCPACE);
-    analysesCE.add(callstackCpaCE);
-    ConfigurableProgramAnalysis concreteCPACompositeCE =
-        CompositeCPA.factory()
-            .setChildren(new ArrayList<>(analysesCE))
-            .set(ImmutableList.of(new ArrayList<>(analysesCE)), ImmutableList.class)
-            .set(cfa, CFA.class)
-            .setConfiguration(configCE)
-            .createInstance();
+    //    List<ConfigurableProgramAnalysis> analysesCE = new ArrayList<>();
+    //    analysesCE.add(locationCpaCE);
+    //    analysesCE.add(concreteCPACE);
+    //    analysesCE.add(callstackCpaCE);
+    //    ConfigurableProgramAnalysis concreteCPACompositeCE =
+    //        CompositeCPA.factory()
+    //            .setChildren(new ArrayList<>(analysesCE))
+    //            .set(ImmutableList.of(new ArrayList<>(analysesCE)), ImmutableList.class)
+    //            .set(cfa, CFA.class)
+    //            .setConfiguration(configCE)
+    //            .createInstance();
 
-    this.argCpaCE =
-        ARGCPA
-            .factory()
-            .set(concreteCPACompositeCE, ConfigurableProgramAnalysis.class)
-            .setConfiguration(configCE)
-            .setLogger(logger)
-            .set(specificationCE, Specification.class)
-            .set(cfa, CFA.class)
-            .createInstance();
+    //    this.argCpaCE =
+    //        ARGCPA
+    //            .factory()
+    //            .set(concreteCPACompositeCE, ConfigurableProgramAnalysis.class)
+    //            .setConfiguration(configCE)
+    //            .setLogger(logger)
+    //            .set(specificationCE, Specification.class)
+    //            .set(cfa, CFA.class)
+    //            .createInstance();
 
-    this.concreteAlgorithmCE =
-        new CPAAlgorithm(this.argCpaCE, logger, shutdownNotifier, null, false);
+    //    this.concreteAlgorithmCE =
+    //        new CPAAlgorithm(this.argCpaCE, logger, shutdownNotifier, null, false);
 
     this.exporter = new TestCaseExporter(cfa, logger, config);
+
+    this.rnd = new Random(1636672210L);
   }
 
   public static boolean isInitialized() {
@@ -206,6 +211,7 @@ public class ConcolicAlgorithm implements Algorithm {
       Optional<List<ValueAssignment>> model,
       Optional<ReachedSet> reachedSet,
       Optional<ARGPath> argPath,
+      Optional<ConstraintsState> csState,
       int bound,
       int score,
       boolean isNewPath,
@@ -214,6 +220,11 @@ public class ConcolicAlgorithm implements Algorithm {
   enum CoverageCriterion {
     CONDITION,
     ERROR,
+  }
+
+  enum SearchAlgorithm {
+    RANDOM,
+    DFS,
   }
 
   @Override
@@ -225,34 +236,40 @@ public class ConcolicAlgorithm implements Algorithm {
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
+            Optional.empty(),
             0,
             0,
             true,
             true));
 
     while (!workList.isEmpty()) {
+      // random testing: workList should only contain 1 element
+      if (workList.size() > 1) {
+        throw new Error("workList.size() > 1");
+      }
 
       // Get the element with the highest score and remove it
       ConcolicInput highestScoreSeed =
           workList.stream().max(Comparator.comparing(ci -> ci.score())).get();
       // check the path again
-      if (highestScoreSeed.argPath().isPresent()
-          && visitedPaths.contains(highestScoreSeed.argPath().orElseThrow().getFullPath())) {
-        workList.remove(highestScoreSeed);
-        continue;
-      }
+      //      if (highestScoreSeed.argPath().isPresent()
+      //          && visitedPaths.contains(highestScoreSeed.argPath().orElseThrow().getFullPath()))
+      // {
+      //        workList.remove(highestScoreSeed);
+      //        continue;
+      //      }
       workList.remove(highestScoreSeed);
       // run concolic execution
       List<ConcolicInput> childInputs = expandExecution(highestScoreSeed, reachedSet);
       // own optimization: filter out inputs with score 0
       // if (!Objects.equals(coverageCriterion, "error"))
       //            childInputs.removeIf(ci -> ci.score == 0);
-      childInputs.removeIf(ci -> !ci.isNewPath);
+      //      childInputs.removeIf(ci -> !ci.isNewPath);
       //      List<ConcolicInput> tmp =
       //          childInputs.stream().filter(ci -> !ci.isNewPath && ci.score() == 0).toList();
       //      if (!tmp.isEmpty()) System.out.println("tmp: " + tmp.size());
       workList.addAll(childInputs);
-     }
+    }
     // clear Waitlist for nice end result in the console
     reachedSet.clearWaitlist();
     return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -350,6 +367,7 @@ public class ConcolicAlgorithm implements Algorithm {
           Optional.of(model),
           Optional.of(reachedSet),
           Optional.of(argPath),
+          Optional.of(state),
           bound,
           score,
           !visitedPaths.contains(argPath.getFullPath()),
@@ -364,113 +382,109 @@ public class ConcolicAlgorithm implements Algorithm {
       throws CPAException, InterruptedException {
     ConcolicInput concolicInput = pConcolicInput;
     List<ConcolicInput> childInputs = new ArrayList<>();
-    initialReachedSet.stream()
-        .forEach(as -> ((ARGState) as).deleteChildren()); // contains only one state
-    ReachedSet reachedSetFirstState = new PartitionedReachedSet(cpa, TraversalMethod.BFS);
-    reachedSetFirstState.add(
-        initialReachedSet.getFirstState(),
-        initialReachedSet.getPrecision(initialReachedSet.getFirstState()));
-    ARGPath argPath =
-        getARGPath(reachedSetFirstState, concolicInput.values); // ! Needed for state to fill
-    //    List<Object> tmp3 = nonDetValueProvider.getReturnedValueHistory();
-    //    System.out.println(tmp3);
-    //    writeTestCaseFromValues(tmp3);
-    if (concolicInput.model.stream()
-        .anyMatch(va -> va.toString().contains("tmp___8") || va.toString().contains("num1"))) {
-      System.out.println("found");
-    }
-    visitedPaths.add(argPath.getFullPath());
-    if (coverageCriterion == CoverageCriterion.CONDITION)
-      fillVisitedBlocksConditionCoverage(argPath);
-    //    else if (Objects.equals(coverageCriterion, "block"))
-    // fillVisitedBlocksBlockCoverage(argPath);
-    else if (coverageCriterion == CoverageCriterion.ERROR) fillVisitedBlocksErrorCoverage(argPath);
-    else throw new Error("coverageCriterion unknown");
-
-    //    CompositeState astate =
-    //        (CompositeState) ((AbstractSerializableSingleWrapperState)
-    // initialReachedSet.getLastState())
-    //            .getWrappedState(); // constraintsTransferRelation.state;
-
-    //    ImmutableList<ARGState> statesList = argPath.asStatesList();
-
-    //    ConstraintsState state = null;
-    //    List<Constraint> allConstraints = new ArrayList<>();
-    //    Set<Constraint> allConstraintsUnique = new LinkedHashSet<>();
-    //    CompositeState stateWithLargestConstraintsList = null;
-    //    int largestConstraintsList = 0;
-    // new Approach
-    //    for (ARGState currentState : statesList) {
-    //      CompositeState astate = (CompositeState) currentState.getWrappedState();
-    //      assert astate != null;
-    //      List<Constraint> currentConstraints =
-    //          ((ConstraintsState) astate.getWrappedStates().get(3)).constraints;
-    //      allConstraintsUnique.addAll(currentConstraints);
-    //    }
-    //    System.out.println(allConstraintsUnique);
-
-    // ----------------------------
-    // iterate backwards
-    //    for (int i = statesList.size() - 1; i >= 0; i--) {
-    //      ARGState currentState = statesList.get(i);
-    //      CompositeState astate = (CompositeState) currentState.getWrappedState();
-    //      assert astate != null;
-    //      ConstraintsState currentConstraintsState =
-    //          (ConstraintsState) astate.getWrappedStates().get(3);
-    //      if (currentConstraintsState.constraints.size() > largestConstraintsList) {
-    //        stateWithLargestConstraintsList = astate;
-    //        state = currentConstraintsState;
-    //        largestConstraintsList = currentConstraintsState.constraints.size();
-    //      }
-    //    }
-
-    ConstraintsState csfromlastatate =
-        (ConstraintsState)
-            ((CompositeState) argPath.getLastState().getWrappedState()).getWrappedStates().get(3);
-    //    System.out.println("largestConstraintsList: " + largestConstraintsList);
-    //    if (state != csfromlastatate) {
-    //      throw new Error("state != csfromlastatate");
-    //    }
-    //   TODO  state = csfromlastatate;
-    //    if (state == null) {
-    //      System.out.println("state is null");
-    //      state = csfromlastatate; // workaround: set state to empty set (from last state)
-    //    }
-    //    assert state != null;
-
-    // TODO remove old workaround and code with allConstraintsUnique
-    //    if ((csfromlastatate.size() < allConstraintsUnique.size())) {
-    //      System.out.println("csfromlastatate.size() <= allConstraintsUnique.size()");
-    //      throw new Error("csfromlastatate.size() <= allConstraintsUnique.size()");
-    //    }
     ConstraintsState state;
-    //    try {
-    //
-    //      state = csfromlastatate.cloneWithNewConstraints(allConstraintsUnique.stream().toList());
-    //    } catch (Exception pE) {
-    //      throw new Error(pE);
-    //    }
-    state = csfromlastatate;
-    //
+    ARGPath argPath;
+    ReachedSet reachedSetFirstState;
+    if (concolicInput.csState.isPresent()
+        // is the last edge (unflipped) has not been checked
+        && checkedConstraints.contains(concolicInput.csState.orElseThrow().constraints)) {
+      state = concolicInput.csState.orElseThrow();
+      argPath = concolicInput.argPath.orElseThrow();
+      //      reachedSetFirstState = concolicInput.reachedSet.orElseThrow();
+    } else {
+      initialReachedSet.stream()
+          .forEach(as -> ((ARGState) as).deleteChildren()); // contains only one state
+      reachedSetFirstState = new PartitionedReachedSet(cpa, TraversalMethod.BFS);
+      reachedSetFirstState.add(
+          initialReachedSet.getFirstState(),
+          initialReachedSet.getPrecision(initialReachedSet.getFirstState()));
+      argPath =
+          getARGPath(reachedSetFirstState, concolicInput.values); // ! Needed for state to fill
+      //    List<Object> tmp3 = nonDetValueProvider.getReturnedValueHistory();
+      //    System.out.println(tmp3);
+      //    writeTestCaseFromValues(tmp3);
+      if (concolicInput.model.stream()
+          .anyMatch(va -> va.toString().contains("tmp___8") || va.toString().contains("num1"))) {
+        System.out.println("found");
+      }
+      visitedPaths.add(argPath.getFullPath());
+      if (coverageCriterion == CoverageCriterion.CONDITION)
+        fillVisitedBlocksConditionCoverage(argPath);
+      //      else if (Objects.equals(coverageCriterion, "block"))
+      // fillVisitedBlocksBlockCoverage(argPath);
+      else if (coverageCriterion == CoverageCriterion.ERROR)
+        fillVisitedBlocksErrorCoverage(argPath);
+      else throw new Error("coverageCriterion unknown");
 
-    Map<NondetLocation, List<Value>> previousValues =
-        nonDetValueProvider.getReturnedValueHistoryWithLocation();
-    if (concolicInput.isInitial) {
-      // always replace objects from concrete with ones from symbolic, and replace model
-      // generate test case for the first input and add to concolicInput
-      concolicInput =
-          getConcolicInputAndWriteTestCase(
-              state,
-              argPath,
-              reachedSetFirstState,
-              concolicInput.bound,
-              concolicInput.values,
-              concolicInput.score,
-              true,
-              Optional.empty());
+      ConstraintsState csfromlastatate =
+          (ConstraintsState)
+              ((CompositeState) argPath.getLastState().getWrappedState()).getWrappedStates().get(3);
+
+      state = csfromlastatate;
+
+      if (searchAlgorithm == SearchAlgorithm.DFS) {
+        checkedConstraints.add(state.constraints);
+      }
+
+      Map<NondetLocation, List<Value>> previousValues =
+          nonDetValueProvider.getReturnedValueHistoryWithLocation();
+
+      if (concolicInput.isInitial) {
+        // always replace objects from concrete with ones from symbolic, and replace model
+        // generate test case for the first input and add to concolicInput
+        concolicInput =
+            getConcolicInputAndWriteTestCase(
+                state,
+                argPath,
+                reachedSetFirstState,
+                concolicInput.bound,
+                concolicInput.values,
+                concolicInput.score,
+                true,
+                Optional.empty());
+      }
     }
 
-    for (int i = concolicInput.bound; i < state.constraints.size(); i++) {
+    //    int lastCheckedConstraint = -1;
+    // use while loop for the case that the result is unsat
+    while (true) {
+      if (state.constraints.isEmpty()) {
+        System.out.println("state.constraints.isEmpty()");
+        return childInputs;
+      }
+
+      int i = -1;
+      // get constraint to flip
+      if (searchAlgorithm == SearchAlgorithm.RANDOM) {
+        i = this.rnd.nextInt(0, state.constraints.size());
+      } else if (searchAlgorithm == SearchAlgorithm.DFS) {
+        // use the last constraint that has not been flipped yet in DFS
+        for (int j = state.constraints.size() - 1; j >= 0; j--) {
+          // list with the constraints up to the current one minus one
+          List<Constraint> constraintsWithFlippedCheck =
+              new ArrayList<>(state.constraints.subList(0, j));
+
+          // get the last constraint
+          Constraint lastConstraintCheck = state.constraints.get(j);
+
+          // flip the last constraint
+          SymbolicValueFactory svfCheck = SymbolicValueFactory.getInstance();
+          SymbolicExpression flippedCheck =
+              svfCheck.logicalNot(
+                  (SymbolicExpression) lastConstraintCheck, lastConstraintCheck.getType());
+          constraintsWithFlippedCheck.add((Constraint) flippedCheck);
+
+          if (!isSublistOfAnyInCheckedConstraints(constraintsWithFlippedCheck)) {
+            i = j;
+            break;
+          }
+        }
+      }
+      if (i == -1) {
+        System.out.println("i == -1");
+        return childInputs;
+      }
+      //    for (int i = concolicInput.bound; i < state.constraints.size(); i++) {
 
       try {
         // list with the constraints up to the current one minus one
@@ -485,14 +499,14 @@ public class ConcolicAlgorithm implements Algorithm {
             svf.logicalNot((SymbolicExpression) lastConstraint, lastConstraint.getType());
         constraintsWithFlipped.add((Constraint) flipped);
 
-        if (constraintsWithFlipped.size() == 6) {
-          System.out.println("constraintsWithFlipped.size() == 6");
-        }
         ConstraintsState stateWithFlipped = state.cloneWithNewConstraints(constraintsWithFlipped);
         SolverResult result =
             constraintsSolver.checkUnsat(stateWithFlipped, "foofunction"); // TODO function name
+        // don't add unsat results to childInputs
         if (result.isUNSAT()) {
-          // don't add unsat results to childInputs
+          if (searchAlgorithm == SearchAlgorithm.DFS) {
+            checkedConstraints.add(constraintsWithFlipped);
+          }
           continue;
         }
         List<ValueAssignment> model = result.model().orElseThrow();
@@ -503,38 +517,59 @@ public class ConcolicAlgorithm implements Algorithm {
         System.out.println(nonDetValueProvider.getReturnedValueHistoryWithLocation());
 
         // reset reached Set to set with one state
-        initialReachedSet.stream()
-            .forEach(as -> ((ARGState) as).deleteChildren()); // note: contains only one state
-        ReachedSet reachedSetConcrete = new PartitionedReachedSet(argCpaCE, TraversalMethod.BFS);
-        CompositeState seedState =
-            (CompositeState) ((ARGState) initialReachedSet.getFirstState()).getWrappedState(); //
-        // 0. state: LocationState, 1. State ValueAnalysis
-        //        concreteAbstractState
-        List<AbstractState> editableStates = new ArrayList<>();
-        assert seedState != null;
-        editableStates.add(seedState.get(0)); // location
-        editableStates.add(seedState.get(2)); // concrete
-        editableStates.add(seedState.get(4)); // callstack  // TODO csc
-        CompositeState concreteAbstractState = new CompositeState(editableStates);
-        ARGState concreteAbstractStateARG = new ARGState(concreteAbstractState, null);
-        reachedSetConcrete.add(
-            concreteAbstractStateARG,
-            initialReachedSet.getPrecision(initialReachedSet.getFirstState()));
+        //        initialReachedSet.stream()
+        //            .forEach(as -> ((ARGState) as).deleteChildren()); // note: contains only one
+        // state
+        //        ReachedSet reachedSetConcrete = new PartitionedReachedSet(argCpaCE,
+        // TraversalMethod.BFS);
+        //        CompositeState seedState =
+        //            (CompositeState) ((ARGState)
+        // initialReachedSet.getFirstState()).getWrappedState(); //
+        //        // 0. state: LocationState, 1. State ValueAnalysis
+        //        //        concreteAbstractState
+        //        List<AbstractState> editableStates = new ArrayList<>();
+        //        assert seedState != null;
+        //        editableStates.add(seedState.get(0)); // location
+        //        editableStates.add(seedState.get(2)); // concrete
+        //        editableStates.add(seedState.get(4)); // callstack  // TODO csc
+        //        CompositeState concreteAbstractState = new CompositeState(editableStates);
+        //        ARGState concreteAbstractStateARG = new ARGState(concreteAbstractState, null);
+        //        reachedSetConcrete.add(
+        //            concreteAbstractStateARG,
+        //            initialReachedSet.getPrecision(initialReachedSet.getFirstState()));
+        //
+        //        ARGPath argPathConcrete = getARGPathConcrete(reachedSetConcrete, values);
 
-        ARGPath argPathConcrete = getARGPathConcrete(reachedSetConcrete, values);
+        initialReachedSet.stream()
+            .forEach(as -> ((ARGState) as).deleteChildren()); // contains only one state
+        reachedSetFirstState = new PartitionedReachedSet(cpa, TraversalMethod.BFS);
+        reachedSetFirstState.add(
+            initialReachedSet.getFirstState(),
+            initialReachedSet.getPrecision(initialReachedSet.getFirstState()));
+        argPath =
+            getARGPath(reachedSetFirstState, concolicInput.values); // ! Needed for state to fill
+
+        state =
+            (ConstraintsState)
+                ((CompositeState) argPath.getLastState().getWrappedState())
+                    .getWrappedStates()
+                    .get(3);
+        if (searchAlgorithm == SearchAlgorithm.DFS) {
+          checkedConstraints.add(state.constraints);
+        }
 
         int score;
         if (coverageCriterion == CoverageCriterion.CONDITION)
-          score = calculateScoreConditionCoverage(argPathConcrete);
-        //        else if (Objects.equals(coverageCriterion, "block"))
-        //          score = calculateScoreBlockCoverage(argPathConcrete);
+          score = calculateScoreConditionCoverage(argPath);
+//        else if (Objects.equals(coverageCriterion, "block"))
+//          score = calculateScoreBlockCoverage(argPath);
         else if (coverageCriterion == CoverageCriterion.ERROR)
-          score = calculateScoreErrorCoverage(argPathConcrete);
+          score = calculateScoreErrorCoverage(argPath);
         else throw new Error("coverageCriterion unknown");
         childInputs.add(
             getConcolicInputAndWriteTestCase(
                 state,
-                argPathConcrete,
+                argPath,
                 reachedSetFirstState,
                 i, // TODO i+1
                 values,
@@ -545,8 +580,33 @@ public class ConcolicAlgorithm implements Algorithm {
         e.printStackTrace();
         throw new Error(e);
       }
+      //    }
+      return childInputs;
     }
-    return childInputs;
+  }
+
+  private boolean isSublistOfAnyInCheckedConstraints(List<Constraint> newList) {
+    for (List<Constraint> list : checkedConstraints) {
+      // Check if the targetList is a prefix of the current list
+      if (isPrefix(list, newList)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Helper method to check if newList is a prefix of the given list
+  private static <T> boolean isPrefix(List<T> list, List<T> newList) {
+    if (newList.size() > list.size()) {
+      return false;
+    }
+
+    for (int i = 0; i < newList.size(); i++) {
+      if (!list.get(i).equals(newList.get(i))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private Map<NondetLocation, List<Value>> getValues(
@@ -560,8 +620,12 @@ public class ConcolicAlgorithm implements Algorithm {
     for (ValueAssignment assignment : model) {
       Object valueObject = assignment.getValue();
       String valueFormula = assignment.getValueAsFormula().toString();
+      if (valueObject.equals(new BigInteger("4294955008"))) {
+        System.out.println("found");
+      }
       // Workaround for int overflows
       if (valueObject instanceof BigInteger && valueFormula.endsWith("_32")) {
+        // Convert to int (wraps around)
         int intValue = ((BigInteger) valueObject).intValue();
         valueObject = BigInteger.valueOf(intValue);
       }
@@ -760,44 +824,44 @@ public class ConcolicAlgorithm implements Algorithm {
     return ap;
   }
 
-  public ARGPath getARGPathConcrete(
-      ReachedSet reachedSetConcrete, Map<NondetLocation, List<Value>> values)
-      throws CPAException, InterruptedException {
-    System.out.println("getARGPath concrete");
-    nonDetValueProvider.clearKnownValues();
-    nonDetValueProvider.setKnownValues(values);
-
-    //    newConcreteAlgorithm
-    AlgorithmStatus algorithmStatus = null;
-    boolean isInterrupted = false;
-    try {
-      algorithmStatus = concreteAlgorithmCE.run(reachedSetConcrete);
-
-    } catch (InterruptedException e) {
-      System.out.println(e);
-      if (e.toString().contains("The CPU-time limit")) {
-        System.out.println("CPU-time limit reached, reachedSet might not be intact");
-        isInterrupted = true;
-      } else {
-        throw new Error(e);
-      }
-    }
-    System.out.println(algorithmStatus);
-
-    // create ARGPath
-    List<ARGState> argStateSet = new ArrayList<>();
-
-    Set<AbstractState> abstractStates =
-        reachedSetConcrete.asCollection(); // set is unordered, use getChildren later
-    for (AbstractState state : abstractStates) {
-
-      if (state instanceof ARGState argState) {
-        argStateSet.add(argState);
-      } else System.err.println("State is not an ARGState");
-    }
-    ARGPath ap;
-    if (!isInterrupted) ap = new ARGPath(argStateSet, true); // true
-    else ap = new ARGPath(argStateSet);
-    return ap;
-  }
+  //  public ARGPath getARGPathConcrete(
+  //      ReachedSet reachedSetConcrete, Map<NondetLocation, List<Value>> values)
+  //      throws CPAException, InterruptedException {
+  //    System.out.println("getARGPath concrete");
+  //    nonDetValueProvider.clearKnownValues();
+  //    nonDetValueProvider.setKnownValues(values);
+  //
+  //    //    newConcreteAlgorithm
+  //    AlgorithmStatus algorithmStatus = null;
+  //    boolean isInterrupted = false;
+  //    try {
+  //      algorithmStatus = concreteAlgorithmCE.run(reachedSetConcrete);
+  //
+  //    } catch (InterruptedException e) {
+  //      System.out.println(e);
+  //      if (e.toString().contains("The CPU-time limit")) {
+  //        System.out.println("CPU-time limit reached, reachedSet might not be intact");
+  //        isInterrupted = true;
+  //      } else {
+  //        throw new Error(e);
+  //      }
+  //    }
+  //    System.out.println(algorithmStatus);
+  //
+  //    // create ARGPath
+  //    List<ARGState> argStateSet = new ArrayList<>();
+  //
+  //    Set<AbstractState> abstractStates =
+  //        reachedSetConcrete.asCollection(); // set is unordered, use getChildren later
+  //    for (AbstractState state : abstractStates) {
+  //
+  //      if (state instanceof ARGState argState) {
+  //        argStateSet.add(argState);
+  //      } else System.err.println("State is not an ARGState");
+  //    }
+  //    ARGPath ap;
+  //    if (!isInterrupted) ap = new ARGPath(argStateSet, true); // true
+  //    else ap = new ARGPath(argStateSet);
+  //    return ap;
+  //  }
 }

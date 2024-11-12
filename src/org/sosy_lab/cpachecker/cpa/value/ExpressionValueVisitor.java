@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithmRandom;
 import org.sosy_lab.cpachecker.core.algorithm.concolic.NondetLocation;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
@@ -489,29 +490,34 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       if (functionNameExp instanceof CIdExpression) {
         String calledFunctionName = ((CIdExpression) functionNameExp).getName();
         if (calledFunctionName.startsWith("__VERIFIER_nondet_")) {
+          NondeterministicValueProvider ndvp;
+          if (ConcolicAlgorithm.isInitialized()) {
+            ndvp = ConcolicAlgorithm.nonDetValueProvider;
+          } else if (ConcolicAlgorithmRandom.isInitialized()) {
+            ndvp = ConcolicAlgorithmRandom.nonDetValueProvider;
+          } else {
+            throw new Error("ConcolicAlgorithm is not initialized");
+          }
 
-          NondetLocation thisLocation = new NondetLocation(
-              pLastFunctionCallExpression.getFileLocation().getFileName().toString(),
-              pLastFunctionCallExpression.getFileLocation().getStartingLineNumber(),
-              pLastFunctionCallExpression.getFileLocation().getStartColumnInLine(),
-              pLastFunctionCallExpression.getFileLocation().getEndColumnInLine());
+          NondetLocation thisLocation =
+              new NondetLocation(
+                  pLastFunctionCallExpression.getFileLocation().getFileName().toString(),
+                  pLastFunctionCallExpression.getFileLocation().getStartingLineNumber(),
+                  pLastFunctionCallExpression.getFileLocation().getStartColumnInLine(),
+                  pLastFunctionCallExpression.getFileLocation().getEndColumnInLine());
 
           CType expressionType = pLastFunctionCallExpression.getExpressionType();
-          Optional<Value> value =
-              ConcolicAlgorithm.nonDetValueProvider.getNextNondetValueFor(
-                  expressionType,
-                  thisLocation);
+          Optional<Value> value = ndvp.getNextNondetValueFor(expressionType, thisLocation);
           if (value.isPresent()) {
             logger.log(Level.FINEST, "Used preloaded value", value);
             System.out.println("Used preloaded value: " + value.get());
-            ConcolicAlgorithm.nonDetValueProvider.setValueToReturnedValueHistory(value.get(), thisLocation);
+            ndvp.setValueToReturnedValueHistory(value.get(), thisLocation);
             return value
                 .get(); // Pair.of(value.get(), super.visit(pIastFunctionCallExpression)); // Value
           } else {
             // get random value
-            Value randomValue =
-                ConcolicAlgorithm.nonDetValueProvider.getRandomValue(expressionType);
-            ConcolicAlgorithm.nonDetValueProvider.setValueToReturnedValueHistory(randomValue, thisLocation);
+            Value randomValue = ndvp.getRandomValue(expressionType);
+            ndvp.setValueToReturnedValueHistory(randomValue, thisLocation);
             System.out.println("Used random value: " + randomValue);
             return randomValue;
           }

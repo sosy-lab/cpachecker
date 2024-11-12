@@ -193,14 +193,26 @@ public class NondeterministicValueProvider {
   // function taken from Legion
   /** Return a random integer in the correct range for this type. */
   private NumericValue generateInteger(CSimpleType pType) {
-    long min = ConcolicAlgorithm.machineModel.getMinimalIntegerValue(pType).longValue();
-    long max = ConcolicAlgorithm.machineModel.getMaximalIntegerValue(pType).longValue();
+//    long min = ConcolicAlgorithm.machineModel.getMinimalIntegerValue(pType).longValue();
+//    long max = ConcolicAlgorithm.machineModel.getMaximalIntegerValue(pType).longValue();
     // todo
     // test values between -128 and 127
     // -> sometimes used as a loop counter -> should be small
     long random = this.rnd.nextLong(-128, 127);
 //    long random = this.rnd.nextLong(min, max);
     return new NumericValue(random);
+  }
+
+  private Value generateChar(CSimpleType pType) {
+//    long min = ConcolicAlgorithm.machineModel.getMinimalIntegerValue(pType).longValue();
+//    long max = ConcolicAlgorithm.machineModel.getMaximalIntegerValue(pType).longValue();
+    // todo
+    // test values between -128 and 127
+    // -> sometimes used as a loop counter -> should be small
+    long random = this.rnd.nextLong(0, 65535);
+//    long random = this.rnd.nextLong(min, max);
+    char randomChar = (char) random;
+    return Value.of(randomChar);
   }
 
   public Value getRandomValue(CType expressionType) {
@@ -211,10 +223,11 @@ public class NondeterministicValueProvider {
         return BooleanValue.valueOf(this.rnd.nextBoolean());
       }
       if (type == CBasicType.CHAR) {
+        return generateChar((CSimpleType) expressionType);
         //        char c = 'a';
 //        this.rnd.;
         // TODO
-        throw new Error("Char type is not supported");
+//        throw new Error("Char type is not supported");
 //        return Value.of('a');
       }
       if (type == CBasicType.INT) {

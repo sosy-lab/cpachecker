@@ -144,14 +144,14 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       }
     }
 
-    if (test > 1 && results.size() > 1) {
-      System.out.println("test > 1  && results.size() > 1");
-      System.out.println(allEdges);
-    }
-    if (results.size() > 1) {
-      System.out.println("results.size() > 1");
-      System.out.println(allEdges);
-    }
+//    if (test > 1 && results.size() > 1) {
+//      System.out.println("test > 1  && results.size() > 1");
+//      System.out.println(allEdges);
+//    }
+//    if (results.size() > 1) {
+//      System.out.println("results.size() > 1");
+//      System.out.println(allEdges);
+//    }
     return results;
   }
 
