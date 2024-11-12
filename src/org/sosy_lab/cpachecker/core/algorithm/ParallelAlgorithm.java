@@ -88,19 +88,21 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               + " computation). If you use the suffix ::supply-reached-refinable instead"
               + " this means that the reached set supplier is additionally continously"
               + " refined (so one of the analysis has to be instanceof ReachedSetAdjustingCPA)"
-              + " to make this work properly. However, this option is not recommended as it"
-              + " might be unsound based on the analyses used.")
+              + " to make this work properly.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
 
   @Option(
       secure = true,
-      description = "toggle to disable sharing of the reached set across the analyses")
+      description = "toggle to write all the files also for the unsuccessful analyses")
   private boolean writeUnsuccessfulAnalysisFiles = false;
 
   @Option(
       secure = true,
-      description = "toggle to write all the files also for the unsuccessful analyses")
+      description =
+          "This option disabled sharing of the reached set by all the used analyses."
+            + "However, we do not recommend using this option but rather setting the config files"
+            + "with a required annotation (empty/::supply-reached/::supply-reached-refinable).")
   private boolean shareReachedSet = true;
 
   private static final String SUCCESS_MESSAGE =
