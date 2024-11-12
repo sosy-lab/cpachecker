@@ -407,10 +407,15 @@ public class SMGCPAExpressionEvaluator {
       SMGObject target = objectAndOffsetOrState.getSMGObject();
       Value offset = objectAndOffsetOrState.getOffsetForObject();
       if (!offset.isNumericValue()) {
-        // TODO: support symbolic offsets in the SMG
-        throw new SMGException("Symbolic offsets can currently not be saved in the SMG");
-        // resultBuilder.add(ValueAndSMGState.ofUnknownValue(objectAndOffsetOrState.getSMGState()));
-        // continue;
+        if (!options.trackPredicates()) {
+          // Value analysis
+          logger.log(
+              Level.FINE,
+              "Symbolic offset when creating an address not supported when not"
+                  + " tracking predicates. Unknown value returned.");
+          resultBuilder.add(ValueAndSMGState.ofUnknownValue(objectAndOffsetOrState.getSMGState()));
+          continue;
+        }
       }
       // search for existing pointer first and return if found; else make a new one
       ValueAndSMGState addressAndState = searchOrCreatePointer(target, offset, currentState);
@@ -949,7 +954,7 @@ public class SMGCPAExpressionEvaluator {
    * objects are valid. Might materialize a list! Might use an SMT solver if error predicates are
    * tracked and the offset is not numeric.
    *
-   * @param currentState the current {@link SMGState}.
+   * @param initialState the current {@link SMGState}.
    * @param object the {@link SMGObject} to be read from.
    * @param offsetValueInBits the offset in bits as {@link Value}.
    * @param sizeInBits size of the read value in bits as {@link BigInteger}.
@@ -961,13 +966,14 @@ public class SMGCPAExpressionEvaluator {
    * @throws SMGException for critical errors when materializing lists.
    */
   private List<ValueAndSMGState> readValue(
-      SMGState currentState,
+      SMGState initialState,
       SMGObject object,
       Value offsetValueInBits,
       BigInteger sizeInBits,
       @Nullable CType readType,
       boolean materialize)
       throws SMGException, SMGSolverException {
+    SMGState currentState = initialState;
     // Check that the offset and offset + size actually fit into the SMGObject
     Value objectSize = object.getSize();
     BigInteger offsetInBits;
@@ -1270,15 +1276,39 @@ public class SMGCPAExpressionEvaluator {
   public SatisfiabilityAndSMGState checkIsUnsatAndAddConstraint(
       Constraint newConstraint, String stackFrameFunctionName, SMGState currentState)
       throws SMGSolverException {
+    return checkIsUnsatAndAddConstraints(
+        ImmutableList.of(newConstraint), stackFrameFunctionName, currentState);
+  }
+
+  /**
+   * Returns false for SAT. True for UNSAT. Checks each given constraint individually as a memory
+   * access constraint (error constraint). The constraint will be added to the constraints of the
+   * state for SAT cases except for trivial SAT cases.
+   *
+   * @param newConstraints list of new {@link Constraint}s to be checked/added to the {@link
+   *     SMGState}.
+   * @param stackFrameFunctionName {@link String} name of current Stackframe
+   * @param currentState current {@link SMGState}.
+   * @return BooleanAndSMGState with the bool as isUnsat and the State possibly with new constraints
+   *     added to the error predicates (not regular constraints) if they were not trivial, or
+   *     possibly a model added for SAT.
+   * @throws SMGSolverException for {@link InterruptedException}, {@link SolverException} or {@link
+   *     UnrecognizedCodeException} wrapped.
+   */
+  public SatisfiabilityAndSMGState checkIsUnsatAndAddConstraints(
+      List<Constraint> newConstraints, String stackFrameFunctionName, SMGState currentState)
+      throws SMGSolverException {
     try {
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
       SolverResult satResAndModel =
           solver.checkUnsat(
-              currentState.getConstraints().copyWithNew(newConstraint), stackFrameFunctionName);
+              currentState.getConstraints().copyWithNew(newConstraints), stackFrameFunctionName);
       if (satResAndModel.satisfiability().equals(Satisfiability.SAT)) {
-        if (!newConstraint.isTrivial()) {
-          currentState = currentState.addConstraint(newConstraint);
+        for (Constraint newConstraint : newConstraints) {
+          if (!newConstraint.isTrivial()) {
+            currentState = currentState.addConstraint(newConstraint);
+          }
         }
         return SatisfiabilityAndSMGState.of(
             satResAndModel.satisfiability(),
