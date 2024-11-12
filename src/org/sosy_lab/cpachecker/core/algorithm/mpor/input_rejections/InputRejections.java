@@ -14,10 +14,7 @@ import java.util.ArrayList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -29,6 +26,7 @@ import org.sosy_lab.cpachecker.cmdline.Output;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORStatics;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class InputRejections {
@@ -135,8 +133,8 @@ public class InputRejections {
           if (varDec.getType() instanceof CArrayType arrayType) {
             if (arrayType.getType() instanceof CTypedefType typedefType) {
               String typedefName = typedefType.getName();
-              // TODO create PthreadObjectType for this
-              if (typedefName.equals("pthread_t") || typedefName.equals("pthread_mutex_t")) {
+              if (typedefName.equals(PthreadObjectType.PTHREAD_T.name)
+                  || typedefName.equals(PthreadObjectType.PTHREAD_MUTEX_T.name)) {
                 handleRejection(
                     NO_PTHREAD_OBJECT_ARRAYS_FORMAT, edge.getLineNumber(), edge.getCode());
               }
@@ -205,18 +203,5 @@ public class InputRejections {
       handleRejection(NO_FUNC_EXIT_NODE);
     }
     return pFunctionEntryNode.getExitNode().orElseThrow();
-  }
-
-  // Helpers =======================================================================================
-
-  private static boolean isArraySubscriptExpression(CExpression pExpression) {
-    if (pExpression instanceof CArraySubscriptExpression) {
-      return true;
-    } else if (pExpression instanceof CUnaryExpression unary) {
-      if (unary.getOperand() instanceof CArraySubscriptExpression) {
-        return true;
-      }
-    }
-    return false;
   }
 }
