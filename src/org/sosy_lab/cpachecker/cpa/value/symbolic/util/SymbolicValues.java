@@ -171,6 +171,19 @@ public class SymbolicValues {
     return SymbolicIdentifier.Converter.getInstance().convertToIdentifier(pTerm);
   }
 
+  /**
+   * Converts the given String encoding of a {@link SymbolicIdentifier} to the corresponding <code>
+   * SymbolicIdentifier but with {@link MemoryLocation} being null.</code>.
+   *
+   * @param pTerm a <code>String</code> encoding of a <code>SymbolicIdentifier</code>
+   * @return the <code>SymbolicIdentifier</code> representing the given encoding
+   * @throws IllegalArgumentException if given String does not match the expected String encoding
+   */
+  public static SymbolicIdentifier convertTermToSymbolicIdentifierWithoutMemLoc(String pTerm)
+      throws IllegalArgumentException {
+    return SymbolicIdentifier.Converter.getInstance().convertToIdentifierWithoutMemLoc(pTerm);
+  }
+
   public static Value convertToValue(ValueAssignment assignment) {
     Object value = assignment.getValue();
     if (value instanceof Number) {
