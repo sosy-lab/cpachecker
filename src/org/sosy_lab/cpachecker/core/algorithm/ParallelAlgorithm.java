@@ -101,8 +101,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       secure = true,
       description =
           "This option disabled sharing of the reached set by all the used analyses."
-            + "However, we do not recommend using this option but rather setting the config files"
-            + "with a required annotation (empty/::supply-reached/::supply-reached-refinable).")
+              + "However, we do not recommend using this option but rather setting the config files"
+              + "with a required annotation (empty/::supply-reached/::supply-reached-refinable).")
   private boolean shareReachedSet = true;
 
   private static final String SUCCESS_MESSAGE =

@@ -4501,10 +4501,13 @@ overflow.useLiveness = true
 # properly.
 parallelAlgorithm.configFiles = no default value
 
-# toggle to write all the files also for the unsuccessful analyses
+# This option disabled sharing of the reached set by all the used
+# analyses.However, we do not recommend using this option but rather setting
+# the config fileswith a required annotation
+# (empty/::supply-reached/::supply-reached-refinable).
 parallelAlgorithm.shareReachedSet = true
 
-# toggle to disable sharing of the reached set across the analyses
+# toggle to write all the files also for the unsuccessful analyses
 parallelAlgorithm.writeUnsuccessfulAnalysisFiles = false
 
 # The command line for calling the clang preprocessor. May contain binary
