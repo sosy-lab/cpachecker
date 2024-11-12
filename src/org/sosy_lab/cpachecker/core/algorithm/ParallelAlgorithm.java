@@ -363,7 +363,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       ReachedSet currentReached = reached;
       AtomicReference<ReachedSet> oldReached = new AtomicReference<>();
 
-      if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
+      if (algorithm instanceof ReachedSetUpdater reachedSetUpdater && pShareReachedSet) {
         reachedSetUpdater.register(
             new ReachedSetUpdateListener() {
 
