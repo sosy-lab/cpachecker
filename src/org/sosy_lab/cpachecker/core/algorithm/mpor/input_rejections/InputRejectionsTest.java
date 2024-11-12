@@ -65,6 +65,22 @@ public class InputRejectionsTest {
     testExpectedRejection(inputFilePath, RuntimeException.class, InputRejections.NOT_PARALLEL);
   }
 
+  @Test
+  public void testRejectUnsupportedFunction() throws Exception {
+    // this program uses pthread_cond_wait and pthread_cond_signal
+    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/sync01.i");
+    testExpectedRejection(
+        inputFilePath, RuntimeException.class, InputRejections.UNSUPPORTED_FUNCTION);
+  }
+
+  @Test
+  public void testRejectPthreadArrayIdentifiers() throws Exception {
+    Path inputFilePath =
+        Path.of("./test/programs/mpor_seq/input_rejections/indexer-no-pthread-exit.i");
+    testExpectedRejection(
+        inputFilePath, RuntimeException.class, InputRejections.NO_PTHREAD_OBJECT_ARRAYS);
+  }
+
   // TODO the pthread_create call is nested inside binary expression(s) -> need to handle
   @Ignore
   @Test
@@ -75,31 +91,25 @@ public class InputRejectionsTest {
   }
 
   @Test
-  public void testRejectUnsupportedFunction() throws Exception {
-    // this program uses pthread_cond_wait and pthread_cond_signal
-    Path inputFilePath =
-        Path.of("./test/programs/mpor_seq/input_rejections/unsupported_function.i");
-    testExpectedRejection(
-        inputFilePath, RuntimeException.class, InputRejections.UNSUPPORTED_FUNCTION);
-  }
-
-  @Test
   public void testRejectPthreadCreateLoop() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/pthread_create_loop.i");
+    Path inputFilePath =
+        Path.of("./test/programs/mpor_seq/input_rejections/queue_longest-pthread-create-loop.i");
     testExpectedRejection(
         inputFilePath, RuntimeException.class, InputRejections.PTHREAD_CREATE_LOOP);
   }
 
   @Test
   public void testRejectDirectRecursion() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/direct_recursion.i");
+    Path inputFilePath =
+        Path.of("./test/programs/mpor_seq/input_rejections/queue_longest-direct-recursion.i");
     testExpectedRejection(
         inputFilePath, RuntimeException.class, InputRejections.RECURSIVE_FUNCTION);
   }
 
   @Test
   public void testRejectIndirectRecursion() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/indirect_recursion.i");
+    Path inputFilePath =
+        Path.of("./test/programs/mpor_seq/input_rejections/queue_longest-indirect-recursion.i");
     testExpectedRejection(
         inputFilePath, RuntimeException.class, InputRejections.RECURSIVE_FUNCTION);
   }

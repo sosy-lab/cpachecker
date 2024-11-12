@@ -18,9 +18,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cmdline.Output;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORStatics;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -39,16 +43,10 @@ public class InputRejections {
   public static final String PTHREAD_CREATE_LOOP =
       "MPOR does not support pthread_create calls in loops (or recursive functions)";
 
-  public static final String NO_PTHREAD_T_ARRAYS =
-      "MPOR does not support arrays as pthread_t parameters in line ";
+  public static final String NO_PTHREAD_OBJECT_ARRAYS =
+      "MPOR does not support arrays of pthread objects in line ";
 
-  private static final String NO_PTHREAD_T_ARRAYS_FORMAT = NO_PTHREAD_T_ARRAYS + "%s: %s";
-
-  public static final String NO_PTHREAD_MUTEX_T_ARRAYS =
-      "MPOR does not support arrays as pthread_mutex_t parameters in line ";
-
-  private static final String NO_PTHREAD_MUTEX_T_ARRAYS_FORMAT =
-      NO_PTHREAD_MUTEX_T_ARRAYS + "%s: %s";
+  private static final String NO_PTHREAD_OBJECT_ARRAYS_FORMAT = NO_PTHREAD_OBJECT_ARRAYS + "%s: %s";
 
   public static final String UNSUPPORTED_FUNCTION = "MPOR does not support the function in line ";
 
@@ -88,7 +86,7 @@ public class InputRejections {
     checkOneInputFile(pInputCfa);
     checkIsParallelProgram(pInputCfa);
     checkUnsupportedFunctions(pInputCfa);
-    checkPthreadArrayIdentifiers(pInputCfa);
+    checkPthreadObjectArrays(pInputCfa);
     checkPthreadFunctionReturnValues(pInputCfa);
     // these are recursive and can be expensive, so they are last
     checkPthreadCreateLoops(pInputCfa);
@@ -130,24 +128,18 @@ public class InputRejections {
     }
   }
 
-  private static void checkPthreadArrayIdentifiers(CFA pInputCfa) {
-    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      for (PthreadFuncType funcType : PthreadFuncType.values()) {
-        if (funcType.isSupported && PthreadFuncType.callsPthreadFunc(cfaEdge, funcType)) {
-          if (funcType.hasPthreadTIndex()) {
-            int pthreadTIndex = funcType.getPthreadTIndex();
-            CExpression parameter = CFAUtils.getParameterAtIndex(cfaEdge, pthreadTIndex);
-            if (isArraySubscriptExpression(parameter)) {
-              handleRejection(
-                  NO_PTHREAD_T_ARRAYS_FORMAT, cfaEdge.getLineNumber(), cfaEdge.getCode());
-            }
-          }
-          if (funcType.hasPthreadMutexTIndex()) {
-            int pthreadMutexTIndex = funcType.getPthreadMutexTIndex();
-            CExpression parameter = CFAUtils.getParameterAtIndex(cfaEdge, pthreadMutexTIndex);
-            if (isArraySubscriptExpression(parameter)) {
-              handleRejection(
-                  NO_PTHREAD_MUTEX_T_ARRAYS_FORMAT, cfaEdge.getLineNumber(), cfaEdge.getCode());
+  private static void checkPthreadObjectArrays(CFA pInputCfa) {
+    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
+      if (edge instanceof CDeclarationEdge decEdge) {
+        if (decEdge.getDeclaration() instanceof CVariableDeclaration varDec) {
+          if (varDec.getType() instanceof CArrayType arrayType) {
+            if (arrayType.getType() instanceof CTypedefType typedefType) {
+              String typedefName = typedefType.getName();
+              // TODO create PthreadObjectType for this
+              if (typedefName.equals("pthread_t") || typedefName.equals("pthread_mutex_t")) {
+                handleRejection(
+                    NO_PTHREAD_OBJECT_ARRAYS_FORMAT, edge.getLineNumber(), edge.getCode());
+              }
             }
           }
         }

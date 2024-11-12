@@ -955,11 +955,15 @@ void init(QType *q)
   q->tail=0;
   q->amount=0;
 }
+// injected function for unit test
 int recursionA(int x) {
   if (x < 5) {
-    recursionA(x++);
+    recursionB(x++);
   }
   return x;
+}
+int recursionB(int x) {
+  return recursionA(x);
 }
 int empty(QType * q)
 {
