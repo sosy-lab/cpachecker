@@ -345,10 +345,10 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
       AlgorithmStatus status = null;
       ReachedSet currentReached = reached;
-      AtomicReference<ReachedSet> oldReached = new AtomicReference<>();
 
       if (!supplyRefinableReached) {
         if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
+          AtomicReference<ReachedSet> oldReached = new AtomicReference<>();
           reachedSetUpdater.register(
               new ReachedSetUpdateListener() {
 
@@ -383,6 +383,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
       } else {
         boolean stopAnalysis = true;
+        @Nullable ReachedSet oldReached = null;
         do {
 
           // explore statespace fully only if the analysis is sound and no reachable error is found
@@ -399,7 +400,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           if (status.isSound()
               && !from(currentReached)
                   .anyMatch(or(AbstractStates::isTargetState, AbstractStates::hasAssumptions))) {
-            updateOrAddReachedSetToReachedSetManager(oldReached.get(), currentReached);
+            updateOrAddReachedSetToReachedSetManager(oldReached, currentReached);
             return ParallelAnalysisResult.of(currentReached, status, analysisName);
           }
 
@@ -424,8 +425,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
           if (status.isSound()) {
             singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
-            updateOrAddReachedSetToReachedSetManager(oldReached.get(), currentReached);
-            oldReached.set(currentReached);
+            updateOrAddReachedSetToReachedSetManager(oldReached, currentReached);
+            oldReached = currentReached;
           }
 
           if (!stopAnalysis) {
