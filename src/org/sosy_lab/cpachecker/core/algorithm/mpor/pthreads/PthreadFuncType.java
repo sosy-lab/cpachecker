@@ -19,7 +19,7 @@ public enum PthreadFuncType {
 
   // TODO create barrier logic, see e.g. pthread-divine/barrier_2t.i
 
-  BARRIER_INIT(
+  PTHREAD_BARRIER_INIT(
       "pthread_barrier_init",
       false,
       false,
@@ -27,7 +27,7 @@ public enum PthreadFuncType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty()),
-  BARRIER_WAIT(
+  PTHREAD_BARRIER_WAIT(
       "pthread_barrier_wait",
       false,
       false,
@@ -42,6 +42,22 @@ public enum PthreadFuncType {
       Optional.of(0),
       Optional.of(false),
       Optional.empty(),
+      Optional.empty()),
+  PTHREAD_COND_SIGNAL(
+      "pthread_cond_signal",
+      false,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty()),
+  PTHREAD_COND_WAIT(
+      "pthread_cond_wait",
+      false,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.of(1),
       Optional.empty()),
   PTHREAD_CREATE(
       "pthread_create",

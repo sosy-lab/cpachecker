@@ -47,6 +47,14 @@ public class SequentializationTest {
     testCompile(path);
   }
 
+  @Test
+  public void testCompileSeqSingletonWithUninitProblems() throws Exception {
+    Path path =
+        Path.of("./test/programs/mpor_seq/seq_compilable/singleton_with-uninit-problems-b.i");
+    assertThat(Files.exists(path)).isTrue();
+    testCompile(path);
+  }
+
   private void testCompile(Path pInputFilePath) throws Exception {
     // create cfa for test program pFileName
     LogManager logger = LogManager.createTestLogManager();

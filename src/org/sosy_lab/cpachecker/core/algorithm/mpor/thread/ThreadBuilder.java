@@ -376,7 +376,7 @@ public class ThreadBuilder {
     if (!pCurrentNode.equals(pThread.cfa.exitNode)) {
       if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
         for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
-          if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.BARRIER_INIT)) {
+          if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_BARRIER_INIT)) {
             // TODO unsure how to handle this, SV benchmarks use their custom barrier objects and
             //  functions, e.g. pthread-divine/barrier_2t.i
             //  but the general approach is identifying MPORBarriers from barrier_init calls

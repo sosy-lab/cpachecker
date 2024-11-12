@@ -41,6 +41,39 @@ public class InputRejectionsTest {
   }
 
   @Test
+  public void testRejectLanguageNotC() throws Exception {
+    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/HelloJava.java");
+    testExpectedRejection(inputFilePath, InputRejections.LANGUAGE_NOT_C);
+  }
+
+  @Test
+  public void testRejectNotParallel() throws Exception {
+    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/relax-1.i");
+    testExpectedRejection(inputFilePath, InputRejections.NOT_PARALLEL);
+  }
+
+  // TODO the pthread_create call is nested inside binary expression(s) -> need to handle
+  @Test
+  public void testRejectPthreadReturnValue() throws Exception {
+    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/twostage_3.i");
+    testExpectedRejection(inputFilePath, InputRejections.PTHREAD_RETURN_VALUE);
+  }
+
+  @Test
+  public void testRejectUnsupportedFunction() throws Exception {
+    // this program uses pthread_cond_wait and pthread_cond_signal
+    Path inputFilePath =
+        Path.of("./test/programs/mpor_seq/input_rejections/unsupported_function.i");
+    testExpectedRejection(inputFilePath, InputRejections.UNSUPPORTED_FUNCTION);
+  }
+
+  @Test
+  public void testRejectPthreadCreateLoop() throws Exception {
+    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/pthread_create_loop.i");
+    testExpectedRejection(inputFilePath, InputRejections.PTHREAD_CREATE_LOOP);
+  }
+
+  @Test
   public void testRejectDirectRecursion() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/direct_recursion.i");
     testExpectedRejection(inputFilePath, InputRejections.RECURSIVE_FUNCTION);
@@ -50,11 +83,5 @@ public class InputRejectionsTest {
   public void testRejectIndirectRecursion() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/indirect_recursion.i");
     testExpectedRejection(inputFilePath, InputRejections.RECURSIVE_FUNCTION);
-  }
-
-  @Test
-  public void testRejectPthreadCreateLoop() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/pthread_create_loop.i");
-    testExpectedRejection(inputFilePath, InputRejections.PTHREAD_CREATE_LOOP);
   }
 }

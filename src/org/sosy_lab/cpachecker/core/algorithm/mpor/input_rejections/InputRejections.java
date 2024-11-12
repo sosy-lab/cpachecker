@@ -42,8 +42,7 @@ public class InputRejections {
   public static final String NO_PTHREAD_T_ARRAYS =
       "MPOR does not support arrays as pthread_t parameters in line ";
 
-  private static final String NO_PTHREAD_T_ARRAYS_FORMAT =
-      NO_PTHREAD_T_ARRAYS + "%s: %s";
+  private static final String NO_PTHREAD_T_ARRAYS_FORMAT = NO_PTHREAD_T_ARRAYS + "%s: %s";
 
   public static final String NO_PTHREAD_MUTEX_T_ARRAYS =
       "MPOR does not support arrays as pthread_mutex_t parameters in line ";
@@ -53,20 +52,17 @@ public class InputRejections {
 
   public static final String UNSUPPORTED_FUNCTION = "MPOR does not support the function in line ";
 
-  private static final String UNSUPPORTED_FUNCTION_FORMAT =
-      UNSUPPORTED_FUNCTION + "%s: %s";
+  private static final String UNSUPPORTED_FUNCTION_FORMAT = UNSUPPORTED_FUNCTION + "%s: %s";
 
-  public static final String PTHREAD_RETURN_VALUES =
+  public static final String PTHREAD_RETURN_VALUE =
       "MPOR does not support pthread method return value assignments in line ";
 
-  private static final String PTHREAD_RETURN_VALUES_FORMAT =
-      PTHREAD_RETURN_VALUES + "%s: %s";
+  private static final String PTHREAD_RETURN_VALUE_FORMAT = PTHREAD_RETURN_VALUE + "%s: %s";
 
   public static final String RECURSIVE_FUNCTION =
       "MPOR does not support the (in)direct recursive function in line ";
 
-  private static final String RECURSIVE_FUNCTION_FORMAT =
-      RECURSIVE_FUNCTION + "%s: %s";
+  private static final String RECURSIVE_FUNCTION_FORMAT = RECURSIVE_FUNCTION + "%s: %s";
 
   public static final String NO_FUNC_EXIT_NODE =
       "MPOR expects the main function and all start routines to contain a FunctionExitNode";
@@ -142,7 +138,8 @@ public class InputRejections {
             int pthreadTIndex = funcType.getPthreadTIndex();
             CExpression parameter = CFAUtils.getParameterAtIndex(cfaEdge, pthreadTIndex);
             if (isArraySubscriptExpression(parameter)) {
-              handleRejection(NO_PTHREAD_T_ARRAYS_FORMAT, cfaEdge.getLineNumber(), cfaEdge.getCode());
+              handleRejection(
+                  NO_PTHREAD_T_ARRAYS_FORMAT, cfaEdge.getLineNumber(), cfaEdge.getCode());
             }
           }
           if (funcType.hasPthreadMutexTIndex()) {
@@ -174,7 +171,7 @@ public class InputRejections {
     for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadFuncType.callsAnyPthreadFunc(edge)) {
         if (edge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
-          handleRejection(PTHREAD_RETURN_VALUES_FORMAT, edge.getLineNumber(), edge.getCode());
+          handleRejection(PTHREAD_RETURN_VALUE_FORMAT, edge.getLineNumber(), edge.getCode());
         }
       }
     }
