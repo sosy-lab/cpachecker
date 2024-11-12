@@ -296,42 +296,42 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
                 null),
             terminated);
     return () -> {
-      if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
-        conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
-      }
-
-      singleAnalysisOverallLimit.start();
-
-      if (cpa instanceof StatisticsProvider) {
-        ((StatisticsProvider) cpa).collectStatistics(statisticsEntry.subStatistics);
-      }
-
-      if (algorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider) algorithm).collectStatistics(statisticsEntry.subStatistics);
-      }
-
       try {
-        initializeReachedSet(cpa, mainEntryNode, reached);
-      } catch (InterruptedException e) {
-        singleLogger.logUserException(
-            Level.INFO, e, "Initializing reached set took too long, analysis cannot be started");
-        terminated.set(true);
-        return ParallelAnalysisResult.absent(singleConfigFileName.toString());
-      }
+        if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
+          conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
+        }
 
-      ParallelAnalysisResult r =
-          runParallelAnalysis(
-              singleConfigFileName.toString(),
-              algorithm,
-              reached,
-              singleLogger,
-              cpa,
-              supplyReached,
-              supplyRefinableReached,
-              coreComponents,
-              statisticsEntry);
-      terminated.set(true);
-      return r;
+        singleAnalysisOverallLimit.start();
+
+        if (cpa instanceof StatisticsProvider) {
+          ((StatisticsProvider) cpa).collectStatistics(statisticsEntry.subStatistics);
+        }
+
+        if (algorithm instanceof StatisticsProvider) {
+          ((StatisticsProvider) algorithm).collectStatistics(statisticsEntry.subStatistics);
+        }
+
+        try {
+          initializeReachedSet(cpa, mainEntryNode, reached);
+        } catch (InterruptedException e) {
+          singleLogger.logUserException(
+              Level.INFO, e, "Initializing reached set took too long, analysis cannot be started");
+          return ParallelAnalysisResult.absent(singleConfigFileName.toString());
+        }
+
+        return runParallelAnalysis(
+            singleConfigFileName.toString(),
+            algorithm,
+            reached,
+            singleLogger,
+            cpa,
+            supplyReached,
+            supplyRefinableReached,
+            coreComponents,
+            statisticsEntry);
+      } finally {
+        terminated.set(true);
+      }
     };
   }
 
