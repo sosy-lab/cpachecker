@@ -92,19 +92,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
 
-  @Option(
-      secure = true,
-      description = "toggle to write all the files also for the unsuccessful analyses")
-  private boolean writeUnsuccessfulAnalysisFiles = false;
-
-  @Option(
-      secure = true,
-      description =
-          "This option disabled sharing of the reached set by all the used analyses."
-              + "However, we do not recommend using this option but rather setting the config files"
-              + "with a required annotation (empty/::supply-reached/::supply-reached-refinable).")
-  private boolean shareReachedSet = true;
-
   private static final String SUCCESS_MESSAGE =
       "One of the parallel analyses has finished successfully, cancelling all other runs.";
 
@@ -134,7 +121,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException, CPAException, InterruptedException {
     config.inject(this);
 
-    stats = new ParallelAlgorithmStatistics(pLogger, writeUnsuccessfulAnalysisFiles);
+    stats = new ParallelAlgorithmStatistics(pLogger);
     globalConfig = config;
     logger = checkNotNull(pLogger);
     shutdownManager = ShutdownManager.createWithParent(checkNotNull(pShutdownNotifier));
@@ -189,9 +176,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
-  @SuppressWarnings("checkstyle:IllegalThrows")
   private void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
-      throws InterruptedException, Error, CPAException {
+      throws InterruptedException, CPAException {
 
     List<CPAException> exceptions = new ArrayList<>();
     for (ListenableFuture<ParallelAnalysisResult> f : Futures.inCompletionOrder(futures)) {
@@ -222,12 +208,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           exceptions.add((CPAException) cause);
 
         } else {
-          // cancel other computations
+          // runParallelAnalysis only declares CPAException, so this is unchecked or unexpected.
+          // Cancel other computations and propagate.
           futures.forEach(future -> future.cancel(true));
           shutdownManager.requestShutdown("cancelling all remaining analyses");
           Throwables.throwIfUnchecked(cause);
-          // probably we need to handle IOException, ParserException,
-          // InvalidConfigurationException, and InterruptedException here (#326)
           throw new UnexpectedCheckedException("analysis", cause);
         }
       } catch (CancellationException e) {
@@ -308,45 +293,19 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
                     .filter(ThreadCpuTimeLimit.class),
                 null),
             terminated);
-    return () -> {
-      if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
-        conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
-      }
-
-      singleAnalysisOverallLimit.start();
-
-      if (cpa instanceof StatisticsProvider) {
-        ((StatisticsProvider) cpa).collectStatistics(statisticsEntry.subStatistics);
-      }
-
-      if (algorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider) algorithm).collectStatistics(statisticsEntry.subStatistics);
-      }
-
-      try {
-        initializeReachedSet(cpa, mainEntryNode, reached);
-      } catch (InterruptedException e) {
-        singleLogger.logUserException(
-            Level.INFO, e, "Initializing reached set took too long, analysis cannot be started");
-        terminated.set(true);
-        return ParallelAnalysisResult.absent(singleConfigFileName.toString());
-      }
-
-      ParallelAnalysisResult r =
-          runParallelAnalysis(
-              singleConfigFileName.toString(),
-              algorithm,
-              reached,
-              singleLogger,
-              cpa,
-              shareReachedSet,
-              supplyReached,
-              supplyRefinableReached,
-              coreComponents,
-              statisticsEntry);
-      terminated.set(true);
-      return r;
-    };
+    return () ->
+        runParallelAnalysis(
+            singleConfigFileName.toString(),
+            algorithm,
+            reached,
+            singleLogger,
+            cpa,
+            supplyReached,
+            supplyRefinableReached,
+            coreComponents,
+            singleAnalysisOverallLimit,
+            terminated,
+            statisticsEntry);
   }
 
   private ParallelAnalysisResult runParallelAnalysis(
@@ -355,18 +314,41 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       final ReachedSet reached,
       final LogManager singleLogger,
       final ConfigurableProgramAnalysis cpa,
-      final boolean pShareReachedSet,
       final boolean supplyReached,
       final boolean supplyRefinableReached,
       final CoreComponentsFactory coreComponents,
+      final ResourceLimitChecker singleAnalysisOverallLimit,
+      final AtomicBoolean terminated,
       final StatisticsEntry pStatisticsEntry)
-      throws CPAException {
+      throws CPAException { // handleFutureResults needs to handle all the exceptions declared here
     try {
+      if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
+        conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
+      }
+
+      singleAnalysisOverallLimit.start();
+
+      if (cpa instanceof StatisticsProvider) {
+        ((StatisticsProvider) cpa).collectStatistics(pStatisticsEntry.subStatistics);
+      }
+
+      if (algorithm instanceof StatisticsProvider) {
+        ((StatisticsProvider) algorithm).collectStatistics(pStatisticsEntry.subStatistics);
+      }
+
+      try {
+        initializeReachedSet(cpa, mainEntryNode, reached);
+      } catch (InterruptedException e) {
+        singleLogger.logUserException(
+            Level.INFO, e, "Initializing reached set took too long, analysis cannot be started");
+        return ParallelAnalysisResult.absent(analysisName);
+      }
+
       AlgorithmStatus status = null;
       ReachedSet currentReached = reached;
       AtomicReference<ReachedSet> oldReached = new AtomicReference<>();
 
-      if (algorithm instanceof ReachedSetUpdater reachedSetUpdater && pShareReachedSet) {
+      if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
         reachedSetUpdater.register(
             new ReachedSetUpdateListener() {
 
@@ -389,7 +371,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             });
       }
 
-      if (!supplyRefinableReached || !pShareReachedSet) {
+      if (!supplyRefinableReached) {
         status = algorithm.run(currentReached);
       } else {
         boolean stopAnalysis = true;
@@ -471,6 +453,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     } catch (InterruptedException e) {
       singleLogger.log(Level.INFO, "Analysis was terminated");
       return ParallelAnalysisResult.absent(analysisName);
+    } finally {
+      terminated.set(true);
     }
   }
 
@@ -559,11 +543,9 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     private final List<StatisticsEntry> allAnalysesStats = new CopyOnWriteArrayList<>();
     private int noOfAlgorithmsUsed = 0;
     private String successfulAnalysisName = null;
-    private final boolean writeUnsuccessfulAnalysisFiles;
 
-    ParallelAlgorithmStatistics(LogManager pLogger, boolean pWriteUnsuccessfulAnalysisFiles) {
+    ParallelAlgorithmStatistics(LogManager pLogger) {
       logger = checkNotNull(pLogger);
-      writeUnsuccessfulAnalysisFiles = pWriteUnsuccessfulAnalysisFiles;
     }
 
     public synchronized StatisticsEntry getNewSubStatistics(
@@ -630,7 +612,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       for (StatisticsEntry subStats : allAnalysesStats) {
         if (isSuccessfulAnalysis(subStats)) {
           successfullAnalysisStats = subStats;
-        } else if (writeUnsuccessfulAnalysisFiles) {
+        } else {
           writeSubOutputFiles(pResult, subStats);
         }
       }
