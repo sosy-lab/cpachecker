@@ -176,9 +176,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
-  @SuppressWarnings("checkstyle:IllegalThrows")
   private void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
-      throws InterruptedException, Error, CPAException {
+      throws InterruptedException, CPAException {
 
     List<CPAException> exceptions = new ArrayList<>();
     for (ListenableFuture<ParallelAnalysisResult> f : Futures.inCompletionOrder(futures)) {
@@ -209,12 +208,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           exceptions.add((CPAException) cause);
 
         } else {
-          // cancel other computations
+          // runParallelAnalysis only declares CPAException, so this is unchecked or unexpected.
+          // Cancel other computations and propagate.
           futures.forEach(future -> future.cancel(true));
           shutdownManager.requestShutdown("cancelling all remaining analyses");
           Throwables.throwIfUnchecked(cause);
-          // probably we need to handle IOException, ParserException,
-          // InvalidConfigurationException, and InterruptedException here (#326)
           throw new UnexpectedCheckedException("analysis", cause);
         }
       } catch (CancellationException e) {
@@ -295,44 +293,19 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
                     .filter(ThreadCpuTimeLimit.class),
                 null),
             terminated);
-    return () -> {
-      if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
-        conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
-      }
-
-      singleAnalysisOverallLimit.start();
-
-      if (cpa instanceof StatisticsProvider) {
-        ((StatisticsProvider) cpa).collectStatistics(statisticsEntry.subStatistics);
-      }
-
-      if (algorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider) algorithm).collectStatistics(statisticsEntry.subStatistics);
-      }
-
-      try {
-        initializeReachedSet(cpa, mainEntryNode, reached);
-      } catch (InterruptedException e) {
-        singleLogger.logUserException(
-            Level.INFO, e, "Initializing reached set took too long, analysis cannot be started");
-        terminated.set(true);
-        return ParallelAnalysisResult.absent(singleConfigFileName.toString());
-      }
-
-      ParallelAnalysisResult r =
-          runParallelAnalysis(
-              singleConfigFileName.toString(),
-              algorithm,
-              reached,
-              singleLogger,
-              cpa,
-              supplyReached,
-              supplyRefinableReached,
-              coreComponents,
-              statisticsEntry);
-      terminated.set(true);
-      return r;
-    };
+    return () ->
+        runParallelAnalysis(
+            singleConfigFileName.toString(),
+            algorithm,
+            reached,
+            singleLogger,
+            cpa,
+            supplyReached,
+            supplyRefinableReached,
+            coreComponents,
+            singleAnalysisOverallLimit,
+            terminated,
+            statisticsEntry);
   }
 
   private ParallelAnalysisResult runParallelAnalysis(
@@ -344,9 +317,33 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       final boolean supplyReached,
       final boolean supplyRefinableReached,
       final CoreComponentsFactory coreComponents,
+      final ResourceLimitChecker singleAnalysisOverallLimit,
+      final AtomicBoolean terminated,
       final StatisticsEntry pStatisticsEntry)
-      throws CPAException {
+      throws CPAException { // handleFutureResults needs to handle all the exceptions declared here
     try {
+      if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
+        conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
+      }
+
+      singleAnalysisOverallLimit.start();
+
+      if (cpa instanceof StatisticsProvider) {
+        ((StatisticsProvider) cpa).collectStatistics(pStatisticsEntry.subStatistics);
+      }
+
+      if (algorithm instanceof StatisticsProvider) {
+        ((StatisticsProvider) algorithm).collectStatistics(pStatisticsEntry.subStatistics);
+      }
+
+      try {
+        initializeReachedSet(cpa, mainEntryNode, reached);
+      } catch (InterruptedException e) {
+        singleLogger.logUserException(
+            Level.INFO, e, "Initializing reached set took too long, analysis cannot be started");
+        return ParallelAnalysisResult.absent(analysisName);
+      }
+
       AlgorithmStatus status = null;
       ReachedSet currentReached = reached;
       AtomicReference<ReachedSet> oldReached = new AtomicReference<>();
@@ -456,6 +453,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     } catch (InterruptedException e) {
       singleLogger.log(Level.INFO, "Analysis was terminated");
       return ParallelAnalysisResult.absent(analysisName);
+    } finally {
+      terminated.set(true);
     }
   }
 
