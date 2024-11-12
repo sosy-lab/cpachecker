@@ -20,6 +20,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
 
 public class SequentializationTest {
 
@@ -68,14 +69,16 @@ public class SequentializationTest {
 
     // create seq with mpor algorithm
     MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa);
-    String seq = algorithm.buildSequentialization();
+    String initSeq = algorithm.buildSequentialization();
+    SequentializationWriter writer = new SequentializationWriter(logger, pInputFilePath);
+    String finalSeq = writer.buildFinalSequentialization("mpor_seq__test,i", initSeq);
 
     // test that seq can be parsed and cfa created ==> code compiles
-    CFA seqCfa = creator.parseSourceAndCreateCFA(seq);
+    CFA seqCfa = creator.parseSourceAndCreateCFA(finalSeq);
     assertThat(seqCfa != null).isTrue();
 
     // "anti" test: just remove the last 100 chars from the seq, it probably won't compile
-    String faultySeq = seq.substring(0, seq.length() - 100);
+    String faultySeq = finalSeq.substring(0, finalSeq.length() - 100);
 
     // test that we get an exception while parsing the new "faulty" program
     boolean fail = false;

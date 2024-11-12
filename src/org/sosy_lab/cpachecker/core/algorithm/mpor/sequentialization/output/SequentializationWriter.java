@@ -94,12 +94,30 @@ public class SequentializationWriter {
     return fileName.contains(".") ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
   }
 
-  // TODO also create .yml file for each sequentialized program that contains metadata
-  //  e.g. input program, num_treads, etc.
+  /**
+   * Replaces the file name and line in {@code __assert_fail("0", "__FILE_NAME_PLACEHOLDER__", -1,
+   * "__SEQUENTIALIZATION_ERROR__");} with pOutputFileName and the actual line.
+   */
+  public String buildFinalSequentialization(String pOutputFileName, String pInitProgram) {
+    int currentLine = 1;
+    StringBuilder rFinal = new StringBuilder();
+    for (String line : Splitter.onPattern("\\r?\\n").split(pInitProgram)) {
+      if (line.contains(Sequentialization.errorPlaceholder)) {
+        CFunctionCallExpression assertFailCall = buildSeqErrorCall(pOutputFileName, currentLine);
+        rFinal.append(
+            line.replace(Sequentialization.errorPlaceholder, assertFailCall.toASTString()));
+      } else {
+        rFinal.append(line);
+      }
+      rFinal.append(SeqSyntax.NEWLINE);
+      currentLine++;
+    }
+    return rFinal.toString();
+  }
 
   public void write(String pSequentialization) {
     String initProgram = licenseComment + "\n" + sequentializationComment + pSequentialization;
-    String finalProgram = createFinalProgram(seqProgramName, initProgram);
+    String finalProgram = buildFinalSequentialization(seqProgramName, initProgram);
     try {
       File seqProgramFile = new File(seqProgramPath);
       File parentDir = seqProgramFile.getParentFile();
@@ -188,27 +206,6 @@ public class SequentializationWriter {
         + "input_file : '"
         + inputFilePath.getFileName()
         + "'\n";
-  }
-
-  /**
-   * Replaces the file name and line in {@code __assert_fail("0", "__FILE_NAME_PLACEHOLDER__", -1,
-   * "__SEQUENTIALIZATION_ERROR__");} with pOutputFileName and the actual line.
-   */
-  private String createFinalProgram(String pOutputFileName, String pInitProgram) {
-    int currentLine = 1;
-    StringBuilder rFinal = new StringBuilder();
-    for (String line : Splitter.onPattern("\\r?\\n").split(pInitProgram)) {
-      if (line.contains(Sequentialization.errorPlaceholder)) {
-        CFunctionCallExpression assertFailCall = buildSeqErrorCall(pOutputFileName, currentLine);
-        rFinal.append(
-            line.replace(Sequentialization.errorPlaceholder, assertFailCall.toASTString()));
-      } else {
-        rFinal.append(line);
-      }
-      rFinal.append(SeqSyntax.NEWLINE);
-      currentLine++;
-    }
-    return rFinal.toString();
   }
 
   /**
