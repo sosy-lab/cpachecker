@@ -367,6 +367,16 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
       if (!supplyRefinableReached) {
         status = algorithm.run(currentReached);
+
+        // only add to aggregated reached set if we haven't done so, and all necessary requirements
+        // are fulfilled
+        if (!currentReached.hasWaitingState()
+            && supplyReached
+            && status.isPrecise()
+            && status.isSound()) {
+          aggregatedReachedSetManager.addReachedSet(currentReached);
+        }
+
       } else {
         boolean stopAnalysis = true;
         do {
@@ -420,16 +430,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             initializeReachedSet(cpa, mainEntryNode, currentReached);
           }
         } while (!stopAnalysis);
-      }
-
-      // only add to aggregated reached set if we haven't done so, and all necessary requirements
-      // are fulfilled
-      if (!currentReached.hasWaitingState()
-          && supplyReached
-          && !supplyRefinableReached
-          && status.isPrecise()
-          && status.isSound()) {
-        aggregatedReachedSetManager.addReachedSet(currentReached);
       }
 
       return ParallelAnalysisResult.of(currentReached, status, analysisName);
