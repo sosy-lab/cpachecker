@@ -25,6 +25,7 @@ public class InstrumentationAutomaton {
 
   /** Currently supported properties with encoded automata. */
   enum InstrumentationProperty {
+    TERMINATION2,
     TERMINATION,
     NOOVERFLOW
   }
@@ -59,8 +60,12 @@ public class InstrumentationAutomaton {
     this.liveVariablesAndTypes = pLiveVariablesAndTypes;
 
     if (pInstrumentationProperty == InstrumentationProperty.TERMINATION) {
-      constructTerminationAutomaton(pIndex);
-    }
+        constructTerminationAutomaton(pIndex);
+      }
+    
+      if (pInstrumentationProperty == InstrumentationProperty.TERMINATION2) {
+        constructTermination2Automaton(pIndex);
+      }
 
     if (pInstrumentationProperty == InstrumentationProperty.NOOVERFLOW) {
       constructOverflowAutomaton();
@@ -337,4 +342,94 @@ public class InstrumentationAutomaton {
             q3);
     this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
   }
+
+  private void constructTermination2Automaton(int pIndex) {
+    InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
+    InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
+    InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
+    this.initialState = q1;
+
+    InstrumentationTransition t1 =
+        new InstrumentationTransition(
+            q1,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation(
+                "int saved_"
+                    + pIndex
+                    + " = 0; "
+                    + liveVariablesAndTypes.entrySet().stream()
+                        .map(
+                            (entry) ->
+                                entry.getValue()
+                                    + " "
+                                    + entry.getKey()
+                                    + "_instr_"
+                                    + pIndex
+                                    + (entry.getValue().charAt(entry.getValue().length() - 1) == '*'
+                                        ? " = alloca(sizeof("
+                                            + getAllocationForPointer(entry.getValue())
+                                            + "))"
+                                        : "")
+                                        + (entry.getValue().equals("int") // Todo: check for int and uint
+                                        ? " = __VERIFIER_nondet_int()" // Todo: Maybe generic type
+                                        : "")
+                                    )
+                        .collect(Collectors.joining("; "))
+                    + (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t2 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("[cond]"),
+            new InstrumentationOperation(
+                "if("
+                + liveVariablesAndTypes.entrySet().stream()
+                        .map(
+                            (entry) ->
+                                "("
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + " == "
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + "_instr_"
+                                    + pIndex
+                                    + ")")
+                        .collect(Collectors.joining("&&"))
+                + ") { saved_"
+                    + pIndex
+                    + " =1; "
+                    + "} else { __VERIFIER_assert((saved_"
+                    + pIndex
+                    + " == 0)"
+                    + (!liveVariablesAndTypes.isEmpty() ? " || " : "")
+                    + liveVariablesAndTypes.entrySet().stream()
+                        .map(
+                            (entry) ->
+                                "("
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + " != "
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + "_instr_"
+                                    + pIndex
+                                    + ")")
+                        .collect(Collectors.joining("||"))
+                    + ");}"),
+            InstrumentationOrder.AFTER,
+            q3);
+    InstrumentationTransition t3 =
+        new InstrumentationTransition(
+            q3,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation(""),
+            InstrumentationOrder.AFTER,
+            q3);
+    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
+  }
+
+
+
 }

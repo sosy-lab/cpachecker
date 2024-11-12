@@ -63,6 +63,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       description =
           "toggle the strategy to determine the hardcoded instrumentation automaton to be used\n"
               + "TERMINATION: transform termination to reachability\n"
+              + "TERMINATION2: alternativly transform termination to reachability\n"
               + "NOOVERFLOW: transform no-overflow to reachability")
   private InstrumentationProperty instrumentationProperty = InstrumentationProperty.TERMINATION;
 
@@ -83,12 +84,15 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     // Collect all the information about the new edges for the instrumented CFA
     Set<String> newEdges = new HashSet<>();
 
-    // For some properties we construct more automata to more effectively track variables within
+    // For some properties we construct more automata to moreTERMIN effectively track variables within
     // the scope. This map is used to map the automata to concrete line numbers in the code.
     Map<Integer, InstrumentationAutomaton> mapAutomataToLocations = new HashMap<>();
     Map<CFANode, Integer> mapNodesToLineNumbers;
 
-    if (instrumentationProperty == InstrumentationProperty.TERMINATION) {
+    if (
+      instrumentationProperty == InstrumentationProperty.TERMINATION ||
+      instrumentationProperty == InstrumentationProperty.TERMINATION2
+    ) {
       int index = 0;
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
       for (NormalLoopInfo info : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {

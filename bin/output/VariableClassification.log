@@ -1,0 +1,32 @@
+IntBool
+
+[main::__retval__]
+
+IntEq
+
+[]
+
+IntAdd
+
+[main::__CPAchecker_TMP_0, main::y, main::x]
+
+IntOverflow
+
+[main::__CPAchecker_TMP_0, main::y, main::x]
+
+ALL
+
+[main::__CPAchecker_TMP_0, main::y, main::x, main::__retval__]
+
+DEPENDENCIES
+
+[[main::__CPAchecker_TMP_0, main::x, main::y] --> [0, 1, 5],
+[main::__retval__] --> [0]]
+
+RELEVANT VARS
+
+[main::x, main::y]
+
+RELEVANT FIELDS
+
+{}

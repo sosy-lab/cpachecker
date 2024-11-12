@@ -1,0 +1,24 @@
+2024-11-12 05:58:31:827	INFO	CPAMain.detectFrontendLanguageIfNecessary	Language C detected and set for analysis
+
+2024-11-12 05:58:31:870	INFO	ResourceLimitChecker.fromConfiguration	Using the following resource limits: CPU-time limit of 900s
+
+2024-11-12 05:58:31:946	INFO	CPAchecker.run	CPAchecker (unknown version) / default (OpenJDK 64-Bit Server VM 17.0.12) started
+
+2024-11-12 05:58:31:977	INFO	CPAchecker.parse	Parsing CFA from file(s) "/home/pearce/Dokumente/LMU/bach test/cpaloop/specification-transformation/lib/cpachecker/test/programs/loops/loop_endless_counting.c"
+
+2024-11-12 05:58:33:351	INFO	CPAchecker.run	Using default specification, which checks for assertion failures and error labels.
+
+2024-11-12 05:58:34:494	INFO	CoreComponentsFactory.createAlgorithm	Using Restarting Algorithm
+
+2024-11-12 05:58:34:521	WARNING	CPAchecker.printConfigurationWarnings	The following configuration options were specified but are not used:
+ instrumentation.instrumentationProperty 
+
+
+2024-11-12 05:58:34:522	INFO	CPAchecker.runAlgorithm	Starting analysis ...
+
+2024-11-12 05:58:34:528	INFO	RestartAlgorithm.run	Loading analysis 1 from file /home/pearce/Dokumente/LMU/bach test/cpaloop/specification-transformation/lib/cpachecker/config/components/kInduction+Invariants/kInduction.properties ...
+
+2024-11-12 05:58:34:535	INFO	Analysis /home/pearce/Dokumente/LMU/bach test/cpaloop/specification-transformation/lib/cpachecker/config/components/kInduction+Invariants/kInduction.properties:ResourceLimitChecker.fromConfiguration	Using the following resource limits: CPU-time limit of 900s
+
+2024-11-12 05:58:46:794	INFO	RestartAlgorithm.run	Starting analysis 1 ...
+

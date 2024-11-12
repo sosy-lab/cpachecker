@@ -1,0 +1,5 @@
+digraph functioncalls {
+rankdir=LR;
+
+main [shape="box", color=blue];
+}
