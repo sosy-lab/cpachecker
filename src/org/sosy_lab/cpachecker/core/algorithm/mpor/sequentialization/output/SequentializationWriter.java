@@ -35,32 +35,56 @@ public class SequentializationWriter {
 
   private static final String licenseFilePath = ".idea/copyright/CPAchecker.xml";
 
+  private static final String sequentializationComment =
+      "// This sequentialization (transformation of a parallel program into an equivalent \n"
+          + "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker. \n"
+          + "// \n"
+          + "// Assertion fails from the function "
+          + SeqToken.__SEQUENTIALIZATION_ERROR__
+          + " mark faulty sequentializations. \n"
+          + "// All other assertion fails are induced by faulty input programs.\n\n";
+
   private static final String targetDirectory = "output/";
 
   private static final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+
+  private enum FileExtension {
+    I(".i"),
+    YML(".yml");
+
+    private final String suffix;
+
+    FileExtension(String pSuffix) {
+      suffix = pSuffix;
+    }
+  }
 
   private final LogManager logManager;
 
   private final String licenseComment;
 
-  private final String sequentializationComment;
+  private final Path inputFilePath;
 
-  private final File outputFile;
+  // TODO remove
+  public final String seqProgramFileName;
 
-  public final String outputFileName;
+  private final String seqProgramPath;
+
+  private final String seqMetadataPath;
 
   public SequentializationWriter(LogManager pLogManager, Path pInputFilePath) {
     logManager = pLogManager;
     licenseComment = extractLicenseComment();
-    sequentializationComment = createSequentializationComment(pInputFilePath.toString());
-    outputFileName = "mpor_seq__" + processInputFileName(pInputFilePath);
-    String outputFilePath = targetDirectory + outputFileName;
-    outputFile = new File(outputFilePath);
+    inputFilePath = pInputFilePath;
+    String seqName = "mpor_seq__" + getFileNameWithoutExtension(inputFilePath);
+    seqProgramFileName = seqName + FileExtension.I.suffix;
+    seqProgramPath = targetDirectory + seqProgramFileName;
+    seqMetadataPath = targetDirectory + seqName + FileExtension.YML.suffix;
   }
 
-  private String processInputFileName(Path pInputFilePath) {
-    String inputFileName = pInputFilePath.getFileName().toString();
-    return inputFileName.endsWith(".i") ? inputFileName : inputFileName + ".i";
+  private String getFileNameWithoutExtension(Path pInputFilePath) {
+    String fileName = pInputFilePath.getFileName().toString();
+    return fileName.contains(".") ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
   }
 
   // TODO also create .yml file for each sequentialized program that contains metadata
@@ -70,7 +94,8 @@ public class SequentializationWriter {
     String initProgram = licenseComment + "\n" + sequentializationComment + pSequentialization;
     String finalProgram = createFinalProgram(initProgram);
     try {
-      File parentDir = outputFile.getParentFile();
+      File seqProgramFile = new File(seqProgramPath);
+      File parentDir = seqProgramFile.getParentFile();
       // ensure the target directory exists
       if (!parentDir.exists()) {
         if (parentDir.mkdirs()) {
@@ -81,18 +106,24 @@ public class SequentializationWriter {
               targetDirectory);
         }
         // ensure the file does not exist already (no overwriting)
-      } else if (!outputFile.createNewFile()) {
+      } else if (!seqProgramFile.createNewFile()) {
         throw Output.fatalError(
             "MPOR FAIL. No sequentialization created, file exists already: %s",
-            outputFile.getAbsolutePath());
+            seqProgramFile.getAbsolutePath());
       } else {
         // write content to the file
-        try (Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
+        try (Writer writer =
+            Files.newBufferedWriter(seqProgramFile.toPath(), StandardCharsets.UTF_8)) {
           writer.write(finalProgram);
+        }
+        File seqMetadataFile = new File(seqMetadataPath);
+        try (Writer writer =
+            Files.newBufferedWriter(seqMetadataFile.toPath(), StandardCharsets.UTF_8)) {
+          writer.write(createMetadata());
         }
         logManager.log(
             Level.INFO,
-            () -> "MPOR SUCCESS. Sequentialization created: " + outputFile.getAbsolutePath());
+            () -> "MPOR SUCCESS. Sequentialization created: " + seqProgramFile.getAbsolutePath());
       }
     } catch (IOException e) {
       throw Output.fatalError(
@@ -143,18 +174,13 @@ public class SequentializationWriter {
         licenseFilePath);
   }
 
-  private String createSequentializationComment(String pInputFilePath) {
-    return "// This sequentialization (transformation of a parallel program into an equivalent \n"
-        + "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker. \n"
-        + "// \n"
-        + "// Assertion fails from the function "
-        + SeqToken.__SEQUENTIALIZATION_ERROR__
-        + " mark faulty sequentializations. \n"
-        + "// All other assertion fails are induced by faulty input programs. \n"
-        + "// \n"
-        + "// Input program file: "
-        + pInputFilePath
-        + "\n\n";
+  private String createMetadata() {
+    return "input_file_path : '"
+        + inputFilePath.toString()
+        + "'\n"
+        + "input_file : '"
+        + inputFilePath.getFileName()
+        + "'\n";
   }
 
   /**
@@ -167,7 +193,7 @@ public class SequentializationWriter {
     for (String line : Splitter.onPattern("\\r?\\n").split(pInitProgram)) {
       if (line.contains(MPORStatics.seqError())) {
         CFunctionCallExpression assertFailCall =
-            MPORAlgorithm.getSeqErrorCall(outputFileName, currentLine);
+            MPORAlgorithm.getSeqErrorCall(seqProgramFileName, currentLine);
         rFinal.append(line.replace(MPORStatics.seqError(), assertFailCall.toASTString()));
       } else {
         rFinal.append(line);

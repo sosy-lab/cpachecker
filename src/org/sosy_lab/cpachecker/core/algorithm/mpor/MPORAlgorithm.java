@@ -87,7 +87,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     Path inputFilePath = inputCfa.getFileNames().get(0);
     SequentializationWriter writer = new SequentializationWriter(logger, inputFilePath);
-    writer.write(buildSequentialization(writer.outputFileName));
+    // TODO we should remove the passing of the seq file name and adjust assertion failures in the
+    //  writer class (we do that anyway with the lines of code)
+    writer.write(buildSequentialization(writer.seqProgramFileName));
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
