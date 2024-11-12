@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstantSymbolicExpressionLocator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
@@ -44,6 +45,9 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -957,6 +961,127 @@ public class SymbolicProgramConfiguration {
               newAddressValue, newSMGValue, smg.getNestingLevel(pointerToNewObj));
     }
     return newSPC;
+  }
+
+  public SymbolicProgramConfiguration replaceValueWithAndCopy(Value oldValue, Value newValue)
+      throws SMGException {
+    // This has to find all occurrences of oldValue, even nested in other expressions, and replace
+    // them
+    if (oldValue.equals(newValue)) {
+      return this;
+    }
+
+    boolean found = false;
+    Map<Value, SMGValue> valuesToUpdate = new HashMap<>();
+    for (Entry<Equivalence.Wrapper<Value>, SMGValue> mapping : valueMapping.entrySet()) {
+      Value mappedValue = mapping.getKey().get();
+      if (mappedValue.equals(oldValue)) {
+        valuesToUpdate.putIfAbsent(mappedValue, mapping.getValue());
+        found = true;
+        continue;
+      } else if (mappedValue instanceof ConstantSymbolicExpression constSym
+          && constSym.getValue() instanceof SymbolicIdentifier symIdent
+          && symIdent.equals(oldValue)) {
+        valuesToUpdate.putIfAbsent(mappedValue, mapping.getValue());
+        found = true;
+        continue;
+      }
+      Set<SymbolicValue> identsInValue = getSymbolicIdentifiersForValue(mappedValue);
+      if (identsInValue.contains(oldValue)) {
+        valuesToUpdate.putIfAbsent(mappedValue, mapping.getValue());
+      }
+    }
+
+    // TODO:
+    // Values in valuesToUpdate have to be updated in the following way:
+    // 1. Get the value containing a sym value that is to be assigned
+    // 2. Replace the sym value with the concrete value
+    // 3. Evaluate the expression, as it might now change
+    // 4. replace the old value of 1. with the new value of 3.
+
+    if (valuesToUpdate.size() != 1 || !found) {
+      // TODO: implement
+      throw new SMGException(
+          "Error trying to assign more than one symbolic value with a concrete value.");
+    }
+
+    SymbolicProgramConfiguration newSPC = this;
+    for (Entry<Value, SMGValue> valueMappingToUpdate : valuesToUpdate.entrySet()) {
+      Value correctOldValue = valueMappingToUpdate.getKey();
+      if (!newSPC.valueMapping.containsKey(valueWrapper.wrap(newValue))) {
+        // No mapping for the new value means we can just replace the mapping as it is not yet in
+        // the SMG. We just have to remove the old mapping first.
+        if (!newSPC.valueMapping.containsKey(valueWrapper.wrap(correctOldValue))) {
+          // Not mapping is known at all
+          SMGValue newSMGValue = SMGValue.of();
+          return newSPC.copyAndPutValue(newValue, newSMGValue, 0);
+        } else {
+          SMGValue oldSMGValue = newSPC.getSMGValueFromValue(correctOldValue).orElseThrow();
+          ImmutableBiMap.Builder<Equivalence.Wrapper<Value>, SMGValue> newValueMapping =
+              ImmutableBiMap.builder();
+
+          for (Entry<Wrapper<Value>, SMGValue> mappedValue : newSPC.valueMapping.entrySet()) {
+            if (mappedValue.getValue() != oldSMGValue) {
+              newValueMapping.put(mappedValue);
+            }
+          }
+          newSPC = newSPC.withNewValueMappings(newValueMapping.buildOrThrow());
+
+          return newSPC.copyAndPutValue(newValue, oldSMGValue, 0);
+        }
+      }
+      SMGValue newSMGValue = newSPC.getSMGValueFromValue(newValue).orElseThrow();
+      SMGValue oldSMGValue = newSPC.getSMGValueFromValue(correctOldValue).orElseThrow();
+      Preconditions.checkArgument(
+          newSPC.smg.getNestingLevel(newSMGValue) == newSPC.smg.getNestingLevel(oldSMGValue));
+      // Actually go into the SMG and replace the SMGValues for oldValue
+      newSPC =
+          newSPC.copyWithNewSMG(
+              newSPC.smg.replaceValueWithAndCopy(correctOldValue, oldSMGValue, newSMGValue));
+    }
+    ImmutableBiMap.Builder<Wrapper<Value>, SMGValue> newValueMapping = ImmutableBiMap.builder();
+    Collection<SMGValue> valueMappingsToRemove = valuesToUpdate.values();
+    for (Entry<Wrapper<Value>, SMGValue> mappedValue : valueMapping.entrySet()) {
+      if (!valueMappingsToRemove.contains(mappedValue.getValue())) {
+        newValueMapping.put(mappedValue);
+      }
+    }
+    newSPC = newSPC.withNewValueMappings(newValueMapping.buildOrThrow());
+    assert newSPC.checkValueMappingConsistency();
+    return newSPC;
+  }
+
+  protected Set<SymbolicValue> getSymbolicIdentifiersForValue(Value value) {
+    ConstantSymbolicExpressionLocator symIdentVisitor =
+        ConstantSymbolicExpressionLocator.getInstance();
+    ImmutableSet.Builder<SymbolicValue> sizeIdentsBuilder = ImmutableSet.builder();
+    // Get all symbolic values in sizes (they might not have a SMGValue mapping anymore below!)
+    if (value instanceof SymbolicValue symValue) {
+      for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
+        SymbolicValue usedIdentifier = constSym;
+        if (constSym.getValue() instanceof SymbolicIdentifier symIdent) {
+          usedIdentifier = symIdent;
+        }
+        sizeIdentsBuilder.add(usedIdentifier);
+      }
+    }
+    return sizeIdentsBuilder.build();
+  }
+
+  private boolean checkValueMappingConsistency() {
+    Set<SMGValue> existingSMGValuesInMapping = new HashSet<>();
+    Set<Value> existingValuesInMapping = new HashSet<>();
+    for (Entry<Wrapper<Value>, SMGValue> mappedValue : valueMapping.entrySet()) {
+      // Double entry check
+      if (existingSMGValuesInMapping.contains(mappedValue.getValue())) {
+        return false;
+      } else if (existingValuesInMapping.contains(mappedValue.getKey().get())) {
+        return false;
+      }
+      existingValuesInMapping.add(mappedValue.getKey().get());
+      existingSMGValuesInMapping.add(mappedValue.getValue());
+    }
+    return smg.checkValueMappingConsistency(valueMapping, valueWrapper);
   }
 
   /**
@@ -2299,6 +2424,8 @@ public class SymbolicProgramConfiguration {
   }
 
   public SymbolicProgramConfiguration removeUnusedValues() {
+    // TODO: this is incomplete and wrong. We also remove values still used in hve offsets/sizes
+    //  and object sizes
     PersistentMap<SMGValue, PersistentMap<SMGObject, Integer>> valuesToRegionsTheyAreSavedIn =
         smg.getValuesToRegionsTheyAreSavedIn();
     Set<SMGValue> allValues = smg.getValues().keySet();
@@ -2318,6 +2445,7 @@ public class SymbolicProgramConfiguration {
           newSMG = newSPC.getSmg().copyAndRemovePointsToEdge(value);
         }
         newSMG = newSMG.copyAndRemoveValue(value);
+        // TODO: this empty saves us from removing values, see todo above!
         valueMappingsToRemoveBuilder.add();
       }
     }
