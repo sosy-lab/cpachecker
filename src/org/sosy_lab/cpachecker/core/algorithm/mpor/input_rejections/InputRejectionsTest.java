@@ -47,7 +47,7 @@ public class InputRejectionsTest {
   }
 
   @Test
-  public <T extends Throwable> void testRejectLanguageNotC() throws Exception {
+  public void testRejectLanguageNotC() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/HelloJava.java");
     // create cfa for test program pFileName
     LogManager logger = LogManager.createTestLogManager();
