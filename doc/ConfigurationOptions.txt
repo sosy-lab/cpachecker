@@ -4493,19 +4493,12 @@ overflow.trackPointers = false
 overflow.useLiveness = true
 
 # List of files with configurations to use. Files can be suffixed with
-# ::supply-reached this signalizes that the (finished) reached set of an
-# analysis can be used in other analyses (e.g. for invariants computation).
-# If you use the suffix ::supply-reached-refinable instead this means that
-# the reached set supplier is additionally continously refined (so one of the
-# analysis has to be instanceof ReachedSetAdjustingCPA) to make this work
-# properly.
+# ::refinable to enable iterative refinement of the analysis precision (one
+# of the CPAs has to be instanceof ReachedSetAdjustingCPA), ::supply-reached
+# to enabled sharing of the (parial or finished) reached set for use in other
+# analyses (e.g. for invariants computation), or ::supply-reached-refinable
+# for both.
 parallelAlgorithm.configFiles = no default value
-
-# This option disabled sharing of the reached set by all the used
-# analyses.However, we do not recommend using this option but rather setting
-# the config fileswith a required annotation
-# (empty/::supply-reached/::supply-reached-refinable).
-parallelAlgorithm.shareReachedSet = true
 
 # toggle to write all the files also for the unsuccessful analyses
 parallelAlgorithm.writeUnsuccessfulAnalysisFiles = false
