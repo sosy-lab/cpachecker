@@ -347,29 +347,33 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       ReachedSet currentReached = reached;
       AtomicReference<ReachedSet> oldReached = new AtomicReference<>();
 
-      if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
-        reachedSetUpdater.register(
-            new ReachedSetUpdateListener() {
-
-              @Override
-              public void updated(ReachedSet pReachedSet) {
-                singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
-                ReachedSet newReached = coreComponents.createReachedSet(pReachedSet.getCPA());
-                for (AbstractState as : pReachedSet) {
-                  newReached.addNoWaitlist(as, pReachedSet.getPrecision(as));
-                }
-
-                updateOrAddReachedSetToReachedSetManager(oldReached.get(), newReached);
-                oldReached.set(newReached);
-              }
-            });
-      }
-
       if (!supplyRefinableReached) {
+        if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
+          reachedSetUpdater.register(
+              new ReachedSetUpdateListener() {
+
+                @Override
+                public void updated(ReachedSet pReachedSet) {
+                  singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
+                  ReachedSet newReached = coreComponents.createReachedSet(pReachedSet.getCPA());
+                  for (AbstractState as : pReachedSet) {
+                    newReached.addNoWaitlist(as, pReachedSet.getPrecision(as));
+                  }
+
+                  updateOrAddReachedSetToReachedSetManager(oldReached.get(), newReached);
+                  oldReached.set(newReached);
+                }
+              });
+        }
+
         status = algorithm.run(currentReached);
 
-        // only add to aggregated reached set if we haven't done so, and all necessary requirements
-        // are fulfilled
+        // Only add to aggregated reached set if we haven't done so, and all necessary requirements
+        // are fulfilled. We should likely not do this here if the "ReachedSetUpdateListener" above
+        // was used, but we have no reliable way of detecting whether the actually used algorithm
+        // implements ReachedSetUpdateListener because there are some ReachedSetUpdateListener
+        // classes
+        // that just optionally pass through the calls.
         if (!currentReached.hasWaitingState()
             && supplyReached
             && status.isPrecise()
