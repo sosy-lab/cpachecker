@@ -40,6 +40,8 @@ public class SeqToken {
 
   public static final String __FILE = "__file";
 
+  public static final String __FILE_NAME_PLACEHOLDER__ = "\"__FILE_NAME_PLACEHOLDER__\"";
+
   public static final String FUNCTION = "function";
 
   public static final String __FUNCTION = "__function";

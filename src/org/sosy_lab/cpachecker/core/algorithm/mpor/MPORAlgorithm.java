@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -21,11 +20,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -38,13 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejections.InputRejections;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqStringLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
@@ -87,23 +77,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     Path inputFilePath = inputCfa.getFileNames().get(0);
     SequentializationWriter writer = new SequentializationWriter(logger, inputFilePath);
-    // TODO we should remove the passing of the seq file name and adjust assertion failures in the
-    //  writer class (we do that anyway with the lines of code)
-    writer.write(buildSequentialization(writer.seqProgramFileName));
+    writer.write(buildSequentialization());
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  private void initSeqError(String pOutputFileName) {
-    // TODO given that this check is only used in Testing, we should change it...
-    if (!MPORStatics.isSeqErrorSet()) {
-      CFunctionCallExpression seqErrorCall = getSeqErrorCall(pOutputFileName, -1);
-      MPORStatics.setSeqError(seqErrorCall.toASTString());
-    }
-  }
-
   @CanIgnoreReturnValue
-  public String buildSequentialization(String pOutputFileName) throws UnrecognizedCodeException {
-    initSeqError(pOutputFileName);
+  public String buildSequentialization() throws UnrecognizedCodeException {
     return seq.generateProgram(substitutions);
   }
 
@@ -301,25 +280,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     return rThreads.build();
-  }
-
-  /**
-   * Returns the {@link CFunctionCallExpression} of {@code __assert_fail("0", "{pFileName}",
-   * {pLine}, "__SEQUENTIALIZATION_ERROR__");}
-   */
-  public static CFunctionCallExpression getSeqErrorCall(String pFileName, int pLine) {
-    CStringLiteralExpression seqFileName =
-        SeqStringLiteralExpression.buildStringLiteralExpr(SeqUtil.wrapInQuotationMarks(pFileName));
-    return new CFunctionCallExpression(
-        FileLocation.DUMMY,
-        SeqVoidType.VOID,
-        SeqIdExpression.ASSERT_FAIL,
-        ImmutableList.of(
-            SeqStringLiteralExpression.STRING_0,
-            seqFileName,
-            SeqIntegerLiteralExpression.buildIntLiteralExpr(pLine),
-            SeqStringLiteralExpression.SEQUENTIALIZATION_ERROR),
-        SeqFunctionDeclaration.ASSERT_FAIL);
   }
 
   // (Public) Helpers ===========================================================================

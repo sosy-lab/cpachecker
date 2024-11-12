@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -68,6 +69,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_va
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.ThreadActive;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.ThreadAwaitsMutex;
@@ -89,12 +91,11 @@ public class Sequentialization {
   //  curly left / right brackets, newlines, etc.
   public static final int TAB_SIZE = 2;
 
-  /**
-   * The call to {@code __assert_fail("0", "{output_file_name}", -1,
-   * "__SEQUENTIALIZATION_ERROR__");}. The {@code -1} is adjusted to the actual line of code by
-   * {@link SequentializationWriter}.
-   */
-  private static String seqError = null;
+  private static final CFunctionCallExpression errorPlaceholderExpression =
+      SequentializationWriter.buildSeqErrorCall(SeqToken.__FILE_NAME_PLACEHOLDER__, -1);
+
+  public static final String errorPlaceholder =
+      errorPlaceholderExpression.toASTString() + SeqSyntax.SEMICOLON;
 
   protected final int threadCount;
 

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
@@ -21,10 +22,17 @@ import java.util.logging.Level;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cmdline.Output;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORStatics;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqStringLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.w3c.dom.Document;
@@ -65,8 +73,7 @@ public class SequentializationWriter {
 
   private final Path inputFilePath;
 
-  // TODO remove
-  public final String seqProgramFileName;
+  private final String seqProgramName;
 
   private final String seqProgramPath;
 
@@ -77,8 +84,8 @@ public class SequentializationWriter {
     licenseComment = extractLicenseComment();
     inputFilePath = pInputFilePath;
     String seqName = "mpor_seq__" + getFileNameWithoutExtension(inputFilePath);
-    seqProgramFileName = seqName + FileExtension.I.suffix;
-    seqProgramPath = targetDirectory + seqProgramFileName;
+    seqProgramName = seqName + FileExtension.I.suffix;
+    seqProgramPath = targetDirectory + seqProgramName;
     seqMetadataPath = targetDirectory + seqName + FileExtension.YML.suffix;
   }
 
@@ -92,7 +99,7 @@ public class SequentializationWriter {
 
   public void write(String pSequentialization) {
     String initProgram = licenseComment + "\n" + sequentializationComment + pSequentialization;
-    String finalProgram = createFinalProgram(initProgram);
+    String finalProgram = createFinalProgram(seqProgramName, initProgram);
     try {
       File seqProgramFile = new File(seqProgramPath);
       File parentDir = seqProgramFile.getParentFile();
@@ -176,7 +183,7 @@ public class SequentializationWriter {
 
   private String createMetadata() {
     return "input_file_path : '"
-        + inputFilePath.toString()
+        + inputFilePath
         + "'\n"
         + "input_file : '"
         + inputFilePath.getFileName()
@@ -184,17 +191,17 @@ public class SequentializationWriter {
   }
 
   /**
-   * Replaces all {@code -1} in {@code __assert_fail("0", "{output_file_name}", -1,
-   * "__SEQUENTIALIZATION_ERROR__");} with the actual line of code.
+   * Replaces the file name and line in {@code __assert_fail("0", "__FILE_NAME_PLACEHOLDER__", -1,
+   * "__SEQUENTIALIZATION_ERROR__");} with pOutputFileName and the actual line.
    */
-  private String createFinalProgram(String pInitProgram) {
+  private String createFinalProgram(String pOutputFileName, String pInitProgram) {
     int currentLine = 1;
     StringBuilder rFinal = new StringBuilder();
     for (String line : Splitter.onPattern("\\r?\\n").split(pInitProgram)) {
-      if (line.contains(MPORStatics.seqError())) {
-        CFunctionCallExpression assertFailCall =
-            MPORAlgorithm.getSeqErrorCall(seqProgramFileName, currentLine);
-        rFinal.append(line.replace(MPORStatics.seqError(), assertFailCall.toASTString()));
+      if (line.contains(Sequentialization.errorPlaceholder)) {
+        CFunctionCallExpression assertFailCall = buildSeqErrorCall(pOutputFileName, currentLine);
+        rFinal.append(
+            line.replace(Sequentialization.errorPlaceholder, assertFailCall.toASTString()));
       } else {
         rFinal.append(line);
       }
@@ -202,5 +209,24 @@ public class SequentializationWriter {
       currentLine++;
     }
     return rFinal.toString();
+  }
+
+  /**
+   * Returns the {@link CFunctionCallExpression} of {@code __assert_fail("0", "{pFileName}",
+   * {pLine}, "__SEQUENTIALIZATION_ERROR__")}
+   */
+  public static CFunctionCallExpression buildSeqErrorCall(String pFileName, int pLine) {
+    CStringLiteralExpression seqFileName =
+        SeqStringLiteralExpression.buildStringLiteralExpr(SeqUtil.wrapInQuotationMarks(pFileName));
+    return new CFunctionCallExpression(
+        FileLocation.DUMMY,
+        SeqVoidType.VOID,
+        SeqIdExpression.ASSERT_FAIL,
+        ImmutableList.of(
+            SeqStringLiteralExpression.STRING_0,
+            seqFileName,
+            SeqIntegerLiteralExpression.buildIntLiteralExpr(pLine),
+            SeqStringLiteralExpression.SEQUENTIALIZATION_ERROR),
+        SeqFunctionDeclaration.ASSERT_FAIL);
   }
 }

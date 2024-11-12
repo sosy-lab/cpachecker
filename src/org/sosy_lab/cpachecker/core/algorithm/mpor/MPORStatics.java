@@ -36,25 +36,6 @@ public class MPORStatics {
     instanceType = pInstanceType;
   }
 
-  // Sequentialization Error =======================================================================
-
-  private static String seqError = null;
-
-  public static boolean isSeqErrorSet() {
-    return seqError != null;
-  }
-
-  public static String seqError() {
-    checkArgument(seqError != null, "sequentializationError was not initialized yet");
-    return seqError;
-  }
-
-  public static void setSeqError(String pSeqError) {
-    checkNotNull(pSeqError);
-    checkArgument(seqError == null, "sequentializationError was initialized already");
-    seqError = pSeqError;
-  }
-
   // Binary Expression Builder =====================================================================
 
   private static CBinaryExpressionBuilder binExprBuilder = null;
