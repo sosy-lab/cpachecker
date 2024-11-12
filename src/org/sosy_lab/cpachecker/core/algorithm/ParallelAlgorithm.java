@@ -295,31 +295,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
                     .filter(ThreadCpuTimeLimit.class),
                 null),
             terminated);
-    return () -> {
-      try {
-        if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
-          conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
-        }
-
-        singleAnalysisOverallLimit.start();
-
-        if (cpa instanceof StatisticsProvider) {
-          ((StatisticsProvider) cpa).collectStatistics(statisticsEntry.subStatistics);
-        }
-
-        if (algorithm instanceof StatisticsProvider) {
-          ((StatisticsProvider) algorithm).collectStatistics(statisticsEntry.subStatistics);
-        }
-
-        try {
-          initializeReachedSet(cpa, mainEntryNode, reached);
-        } catch (InterruptedException e) {
-          singleLogger.logUserException(
-              Level.INFO, e, "Initializing reached set took too long, analysis cannot be started");
-          return ParallelAnalysisResult.absent(singleConfigFileName.toString());
-        }
-
-        return runParallelAnalysis(
+    return () ->
+        runParallelAnalysis(
             singleConfigFileName.toString(),
             algorithm,
             reached,
@@ -328,11 +305,9 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             supplyReached,
             supplyRefinableReached,
             coreComponents,
+            singleAnalysisOverallLimit,
+            terminated,
             statisticsEntry);
-      } finally {
-        terminated.set(true);
-      }
-    };
   }
 
   private ParallelAnalysisResult runParallelAnalysis(
@@ -344,9 +319,33 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       final boolean supplyReached,
       final boolean supplyRefinableReached,
       final CoreComponentsFactory coreComponents,
+      final ResourceLimitChecker singleAnalysisOverallLimit,
+      final AtomicBoolean terminated,
       final StatisticsEntry pStatisticsEntry)
       throws CPAException {
     try {
+      if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
+        conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
+      }
+
+      singleAnalysisOverallLimit.start();
+
+      if (cpa instanceof StatisticsProvider) {
+        ((StatisticsProvider) cpa).collectStatistics(pStatisticsEntry.subStatistics);
+      }
+
+      if (algorithm instanceof StatisticsProvider) {
+        ((StatisticsProvider) algorithm).collectStatistics(pStatisticsEntry.subStatistics);
+      }
+
+      try {
+        initializeReachedSet(cpa, mainEntryNode, reached);
+      } catch (InterruptedException e) {
+        singleLogger.logUserException(
+            Level.INFO, e, "Initializing reached set took too long, analysis cannot be started");
+        return ParallelAnalysisResult.absent(analysisName);
+      }
+
       AlgorithmStatus status = null;
       ReachedSet currentReached = reached;
       AtomicReference<ReachedSet> oldReached = new AtomicReference<>();
@@ -456,6 +455,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     } catch (InterruptedException e) {
       singleLogger.log(Level.INFO, "Analysis was terminated");
       return ParallelAnalysisResult.absent(analysisName);
+    } finally {
+      terminated.set(true);
     }
   }
 
