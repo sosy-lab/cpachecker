@@ -88,7 +88,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               + " computation). If you use the suffix ::supply-reached-refinable instead"
               + " this means that the reached set supplier is additionally continously"
               + " refined (so one of the analysis has to be instanceof ReachedSetAdjustingCPA)"
-              + " to make this work properly.")
+              + " to make this work properly. However, this option is not recommended as it"
+              + " might be unsound based on the analyses used.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
 
