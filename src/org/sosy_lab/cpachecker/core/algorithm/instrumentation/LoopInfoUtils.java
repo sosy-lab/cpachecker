@@ -47,6 +47,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.core.algorithm.instrumentation.NormalLoopInfo;
+
 
 public class LoopInfoUtils {
 
@@ -73,6 +75,7 @@ public class LoopInfoUtils {
       Set<String> liveVariables = new HashSet<>();
       Set<String> variablesDeclaredInsideLoop = new HashSet<>();
       Map<String, String> liveVariablesAndTypes = new HashMap<>();
+      NormalLoopType loopType = NormalLoopType.NO_INFO;
       for (CFAEdge cfaEdge : loop.getInnerLoopEdges()) {
         if (cfaEdge.getRawAST().isPresent()) {
           AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
@@ -117,7 +120,7 @@ public class LoopInfoUtils {
 
       for (Integer loopLocation : loopLocations) {
         allNormalLoopInfos.add(
-            new NormalLoopInfo(loopLocation, ImmutableMap.copyOf(liveVariablesAndTypes)));
+            new NormalLoopInfo(loopLocation, ImmutableMap.copyOf(liveVariablesAndTypes), loopType));
       }
     }
 

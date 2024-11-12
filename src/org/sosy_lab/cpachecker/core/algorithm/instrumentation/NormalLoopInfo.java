@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
 import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.cpachecker.core.algorithm.instrumentation.NormalLoopInfo;
 
 /**
  * Represents a container for normal loop information(for, while, do-while, and goto loop).
@@ -18,4 +19,7 @@ import com.google.common.collect.ImmutableMap;
  *     to their types
  */
 public record NormalLoopInfo(
-    int loopLocation, ImmutableMap<String, String> liveVariablesAndTypes) {}
+    int loopLocation, 
+    ImmutableMap<String, String> liveVariablesAndTypes, 
+    NormalLoopType loopType
+) {}
