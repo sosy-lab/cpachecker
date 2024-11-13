@@ -1324,6 +1324,27 @@ public class SMGCPAExpressionEvaluator {
     return SatisfiabilityAndSMGState.of(Satisfiability.UNSAT, currentState);
   }
 
+  public SatisfiabilityAndSMGState checkIsUnsatWithCurrentConstraints(SMGState currentState)
+      throws SMGSolverException {
+    try {
+      SolverResult satResAndModel =
+          solver.checkUnsat(
+              currentState.getConstraints(), currentState.getStackFrameTopFunctionName());
+      if (satResAndModel.satisfiability().equals(Satisfiability.SAT)) {
+        return SatisfiabilityAndSMGState.of(
+            satResAndModel.satisfiability(),
+            currentState.replaceModelAndDefAssignmentAndCopy(
+                satResAndModel.definiteAssignments(), satResAndModel.model()));
+      }
+
+    } catch (InterruptedException | SolverException | UnrecognizedCodeException e) {
+      throw new SMGSolverException(e, currentState);
+    }
+
+    // trivial fallthrough and UNSAT
+    return SatisfiabilityAndSMGState.of(Satisfiability.UNSAT, currentState);
+  }
+
   /**
    * Writes the {@link Value} entered into the left hand sides {@link CExpression} memory.
    *
