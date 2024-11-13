@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 
 public class SeqPrefix {
 
-  public static final String FUNCTION = "__mpor_seq";
+  public static final String __MPOR_SEQ = "__mpor_seq";
 
   public static final String VAR_SUB_GLOBAL = "__g";
 

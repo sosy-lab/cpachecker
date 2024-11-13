@@ -42,6 +42,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter.FileExtension;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqPrefix;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
@@ -89,7 +91,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private static final String licenseFilePath = ".idea/copyright/CPAchecker.xml";
 
   private static final String seqHeaderComment =
-      "// This sequentialization (transformation of a parallel program into an equivalent \n"
+      "\n// This sequentialization (transformation of a parallel program into an equivalent \n"
           + "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker. \n"
           + "// \n"
           + "// Assertion fails from the function "
@@ -100,10 +102,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     Path inputFilePath = inputCfa.getFileNames().get(0);
-    String outputFileName = inputFilePath.getFileName().toString();
-    SequentializationWriter writer = new SequentializationWriter(logger, inputFilePath);
+    String seqName = createSeqName(inputFilePath);
+    SequentializationWriter writer = new SequentializationWriter(logger, seqName, inputFilePath);
     String initSeq = buildInitSeq();
-    String finalSeq = buildFinalSeq(outputFileName, initSeq);
+    String finalSeq = buildFinalSeq(seqName + FileExtension.I.suffix, initSeq);
     writer.write(finalSeq);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
@@ -114,7 +116,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /**
-   * Replaces the file name and line in {@code __assert_fail("0", "__FILE_NAME_PLACEHOLDER__", -1,
+   * Adds the license and sequentialization comments at the top of pInitProgram and replaces the
+   * file name and line in {@code __assert_fail("0", "__FILE_NAME_PLACEHOLDER__", -1,
    * "__SEQUENTIALIZATION_ERROR__");} with pOutputFileName and the actual line.
    */
   public String buildFinalSeq(String pOutputFileName, String pInitProgram) {
@@ -179,6 +182,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     throw Output.fatalError(
         "MPOR FAIL. No sequentialization created, could not extract the license from %s",
         licenseFilePath);
+  }
+
+  private String createSeqName(Path pInputFilePath) {
+    return SeqPrefix.__MPOR_SEQ + "__" + getFileNameWithoutExtension(pInputFilePath);
+  }
+
+  private String getFileNameWithoutExtension(Path pInputFilePath) {
+    String fileName = pInputFilePath.getFileName().toString();
+    return fileName.contains(".") ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
   }
 
   private final ConfigurableProgramAnalysis cpa;

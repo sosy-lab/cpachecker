@@ -25,7 +25,7 @@ public class SeqNameBuilder {
   }
 
   public static String createFuncName(String pFuncName) {
-    return SeqPrefix.FUNCTION + SeqSyntax.UNDERSCORE + pFuncName;
+    return SeqPrefix.__MPOR_SEQ + SeqSyntax.UNDERSCORE + pFuncName;
   }
 
   /**

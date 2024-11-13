@@ -22,11 +22,11 @@ public class SequentializationWriter {
 
   private static final String targetDirectory = "output/";
 
-  private enum FileExtension {
+  public enum FileExtension {
     I(".i"),
     YML(".yml");
 
-    private final String suffix;
+    public final String suffix;
 
     FileExtension(String pSuffix) {
       suffix = pSuffix;
@@ -41,17 +41,11 @@ public class SequentializationWriter {
 
   private final String seqMetadataPath;
 
-  public SequentializationWriter(LogManager pLogManager, Path pInputFilePath) {
+  public SequentializationWriter(LogManager pLogManager, String pSeqName, Path pInputFilePath) {
     logManager = pLogManager;
     inputFilePath = pInputFilePath;
-    String seqName = "mpor_seq__" + getFileNameWithoutExtension(inputFilePath);
-    seqProgramPath = targetDirectory + seqName + FileExtension.I.suffix;
-    seqMetadataPath = targetDirectory + seqName + FileExtension.YML.suffix;
-  }
-
-  private String getFileNameWithoutExtension(Path pInputFilePath) {
-    String fileName = pInputFilePath.getFileName().toString();
-    return fileName.contains(".") ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
+    seqProgramPath = targetDirectory + pSeqName + FileExtension.I.suffix;
+    seqMetadataPath = targetDirectory + pSeqName + FileExtension.YML.suffix;
   }
 
   public void write(final String pFinalSeq) {
