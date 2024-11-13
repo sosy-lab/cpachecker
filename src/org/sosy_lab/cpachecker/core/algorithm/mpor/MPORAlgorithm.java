@@ -8,12 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Path;
+import java.time.Year;
+import java.time.ZoneId;
 import java.util.Optional;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -21,6 +25,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -30,12 +35,15 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cmdline.Output;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejections.InputRejections;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
@@ -51,6 +59,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 /**
  * This is an implementation of a Partial Order Reduction (POR) algorithm, presented in the 2022
@@ -63,27 +74,111 @@ import org.sosy_lab.cpachecker.util.CPAs;
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
-  public enum InstanceType {
-    PRODUCTION,
-    TEST
-  }
-
   // TODO remove all @SuppressWarnings once finished
 
   // TODO (not sure if important for our algorithm) PredicateAbstractState.abstractLocations
   //  contains all CFANodes visited so far
 
+  public enum InstanceType {
+    PRODUCTION,
+    TEST
+  }
+
+  private static final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+
+  private static final String licenseFilePath = ".idea/copyright/CPAchecker.xml";
+
+  private static final String seqHeaderComment =
+      "// This sequentialization (transformation of a parallel program into an equivalent \n"
+          + "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker. \n"
+          + "// \n"
+          + "// Assertion fails from the function "
+          + SeqToken.__SEQUENTIALIZATION_ERROR__
+          + " mark faulty sequentializations. \n"
+          + "// All other assertion fails are induced by faulty input programs.\n\n";
+
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     Path inputFilePath = inputCfa.getFileNames().get(0);
+    String outputFileName = inputFilePath.getFileName().toString();
     SequentializationWriter writer = new SequentializationWriter(logger, inputFilePath);
-    writer.write(buildSequentialization());
+    String initSeq = buildInitSeq();
+    String finalSeq = buildFinalSeq(outputFileName, initSeq);
+    writer.write(finalSeq);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  @CanIgnoreReturnValue
-  public String buildSequentialization() throws UnrecognizedCodeException {
+  /** Returns the initial sequentialization, i.e. we adjust it in later stages */
+  public String buildInitSeq() throws UnrecognizedCodeException {
     return seq.generateProgram(substitutions);
+  }
+
+  /**
+   * Replaces the file name and line in {@code __assert_fail("0", "__FILE_NAME_PLACEHOLDER__", -1,
+   * "__SEQUENTIALIZATION_ERROR__");} with pOutputFileName and the actual line.
+   */
+  public String buildFinalSeq(String pOutputFileName, String pInitProgram) {
+    int currentLine = 1;
+    StringBuilder rFinal = new StringBuilder();
+    rFinal.append(extractLicenseComment()).append(seqHeaderComment);
+    for (String line : Splitter.onPattern("\\r?\\n").split(pInitProgram)) {
+      if (line.contains(Sequentialization.errorPlaceholder)) {
+        CFunctionCallExpression assertFailCall =
+            Sequentialization.buildSeqErrorCall(pOutputFileName, currentLine);
+        rFinal.append(
+            line.replace(
+                Sequentialization.errorPlaceholder,
+                assertFailCall.toASTString() + SeqSyntax.SEMICOLON));
+      } else {
+        rFinal.append(line);
+      }
+      rFinal.append(SeqSyntax.NEWLINE);
+      currentLine++;
+    }
+    return rFinal.toString();
+  }
+
+  private String extractLicenseComment() {
+    try {
+      DocumentBuilder builder = factory.newDocumentBuilder();
+      Document document = builder.parse(licenseFilePath);
+      document.getDocumentElement().normalize();
+
+      // get the <copyright> element
+      NodeList nodeList = document.getElementsByTagName("copyright");
+      if (nodeList.getLength() > 0) {
+        Element copyrightElement = (Element) nodeList.item(0);
+
+        // get the <option> element with name="notice"
+        NodeList optionList = copyrightElement.getElementsByTagName("option");
+        for (int i = 0; i < optionList.getLength(); i++) {
+          Element optionElement = (Element) optionList.item(i);
+          String optionName = optionElement.getAttribute("name");
+
+          if ("notice".equals(optionName)) {
+            String license = optionElement.getAttribute("value");
+            // add current year
+            String currentYear = String.valueOf(Year.now(ZoneId.systemDefault()).getValue());
+            license = license.replace("&#36;today.year", currentYear);
+            // add comment
+            Iterable<String> lines = Splitter.on('\n').split(license);
+            StringBuilder commentedLicense = new StringBuilder();
+            for (String line : lines) {
+              commentedLicense.append("// ").append(line).append("\n");
+            }
+            return commentedLicense.toString();
+          }
+        }
+      } else {
+        throw Output.fatalError("MPOR FAIL. No <copyright> element found.");
+      }
+    } catch (Exception e) {
+      throw Output.fatalError(
+          "MPOR FAIL. An exception occurred while extracting the license: %s", e.getMessage());
+    }
+    throw Output.fatalError(
+        "MPOR FAIL. No sequentialization created, could not extract the license from %s",
+        licenseFilePath);
   }
 
   private final ConfigurableProgramAnalysis cpa;

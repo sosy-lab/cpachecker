@@ -20,7 +20,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
 
 public class SequentializationTest {
 
@@ -69,9 +68,8 @@ public class SequentializationTest {
 
     // create seq with mpor algorithm
     MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa);
-    String initSeq = algorithm.buildSequentialization();
-    SequentializationWriter writer = new SequentializationWriter(logger, pInputFilePath);
-    String finalSeq = writer.buildFinalSequentialization("mpor_seq__test,i", initSeq);
+    String initSeq = algorithm.buildInitSeq();
+    String finalSeq = algorithm.buildFinalSeq("mpor_seq__test.i", initSeq);
 
     // test that seq can be parsed and cfa created ==> code compiles
     CFA seqCfa = creator.parseSourceAndCreateCFA(finalSeq);

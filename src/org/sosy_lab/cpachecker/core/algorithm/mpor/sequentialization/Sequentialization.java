@@ -20,6 +20,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -49,7 +51,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqStringLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalAndExpression;
@@ -66,7 +70,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_va
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcStorage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionVars;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
@@ -91,11 +94,8 @@ public class Sequentialization {
   //  curly left / right brackets, newlines, etc.
   public static final int TAB_SIZE = 2;
 
-  private static final CFunctionCallExpression errorPlaceholderExpression =
-      SequentializationWriter.buildSeqErrorCall(SeqToken.__FILE_NAME_PLACEHOLDER__, -1);
-
   public static final String errorPlaceholder =
-      errorPlaceholderExpression.toASTString() + SeqSyntax.SEMICOLON;
+      buildSeqErrorCall(SeqToken.__FILE_NAME_PLACEHOLDER__, -1).toASTString() + SeqSyntax.SEMICOLON;
 
   protected final int threadCount;
 
@@ -760,6 +760,25 @@ public class Sequentialization {
   }
 
   // Helpers for better Overview =================================================================
+
+  /**
+   * Returns the {@link CFunctionCallExpression} of {@code __assert_fail("0", "{pFileName}",
+   * {pLine}, "__SEQUENTIALIZATION_ERROR__")}
+   */
+  public static CFunctionCallExpression buildSeqErrorCall(String pFileName, int pLine) {
+    CStringLiteralExpression seqFileName =
+        SeqStringLiteralExpression.buildStringLiteralExpr(SeqUtil.wrapInQuotationMarks(pFileName));
+    return new CFunctionCallExpression(
+        FileLocation.DUMMY,
+        SeqVoidType.VOID,
+        SeqIdExpression.ASSERT_FAIL,
+        ImmutableList.of(
+            SeqStringLiteralExpression.STRING_0,
+            seqFileName,
+            SeqIntegerLiteralExpression.buildIntLiteralExpr(pLine),
+            SeqStringLiteralExpression.SEQUENTIALIZATION_ERROR),
+        SeqFunctionDeclaration.ASSERT_FAIL);
+  }
 
   private ThreadVars buildThreadVars(
       ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
