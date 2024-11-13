@@ -4500,6 +4500,9 @@ overflow.useLiveness = true
 # for both.
 parallelAlgorithm.configFiles = no default value
 
+# toggle to write all the files also for the unsuccessful analyses
+parallelAlgorithm.writeUnsuccessfulAnalysisFiles = false
+
 # The command line for calling the clang preprocessor. May contain binary
 # name and arguments, but won't be expanded by a shell. The source file name
 # will be appended to this string. Clang needs to print the output to stdout.

@@ -91,6 +91,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
 
+  @Option(
+      secure = true,
+      description = "toggle to write all the files also for the unsuccessful analyses")
+  private boolean writeUnsuccessfulAnalysisFiles = false;
+
   private static final String SUCCESS_MESSAGE =
       "One of the parallel analyses has finished successfully, cancelling all other runs.";
 
@@ -120,7 +125,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException, CPAException, InterruptedException {
     config.inject(this);
 
-    stats = new ParallelAlgorithmStatistics(pLogger);
+    stats = new ParallelAlgorithmStatistics(pLogger, writeUnsuccessfulAnalysisFiles);
     globalConfig = config;
     logger = checkNotNull(pLogger);
     shutdownManager = ShutdownManager.createWithParent(checkNotNull(pShutdownNotifier));
@@ -547,9 +552,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     private final List<StatisticsEntry> allAnalysesStats = new CopyOnWriteArrayList<>();
     private int noOfAlgorithmsUsed = 0;
     private String successfulAnalysisName = null;
+    private boolean writeUnsuccessfulAnalysisFiles;
 
-    ParallelAlgorithmStatistics(LogManager pLogger) {
+    ParallelAlgorithmStatistics(LogManager pLogger, boolean pWriteUnsuccessfulAnalysisFiles) {
       logger = checkNotNull(pLogger);
+      writeUnsuccessfulAnalysisFiles = pWriteUnsuccessfulAnalysisFiles;
     }
 
     public synchronized StatisticsEntry getNewSubStatistics(
@@ -616,7 +623,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       for (StatisticsEntry subStats : allAnalysesStats) {
         if (isSuccessfulAnalysis(subStats)) {
           successfullAnalysisStats = subStats;
-        } else {
+        } else if (writeUnsuccessfulAnalysisFiles) {
           writeSubOutputFiles(pResult, subStats);
         }
       }
