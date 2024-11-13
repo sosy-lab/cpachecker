@@ -88,6 +88,8 @@ public class ConcolicAlgorithmRandom implements Algorithm {
   private final Set<AbstractCFAEdge> visitedBlocks;
   private final Set<List<Constraint>> checkedConstraints;
   private final Set<List<CFAEdge>> visitedPaths;
+  private int testsWritten = 0;
+  private final int maxTestCases = 99000;
 
   // TODO remove public -> Singleton in NondeterministicValueProvider?
   public static final NondeterministicValueProvider nonDetValueProvider =
@@ -326,6 +328,10 @@ public class ConcolicAlgorithmRandom implements Algorithm {
   }
 
   private void writeTestCaseFromValues(List<Object> model) {
+    testsWritten++;
+    if(testsWritten > maxTestCases) {
+      throw new Error(String.format("Maximum number of test cases (%d) reached", maxTestCases));
+    }
     try {
 
       List<String> ls = new ArrayList<>();
