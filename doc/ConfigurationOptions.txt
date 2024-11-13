@@ -4831,6 +4831,9 @@ reachedSet.dot = "reached.dot"
 reachedSet.export = false
 reachedSet.file = "reached.txt"
 
+# Add visualization of correctness witnesses to the report (can be costly)
+report.addWitness = false
+
 # Generate HTML report with analysis result.
 report.export = true
 
