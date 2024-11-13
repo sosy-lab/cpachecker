@@ -194,27 +194,41 @@ public class SMGCPAAddressVisitor
         // access array[1] first, we can see that the next type is CArray which makes only sense for
         // nested arrays -> it reads a pointer and returns it even if the type is not a pointer
         // expr)
-        resultBuilder.add(handleSubscriptExpression(arrayValue, subscriptOffset, currentState));
+        resultBuilder.addAll(
+            handleSubscriptExpression(arrayValue, subscriptOffset, currentState, e));
       }
     }
     return resultBuilder.build();
   }
 
   /*
-   * Get the return from the array behind arrayValue and the subscript offset in bits.
+   * Get the object and offset from an (array) subscript expression with address arrayValue and the
+   *  subscript offset in bits, possibly symbolic. Might return multiple states when assigning
+   *  concrete offsets with a solver.
    */
-  private SMGStateAndOptionalSMGObjectAndOffset handleSubscriptExpression(
-      Value arrayValue, Value subscriptOffset, SMGState pCurrentState) throws SMGException {
+  private List<SMGStateAndOptionalSMGObjectAndOffset> handleSubscriptExpression(
+      Value arrayValue,
+      Value subscriptOffset,
+      SMGState pCurrentState,
+      CArraySubscriptExpression expr)
+      throws CPATransferException {
 
     if ((arrayValue instanceof AddressExpression arrayAddr)) {
       Value addrOffset = arrayAddr.getOffset();
-      if (!addrOffset.isNumericValue() && !options.trackErrorPredicates()) {
-        logger.log(
-            Level.FINE,
-            "A offset value was found to be non concrete when trying to find a memory"
-                + " location in an array. No memory region could be returned.");
-        return SMGStateAndOptionalSMGObjectAndOffset.of(
-            pCurrentState.withUnknownOffsetMemoryAccess());
+      if (!addrOffset.isNumericValue()) {
+        if (!options.trackErrorPredicates()) {
+          logger.log(
+              Level.FINE,
+              "A offset value was found to be non concrete when trying to find a memory"
+                  + " location in an array. No memory region could be returned.");
+          return ImmutableList.of(
+              SMGStateAndOptionalSMGObjectAndOffset.of(
+                  pCurrentState.withUnknownOffsetMemoryAccess()));
+        } else if (options.isFindConcreteValuesForSymbolicOffsets()) {
+          // Assign concrete values for the offset
+          return pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
+              subscriptOffset, pCurrentState, expr, cfaEdge);
+        }
       }
       Value finalOffset = SMGCPAExpressionEvaluator.addOffsetValues(addrOffset, subscriptOffset);
 
@@ -222,7 +236,7 @@ public class SMGCPAAddressVisitor
           evaluator.getTargetObjectAndOffset(
               pCurrentState, arrayAddr.getMemoryAddress(), finalOffset);
       Preconditions.checkArgument(targets.size() == 1);
-      return targets.get(0);
+      return targets;
 
     } else if (pCurrentState.getMemoryModel().isPointer(arrayValue)) {
       // Local array
@@ -233,13 +247,22 @@ public class SMGCPAAddressVisitor
       SMGStateAndOptionalSMGObjectAndOffset maybeTargetMemoryAndOffset =
           maybeTargetMemoriesAndOffsets.get(0);
       if (!maybeTargetMemoryAndOffset.hasSMGObjectAndOffset()) {
-        return maybeTargetMemoryAndOffset;
+        return maybeTargetMemoriesAndOffsets;
       }
       Value baseOffset = maybeTargetMemoryAndOffset.getOffsetForObject();
       Value finalOffset = SMGCPAExpressionEvaluator.addOffsetValues(baseOffset, subscriptOffset);
 
-      return SMGStateAndOptionalSMGObjectAndOffset.of(
-          maybeTargetMemoryAndOffset.getSMGObject(), finalOffset, pCurrentState);
+      if (!finalOffset.isNumericValue()
+          && options.trackErrorPredicates()
+          && options.isFindConcreteValuesForSymbolicOffsets()) {
+        // Assign concrete values for the offset
+        return pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
+            subscriptOffset, pCurrentState, expr, cfaEdge);
+      }
+
+      return ImmutableList.of(
+          SMGStateAndOptionalSMGObjectAndOffset.of(
+              maybeTargetMemoryAndOffset.getSMGObject(), finalOffset, pCurrentState));
 
     } else if (arrayValue instanceof SymbolicIdentifier localArrayValue
         && localArrayValue.getRepresentedLocation().isPresent()) {
@@ -254,8 +277,11 @@ public class SMGCPAAddressVisitor
         if (!options.trackPredicates()) {
           throw new UnsupportedOperationException(
               "Symbolic array subscript access not supported by this analysis.");
+        } else if (options.isFindConcreteValuesForSymbolicOffsets()) {
+          // Assign concrete values for the offset
+          return pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
+              subscriptOffset, pCurrentState, expr, cfaEdge);
         } else {
-          // TODO:
           throw new UnsupportedOperationException(
               "Missing case in SMGCPAValueVisitor. Report to CPAchecker issue tracker for SMG2"
                   + " analysis. Missing symbolic handling of a array subscript expression");
@@ -265,16 +291,17 @@ public class SMGCPAAddressVisitor
       Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTarget =
           evaluator.getTargetObjectAndOffset(pCurrentState, qualifiedVarName, finalOffset);
 
-      return SMGStateAndOptionalSMGObjectAndOffset.of(pCurrentState, maybeTarget);
+      return ImmutableList.of(SMGStateAndOptionalSMGObjectAndOffset.of(pCurrentState, maybeTarget));
 
     } else {
       // Might be numeric 0 (0 object). All else cases are basically invalid requests.
       if (arrayValue.isNumericValue()
           && arrayValue.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
-        return SMGStateAndOptionalSMGObjectAndOffset.of(
-            SMGObject.nullInstance(), subscriptOffset, pCurrentState);
+        return ImmutableList.of(
+            SMGStateAndOptionalSMGObjectAndOffset.of(
+                SMGObject.nullInstance(), subscriptOffset, pCurrentState));
       } else {
-        return SMGStateAndOptionalSMGObjectAndOffset.of(pCurrentState);
+        return ImmutableList.of(SMGStateAndOptionalSMGObjectAndOffset.of(pCurrentState));
       }
     }
   }
