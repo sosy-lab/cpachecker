@@ -20,6 +20,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
@@ -4003,7 +4004,7 @@ public class SMGState
    * overapproximate or find concrete values.
    */
   @Nonnull
-  private ImmutableList<SMGState> handleSymbolicOffset(
+  private List<SMGState> handleSymbolicOffset(
       SMGObject object,
       Value writeOffsetInBits,
       Value sizeInBits,
@@ -4045,7 +4046,7 @@ public class SMGState
   }
 
   @Nonnull
-  private ImmutableList<SMGState> assignConcreteValuesForSymbolicValuesInWrite(
+  private List<SMGState> assignConcreteValuesForSymbolicValuesInWrite(
       SMGObject object,
       Value writeOffsetInBits,
       Value sizeInBits,
@@ -4053,6 +4054,138 @@ public class SMGState
       Value valueToWrite,
       CType valueType,
       CRightHandSide rValueExpr,
+      @Nullable CFAEdge edge,
+      SMGState currentState)
+      throws SMGException, SMGSolverException {
+
+    if (lValueExpr == null || rValueExpr == null) {
+      throw new SMGException(
+          "Stop analysis because of an error in symbolic offset in write operation. Option"
+              + " findConcreteValuesForSymbolicOffsets failed. You can use "
+              + "overapproximateSymbolicOffsets if you want to continue. "
+              + edge);
+    }
+
+    List<SMGState> assignedStates =
+        findAssignmentsWithSolverAndReplaceSymbolicValues(
+            object, writeOffsetInBits, sizeInBits, edge, currentState);
+
+    // (The concrete assignments don't invoke an SMT check anymore if there are no more symbolic
+    // values in any of the size or offset expressions)
+    if (assignedStates.isEmpty()) {
+      // No more assignments possible.
+      return ImmutableList.of();
+    }
+
+    // Temporary restriction
+    Preconditions.checkArgument(assignedStates.size() == 2);
+    // Run the evaluation for the values with symbolic idents assigned in them again
+    // e.g. offset/size
+    ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
+    for (SMGState assignedState : assignedStates) {
+      // The offset is not necassarly concrete now! We assign a concrete value in one state and
+      //   block it in the symbolic value for another state.
+      SMGStateAndOptionalSMGObjectAndOffset targetAndOffsetAndState =
+          reEvaluateTargetObjectAndOffsetAfterConcreteAssignment(lValueExpr, edge, assignedState);
+      SMGState currentAssignedState = targetAndOffsetAndState.getSMGState();
+      Preconditions.checkArgument(object == targetAndOffsetAndState.getSMGObject());
+      Value writeOffsetInBitsEvaluated = targetAndOffsetAndState.getOffsetForObject();
+
+      if (!sizeInBits.isNumericValue()) {
+        // TODO: we can also handle concrete sizes the same way.
+        throw new SMGException(
+            "Stop analysis because of an error in symbolic offset in write operation. Option"
+                + " findConcreteValuesForSymbolicOffsets failed. You can use "
+                + "overapproximateSymbolicOffsets if you want to continue. "
+                + edge);
+      }
+      // TODO: once we assign sizes we also need to reevaluate them
+      Value writeSizeInBitsEvaluated = sizeInBits;
+
+      Value newValueToWrite = valueToWrite;
+      if (!valueToWrite.isNumericValue() && !memoryModel.isPointer(valueToWrite)) {
+        ValueAndSMGState possibleNewValueAndState =
+            reEvaluateValueToWriteAfterConcreteAssignment(rValueExpr, edge, currentAssignedState);
+        newValueToWrite = possibleNewValueAndState.getValue();
+        currentAssignedState = possibleNewValueAndState.getState();
+      }
+
+      finalStates.addAll(
+          currentAssignedState.writeValueWithChecks(
+              object,
+              writeOffsetInBitsEvaluated,
+              writeSizeInBitsEvaluated,
+              lValueExpr,
+              newValueToWrite,
+              valueType,
+              rValueExpr,
+              edge));
+    }
+    return finalStates.build();
+  }
+
+  @Nonnull
+  private SMGStateAndOptionalSMGObjectAndOffset
+      reEvaluateTargetObjectAndOffsetAfterConcreteAssignment(
+          CExpression lValueExpr, @javax.annotation.Nullable CFAEdge edge, SMGState assignedState)
+          throws SMGException, SMGSolverException {
+    List<SMGStateAndOptionalSMGObjectAndOffset> targetsAndOffsetsAndStates;
+    try {
+      targetsAndOffsetsAndStates =
+          lValueExpr.accept(
+              new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger, options));
+    } catch (CPATransferException pE) {
+      if (pE instanceof SMGException) {
+        throw (SMGException) pE;
+      } else if (pE instanceof SMGSolverException) {
+        throw (SMGSolverException) pE;
+      }
+      // This can never happen, but i am forced to do this as the visitor demands the
+      // CPATransferException
+      throw new RuntimeException(pE);
+    }
+    Preconditions.checkArgument(targetsAndOffsetsAndStates.size() == 1);
+    SMGStateAndOptionalSMGObjectAndOffset targetAndOffsetAndState =
+        targetsAndOffsetsAndStates.get(0);
+    if (!targetAndOffsetAndState.hasSMGObjectAndOffset()) {
+      // No memory for the left hand side found -> ERROR, we had it before
+      throw new SMGException(
+          "Stop analysis because of an error in symbolic offset in write operation. Option"
+              + " findConcreteValuesForSymbolicOffsets failed. You can use "
+              + "overapproximateSymbolicOffsets if you want to continue. "
+              + edge);
+    }
+    return targetAndOffsetAndState;
+  }
+
+  @Nonnull
+  private ValueAndSMGState reEvaluateValueToWriteAfterConcreteAssignment(
+      CRightHandSide rValueExpr, @Nonnull CFAEdge edge, SMGState currentAssignedState)
+      throws SMGException, SMGSolverException {
+    SMGCPAValueVisitor vv =
+        new SMGCPAValueVisitor(evaluator, currentAssignedState, edge, logger, options);
+    List<ValueAndSMGState> possibleValues;
+    try {
+      possibleValues = rValueExpr.accept(vv);
+    } catch (CPATransferException pE) {
+      if (pE instanceof SMGException) {
+        throw (SMGException) pE;
+      } else if (pE instanceof SMGSolverException) {
+        throw (SMGSolverException) pE;
+      }
+      // This can never happen, but i am forced to do this as the visitor demands the
+      // CPATransferException
+      throw new RuntimeException(pE);
+    }
+    Preconditions.checkArgument(possibleValues.size() == 1);
+    return possibleValues.get(0);
+  }
+
+  @Nonnull
+  private List<SMGState> findAssignmentsWithSolverAndReplaceSymbolicValues(
+      SMGObject object,
+      Value writeOffsetInBits,
+      Value sizeInBits,
       @Nullable CFAEdge edge,
       SMGState currentState)
       throws SMGException, SMGSolverException {
@@ -4069,7 +4202,7 @@ public class SMGState
     Set<SymbolicValue> identsToReplace =
         ImmutableSet.<SymbolicValue>builder().addAll(sizeIdents).addAll(offsetIdents).build();
 
-    ImmutableList.Builder<SMGState> assignedStatesBuilder = ImmutableList.builder();
+    Builder<SMGState> assignedStatesBuilder = ImmutableList.builder();
 
     if (maybeAssignmentResultAndState.isSAT()) {
       // Found assignment
@@ -4110,102 +4243,7 @@ public class SMGState
         assignedStatesBuilder.addAll(simpleAssignedStates);
       }
     }
-
-    // (The concrete assignments don't invoke an SMT check anymore if there are no more symbolic
-    // values in any of the size or offset expressions)
-    List<SMGState> assignedStates = assignedStatesBuilder.build();
-    if (assignedStates.isEmpty()) {
-      // No more assignments possible.
-      return ImmutableList.of();
-    }
-    Preconditions.checkArgument(assignedStates.size() == 2);
-    // Run the evaluation for the values with symbolic idents assigned in them again
-    // e.g. offset/size
-    ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
-    for (SMGState assignedState : assignedStates) {
-      if (lValueExpr == null || rValueExpr == null) {
-        throw new SMGException(
-            "Stop analysis because of an error in symbolic offset in write operation. Option"
-                + " findConcreteValuesForSymbolicOffsets failed. You can use "
-                + "overapproximateSymbolicOffsets if you want to continue. "
-                + edge);
-      }
-      List<SMGStateAndOptionalSMGObjectAndOffset> targetsAndOffsetsAndStates;
-      try {
-        targetsAndOffsetsAndStates =
-            lValueExpr.accept(
-                new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger, options));
-      } catch (CPATransferException pE) {
-        if (pE instanceof SMGException) {
-          throw (SMGException) pE;
-        } else if (pE instanceof SMGSolverException) {
-          throw (SMGSolverException) pE;
-        }
-        // This can never happen, but i am forced to do this as the visitor demands the
-        // CPATransferException
-        throw new RuntimeException(pE);
-      }
-      Preconditions.checkArgument(targetsAndOffsetsAndStates.size() == 1);
-      SMGStateAndOptionalSMGObjectAndOffset targetAndOffsetAndState =
-          targetsAndOffsetsAndStates.get(0);
-      SMGState currentAssignedState = targetAndOffsetAndState.getSMGState();
-
-      if (!targetAndOffsetAndState.hasSMGObjectAndOffset()) {
-        // No memory for the left hand side found -> ERROR, we had it before
-        throw new SMGException(
-            "Stop analysis because of an error in symbolic offset in write operation. Option"
-                + " findConcreteValuesForSymbolicOffsets failed. You can use "
-                + "overapproximateSymbolicOffsets if you want to continue. "
-                + edge);
-      }
-
-      Preconditions.checkArgument(object == targetAndOffsetAndState.getSMGObject());
-      Value writeOffsetInBitsEvaluated = targetAndOffsetAndState.getOffsetForObject();
-
-      if (!sizeInBits.isNumericValue()) {
-        // TODO: we can also handle concrete sizes the same way.
-        throw new SMGException(
-            "Stop analysis because of an error in symbolic offset in write operation. Option"
-                + " findConcreteValuesForSymbolicOffsets failed. You can use "
-                + "overapproximateSymbolicOffsets if you want to continue. "
-                + edge);
-      }
-      Value writeSizeInBitsEvaluated = sizeInBits;
-
-      Value newValueToWrite = valueToWrite;
-      if (!valueToWrite.isNumericValue() && !memoryModel.isPointer(valueToWrite)) {
-        SMGCPAValueVisitor vv =
-            new SMGCPAValueVisitor(evaluator, currentAssignedState, edge, logger, options);
-        List<ValueAndSMGState> possibleValues;
-        try {
-          possibleValues = rValueExpr.accept(vv);
-        } catch (CPATransferException pE) {
-          if (pE instanceof SMGException) {
-            throw (SMGException) pE;
-          } else if (pE instanceof SMGSolverException) {
-            throw (SMGSolverException) pE;
-          }
-          // This can never happen, but i am forced to do this as the visitor demands the
-          // CPATransferException
-          throw new RuntimeException(pE);
-        }
-        Preconditions.checkArgument(possibleValues.size() == 1);
-        newValueToWrite = possibleValues.get(0).getValue();
-        currentAssignedState = possibleValues.get(0).getState();
-      }
-
-      finalStates.addAll(
-          currentAssignedState.writeValueWithChecks(
-              object,
-              writeOffsetInBitsEvaluated,
-              writeSizeInBitsEvaluated,
-              lValueExpr,
-              newValueToWrite,
-              valueType,
-              rValueExpr,
-              edge));
-    }
-    return finalStates.build();
+    return assignedStatesBuilder.build();
   }
 
   /**
