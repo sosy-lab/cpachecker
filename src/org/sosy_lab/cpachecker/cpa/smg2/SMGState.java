@@ -4025,7 +4025,7 @@ public class SMGState
       // Find the possible assignments of the offset (or the symbolic value therein)
       //   and create concrete states based on concrete offsets them.
       // We know that memory-safety is not violated, so the values are most likely finite.
-      return assignConcreteValuesForSymbolicValuesInWrite(
+      return assignConcreteValuesForSymbolicValuesAndWrite(
           object,
           writeOffsetInBits,
           sizeInBits,
@@ -4046,7 +4046,7 @@ public class SMGState
   }
 
   @Nonnull
-  private List<SMGState> assignConcreteValuesForSymbolicValuesInWrite(
+  private List<SMGState> assignConcreteValuesForSymbolicValuesAndWrite(
       SMGObject object,
       Value writeOffsetInBits,
       Value sizeInBits,
