@@ -115,6 +115,12 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
                 "%s ? %s : %s",
                 cache.get(newArgs.get(0)), cache.get(newArgs.get(1)), cache.get(newArgs.get(2)));
         break;
+      case BV_EXTRACT:
+        if (functionDeclaration.getName().equals("`bvextract_31_31_32`")) {
+          result = cache.get(newArgs.get(0)) + " < 0";
+          break;
+        }
+      // $FALL-THROUGH$
       default:
         {
           List<String> expressions = new ArrayList<>(newArgs.size());
