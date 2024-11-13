@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import java.io.Serial;
 import java.io.Serializable;
@@ -26,6 +27,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -618,6 +620,25 @@ public final class ValueAnalysisState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
+    return getFormulaApproximationWithSpecifiedVars(manager, Predicates.alwaysTrue(), true);
+  }
+
+  @Override
+  public BooleanFormula getScopedFormulaApproximation(
+      final FormulaManagerView pManager, final FunctionEntryNode pFunctionScope) {
+    return getFormulaApproximationWithSpecifiedVars(
+        pManager,
+        memLoc ->
+            !memLoc.getIdentifier().startsWith("__CPAchecker_TMP_")
+                && (!memLoc.isOnFunctionStack()
+                    || memLoc.isOnFunctionStack(pFunctionScope.getFunctionName())),
+        false);
+  }
+
+  private BooleanFormula getFormulaApproximationWithSpecifiedVars(
+      final FormulaManagerView manager,
+      final Predicate<MemoryLocation> considerVar,
+      final boolean useQualifiedNames) {
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
     if (machineModel == null) {
       return bfmgr.makeTrue();
@@ -628,45 +649,55 @@ public final class ValueAnalysisState
     FloatingPointFormulaManagerView floatFMGR = manager.getFloatingPointFormulaManager();
 
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
-      NumericValue num = entry.getValue().getValue().asNumericValue();
+      MemoryLocation memoryLocation = entry.getKey();
+      if (considerVar.test(memoryLocation)) {
+        NumericValue num = entry.getValue().getValue().asNumericValue();
 
-      if (num != null) {
-        MemoryLocation memoryLocation = entry.getKey();
-        Type type = entry.getValue().getType();
-        if (!memoryLocation.isReference() && type instanceof CSimpleType simpleType) {
-          if (simpleType.getType().isIntegerType()) {
-            int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
-            BitvectorFormula var =
-                bitvectorFMGR.makeVariable(bitSize, entry.getKey().getExtendedQualifiedName());
+        if (num != null) {
+          Type type = entry.getValue().getType();
+          if (!memoryLocation.isReference() && type instanceof CSimpleType simpleType) {
+            if (simpleType.getType().isIntegerType()) {
+              int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
+              BitvectorFormula var =
+                  bitvectorFMGR.makeVariable(
+                      bitSize,
+                      useQualifiedNames
+                          ? entry.getKey().getExtendedQualifiedName()
+                          : entry.getKey().getIdentifier());
 
-            Number value = num.getNumber();
-            final BitvectorFormula val;
-            if (value instanceof BigInteger) {
-              val = bitvectorFMGR.makeBitvector(bitSize, (BigInteger) value);
+              Number value = num.getNumber();
+              final BitvectorFormula val;
+              if (value instanceof BigInteger) {
+                val = bitvectorFMGR.makeBitvector(bitSize, (BigInteger) value);
+              } else {
+                val = bitvectorFMGR.makeBitvector(bitSize, num.longValue());
+              }
+              result.add(bitvectorFMGR.equal(var, val));
+            } else if (simpleType.getType().isFloatingPointType()) {
+              final FloatingPointType fpType =
+                  switch (simpleType.getType()) {
+                    case FLOAT -> FormulaType.getSinglePrecisionFloatingPointType();
+                    case DOUBLE -> FormulaType.getDoublePrecisionFloatingPointType();
+                    default ->
+                        throw new AssertionError("Unsupported floating point type: " + simpleType);
+                  };
+              FloatingPointFormula var =
+                  floatFMGR.makeVariable(
+                      useQualifiedNames
+                          ? entry.getKey().getExtendedQualifiedName()
+                          : entry.getKey().getIdentifier(),
+                      fpType);
+              FloatingPointFormula val = floatFMGR.makeNumber(num.doubleValue(), fpType);
+              result.add(floatFMGR.equalWithFPSemantics(var, val));
             } else {
-              val = bitvectorFMGR.makeBitvector(bitSize, num.longValue());
+              // ignore in formula-approximation
             }
-            result.add(bitvectorFMGR.equal(var, val));
-          } else if (simpleType.getType().isFloatingPointType()) {
-            final FloatingPointType fpType =
-                switch (simpleType.getType()) {
-                  case FLOAT -> FormulaType.getSinglePrecisionFloatingPointType();
-                  case DOUBLE -> FormulaType.getDoublePrecisionFloatingPointType();
-                  default ->
-                      throw new AssertionError("Unsupported floating point type: " + simpleType);
-                };
-            FloatingPointFormula var =
-                floatFMGR.makeVariable(entry.getKey().getExtendedQualifiedName(), fpType);
-            FloatingPointFormula val = floatFMGR.makeNumber(num.doubleValue(), fpType);
-            result.add(floatFMGR.equalWithFPSemantics(var, val));
           } else {
             // ignore in formula-approximation
           }
         } else {
           // ignore in formula-approximation
         }
-      } else {
-        // ignore in formula-approximation
       }
     }
 

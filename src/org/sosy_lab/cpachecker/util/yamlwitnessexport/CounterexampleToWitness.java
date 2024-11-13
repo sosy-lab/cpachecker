@@ -9,12 +9,12 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -185,6 +185,96 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             assumeEdge.getPredecessor().getFunctionName()));
   }
 
+  private List<WaypointRecord> buildWaypoints(
+      CFAEdge pEdge,
+      ImmutableListMultimap<CFAEdge, AExpressionStatement> pEdgeToAssumptions,
+      AstCfaRelation pAstCFARelation,
+      Map<CFAEdge, Integer> pEdgeToCurrentExpressionIndex) {
+
+    // See if the edge contains an assignment of a VerifierNondet call
+    if (CFAUtils.assignsNondetFunctionCall(pEdge)) {
+
+      Optional<WaypointRecord> assumptionWaypoint =
+          handleAssumptionWhenAtPossibleLocation(
+              pEdge, pEdgeToAssumptions, pEdgeToCurrentExpressionIndex, pAstCFARelation);
+
+      if (assumptionWaypoint.isEmpty()) {
+        return ImmutableList.of();
+      }
+
+      return ImmutableList.of(assumptionWaypoint.orElseThrow());
+    } else if (pEdge instanceof AssumeEdge assumeEdge) {
+      // Without the AST structure we cannot guarantee that we are exporting at the beginning of
+      // an iteration or if statement
+      // To export the branching waypoint, we first find the IfElement or IterationElement
+      // containing it. Then we look for the FileLocation of the structure
+      // Currently we only export IfStructures, since there is no nice way to say how often a loop
+      // should be traversed and exporting this information will quickly make the witness
+      // difficult to read
+      Optional<IfElement> optionalIfElement =
+          pAstCFARelation.getIfStructureForConditionEdge(assumeEdge);
+      Optional<IterationElement> optionalIterationElement =
+          pAstCFARelation.getTightestIterationStructureForNode(assumeEdge.getPredecessor());
+
+      Set<CFANode> nodesBetweenConditionAndFirstBranch;
+      Set<CFANode> nodesBetweenConditionAndSecondBranch;
+      CFANode successor = assumeEdge.getSuccessor();
+      FileLocation astElementLocation;
+      if (optionalIfElement.isPresent()) {
+        IfElement ifElement = optionalIfElement.orElseThrow();
+        nodesBetweenConditionAndFirstBranch = ifElement.getNodesBetweenConditionAndThenBranch();
+        nodesBetweenConditionAndSecondBranch = ifElement.getNodesBetweenConditionAndElseBranch();
+        astElementLocation = ifElement.getCompleteElement().location();
+      } else if (optionalIterationElement.isPresent()) {
+        IterationElement iterationElement = optionalIterationElement.orElseThrow();
+        astElementLocation = iterationElement.getCompleteElement().location();
+
+        if (iterationElement.getControllingExpression().isEmpty()) {
+          // This can only happen for an expression of the form `for(;;)`, which is an infinite
+          // loop. In this case we directly export the assumption waypoint and continue.
+          return ImmutableList.of(handleBranchingWaypoint(true, astElementLocation, assumeEdge));
+        }
+
+        nodesBetweenConditionAndFirstBranch = iterationElement.getNodesBetweenConditionAndBody();
+        nodesBetweenConditionAndSecondBranch = iterationElement.getNodesBetweenConditionAndExit();
+      } else {
+        // TODO: Handle conditional expressions. This would need to be added at the parser level
+        // and then added to the AstCfaRelation. The problem is that this occurs at the expression
+        // level and we currently only consider statements. The relevant parser expression type is
+        // IASTConditionalExpression.
+        logger.log(Level.INFO, "Could not find the AST structure for the edge: " + pEdge);
+        return ImmutableList.of();
+      }
+
+      if (!nodesBetweenConditionAndFirstBranch.contains(successor)
+          && !nodesBetweenConditionAndSecondBranch.contains(successor)) {
+        return ImmutableList.of();
+      }
+
+      Verify.verifyNotNull(astElementLocation);
+      return ImmutableList.of(
+          handleBranchingWaypoint(
+              nodesBetweenConditionAndFirstBranch.contains(successor),
+              astElementLocation,
+              assumeEdge));
+
+    } else if (exportCompleteCounterexample) {
+      // Export all other edges which are not absolutely relevant for the counterexample
+      Optional<WaypointRecord> assumptionWaypoint =
+          handleAssumptionWhenAtPossibleLocation(
+              pEdge, pEdgeToAssumptions, pEdgeToCurrentExpressionIndex, pAstCFARelation);
+
+      if (assumptionWaypoint.isEmpty()) {
+        return ImmutableList.of();
+      }
+
+      return ImmutableList.of(assumptionWaypoint.orElseThrow());
+    }
+
+    // Not all edges are relevant for the counterexample, so we do not export them
+    return ImmutableList.of();
+  }
+
   /**
    * Export the given counterexample to the path as a Witness version 2.0
    *
@@ -224,79 +314,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // Therefore, an assumption waypoint needs to point to the beginning of the statement before
     // which it is valid
     for (CFAEdge edge : edges) {
-      // See if the edge contains an assignment of a VerifierNondet call
-      List<WaypointRecord> waypoints = new ArrayList<>();
 
-      if (CFAUtils.assignsNondetFunctionCall(edge)) {
-
-        Optional<WaypointRecord> assumptionWaypoint =
-            handleAssumptionWhenAtPossibleLocation(
-                edge, edgeToAssumptions, edgeToCurrentExpressionIndex, astCFARelation);
-
-        if (assumptionWaypoint.isEmpty()) {
-          continue;
-        }
-
-        waypoints.add(assumptionWaypoint.orElseThrow());
-      } else if (edge instanceof AssumeEdge assumeEdge) {
-        // Without the AST structure we cannot guarantee that we are exporting at the beginning of
-        // an iteration or if statement
-        // To export the branching waypoint, we first find the IfElement or IterationElement
-        // containing it. Then we look for the FileLocation of the structure
-        // Currently we only export IfStructures, since there is no nice way to say how often a loop
-        // should be traversed and exporting this information will quickly make the witness
-        // difficult to read
-        Optional<IfElement> optionalIfElement =
-            astCFARelation.getIfStructureForConditionEdge(assumeEdge);
-        Optional<IterationElement> optionalIterationElement =
-            astCFARelation.getTightestIterationStructureForNode(assumeEdge.getPredecessor());
-
-        Set<CFANode> nodesBetweenConditionAndFirstBranch;
-        Set<CFANode> nodesBetweenConditionAndSecondBranch;
-        CFANode successor = assumeEdge.getSuccessor();
-        FileLocation astElementLocation = null;
-        if (optionalIfElement.isPresent()) {
-          IfElement ifElement = optionalIfElement.orElseThrow();
-          nodesBetweenConditionAndFirstBranch = ifElement.getNodesBetweenConditionAndThenBranch();
-          nodesBetweenConditionAndSecondBranch = ifElement.getNodesBetweenConditionAndElseBranch();
-          astElementLocation = ifElement.getCompleteElement().location();
-        } else if (optionalIterationElement.isPresent()) {
-          IterationElement iterationElement = optionalIterationElement.orElseThrow();
-          nodesBetweenConditionAndFirstBranch = iterationElement.getNodesBetweenConditionAndBody();
-          nodesBetweenConditionAndSecondBranch = iterationElement.getNodesBetweenConditionAndExit();
-          astElementLocation = iterationElement.getCompleteElement().location();
-        } else {
-          // TODO: Handle conditional expressions. This would need to be added at the parser level
-          // and then added to the AstCfaRelation. The problem is that this occurs at the expression
-          // level and we currently only consider statements. The relevant parser expression type is
-          // IASTConditionalExpression.
-          logger.log(Level.INFO, "Could not find the AST structure for the edge: " + edge);
-          continue;
-        }
-
-        if (!nodesBetweenConditionAndFirstBranch.contains(successor)
-            && !nodesBetweenConditionAndSecondBranch.contains(successor)) {
-          continue;
-        }
-
-        waypoints.add(
-            handleBranchingWaypoint(
-                nodesBetweenConditionAndFirstBranch.contains(successor),
-                astElementLocation,
-                assumeEdge));
-
-      } else if (exportCompleteCounterexample) {
-        // Export all other edges which are not absolutely relevant for the counterexample
-        Optional<WaypointRecord> assumptionWaypoint =
-            handleAssumptionWhenAtPossibleLocation(
-                edge, edgeToAssumptions, edgeToCurrentExpressionIndex, astCFARelation);
-
-        if (assumptionWaypoint.isEmpty()) {
-          continue;
-        }
-
-        waypoints.add(assumptionWaypoint.orElseThrow());
-      }
+      List<WaypointRecord> waypoints =
+          buildWaypoints(edge, edgeToAssumptions, astCFARelation, edgeToCurrentExpressionIndex);
 
       if (!waypoints.isEmpty()) {
         segments.add(new SegmentRecord(waypoints));

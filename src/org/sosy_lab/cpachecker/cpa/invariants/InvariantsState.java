@@ -1117,6 +1117,33 @@ public class InvariantsState
         .collect(pManager.getBooleanFormulaManager().toConjunction());
   }
 
+  @Override
+  public org.sosy_lab.java_smt.api.BooleanFormula getScopedFormulaApproximation(
+      FormulaManagerView pManager, FunctionEntryNode pFunctionScope) {
+    final ToBitvectorFormulaVisitor toBooleanFormulaVisitor =
+        new ToBitvectorFormulaVisitor(pManager, getFormulaResolver(), false);
+    Predicate<NumeralFormula<CompoundInterval>> isInvalidVar =
+        pFormula ->
+            pFormula instanceof Variable
+                && !isExportableInScope(
+                    ((Variable<?>) pFormula).getMemoryLocation(), pFunctionScope);
+
+    Set<BooleanFormula<CompoundInterval>> filteredApproximations = new LinkedHashSet<>();
+    for (BooleanFormula<CompoundInterval> approximation : getApproximationFormulas()) {
+      approximation = replaceInvalid(approximation, isInvalidVar);
+      Set<MemoryLocation> memLocs = approximation.accept(new CollectVarsVisitor<>());
+      if (!memLocs.isEmpty()
+          && Iterables.all(memLocs, memloc -> isExportableInScope(memloc, pFunctionScope))) {
+        filteredApproximations.add(approximation);
+      }
+    }
+
+    return filteredApproximations.stream()
+        .map(approximation -> approximation.accept(toBooleanFormulaVisitor, getEnvironment()))
+        .filter(f -> f != null)
+        .collect(pManager.getBooleanFormulaManager().toConjunction());
+  }
+
   ExpressionTree<Object> getFormulaApproximation(
       final FunctionEntryNode pFunctionEntryNode,
       Predicate<NumeralFormula<CompoundInterval>> pIsInvalidVarApproximationFormulas,
@@ -1920,6 +1947,27 @@ public class InvariantsState
     String functionName = pFunctionEntryNode.getFunctionName();
     return !pMemoryLocation.isOnFunctionStack()
         || pMemoryLocation.getFunctionName().equals(functionName);
+  }
+
+  private static boolean isExportableInScope(
+      final MemoryLocation pMemoryLocation, final FunctionEntryNode pFunctionScope) {
+    if (pMemoryLocation.getIdentifier().startsWith("__CPAchecker_TMP_")) {
+      return false;
+    }
+
+    if (pFunctionScope
+        .getReturnVariable()
+        .map(returnVar -> returnVar.getName().equals(pMemoryLocation.getIdentifier()))
+        .orElse(false)) {
+      return false;
+    }
+
+    if (!isExportable(pMemoryLocation)) {
+      return false;
+    }
+
+    return !pMemoryLocation.isOnFunctionStack()
+        || pMemoryLocation.getFunctionName().equals(pFunctionScope.getFunctionName());
   }
 
   private static boolean isExportable(@Nullable MemoryLocation pMemoryLocation) {
