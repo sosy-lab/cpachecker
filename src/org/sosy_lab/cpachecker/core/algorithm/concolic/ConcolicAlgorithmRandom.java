@@ -154,7 +154,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
 
     this.constraintsSolver = constraintsCPA.getSolver();
     Configuration configCE =
-        Configuration.builder().loadFromFile("config/concolic-only-concrete.properties").build();
+        Configuration.builder().loadFromFile("cpachecker/config/concolic-only-concrete.properties").build();
 
     ValueAnalysisConcreteCPA concreteCPACE =
         new ValueAnalysisConcreteCPA(configCE, logger, shutdownNotifier, cfa);

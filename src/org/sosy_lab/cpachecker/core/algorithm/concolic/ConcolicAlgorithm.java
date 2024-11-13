@@ -145,7 +145,7 @@ public class ConcolicAlgorithm implements Algorithm {
     Configuration configCE = null;
     if (coverageCriterion == CoverageCriterion.CONDITION) {
       configCE =
-          Configuration.builder().loadFromFile("config/concolic-only-concrete.properties").build();
+          Configuration.builder().loadFromFile("cpachecker/config/concolic-only-concrete.properties").build();
     } else if (coverageCriterion == CoverageCriterion.ERROR) {
       configCE =
           Configuration.builder()
