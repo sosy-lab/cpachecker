@@ -310,7 +310,7 @@ public class SMGCPAValueVisitor
         SMGState newState = subscriptValueAndState.getState();
         // If the subscript is an unknown value, we can't read anything and return unknown
         // We also overapproximate the access and assume unsafe
-        if (!subscriptValue.isNumericValue() && !options.trackErrorPredicates()) {
+        if (!subscriptValue.isNumericValue() && !options.trackPredicates()) {
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(newState.withUnknownOffsetMemoryAccess()));
           continue;
@@ -1131,7 +1131,7 @@ public class SMGCPAValueVisitor
 
       // The offset part of the pointer; its either numeric or we can't get a concrete value
       Value offset = pointerValue.getOffset();
-      if (!offset.isNumericValue() && !options.trackErrorPredicates()) {
+      if (!offset.isNumericValue() && !options.trackPredicates()) {
         // If the offset is not numericly known we can't read a value, return unknown iff we don't
         // check with SMT solvers later
         builder.add(ValueAndSMGState.ofUnknownValue(currentState.withUnknownOffsetMemoryAccess()));

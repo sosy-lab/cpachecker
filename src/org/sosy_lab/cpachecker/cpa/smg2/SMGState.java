@@ -4105,7 +4105,7 @@ public class SMGState
     }
     // Unknown/Symbolic offset Values, we need to check them using a SMT solver
     // TODO:
-    if (options.trackErrorPredicates()) {
+    if (options.trackPredicates()) {
       // TODO: we can check the ranges etc. symbolically and make all possible targets unknown
       throw new SMGException(
           "Failure to copy a structure based on symbolic offsets or size. Report this case to"

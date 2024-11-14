@@ -170,7 +170,7 @@ public class SMGCPAAddressVisitor
         Value subscriptValue = subscriptValueAndState.getValue();
         currentState = subscriptValueAndState.getState();
         // If the subscript is an unknown value, we can't read anything and return unknown
-        if (!subscriptValue.isNumericValue() && !options.trackErrorPredicates()) {
+        if (!subscriptValue.isNumericValue() && !options.trackPredicates()) {
           logger.log(
               Level.FINE,
               "A subscript value was found to be non concrete when trying to find a memory location"
@@ -208,7 +208,7 @@ public class SMGCPAAddressVisitor
 
     if ((arrayValue instanceof AddressExpression arrayAddr)) {
       Value addrOffset = arrayAddr.getOffset();
-      if (!addrOffset.isNumericValue() && !options.trackErrorPredicates()) {
+      if (!addrOffset.isNumericValue() && !options.trackPredicates()) {
         logger.log(
             Level.FINE,
             "A offset value was found to be non concrete when trying to find a memory"
@@ -320,7 +320,7 @@ public class SMGCPAAddressVisitor
 
       if (structValue instanceof AddressExpression structAddr) {
         Value addrOffset = structAddr.getOffset();
-        if (!addrOffset.isNumericValue() && !options.trackErrorPredicates()) {
+        if (!addrOffset.isNumericValue() && !options.trackPredicates()) {
           // Non numeric offset -> not usable
           resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
         }
@@ -409,7 +409,7 @@ public class SMGCPAAddressVisitor
 
       // The offset part of the pointer; its either numeric or we can't get a concrete value
       Value offset = pointerValue.getOffset();
-      if (!offset.isNumericValue() && !options.trackErrorPredicates()) {
+      if (!offset.isNumericValue() && !options.trackPredicates()) {
         // If the offset is not numerically known we can't read a value, return
         resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
         continue;
