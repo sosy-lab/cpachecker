@@ -208,6 +208,19 @@ public class SMGCPAAddressVisitor
       CArraySubscriptExpression expr)
       throws CPATransferException {
 
+    if (!subscriptOffset.isNumericValue()
+        && options.trackErrorPredicates()
+        && options.isFindConcreteValuesForSymbolicOffsets()) {
+      // Assign concrete values for the offset
+      List<SMGStateAndOptionalSMGObjectAndOffset> assignedResult =
+          pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
+              subscriptOffset, pCurrentState, expr, cfaEdge);
+      if (assignedResult != null) {
+        return assignedResult;
+      }
+      // Fallthrough for null -> no constraints, no sound assignment possible
+    }
+
     if ((arrayValue instanceof AddressExpression arrayAddr)) {
       Value addrOffset = arrayAddr.getOffset();
       if (!addrOffset.isNumericValue()) {
@@ -219,13 +232,22 @@ public class SMGCPAAddressVisitor
           return ImmutableList.of(
               SMGStateAndOptionalSMGObjectAndOffset.of(
                   pCurrentState.withUnknownOffsetMemoryAccess()));
-        } else if (options.isFindConcreteValuesForSymbolicOffsets()) {
-          // Assign concrete values for the offset
-          return pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
-              subscriptOffset, pCurrentState, expr, cfaEdge);
         }
       }
       Value finalOffset = evaluator.addBitOffsetValues(addrOffset, subscriptOffset);
+
+      if (!finalOffset.isNumericValue()
+          && options.trackErrorPredicates()
+          && options.isFindConcreteValuesForSymbolicOffsets()) {
+        // Assign concrete values for the offset
+        List<SMGStateAndOptionalSMGObjectAndOffset> assignedResult =
+            pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
+                finalOffset, pCurrentState, expr, cfaEdge);
+        if (assignedResult != null) {
+          return assignedResult;
+        }
+        // Fallthrough for null -> no constraints, no sound assignment possible
+      }
 
       List<SMGStateAndOptionalSMGObjectAndOffset> targets =
           evaluator.getTargetObjectAndOffset(
@@ -251,8 +273,13 @@ public class SMGCPAAddressVisitor
           && options.trackErrorPredicates()
           && options.isFindConcreteValuesForSymbolicOffsets()) {
         // Assign concrete values for the offset
-        return pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
-            subscriptOffset, pCurrentState, expr, cfaEdge);
+        List<SMGStateAndOptionalSMGObjectAndOffset> assignedResult =
+            pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
+                finalOffset, pCurrentState, expr, cfaEdge);
+        if (assignedResult != null) {
+          return assignedResult;
+        }
+        // Fallthrough for null -> no constraints, no sound assignment possible
       }
 
       return ImmutableList.of(
@@ -273,8 +300,14 @@ public class SMGCPAAddressVisitor
               "Symbolic array subscript access not supported by this analysis.");
         } else if (options.isFindConcreteValuesForSymbolicOffsets()) {
           // Assign concrete values for the offset
-          return pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
-              subscriptOffset, pCurrentState, expr, cfaEdge);
+          List<SMGStateAndOptionalSMGObjectAndOffset> assignedResult =
+              pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
+                  finalOffset, pCurrentState, expr, cfaEdge);
+          if (assignedResult != null) {
+            return assignedResult;
+          }
+          // Fallthrough for null -> no constraints, no sound assignment possible
+
         } else {
           throw new UnsupportedOperationException(
               "Missing case in SMGCPAValueVisitor. Report to CPAchecker issue tracker for SMG2"

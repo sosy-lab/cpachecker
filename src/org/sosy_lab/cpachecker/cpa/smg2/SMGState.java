@@ -4114,8 +4114,13 @@ public class SMGState
     return finalStates.build();
   }
 
-  /** Handles pointer requests on subscript expressions with symbolic values. */
-  @NonNull
+  /**
+   * Handles pointer requests on subscript expressions with symbolic values. If there is no
+   * constraints that can be used to calculate the model for the assignment, null is returned.
+   * Usually this signals that the symbolic offset will lead to a memsafety violation or a change
+   * later.
+   */
+  @Nullable
   public List<SMGStateAndOptionalSMGObjectAndOffset>
       assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
           Value subscriptOffset,
@@ -4137,6 +4142,9 @@ public class SMGState
         findSubscriptAssignmentsWithSolverAndReplaceSymbolicValues(
             subscriptOffset, edge, pCurrentState);
 
+    if (assignedStates == null) {
+      return null;
+    }
     // (The concrete assignments don't invoke an SMT check anymore if there are no more symbolic
     // values in any of the size or offset expressions)
     if (assignedStates.isEmpty()) {
@@ -4294,18 +4302,31 @@ public class SMGState
     return assignedStatesBuilder.build();
   }
 
-  @NonNull
+  @Nullable
   private List<SMGState> findSubscriptAssignmentsWithSolverAndReplaceSymbolicValues(
       Value valueToAssign, @Nullable CFAEdge edge, SMGState currentState)
       throws SMGException, SMGSolverException {
     Map<SymbolicIdentifier, Value> assignments = new HashMap<>();
+    // Get used variables
+    Set<SymbolicValue> identsToReplace = memoryModel.getSymbolicIdentifiersForValue(valueToAssign);
+
+    boolean isNotConstraints = true;
+    for (Constraint constraint : getConstraints()) {
+      if (identsToReplace.stream()
+          .anyMatch(i -> memoryModel.getSymbolicIdentifiersForValue(constraint).contains(i))) {
+        isNotConstraints = false;
+        break;
+      }
+    }
+    if (isNotConstraints) {
+      // There is no constraints or no idents. Abort.
+      return null;
+    }
+
     // Add the parameters for the memory access and check sat to get a model
     SatisfiabilityAndSMGState maybeAssignmentResultAndState =
         evaluator.checkIsUnsatWithCurrentConstraints(currentState);
     currentState = maybeAssignmentResultAndState.getState();
-
-    // Get used variables
-    Set<SymbolicValue> identsToReplace = memoryModel.getSymbolicIdentifiersForValue(valueToAssign);
 
     ImmutableList.Builder<SMGState> assignedStatesBuilder = ImmutableList.builder();
 
@@ -4321,8 +4342,8 @@ public class SMGState
             assignments.put(identifier, value);
             logger.log(
                 Level.FINE,
-                "Variable %s was used as part of symbolic value subscript offset and was assigned a"
-                    + " concrete value %s.",
+                "Variable %s was used as part of symbolic value subscript offset and was "
+                    + "assigned a concrete value %s.",
                 va.getName(),
                 value);
           }
