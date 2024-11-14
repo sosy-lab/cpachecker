@@ -112,19 +112,12 @@ public class ConstraintFactory {
 
   public Collection<ConstraintAndSMGState> createPositiveConstraint(CBinaryExpression pExpression)
       throws CPATransferException {
+
     final ExpressionTransformer transformer = getCTransformer();
 
-    assert isConstraint(pExpression);
     return transformedImmutableListCopy(
         transformer.transform(pExpression),
         n -> ConstraintAndSMGState.of((Constraint) n.getSymbolicExpression(), n.getState()));
-  }
-
-  private boolean isConstraint(CBinaryExpression pExpression) {
-    return switch (pExpression.getOperator()) {
-      case EQUALS, NOT_EQUALS, GREATER_EQUAL, GREATER_THAN, LESS_EQUAL, LESS_THAN -> true;
-      default -> false;
-    };
   }
 
   public Collection<ConstraintAndSMGState> createPositiveConstraint(CIdExpression pExpression)
