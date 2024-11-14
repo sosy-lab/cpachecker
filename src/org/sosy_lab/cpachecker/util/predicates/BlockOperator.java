@@ -295,7 +295,8 @@ public class BlockOperator {
     if (absOnLoop || alwaysAtLoops) {
       if (!cfa.getAllLoopHeads().isPresent()) {
         throw new CPAException(
-            "Block-ends at loop heads cannot be determined without loop-structure information in CFA.");
+            "Block-ends at loop heads cannot be determined without loop-structure information in"
+                + " CFA.");
       }
       loopHeads = cfa.getAllLoopHeads().orElseThrow();
     }
