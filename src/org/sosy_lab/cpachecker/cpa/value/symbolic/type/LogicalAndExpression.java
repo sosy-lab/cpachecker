@@ -11,10 +11,12 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.BinaryConstraint;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** {@link BinarySymbolicExpression} representing the 'logical and' operation. */
-public final class LogicalAndExpression extends BinarySymbolicExpression {
+public final class LogicalAndExpression extends BinarySymbolicExpression
+    implements BinaryConstraint {
 
   @Serial private static final long serialVersionUID = 8274694737043926521L;
 

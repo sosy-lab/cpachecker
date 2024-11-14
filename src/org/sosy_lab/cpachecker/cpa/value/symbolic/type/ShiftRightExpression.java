@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.BinaryConstraint;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -18,7 +19,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  *
  * <p>There is no differentiation between signed and unsigned shifts.
  */
-public final class ShiftRightExpression extends BinarySymbolicExpression {
+public final class ShiftRightExpression extends BinarySymbolicExpression
+    implements BinaryConstraint {
 
   @Serial private static final long serialVersionUID = -9068365554036095329L;
 
