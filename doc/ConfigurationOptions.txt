@@ -3404,7 +3404,7 @@ cpa.smg2.optimizeBooleanVariables = true
 # overapproximated so that only unknown values are in the memory region after
 # the write. When reading, all possible reads are evaluated. Can not be used
 # at the same time as option findConcreteValuesForSymbolicOffsets.
-cpa.smg2.overapproximateSymbolicOffsets = true
+cpa.smg2.overapproximateSymbolicOffsets = false
 
 # If this Option is enabled, all values of a memory region that is written to
 # with a symbolic and non-unique offset in symbolically sized memory are
