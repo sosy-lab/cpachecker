@@ -2476,7 +2476,8 @@ public class SMGCPAExpressionEvaluator {
               pExpression);
 
       if (stringVarName.equals(variableName)) {
-        // TODO: split this method into 2. When variable arguments are used in a function call and then strings are inited in them, this case happens
+        // TODO: split this method into 2. When variable arguments are used in a function call and
+        // then strings are inited in them, this case happens
         return initedStates;
       }
 
