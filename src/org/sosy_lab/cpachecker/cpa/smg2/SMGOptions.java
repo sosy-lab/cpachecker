@@ -92,7 +92,7 @@ public class SMGOptions {
               + " only unknown values are in the memory region after the write. When reading, all"
               + " possible reads are evaluated. Can not be used at the same time as option"
               + " findConcreteValuesForSymbolicOffsets.")
-  private boolean overapproximateSymbolicOffsets = true;
+  private boolean overapproximateSymbolicOffsets = false;
 
   @Option(
       secure = true,
