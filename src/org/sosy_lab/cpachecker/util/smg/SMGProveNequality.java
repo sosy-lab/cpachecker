@@ -15,7 +15,6 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
@@ -44,8 +43,7 @@ public class SMGProveNequality {
    * @param value2 the second address
    * @return true if the prove of not equality succeeded, false if both are potentially equal.
    */
-  public boolean proveInequality(SMGValue value1, SMGValue value2)
-      throws SMGException, SMGSolverException {
+  public boolean proveInequality(SMGValue value1, SMGValue value2) throws SMGSolverException {
     SMG smg = state.getMemoryModel().getSmg();
     // The nesting level should always be 0, as we only compare materialized SMGs
     if (value1.equals(value2)) {
@@ -88,8 +86,7 @@ public class SMGProveNequality {
     return smg.isValid(targetEdge1.pointsTo()) && smg.isValid(targetEdge2.pointsTo());
   }
 
-  private boolean checkIfEdgePointsOutOfBounds(SMGPointsToEdge pToEdge)
-      throws SMGException, SMGSolverException {
+  private boolean checkIfEdgePointsOutOfBounds(SMGPointsToEdge pToEdge) throws SMGSolverException {
     SMGObject targetObj = pToEdge.pointsTo();
     if (pToEdge.pointsTo().getSize().isUnknown() || pToEdge.getOffset().isUnknown()) {
       // Unknown -> Overapproximate

@@ -1017,7 +1017,7 @@ public class SymbolicProgramConfiguration {
           SMGValue newSMGValue = SMGValue.of();
           return newSPC.copyAndPutValue(newValue, newSMGValue, 0);
         } else {
-          SMGValue oldSMGValue = newSPC.getSMGValueFromValue(correctOldValue).orElseThrow();
+          SMGValue oldSMGValue = valueMappingToUpdate.getValue();
           ImmutableBiMap.Builder<Equivalence.Wrapper<Value>, SMGValue> newValueMapping =
               ImmutableBiMap.builder();
 

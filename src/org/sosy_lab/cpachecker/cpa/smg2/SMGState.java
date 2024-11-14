@@ -20,7 +20,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
@@ -41,7 +40,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
@@ -2186,8 +2185,7 @@ public class SMGState
    * not equality succeeded, returns false if both are potentially equal.
    * This method expects the Values to be the actual addresses and NOT AddressExpressions!
    */
-  public boolean areNonEqualAddresses(Value pValue1, Value pValue2)
-      throws SMGException, SMGSolverException {
+  public boolean areNonEqualAddresses(Value pValue1, Value pValue2) throws SMGSolverException {
     Optional<SMGValue> smgValue1 = memoryModel.getSMGValueFromValue(pValue1);
     Optional<SMGValue> smgValue2 = memoryModel.getSMGValueFromValue(pValue2);
     if (smgValue1.isEmpty() || smgValue2.isEmpty()) {
@@ -2206,8 +2204,7 @@ public class SMGState
    * @param pValue2 A {@link SMGValue} to be checked for inequality with pValue1.
    * @return True if the 2 {@link SMGValue}s are not equal, false if they are equal.
    */
-  public boolean proveInequality(SMGValue pValue1, SMGValue pValue2)
-      throws SMGException, SMGSolverException {
+  public boolean proveInequality(SMGValue pValue1, SMGValue pValue2) throws SMGSolverException {
     // Can this be solved without creating a new SMGProveNequality every time?
     // TODO: Since we need to rework the values anyway, make a new class for this.
     SMGProveNequality nequality = new SMGProveNequality(this);
@@ -3996,7 +3993,7 @@ public class SMGState
    * check if there are options to handle symbolic values, if yes, will use those, e.g.
    * overapproximate or find concrete values.
    */
-  @Nonnull
+  @NonNull
   private List<SMGState> handleSymbolicOffset(
       SMGObject object,
       Value writeOffsetInBits,
@@ -4038,7 +4035,7 @@ public class SMGState
     }
   }
 
-  @Nonnull
+  @NonNull
   private List<SMGState> assignConcreteValuesForSymbolicValuesAndWrite(
       SMGObject object,
       Value writeOffsetInBits,
@@ -4076,7 +4073,7 @@ public class SMGState
     // e.g. offset/size
     ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
     for (SMGState assignedState : assignedStates) {
-      // The offset is not necassarly concrete now! We assign a concrete value in one state and
+      // The offset is not necessarily concrete now! We assign a concrete value in one state and
       //   block it in the symbolic value for another state.
       SMGStateAndOptionalSMGObjectAndOffset targetAndOffsetAndState =
           reEvaluateTargetObjectAndOffsetAfterConcreteAssignment(lValueExpr, edge, assignedState);
@@ -4118,7 +4115,7 @@ public class SMGState
   }
 
   /** Handles pointer requests on subscript expressions with symbolic values. */
-  @Nonnull
+  @NonNull
   public List<SMGStateAndOptionalSMGObjectAndOffset>
       assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
           Value subscriptOffset,
@@ -4160,7 +4157,7 @@ public class SMGState
     return results.build();
   }
 
-  @Nonnull
+  @NonNull
   private SMGStateAndOptionalSMGObjectAndOffset
       reEvaluateTargetObjectAndOffsetAfterConcreteAssignment(
           CExpression lValueExpr, @javax.annotation.Nullable CFAEdge edge, SMGState assignedState)
@@ -4170,15 +4167,15 @@ public class SMGState
       targetsAndOffsetsAndStates =
           lValueExpr.accept(
               new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger, options));
-    } catch (CPATransferException pE) {
-      if (pE instanceof SMGException) {
-        throw (SMGException) pE;
-      } else if (pE instanceof SMGSolverException) {
-        throw (SMGSolverException) pE;
+    } catch (CPATransferException e) {
+      if (e instanceof SMGException) {
+        throw (SMGException) e;
+      } else if (e instanceof SMGSolverException) {
+        throw (SMGSolverException) e;
       }
       // This can never happen, but i am forced to do this as the visitor demands the
       // CPATransferException
-      throw new RuntimeException(pE);
+      throw new RuntimeException(e);
     }
     Preconditions.checkArgument(targetsAndOffsetsAndStates.size() == 1);
     SMGStateAndOptionalSMGObjectAndOffset targetAndOffsetAndState =
@@ -4194,30 +4191,30 @@ public class SMGState
     return targetAndOffsetAndState;
   }
 
-  @Nonnull
+  @NonNull
   private ValueAndSMGState reEvaluateValueToWriteAfterConcreteAssignment(
-      CRightHandSide rValueExpr, @Nonnull CFAEdge edge, SMGState currentAssignedState)
+      CRightHandSide rValueExpr, @NonNull CFAEdge edge, SMGState currentAssignedState)
       throws SMGException, SMGSolverException {
     SMGCPAValueVisitor vv =
         new SMGCPAValueVisitor(evaluator, currentAssignedState, edge, logger, options);
     List<ValueAndSMGState> possibleValues;
     try {
       possibleValues = rValueExpr.accept(vv);
-    } catch (CPATransferException pE) {
-      if (pE instanceof SMGException) {
-        throw (SMGException) pE;
-      } else if (pE instanceof SMGSolverException) {
-        throw (SMGSolverException) pE;
+    } catch (CPATransferException e) {
+      if (e instanceof SMGException) {
+        throw (SMGException) e;
+      } else if (e instanceof SMGSolverException) {
+        throw (SMGSolverException) e;
       }
       // This can never happen, but i am forced to do this as the visitor demands the
       // CPATransferException
-      throw new RuntimeException(pE);
+      throw new RuntimeException(e);
     }
     Preconditions.checkArgument(possibleValues.size() == 1);
     return possibleValues.get(0);
   }
 
-  @Nonnull
+  @NonNull
   private List<SMGState> findAssignmentsWithSolverAndReplaceSymbolicValues(
       SMGObject object,
       Value offsetInBits,
@@ -4252,7 +4249,7 @@ public class SMGState
     Map<SymbolicValue, CType> identsToReplaceWithTypes =
         allIdentsAndTypesBuilder.putAll(offsetIdentsAndTypes).buildOrThrow();
 
-    Builder<SMGState> assignedStatesBuilder = ImmutableList.builder();
+    ImmutableList.Builder<SMGState> assignedStatesBuilder = ImmutableList.builder();
 
     if (maybeAssignmentResultAndState.isSAT()) {
       // Found assignment
@@ -4297,7 +4294,7 @@ public class SMGState
     return assignedStatesBuilder.build();
   }
 
-  @Nonnull
+  @NonNull
   private List<SMGState> findSubscriptAssignmentsWithSolverAndReplaceSymbolicValues(
       Value valueToAssign, @Nullable CFAEdge edge, SMGState currentState)
       throws SMGException, SMGSolverException {
@@ -4310,7 +4307,7 @@ public class SMGState
     // Get used variables
     Set<SymbolicValue> identsToReplace = memoryModel.getSymbolicIdentifiersForValue(valueToAssign);
 
-    Builder<SMGState> assignedStatesBuilder = ImmutableList.builder();
+    ImmutableList.Builder<SMGState> assignedStatesBuilder = ImmutableList.builder();
 
     if (maybeAssignmentResultAndState.isSAT()) {
       // Found assignment

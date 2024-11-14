@@ -396,15 +396,15 @@ public class SMGCPATest0 {
                   pointerAndState.getValue(),
                   null,
                   dummyCDAEdge);
-        } catch (CPATransferException pE) {
-          if (pE instanceof SMGException) {
-            throw (SMGException) pE;
-          } else if (pE instanceof SMGSolverException) {
-            throw (SMGSolverException) pE;
+        } catch (CPATransferException e) {
+          if (e instanceof SMGException) {
+            throw (SMGException) e;
+          } else if (e instanceof SMGSolverException) {
+            throw (SMGSolverException) e;
           }
-          // This can never happen, but i am forced to do this as the visitor demands the
+          // This can never happen, but we are forced to do this as the visitor demands the
           // CPATransferException
-          throw new RuntimeException(pE);
+          throw new RuntimeException(e);
         }
       }
       if (listLength == 1) {
@@ -423,15 +423,15 @@ public class SMGCPATest0 {
                   pointerAndState.getValue(),
                   null,
                   dummyCDAEdge);
-        } catch (CPATransferException pE) {
-          if (pE instanceof SMGException) {
-            throw (SMGException) pE;
-          } else if (pE instanceof SMGSolverException) {
-            throw (SMGSolverException) pE;
+        } catch (CPATransferException e) {
+          if (e instanceof SMGException) {
+            throw (SMGException) e;
+          } else if (e instanceof SMGSolverException) {
+            throw (SMGSolverException) e;
           }
-          // This can never happen, but i am forced to do this as the visitor demands the
+          // This can never happen, but we are forced to do this as the visitor demands the
           // CPATransferException
-          throw new RuntimeException(pE);
+          throw new RuntimeException(e);
         }
       }
 
