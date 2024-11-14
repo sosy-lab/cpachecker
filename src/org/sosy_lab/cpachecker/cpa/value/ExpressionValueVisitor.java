@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithmIsInitialized;
 import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithmRandom;
 import org.sosy_lab.cpachecker.core.algorithm.concolic.NondetLocation;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
@@ -491,9 +492,13 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         String calledFunctionName = ((CIdExpression) functionNameExp).getName();
         if (calledFunctionName.startsWith("__VERIFIER_nondet_")) {
           NondeterministicValueProvider ndvp;
-          if (ConcolicAlgorithm.isInitialized()) {
+          if (ConcolicAlgorithmIsInitialized.getIsInitialized()
+              && ConcolicAlgorithmIsInitialized.getAlgorithmType()
+                  == ConcolicAlgorithmIsInitialized.AlgorithmType.GENERATIONAL) {
             ndvp = ConcolicAlgorithm.nonDetValueProvider;
-          } else if (ConcolicAlgorithmRandom.isInitialized()) {
+          } else if (ConcolicAlgorithmIsInitialized.getIsInitialized()
+              && ConcolicAlgorithmIsInitialized.getAlgorithmType()
+                  == ConcolicAlgorithmIsInitialized.AlgorithmType.RANDOM) {
             ndvp = ConcolicAlgorithmRandom.nonDetValueProvider;
           } else {
             throw new Error("ConcolicAlgorithm is not initialized");

@@ -8,7 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concolic;
 
+import static org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithmIsInitialized.setIsInitialized;
+
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -37,6 +41,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithmIsInitialized.AlgorithmType;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithmRandom.CoverageCriterion;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
@@ -65,7 +71,8 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
-@Options(prefix = "concolic")
+@SuppressWarnings("Duplicates")
+//@Options(prefix = "concolic")
 public class ConcolicAlgorithm implements Algorithm {
 
   //  @Option(
@@ -74,14 +81,14 @@ public class ConcolicAlgorithm implements Algorithm {
   //      description = "type of coverage criterion to use, condition, block, or error")
   private CoverageCriterion coverageCriterion;
 
-  private static boolean isInitialized = false;
+//  private static boolean isInitialized = false;
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final ConstraintsSolver constraintsSolver;
-  public static MachineModel machineModel;
+//  public static MachineModel machineModel;
   private final CFA cfa;
   // visited blocks
   //   AssumeEdges for condition coverage
@@ -100,6 +107,9 @@ public class ConcolicAlgorithm implements Algorithm {
   TestCaseExporter exporter;
   CPAAlgorithm concreteAlgorithmCE; // for the concrete execution
   private final ConfigurableProgramAnalysis argCpaCE;
+
+  private int testsWritten = 0;
+  private final int maxTestCases = 99000;
 
   // deterministic comparator
   //  public class DeterministicConcolicInputComparator implements Comparator<ConcolicInput> {
@@ -120,7 +130,7 @@ public class ConcolicAlgorithm implements Algorithm {
       CFA pCfa,
       String concolicCoverageCriterion)
       throws Exception {
-    isInitialized = true;
+    setIsInitialized(AlgorithmType.GENERATIONAL);
     this.visitedBlocks = new HashSet<>();
     this.visitedPaths = new HashSet<>();
     if (Objects.equals(concolicCoverageCriterion, "condition")) {
@@ -137,7 +147,7 @@ public class ConcolicAlgorithm implements Algorithm {
     this.logger = pLogger;
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
-    this.machineModel = cfa.getMachineModel();
+//    machineModel = cfa.getMachineModel();
 
     this.constraintsCPA =
         CPAs.retrieveCPAOrFail(cpa, ConstraintsCPA.class, ConcolicAlgorithm.class);
@@ -151,7 +161,7 @@ public class ConcolicAlgorithm implements Algorithm {
     } else if (coverageCriterion == CoverageCriterion.ERROR) {
       configCE =
           Configuration.builder()
-              .loadFromFile("config/concolic-only-concrete-error-coverage.properties")
+              .loadFromFile("cpachecker/config/concolic-only-concrete-error-coverage.properties")
               .build();
     }
 
@@ -199,10 +209,6 @@ public class ConcolicAlgorithm implements Algorithm {
     this.exporter = new TestCaseExporter(cfa, logger, config);
   }
 
-  public static boolean isInitialized() {
-    return isInitialized;
-  }
-
   public record ConcolicInput(
       Map<NondetLocation, List<Value>> values,
       Optional<List<ValueAssignment>> model,
@@ -234,6 +240,12 @@ public class ConcolicAlgorithm implements Algorithm {
 
     while (!workList.isEmpty()) {
 
+      if (coverageCriterion == CoverageCriterion.ERROR && !visitedBlocks.isEmpty()) {
+        // for error coverage, stop when one error location is found
+        reachedSet.clearWaitlist();
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+
       // Get the element with the highest score and remove it
       ConcolicInput highestScoreSeed =
           workList.stream().max(Comparator.comparing(ci -> ci.score())).get();
@@ -254,7 +266,14 @@ public class ConcolicAlgorithm implements Algorithm {
       //          childInputs.stream().filter(ci -> !ci.isNewPath && ci.score() == 0).toList();
       //      if (!tmp.isEmpty()) System.out.println("tmp: " + tmp.size());
       workList.addAll(childInputs);
-     }
+      // TODO
+      // if (visitedPaths.size() > 1000) {
+        // if (visitedPaths.size() > 100) -> remove inputs that will probably not lead to a new path
+        // to prevent endless loop
+      //   System.out.println("visitedPaths.size() > 1000");
+      //   workList.removeIf(ci -> ci.score == 0);
+      // }
+    }
     // clear Waitlist for nice end result in the console
     reachedSet.clearWaitlist();
     return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -266,7 +285,7 @@ public class ConcolicAlgorithm implements Algorithm {
       for (int i = 0; i < edges.size() - 1; i++) {
         CFAEdge ce = edges.get(i);
         CFAEdge ceChild = edges.get(i + 1);
-        if (ce instanceof AssumeEdge && (!(ceChild instanceof AssumeEdge))) {
+        if (ce instanceof AssumeEdge && !(ceChild instanceof AssumeEdge)) {
           // TODO letzte Assume Edge wird vielleicht ignoriert, auch bei calculateScore -> prüfen
           // if so, check if visitedBlocks contains the edge -> if not, add 1 to the score
           visitedBlocks.add((AssumeEdge) ce);
@@ -316,7 +335,6 @@ public class ConcolicAlgorithm implements Algorithm {
       throw new Error(String.format("Maximum number of test cases (%d) reached", maxTestCases));
     }
     try {
-
       List<String> ls = new ArrayList<>();
       for (Object v : model) {
         ls.add(String.valueOf(v));
@@ -610,23 +628,10 @@ public class ConcolicAlgorithm implements Algorithm {
   }
 
   public Optional<FileLocation> convertToFileLocation(String pLocation, ARGPath pARGPath) {
-    //    String identifier = pLocation.getIdentifier();
-    String variableName = pLocation.split("::")[1].split("#")[0];
+    String variableNameWithoutFunctionname = Iterables.get(Splitter.on("::").split(pLocation), 1);
+    String variableName = Iterables.get(Splitter.on('#').split(variableNameWithoutFunctionname), 0);
 
-    // TODO debug
-    //      if (edge instanceof CDeclarationEdge
-    //          && ((CDeclarationEdge) edge).getDeclaration().getQualifiedName() != null
-    //          && (edge.getRawStatement().contains("__VERIFIER_nondet")
-    //          || (nextEdge instanceof CStatementEdge
-    //          && nextEdge.getRawStatement().contains("__VERIFIER_nondet")))
-    //          && !edge.getRawStatement().contains("extern char __VERIFIER_nondet_char(")
-    //          && !edge.getRawStatement().contains("extern bool __VERIFIER_nondet_bool(")
-    //          && !edge.getRawStatement().contains("extern int __VERIFIER_nondet_int(")
-    //          && !edge.getRawStatement().contains("extern float __VERIFIER_nondet_float(")
-    //          && !edge.getRawStatement().contains("extern double __VERIFIER_nondet_double(")
-    //          && !edge.getRawStatement().contains("extern long __VERIFIER_nondet_long(")) {
-
-    String identifier = pLocation.split("#")[0];
+    String identifier = Iterables.get(Splitter.on('#').split(pLocation), 0);
     for (int i = 0; i < pARGPath.getInnerEdges().size(); i++) {
       CFAEdge edge = pARGPath.getInnerEdges().get(i);
       //       new code
@@ -651,24 +656,6 @@ public class ConcolicAlgorithm implements Algorithm {
           }
         }
       }
-      /////////////////////////////
-
-      // ----------------------------
-      //      if (edge instanceof CDeclarationEdge
-      //          && ((CDeclarationEdge) edge).getDeclaration().getQualifiedName() != null
-      //          && ((CDeclarationEdge)
-      // edge).getDeclaration().getQualifiedName().contains(identifier)) {
-      //        if (edge.getRawStatement().contains("__VERIFIER_nondet")) {
-      //          return Optional.of(edge.getFileLocation());
-      //        } else if (nextEdge instanceof CStatementEdge
-      //            && nextEdge.getRawStatement().contains("__VERIFIER_nondet")) {
-      //          return Optional.of(nextEdge.getFileLocation());
-      //        }
-      //      }
-      // ----------------------------
-      //      } catch (Exception pE) {
-      //        throw new Error(pE);
-      //      }
     }
     return Optional.empty();
   }
@@ -682,7 +669,7 @@ public class ConcolicAlgorithm implements Algorithm {
       // check if the current edge is an AssumeEdge,
       // and the next edge isn't to check if there is a block of code
       // ceChild can also be null here
-      if (ce instanceof AssumeEdge && (!(ceChild instanceof AssumeEdge))) {
+      if (ce instanceof AssumeEdge && !(ceChild instanceof AssumeEdge)) {
         // if so, check if visitedBlocks contains the edge -> if not, add 1 to the score
         if (!visitedBlocks.contains((AssumeEdge) ce)) {
           score++;

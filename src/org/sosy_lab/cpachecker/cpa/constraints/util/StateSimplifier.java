@@ -24,6 +24,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithmIsInitialized;
 import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithmRandom;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -139,8 +140,7 @@ public class StateSimplifier {
         case ACTIVE:
         case UNUSED:
           // don't remove constraints when ConcolicAlgorithm is used
-          if (!ConcolicAlgorithm.isInitialized()
-              && !ConcolicAlgorithmRandom.isInitialized()
+          if (!ConcolicAlgorithmIsInitialized.getIsInitialized()
               && !symbolicValues.contains(currId)) {
             boolean canBeRemoved;
             if (s.getUsingConstraints().size() < 2) {
