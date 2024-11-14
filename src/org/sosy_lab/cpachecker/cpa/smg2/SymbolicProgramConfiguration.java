@@ -1498,13 +1498,17 @@ public class SymbolicProgramConfiguration {
   public SMGHasValueEdgesAndSPC readValue(
       SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits, boolean preciseRead)
       throws SMGException {
-    if (readBlacklist.contains(pObject)) {
-      throw new SMGException("Complex entry function arguments can not be handled at the moment.");
-    }
+    checkReadBlackList(pObject);
     SMGAndHasValueEdges newSMGAndValue =
         smg.readValue(pObject, pFieldOffset, pSizeofInBits, preciseRead);
     return SMGHasValueEdgesAndSPC.of(
         newSMGAndValue.getHvEdges(), copyAndReplaceSMG(newSMGAndValue.getSMG()));
+  }
+
+  public void checkReadBlackList(SMGObject pObject) throws SMGException {
+    if (readBlacklist.contains(pObject)) {
+      throw new SMGException("Complex entry function arguments can not be handled at the moment.");
+    }
   }
 
   /**

@@ -975,6 +975,7 @@ public class SMGCPAExpressionEvaluator {
       @Nullable CType readType,
       boolean materialize)
       throws SMGException, SMGSolverException {
+    initialState.getMemoryModel().checkReadBlackList(object);
     SMGState currentState = initialState;
     // Check that the offset and offset + size actually fit into the SMGObject
     Value objectSize = object.getSize();
