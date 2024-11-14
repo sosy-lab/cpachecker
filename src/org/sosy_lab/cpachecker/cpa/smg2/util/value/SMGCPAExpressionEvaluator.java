@@ -2475,6 +2475,11 @@ public class SMGCPAExpressionEvaluator {
               pFileLocation,
               pExpression);
 
+      if (stringVarName.equals(variableName)) {
+        // TODO: split this method into 2. When variable arguments are used in a function call and then strings are inited in them, this case happens
+        return initedStates;
+      }
+
       ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
       for (SMGState initedState : initedStates) {
         // Now create a pointer to the String memory and save that in the original variable
