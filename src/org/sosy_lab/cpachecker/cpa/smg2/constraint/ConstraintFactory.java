@@ -241,11 +241,11 @@ public class ConstraintFactory {
   public Constraint getUnequalConstraint(
       SymbolicValue symbolicValueUnequalTo,
       Value valueUnequalTo,
-      CType comparisonType,
+      CType typeOfValueToBlock,
       SMGState currentState) {
     final ExpressionTransformer transformer = getCTransformer();
     return transformer.getUnequalConstraint(
-        symbolicValueUnequalTo, valueUnequalTo, comparisonType, currentState);
+        symbolicValueUnequalTo, valueUnequalTo, typeOfValueToBlock, currentState);
   }
 
   public Constraint getMemorySizeInBitsEqualsZeroConstraint(
