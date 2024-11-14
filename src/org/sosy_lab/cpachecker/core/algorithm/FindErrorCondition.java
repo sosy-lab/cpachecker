@@ -182,8 +182,8 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     BooleanFormula eliminated =
         eliminateVariables(quantifier_solver.getFormulaManager().translateFrom(fullPath.getFormula(), solver.getFormulaManager()), entry -> !entry.getKey().contains("_nondet"),
             quantifier_solver);
-    eliminated = solver.getFormulaManager().simplify(eliminated);
     eliminated = solver.getFormulaManager().translateFrom(eliminated, quantifier_solver.getFormulaManager());
+    eliminated = solver.getFormulaManager().simplify(eliminated);
     logger.log(Level.INFO,"Eliminated:" + eliminated);
     //exclude path formula to ignore already covered paths.
     exclude = manager.makeAnd(exclude,
