@@ -96,7 +96,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       PredicateCPA predicateCPA = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, getClass());
       PathFormulaManager manager = predicateCPA.getPathFormulaManager();
       Solver solver = predicateCPA.getSolver();
-      Solver quantifier_solver = Solver.create(Configuration.builder().copyFrom(config).setOption("solver.solver", Solvers.Z3.name()).build(),logger,shutdownNotifier);
+      Solver quantifier_solver = Solver.create(Configuration.builder().copyFrom(config).setOption("solver.solver", Solvers.MATHSAT5.name()).build(),logger,shutdownNotifier);
       AbstractState initialState = getInitialState();
       SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
       PathFormula exclude = manager.makeEmptyPathFormula();
@@ -183,7 +183,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
             quantifier_solver);
     eliminated = solver.getFormulaManager().translateFrom(eliminated, quantifier_solver.getFormulaManager());
     //eliminated = solver.getFormulaManager().simplify(eliminated);
-    logger.log(Level.INFO,"Elemenated:" + eliminated);
+    logger.log(Level.INFO,"Eliminated:" + eliminated);
     //exclude path formula to ignore already covered paths.
     exclude = manager.makeAnd(exclude,
             solver.getFormulaManager().getBooleanFormulaManager().not(eliminated))
@@ -193,7 +193,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     FormulaToCVisitor visitor = new FormulaToCVisitor(solver.getFormulaManager(), id->id);
     solver.getFormulaManager().visit(exclude.getFormula(), visitor);
 
-    logger.log(Level.INFO,"Error Condition: " + solver.getFormulaManager().simplify(exclude.getFormula()));
+    logger.log(Level.INFO,"Error Condition: " + visitor.getString());
     return exclude;
   }
 

@@ -85,7 +85,9 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/** Factory class for the three core components of CPAchecker: algorithm, cpa and reached set. */
+/**
+ * Factory class for the three core components of CPAchecker: algorithm, cpa and reached set.
+ */
 @Options(prefix = "analysis")
 public class CoreComponentsFactory {
 
@@ -729,9 +731,8 @@ public class CoreComponentsFactory {
       if (useImportFaults) {
         algorithm = new FaultLocalizationByImport(config, algorithm, cfa, logger);
       }
-      System.out.println("ERROR CONDITION: " + findErrorCondition);
-      if (findErrorCondition ) {
-        algorithm = new FindErrorCondition(algorithm,cpa, config, logger,shutdownNotifier, cfa);
+      if (findErrorCondition) {
+        algorithm = new FindErrorCondition(algorithm, cpa, config, logger, shutdownNotifier, cfa);
       }
     }
 
