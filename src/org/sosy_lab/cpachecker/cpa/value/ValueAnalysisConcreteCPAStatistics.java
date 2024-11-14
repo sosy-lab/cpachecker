@@ -149,23 +149,27 @@ public class ValueAnalysisConcreteCPAStatistics extends ValueAnalysisCPAStatisti
           .logUserException(Level.WARNING, e, "Could not write value-analysis precision to file");
     }
   }
-
+  @Override
   void incrementIterations() {
     iterations.increment();
   }
 
+  @Override
   void incrementAssumptions() {
     assumptions.inc();
   }
 
+  @Override
   void incrementDeterministicAssumptions() {
     assumptions.inc();
   }
 
+  @Override
   int getCurrentNumberOfIterations() {
     return iterations.intValue();
   }
 
+  @Override
   int getCurrentLevelOfDeterminism() {
     if (assumptions.getValue() == 0) {
       return 100;

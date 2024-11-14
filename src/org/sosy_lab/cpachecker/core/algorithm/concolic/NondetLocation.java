@@ -8,15 +8,5 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concolic;
 
-public record NondetLocation(String fileName, int lineNumber, int columnNumberStart, int columnNumberEnd) {
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    NondetLocation that = (NondetLocation) o;
-    return fileName.equals(that.fileName)
-        && lineNumber == that.lineNumber
-        && columnNumberStart == that.columnNumberStart
-        && columnNumberEnd == that.columnNumberEnd;
-  }
-}
+public record NondetLocation(
+    String fileName, int lineNumber, int columnNumberStart, int columnNumberEnd) {}

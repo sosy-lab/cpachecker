@@ -240,7 +240,7 @@ public class ValueAnalysisConcreteCPA extends ValueAnalysisCPA
   private CFANode getDefaultLocation(Map<Integer, CFANode> idToCfaNode) {
     return idToCfaNode.values().iterator().next();
   }
-
+  @Override
   public void injectRefinablePrecision() throws InvalidConfigurationException {
 
     // replace the full precision with an empty, refinable precision
@@ -298,19 +298,19 @@ public class ValueAnalysisConcreteCPA extends ValueAnalysisCPA
           statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
     }
   }
-
+  @Override
   public Configuration getConfiguration() {
     return config;
   }
-
+  @Override
   public LogManager getLogger() {
     return logger;
   }
-
+  @Override
   public ShutdownNotifier getShutdownNotifier() {
     return shutdownNotifier;
   }
-
+  @Override
   public CFA getCFA() {
     return cfa;
   }
