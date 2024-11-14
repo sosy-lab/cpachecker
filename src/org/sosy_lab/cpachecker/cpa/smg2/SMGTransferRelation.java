@@ -339,7 +339,7 @@ public class SMGTransferRelation
                   offsetSource,
                   returnMemory,
                   BigInteger.ZERO,
-                  SMGCPAExpressionEvaluator.subtractValues(returnMemory.getSize(), offsetSource)));
+                  evaluator.subtractBitOffsetValues(returnMemory.getSize(), offsetSource)));
 
         } else {
           ValueAndSMGState valueAndStateToWrite =
@@ -755,8 +755,7 @@ public class SMGTransferRelation
         }
         offsetSource = offsetForObject.asNumericValue().bigIntegerValue();
         memorySource = derefedPointerOffsetAndState.get(0).getSMGObject();
-        sizeOfNewVariable =
-            SMGCPAExpressionEvaluator.subtractValues(memorySource.getSize(), offsetSource);
+        sizeOfNewVariable = evaluator.subtractBitOffsetValues(memorySource.getSize(), offsetSource);
 
       } else if (paramValue instanceof SymbolicIdentifier symbParamValue) {
         // Local struct to local struct copy
@@ -777,8 +776,7 @@ public class SMGTransferRelation
 
         offsetSource = BigInteger.valueOf(locationInPrevStackFrame.getOffset());
         memorySource = maybeKnownMemory.orElseThrow();
-        sizeOfNewVariable =
-            SMGCPAExpressionEvaluator.subtractValues(memorySource.getSize(), offsetSource);
+        sizeOfNewVariable = evaluator.subtractBitOffsetValues(memorySource.getSize(), offsetSource);
       } else {
         throw new SMGException(
             "Unexpected argument evaluation for struct argument in function call: " + callEdge);
@@ -788,13 +786,12 @@ public class SMGTransferRelation
       SMGObject newMemory =
           currentState.getMemoryModel().getObjectForVisibleVariable(varName).orElseThrow();
 
-      // We don't expect symbolic values for offsets/sizes etc. for now
       return currentState.copySMGObjectContentToSMGObject(
           memorySource,
           offsetSource,
           newMemory,
           BigInteger.ZERO,
-          SMGCPAExpressionEvaluator.subtractValues(newMemory.getSize(), offsetSource));
+          evaluator.subtractBitOffsetValues(newMemory.getSize(), offsetSource));
     } else {
 
       return evaluator.writeValueToNewVariableBasedOnTypes(
@@ -1348,7 +1345,7 @@ public class SMGTransferRelation
                 rightHandSideMemoryAndOffset.getOffsetForObject(),
                 addressToWriteTo,
                 offsetToWriteToInBits,
-                SMGCPAExpressionEvaluator.subtractOffsetValues(
+                evaluator.subtractBitOffsetValues(
                     addressToWriteTo.getSize(), offsetToWriteToInBits)));
 
       } else {

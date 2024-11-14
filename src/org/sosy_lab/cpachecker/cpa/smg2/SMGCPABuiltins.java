@@ -643,7 +643,7 @@ public class SMGCPABuiltins {
           }
 
           // TODO: this might be wrong (the type might be incorrect)
-          Value size = SMGCPAExpressionEvaluator.multiplyValues(value1, value2, machineModel);
+          Value size = evaluator.multiplyBitOffsetValues(value1, value2);
 
           resultBuilder.add(ValueAndSMGState.of(size, state2));
         }
@@ -800,9 +800,7 @@ public class SMGCPABuiltins {
             SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
                 functionCall.getParameterExpressions().get(0).getExpressionType(), machineModel);
       }
-      Value sizeInBits =
-          SMGCPAExpressionEvaluator.multiplyValues(
-              sizeValue, BigInteger.valueOf(8), sizeType, machineModel);
+      Value sizeInBits = evaluator.multiplyBitOffsetValues(sizeValue, BigInteger.valueOf(8));
 
       resultBuilder.addAll(
           handleConfigurableMemoryAllocation(
@@ -1235,9 +1233,7 @@ public class SMGCPABuiltins {
   private List<ValueAndSMGState> evaluateAlloca(
       SMGState pState, Value pSizeValue, CType type, @SuppressWarnings("unused") CFAEdge cfaEdge)
       throws CPATransferException {
-    Value sizeInBits =
-        SMGCPAExpressionEvaluator.multiplyValues(
-            pSizeValue, BigInteger.valueOf(8), type, machineModel);
+    Value sizeInBits = evaluator.multiplyBitOffsetValues(pSizeValue, BigInteger.valueOf(8));
 
     String allocationLabel = "_ALLOCA_ID_" + U_ID_GENERATOR.getFreshId();
     ValueAndSMGState addressValueAndState =
@@ -2280,9 +2276,7 @@ public class SMGCPABuiltins {
               SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
                   functionCall.getParameterExpressions().get(0).getExpressionType(), machineModel);
         }
-        sizeInBits =
-            SMGCPAExpressionEvaluator.multiplyValues(
-                pSizeValue, BigInteger.valueOf(8), sizeType, machineModel);
+        sizeInBits = evaluator.multiplyBitOffsetValues(pSizeValue, BigInteger.valueOf(8));
       } else {
         logger.logf(
             Level.INFO,
@@ -2333,7 +2327,7 @@ public class SMGCPABuiltins {
               .getSMGObject();
       // The copy is always the lesser size of the 2
       Value oldSize =
-          SMGCPAExpressionEvaluator.subtractOffsetValues(
+          evaluator.subtractBitOffsetValues(
               oldObj.getSMGObject().getSize(), oldObj.getOffsetForObject());
 
       if (!oldSize.isNumericValue()) {

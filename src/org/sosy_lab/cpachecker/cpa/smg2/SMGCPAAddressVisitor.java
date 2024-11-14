@@ -182,12 +182,7 @@ public class SMGCPAAddressVisitor
         }
         // Calculate the offset out of the subscript value and the type
         BigInteger typeSizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
-        Value subscriptOffset =
-            SMGCPAExpressionEvaluator.multiplyValues(
-                subscriptValue,
-                typeSizeInBits,
-                e.getExpressionType(),
-                currentState.getMachineModel());
+        Value subscriptOffset = evaluator.multiplyBitOffsetValues(subscriptValue, typeSizeInBits);
 
         // Get the value from the array and return the value + state
         // (the is pointer check is needed because of nested subscript; i.e. array[1][1]; as if we
@@ -230,7 +225,7 @@ public class SMGCPAAddressVisitor
               subscriptOffset, pCurrentState, expr, cfaEdge);
         }
       }
-      Value finalOffset = SMGCPAExpressionEvaluator.addOffsetValues(addrOffset, subscriptOffset);
+      Value finalOffset = evaluator.addBitOffsetValues(addrOffset, subscriptOffset);
 
       List<SMGStateAndOptionalSMGObjectAndOffset> targets =
           evaluator.getTargetObjectAndOffset(
@@ -250,7 +245,7 @@ public class SMGCPAAddressVisitor
         return maybeTargetMemoriesAndOffsets;
       }
       Value baseOffset = maybeTargetMemoryAndOffset.getOffsetForObject();
-      Value finalOffset = SMGCPAExpressionEvaluator.addOffsetValues(baseOffset, subscriptOffset);
+      Value finalOffset = evaluator.addBitOffsetValues(baseOffset, subscriptOffset);
 
       if (!finalOffset.isNumericValue()
           && options.trackErrorPredicates()
@@ -270,8 +265,7 @@ public class SMGCPAAddressVisitor
       MemoryLocation memLoc = localArrayValue.getRepresentedLocation().orElseThrow();
       String qualifiedVarName = memLoc.getIdentifier();
       Value finalOffset =
-          SMGCPAExpressionEvaluator.addOffsetValues(
-              subscriptOffset, BigInteger.valueOf(memLoc.getOffset()));
+          evaluator.addBitOffsetValues(subscriptOffset, BigInteger.valueOf(memLoc.getOffset()));
 
       if (!finalOffset.isNumericValue()) {
         if (!options.trackPredicates()) {
@@ -352,7 +346,7 @@ public class SMGCPAAddressVisitor
           resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
         }
 
-        Value finalFieldOffset = SMGCPAExpressionEvaluator.addOffsetValues(addrOffset, fieldOffset);
+        Value finalFieldOffset = evaluator.addBitOffsetValues(addrOffset, fieldOffset);
 
         resultBuilder.addAll(
             evaluator.getTargetObjectAndOffset(
@@ -364,7 +358,7 @@ public class SMGCPAAddressVisitor
             ((SymbolicIdentifier) structValue).getRepresentedLocation().orElseThrow();
         String varName = variableAndOffset.getIdentifier();
         Value baseOffset = new NumericValue(BigInteger.valueOf(variableAndOffset.getOffset()));
-        Value finalFieldOffset = SMGCPAExpressionEvaluator.addOffsetValues(baseOffset, fieldOffset);
+        Value finalFieldOffset = evaluator.addBitOffsetValues(baseOffset, fieldOffset);
 
         Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTarget =
             evaluator.getTargetObjectAndOffset(currentState, varName, finalFieldOffset);
