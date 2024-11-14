@@ -96,7 +96,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       PredicateCPA predicateCPA = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, getClass());
       PathFormulaManager manager = predicateCPA.getPathFormulaManager();
       Solver solver = predicateCPA.getSolver();
-      Solver quantifier_solver = Solver.create(Configuration.builder().copyFrom(config).setOption("solver.solver", Solvers.MATHSAT5.name()).build(),logger,shutdownNotifier);
+      Solver quantifier_solver = Solver.create(Configuration.builder().copyFrom(config).setOption("solver.solver", Solvers.Z3.name()).build(),logger,shutdownNotifier);
       AbstractState initialState = getInitialState();
       SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
       PathFormula exclude = manager.makeEmptyPathFormula();
@@ -172,6 +172,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       Solver solver,
       PathFormulaManager manager,
       Solver quantifier_solver) throws SolverException, InterruptedException {
+
     for (String variable : fullPath.getSsa().allVariables()) {
       if (!ssaBuilder.build().containsVariable(variable)) {
         ssaBuilder.setIndex(variable, fullPath.getSsa().getType(variable), 1);
@@ -182,7 +183,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         eliminateVariables(quantifier_solver.getFormulaManager().translateFrom(fullPath.getFormula(), solver.getFormulaManager()), entry -> !entry.getKey().contains("_nondet"),
             quantifier_solver);
     eliminated = solver.getFormulaManager().translateFrom(eliminated, quantifier_solver.getFormulaManager());
-    //eliminated = solver.getFormulaManager().simplify(eliminated);
+    eliminated = solver.getFormulaManager().simplify(eliminated);
     logger.log(Level.INFO,"Eliminated:" + eliminated);
     //exclude path formula to ignore already covered paths.
     exclude = manager.makeAnd(exclude,
