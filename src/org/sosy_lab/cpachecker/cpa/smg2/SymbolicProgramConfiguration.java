@@ -17,6 +17,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
@@ -1051,21 +1052,27 @@ public class SymbolicProgramConfiguration {
     return newSPC;
   }
 
-  protected Set<SymbolicValue> getSymbolicIdentifiersForValue(Value value) {
+  /**
+   * Returns all {@link ConstantSymbolicExpression}s with {@link SymbolicIdentifier}s inside located
+   * in the given value. Preserves type info in the const expr.
+   */
+  protected Map<SymbolicValue, CType> getSymbolicIdentifiersWithTypesForValue(Value value) {
     ConstantSymbolicExpressionLocator symIdentVisitor =
         ConstantSymbolicExpressionLocator.getInstance();
-    ImmutableSet.Builder<SymbolicValue> sizeIdentsBuilder = ImmutableSet.builder();
+    ImmutableMap.Builder<SymbolicValue, CType> identsBuilder = ImmutableMap.builder();
     // Get all symbolic values in sizes (they might not have a SMGValue mapping anymore below!)
     if (value instanceof SymbolicValue symValue) {
       for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
-        SymbolicValue usedIdentifier = constSym;
         if (constSym.getValue() instanceof SymbolicIdentifier symIdent) {
-          usedIdentifier = symIdent;
+          identsBuilder.put(symIdent, (CType) constSym.getType());
         }
-        sizeIdentsBuilder.add(usedIdentifier);
       }
     }
-    return sizeIdentsBuilder.build();
+    return identsBuilder.buildOrThrow();
+  }
+
+  protected Set<SymbolicValue> getSymbolicIdentifiersForValue(Value value) {
+    return getSymbolicIdentifiersWithTypesForValue(value).keySet();
   }
 
   private boolean checkValueMappingConsistency() {
