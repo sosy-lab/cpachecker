@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.concolic;
 import static org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithmIsInitialized.setIsInitialized;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -27,8 +26,6 @@ import java.util.Random;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -38,28 +35,22 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithm.CoverageCriterion;
 import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithmIsInitialized.AlgorithmType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
-import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.value.NondeterministicValueProvider;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisConcreteCPA;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -136,7 +127,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     }
     //    this.searchAlgorithm = pSearchAlgorithm;
     //    isInitialized = true;
-    setIsInitialized(AlgorithmType.RANDOM);
+    setIsInitialized(AlgorithmType.RANDOM_OR_DFS);
     this.visitedBlocks = new HashSet<>();
     this.checkedConstraints = new HashSet<>();
     this.visitedPaths = new HashSet<>();
@@ -157,50 +148,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     this.constraintsCPA =
         CPAs.retrieveCPAOrFail(cpa, ConstraintsCPA.class, ConcolicAlgorithmRandom.class);
     this.constraintsSolver = constraintsCPA.getSolver();
-    Configuration configCE =
-        Configuration.builder().loadFromFile("config/concolic-only-concrete.properties").build();
-
-    ValueAnalysisConcreteCPA concreteCPACE =
-        new ValueAnalysisConcreteCPA(configCE, logger, shutdownNotifier, cfa);
-
-    Specification specificationCE =
-        Specification.fromFiles(ImmutableList.of(), cfa, configCE, logger, shutdownNotifier);
-
-    ConfigurableProgramAnalysis locationCpaCE =
-        LocationCPA.factory().set(cfa, CFA.class).setConfiguration(configCE).createInstance();
-
-    ConfigurableProgramAnalysis callstackCpaCE =
-        CallstackCPA.factory()
-            .set(cfa, CFA.class)
-            .setConfiguration(configCE)
-            .setLogger(logger)
-            .createInstance();
-
-    //    List<ConfigurableProgramAnalysis> analysesCE = new ArrayList<>();
-    //    analysesCE.add(locationCpaCE);
-    //    analysesCE.add(concreteCPACE);
-    //    analysesCE.add(callstackCpaCE);
-    //    ConfigurableProgramAnalysis concreteCPACompositeCE =
-    //        CompositeCPA.factory()
-    //            .setChildren(new ArrayList<>(analysesCE))
-    //            .set(ImmutableList.of(new ArrayList<>(analysesCE)), ImmutableList.class)
-    //            .set(cfa, CFA.class)
-    //            .setConfiguration(configCE)
-    //            .createInstance();
-
-    //    this.argCpaCE =
-    //        ARGCPA
-    //            .factory()
-    //            .set(concreteCPACompositeCE, ConfigurableProgramAnalysis.class)
-    //            .setConfiguration(configCE)
-    //            .setLogger(logger)
-    //            .set(specificationCE, Specification.class)
-    //            .set(cfa, CFA.class)
-    //            .createInstance();
-
-    //    this.concreteAlgorithmCE =
-    //        new CPAAlgorithm(this.argCpaCE, logger, shutdownNotifier, null, false);
-
     this.exporter = new TestCaseExporter(cfa, logger, config);
     this.rnd = new Random(1636672210L);
   }
@@ -274,7 +221,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       //          childInputs.stream().filter(ci -> !ci.isNewPath && ci.score() == 0).toList();
       //      if (!tmp.isEmpty()) System.out.println("tmp: " + tmp.size());
       workList.addAll(childInputs);
-      // TODO
+      // TODO !!!!!
       //      if (visitedPaths.size() > 1000) {
       //        // if (visitedPaths.size() > 100) -> remove inputs that will probably not lead to a
       // new path
@@ -340,7 +287,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
 
   private void writeTestCaseFromValues(List<Object> model) {
     testsWritten++;
-    if(testsWritten > maxTestCases) {
+    if (testsWritten > maxTestCases) {
       throw new Error(String.format("Maximum number of test cases (%d) reached", maxTestCases));
     }
     try {

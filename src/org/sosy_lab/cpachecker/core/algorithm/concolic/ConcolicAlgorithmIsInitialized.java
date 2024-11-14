@@ -14,7 +14,7 @@ public class ConcolicAlgorithmIsInitialized {
 
   public enum AlgorithmType {
     GENERATIONAL,
-    RANDOM,
+    RANDOM_OR_DFS,
   }
   public static void setIsInitialized(AlgorithmType pAlgorithmType){
         algorithmType = pAlgorithmType;

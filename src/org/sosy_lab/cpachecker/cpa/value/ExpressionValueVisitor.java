@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -498,7 +497,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
             ndvp = ConcolicAlgorithm.nonDetValueProvider;
           } else if (ConcolicAlgorithmIsInitialized.getIsInitialized()
               && ConcolicAlgorithmIsInitialized.getAlgorithmType()
-                  == ConcolicAlgorithmIsInitialized.AlgorithmType.RANDOM) {
+                  == ConcolicAlgorithmIsInitialized.AlgorithmType.RANDOM_OR_DFS) {
             ndvp = ConcolicAlgorithmRandom.nonDetValueProvider;
           } else {
             throw new Error("ConcolicAlgorithm is not initialized");

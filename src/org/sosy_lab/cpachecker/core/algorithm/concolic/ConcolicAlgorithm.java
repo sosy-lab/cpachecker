@@ -95,8 +95,6 @@ public class ConcolicAlgorithm implements Algorithm {
   //   blocks after the AssumeEdge for block coverage
   private final Set<AbstractCFAEdge> visitedBlocks;
   private final Set<List<CFAEdge>> visitedPaths;
-  private int testsWritten = 0;
-  private final int maxTestCases = 99000;
 
   // TODO remove public -> Singleton in NondeterministicValueProvider?
   public static final NondeterministicValueProvider nonDetValueProvider =
@@ -330,6 +328,8 @@ public class ConcolicAlgorithm implements Algorithm {
   }
 
   private void writeTestCaseFromValues(List<Object> model) {
+    System.out.println("writeTestCaseFromValues, testsWritten");
+    System.out.println(testsWritten);
     testsWritten++;
     if(testsWritten > maxTestCases) {
       throw new Error(String.format("Maximum number of test cases (%d) reached", maxTestCases));
