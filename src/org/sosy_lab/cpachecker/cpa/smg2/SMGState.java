@@ -1469,7 +1469,23 @@ public class SMGState
     ConstantSymbolicExpressionLocator symIdentVisitor =
         ConstantSymbolicExpressionLocator.getInstance();
     // There are 3 sources of constraints, values in objects (HVEs), offsets and sizes.
-    // TODO: offsets
+
+    ImmutableSet.Builder<SymbolicValue> offsetsIdentsBuilder = ImmutableSet.builder();
+    for (SMGPointsToEdge pte : getMemoryModel().getSmg().getPTEdges()) {
+      Value value = pte.getOffset();
+      // Get all symbolic values in offsets (they might not have a SMGValue mapping anymore below!)
+      if (value instanceof SymbolicValue symValue) {
+        for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
+          SymbolicValue usedIdentifier = constSym;
+          if (constSym.getValue() instanceof SymbolicIdentifier symIdent) {
+            usedIdentifier = symIdent;
+          }
+          offsetsIdentsBuilder.add(usedIdentifier);
+        }
+      }
+    }
+    ImmutableSet<SymbolicValue> offsetIdents = offsetsIdentsBuilder.build();
+
     ImmutableSet.Builder<SymbolicValue> sizeIdentsBuilder = ImmutableSet.builder();
     for (SMGObject obj : getMemoryModel().getSmg().getObjects()) {
       Value value = obj.getSize();
@@ -1519,7 +1535,7 @@ public class SMGState
           usedIdentifier = symIdent;
         }
 
-        if (sizeIdents.contains(usedIdentifier)) {
+        if (sizeIdents.contains(usedIdentifier) || offsetIdents.contains(usedIdentifier)) {
           constraints.add(constraint);
           break;
         }
