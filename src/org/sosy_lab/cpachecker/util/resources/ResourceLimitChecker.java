@@ -58,9 +58,6 @@ public final class ResourceLimitChecker {
     checkNotNull(shutdownManager);
     this.limits = limits;
     if (limits.isEmpty() || shutdownManager.getNotifier().shouldShutdown()) {
-      // limits are irrelevant
-      // System.out.println("limits are irrelevant " + Thread.currentThread()+ "  shutdownManager: "
-      // + shutdownManager);
       thread = null;
 
     } else {
@@ -78,7 +75,6 @@ public final class ResourceLimitChecker {
           pThreadCpuTimeLimit.withThread(Thread.currentThread());
         }
       }
-      // System.out.println("Resource limit checker started for thead " + thread);
       thread.start();
     }
   }
@@ -86,7 +82,6 @@ public final class ResourceLimitChecker {
   /** Cancel enforcing the limits (without triggering the stop request if not done before). */
   public void cancel() {
     if (thread != null) {
-      // System.out.println("Resource limit checker cancel for " + thread);
       thread.interrupt();
     }
   }
@@ -108,8 +103,6 @@ public final class ResourceLimitChecker {
 
     ImmutableList.Builder<ResourceLimit> limits = ImmutableList.builder();
     if (options.walltime.compareTo(TimeSpan.empty()) >= 0) {
-      System.out.println(
-          "Set walltime time limit " + options.walltime + " in thread " + Thread.currentThread());
       limits.add(WalltimeLimit.fromNowOn(options.walltime));
     }
     boolean cpuTimeLimitSet = options.cpuTime.compareTo(TimeSpan.empty()) >= 0;
@@ -244,12 +237,6 @@ public final class ResourceLimitChecker {
 
       // Here we keep track of the next time we need to check each limit.
       final long[] timesOfNextCheck = new long[limits.size()];
-      // String limitsString = "";
-      // for (ResourceLimit limit: limits) {
-      //   limitsString += (limit.getName() + ", ");
-      // }
-      // System.out.println("Thread watching shutdownManager: " + Thread.currentThread() + "
-      // shutdownManager: " + shutdownManager + "\n  Has limits: " + limitsString);
 
       while (true) {
         final long currentTime = System.nanoTime();
@@ -266,20 +253,11 @@ public final class ResourceLimitChecker {
           final long currentValue = limit.getCurrentValue();
           if (limit.isExceeded(currentValue)) {
             updateCurrentValuesOfAllLimits();
-            // System.out.println("Limit exceeded for thread, terminate it. Thread watching: " +
-            // Thread.currentThread()+ "  shutdownManager: " + shutdownManager);
             String reason = String.format("The %s has elapsed.", limit.getName());
             shutdownManager.requestShutdown(reason);
             return;
           }
-          // String limitsString2 = "";
-          // for (ResourceLimit limit1: limits) {
-          //   limitsString2 += (limit1.getName() + "=" +
-          // TimeUnit.SECONDS.convert(limit.getCurrentValue(), TimeUnit.NANOSECONDS) + "s, ");
-          // }
-          // System.out.println("Limit not exceeded for thread, but checked. Thread watching: " +
-          // Thread.currentThread()+ "  shutdownManager: " + shutdownManager +"\n    "+
-          // limitsString2);
+
           // Determine when to do the next check.
           // A negative of zero value is ignored here
           // because we anyway wait at least for PRECISION nanoseconds.
@@ -296,7 +274,6 @@ public final class ResourceLimitChecker {
 
         try {
           Thread.sleep(millisToSleep);
-          updateCurrentValuesOfAllLimits();
         } catch (InterruptedException e) {
           updateCurrentValuesOfAllLimits();
           // Cancel requested by ResourceLimitChecker#cancel()
@@ -314,8 +291,6 @@ public final class ResourceLimitChecker {
      * user
      */
     private void updateCurrentValuesOfAllLimits() {
-      // System.out.println("updateCurrentValuesOfAllLimits for Thread watching: " +
-      // Thread.currentThread()+ "  shutdownManager: " + shutdownManager);
       for (ResourceLimit l : limits) {
         l.getCurrentValue();
       }
