@@ -58,6 +58,7 @@ public final class ResourceLimitChecker {
     checkNotNull(shutdownManager);
     this.limits = limits;
     if (limits.isEmpty() || shutdownManager.getNotifier().shouldShutdown()) {
+      // limits are irrelevant
       thread = null;
 
     } else {
