@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.resources;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Preconditions;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.TimeUnit;
 import org.sosy_lab.common.time.TimeSpan;
@@ -17,28 +18,29 @@ import org.sosy_lab.common.time.TimeSpan;
 public class ThreadCpuTimeLimit implements ResourceLimit {
 
   private final long duration;
-  private final long endTime;
-  private final Thread thread;
+  private long endTime;
+  private Thread thread;
   private long overallUsedTime = 0;
 
-  private ThreadCpuTimeLimit(long pStart, long pLimit, TimeUnit pUnit, Thread pThread) {
+  private ThreadCpuTimeLimit(long pLimit, TimeUnit pUnit) {
     checkArgument(pLimit > 0);
     duration = TimeUnit.NANOSECONDS.convert(pLimit, pUnit);
-    endTime = pStart + duration;
+    endTime = -1;
+    thread = null;
+  }
+
+  public static ThreadCpuTimeLimit withTimeSpan(TimeSpan timeSpan) {
+    return new ThreadCpuTimeLimit(timeSpan.asNanos(), TimeUnit.NANOSECONDS);
+  }
+
+  public synchronized void withThread(Thread pThread) {
+    endTime = getCurrentThreadTime(pThread) + duration;
     thread = pThread;
-  }
-
-  public static ThreadCpuTimeLimit fromNowOn(TimeSpan timeSpan, Thread pThread) {
-    return new ThreadCpuTimeLimit(
-        getCurrentThreadTime(pThread), timeSpan.asNanos(), TimeUnit.NANOSECONDS, pThread);
-  }
-
-  public static ThreadCpuTimeLimit fromNowOn(long limit, TimeUnit unit, Thread pThread) {
-    return new ThreadCpuTimeLimit(getCurrentThreadTime(pThread), limit, unit, pThread);
   }
 
   @Override
   public synchronized long getCurrentValue() {
+    Preconditions.checkNotNull(thread);
     long currentValue = getCurrentThreadTime(thread);
     if (currentValue != -1) {
       overallUsedTime = currentValue;
@@ -54,15 +56,18 @@ public class ThreadCpuTimeLimit implements ResourceLimit {
 
   @Override
   public synchronized boolean isExceeded(long pCurrentValue) {
+    Preconditions.checkNotNull(thread);
     return pCurrentValue >= endTime;
   }
 
   @Override
   public synchronized long nanoSecondsToNextCheck(long pCurrentValue) {
+    Preconditions.checkNotNull(thread);
     return (endTime - pCurrentValue) / 2;
   }
 
   public synchronized TimeSpan getOverallUsedTime() {
+    Preconditions.checkNotNull(thread);
     return TimeSpan.of(overallUsedTime, TimeUnit.NANOSECONDS);
   }
 
