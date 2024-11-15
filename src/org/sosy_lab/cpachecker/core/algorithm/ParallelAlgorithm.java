@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -35,6 +36,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -148,7 +150,10 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     mainEntryNode = AbstractStates.extractLocation(pReachedSet.getFirstState());
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
 
-    ListeningExecutorService exec = listeningDecorator(newFixedThreadPool(analyses.size()));
+    ThreadFactory threadFactory =
+        new ThreadFactoryBuilder().setNameFormat(getClass().getSimpleName() + "-thread-%d").build();
+    ListeningExecutorService exec =
+        listeningDecorator(newFixedThreadPool(analyses.size(), threadFactory));
 
     List<ListenableFuture<ParallelAnalysisResult>> futures = new ArrayList<>(analyses.size());
     for (Callable<ParallelAnalysisResult> call : analyses) {
