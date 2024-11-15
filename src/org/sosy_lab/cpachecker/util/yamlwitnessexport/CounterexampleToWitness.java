@@ -269,7 +269,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         // and then added to the AstCfaRelation. The problem is that this occurs at the expression
         // level and we currently only consider statements. The relevant parser expression type is
         // IASTConditionalExpression.
-        logger.log(Level.INFO, "Could not find the AST structure for the edge: " + pEdge);
+        logger.log(Level.FINEST, "Could not find the AST structure for the edge: " + pEdge);
         return ImmutableList.of();
       }
 
