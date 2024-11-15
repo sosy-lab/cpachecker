@@ -46,6 +46,10 @@
         <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
     </tasks>
+    <tasks name="Termination-MainControlFlow">
+        <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+        <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+    </tasks>
     <tasks name="Termination-MainHeap">
         <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
@@ -65,8 +69,8 @@
         <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
     </tasks>
     <tasks name="SoftwareSystems-DeviceDriversLinux64-Termination">
-        <includesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
-        <propertyfile >../sv-benchmarks/c/properties/termination.prp</propertyfile>
+        <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+        <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
     </tasks>
 
     <columns>
