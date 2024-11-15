@@ -124,7 +124,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       Specification pSpecification,
       CFA pCfa,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws InvalidConfigurationException, InterruptedException {
     config.inject(this);
 
     stats = new ParallelAlgorithmStatistics(pLogger, writeUnsuccessfulAnalysisFiles);
@@ -241,7 +241,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   private Callable<ParallelAnalysisResult> createParallelAnalysis(
       final AnnotatedValue<Path> pSingleConfigFileName, final int analysisNumber)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws InvalidConfigurationException, InterruptedException {
     final Path singleConfigFileName = pSingleConfigFileName.value();
     final boolean supplyReached;
     final boolean refineAnalysis;
@@ -291,9 +291,17 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             singleShutdownManager.getNotifier(),
             aggregatedReachedSetManager.asView());
 
-    final ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
-    final Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
-    final ReachedSet reached = coreComponents.createReachedSet(cpa);
+    final ConfigurableProgramAnalysis cpa;
+    final Algorithm algorithm;
+    final ReachedSet reached;
+    try {
+      cpa = coreComponents.createCPA(cfa, specification);
+      algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
+      reached = coreComponents.createReachedSet(cpa);
+    } catch (CPAException e) {
+      singleLogger.logfUserException(Level.WARNING, e, "Failed to initialize analysis");
+      return () -> ParallelAnalysisResult.absent(singleConfigFileName.toString());
+    }
 
     AtomicBoolean terminated = new AtomicBoolean(false);
     StatisticsEntry statisticsEntry =
