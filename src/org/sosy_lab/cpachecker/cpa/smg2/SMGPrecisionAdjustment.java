@@ -160,6 +160,12 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         description = "Abstraction of all detected linked lists at loop heads.")
     private boolean abstractLinkedLists = true;
 
+    @Option(
+        secure = true,
+        name = "removeUnusedConstraints",
+        description = "Periodically removes unused constraints from the state.")
+    private boolean cleanUpUnusedConstraints = false;
+
     private final @Nullable ImmutableSet<CFANode> loopHeads;
 
     public PrecAdjustmentOptions(Configuration config, CFA pCfa)
@@ -171,6 +177,10 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       } else {
         loopHeads = null;
       }
+    }
+
+    public boolean getCleanUpUnusedConstraints() {
+      return cleanUpUnusedConstraints;
     }
 
     public int getListAbstractionMinimumLengthThreshold() {
@@ -340,7 +350,9 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       }
     }
 
-    resultState = resultState.removeOldConstraints();
+    if (options.getCleanUpUnusedConstraints()) {
+      resultState = resultState.removeOldConstraints();
+    }
 
     return Optional.of(new PrecisionAdjustmentResult(resultState, pPrecision, Action.CONTINUE));
   }
