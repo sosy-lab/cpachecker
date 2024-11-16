@@ -337,6 +337,19 @@ public class SMG {
    * @return number of usages of the pValue.
    */
   public int getNumberOfSMGValueUsages(SMGValue pValue) {
+    PersistentMap<SMGObject, Integer> maybeRegions = valuesToRegionsTheyAreSavedIn.get(pValue);
+    int found = 0;
+    if (maybeRegions != null) {
+      for (int x : maybeRegions.values()) {
+        found += x;
+      }
+    }
+    assert found == getOldNumberOfSMGValueUsages(pValue);
+    return found;
+  }
+
+  // Old version
+  private int getOldNumberOfSMGValueUsages(SMGValue pValue) {
     int found = 0;
     for (PersistentSet<SMGHasValueEdge> hvEdges : hasValueEdges.values()) {
       for (SMGHasValueEdge hve : hvEdges) {
