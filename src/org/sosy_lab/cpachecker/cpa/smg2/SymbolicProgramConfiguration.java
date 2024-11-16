@@ -987,7 +987,7 @@ public class SymbolicProgramConfiguration {
         found = true;
         continue;
       }
-      Set<SymbolicValue> identsInValue = getSymbolicIdentifiersForValue(mappedValue);
+      Set<SymbolicIdentifier> identsInValue = getSymbolicIdentifiersForValue(mappedValue);
       if (identsInValue.contains(oldValue)) {
         valuesToUpdate.putIfAbsent(mappedValue, mapping.getValue());
       }
@@ -1056,10 +1056,10 @@ public class SymbolicProgramConfiguration {
    * Returns all {@link ConstantSymbolicExpression}s with {@link SymbolicIdentifier}s inside located
    * in the given value. Preserves type info in the const expr.
    */
-  protected Map<SymbolicValue, CType> getSymbolicIdentifiersWithTypesForValue(Value value) {
+  protected Map<SymbolicIdentifier, CType> getSymbolicIdentifiersWithTypesForValue(Value value) {
     ConstantSymbolicExpressionLocator symIdentVisitor =
         ConstantSymbolicExpressionLocator.getInstance();
-    ImmutableMap.Builder<SymbolicValue, CType> identsBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<SymbolicIdentifier, CType> identsBuilder = ImmutableMap.builder();
     // Get all symbolic values in sizes (they might not have a SMGValue mapping anymore below!)
     if (value instanceof SymbolicValue symValue) {
       for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
@@ -1071,7 +1071,7 @@ public class SymbolicProgramConfiguration {
     return identsBuilder.buildOrThrow();
   }
 
-  protected Set<SymbolicValue> getSymbolicIdentifiersForValue(Value value) {
+  protected Set<SymbolicIdentifier> getSymbolicIdentifiersForValue(Value value) {
     return getSymbolicIdentifiersWithTypesForValue(value).keySet();
   }
 
