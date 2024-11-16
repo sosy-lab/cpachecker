@@ -208,19 +208,6 @@ public class SMGCPAAddressVisitor
       CArraySubscriptExpression expr)
       throws CPATransferException {
 
-    if (!subscriptOffset.isNumericValue()
-        && options.trackErrorPredicates()
-        && options.isFindConcreteValuesForSymbolicOffsets()) {
-      // Assign concrete values for the offset
-      List<SMGStateAndOptionalSMGObjectAndOffset> assignedResult =
-          pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
-              subscriptOffset, pCurrentState, expr, cfaEdge);
-      if (assignedResult != null) {
-        return assignedResult;
-      }
-      // Fallthrough for null -> no constraints, no sound assignment possible
-    }
-
     if ((arrayValue instanceof AddressExpression arrayAddr)) {
       Value addrOffset = arrayAddr.getOffset();
       if (!addrOffset.isNumericValue()) {
@@ -240,11 +227,20 @@ public class SMGCPAAddressVisitor
           && options.trackErrorPredicates()
           && options.isFindConcreteValuesForSymbolicOffsets()) {
         // Assign concrete values for the offset
-        List<SMGStateAndOptionalSMGObjectAndOffset> assignedResult =
-            pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
-                finalOffset, pCurrentState, expr, cfaEdge);
-        if (assignedResult != null) {
-          return assignedResult;
+        List<ValueAndSMGState> assignedResults =
+            pCurrentState.findValueAssignmentsWithSolver(finalOffset, cfaEdge);
+        if (assignedResults != null) {
+          ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> concreteSubscriptHandling =
+              ImmutableList.builder();
+          for (ValueAndSMGState assignedValueAndState : assignedResults) {
+            concreteSubscriptHandling.addAll(
+                handleSubscriptExpression(
+                    arrayValue,
+                    assignedValueAndState.getValue(),
+                    assignedValueAndState.getState(),
+                    expr));
+          }
+          return concreteSubscriptHandling.build();
         }
         // Fallthrough for null -> no constraints, no sound assignment possible
       }
@@ -273,11 +269,20 @@ public class SMGCPAAddressVisitor
           && options.trackErrorPredicates()
           && options.isFindConcreteValuesForSymbolicOffsets()) {
         // Assign concrete values for the offset
-        List<SMGStateAndOptionalSMGObjectAndOffset> assignedResult =
-            pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
-                finalOffset, pCurrentState, expr, cfaEdge);
-        if (assignedResult != null) {
-          return assignedResult;
+        List<ValueAndSMGState> assignedResults =
+            pCurrentState.findValueAssignmentsWithSolver(finalOffset, cfaEdge);
+        if (assignedResults != null) {
+          ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> concreteSubscriptHandling =
+              ImmutableList.builder();
+          for (ValueAndSMGState assignedValueAndState : assignedResults) {
+            concreteSubscriptHandling.addAll(
+                handleSubscriptExpression(
+                    arrayValue,
+                    assignedValueAndState.getValue(),
+                    assignedValueAndState.getState(),
+                    expr));
+          }
+          return concreteSubscriptHandling.build();
         }
         // Fallthrough for null -> no constraints, no sound assignment possible
       }
@@ -300,11 +305,20 @@ public class SMGCPAAddressVisitor
               "Symbolic array subscript access not supported by this analysis.");
         } else if (options.isFindConcreteValuesForSymbolicOffsets()) {
           // Assign concrete values for the offset
-          List<SMGStateAndOptionalSMGObjectAndOffset> assignedResult =
-              pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
-                  finalOffset, pCurrentState, expr, cfaEdge);
-          if (assignedResult != null) {
-            return assignedResult;
+          List<ValueAndSMGState> assignedResults =
+              pCurrentState.findValueAssignmentsWithSolver(finalOffset, cfaEdge);
+          if (assignedResults != null) {
+            ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> concreteSubscriptHandling =
+                ImmutableList.builder();
+            for (ValueAndSMGState assignedValueAndState : assignedResults) {
+              concreteSubscriptHandling.addAll(
+                  handleSubscriptExpression(
+                      arrayValue,
+                      assignedValueAndState.getValue(),
+                      assignedValueAndState.getState(),
+                      expr));
+            }
+            return concreteSubscriptHandling.build();
           }
           // Fallthrough for null -> no constraints, no sound assignment possible
 
