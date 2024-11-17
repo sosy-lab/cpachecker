@@ -1263,10 +1263,10 @@ public class ExpressionToFormulaVisitor
         }
       } else if (functionName.equals("__CPACHECKER_atexit_next")) {
         // __CPACHECKER_atexit_next is not a constant function, but returns a different function
-        // pointer from the atexit stack every time it it called. We model this by returning a fresh
-        // variable that may point to any function in the program. The function pointer CPA, which
-        // will be run in parallel, tracks the actual target of the pointer and makes sure that the
-        // right function is always called.
+        // pointer from the atexit stack every time it is being called. We model this by returning a
+        // fresh variable that may point to any function in the program. The function pointer CPA,
+        // which will be run in parallel, tracks the actual target of the pointer and makes sure
+        // that the right function is always called.
         return conv.makeNondet(functionName, returnType, ssa, constraints);
 
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {

@@ -431,11 +431,13 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
           "atexit() takes one argument, but it was called with %s",
           params.size());
       CExpression argExpr = params.get(0);
-      // Note: The default value here needs to be UnknownTarget, and not IllegalTarget, to make
-      // sure that AtExitState.peek() only returns IllegalTarget when the stack is actually
-      // empty
       ExpressionValueVisitor evaluator = new ExpressionValueVisitor(pNewState);
       FunctionPointerTarget target = argExpr.accept(evaluator);
+      // Note: We want AtExitState.peek() to only return NullTarget when the stack is actually
+      // empty. Because of this we have to use abstractInvalidTarget() here to make sure no
+      // NullTarget can be pushed onto the stack by calling atexit(0). The call to
+      // abstractInvalidTarget() makes sure that in such cases the target is always replaced by
+      // UnknowTarget before being pushed onto the stack.
       pNewState.pushTarget(abstractInvalidTarget(target));
 
     } else if (pStatement instanceof CFunctionCallStatement) {
