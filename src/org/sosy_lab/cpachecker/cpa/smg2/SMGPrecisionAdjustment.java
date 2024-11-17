@@ -489,8 +489,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
           if (!liveVariables
               .orElseThrow()
               .isVariableLive(qualifiedVarName, location.getLocationNode())) {
-            if (!options.isEnforcePointerSensitiveLiveness()
-                && qualifiedVarName.contains("__CPAchecker_TMP_")) {
+            if (!options.isEnforcePointerSensitiveLiveness()) {
               // TODO: LiveVariablesCPA fails to track stack based memory correctly and invalidates
               //  e.g. arrays to early. Hence isEnforcePointerInsensitiveLiveness = true is unsound!
               currentState = currentState.invalidateVariable(variable);
