@@ -77,7 +77,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options
-public class MainCPAStatistics implements Statistics {
+class MainCPAStatistics implements Statistics {
 
   // Beyond this many states, we omit some statistics because they are costly.
   private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 1000000;
@@ -129,11 +129,10 @@ public class MainCPAStatistics implements Statistics {
   private Thread memStatsThread;
 
   private final Timer programTime = new Timer();
-  public final Timer creationTime = new Timer();
-  public final Timer cfaCreationTime = new Timer();
-  public final Timer cpaCreationTime = new Timer();
+  final Timer creationTime = new Timer();
+  final Timer cpaCreationTime = new Timer();
   private final Timer analysisTime = new Timer();
-  public final Timer resultAnalysisTime = new Timer();
+  final Timer resultAnalysisTime = new Timer();
 
   private long programCpuTime;
   private long analysisCpuTime = 0;
@@ -523,7 +522,6 @@ public class MainCPAStatistics implements Statistics {
 
   private void printTimeStatistics(
       PrintStream out, Result result, UnmodifiableReachedSet reached, Timer statisticsTime) {
-    out.println("Time for CFA creation:      " + cfaCreationTime);
     out.println("Time for analysis setup:      " + creationTime);
     out.println("  Time for loading CPAs:      " + cpaCreationTime);
     if (cfaCreatorStatistics != null) {
