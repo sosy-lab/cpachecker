@@ -398,7 +398,7 @@ public class FormulaManagerView {
               + "but CPAchecker will crash if integers are used during the analysis.",
           e);
     }
-    return new IntegerFormulaManagerView(wrappingHandler, rawImgr);
+    return new IntegerFormulaManagerView(wrappingHandler, rawImgr, booleanFormulaManager);
   }
 
   FormulaWrappingHandler getFormulaWrappingHandler() {
@@ -652,21 +652,26 @@ public class FormulaManagerView {
   }
 
   /**
-   * This method returns the formula for the MODULO-operator. Depending on the used formulaManager,
-   * the result can be conform to either C99- or the SMTlib2-standard.
+   * This method returns the formula for the REMAINDER-operator. This behaves consistently with
+   * C99/11s and Javas % operator, with the maybe the exception to 0 in the second argument, where
+   * the behavior might depend on the SMTLIB2 standard or even the solver used.
    *
-   * <p>Example: SMTlib2: 10%3==1, 10%(-3)==1, (-10)%3==2, (-10)%(-3)==2 C99: 10%3==1, 10%(-3)==1,
-   * (-10)%3==(-1), (-10)%(-3)==(-1)
+   * <p>Examples:
+   * <li>10%3==1, 10%(-3)==1, (-10)%3==(-1), (-10)%(-3)==(-1)
    */
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T makeModulo(T pF1, T pF2, boolean pSigned) {
+  public <T extends Formula> T makeRemainder(T pF1, T pF2, boolean pSigned) {
     Formula t;
-    if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
-      t = getIntegerFormulaManager().modulo((IntegerFormula) pF1, (IntegerFormula) pF2);
+    if (pF1 instanceof IntegerFormula pFi1 && pF2 instanceof IntegerFormula pFi2) {
+      // Integer modulo does not behave according to the C standard (or Java) for
+      //   negative numbers in pF1.
+      t = getIntegerFormulaManager().remainder(pFi1, pFi2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
+      // remainder for BVs behaves as the C standard defines modulo (%)
+      //   (also Javas % operator behaves the same)
       t =
           getBitvectorFormulaManager()
-              .modulo((BitvectorFormula) pF1, (BitvectorFormula) pF2, pSigned);
+              .remainder((BitvectorFormula) pF1, (BitvectorFormula) pF2, pSigned);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -702,8 +707,8 @@ public class FormulaManagerView {
             bvmgr.makeBitvector(bvmgr.getLength((BitvectorFormula) pF1), pModulo);
         t =
             bvmgr.equal(
-                bvmgr.modulo((BitvectorFormula) pF1, constant, pSigned),
-                bvmgr.modulo((BitvectorFormula) pF2, constant, pSigned));
+                bvmgr.remainder((BitvectorFormula) pF1, constant, pSigned),
+                bvmgr.remainder((BitvectorFormula) pF2, constant, pSigned));
       }
     } else {
       throw new IllegalArgumentException("Not supported interface");

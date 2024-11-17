@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSortedSet;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -67,6 +69,17 @@ class AstLocationClassifier extends ASTVisitor {
   private final ImmutableMap.Builder<FileLocation, FileLocation> ifElseClause =
       new ImmutableMap.Builder<>();
 
+  private final ImmutableSortedSet.Builder<FileLocation> expressions =
+      new ImmutableSortedSet.Builder<>(
+          // We want to sort the file locations by their offset inside the same file. This overrides
+          // the default sorting of the file locations, since we are not interested in the length of
+          // the expression
+          (loc1, loc2) ->
+              ComparisonChain.start()
+                  .compare(loc1.getFileName(), loc2.getFileName())
+                  .compare(loc1.getNodeOffset(), loc2.getNodeOffset())
+                  .result());
+
   private final ImmutableMap.Builder<String, Path> fileNames = new ImmutableMap.Builder<>();
 
   public final CSourceOriginMapping sourceOriginMapping;
@@ -88,6 +101,12 @@ class AstLocationClassifier extends ASTVisitor {
     for (Path path : pFileNames) {
       fileNames.put(path.getFileName().toString(), path);
     }
+  }
+
+  @Override
+  public int visit(IASTExpression pExpression) {
+    expressions.add(getLocation(pExpression));
+    return PROCESS_CONTINUE;
   }
 
   /**
@@ -260,5 +279,9 @@ class AstLocationClassifier extends ASTVisitor {
 
   public ImmutableSet<FileLocation> getStatementLocations() {
     return statementLocations.build();
+  }
+
+  public ImmutableSortedSet<FileLocation> getExpressionLocations() {
+    return expressions.build();
   }
 }

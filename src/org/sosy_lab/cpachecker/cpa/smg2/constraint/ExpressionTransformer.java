@@ -404,15 +404,15 @@ public class ExpressionTransformer
     return builder.build();
   }
 
-  public Constraint checkMemorySizeNotEqualsZero(
-      Value memoryRegionSizeInBits, CType calculationType, SMGState currentState) {
+  public Constraint getNotEqualsZeroConstraint(
+      Value valueNotZero, CType calculationType, SMGState currentState) {
     SymbolicExpression zeroValue =
         SymbolicValueFactory.getInstance()
             .asConstant(createNumericValue(BigInteger.ZERO), calculationType);
 
     SymbolicExpression memoryRegionSizeValue =
         SymbolicValueFactory.getInstance()
-            .asConstant(memoryRegionSizeInBits, calculationType)
+            .asConstant(valueNotZero, calculationType)
             .copyForState(currentState);
 
     // size != 0

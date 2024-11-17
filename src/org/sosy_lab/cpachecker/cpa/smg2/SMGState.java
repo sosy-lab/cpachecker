@@ -360,11 +360,12 @@ public class SMGState
         return false;
       case HAS_HEAP_OBJECTS:
         // Having heap objects is not an error on its own.
-        // However, when combined with program exit, we can detect property MemCleanup.
+        // However, when combined with program exit, we can detect the property MemCleanup.
         PersistentSet<SMGObject> heapObs = memoryModel.getHeapObjects();
         Preconditions.checkState(
             !heapObs.isEmpty() && heapObs.contains(SMGObject.nullInstance()),
             "NULL must always be a heap object");
+        heapObs = heapObs.removeAndCopy(SMGObject.nullInstance());
         // TODO: check the validity check!
         for (SMGObject object : heapObs) {
           if (!memoryModel.isObjectValid(object)) {
@@ -537,15 +538,13 @@ public class SMGState
    * @param pSPC the {@link SymbolicProgramConfiguration} to be used in the new state.
    * @param logManager the {@link LogManager} to be used in the new state.
    * @param opts {@link SMGOptions} to be used.
-   * @param pErrorInfo the {@link SMGErrorInfo} holding error information.
    * @return a new {@link SMGState} with the arguments given.
    */
-  public SMGState off(
+  public SMGState of(
       MachineModel pMachineModel,
       SymbolicProgramConfiguration pSPC,
       LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
-      List<SMGErrorInfo> pErrorInfo,
       SMGCPAExpressionEvaluator pEvaluator,
       SMGCPAStatistics pStatistics) {
     return new SMGState(
@@ -553,7 +552,7 @@ public class SMGState
         pSPC,
         logManager,
         opts,
-        pErrorInfo,
+        errorInfo,
         materializer,
         lastCheckedMemoryAccess,
         constraintsState,
@@ -2630,6 +2629,30 @@ public class SMGState
   }
 
   /**
+   * To be used if a malloc(0) returned pointer is evaluated.
+   *
+   * @param readPointer the pointer {@link Value} that was evaluated.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withInvalidReadOfMallocZeroPointer(Value readPointer) {
+    if (readPointer instanceof AddressExpression addrExpr) {
+      readPointer = addrExpr.getMemoryAddress();
+    }
+    String errorMSG = "Invalid evaluation of malloc(0) returned address: " + readPointer + ".";
+    SMGValue smgPointer = getMemoryModel().getSMGValueFromValue(readPointer).orElseThrow();
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(
+                Collections.singleton(
+                    getMemoryModel().getSmg().getPTEdge(smgPointer).orElseThrow().pointsTo()));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
+  /**
    * Copy and update this {@link SMGState} with an error resulting from trying to write outside of
    * the range of the {@link SMGObject}. Returns an updated state with the error in it.
    *
@@ -2708,6 +2731,21 @@ public class SMGState
             .withProperty(Property.INVALID_WRITE)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(objectWrittenTo));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
+  public SMGState withInvalidDerefForRead(SMGObject objectDerefed, CFAEdge edge) {
+    Preconditions.checkArgument(!getMemoryModel().isObjectValid(objectDerefed));
+
+    String errorMSG = "valid-deref: invalid pointer dereference in : " + edge;
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(objectDerefed));
+
     // Log the error in the logger
     logMemoryError(errorMSG, true);
     return copyWithNewErrorInfo(newErrorInfo);
@@ -4151,7 +4189,7 @@ public class SMGState
       CFAEdge edge)
       throws SMGException, SMGSolverException {
     Optional<SMGObject> maybeVariableMemory =
-        getMemoryModel().getObjectForVisibleVariable(variableName);
+        getMemoryModel().getObjectForVisibleVariable(variableName, false);
 
     if (maybeVariableMemory.isEmpty()) {
       // Write to unknown variable
@@ -6050,6 +6088,25 @@ public class SMGState
     // Careful when there is the same pointer twice in this obj
 
     return currentState;
+  }
+
+  /**
+   * True if the entered value is a pointer returned from malloc(0). These pointers are never
+   * allowed to be evaluated, but they may be assigned to other variables.
+   *
+   * @param pPointerValue some {@link Value}. Does not have to be a pointer.
+   * @return true if it is a pointers that has been returned by malloc(0).
+   */
+  public boolean isPointingToMallocZero(Value pPointerValue) {
+    if (pPointerValue instanceof AddressExpression addrExpr) {
+      pPointerValue = addrExpr.getMemoryAddress();
+    }
+    Optional<SMGValue> maybeSMGValue = getMemoryModel().getSMGValueFromValue(pPointerValue);
+    if (maybeSMGValue.isPresent()) {
+      SMGValue smgValue = maybeSMGValue.orElseThrow();
+      return getMemoryModel().isPointingToMallocZero(smgValue);
+    }
+    return false;
   }
 
   public SMGCPAStatistics getStatistics() {

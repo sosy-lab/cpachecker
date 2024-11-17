@@ -24,6 +24,8 @@ public class SerializeFunctionPointerStateOperator implements SerializeOperator 
     for (String value : builder.getValues()) {
       if (FunctionPointerState.InvalidTarget.getInstance().equals(builder.getTarget(value))) {
         serialized.append("I:").append(value).append(", ");
+      } else if (FunctionPointerState.NullTarget.getInstance().equals(builder.getTarget(value))) {
+        serialized.append("0:").append(value).append(", ");
       } else if (FunctionPointerState.UnknownTarget.getInstance()
           .equals(builder.getTarget(value))) {
         serialized.append("U:").append(value).append(", ");

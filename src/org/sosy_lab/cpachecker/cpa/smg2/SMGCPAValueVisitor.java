@@ -915,6 +915,14 @@ public class SMGCPAValueVisitor
           Value readValue = readValueAndState.getValue();
           SMGState newState = readValueAndState.getState();
 
+          if (returnType instanceof CFunctionType
+              || ((CPointerType) returnType).getType() instanceof CFunctionType) {
+            // TODO: lift into more general place
+            if (newState.isPointingToMallocZero(readValue)) {
+              newState = newState.withInvalidReadOfMallocZeroPointer(readValue);
+            }
+          }
+
           Value addressValue;
           if (evaluator.isPointerValue(readValue, newState)) {
             addressValue = AddressExpression.withZeroOffset(readValue, returnType);
@@ -1108,12 +1116,14 @@ public class SMGCPAValueVisitor
       }
 
       if (!(value instanceof AddressExpression)) {
-        // The only valid pointer is numeric 0
+        // Non-pointer dereference, either numeric or symbolic
         Preconditions.checkArgument(
             (value.isNumericValue()
                     && value.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO))
                 || !evaluator.isPointerValue(value, currentState));
-        builder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        builder.add(
+            ValueAndSMGState.ofUnknownValue(
+                currentState.withUnknownPointerDereferenceWhenReading(value, cfaEdge)));
         continue;
       }
 
@@ -1163,6 +1173,7 @@ public class SMGCPAValueVisitor
                 .readValueWithPointerDereference(
                     currentState, pointerValue.getMemoryAddress(), offset, sizeInBits, returnType)
                 .get(0);
+        currentState = readValueAndState.getState();
 
         if (returnType instanceof CPointerType) {
           // In the pointer case we would need to encapsulate it again
