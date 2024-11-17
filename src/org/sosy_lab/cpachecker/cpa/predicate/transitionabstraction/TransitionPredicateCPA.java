@@ -1,0 +1,118 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cpa.predicate.transitionabstraction;
+
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractDomain;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPAInvariantsManager;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateMergeOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateNeverAtAbstractionStopOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePCCStopOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateStatistics;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateStopOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
+
+public class TransitionPredicateCPA extends PredicateCPA
+    implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable {
+
+
+  protected TransitionPredicateCPA(
+      Configuration config,
+      LogManager logger,
+      BlockOperator pBlk,
+      CFA pCfa,
+      ShutdownNotifier pShutdownNotifier,
+      Specification specification,
+      AggregatedReachedSets pAggregatedReachedSets)
+      throws InvalidConfigurationException, CPAException, InterruptedException {
+    // TODO: Modify constructor if necessary
+
+    super(config, logger, pBlk, pCfa, pShutdownNotifier, specification, pAggregatedReachedSets);
+  }
+
+  @Override
+  public AbstractDomain getAbstractDomain() {
+    return new PredicateAbstractDomain(getPredicateManager(), isSymbolicCoverageCheck(), getStatistics());
+  }
+
+  @Override
+  public PredicateTransferRelation getTransferRelation() {
+    return new PredicateTransferRelation(
+        logger,
+        getDirection(),
+        getFormulaManager(),
+        getPathFormulaManager(),
+        getBlk(),
+        getPredicateManager(),
+        getStatistics(),
+        getOptions());
+  }
+
+  @Override
+  public MergeOperator getMergeOperator() {
+    return switch (getMergeType()) {
+      case "SEP" -> MergeSepOperator.getInstance();
+      case "ABE" ->
+          new PredicateMergeOperator(
+              logger,
+              getPathFormulaManager(),
+              getStatistics(),
+              isMergeAbstractionStates(),
+              getPredicateManager());
+      default -> throw new AssertionError("Update list of allowed merge operators");
+    };
+  }
+
+  @Override
+  public StopOperator getStopOperator() {
+    return switch (getStopType()) {
+      case "SEP" -> new PredicateStopOperator(getAbstractDomain());
+      case "SEPPCC" ->
+          new PredicatePCCStopOperator(getPathFormulaManager(), getPredicateManager(), getSolver());
+      case "SEPNAA" -> new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
+      default -> throw new AssertionError("Update list of allowed stop operators");
+    };
+  }
+
+  public PredicateAbstractionManager getPredicateManager() {
+
+    return new PredicateAbstractionManager(
+        getAbstractionManager(),
+        getPathFormulaManager(),
+        getSolver(),
+        getAbstractionOptions(),
+        getWeakeningOptions(),
+        getAbstractionStorage(),
+        logger,
+        shutdownNotifier,
+        getAbstractionStats(),
+        getInvariantsManager()
+        ? invariantsManager
+        : TrivialInvariantSupplier.INSTANCE);
+  }
+}

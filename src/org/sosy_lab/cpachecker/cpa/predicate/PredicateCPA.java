@@ -425,4 +425,57 @@ public class PredicateCPA
   public void changeExplicitAbstractionNodes(final ImmutableSet<CFANode> explicitlyAbstractAt) {
     blk.setExplicitAbstractionNodes(explicitlyAbstractAt);
   }
+
+  // Below will be necessary additional code for TransitionPredicate
+  public boolean isSymbolicCoverageCheck() {
+    return symbolicCoverageCheck;
+  }
+
+  public PredicateStatistics getStatistics() {
+    return statistics;
+  }
+
+  public AnalysisDirection getDirection() {
+    return direction;
+  }
+
+  public BlockOperator getBlk() {
+    return blk;
+  }
+
+  public FormulaManagerView getFormulaManager() {
+    return formulaManager;
+  }
+
+  public PredicateCpaOptions getOptions() {
+    return options;
+  }
+
+  public boolean isMergeAbstractionStates() {
+    return mergeAbstractionStates;
+  }
+
+  public String getMergeType() {
+    return mergeType;
+  }
+
+  public String getStopType() {
+    return stopType;
+  }
+
+  public PredicateAbstractionManagerOptions getAbstractionOptions() {
+    return abstractionOptions;
+  }
+
+  public WeakeningOptions getWeakeningOptions() {
+    return weakeningOptions;
+  }
+
+  public PredicateAbstractionsStorage getAbstractionStorage() {
+    return abstractionStorage;
+  }
+
+  public PredicateAbstractionStatistics getAbstractionStats() {
+    return abstractionStats;
+  }
 }

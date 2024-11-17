@@ -90,3 +90,7 @@ src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLSymbols.java
 node_modules/
 /.idea/sonarlint.xml
 /.idea/sonarlint/
+
+.idea/ant.xml
+.idea/misc.xml
+/doc/ConfigurationOptions.txt
