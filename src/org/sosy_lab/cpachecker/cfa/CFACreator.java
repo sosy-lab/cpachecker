@@ -767,7 +767,6 @@ public class CFACreator {
     }
 
     // add atexit handlers
-    // TODO: Add an option for this step and return "unknown" if atexit() is used without it
     if (language == Language.C) {
       AtExitTransformer atExitTransformer = new AtExitTransformer(cfa, logger, config);
       atExitTransformer.transformIfNeeded();
