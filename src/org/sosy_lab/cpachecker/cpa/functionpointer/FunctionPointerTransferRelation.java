@@ -434,8 +434,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       // Note: The default value here needs to be UnknownTarget, and not IllegalTarget, to make
       // sure that AtExitState.peek() only returns IllegalTarget when the stack is actually
       // empty
-      ExpressionValueVisitor evaluator =
-          new ExpressionValueVisitor(pNewState);
+      ExpressionValueVisitor evaluator = new ExpressionValueVisitor(pNewState);
       FunctionPointerTarget target = argExpr.accept(evaluator);
       pNewState.pushTarget(abstractInvalidTarget(target));
 
