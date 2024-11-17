@@ -195,11 +195,11 @@ public class FunctionPointerState
     /**
      * Pop a function pointer from the <code>atexit()</code> stack
      *
-     * <p>Returns {@link InvalidTarget} if the stack is empty
+     * <p>Returns {@link NullTarget} if the stack is empty
      */
     public FunctionPointerTarget popTarget() {
       if (stack.isEmpty()) {
-        return InvalidTarget.getInstance();
+        return NullTarget.getInstance();
       } else {
         FunctionPointerTarget r = stack.peek();
         stack = stack.popAndCopy();
