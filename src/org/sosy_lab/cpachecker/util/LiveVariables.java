@@ -33,7 +33,6 @@ import com.google.common.collect.TreeMultimap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -59,9 +58,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -459,35 +459,6 @@ public class LiveVariables {
       FROM_EQUIV_WRAPPER_TO_STRING =
           Functions.compose(ASimpleDeclaration::getQualifiedName, FROM_EQUIV_WRAPPER);
 
-  private static Iterable<CFANode> findEndNodes(FunctionEntryNode entry) {
-    Set<CFANode> reached = new HashSet<>();
-    Set<CFANode> worklist = ImmutableSet.of(entry);
-
-    while (!worklist.isEmpty()) {
-      ImmutableSet.Builder<CFANode> workBuilder = ImmutableSet.builder();
-      for (CFANode node : worklist) {
-        reached.add(node);
-        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-          CFANode successor = node.getLeavingEdge(i).getSuccessor();
-          if (!reached.contains(successor)) {
-            workBuilder.add(successor);
-          }
-        }
-      }
-      worklist = workBuilder.build();
-    }
-    return FluentIterable.from(reached)
-        .filter(
-            node ->
-                // node must be in the current function
-                node.getFunction().equals(entry.getFunction())
-                    // ...and have no successors (= non-returning function was called)
-                    && (node.getNumLeavingEdges() == 0
-                        // ...or have exactly one successor that is a return edge (= regular return)
-                        || (node.getNumLeavingEdges() == 1
-                            && node.getLeavingEdge(0) instanceof CFunctionReturnEdge)));
-  }
-
   private static @Nullable Multimap<CFANode, Wrapper<ASimpleDeclaration>> addLiveVariablesFromCFA(
       final CFA pCfa,
       final LogManager logger,
@@ -503,8 +474,37 @@ public class LiveVariables {
           case FUNCTION_WISE -> pCfa.entryNodes();
           case GLOBAL -> Collections.singleton(pCfa.getMainFunction());
         };
-    for (FunctionEntryNode entry : functionHeads) {
-      for (CFANode finalNode : findEndNodes(entry)) {
+
+    // skip function calls unless global evaluation is used
+    final CFATraversal cfaTraversal =
+        evaluationStrategy == EvaluationStrategy.FUNCTION_WISE
+            ? CFATraversal.dfs().ignoreFunctionCalls()
+            : CFATraversal.dfs();
+
+    for (FunctionEntryNode entryNode : functionHeads) {
+      Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
+
+      // add return node (if present) as an entry point
+      if (exitNode.isPresent()) {
+        analysisParts.reachedSet.add(
+            analysisParts.cpa.getInitialState(
+                exitNode.orElseThrow(), StateSpacePartition.getDefaultPartition()),
+            analysisParts.cpa.getInitialPrecision(
+                exitNode.orElseThrow(), StateSpacePartition.getDefaultPartition()));
+      }
+
+      // calculate set of reachable nodes from the function entry point
+      Set<CFANode> reached =
+          exitNode.isPresent()
+              ? cfaTraversal.collectNodesReachableFromTo(entryNode, exitNode.orElseThrow())
+              : cfaTraversal.collectNodesReachableFrom(entryNode);
+
+      // find calls to non-returning functions
+      Iterable<CFANode> nonReturning =
+          FluentIterable.from(reached).filter(node -> node instanceof CFATerminationNode);
+
+      // add calls to non-returning functions as additional entry points
+      for (CFANode finalNode : nonReturning) {
         analysisParts.reachedSet.add(
             analysisParts.cpa.getInitialState(finalNode, StateSpacePartition.getDefaultPartition()),
             analysisParts.cpa.getInitialPrecision(
