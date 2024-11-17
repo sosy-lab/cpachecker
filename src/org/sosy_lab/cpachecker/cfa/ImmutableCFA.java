@@ -38,7 +38,7 @@ public class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
 
   private final CfaNetwork network;
 
-  ImmutableCFA(
+  public ImmutableCFA(
       Map<String, FunctionEntryNode> pFunctions,
       SetMultimap<String, CFANode> pAllNodes,
       CfaMetadata pCfaMetadata) {
@@ -53,23 +53,6 @@ public class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
     network =
         CheckingCfaNetwork.wrapIfAssertionsEnabled(
             new DelegateCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
-    allEdges = ImmutableSet.copyOf(super.edges());
-  }
-
-  public ImmutableCFA(
-      Map<String, FunctionEntryNode> pFunctions, Set<CFANode> pAllNodes, CfaMetadata pCfaMetadata) {
-    functions = ImmutableSortedMap.copyOf(pFunctions);
-    allNodes = ImmutableSortedSet.copyOf(pAllNodes);
-
-    metadata = pCfaMetadata;
-
-    FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
-    checkArgument(mainFunctionEntry.equals(functions.get(mainFunctionEntry.getFunctionName())));
-
-    network =
-        CheckingCfaNetwork.wrapIfAssertionsEnabled(
-            new DelegateCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
-    // this must happen after 'network' is assigned. Network is the delegate of this class.
     allEdges = ImmutableSet.copyOf(super.edges());
   }
 
