@@ -94,6 +94,14 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/Hardware.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
+  <tasks name="ReachSafety-Hardness">
+    <includesfile>../programs/benchmarks/Hardness.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-Fuzzle">
+    <includesfile>../programs/benchmarks/Fuzzle.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
 
   <tasks name="ConcurrencySafety-Main">
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
@@ -102,14 +110,6 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="SoftwareSystems-AWS-C-Common-ReachSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="SoftwareSystems-BusyBox-ReachSafety">
-    <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="SoftwareSystems-coreutils-ReachSafety">
-    <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
@@ -121,8 +121,18 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64Large.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
+  <tasks name="SoftwareSystems-Other-ReachSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
   <tasks name="SoftwareSystems-uthash-ReachSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-Intel-TDX-Module-ReachSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-Intel-TDX-Module.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 </benchmark>

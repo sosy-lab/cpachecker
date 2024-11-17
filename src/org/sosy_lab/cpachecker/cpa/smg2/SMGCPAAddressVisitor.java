@@ -182,47 +182,78 @@ public class SMGCPAAddressVisitor
         }
         // Calculate the offset out of the subscript value and the type
         BigInteger typeSizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
-        Value subscriptOffset =
-            SMGCPAExpressionEvaluator.multiplyValues(
-                subscriptValue,
-                typeSizeInBits,
-                e.getExpressionType(),
-                currentState.getMachineModel());
+        Value subscriptOffset = evaluator.multiplyBitOffsetValues(subscriptValue, typeSizeInBits);
 
         // Get the value from the array and return the value + state
         // (the is pointer check is needed because of nested subscript; i.e. array[1][1]; as if we
         // access array[1] first, we can see that the next type is CArray which makes only sense for
         // nested arrays -> it reads a pointer and returns it even if the type is not a pointer
         // expr)
-        resultBuilder.add(handleSubscriptExpression(arrayValue, subscriptOffset, currentState));
+        resultBuilder.addAll(
+            handleSubscriptExpression(arrayValue, subscriptOffset, currentState, e));
       }
     }
     return resultBuilder.build();
   }
 
   /*
-   * Get the return from the array behind arrayValue and the subscript offset in bits.
+   * Get the object and offset from an (array) subscript expression with address arrayValue and the
+   *  subscript offset in bits, possibly symbolic. Might return multiple states when assigning
+   *  concrete offsets with a solver.
    */
-  private SMGStateAndOptionalSMGObjectAndOffset handleSubscriptExpression(
-      Value arrayValue, Value subscriptOffset, SMGState pCurrentState) throws SMGException {
+  private List<SMGStateAndOptionalSMGObjectAndOffset> handleSubscriptExpression(
+      Value arrayValue,
+      Value subscriptOffset,
+      SMGState pCurrentState,
+      CArraySubscriptExpression expr)
+      throws CPATransferException {
+
+    if (!subscriptOffset.isNumericValue()
+        && options.trackErrorPredicates()
+        && options.isFindConcreteValuesForSymbolicOffsets()) {
+      // Assign concrete values for the offset
+      List<SMGStateAndOptionalSMGObjectAndOffset> assignedResult =
+          pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
+              subscriptOffset, pCurrentState, expr, cfaEdge);
+      if (assignedResult != null) {
+        return assignedResult;
+      }
+      // Fallthrough for null -> no constraints, no sound assignment possible
+    }
 
     if ((arrayValue instanceof AddressExpression arrayAddr)) {
       Value addrOffset = arrayAddr.getOffset();
-      if (!addrOffset.isNumericValue() && !options.trackErrorPredicates()) {
-        logger.log(
-            Level.FINE,
-            "A offset value was found to be non concrete when trying to find a memory"
-                + " location in an array. No memory region could be returned.");
-        return SMGStateAndOptionalSMGObjectAndOffset.of(
-            pCurrentState.withUnknownOffsetMemoryAccess());
+      if (!addrOffset.isNumericValue()) {
+        if (!options.trackErrorPredicates()) {
+          logger.log(
+              Level.FINE,
+              "A offset value was found to be non concrete when trying to find a memory"
+                  + " location in an array. No memory region could be returned.");
+          return ImmutableList.of(
+              SMGStateAndOptionalSMGObjectAndOffset.of(
+                  pCurrentState.withUnknownOffsetMemoryAccess()));
+        }
       }
-      Value finalOffset = SMGCPAExpressionEvaluator.addOffsetValues(addrOffset, subscriptOffset);
+      Value finalOffset = evaluator.addBitOffsetValues(addrOffset, subscriptOffset);
+
+      if (!finalOffset.isNumericValue()
+          && options.trackErrorPredicates()
+          && options.isFindConcreteValuesForSymbolicOffsets()) {
+        // Assign concrete values for the offset
+        List<SMGStateAndOptionalSMGObjectAndOffset> assignedResult =
+            pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
+                finalOffset, pCurrentState, expr, cfaEdge);
+        if (assignedResult != null) {
+          return assignedResult;
+        }
+        // Fallthrough for null -> no constraints, no sound assignment possible
+      }
 
       List<SMGStateAndOptionalSMGObjectAndOffset> targets =
           evaluator.getTargetObjectAndOffset(
               pCurrentState, arrayAddr.getMemoryAddress(), finalOffset);
       Preconditions.checkArgument(targets.size() == 1);
-      return targets.get(0);
+      return targets;
 
     } else if (pCurrentState.getMemoryModel().isPointer(arrayValue)) {
       // Local array
@@ -233,13 +264,27 @@ public class SMGCPAAddressVisitor
       SMGStateAndOptionalSMGObjectAndOffset maybeTargetMemoryAndOffset =
           maybeTargetMemoriesAndOffsets.get(0);
       if (!maybeTargetMemoryAndOffset.hasSMGObjectAndOffset()) {
-        return maybeTargetMemoryAndOffset;
+        return maybeTargetMemoriesAndOffsets;
       }
       Value baseOffset = maybeTargetMemoryAndOffset.getOffsetForObject();
-      Value finalOffset = SMGCPAExpressionEvaluator.addOffsetValues(baseOffset, subscriptOffset);
+      Value finalOffset = evaluator.addBitOffsetValues(baseOffset, subscriptOffset);
 
-      return SMGStateAndOptionalSMGObjectAndOffset.of(
-          maybeTargetMemoryAndOffset.getSMGObject(), finalOffset, pCurrentState);
+      if (!finalOffset.isNumericValue()
+          && options.trackErrorPredicates()
+          && options.isFindConcreteValuesForSymbolicOffsets()) {
+        // Assign concrete values for the offset
+        List<SMGStateAndOptionalSMGObjectAndOffset> assignedResult =
+            pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
+                finalOffset, pCurrentState, expr, cfaEdge);
+        if (assignedResult != null) {
+          return assignedResult;
+        }
+        // Fallthrough for null -> no constraints, no sound assignment possible
+      }
+
+      return ImmutableList.of(
+          SMGStateAndOptionalSMGObjectAndOffset.of(
+              maybeTargetMemoryAndOffset.getSMGObject(), finalOffset, pCurrentState));
 
     } else if (arrayValue instanceof SymbolicIdentifier localArrayValue
         && localArrayValue.getRepresentedLocation().isPresent()) {
@@ -247,15 +292,23 @@ public class SMGCPAAddressVisitor
       MemoryLocation memLoc = localArrayValue.getRepresentedLocation().orElseThrow();
       String qualifiedVarName = memLoc.getIdentifier();
       Value finalOffset =
-          SMGCPAExpressionEvaluator.addOffsetValues(
-              subscriptOffset, BigInteger.valueOf(memLoc.getOffset()));
+          evaluator.addBitOffsetValues(subscriptOffset, BigInteger.valueOf(memLoc.getOffset()));
 
       if (!finalOffset.isNumericValue()) {
         if (!options.trackPredicates()) {
           throw new UnsupportedOperationException(
               "Symbolic array subscript access not supported by this analysis.");
+        } else if (options.isFindConcreteValuesForSymbolicOffsets()) {
+          // Assign concrete values for the offset
+          List<SMGStateAndOptionalSMGObjectAndOffset> assignedResult =
+              pCurrentState.assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
+                  finalOffset, pCurrentState, expr, cfaEdge);
+          if (assignedResult != null) {
+            return assignedResult;
+          }
+          // Fallthrough for null -> no constraints, no sound assignment possible
+
         } else {
-          // TODO:
           throw new UnsupportedOperationException(
               "Missing case in SMGCPAValueVisitor. Report to CPAchecker issue tracker for SMG2"
                   + " analysis. Missing symbolic handling of a array subscript expression");
@@ -265,16 +318,17 @@ public class SMGCPAAddressVisitor
       Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTarget =
           evaluator.getTargetObjectAndOffset(pCurrentState, qualifiedVarName, finalOffset);
 
-      return SMGStateAndOptionalSMGObjectAndOffset.of(pCurrentState, maybeTarget);
+      return ImmutableList.of(SMGStateAndOptionalSMGObjectAndOffset.of(pCurrentState, maybeTarget));
 
     } else {
       // Might be numeric 0 (0 object). All else cases are basically invalid requests.
       if (arrayValue.isNumericValue()
           && arrayValue.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
-        return SMGStateAndOptionalSMGObjectAndOffset.of(
-            SMGObject.nullInstance(), subscriptOffset, pCurrentState);
+        return ImmutableList.of(
+            SMGStateAndOptionalSMGObjectAndOffset.of(
+                SMGObject.nullInstance(), subscriptOffset, pCurrentState));
       } else {
-        return SMGStateAndOptionalSMGObjectAndOffset.of(pCurrentState);
+        return ImmutableList.of(SMGStateAndOptionalSMGObjectAndOffset.of(pCurrentState));
       }
     }
   }
@@ -325,7 +379,7 @@ public class SMGCPAAddressVisitor
           resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
         }
 
-        Value finalFieldOffset = SMGCPAExpressionEvaluator.addOffsetValues(addrOffset, fieldOffset);
+        Value finalFieldOffset = evaluator.addBitOffsetValues(addrOffset, fieldOffset);
 
         resultBuilder.addAll(
             evaluator.getTargetObjectAndOffset(
@@ -337,7 +391,7 @@ public class SMGCPAAddressVisitor
             ((SymbolicIdentifier) structValue).getRepresentedLocation().orElseThrow();
         String varName = variableAndOffset.getIdentifier();
         Value baseOffset = new NumericValue(BigInteger.valueOf(variableAndOffset.getOffset()));
-        Value finalFieldOffset = SMGCPAExpressionEvaluator.addOffsetValues(baseOffset, fieldOffset);
+        Value finalFieldOffset = evaluator.addBitOffsetValues(baseOffset, fieldOffset);
 
         Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTarget =
             evaluator.getTargetObjectAndOffset(currentState, varName, finalFieldOffset);

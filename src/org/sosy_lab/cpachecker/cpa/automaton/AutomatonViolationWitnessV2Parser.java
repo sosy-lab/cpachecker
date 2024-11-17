@@ -120,7 +120,11 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
 
     // When we match the target state we want to enter the error location immediately
     transitionBuilder = transitionBuilder.withAssertion(createViolationAssertion());
-    return transitionBuilder.build();
+
+    // We need to copy the target information such that CPAchecker returns the correct information
+    // for the violated property. If this is not set it will return "WitnessAutomaton"
+    return new AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition(
+        transitionBuilder);
   }
 
   /**
@@ -327,7 +331,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       throws InterruptedException, InvalidYAMLWitnessException, WitnessParseException {
     List<PartitionedWaypoints> segments = segmentize(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
-    // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
+    // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
 
     // TODO: It may be worthwhile to refactor this into the CFA

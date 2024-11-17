@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
@@ -386,14 +387,25 @@ public class SMGCPATest0 {
         currentState =
             currentState.copyAndAddLocalVariable(
                 numericPointerSizeInBits, i == 0 ? "first" : "last", null);
-        currentState =
-            currentState.writeToStackOrGlobalVariable(
-                i == 0 ? "first" : "last",
-                new NumericValue(BigInteger.ZERO),
-                new NumericValue(pointerSizeInBits),
-                pointerAndState.getValue(),
-                null,
-                dummyCDAEdge);
+        try {
+          currentState =
+              currentState.writeToStackOrGlobalVariable(
+                  i == 0 ? "first" : "last",
+                  new NumericValue(BigInteger.ZERO),
+                  new NumericValue(pointerSizeInBits),
+                  pointerAndState.getValue(),
+                  null,
+                  dummyCDAEdge);
+        } catch (CPATransferException e) {
+          if (e instanceof SMGException) {
+            throw (SMGException) e;
+          } else if (e instanceof SMGSolverException) {
+            throw (SMGSolverException) e;
+          }
+          // This can never happen, but we are forced to do this as the visitor demands the
+          // CPATransferException
+          throw new RuntimeException(e);
+        }
       }
       if (listLength == 1) {
         ValueAndSMGState pointerAndState =
@@ -402,14 +414,25 @@ public class SMGCPATest0 {
         currentState = pointerAndState.getState();
         // Save all pointers in objects to not confuse the internal SMG assertions
         currentState = currentState.copyAndAddLocalVariable(numericPointerSizeInBits, "last", null);
-        currentState =
-            currentState.writeToStackOrGlobalVariable(
-                "last",
-                new NumericValue(BigInteger.ZERO),
-                numericPointerSizeInBits,
-                pointerAndState.getValue(),
-                null,
-                dummyCDAEdge);
+        try {
+          currentState =
+              currentState.writeToStackOrGlobalVariable(
+                  "last",
+                  new NumericValue(BigInteger.ZERO),
+                  numericPointerSizeInBits,
+                  pointerAndState.getValue(),
+                  null,
+                  dummyCDAEdge);
+        } catch (CPATransferException e) {
+          if (e instanceof SMGException) {
+            throw (SMGException) e;
+          } else if (e instanceof SMGSolverException) {
+            throw (SMGSolverException) e;
+          }
+          // This can never happen, but we are forced to do this as the visitor demands the
+          // CPATransferException
+          throw new RuntimeException(e);
+        }
       }
 
       prevObject = listSegment;
