@@ -33,7 +33,7 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/Assertion.spc</propertyfile>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
+    <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
     <exclude>../programs/benchmarks/bitvector/gcd_4.yml</exclude> <!-- flapping timeout  -->
     <exclude>../programs/benchmarks/bitvector/modulus-2.yml</exclude> <!-- flapping timeout  -->
     <exclude>../programs/benchmarks/bitvector/parity.yml</exclude> <!-- flapping timeout  -->
@@ -42,7 +42,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
     <exclude>../programs/benchmarks/openssl/s3_*</exclude> <!-- mostly timeout  -->
     <exclude>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1.cil.yml</exclude> <!-- flapping timeout  -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
@@ -50,13 +50,15 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
     <exclude>../programs/benchmarks/loop-invgen/*</exclude> <!-- mostly timeout  -->
     <exclude>../programs/benchmarks/loops-crafted-1/*</exclude> <!-- mostly timeout  -->
     <exclude>../programs/benchmarks/nla-digbench/*</exclude> <!-- only timeout  -->
@@ -65,7 +67,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="--skip-recursion"/>

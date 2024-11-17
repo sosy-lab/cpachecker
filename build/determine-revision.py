@@ -18,43 +18,7 @@ def determineRevision(dir_path):
     """
     Determine the revision of the given directory in a version control system.
     """
-    # Check for SVN repository
     try:
-        svnProcess = subprocess.run(
-            ["svnversion", "--committed", dir_path],
-            env={"LANG": "C"},
-            capture_output=True,
-            text=True,
-        )
-        stdout = svnProcess.stdout.strip().split(":")[-1]
-        if not (
-            svnProcess.returncode
-            or svnProcess.stderr
-            or (stdout == "exported")
-            or (stdout == "Unversioned directory")
-        ):
-            return stdout
-    except OSError:
-        pass
-
-    # Check for git-svn repository
-    try:
-        # This will silently perform the migration from older git-svn directory layout.
-        # Otherwise, the migration may be performed by the next git svn invocation,
-        # producing nonempty stderr.
-        subprocess.call(["git", "svn", "migrate"], stderr=subprocess.DEVNULL)
-
-        gitProcess = subprocess.run(
-            ["git", "svn", "find-rev", "HEAD"],
-            env={"LANG": "C"},
-            cwd=dir_path,
-            capture_output=True,
-            text=True,
-        )
-        stdout = gitProcess.stdout.strip()
-        if not (gitProcess.returncode or gitProcess.stderr) and stdout:
-            return stdout + ("M" if _isGitRepositoryDirty(dir_path) else "")
-
         # Check for git repository
         gitProcess = subprocess.run(
             ["git", "log", "-1", "--pretty=format:%h", "--abbrev-commit"],

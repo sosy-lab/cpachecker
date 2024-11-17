@@ -38,11 +38,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckClosestFullExpressionMatchesColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckMatchesColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckPassesThroughNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesElement;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IsStatementEdge;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Or;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -101,12 +103,16 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
    */
   private AutomatonTransition handleTarget(
       String nextStateId, Integer followLine, Integer followColumn, Integer pDistanceToViolation) {
-    // For target nodes it sometimes does not make sense to evaluate them at the last possible
-    // sequence point as with assumptions. For example, a reach_error call will usually not have
-    // any successors in the ARG, since the verification stops there. Therefore, handling targets
-    // the same way as with assumptions would not work. As an overapproximation we use the
-    // covers to present the desired functionality.
-    AutomatonBoolExpr expr = new CheckMatchesColumnAndLine(followColumn, followLine);
+    // For the reachability specification the target waypoint should exactly point to where the
+    // violation occurs. For no-overflow, instead it should point to the beginning of the full
+    // expression causing the overflow.
+    //
+    // TODO: Review if the first check is required or if the second check is sufficient
+    AutomatonBoolExpr expr =
+        new Or(
+            new CheckMatchesColumnAndLine(followColumn, followLine),
+            new CheckClosestFullExpressionMatchesColumnAndLine(
+                followColumn, followLine, cfa.getAstCfaRelation()));
 
     AutomatonTransition.Builder transitionBuilder =
         new AutomatonTransition.Builder(expr, nextStateId);
@@ -114,7 +120,11 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
 
     // When we match the target state we want to enter the error location immediately
     transitionBuilder = transitionBuilder.withAssertion(createViolationAssertion());
-    return transitionBuilder.build();
+
+    // We need to copy the target information such that CPAchecker returns the correct information
+    // for the violated property. If this is not set it will return "WitnessAutomaton"
+    return new AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition(
+        transitionBuilder);
   }
 
   /**
@@ -199,7 +209,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       IterationElement iterationElement = optionalIterationStructure.orElseThrow();
       nodesCondition = iterationElement.getControllingExpressionNodes().toSet();
       nodesThenBranch = iterationElement.getNodesBetweenConditionAndBody();
-      nodesElseBranch = iterationElement.getNodesBetweenConditionAndBody();
+      nodesElseBranch = iterationElement.getNodesBetweenConditionAndExit();
     } else {
       throw new AssertionError("This should never happen");
     }
@@ -321,7 +331,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       throws InterruptedException, InvalidYAMLWitnessException, WitnessParseException {
     List<PartitionedWaypoints> segments = segmentize(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
-    // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work m(
+    // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
 
     // TODO: It may be worthwhile to refactor this into the CFA

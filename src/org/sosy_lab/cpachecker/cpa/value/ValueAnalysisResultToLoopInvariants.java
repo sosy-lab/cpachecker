@@ -1265,13 +1265,13 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       if (alwaysEven) {
         result.add(
             pFmgrV.makeEqual(
-                pFmgrV.makeModulo(varF, pFmgrV.makeNumber(formulaType, 2), signed),
+                pFmgrV.makeRemainder(varF, pFmgrV.makeNumber(formulaType, 2), signed),
                 pFmgrV.makeNumber(formulaType, 0)));
       } else if (alwaysOdd) {
         result.add(
             pFmgrV.makeNot(
                 pFmgrV.makeEqual(
-                    pFmgrV.makeModulo(varF, pFmgrV.makeNumber(formulaType, 2), signed),
+                    pFmgrV.makeRemainder(varF, pFmgrV.makeNumber(formulaType, 2), signed),
                     pFmgrV.makeNumber(formulaType, 0))));
       }
 
@@ -1390,6 +1390,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
   private static class TwoVariableArithmeticInvariant extends CandidateInvariant {
     // TODO currently use Java semantics during computation
+    // construct C expressions and evaluate?
     private final MemoryLocation var1;
     private final MemoryLocation var2;
     private final boolean isFloatingPoint;
@@ -1659,7 +1660,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       if (opModVar1Left.getSecond() != EqualCompareType.NONE) {
         result.add(
             makeComparison(
-                pFmgrV.makeModulo(varF, varF2, signed),
+                pFmgrV.makeRemainder(varF, varF2, signed),
                 opModVar1Left,
                 pFmgrV,
                 formulaTypeNum,
@@ -1669,7 +1670,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       if (opModVar2Left.getSecond() != EqualCompareType.NONE) {
         result.add(
             makeComparison(
-                pFmgrV.makeModulo(varF2, varF, signed),
+                pFmgrV.makeRemainder(varF2, varF, signed),
                 opModVar2Left,
                 pFmgrV,
                 formulaTypeNum,

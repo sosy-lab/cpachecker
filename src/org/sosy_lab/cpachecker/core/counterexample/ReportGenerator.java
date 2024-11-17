@@ -125,6 +125,12 @@ public class ReportGenerator {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate counterExampleFiles = PathTemplate.ofFormatString("Counterexample.%d.html");
 
+  @Option(
+      secure = true,
+      name = "report.addWitness",
+      description = "Add visualization of correctness witnesses to the report (can be costly)")
+  private boolean addWitness = false;
+
   private final @Nullable Path logFile;
   private final ImmutableList<String> sourceFiles;
   private final Map<Integer, Object> argNodes;
@@ -230,7 +236,7 @@ public class ReportGenerator {
   }
 
   private void extractWitness(Result pResult, CFA pCfa, UnmodifiableReachedSet pReached) {
-    if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
+    if (addWitness && EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
       ImmutableSet<ARGState> rootStates = ARGUtils.getRootStates(pReached);
       if (rootStates.size() != 1) {
         logger.log(Level.FINER, "Could not determine ARG root for witness view");

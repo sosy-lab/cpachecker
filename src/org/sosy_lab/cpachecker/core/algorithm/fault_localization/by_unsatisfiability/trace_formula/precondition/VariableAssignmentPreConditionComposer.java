@@ -156,7 +156,7 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
       for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
         context.getLogger().log(Level.FINEST, "tfprecondition=" + modelAssignment);
         BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
-        if (modelAssignment.getName().startsWith("__VERIFIER_nondet_")) {
+        if (modelAssignment.getName().contains("nondet")) {
           precond = bmgr.and(precond, formula);
           nondetVariables.add(modelAssignment.getName());
         } else if (modelAssignment.getName().startsWith("__FAULT_LOCALIZATION_precondition")) {
