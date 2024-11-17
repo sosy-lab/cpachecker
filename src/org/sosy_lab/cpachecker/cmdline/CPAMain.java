@@ -176,7 +176,8 @@ public class CPAMain {
     }
 
     // We want to print the statistics completely now that we have come so far,
-    // so we disable all the limits, shutdown hooks, etc.
+    // so we disable all the limits, shutdown requests on Ctrl+C, etc.
+    // The shutdownHook still runs and blocks JVM exit until we finish.
     shutdownHook.disableShutdownRequests();
     shutdownNotifier.unregister(forcedExitOnShutdown);
     ForceTerminationOnShutdown.cancelPendingTermination();
@@ -192,6 +193,20 @@ public class CPAMain {
     System.out.flush();
     System.err.flush();
     logManager.flush();
+
+    // Now the shutdownHook should not prevent JVM exit anymore.
+    shutdownHook.disableAndStop();
+
+    String otherThreads = ForceTerminationOnShutdown.buildLiveThreadInfo();
+    if (!otherThreads.isEmpty()) {
+      logManager.log(
+          Level.WARNING,
+          "\nCPAchecker has finished but some threads are still running:\n",
+          otherThreads);
+    }
+
+    // If other threads are running, simply ending the main thread will not work, but exit does.
+    System.exit(0);
   }
 
   // Default values for options from external libraries

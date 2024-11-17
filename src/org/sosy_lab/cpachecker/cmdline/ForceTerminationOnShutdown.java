@@ -167,23 +167,23 @@ class ForceTerminationOnShutdown implements Runnable {
   }
 
   /**
-   * Create a short summary of all running non-daemon threads (those threads are prevent JVM
-   * termination).
+   * Create a short summary of all other running non-daemon threads (those threads are preventing
+   * JVM termination).
    */
-  private StringBuilder buildLiveThreadInfo() {
+  static String buildLiveThreadInfo() {
     Map<Thread, StackTraceElement[]> traces = Thread.getAllStackTraces();
     StringBuilder output = new StringBuilder();
     for (Map.Entry<Thread, StackTraceElement[]> threadInfo : traces.entrySet()) {
       Thread thread = threadInfo.getKey();
       StackTraceElement[] trace = threadInfo.getValue();
-      if (thread.isAlive() && !thread.isDaemon()) {
-        output.append(thread);
+      if (thread.isAlive() && !thread.isDaemon() && !thread.equals(Thread.currentThread())) {
+        output.append("- ").append(thread);
         if (trace.length > 0) {
           output.append(" at " + trace[0]);
         }
         output.append("\n");
       }
     }
-    return output;
+    return output.toString();
   }
 }

@@ -14,7 +14,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPATest0;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
@@ -44,8 +43,7 @@ public class SMGProveNequalityTest extends SMGTest0 {
   }
 
   @Test
-  public void equalValuesAreNotInequal()
-      throws SMGException, SMGSolverException, InvalidConfigurationException {
+  public void equalValuesAreNotInequal() throws SMGSolverException, InvalidConfigurationException {
     SMGProveNequality nequality = new SMGProveNequality(SMGCPATest0.stateFromSMG(smg));
 
     assertThat(nequality.proveInequality(value1, value1)).isFalse();
@@ -55,7 +53,7 @@ public class SMGProveNequalityTest extends SMGTest0 {
 
   @Test
   public void pointerValuesThatShareTargetValuesAreNotInEqual()
-      throws SMGException, SMGSolverException, InvalidConfigurationException {
+      throws SMGSolverException, InvalidConfigurationException {
     SMGDoublyLinkedListSegment dlls1 = createDLLS(64, 0, 32, 0, 0, 0);
     SMGDoublyLinkedListSegment dlls2 = createDLLS(64, 0, 32, 0, 0, 0);
     SMGPointsToEdge pt1 = createPTEdge(0, SMGTargetSpecifier.IS_FIRST_POINTER, dlls1);
@@ -80,7 +78,7 @@ public class SMGProveNequalityTest extends SMGTest0 {
 
   @Test
   public void pointerValuesThatHaveSharedObjectsAreNotInEqual()
-      throws SMGException, SMGSolverException, InvalidConfigurationException {
+      throws SMGSolverException, InvalidConfigurationException {
     SMGDoublyLinkedListSegment dlls1 = createDLLS(64, 0, 32, 0, 0, 0);
     SMGDoublyLinkedListSegment dlls2 = createDLLS(64, 0, 32, 0, 0, 0);
     SMGPointsToEdge pt1 = createPTEdge(0, SMGTargetSpecifier.IS_FIRST_POINTER, dlls1);

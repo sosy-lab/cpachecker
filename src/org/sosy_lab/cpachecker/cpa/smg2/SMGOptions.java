@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import org.sosy_lab.common.configuration.Configuration;
@@ -83,12 +84,26 @@ public class SMGOptions {
 
   @Option(
       secure = true,
-      name = "overapproximateForSymbolicWrite",
+      name = "overapproximateSymbolicOffsets",
       description =
-          "If this Option is enabled, all values of a memory region that is written to with a"
-              + " symbolic and non unique offset are deleted and the value itself is"
-              + " overapproximated to unknown in the memory region.")
-  private boolean overapproximateForSymbolicWrite = true;
+          "If this Option is enabled, all values of a memory region that is written or read with a"
+              + " symbolic offset are overapproximated. I.e. when writing to a memory region, all"
+              + " previous values are deleted and the memory region is overapproximated so that"
+              + " only unknown values are in the memory region after the write. When reading, all"
+              + " possible reads are evaluated. Can not be used at the same time as option"
+              + " findConcreteValuesForSymbolicOffsets.")
+  private boolean overapproximateSymbolicOffsets = false;
+
+  @Option(
+      secure = true,
+      name = "findConcreteValuesForSymbolicOffsets",
+      description =
+          "If this Option is enabled, all symbolic offsets used when writing to memory are"
+              + " evaluated into all possible concrete values by an SMT solver. This might be very"
+              + " expensive, as all possible combinations of values for the symbolic offsets are"
+              + " concretely evaluated. May not be used together with option"
+              + " overapproximateForSymbolicWrite.")
+  private boolean findConcreteValuesForSymbolicOffsets = false;
 
   @Option(
       secure = true,
@@ -103,8 +118,16 @@ public class SMGOptions {
     return overapproximateValuesForSymbolicSize;
   }
 
-  public boolean isOverapproximateForSymbolicWrite() {
-    return overapproximateForSymbolicWrite;
+  public boolean isOverapproximateSymbolicOffsets() {
+    Preconditions.checkArgument(
+        !overapproximateSymbolicOffsets || !findConcreteValuesForSymbolicOffsets);
+    return overapproximateSymbolicOffsets;
+  }
+
+  public boolean isFindConcreteValuesForSymbolicOffsets() {
+    Preconditions.checkArgument(
+        !findConcreteValuesForSymbolicOffsets || !overapproximateSymbolicOffsets);
+    return findConcreteValuesForSymbolicOffsets;
   }
 
   public enum UnknownFunctionHandling {

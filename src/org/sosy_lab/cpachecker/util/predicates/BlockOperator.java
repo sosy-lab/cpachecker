@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.GhostEdge;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
@@ -308,11 +309,14 @@ public class BlockOperator {
     explicitAbstractionNodes = pNodes;
   }
 
-  public void setCFA(CFA cfa) {
+  public void setCFA(CFA cfa) throws CPAException {
     if (absOnLoop || alwaysAtLoops) {
-      if (cfa.getAllLoopHeads().isPresent()) {
-        loopHeads = cfa.getAllLoopHeads().orElseThrow();
+      if (!cfa.getAllLoopHeads().isPresent()) {
+        throw new CPAException(
+            "Block-ends at loop heads cannot be determined without loop-structure information in"
+                + " CFA.");
       }
+      loopHeads = cfa.getAllLoopHeads().orElseThrow();
     }
   }
 

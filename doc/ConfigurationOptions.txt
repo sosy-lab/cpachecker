@@ -3272,6 +3272,9 @@ cpa.smg2.abstraction.listAbstractionMinimumLengthThreshold = 4
 # leaving edge
 cpa.smg2.abstraction.onlyAtNonLinearCFA = false
 
+# Periodically removes unused constraints from the state.
+cpa.smg2.abstraction.removeUnusedConstraints = false
+
 # Allocate memory on declaration of external variable
 cpa.smg2.allocateExternalVariables = true
 
@@ -3326,6 +3329,13 @@ cpa.smg2.externalAllocationFunction = {"ext_allocation"}
 
 # Default size of externally allocated memory
 cpa.smg2.externalAllocationSize = Integer.MAX_VALUE
+
+# If this Option is enabled, all symbolic offsets used when writing to memory
+# are evaluated into all possible concrete values by an SMT solver. This
+# might be very expensive, as all possible combinations of values for the
+# symbolic offsets are concretely evaluated. May not be used together with
+# option overapproximateForSymbolicWrite.
+cpa.smg2.findConcreteValuesForSymbolicOffsets = false
 
 # Allocation size of memory that cannot be calculated.
 cpa.smg2.guessSize = BigInteger.valueOf(2)
@@ -3400,10 +3410,13 @@ cpa.smg2.minimalSatCheck = true
 # one.
 cpa.smg2.optimizeBooleanVariables = true
 
-# If this Option is enabled, all values of a memory region that is written to
-# with a symbolic and non unique offset are deleted and the value itself is
-# overapproximated to unknown in the memory region.
-cpa.smg2.overapproximateForSymbolicWrite = true
+# If this Option is enabled, all values of a memory region that is written or
+# read with a symbolic offset are overapproximated. I.e. when writing to a
+# memory region, all previous values are deleted and the memory region is
+# overapproximated so that only unknown values are in the memory region after
+# the write. When reading, all possible reads are evaluated. Can not be used
+# at the same time as option findConcreteValuesForSymbolicOffsets.
+cpa.smg2.overapproximateSymbolicOffsets = false
 
 # If this Option is enabled, all values of a memory region that is written to
 # with a symbolic and non-unique offset in symbolically sized memory are
