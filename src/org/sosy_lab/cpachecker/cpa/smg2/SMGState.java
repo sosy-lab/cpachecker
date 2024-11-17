@@ -307,6 +307,18 @@ public class SMGState
     return constraintsState.contains(o);
   }
 
+  public void logUnknownValue(String msg) {
+    logger.log(Level.FINE, msg);
+  }
+
+  public void logUnknownValue(String msg, CFAEdge edge) {
+    logUnknownValue(msg + edge);
+  }
+
+  public void logUnknownValue(CFAEdge edge) {
+    logUnknownValue("A unknown value was assumed in ", edge);
+  }
+
   /**
    * Returns the known unambiguous assignment of variables so this state's {@link Constraint}s are
    * fulfilled. Variables that can have more than one valid assignment are not included in the
@@ -3048,7 +3060,9 @@ public class SMGState
       Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTargetAndOffset =
           getPointsToTarget(addressExprValue.getMemoryAddress());
       if (maybeTargetAndOffset.isEmpty()) {
-        return ValueAndSMGState.ofUnknownValue(this);
+        return ValueAndSMGState.ofUnknownValue(
+            this,
+            "Returned unknown value because the target of a requested pointer could not be found.");
       }
       SMGObjectAndOffsetMaybeNestingLvl targetAndOffset = maybeTargetAndOffset.orElseThrow();
 
@@ -3066,7 +3080,9 @@ public class SMGState
           addressAndState.getState());
 
     } else {
-      return ValueAndSMGState.ofUnknownValue(this);
+      return ValueAndSMGState.ofUnknownValue(
+          this,
+          "Returned unknown value because the target of a requested pointer could not be found.");
     }
   }
 
