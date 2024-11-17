@@ -16,6 +16,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.VerificationConditionReportingState;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -108,6 +109,13 @@ public class BlockState
       return manager.getBooleanFormulaManager().and(approximations.toList());
     }
     return manager.getBooleanFormulaManager().makeTrue();
+  }
+
+  @Override
+  public BooleanFormula getScopedFormulaApproximation(
+      FormulaManagerView manager,
+      FunctionEntryNode functionScope) {
+    throw new UnsupportedOperationException();
   }
 
   // error condition intentionally left out as it is mutable
