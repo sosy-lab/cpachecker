@@ -178,6 +178,35 @@ public class InvariantsState
   }
 
   /**
+   * Creates a new invariants state with a selection of variables, and the machine model used.
+   *
+   * @param pVariableSelection the selected variables.
+   * @param pMachineModel the machine model used.
+   * @param pVariableTypes the variable types.
+   * @param pAbstractionState the abstraction information.
+   * @param pIncludeTypeInformation whether or not to include type information for exports.
+   */
+  public InvariantsState(
+      VariableSelection<CompoundInterval> pVariableSelection,
+      CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
+      MachineModel pMachineModel,
+      AbstractionState pAbstractionState,
+      Map<MemoryLocation, CType> pVariableTypes,
+      boolean pIncludeTypeInformation) {
+    environment = NonRecursiveEnvironment.of(pCompoundIntervalManagerFactory);
+    partialEvaluator = new PartialEvaluator(pCompoundIntervalManagerFactory, environment);
+    variableSelection = pVariableSelection;
+    variableTypes = PathCopyingPersistentTreeMap.copyOf(pVariableTypes);
+    tools = new Tools(pCompoundIntervalManagerFactory);
+    machineModel = pMachineModel;
+    abstractionState = pAbstractionState;
+    overflowDetected = false;
+    includeTypeInformation = pIncludeTypeInformation;
+    overapproximatesUnsupportedFeature = false;
+    assumptions = ImmutableSet.of();
+  }
+
+  /**
    * Creates a new invariants state with the given data, reusing the given instance of the
    * environment without copying.
    *
@@ -335,6 +364,10 @@ public class InvariantsState
     return tools.compoundIntervalManagerFactory.createCompoundIntervalManager(pTypeInfo);
   }
 
+  public PersistentSortedMap<MemoryLocation, CType> getVariableTypes() {
+    return variableTypes;
+  }
+
   private CompoundInterval allPossibleValues(TypeInfo pTypeInfo) {
     return getCompoundIntervalManager(pTypeInfo).allPossibleValues();
   }
@@ -354,7 +387,8 @@ public class InvariantsState
     NumeralFormula<CompoundInterval> value =
         tools.compoundIntervalFormulaManager.cast(typeInfo, pValue);
     for (MemoryLocation memoryLocation : environment.keySet()) {
-      TypeInfo varTypeInfo = TypeInfo.from(machineModel, getType(memoryLocation));
+      Type memoryLocationType = getType(memoryLocation);
+      TypeInfo varTypeInfo = TypeInfo.from(machineModel, memoryLocationType);
       if (memoryLocation
               .getExtendedQualifiedName()
               .startsWith(pMemoryLocation.getExtendedQualifiedName() + "->")
@@ -649,7 +683,7 @@ public class InvariantsState
     return cim.modulo(constant.getValue(), cim.singleton(2)).equals(cim.singleton(remainder));
   }
 
-  private InvariantsState addAssumptions(
+  public InvariantsState addAssumptions(
       Set<BooleanFormula<CompoundInterval>> pAdditionalAssumptions) {
     if (assumptions.containsAll(pAdditionalAssumptions)) {
       return this;
