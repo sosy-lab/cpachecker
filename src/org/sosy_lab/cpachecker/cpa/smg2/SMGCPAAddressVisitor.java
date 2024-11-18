@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -219,30 +220,27 @@ public class SMGCPAAddressVisitor
           return ImmutableList.of(
               SMGStateAndOptionalSMGObjectAndOffset.of(
                   pCurrentState.withUnknownOffsetMemoryAccess()));
+        } else if (addrOffset instanceof SymbolicValue symOffset
+            && options.isFindConcreteValuesForSymbolicOffsets()) {
+          // Assign concrete values for the offset
+          if (pCurrentState.isConcreteAssignmentFeasible(symOffset)) {
+            return handleSubscriptExpressionWithConcreteAssignment(
+                arrayValue, pCurrentState, expr, symOffset);
+          }
+          // Fallthrough for no constraints or no assignment possible
         }
       }
       Value finalOffset = evaluator.addBitOffsetValues(addrOffset, subscriptOffset);
 
-      if (!finalOffset.isNumericValue()
+      if (finalOffset instanceof SymbolicValue symOffset
           && options.trackErrorPredicates()
           && options.isFindConcreteValuesForSymbolicOffsets()) {
         // Assign concrete values for the offset
-        List<ValueAndSMGState> assignedResults =
-            pCurrentState.findValueAssignmentsWithSolver(finalOffset, cfaEdge);
-        if (assignedResults != null) {
-          ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> concreteSubscriptHandling =
-              ImmutableList.builder();
-          for (ValueAndSMGState assignedValueAndState : assignedResults) {
-            concreteSubscriptHandling.addAll(
-                handleSubscriptExpression(
-                    arrayValue,
-                    assignedValueAndState.getValue(),
-                    assignedValueAndState.getState(),
-                    expr));
-          }
-          return concreteSubscriptHandling.build();
+        if (pCurrentState.isConcreteAssignmentFeasible(symOffset)) {
+          return handleSubscriptExpressionWithConcreteAssignment(
+              arrayValue, pCurrentState, expr, symOffset);
         }
-        // Fallthrough for null -> no constraints, no sound assignment possible
+        // Fallthrough for no constraints or no assignment possible
       }
 
       List<SMGStateAndOptionalSMGObjectAndOffset> targets =
@@ -263,28 +261,27 @@ public class SMGCPAAddressVisitor
         return maybeTargetMemoriesAndOffsets;
       }
       Value baseOffset = maybeTargetMemoryAndOffset.getOffsetForObject();
-      Value finalOffset = evaluator.addBitOffsetValues(baseOffset, subscriptOffset);
-
-      if (!finalOffset.isNumericValue()
+      if (baseOffset instanceof SymbolicValue symOffset
           && options.trackErrorPredicates()
           && options.isFindConcreteValuesForSymbolicOffsets()) {
         // Assign concrete values for the offset
-        List<ValueAndSMGState> assignedResults =
-            pCurrentState.findValueAssignmentsWithSolver(finalOffset, cfaEdge);
-        if (assignedResults != null) {
-          ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> concreteSubscriptHandling =
-              ImmutableList.builder();
-          for (ValueAndSMGState assignedValueAndState : assignedResults) {
-            concreteSubscriptHandling.addAll(
-                handleSubscriptExpression(
-                    arrayValue,
-                    assignedValueAndState.getValue(),
-                    assignedValueAndState.getState(),
-                    expr));
-          }
-          return concreteSubscriptHandling.build();
+        if (pCurrentState.isConcreteAssignmentFeasible(symOffset)) {
+          return handleSubscriptExpressionWithConcreteAssignment(
+              arrayValue, pCurrentState, expr, symOffset);
         }
-        // Fallthrough for null -> no constraints, no sound assignment possible
+        // Fallthrough for no constraints or no assignment possible
+      }
+      Value finalOffset = evaluator.addBitOffsetValues(baseOffset, subscriptOffset);
+
+      if (finalOffset instanceof SymbolicValue symOffset
+          && options.trackErrorPredicates()
+          && options.isFindConcreteValuesForSymbolicOffsets()) {
+        // Assign concrete values for the offset
+        if (pCurrentState.isConcreteAssignmentFeasible(symOffset)) {
+          return handleSubscriptExpressionWithConcreteAssignment(
+              arrayValue, pCurrentState, expr, symOffset);
+        }
+        // Fallthrough for no constraints or no assignment possible
       }
 
       return ImmutableList.of(
@@ -299,32 +296,21 @@ public class SMGCPAAddressVisitor
       Value finalOffset =
           evaluator.addBitOffsetValues(subscriptOffset, BigInteger.valueOf(memLoc.getOffset()));
 
-      if (!finalOffset.isNumericValue()) {
+      if (finalOffset instanceof SymbolicValue symOffset) {
         if (!options.trackPredicates()) {
           throw new UnsupportedOperationException(
               "Symbolic array subscript access not supported by this analysis.");
         } else if (options.isFindConcreteValuesForSymbolicOffsets()) {
           // Assign concrete values for the offset
-          List<ValueAndSMGState> assignedResults =
-              pCurrentState.findValueAssignmentsWithSolver(finalOffset, cfaEdge);
-          if (assignedResults != null) {
-            ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> concreteSubscriptHandling =
-                ImmutableList.builder();
-            for (ValueAndSMGState assignedValueAndState : assignedResults) {
-              concreteSubscriptHandling.addAll(
-                  handleSubscriptExpression(
-                      arrayValue,
-                      assignedValueAndState.getValue(),
-                      assignedValueAndState.getState(),
-                      expr));
-            }
-            return concreteSubscriptHandling.build();
+          if (pCurrentState.isConcreteAssignmentFeasible(symOffset)) {
+            return handleSubscriptExpressionWithConcreteAssignment(
+                arrayValue, pCurrentState, expr, symOffset);
           }
-          // Fallthrough for null -> no constraints, no sound assignment possible
+          // Fallthrough for no constraints or no assignment possible
 
         } else {
           throw new UnsupportedOperationException(
-              "Missing case in SMGCPAValueVisitor. Report to CPAchecker issue tracker for SMG2"
+              "Missing case in SMGCPAAddressVisitor. Report to CPAchecker issue tracker for SMG2"
                   + " analysis. Missing symbolic handling of a array subscript expression");
         }
       }
@@ -344,6 +330,41 @@ public class SMGCPAAddressVisitor
       } else {
         return ImmutableList.of(SMGStateAndOptionalSMGObjectAndOffset.of(pCurrentState));
       }
+    }
+  }
+
+  private List<SMGStateAndOptionalSMGObjectAndOffset>
+      handleSubscriptExpressionWithConcreteAssignment(
+          Value arrayValue,
+          SMGState pCurrentState,
+          CArraySubscriptExpression exprCurrentlyUnderEval,
+          SymbolicValue symOffsetToAssign)
+          throws CPATransferException {
+
+    Optional<SymbolicValue> maybeVariableToAssign =
+        pCurrentState.isVariableAssignmentFeasible(symOffsetToAssign);
+
+    if (maybeVariableToAssign.isPresent()) {
+      SymbolicValue variableToAssign = maybeVariableToAssign.orElseThrow();
+      return pCurrentState
+          .assignConcreteValuesForSymbolicValuesAndReevaluateExpressionInAddressVisitor(
+              variableToAssign, exprCurrentlyUnderEval, cfaEdge);
+    } else {
+      // Assignment using the solver only. While we get the concrete value here,
+      //  we can't assign it to a variable.
+      List<ValueAndSMGState> assignedResults =
+          pCurrentState.findValueAssignmentsWithSolver(symOffsetToAssign, cfaEdge);
+      ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> concreteSubscriptHandling =
+          ImmutableList.builder();
+      for (ValueAndSMGState assignedValueAndState : assignedResults) {
+        concreteSubscriptHandling.addAll(
+            handleSubscriptExpression(
+                arrayValue,
+                assignedValueAndState.getValue(),
+                assignedValueAndState.getState(),
+                exprCurrentlyUnderEval));
+      }
+      return concreteSubscriptHandling.build();
     }
   }
 

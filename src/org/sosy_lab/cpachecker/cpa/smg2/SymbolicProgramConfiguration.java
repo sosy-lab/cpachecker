@@ -988,7 +988,7 @@ public class SymbolicProgramConfiguration {
         continue;
       }
       Set<SymbolicIdentifier> identsInValue = getSymbolicIdentifiersForValue(mappedValue);
-      if (identsInValue.contains(oldValue)) {
+      if (oldValue instanceof SymbolicIdentifier oldSymIden && identsInValue.contains(oldSymIden)) {
         valuesToUpdate.putIfAbsent(mappedValue, mapping.getValue());
       }
     }
