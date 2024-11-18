@@ -2248,7 +2248,7 @@ public class SMGCPAValueVisitor
         ValueAndSMGState.ofUnknownValue(
             state,
             "Returned unknown value due to unknown function "
-                + pIastFunctionCallExpression.getFunctionNameExpression().toString()
+                + pIastFunctionCallExpression.getFunctionNameExpression()
                 + " in expression in ",
             cfaEdge));
   }
