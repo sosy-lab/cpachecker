@@ -3434,8 +3434,7 @@ public class SMGState
           "Partial read of symbolic value detected. Overapproximated due to missing"
               + " implementation.";
       logger.log(Level.INFO, msg);
-      throw new UnsupportedOperationException(
-          "Symbolic handling of partial reads are not supported at the moment.");
+      throw new SMGException("Symbolic handling of partial reads are not supported at the moment.");
       // SymbolicValueFactory vF = SymbolicValueFactory.getInstance();
       // asConstant needed?
       /*
