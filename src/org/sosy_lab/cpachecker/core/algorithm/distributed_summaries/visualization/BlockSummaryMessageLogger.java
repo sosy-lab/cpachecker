@@ -83,6 +83,7 @@ public class BlockSummaryMessageLogger {
   }
 
   public synchronized void log(BlockSummaryMessage pMessage) throws IOException {
-    log(pMessage, s -> s.contains("readable"));
+    // We log the full payload of each messages
+    log(pMessage, s -> true);
   }
 }
