@@ -140,8 +140,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     if (compoundIntervalManagerFactory
         instanceof
-        CompoundBitVectorIntervalManagerFactory
-        compoundBitVectorIntervalManagerFactory) {
+        CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory) {
       compoundBitVectorIntervalManagerFactory.addOverflowEventHandler(overflowEventHandler);
     }
 
@@ -149,8 +148,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     if (compoundIntervalManagerFactory
         instanceof
-        CompoundBitVectorIntervalManagerFactory
-        compoundBitVectorIntervalManagerFactory) {
+        CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory) {
       compoundBitVectorIntervalManagerFactory.removeOverflowEventHandler(overflowEventHandler);
     }
 
@@ -268,11 +266,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       return pElement;
     }
 
-    MemoryLocation varName = MemoryLocation.parseExtendedQualifiedName(decl.getName());
-    if (!decl.isGlobal()) {
-      varName =
-          MemoryLocationExtractor.scope(decl.getName(), pEdge.getSuccessor().getFunctionName());
-    }
+    MemoryLocation varName = MemoryLocation.forDeclaration(decl);
 
     NumeralFormula<CompoundInterval> value;
     if (decl.getInitializer() instanceof CInitializerExpression) {
@@ -294,8 +288,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       throws UnrecognizedCodeException {
 
     InvariantsState newElement = pElement;
-    List<String> formalParams = pEdge.getSuccessor().getFunctionParameterNames();
-    List<CParameterDeclaration> declarations = pEdge.getSuccessor().getFunctionParameters();
+    List<CParameterDeclaration> formalParams = pEdge.getSuccessor().getFunctionParameters();
     List<CExpression> actualParams = pEdge.getArguments();
     int limit = Math.min(formalParams.size(), actualParams.size());
 
@@ -320,10 +313,9 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     formalParams = FluentIterable.from(formalParams).limit(limit).toList();
     actualParams = FluentIterable.from(actualParams).limit(limit).toList();
 
-    Iterator<CParameterDeclaration> declarationIterator = declarations.iterator();
-    for (Pair<String, CExpression> param : Pair.zipList(formalParams, actualParams)) {
+    for (var param : Pair.zipList(formalParams, actualParams)) {
       CExpression actualParam = param.getSecond();
-      CParameterDeclaration declaration = declarationIterator.next();
+      CParameterDeclaration declaration = param.getFirst();
 
       // Ignore unsupported types
       if (!TypeInfo.isSupported(declaration.getType())) {
@@ -337,8 +329,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       if (containsArrayWildcard(value)) {
         value = toConstant(value, pElement.getEnvironment());
       }
-      MemoryLocation formalParam =
-          MemoryLocationExtractor.scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
+      MemoryLocation formalParam = MemoryLocation.forDeclaration(declaration);
 
       value = handlePotentialOverflow(pElement, value, declaration.getType());
       newElement = newElement.assign(formalParam, value);

@@ -318,19 +318,19 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     // check the type of the edge
     final boolean result =
         switch (edge.getEdgeType()) {
-            // int a;
+          // int a;
           case DeclarationEdge -> handleDeclaration((CDeclarationEdge) edge, importantVars);
-            // if (a == b) {...}
+          // if (a == b) {...}
           case AssumeEdge -> handleAssumption((CAssumeEdge) edge, importantVars);
-            // a = b + c;
+          // a = b + c;
           case StatementEdge -> handleStatement((CStatementEdge) edge, importantVars);
-            // return (x);
-          case ReturnStatementEdge -> handleReturnStatement(
-              (CReturnStatementEdge) edge, importantVars);
-            // assignment from y = f(x);
-          case FunctionReturnEdge -> handleFunctionReturn(
-              (CFunctionReturnEdge) edge, importantVars);
-            // call from y = f(x);
+          // return (x);
+          case ReturnStatementEdge ->
+              handleReturnStatement((CReturnStatementEdge) edge, importantVars);
+          // assignment from y = f(x);
+          case FunctionReturnEdge ->
+              handleFunctionReturn((CFunctionReturnEdge) edge, importantVars);
+          // call from y = f(x);
           case FunctionCallEdge -> handleFunctionCall((CFunctionCallEdge) edge, importantVars);
           case BlankEdge -> IS_BLANK_EDGE_IMPORTANT;
           default -> throw new AssertionError("unhandled edge: " + edge.getRawStatement());

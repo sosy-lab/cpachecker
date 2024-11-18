@@ -9,14 +9,14 @@
 package org.sosy_lab.cpachecker.util.ast;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Set;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-public class ASTElement {
+public final class ASTElement {
   private final FileLocation location;
   private ImmutableSet<CFAEdge> allEdges;
-  private Set<CFAEdge> edges = null;
+  @LazyInit private ImmutableSet<CFAEdge> edges = null;
 
   public ASTElement(FileLocation pLocation, ImmutableSet<CFAEdge> pAllEdges) {
     location = pLocation;
@@ -28,7 +28,7 @@ public class ASTElement {
   }
 
   /** Returns the set of CFA edges belonging to this ASTElement. */
-  public Set<CFAEdge> edges() {
+  public ImmutableSet<CFAEdge> edges() {
     // we calculate this set lazily upon the first invocation
     if (edges == null) {
       edges =
@@ -38,5 +38,24 @@ public class ASTElement {
       allEdges = null; // free reference
     }
     return edges;
+  }
+
+  @Override
+  public int hashCode() {
+    return location.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    }
+
+    return other instanceof ASTElement a && location.equals(a.location);
+  }
+
+  @Override
+  public String toString() {
+    return "ASTElement at [ " + location + " ]";
   }
 }

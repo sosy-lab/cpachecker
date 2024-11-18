@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
@@ -27,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
  */
 public final class JArrayInitializer extends AbstractExpression implements JExpression {
 
-  private static final long serialVersionUID = -9034136529891743726L;
+  @Serial private static final long serialVersionUID = -9034136529891743726L;
   private final List<JExpression> initializerExpressions;
 
   public JArrayInitializer(
@@ -47,12 +48,12 @@ public final class JArrayInitializer extends AbstractExpression implements JExpr
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
 
     StringBuilder astString = new StringBuilder("{");
 
     for (JExpression exp : initializerExpressions) {
-      astString.append(exp.toASTString(pQualified) + ", ");
+      astString.append(exp.toASTString(pAAstNodeRepresentation) + ", ");
     }
 
     if (!initializerExpressions.isEmpty()) {

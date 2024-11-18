@@ -10,7 +10,7 @@
 
 #   README:
 # This script provides bash completion (the thing that happens when you press
-# the TAB key) for CPAchecker (more specifically, the `cpa.sh` executable).
+# the TAB key) for CPAchecker (more specifically, the `cpachecker` executable).
 # This script is designed for use with the bash shell, but also works with zsh.
 # To check your current shell, execute `echo $BASH`. If some path
 # to the bash command is displayed, you are using bash.
@@ -34,15 +34,15 @@
 #
 #
 #   Trying it out:
-# From the CPAchecker directory, type `scripts/cpa.sh -` and press
-# the TAB key. Bash will provide you with all possible command line options
+# From the CPAchecker directory, type `bin/cpachecker -` and press
+# the TAB key. Bash will provide you with all possible command line arguments
 # for CPAchecker.
 
 _cpachecker_completions() {
     local prev="${COMP_WORDS[COMP_CWORD-1]}"
     local current="${COMP_WORDS[COMP_CWORD]}"
     local cpachecker_dir="$(dirname $(which "$1"))/.."
-    if [[ "$prev" == "-spec" ]]; then
+    if [[ "$prev" == "--spec" ]]; then
         local spec_dir=${cpachecker_dir}/config/specification
         if [[ -e "$spec_dir" ]]; then
             local specs=$(find "$spec_dir" -maxdepth 1 -name '*.spc' -printf '%f\n' | rev | cut -d"." -f2- | rev)
@@ -52,14 +52,14 @@ _cpachecker_completions() {
 
     elif [[ "$current" == "-"* ]]; then
         local config_dir=${cpachecker_dir}/config
-        local params="-32 -64 -benchmark -cbmc -cmc -config -cp -classpath -cpas -entryfunction -h -help -java -logfile -nolog -noout -outputpath -preprocess -printOptions -printUsedOptions -secureMode -setprop -skipRecursion -sourcepath -spec -stats -timelimit -witness"
+        local params="--32 --64 --benchmark -c --config --class-path --cpas --entry-function -h --help --java --no-output-files --output-path --preprocess --print-options --print-used-options --secure-mode --option --skip-recursion --source-path --spec --stats --timelimit -w --witness"
 
         if [[ -e $config_dir ]]; then
-            params="$params $(find $config_dir -maxdepth 1 -name '*.properties' -printf '-%f\n' | rev | cut -d"." -f2- | rev)"
+            params="$params $(find $config_dir -maxdepth 1 -name '*.properties' -printf '--%f\n' | rev | cut -d"." -f2- | rev)"
         fi
 
         COMPREPLY+=($(compgen -W "${params}" -- "$current"))
     fi
 }
 
-complete -o default -F _cpachecker_completions cpa.sh
+complete -o default -F _cpachecker_completions cpa.sh cpachecker

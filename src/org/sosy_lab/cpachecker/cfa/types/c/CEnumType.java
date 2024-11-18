@@ -13,6 +13,7 @@ import static com.google.common.collect.Iterables.transform;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -20,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 
 public final class CEnumType implements CComplexType {
 
-  private static final long serialVersionUID = -986078271714119880L;
+  @Serial private static final long serialVersionUID = -986078271714119880L;
 
   private final CSimpleType compatibleType;
   private final ImmutableList<CEnumerator> enumerators;

@@ -69,12 +69,12 @@ public class MemoryAccessExtractor {
     ImmutableSet.Builder<MemoryAccess> newAccessBuilder = ImmutableSet.builder();
 
     switch (edge.getEdgeType()) {
-      case AssumeEdge:
+      case AssumeEdge -> {
         AssumeEdge assumeEdge = (AssumeEdge) edge;
         readLocationBuilder.addAll(
             getInvolvedVariableTypes(assumeEdge.getExpression(), assumeEdge));
-        break;
-      case DeclarationEdge:
+      }
+      case DeclarationEdge -> {
         ADeclarationEdge declarationEdge = (ADeclarationEdge) edge;
         ADeclaration declaration = declarationEdge.getDeclaration();
         if (declaration instanceof CVariableDeclaration variableDeclaration) {
@@ -96,8 +96,8 @@ public class MemoryAccessExtractor {
             readLocationBuilder.addAll(getInvolvedVariableTypes(initializer, declarationEdge));
           }
         }
-        break;
-      case FunctionCallEdge:
+      }
+      case FunctionCallEdge -> {
         FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
         String functionName = getFunctionName(functionCallEdge.getFunctionCall());
         if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
@@ -120,16 +120,16 @@ public class MemoryAccessExtractor {
             readLocationBuilder.addAll(getInvolvedVariableTypes(argument, functionCallEdge));
           }
         }
-        break;
-      case ReturnStatementEdge:
+      }
+      case ReturnStatementEdge -> {
         AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) edge;
         if (returnStatementEdge.getExpression().isPresent()) {
           AExpression returnExpression = returnStatementEdge.getExpression().get();
           readLocationBuilder.addAll(
               getInvolvedVariableTypes(returnExpression, returnStatementEdge));
         }
-        break;
-      case StatementEdge:
+      }
+      case StatementEdge -> {
         AStatementEdge statementEdge = (AStatementEdge) edge;
         AStatement statement = statementEdge.getStatement();
         if (statement instanceof AExpressionAssignmentStatement expressionAssignmentStatement) {
@@ -145,7 +145,7 @@ public class MemoryAccessExtractor {
                   ((AExpressionStatement) statement).getExpression(), statementEdge));
         } else if (statement
             instanceof AFunctionCallAssignmentStatement functionCallAssignmentStatement) {
-          functionName = getFunctionName(functionCallAssignmentStatement);
+          String functionName = getFunctionName(functionCallAssignmentStatement);
           if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
             throw new CPATransferException("DataRaceCPA does not support function " + functionName);
           }
@@ -158,7 +158,7 @@ public class MemoryAccessExtractor {
             readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
           }
         } else if (statement instanceof AFunctionCallStatement functionCallStatement) {
-          functionName = getFunctionName(functionCallStatement);
+          String functionName = getFunctionName(functionCallStatement);
           if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
             throw new CPATransferException("DataRaceCPA does not support function " + functionName);
           }
@@ -167,13 +167,9 @@ public class MemoryAccessExtractor {
             readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
           }
         }
-        break;
-      case FunctionReturnEdge:
-      case BlankEdge:
-      case CallToReturnEdge:
-        break;
-      default:
-        throw new AssertionError("Unhandled edge type: " + edge.getEdgeType());
+      }
+      case FunctionReturnEdge, BlankEdge, CallToReturnEdge -> {}
+      default -> throw new AssertionError("Unhandled edge type: " + edge.getEdgeType());
     }
 
     for (OverapproximatingMemoryLocation possibleLocations : readLocationBuilder) {

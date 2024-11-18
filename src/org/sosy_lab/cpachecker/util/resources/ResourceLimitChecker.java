@@ -68,9 +68,19 @@ public final class ResourceLimitChecker {
     }
   }
 
-  /** Actually start enforcing the limits. May be called only once. */
+  /**
+   * Actually start enforcing the limits. May be called only once. Only a {@link ThreadCpuTimeLimit}
+   * started with this method associates the current {@link Thread} with the {@link
+   * ThreadCpuTimeLimit} and starts its tracking from the point of calling this method. All other
+   * time-limits start from the moment of their creation.
+   */
   public void start() {
     if (thread != null) {
+      for (ResourceLimit limit : limits) {
+        if (limit instanceof ThreadCpuTimeLimit pThreadCpuTimeLimit) {
+          pThreadCpuTimeLimit.setThread(Thread.currentThread());
+        }
+      }
       thread.start();
     }
   }
@@ -130,7 +140,7 @@ public final class ResourceLimitChecker {
       }
     }
     if (options.threadTime.compareTo(TimeSpan.empty()) >= 0) {
-      limits.add(ThreadCpuTimeLimit.fromNowOn(options.threadTime, Thread.currentThread()));
+      limits.add(ThreadCpuTimeLimit.withTimeSpan(options.threadTime));
     }
 
     ImmutableList<ResourceLimit> limitsList = limits.build();

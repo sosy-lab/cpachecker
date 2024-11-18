@@ -25,11 +25,12 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAExportOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGTransferRelation;
-import org.sosy_lab.cpachecker.cpa.smg2.constraint.SMGConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -43,7 +44,7 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
   private final SMGTransferRelation transfer;
 
   public SMGStrongestPostOperator(
-      final SMGConstraintsSolver pSolver,
+      final ConstraintsSolver pSolver,
       final LogManagerWithoutDuplicates pLogger,
       final Configuration pConfig,
       final CFA pCfa)
@@ -52,10 +53,12 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
     SMGOptions options = new SMGOptions(pConfig);
     SMGCPAExportOptions exportOptions =
         new SMGCPAExportOptions(options.getExportSMGFilePattern(), options.getExportSMGLevel());
+    // TODO: get global PrecAdjustmentOptions
     transfer =
         new SMGTransferRelation(
             pLogger,
             options,
+            new PrecAdjustmentOptions(pConfig, pCfa),
             exportOptions,
             pCfa,
             new ConstraintsStrengthenOperator(pConfig, pLogger),

@@ -276,29 +276,28 @@ public class PredicateCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    switch (mergeType) {
-      case "SEP":
-        return MergeSepOperator.getInstance();
-      case "ABE":
-        return new PredicateMergeOperator(
-            logger, pathFormulaManager, statistics, mergeAbstractionStates, getPredicateManager());
-      default:
-        throw new AssertionError("Update list of allowed merge operators");
-    }
+    return switch (mergeType) {
+      case "SEP" -> MergeSepOperator.getInstance();
+      case "ABE" ->
+          new PredicateMergeOperator(
+              logger,
+              pathFormulaManager,
+              statistics,
+              mergeAbstractionStates,
+              getPredicateManager());
+      default -> throw new AssertionError("Update list of allowed merge operators");
+    };
   }
 
   @Override
   public StopOperator getStopOperator() {
-    switch (stopType) {
-      case "SEP":
-        return new PredicateStopOperator(getAbstractDomain());
-      case "SEPPCC":
-        return new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager(), solver);
-      case "SEPNAA":
-        return new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
-      default:
-        throw new AssertionError("Update list of allowed stop operators");
-    }
+    return switch (stopType) {
+      case "SEP" -> new PredicateStopOperator(getAbstractDomain());
+      case "SEPPCC" ->
+          new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager(), solver);
+      case "SEPNAA" -> new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
+      default -> throw new AssertionError("Update list of allowed stop operators");
+    };
   }
 
   public PredicateAbstractionManager getPredicateManager() {

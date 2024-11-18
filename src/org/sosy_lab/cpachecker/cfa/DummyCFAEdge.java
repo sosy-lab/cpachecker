@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class DummyCFAEdge implements CFAEdge {
 
-  private static final long serialVersionUID = 1L;
   private final CFANode successor;
   private final CFANode predecessor;
 

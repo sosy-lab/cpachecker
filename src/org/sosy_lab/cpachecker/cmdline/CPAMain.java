@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
@@ -68,7 +69,7 @@ import org.sosy_lab.cpachecker.core.specification.Property.CoverFunctionCallProp
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser;
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -86,7 +87,7 @@ public class CPAMain {
 
     if (args.length == 0) {
       // be nice to user
-      args = new String[] {"-help"};
+      args = new String[] {"--help"};
     }
 
     // initialize various components
@@ -175,7 +176,8 @@ public class CPAMain {
     }
 
     // We want to print the statistics completely now that we have come so far,
-    // so we disable all the limits, shutdown hooks, etc.
+    // so we disable all the limits, shutdown requests on Ctrl+C, etc.
+    // The shutdownHook still runs and blocks JVM exit until we finish.
     shutdownHook.disableShutdownRequests();
     shutdownNotifier.unregister(forcedExitOnShutdown);
     ForceTerminationOnShutdown.cancelPendingTermination();
@@ -191,6 +193,20 @@ public class CPAMain {
     System.out.flush();
     System.err.flush();
     logManager.flush();
+
+    // Now the shutdownHook should not prevent JVM exit anymore.
+    shutdownHook.disableAndStop();
+
+    String otherThreads = ForceTerminationOnShutdown.buildLiveThreadInfo();
+    if (!otherThreads.isEmpty()) {
+      logManager.log(
+          Level.WARNING,
+          "\nCPAchecker has finished but some threads are still running:\n",
+          otherThreads);
+    }
+
+    // If other threads are running, simply ending the main thread will not work, but exit does.
+    System.exit(0);
   }
 
   // Default values for options from external libraries
@@ -656,7 +672,16 @@ public class CPAMain {
     private boolean useACSLAnnotatedProgram = false;
   }
 
-  private static Configuration handleWitnessOptions(
+  /**
+   * Read witness file if present, switch to appropriate config and adjust cmdline options.
+   *
+   * @param config the CPAchecker configuration
+   * @param overrideOptions additional options to override the ones possibly in config
+   * @param configFileName the name of the file which was the source of the config
+   * @return a new configuration where the witness options have been processed
+   * @throws InvalidConfigurationException if the witness cannot be parsed or is unsupported
+   */
+  public static Configuration handleWitnessOptions(
       Configuration config, Map<String, String> overrideOptions, Optional<String> configFileName)
       throws InvalidConfigurationException, IOException, InterruptedException {
     WitnessOptions options = new WitnessOptions();
@@ -671,18 +696,30 @@ public class CPAMain {
       appendWitnessToSpecificationOption(options, overrideOptions);
     } else {
       WitnessType witnessType;
-      Optional<WitnessType> optionalWitnessType =
-          AutomatonGraphmlParser.getWitnessTypeIfXML(options.witness);
-      if (optionalWitnessType.isPresent()) {
-        witnessType = optionalWitnessType.orElseThrow();
-      } else {
-        optionalWitnessType = AutomatonYAMLParser.getWitnessTypeIfYAML(options.witness);
-        if (optionalWitnessType.isPresent()) {
-          witnessType = optionalWitnessType.orElseThrow();
+      try {
+        // If a GraphML witness is parse first, then the parsing produces the error message "[Fatal
+        // Error] :1:1: Content is not allowed in prolog." which is printed directly to
+        // stdout/stderr. This is not desired in CPAchecker. For the meaning of the error see:
+        // https://stackoverflow.com/questions/11577420/fatal-error-11-content-is-not-allowed-in-prolog
+        Optional<WitnessType> optionalWitnessTypeYAML =
+            AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(options.witness);
+        if (optionalWitnessTypeYAML.isPresent()) {
+          witnessType = optionalWitnessTypeYAML.orElseThrow();
         } else {
-          throw new InvalidConfigurationException(
-              "The Witness format found for " + options.witness + " is currently not supported.");
+          Optional<WitnessType> optionalWitnessTypeGraphML =
+              AutomatonGraphmlParser.getWitnessTypeIfXML(options.witness);
+          if (optionalWitnessTypeGraphML.isPresent()) {
+            witnessType = optionalWitnessTypeGraphML.orElseThrow();
+          } else {
+            throw new InvalidConfigurationException(
+                "The Witness format found for " + options.witness + " is currently not supported.");
+          }
         }
+      } catch (NoSuchFileException e) {
+        throw new InvalidConfigurationException(
+            "Cannot parse witness: " + e.getFile() + " does not exist.", e);
+      } catch (IOException e) {
+        throw new InvalidConfigurationException("Cannot parse witness: " + e.getMessage(), e);
       }
       switch (witnessType) {
         case VIOLATION_WITNESS:

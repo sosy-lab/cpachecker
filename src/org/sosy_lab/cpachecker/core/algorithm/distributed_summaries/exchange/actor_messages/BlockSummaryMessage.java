@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.Serial;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -394,7 +395,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
 
   private static class MessageDeserializer extends StdDeserializer<BlockSummaryMessage> {
 
-    private static final long serialVersionUID = 196344175L;
+    @Serial private static final long serialVersionUID = 196344175L;
 
     public MessageDeserializer(Class<BlockSummaryMessage> vc) {
       super(vc);
@@ -415,29 +416,25 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
               .buildPayload();
       Instant timestamp = Instant.parse(node.get("timestamp").asText());
 
-      switch (type) {
-        case FOUND_RESULT:
-          return new BlockSummaryResultMessage(uniqueBlockId, nodeNumber, payload, timestamp);
-        case ERROR:
-          return new BlockSummaryErrorMessage(uniqueBlockId, nodeNumber, payload, timestamp);
-        case ERROR_CONDITION_UNREACHABLE:
-          return new BlockSummaryErrorConditionUnreachableMessage(
-              uniqueBlockId, nodeNumber, payload, timestamp);
-        case ERROR_CONDITION:
-          return new BlockSummaryErrorConditionMessage(
-              uniqueBlockId, nodeNumber, payload, timestamp);
-        case BLOCK_POSTCONDITION:
-          return new BlockSummaryPostConditionMessage(
-              uniqueBlockId, nodeNumber, payload, timestamp);
-        default:
-          throw new AssertionError("Unknown MessageType " + type);
-      }
+      return switch (type) {
+        case FOUND_RESULT ->
+            new BlockSummaryResultMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+        case ERROR -> new BlockSummaryErrorMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+        case ERROR_CONDITION_UNREACHABLE ->
+            new BlockSummaryErrorConditionUnreachableMessage(
+                uniqueBlockId, nodeNumber, payload, timestamp);
+        case ERROR_CONDITION ->
+            new BlockSummaryErrorConditionMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+        case BLOCK_POSTCONDITION ->
+            new BlockSummaryPostConditionMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+        default -> throw new AssertionError("Unknown MessageType " + type);
+      };
     }
   }
 
   private static class MessageSerializer extends StdSerializer<BlockSummaryMessage> {
 
-    private static final long serialVersionUID = 1324289L;
+    @Serial private static final long serialVersionUID = 1324289L;
 
     private MessageSerializer(Class<BlockSummaryMessage> t) {
       super(t);

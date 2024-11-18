@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.function.Function;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -42,6 +43,8 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
   private boolean bvSigned = false;
 
+  private Function<String, String> variableNameConverter;
+
   private static final ImmutableSet<FunctionDeclarationKind> UNARY_OPS =
       Sets.immutableEnumSet(
           FunctionDeclarationKind.UMINUS,
@@ -63,8 +66,10 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
           FunctionDeclarationKind.BV_MUL,
           FunctionDeclarationKind.FP_MUL);
 
-  public FormulaToCVisitor(FormulaManagerView fmgr) {
+  public FormulaToCVisitor(
+      FormulaManagerView fmgr, Function<String, String> pVariableNameConverter) {
     this.fmgr = fmgr;
+    variableNameConverter = pVariableNameConverter;
   }
 
   @Override
@@ -74,7 +79,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     if (index != -1) {
       pName = pName.substring(index + 1);
     }
-    builder.append(pName);
+    builder.append(variableNameConverter.apply(pName));
     return Boolean.TRUE;
   }
 
@@ -96,12 +101,12 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
           if (appendOverflowGuardForNegativeIntegralLiterals(INT_MIN_LITERAL, pValue)) {
             return Boolean.TRUE;
           }
-          // $FALL-THROUGH$
+        // $FALL-THROUGH$
         case 64:
           if (appendOverflowGuardForNegativeIntegralLiterals(LLONG_MIN_LITERAL, pValue)) {
             return Boolean.TRUE;
           }
-          // $FALL-THROUGH$
+        // $FALL-THROUGH$
         default:
           builder.append(value);
       }
@@ -176,7 +181,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         break;
       case BV_SDIV:
         bvSigned = true;
-        // $FALL-THROUGH$
+      // $FALL-THROUGH$
       case BV_UDIV:
       case FP_DIV:
       case DIV:
@@ -184,7 +189,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         break;
       case BV_SREM:
         bvSigned = true;
-        // $FALL-THROUGH$
+      // $FALL-THROUGH$
       case BV_UREM:
       case MODULO:
         op = "%";
@@ -202,7 +207,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         break;
       case BV_SGT:
         bvSigned = true;
-        // $FALL-THROUGH$
+      // $FALL-THROUGH$
       case BV_UGT:
       case FP_GT:
       case GT:
@@ -210,7 +215,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         break;
       case BV_SGE:
         bvSigned = true;
-        // $FALL-THROUGH$
+      // $FALL-THROUGH$
       case BV_UGE:
       case FP_GE:
       case GTE:
@@ -218,7 +223,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         break;
       case BV_SLT:
         bvSigned = true;
-        // $FALL-THROUGH$
+      // $FALL-THROUGH$
       case BV_ULT:
       case FP_LT:
       case LT:
@@ -226,7 +231,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         break;
       case BV_SLE:
         bvSigned = true;
-        // $FALL-THROUGH$
+      // $FALL-THROUGH$
       case BV_ULE:
       case FP_LE:
       case LTE:

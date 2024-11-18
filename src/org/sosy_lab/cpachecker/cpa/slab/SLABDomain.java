@@ -12,11 +12,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class SLABDomain implements AbstractDomain {
+class SLABDomain implements AbstractDomain {
 
-  private AbstractDomain wrappedDomain;
+  private final AbstractDomain wrappedDomain;
 
-  public SLABDomain(AbstractDomain pWrappedDomain) {
+  SLABDomain(AbstractDomain pWrappedDomain) {
     wrappedDomain = pWrappedDomain;
   }
 

@@ -22,11 +22,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serial;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -94,6 +96,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
+import org.sosy_lab.cpachecker.util.XMLUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
@@ -1110,7 +1113,13 @@ public class AutomatonGraphmlParser {
       throws WitnessParseException, IOException {
 
     // Parse the XML document ----
-    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilderFactory docFactory;
+
+    try {
+      docFactory = XMLUtils.getSecureDocumentBuilderFactory(true);
+    } catch (ParserConfigurationException e1) {
+      throw new WitnessParseException(e1);
+    }
 
     Document doc;
     try {
@@ -2029,7 +2038,7 @@ public class AutomatonGraphmlParser {
       return transitions;
     }
 
-    public EnumSet<NodeFlag> getNodeFlags(Element pStateNode) {
+    public ImmutableSet<NodeFlag> getNodeFlags(Element pStateNode) {
       EnumSet<NodeFlag> result = EnumSet.noneOf(NodeFlag.class);
 
       NodeList dataChilds = pStateNode.getElementsByTagName(GraphMLTag.DATA.toString());
@@ -2044,7 +2053,7 @@ public class AutomatonGraphmlParser {
         }
       }
 
-      return result;
+      return Sets.immutableEnumSet(result);
     }
 
     private static String getAttributeValue(Node of, String attributeName, String exceptionMessage)
@@ -2119,7 +2128,9 @@ public class AutomatonGraphmlParser {
   public static boolean isGraphmlAutomaton(Path pPath) throws IOException {
     SAXParser saxParser;
     try {
-      saxParser = SAXParserFactory.newInstance().newSAXParser();
+      SAXParserFactory saxFactory = XMLUtils.getSecureSaxParserFactory();
+
+      saxParser = saxFactory.newSAXParser();
     } catch (ParserConfigurationException | SAXException e) {
       throw new AssertionError(
           "SAX parser configured incorrectly. Could not determine whether or not the file describes"
@@ -2168,7 +2179,14 @@ public class AutomatonGraphmlParser {
   private static AutomatonGraphmlCommon.WitnessType getWitnessType(InputStream pInputStream)
       throws InvalidConfigurationException, IOException {
     // Parse the XML document ----
-    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilderFactory docFactory;
+
+    try {
+      docFactory = XMLUtils.getSecureDocumentBuilderFactory(true);
+    } catch (ParserConfigurationException e1) {
+      throw new WitnessParseException(e1);
+    }
+
     Document doc;
     try {
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -2243,7 +2261,7 @@ public class AutomatonGraphmlParser {
 
     private static final String PARSE_EXCEPTION_MESSAGE_PREFIX = "Cannot parse witness: ";
 
-    private static final long serialVersionUID = -6357416712866877118L;
+    @Serial private static final long serialVersionUID = -6357416712866877118L;
 
     public WitnessParseException(String pMessage) {
       super(PARSE_EXCEPTION_MESSAGE_PREFIX + pMessage);

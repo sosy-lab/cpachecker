@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Predicate;
+import java.io.Serial;
 import java.io.Serializable;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -113,7 +114,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
   private final @Nullable Long properOffset;
   private final @Nullable Long containerOffset;
 
-  private static final long serialVersionUID = -2918663736813010025L;
+  @Serial private static final long serialVersionUID = -2918663736813010025L;
 
   private static class RangePointerTargetPattern implements Predicate<PointerTarget> {
 

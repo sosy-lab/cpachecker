@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -138,16 +139,12 @@ public class FaultLocalizationByImport implements Algorithm {
 
   private FaultExplanation instantiateExplanations(
       Explanation pExplanation, List<CFAEdge> pEdgeList) {
-    switch (pExplanation) {
-      case NO_CONTEXT:
-        return NoContextExplanation.getInstance();
-      case SUSPICIOUS_CALCULATION:
-        return new SuspiciousCalculationExplanation();
-      case INFORMATION_PROVIDER:
-        return new InformationProvider(pEdgeList);
-      default:
-        throw new IllegalStateException("Unexpected value: " + pExplanation);
-    }
+    return switch (pExplanation) {
+      case NO_CONTEXT -> NoContextExplanation.getInstance();
+      case SUSPICIOUS_CALCULATION -> new SuspiciousCalculationExplanation();
+      case INFORMATION_PROVIDER -> new InformationProvider(pEdgeList);
+      default -> throw new IllegalStateException("Unexpected value: " + pExplanation);
+    };
   }
 
   private FaultScoring instantiateScoring(Scoring pScoring, CFAEdge pErrorLocation) {
@@ -344,9 +341,10 @@ public class FaultLocalizationByImport implements Algorithm {
     }
   }
 
+  @SuppressWarnings("serial") // class is never serialized
+  @SuppressFBWarnings("SE_BAD_FIELD")
   private static class FaultsDeserializer extends StdDeserializer<IntermediateFaults> {
 
-    private static final long serialVersionUID = -9027432550465230262L;
     private final Set<CFAEdge> edges;
 
     public FaultsDeserializer(CFA pCFA) {
@@ -469,17 +467,14 @@ public class FaultLocalizationByImport implements Algorithm {
     private FaultInfo restoreFaultInfo(JsonNode pNode) {
       InfoType type = FaultInfo.InfoType.valueOf(pNode.get("type").asText());
       String description = pNode.get("description").asText();
-      switch (type) {
-        case REASON:
-          return FaultInfo.justify(description);
-        case FIX:
-          return FaultInfo.fix(description);
-        case RANK_INFO:
-          return FaultInfo.rankInfo(
-              description, pNode.has("score") ? pNode.get("score").asDouble() : .0);
-        default:
-          throw new AssertionError("Unknown " + InfoType.class + ": " + type);
-      }
+      return switch (type) {
+        case REASON -> FaultInfo.justify(description);
+        case FIX -> FaultInfo.fix(description);
+        case RANK_INFO ->
+            FaultInfo.rankInfo(
+                description, pNode.has("score") ? pNode.get("score").asDouble() : .0);
+        default -> throw new AssertionError("Unknown " + InfoType.class + ": " + type);
+      };
     }
   }
 
