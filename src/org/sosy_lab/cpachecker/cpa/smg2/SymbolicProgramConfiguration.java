@@ -1051,7 +1051,7 @@ public class SymbolicProgramConfiguration {
       }
     }
     newSPC = newSPC.withNewValueMappings(newValueMapping.buildOrThrow());
-    // assert newSPC.checkValueMappingConsistency();
+    assert newSPC.checkValueMappingConsistency();
     return newSPC;
   }
 
