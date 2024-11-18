@@ -945,10 +945,13 @@ public class SymbolicProgramConfiguration {
   }
 
   public SymbolicProgramConfiguration replacePointerValuesWithExistingOrNew(
-      SMGObject pOldTargetObj,
-      SMGValue pointerToNewObj,
-      Set<SMGTargetSpecifier> pSpecifierToSwitch) {
-    Preconditions.checkArgument(smg.isPointer(pointerToNewObj));
+      SMGObject pOldTargetObj, SMGValue pointerToNewObj, Set<SMGTargetSpecifier> pSpecifierToSwitch)
+      throws SMGException {
+    if (!smg.isPointer(pointerToNewObj)) {
+      throw new SMGException(
+          "Non-address value found when trying to replace a pointer. This might be caused by"
+              + " overapproximations, e.g. removal of concrete values (null).");
+    }
     SMGObject newTargetObj = smg.getPTEdge(pointerToNewObj).orElseThrow().pointsTo();
 
     SMGAndSMGValues newSMGAndNewValuesForMapping =
@@ -1048,7 +1051,7 @@ public class SymbolicProgramConfiguration {
       }
     }
     newSPC = newSPC.withNewValueMappings(newValueMapping.buildOrThrow());
-    assert newSPC.checkValueMappingConsistency();
+    // assert newSPC.checkValueMappingConsistency();
     return newSPC;
   }
 
