@@ -29,11 +29,27 @@ public class ThreadCpuTimeLimit implements ResourceLimit {
     thread = null;
   }
 
+  /**
+   * This creates a not yet started {@link ThreadCpuTimeLimit} with the given {@link TimeSpan}, but
+   * no thread associated. You need to set a thread via {@link #setThread(Thread)} before starting
+   * this time limit!
+   *
+   * @param timeSpan any {@link TimeSpan} with arbitrary {@link TimeUnit}.
+   * @return a not started {@link ThreadCpuTimeLimit} with a set time-span, but not thread
+   *     associated.
+   */
   public static ThreadCpuTimeLimit withTimeSpan(TimeSpan timeSpan) {
     return new ThreadCpuTimeLimit(timeSpan.asNanos(), TimeUnit.NANOSECONDS);
   }
 
-  public synchronized void withThread(Thread pThread) {
+  /**
+   * This associates a {@link Thread} with the {@link ThreadCpuTimeLimit}, making it ready to track
+   * and limit the time of the one thread associated once {@link ResourceLimitChecker#start()} is
+   * called.
+   *
+   * @param pThread the {@link Thread} who's time is to be tracked/limited.
+   */
+  public synchronized void setThread(Thread pThread) {
     endTime = getCurrentThreadTime(pThread) + duration;
     thread = pThread;
   }
