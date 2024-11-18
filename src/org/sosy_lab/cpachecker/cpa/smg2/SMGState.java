@@ -2316,7 +2316,7 @@ public class SMGState
     return copyAndReplaceMemoryModel(newHeap).copyWithMemLeak(unreachableObjects, null);
   }
 
-  public SMGState copyAndPruneUnreachable(CFAEdge edge) {
+  public SMGState copyAndPruneUnreachable(CFAEdge edge) throws SMGException {
     SPCAndSMGObjects newHeapAndUnreachables = memoryModel.copyAndPruneUnreachable();
     SymbolicProgramConfiguration newHeap = newHeapAndUnreachables.getSPC();
     Collection<SMGObject> unreachableObjects =
@@ -2329,8 +2329,7 @@ public class SMGState
     }
     for (SMGObject unreachable : unreachableObjects) {
       if (unreachable instanceof SMGSinglyLinkedListSegment sll && sll.getMinLength() == 0) {
-        throw new UnsupportedOperationException(
-            "Error in tracking abstracted list memory for materialization.");
+        throw new SMGException("Error in tracking abstracted list memory for materialization.");
       }
     }
 
