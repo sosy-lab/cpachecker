@@ -467,7 +467,7 @@ public class SMGCPABuiltins {
   }
 
   /*
-   * The atexit function from the C standard
+   * The atexit function from the C standard. Returns 0 for successful registration, non-zero otherwise.
    */
   private List<ValueAndSMGState> evaluateAtExit(
       CFunctionCallExpression cFCExpression, CFAEdge cfaEdge, SMGState pState)
@@ -484,18 +484,34 @@ public class SMGCPABuiltins {
     Preconditions.checkArgument(evalStates.size() == 1);
 
     // Get the value for the expression and the new state
-    Value argValue = evalStates.get(0).getValue();
+    Value atExitAddressValue = evalStates.get(0).getValue();
     SMGState newState = evalStates.get(0).getState();
 
+    if (atExitAddressValue instanceof AddressExpression pAddressExpression) {
+      Preconditions.checkArgument(
+          pAddressExpression.getOffset().isNumericValue()
+              && pAddressExpression
+                  .getOffset()
+                  .asNumericValue()
+                  .bigIntegerValue()
+                  .equals(BigInteger.ZERO));
+      atExitAddressValue = pAddressExpression.getMemoryAddress();
+    }
+
+    ImmutableList.Builder<ValueAndSMGState> retBuilder = ImmutableList.builder();
+    if (options.canAtexitFail()) {
+      // TODO: return non-zero symbolic for symExec
+      retBuilder.add(ValueAndSMGState.of(new NumericValue(BigInteger.ONE), pState));
+    }
+
+    newState =
+        newState.copyAndReplaceMemoryModel(
+            newState
+                .getMemoryModel()
+                .copyAndReplaceAtExitStack(
+                    newState.getMemoryModel().getAtExitStack().pushAndCopy(atExitAddressValue)));
     // Push the value onto the stack and update our memory model
-    return ImmutableList.of(
-        // FIXME: Handle return value of atexit? Should be 0 if it fails and non-zero otherwise.
-        ValueAndSMGState.ofUnknownValue(
-            newState.copyAndReplaceMemoryModel(
-                newState
-                    .getMemoryModel()
-                    .copyAndReplaceAtExitStack(
-                        newState.getMemoryModel().getAtExitStack().pushAndCopy(argValue)))));
+    return retBuilder.add(ValueAndSMGState.of(new NumericValue(0), newState)).build();
   }
 
   /*
@@ -507,7 +523,7 @@ public class SMGCPABuiltins {
     PersistentStack<Value> atExitStack = pState.getMemoryModel().getAtExitStack();
     if (atExitStack.isEmpty()) {
       // If the stack is empty return a null pointer
-      return ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), pState));
+      return ImmutableList.of(ValueAndSMGState.of(new NumericValue(BigInteger.ZERO), pState));
     } else {
       // Otherwise, return the next pointer from the stack
       return ImmutableList.of(
