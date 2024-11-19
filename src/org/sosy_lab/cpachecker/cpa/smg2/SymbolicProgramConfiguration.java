@@ -2513,29 +2513,24 @@ public class SymbolicProgramConfiguration {
     SymbolicProgramConfiguration newSPC = this;
     ImmutableSet.Builder<SMGValue> valueMappingsToRemoveBuilder = ImmutableSet.builder();
     SMG newSMG = smg;
-    for (SMGValue value : allValues) {
+    outer: for (SMGValue value : allValues) {
       Optional<Value> maybeMapping = getValueFromSMGValue(value);
-
-      // Check if the value is referenced by the atexit stack
-      boolean isAtExitHandler = false;
-      if (maybeMapping.isPresent()) {
-        for (Value element : atExitStack) {
-          Value mapping = maybeMapping.orElseThrow();
-          Value address = ((AddressExpression) element).getMemoryAddress();
-          if (mapping.equals(address)) {
-            isAtExitHandler = true;
-            break;
-          }
-        }
-      }
 
       // Don't remove zero ever, and don't remove values that are referenced by the atexit stack
       // Remove everything that is not used and not a numeric value
       //   (they don't do harm and having a mapping is quicker later)
       if (!value.isZero()
           && !valuesToRegionsTheyAreSavedIn.containsKey(value)
-          && !isAtExitHandler
           && (maybeMapping.isEmpty() || !maybeMapping.orElseThrow().isNumericValue())) {
+        // Check if the value is referenced by the atexit stack
+        if (maybeMapping.isPresent()) {
+          for (Value atExitAddressValue : atExitStack) {
+            Value mappedValue = maybeMapping.orElseThrow();
+            if (atExitAddressValue.equals(mappedValue)) {
+              continue outer;
+            }
+          }
+        }
         // Remove from PTEs and values
         if (newSMG.isPointer(value)) {
           newSMG = newSPC.getSmg().copyAndRemovePointsToEdge(value);
