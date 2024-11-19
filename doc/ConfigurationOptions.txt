@@ -3283,6 +3283,10 @@ cpa.smg2.cacheSubsets = false
 # Whether to use superset caching
 cpa.smg2.cacheSupersets = false
 
+# If this Option is enabled, C function atexit() will return a succeeding and
+# failing registration for each registration. Otherwise only succeeding.
+cpa.smg2.canAtexitFail = false
+
 # with this option enabled, memory addresses (pointers) are transformed into
 # a numeric assumption upon casting the pointer to a number. This assumption
 # can be returned to a proper pointer by casting it back. This enables
