@@ -3296,6 +3296,11 @@ cpa.smg2.castMemoryAddressesToNumeric = false
 # function returns, and not only at the end of the main function
 cpa.smg2.checkForMemLeaksAtEveryFrameDrop = true
 
+# Maximum amount of concrete assignments before the assigning is aborted. The
+# last offset is then once treated as option
+# overapproximateSymbolicOffsetsAsFallback specifies.
+cpa.smg2.concreteValueForSymbolicOffsetsAssignmentMaximum = 200
+
 # Crash on unknown value when creating constraints of any form.
 cpa.smg2.crashOnUnknownInConstraint = false
 

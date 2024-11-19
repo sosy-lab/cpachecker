@@ -107,6 +107,27 @@ public class SMGOptions {
 
   @Option(
       secure = true,
+      name = "concreteValueForSymbolicOffsetsAssignmentMaximum",
+      description =
+          "Maximum amount of concrete assignments before the assigning is aborted. The last offset"
+              + " is then once treated as option overapproximateSymbolicOffsetsAsFallback"
+              + " specifies.")
+  private int concreteValueForSymbolicOffsetsAssignmentMaximum = 200;
+
+  /* TODO:
+    @Option(
+        secure = true,
+        name = "overapproximateSymbolicOffsetsAsFallback",
+        description =
+            "If this Option is enabled, and concreteValueForSymbolicOffsetsAssignmentMaximum reaches"
+                + " its maximum, the one last not assigned offset of a memory region that is written"
+                + " or read with a symbolic offset is overapproximated as specified in"
+                + " findConcreteValuesForSymbolicOffsets. Otherwise, the analysis is aborted.")
+    private boolean overapproximateSymbolicOffsetsAsFallback = false;
+  */
+
+  @Option(
+      secure = true,
       name = "overapproximateValuesForSymbolicSize",
       description =
           "If this Option is enabled, all values of a memory region that is written to with a"
@@ -128,6 +149,10 @@ public class SMGOptions {
     Preconditions.checkArgument(
         !findConcreteValuesForSymbolicOffsets || !overapproximateSymbolicOffsets);
     return findConcreteValuesForSymbolicOffsets;
+  }
+
+  public int getConcreteValueForSymbolicOffsetsAssignmentMaximum() {
+    return concreteValueForSymbolicOffsetsAssignmentMaximum;
   }
 
   public enum UnknownFunctionHandling {
