@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -2513,7 +2512,8 @@ public class SymbolicProgramConfiguration {
     SymbolicProgramConfiguration newSPC = this;
     ImmutableSet.Builder<SMGValue> valueMappingsToRemoveBuilder = ImmutableSet.builder();
     SMG newSMG = smg;
-    outer: for (SMGValue value : allValues) {
+    outer:
+    for (SMGValue value : allValues) {
       Optional<Value> maybeMapping = getValueFromSMGValue(value);
 
       // Don't remove zero ever, and don't remove values that are referenced by the atexit stack

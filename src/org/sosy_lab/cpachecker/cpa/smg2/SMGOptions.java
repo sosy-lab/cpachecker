@@ -376,6 +376,14 @@ public class SMGOptions {
               + " that may not be accessed but freed is returned.")
   private boolean mallocZeroReturnsZero = false;
 
+  @Option(
+      secure = true,
+      name = "canAtexitFail",
+      description =
+          "If this Option is enabled, C function atexit() will return a succeeding and failing"
+              + " registration for each registration. Otherwise only succeeding.")
+  private boolean canAtexitFail = false;
+
   public enum SMGExportLevel {
     NEVER,
     LEAF,
@@ -385,6 +393,10 @@ public class SMGOptions {
 
   public SMGOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
+  }
+
+  public boolean canAtexitFail() {
+    return canAtexitFail;
   }
 
   private UnknownMemoryAllocationHandling getIgnoreUnknownMemoryAllocationSetting() {
