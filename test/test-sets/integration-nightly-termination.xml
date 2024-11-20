@@ -68,4 +68,8 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
   </tasks>
+  <tasks name="SoftwareSystems-DeviceDriversLinux64-Termination">
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+  </tasks>
 </benchmark>

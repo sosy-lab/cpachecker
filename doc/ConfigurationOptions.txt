@@ -1430,6 +1430,9 @@ cpa.arg.exportTrueInvariants = false
 # export correctness witness in YAML format
 cpa.arg.exportYamlCorrectnessWitness = true
 
+# export witnesses for unknown verdicts
+cpa.arg.exportYamlWitnessesForUnknownVerdict = true
+
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
 
@@ -3263,6 +3266,9 @@ cpa.smg2.abstraction.listAbstractionMinimumLengthThreshold = 4
 # leaving edge
 cpa.smg2.abstraction.onlyAtNonLinearCFA = false
 
+# Periodically removes unused constraints from the state.
+cpa.smg2.abstraction.removeUnusedConstraints = false
+
 # Allocate memory on declaration of external variable
 cpa.smg2.allocateExternalVariables = true
 
@@ -3317,6 +3323,13 @@ cpa.smg2.externalAllocationFunction = {"ext_allocation"}
 
 # Default size of externally allocated memory
 cpa.smg2.externalAllocationSize = Integer.MAX_VALUE
+
+# If this Option is enabled, all symbolic offsets used when writing to memory
+# are evaluated into all possible concrete values by an SMT solver. This
+# might be very expensive, as all possible combinations of values for the
+# symbolic offsets are concretely evaluated. May not be used together with
+# option overapproximateForSymbolicWrite.
+cpa.smg2.findConcreteValuesForSymbolicOffsets = false
 
 # Allocation size of memory that cannot be calculated.
 cpa.smg2.guessSize = BigInteger.valueOf(2)
@@ -3391,10 +3404,13 @@ cpa.smg2.minimalSatCheck = true
 # one.
 cpa.smg2.optimizeBooleanVariables = true
 
-# If this Option is enabled, all values of a memory region that is written to
-# with a symbolic and non unique offset are deleted and the value itself is
-# overapproximated to unknown in the memory region.
-cpa.smg2.overapproximateForSymbolicWrite = true
+# If this Option is enabled, all values of a memory region that is written or
+# read with a symbolic offset are overapproximated. I.e. when writing to a
+# memory region, all previous values are deleted and the memory region is
+# overapproximated so that only unknown values are in the memory region after
+# the write. When reading, all possible reads are evaluated. Can not be used
+# at the same time as option findConcreteValuesForSymbolicOffsets.
+cpa.smg2.overapproximateSymbolicOffsets = false
 
 # If this Option is enabled, all values of a memory region that is written to
 # with a symbolic and non-unique offset in symbolically sized memory are
@@ -4493,13 +4509,15 @@ overflow.trackPointers = false
 overflow.useLiveness = true
 
 # List of files with configurations to use. Files can be suffixed with
-# ::supply-reached this signalizes that the (finished) reached set of an
-# analysis can be used in other analyses (e.g. for invariants computation).
-# If you use the suffix ::supply-reached-refinable instead this means that
-# the reached set supplier is additionally continously refined (so one of the
-# analysis has to be instanceof ReachedSetAdjustingCPA) to make this work
-# properly.
+# ::refinable to enable iterative refinement of the analysis precision (one
+# of the CPAs has to be instanceof ReachedSetAdjustingCPA), ::supply-reached
+# to enabled sharing of the (parial or finished) reached set for use in other
+# analyses (e.g. for invariants computation), or ::supply-reached-refinable
+# for both.
 parallelAlgorithm.configFiles = no default value
+
+# toggle to write all the files also for the unsuccessful analyses
+parallelAlgorithm.writeUnsuccessfulAnalysisFiles = false
 
 # The command line for calling the clang preprocessor. May contain binary
 # name and arguments, but won't be expanded by a shell. The source file name
@@ -4830,6 +4848,9 @@ reachedSet.dot = "reached.dot"
 # print reached set to text file
 reachedSet.export = false
 reachedSet.file = "reached.txt"
+
+# Add visualization of correctness witnesses to the report (can be costly)
+report.addWitness = false
 
 # Generate HTML report with analysis result.
 report.export = true
