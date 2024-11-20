@@ -337,6 +337,19 @@ public class SMG {
    * @return number of usages of the pValue.
    */
   public int getNumberOfSMGValueUsages(SMGValue pValue) {
+    PersistentMap<SMGObject, Integer> maybeRegions = valuesToRegionsTheyAreSavedIn.get(pValue);
+    int found = 0;
+    if (maybeRegions != null) {
+      for (int x : maybeRegions.values()) {
+        found += x;
+      }
+    }
+    assert found == getOldNumberOfSMGValueUsages(pValue);
+    return found;
+  }
+
+  // Old version
+  private int getOldNumberOfSMGValueUsages(SMGValue pValue) {
     int found = 0;
     for (PersistentSet<SMGHasValueEdge> hvEdges : hasValueEdges.values()) {
       for (SMGHasValueEdge hve : hvEdges) {
@@ -2639,6 +2652,7 @@ public class SMG {
     return true;
   }
 
+  @SuppressWarnings("unused")
   public boolean checkValueMappingConsistency(
       ImmutableBiMap<Wrapper<Value>, SMGValue> pExistingValueMapping, ValueWrapper pValueWrapper) {
     // Check that every value in the mapping is existing in some form.
@@ -2659,16 +2673,18 @@ public class SMG {
       }
     }
 
-    for (Entry<SMGObject, Boolean> obj : smgObjects.entrySet()) {
+    /*for (Entry<SMGObject, Boolean> obj : smgObjects.entrySet()) {
       // References to invalid objects might exist, as well as references to invalid objects sizes
       Value sizeOfObj = obj.getKey().getSize();
       if (!sizeOfObj.isNumericValue()
           && !pExistingValueMapping.containsKey(pValueWrapper.wrap(sizeOfObj))
           && obj.getValue()) {
         // If the size is in a valid object, we need a mapping!
-        return false;
+        // TODO: not really, if its only put into the size, there is currently not a need for a
+        // SMGValue
+        // return false;
       }
-    }
+    }*/
 
     return true;
   }

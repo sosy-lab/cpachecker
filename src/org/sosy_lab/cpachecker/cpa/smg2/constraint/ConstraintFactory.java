@@ -248,6 +248,13 @@ public class ConstraintFactory {
         symbolicValueUnequalTo, valueUnequalTo, typeOfValueToBlock, currentState);
   }
 
+  public Constraint getEqualConstraint(
+      Value symbolicValueEqualTo, Value valueEqualTo, CType typeOfValue, SMGState currentState) {
+    final ExpressionTransformer transformer = getCTransformer();
+    return transformer.getEqualConstraint(
+        symbolicValueEqualTo, valueEqualTo, typeOfValue, currentState);
+  }
+
   public Constraint getMemorySizeInBitsEqualsZeroConstraint(
       Value memoryRegionSizeInBits, CType calculationType, SMGState currentState) {
     final ExpressionTransformer transformer = getCTransformer();

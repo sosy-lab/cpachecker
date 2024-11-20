@@ -228,7 +228,8 @@ public class SMGCPAExpressionEvaluator {
       Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTargetAndOffset =
           state.getPointsToTarget(address1.getMemoryAddress());
       if (maybeTargetAndOffset.isEmpty()) {
-        return ValueAndSMGState.ofUnknownValue(state);
+        return ValueAndSMGState.ofUnknownValue(
+            state, "Returned unknown value due to unknown target or offset in address evaluated.");
       }
       SMGObjectAndOffsetMaybeNestingLvl targetAndOffset = maybeTargetAndOffset.orElseThrow();
       SMGObject target = targetAndOffset.getSMGObject();
@@ -238,7 +239,9 @@ public class SMGCPAExpressionEvaluator {
       }
       Value additionalOffset = targetAndOffset.getOffsetForObject();
       if (!additionalOffset.isNumericValue()) {
-        return ValueAndSMGState.ofUnknownValue(state);
+        return ValueAndSMGState.ofUnknownValue(
+            state,
+            "Returned unknown value due to unknown offset value of some address in expression in.");
       }
       Value offset = addBitOffsetValues(offsetValue, additionalOffset);
 
@@ -397,12 +400,13 @@ public class SMGCPAExpressionEvaluator {
                   functionObject.orElseThrow(), currentState);
         } else {
           // This is not necessarily an error! If we can't get an address because a lookup is based
-          // on
-          // an unknown value for example. We create a dummy pointer in such cases that points
+          // on an unknown value for example. We create a dummy pointer in such cases that points
           // nowhere
-          // throw new SMG2Exception("No address could be created for the expression: " + operand);
-          // Try unknown first, wrapped in AddressExpr and see what happens
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown value for address due to error in address creation in ",
+                  cfaEdge));
           continue;
         }
       }
@@ -478,7 +482,11 @@ public class SMGCPAExpressionEvaluator {
         pState.dereferencePointer(targetAddress)) {
       if (!maybeTargetAndOffset.hasSMGObjectAndOffset()) {
         // The value is unknown and therefore does not point to a known memory location
-        returnBuilder.add(ValueAndSMGState.ofUnknownValue(maybeTargetAndOffset.getSMGState()));
+        returnBuilder.add(
+            ValueAndSMGState.ofUnknownValue(
+                maybeTargetAndOffset.getSMGState(),
+                "Returned unknown value due to unknown target or offset when creating a memory"
+                    + " address expression."));
         continue;
       }
       // We don't want to materilize memory here?
@@ -490,7 +498,11 @@ public class SMGCPAExpressionEvaluator {
       // offset needs to the added to that!)
       Value baseOffset = maybeTargetAndOffset.getOffsetForObject();
       if (!baseOffset.isNumericValue() && !options.trackErrorPredicates()) {
-        returnBuilder.add(ValueAndSMGState.ofUnknownValue(maybeTargetAndOffset.getSMGState()));
+        returnBuilder.add(
+            ValueAndSMGState.ofUnknownValue(
+                maybeTargetAndOffset.getSMGState(),
+                "Returned unknown value due to unknown offset when creating a memory address"
+                    + " expression."));
         continue;
       }
       Value finalOffsetInBits = addBitOffsetValues(baseOffset, offsetInBits);
@@ -613,7 +625,12 @@ public class SMGCPAExpressionEvaluator {
     if (maybeObjectAndOffset.isEmpty()) {
       // TODO: improve error handling and add more specific exceptions to the visitor!
       // No address could be found
-      return ValueAndSMGState.ofUnknownValue(pState);
+      return ValueAndSMGState.ofUnknownValue(
+          pState,
+          "Returned unknown value due to unknown target or offset when creating a memory address"
+              + " expression for a local or global program variable: "
+              + variableName
+              + ".");
       // throw new SMG2Exception("No address could be created for the variable: " + variableName);
     }
     SMGObjectAndOffsetMaybeNestingLvl targetAndOffset = maybeObjectAndOffset.orElseThrow();
@@ -723,7 +740,13 @@ public class SMGCPAExpressionEvaluator {
       // If there is no object, the variable is not initialized
       SMGState errorState = initialState.withUninitializedVariableUsage(varName);
       // The Value does not matter here as the error state should always end the analysis
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(errorState));
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              errorState,
+              "Returned unknown value due to unknown target when creating a memory address"
+                  + " expression for a local or global program variable: "
+                  + varName
+                  + "."));
     }
     SMGState currentState = initialState;
     if (!initialState.getMemoryModel().isObjectValid(maybeObject.orElseThrow())) {
@@ -773,7 +796,11 @@ public class SMGCPAExpressionEvaluator {
                 .getSMGState()
                 .withUnknownPointerDereferenceWhenReading(pointerValueToDeref);
 
-        returnBuilder.add(ValueAndSMGState.ofUnknownValue(errorState));
+        returnBuilder.add(
+            ValueAndSMGState.ofUnknownValue(
+                errorState,
+                "Returned unknown value due to unknown target or offset when reading a value with"
+                    + " invalid pointer dereference."));
         continue;
       }
       pState = maybeTargetAndOffset.getSMGState();
@@ -782,7 +809,9 @@ public class SMGCPAExpressionEvaluator {
       // The object may be null if no such object exists, check and log if 0
       if (object.isZero()) {
         SMGState errorState = pState.withNullPointerDereferenceWhenReading(object);
-        returnBuilder.add(ValueAndSMGState.ofUnknownValue(errorState));
+        returnBuilder.add(
+            ValueAndSMGState.ofUnknownValue(
+                errorState, "Returned unknown value due to null-pointer dereference."));
         continue;
       }
 
@@ -900,7 +929,11 @@ public class SMGCPAExpressionEvaluator {
     SymbolicProgramConfiguration spc = state.getMemoryModel();
     if (!spc.isPointer(leftPointer) || !spc.isPointer(rightPointer)) {
       // Not known or not known as a pointer, return nothing
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              state,
+              "Returned unknown value due non-address argument when calculating address"
+                  + " distance."));
     }
     ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
     // We can only compare the underlying SMGObject for equality as the Values are distinct if they
@@ -909,7 +942,11 @@ public class SMGCPAExpressionEvaluator {
     for (SMGStateAndOptionalSMGObjectAndOffset leftTargetAndOffset :
         state.dereferencePointer(leftPointer)) {
       if (!leftTargetAndOffset.hasSMGObjectAndOffset()) {
-        returnBuilder.add(ValueAndSMGState.ofUnknownValue(leftTargetAndOffset.getSMGState()));
+        returnBuilder.add(
+            ValueAndSMGState.ofUnknownValue(
+                leftTargetAndOffset.getSMGState(),
+                "Returned unknown value due to unknown target or offset when calculating address"
+                    + " distance."));
         continue;
       }
 
@@ -917,7 +954,11 @@ public class SMGCPAExpressionEvaluator {
       for (SMGStateAndOptionalSMGObjectAndOffset rightTargetAndOffset :
           state.dereferencePointer(rightPointer)) {
         if (!rightTargetAndOffset.hasSMGObjectAndOffset()) {
-          returnBuilder.add(ValueAndSMGState.ofUnknownValue(rightTargetAndOffset.getSMGState()));
+          returnBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  rightTargetAndOffset.getSMGState(),
+                  "Returned unknown value due to unknown target or offset when calculating address"
+                      + " distance."));
           continue;
         }
 
@@ -925,7 +966,11 @@ public class SMGCPAExpressionEvaluator {
         SMGObject leftTarget = leftTargetAndOffset.getSMGObject();
         SMGObject rightTarget = rightTargetAndOffset.getSMGObject();
         if (!leftTarget.equals(rightTarget)) {
-          returnBuilder.add(ValueAndSMGState.ofUnknownValue(state));
+          returnBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  state,
+                  "Returned unknown value due to addresses not originating from same memory"
+                      + " allocating function call when calculating address distance."));
           continue;
         }
         // int because this is always an int
@@ -934,7 +979,11 @@ public class SMGCPAExpressionEvaluator {
         Value rightOffset = rightTargetAndOffset.getOffsetForObject();
         Value leftOffset = leftTargetAndOffset.getOffsetForObject();
         if (!rightOffset.isNumericValue() && !leftOffset.isNumericValue()) {
-          returnBuilder.add(ValueAndSMGState.ofUnknownValue(state));
+          returnBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  state,
+                  "Returned unknown value due to unknown offset when calculating address"
+                      + " distance."));
         }
         returnBuilder.add(
             ValueAndSMGState.of(
@@ -995,7 +1044,9 @@ public class SMGCPAExpressionEvaluator {
         // Field read does not fit size of declared Memory
         SMGState errorState = currentState.withOutOfRangeRead(object, offsetInBits, sizeInBits);
         // Unknown value that should not be used with an error state that should stop the analysis
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(errorState));
+        return ImmutableList.of(
+            ValueAndSMGState.ofUnknownValue(
+                errorState, "Returned unknown value due to out-of-range read operation."));
       }
 
     } else if (options.trackErrorPredicates()) {
@@ -1023,7 +1074,8 @@ public class SMGCPAExpressionEvaluator {
         // Unknown value that should not be used with an error state that should stop the analysis
         return ImmutableList.of(
             ValueAndSMGState.ofUnknownValue(
-                currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits)));
+                currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits),
+                "Returned unknown value due to out-of-range read operation."));
       }
 
       if (!offsetValueInBits.isNumericValue()) {
@@ -1041,13 +1093,18 @@ public class SMGCPAExpressionEvaluator {
         // Unknown offset -> invalid read due to over approximation
         SMGState errorState = currentState.withUnknownOffsetMemoryAccess();
         // Unknown value that should not be used with an error state that should stop the analysis
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(errorState));
+        return ImmutableList.of(
+            ValueAndSMGState.ofUnknownValue(
+                errorState,
+                "Returned unknown value due to out-of-range read operation with unknown offset."));
       } else {
         // Unknown size -> invalid read due to over approximation
         // Unknown value that should not be used with an error state that should stop the analysis
         return ImmutableList.of(
             ValueAndSMGState.ofUnknownValue(
-                currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits)));
+                currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits),
+                "Returned unknown value due to out-of-range read operation with unknown size of"
+                    + " read."));
       }
     }
 
@@ -1084,7 +1141,8 @@ public class SMGCPAExpressionEvaluator {
         // Field read does not fit size of declared Memory
         SMGState errorState = currentState.withOutOfRangeRead(object, offsetInBits, sizeInBits);
         // Unknown value that should not be used with an error state that should stop the analysis
-        return ValueAndSMGState.ofUnknownValue(errorState);
+        return ValueAndSMGState.ofUnknownValue(
+            errorState, "Returned unknown value due to out of range read.");
       }
 
       // The read in SMGState checks for validity and external allocation
@@ -1114,22 +1172,29 @@ public class SMGCPAExpressionEvaluator {
       if (satisfiabilityAndSMGState.isSAT()) {
         // Unknown value that should not be used with an error state that should stop the analysis
         return ValueAndSMGState.ofUnknownValue(
-            currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits));
+            currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits),
+            "Returned unknown value due to unknown size of read operation with out of range read.");
       }
 
       // We can't discern the read value, but the read itself was safe
-      return ValueAndSMGState.ofUnknownValue(currentState);
+      return ValueAndSMGState.ofUnknownValue(
+          currentState,
+          "Returned unknown value due to unknown size or offset in read operation with safe read.");
 
     } else {
       if (!offsetValueInBits.isNumericValue()) {
         // Unknown offset -> invalid read due to over approximation
         SMGState errorState = currentState.withUnknownOffsetMemoryAccess();
         // Unknown value that should not be used with an error state that should stop the analysis
-        return ValueAndSMGState.ofUnknownValue(errorState);
+        return ValueAndSMGState.ofUnknownValue(
+            errorState,
+            "Returned unknown value due to unknown offset of read operation with out of range"
+                + " read.");
       } else {
         // Unknown size
         return ValueAndSMGState.ofUnknownValue(
-            currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits));
+            currentState.withOutOfRangeRead(object, offsetValueInBits, sizeInBits),
+            "Returned unknown value due to unknown size of read operation with out of range read.");
       }
     }
   }
@@ -1638,14 +1703,18 @@ public class SMGCPAExpressionEvaluator {
     if (!maybefirstMemoryAndOffset.hasSMGObjectAndOffset()) {
       // The value is unknown and therefore does not point to a valid memory location
       return ValueAndSMGState.ofUnknownValue(
-          currentState.withUnknownPointerDereferenceWhenReading(firstAddress));
+          currentState.withUnknownPointerDereferenceWhenReading(firstAddress),
+          "Returned unknown value due to unknown value in string comparing expression with invalid"
+              + " dereference.");
     }
     SMGObject firstObject = maybefirstMemoryAndOffset.getSMGObject();
 
     // The object may be null if no such object exists, check and log if 0
     if (firstObject.isZero()) {
       return ValueAndSMGState.ofUnknownValue(
-          currentState.withNullPointerDereferenceWhenReading(firstObject));
+          currentState.withNullPointerDereferenceWhenReading(firstObject),
+          "Returned unknown value due to unknown value in string comparing expression with invalid"
+              + " dereference.");
     }
 
     // The offset of the pointer used. (the pointer might point to an offset != 0, the other offset
@@ -1663,14 +1732,18 @@ public class SMGCPAExpressionEvaluator {
     if (!maybeSecondMemoryAndOffset.hasSMGObjectAndOffset()) {
       // The value is unknown and therefore does not point to a valid memory location
       return ValueAndSMGState.ofUnknownValue(
-          currentState.withUnknownPointerDereferenceWhenReading(secondAddress));
+          currentState.withUnknownPointerDereferenceWhenReading(secondAddress),
+          "Returned unknown value due to unknown value in string comparing expression with invalid"
+              + " dereference.");
     }
     SMGObject secondObject = maybeSecondMemoryAndOffset.getSMGObject();
 
     // The object may be null if no such object exists, check and log if 0
     if (secondObject.isZero()) {
       return ValueAndSMGState.ofUnknownValue(
-          currentState.withNullPointerDereferenceWhenWriting(secondObject));
+          currentState.withNullPointerDereferenceWhenWriting(secondObject),
+          "Returned unknown value due to unknown value in string comparing expression with invalid"
+              + " dereference.");
     }
 
     // The offset of the pointer used. (the pointer might point to an offset != 0, the other offset
@@ -1694,7 +1767,9 @@ public class SMGCPAExpressionEvaluator {
       currentState = valueAndState1.getState();
 
       if (!value1.isNumericValue()) {
-        return ValueAndSMGState.ofUnknownValue(currentState);
+        return ValueAndSMGState.ofUnknownValue(
+            currentState,
+            "Returned unknown value due to unknown value in string comparing expression.");
       }
 
       ValueAndSMGState valueAndState2 =
@@ -1704,7 +1779,9 @@ public class SMGCPAExpressionEvaluator {
       currentState = valueAndState2.getState();
 
       if (!value2.isNumericValue()) {
-        return ValueAndSMGState.ofUnknownValue(currentState);
+        return ValueAndSMGState.ofUnknownValue(
+            currentState,
+            "Returned unknown value due to unknown value in string comparing expression.");
       }
 
       // Now compare the 2 values. Non-equality of non-concrete values has to be checked by the SMG
