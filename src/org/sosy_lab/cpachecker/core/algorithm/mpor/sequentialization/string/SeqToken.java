@@ -65,6 +65,8 @@ public class SeqToken {
 
   public static final String PREV_THREAD = "prev_thread";
 
+  public static final String REACH_ERROR = "reach_error";
+
   public static final String RETURN = "return";
 
   public static final String __SEQUENTIALIZATION_ERROR__ = "\"__SEQUENTIALIZATION_ERROR__\"";

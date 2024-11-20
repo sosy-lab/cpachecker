@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalOrExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqMainFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseLabel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
@@ -152,19 +153,23 @@ public class Sequentialization {
 
     // add all custom function declarations
     rProgram.append(SeqComment.CUSTOM_FUNCTION_DECLARATIONS);
-    // abort, assert, nondet_int may be duplicate depending on the input program
+    // reach_error, abort, assert, nondet_int may be duplicate depending on the input program
+    rProgram.append(SeqFunctionDeclaration.ASSERT_FAIL.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram
         .append(SeqFunctionDeclaration.VERIFIER_NONDET_INT.toASTString())
         .append(SeqSyntax.NEWLINE);
     rProgram.append(SeqFunctionDeclaration.ABORT.toASTString()).append(SeqSyntax.NEWLINE);
-    rProgram.append(SeqFunctionDeclaration.ASSERT_FAIL.toASTString()).append(SeqSyntax.NEWLINE);
+    rProgram.append(SeqFunctionDeclaration.REACH_ERROR.toASTString()).append(SeqSyntax.NEWLINE);
     rProgram.append(SeqFunctionDeclaration.ASSUME.toASTString()).append(SeqSyntax.NEWLINE);
     // main should always be duplicate
-    rProgram.append(SeqFunctionDeclaration.MAIN.toASTString()).append(SeqSyntax.NEWLINE);
-    rProgram.append(SeqSyntax.NEWLINE);
+    rProgram
+        .append(SeqFunctionDeclaration.MAIN.toASTString())
+        .append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
     // add non main() methods
+    SeqReachErrorFunction reachError = new SeqReachErrorFunction();
     SeqAssumeFunction assume = new SeqAssumeFunction();
+    rProgram.append(reachError.toASTString()).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
     rProgram.append(assume.toASTString()).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
     // create pruned (i.e. only non-empty) cases statements

@@ -66,11 +66,19 @@ public class SeqExpressions {
 
     public static final CIdExpression COND = buildIdExpr(SeqParameterDeclaration.COND);
 
+    public static final CIdExpression FILE = buildIdExpr(SeqParameterDeclaration.FILE);
+
+    public static final CIdExpression LINE = buildIdExpr(SeqParameterDeclaration.LINE);
+
+    public static final CIdExpression FUNCTION = buildIdExpr(SeqParameterDeclaration.FUNCTION);
+
     protected static final CIdExpression DUMMY_PC = buildIdExpr(SeqVariableDeclaration.DUMMY_PC);
 
     public static final CIdExpression PREV_THREAD = buildIdExpr(SeqVariableDeclaration.PREV_THREAD);
 
     public static final CIdExpression NEXT_THREAD = buildIdExpr(SeqVariableDeclaration.NEXT_THREAD);
+
+    public static final CIdExpression REACH_ERROR = buildIdExpr(SeqFunctionDeclaration.REACH_ERROR);
 
     public static final CIdExpression VERIFIER_NONDET_INT =
         buildIdExpr(SeqFunctionDeclaration.VERIFIER_NONDET_INT);

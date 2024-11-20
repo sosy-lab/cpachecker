@@ -106,6 +106,17 @@ public class SeqDeclarations {
             ImmutableList.of(),
             ImmutableSet.of());
 
+    public static final CFunctionDeclaration REACH_ERROR =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            SeqFunctionType.REACH_ERROR,
+            SeqToken.REACH_ERROR,
+            ImmutableList.of(
+                SeqParameterDeclaration.FILE,
+                SeqParameterDeclaration.LINE,
+                SeqParameterDeclaration.FUNCTION),
+            ImmutableSet.of(FunctionAttribute.NO_RETURN));
+
     public static final CFunctionDeclaration ASSERT_FAIL =
         new CFunctionDeclaration(
             FileLocation.DUMMY,

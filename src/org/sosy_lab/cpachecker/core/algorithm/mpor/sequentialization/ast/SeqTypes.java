@@ -68,6 +68,15 @@ public class SeqTypes {
     public static final CFunctionType VERIFIER_NONDET_INT =
         new CFunctionType(SeqSimpleType.INT, ImmutableList.of(), false);
 
+    public static final CFunctionTypeWithNames REACH_ERROR =
+        new CFunctionTypeWithNames(
+            SeqVoidType.VOID,
+            ImmutableList.of(
+                SeqParameterDeclaration.FILE,
+                SeqParameterDeclaration.LINE,
+                SeqParameterDeclaration.FUNCTION),
+            false);
+
     public static final CFunctionTypeWithNames ASSERT_FAIL =
         new CFunctionTypeWithNames(
             SeqVoidType.VOID,
@@ -80,7 +89,7 @@ public class SeqTypes {
 
     public static final CFunctionTypeWithNames ASSUME =
         new CFunctionTypeWithNames(
-            SeqSimpleType.INT, ImmutableList.of(SeqParameterDeclaration.COND), false);
+            SeqVoidType.VOID, ImmutableList.of(SeqParameterDeclaration.COND), false);
 
     public static final CFunctionType MAIN =
         new CFunctionType(SeqSimpleType.INT, ImmutableList.of(), false);
