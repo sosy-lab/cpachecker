@@ -2652,6 +2652,7 @@ public class SMG {
     return true;
   }
 
+  @SuppressWarnings("unused")
   public boolean checkValueMappingConsistency(
       ImmutableBiMap<Wrapper<Value>, SMGValue> pExistingValueMapping, ValueWrapper pValueWrapper) {
     // Check that every value in the mapping is existing in some form.
