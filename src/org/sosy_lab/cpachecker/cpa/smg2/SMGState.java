@@ -6316,9 +6316,12 @@ public class SMGState
       Optional<SMGObject> maybeVariableObject =
           memoryModel.getObjectForVisibleVariable(variable.getQualifiedName());
       if (maybeVariableObject.isPresent()) {
-        // Get objects present outside of the current scope
+        // Get objects present outside the current scope
         Set<SMGObject> otherPresentObjects = memoryModel.getObjectsValidInOtherStackFrames();
-        if (!otherPresentObjects.contains(maybeVariableObject.orElseThrow())) {
+        // Pointers from may be given as array argument, then we have the object, but don't own it,
+        // hence no heap objs.
+        if (!otherPresentObjects.contains(maybeVariableObject.orElseThrow())
+            && !memoryModel.isHeapObject(maybeVariableObject.orElseThrow())) {
           return copyAndReplaceMemoryModel(
               memoryModel.invalidateSMGObject(maybeVariableObject.orElseThrow(), false));
         }
