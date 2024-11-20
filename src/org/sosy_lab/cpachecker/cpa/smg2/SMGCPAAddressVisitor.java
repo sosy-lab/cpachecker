@@ -360,12 +360,23 @@ public class SMGCPAAddressVisitor
       ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> concreteSubscriptHandling =
           ImmutableList.builder();
       for (ValueAndSMGState assignedValueAndState : assignedResults) {
-        concreteSubscriptHandling.addAll(
+
+        List<SMGStateAndOptionalSMGObjectAndOffset> assignedAndEvaluatedStates =
             handleSubscriptExpression(
                 arrayValue,
                 assignedValueAndState.getValue(),
                 assignedValueAndState.getState(),
-                exprCurrentlyUnderEval));
+                exprCurrentlyUnderEval);
+        if (options.isMemoryErrorTarget()) {
+          for (SMGStateAndOptionalSMGObjectAndOffset assignedAndEvaldState :
+              assignedAndEvaluatedStates) {
+            if (assignedAndEvaldState.getSMGState().hasMemoryErrors()) {
+              options.decConcreteValueForSymbolicOffsetsAssignmentMaximum();
+              return ImmutableList.of(assignedAndEvaldState);
+            }
+          }
+        }
+        concreteSubscriptHandling.addAll(assignedAndEvaluatedStates);
       }
       options.decConcreteValueForSymbolicOffsetsAssignmentMaximum();
       return concreteSubscriptHandling.build();
