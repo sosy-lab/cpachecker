@@ -4145,6 +4145,23 @@ public class SMGState
       assignConcreteValuesForSymbolicValuesAndReevaluateExpressionInAddressVisitor(
           SymbolicValue valueToAssign, CArraySubscriptExpression expr, @Nullable CFAEdge edge)
           throws CPATransferException {
+    return assignConcreteValuesForSymbolicValuesAndReevaluateExpressionInAddressVisitor(
+        valueToAssign, expr, edge, options.getConcreteValueForSymbolicOffsetsAssignmentMaximum());
+  }
+
+  /**
+   * Handles pointer requests on subscript expressions with symbolic values. If there is no
+   * constraints that can be used to calculate the model for the assignment, null is returned.
+   * Usually this signals that the symbolic offset will lead to a memsafety violation or a change
+   * later.
+   */
+  public List<SMGStateAndOptionalSMGObjectAndOffset>
+      assignConcreteValuesForSymbolicValuesAndReevaluateExpressionInAddressVisitor(
+          SymbolicValue valueToAssign,
+          CArraySubscriptExpression expr,
+          @Nullable CFAEdge edge,
+          int recursionsTillAbort)
+          throws CPATransferException {
 
     if (expr == null) {
       throw new SMGException(
@@ -4170,8 +4187,16 @@ public class SMGState
     for (SMGState assignedState : assignedStates) {
       // The offset is not necessarily concrete now! We assign a concrete value in one state and
       //   block it in the symbolic value for another state.
-      results.addAll(
-          expr.accept(new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger, options)));
+      List<SMGStateAndOptionalSMGObjectAndOffset> assignedAndEvaldStates =
+          expr.accept(new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger, options));
+      if (options.isMemoryErrorTarget()) {
+        for (SMGStateAndOptionalSMGObjectAndOffset assignedAndEvaldState : assignedAndEvaldStates) {
+          if (assignedAndEvaldState.getSMGState().hasMemoryErrors()) {
+            return ImmutableList.of(assignedAndEvaldState);
+          }
+        }
+      }
+      results.addAll(assignedAndEvaldStates);
     }
     return results.build();
   }
