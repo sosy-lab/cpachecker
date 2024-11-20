@@ -795,7 +795,7 @@ public class SymbolicProgramConfiguration {
       // Don't invalidate objects that are referenced by another stack frame!
       // Pointers from may be given as array argument, then we have the object, but don't own it,
       // hence no heap objs.
-      if (!validObjects.contains(object) && isHeapObject(object)) {
+      if (!validObjects.contains(object) && !isHeapObject(object)) {
         newSmg = newSmg.copyAndInvalidateObject(object, false);
         newMemoryAddressAssumptionsMap = newMemoryAddressAssumptionsMap.removeAndCopy(object);
       }
