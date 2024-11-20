@@ -135,7 +135,7 @@ public class SeqMainFunction implements SeqFunction {
           SeqUtil.prependTabsWithNewline(2, SeqUtil.appendOpeningCurly(ifStmt.toASTString())));
       assertions.append(
           SeqUtil.prependTabsWithNewline(
-              3, SeqUtil.appendClosingCurly(Sequentialization.errorPlaceholder)));
+              3, SeqUtil.appendClosingCurly(Sequentialization.outputReachErrorDummy)));
     }
 
     // create assume call strings
@@ -207,7 +207,7 @@ public class SeqMainFunction implements SeqFunction {
         + switches
         + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
         + SeqUtil.prependTabsWithNewline(1, SeqSyntax.CURLY_BRACKET_RIGHT)
-        + SeqUtil.prependTabsWithNewline(1, Sequentialization.errorPlaceholder)
+        + SeqUtil.prependTabsWithNewline(1, Sequentialization.outputReachErrorDummy)
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 

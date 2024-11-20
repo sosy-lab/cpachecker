@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -95,8 +96,16 @@ public class Sequentialization {
   //  curly left / right brackets, newlines, etc.
   public static final int TAB_SIZE = 2;
 
-  public static final String errorPlaceholder =
-      buildSeqErrorCall(SeqToken.__FILE_NAME_PLACEHOLDER__, -1).toASTString() + SeqSyntax.SEMICOLON;
+  public static final String inputReachErrorDummy =
+      buildReachErrorCall(SeqToken.__FILE_NAME_PLACEHOLDER__, -1, SeqToken.__PRETTY_FUNCTION__)
+              .toASTString()
+          + SeqSyntax.SEMICOLON;
+
+  public static final String outputReachErrorDummy =
+      buildReachErrorCall(
+                  SeqToken.__FILE_NAME_PLACEHOLDER__, -1, SeqToken.__SEQUENTIALIZATION_ERROR__)
+              .toASTString()
+          + SeqSyntax.SEMICOLON;
 
   protected final int threadCount;
 
@@ -384,8 +393,10 @@ public class Sequentialization {
           if (caseClause.isPrunable()) {
             SeqCaseClause prunedCaseClause =
                 handleCaseClausePrune(caseLabelValueMap, caseClause, skipped, caseClause);
-            pruned.add(prunedCaseClause);
-            newCaseClauseIds.add(prunedCaseClause.id);
+            if (prunedCaseClause != null) {
+              pruned.add(prunedCaseClause);
+              newCaseClauseIds.add(prunedCaseClause.id);
+            }
           } else if (!newCaseClauseIds.contains(caseClause.id)) {
             pruned.add(caseClause);
             newCaseClauseIds.add(caseClause.id);
@@ -416,6 +427,7 @@ public class Sequentialization {
    * SeqBlankStatement} and adjusts the origin {@code pc} (i.e. case labels of the form {@code case
    * 42:}) accordingly.
    */
+  @Nullable
   private static SeqCaseClause handleCaseClausePrune(
       final ImmutableMap<Integer, SeqCaseClause> pCaseLabelValueMap,
       final SeqCaseClause pInit,
@@ -428,7 +440,7 @@ public class Sequentialization {
         SeqBlankStatement blank = (SeqBlankStatement) stmt;
         SeqCaseClause nextCaseClause = pCaseLabelValueMap.get(blank.targetPc);
         if (nextCaseClause == null) {
-          return pInit;
+          return null;
         }
         // do not visit exit nodes of the threads cfa
         if (!nextCaseClause.caseBlock.statements.isEmpty()) {
@@ -767,20 +779,21 @@ public class Sequentialization {
   // Helpers for better Overview =================================================================
 
   /**
-   * Returns the {@link CFunctionCallExpression} of {@code reach_error("{pFileName}", {pLine},
-   * "__SEQUENTIALIZATION_ERROR__")}
+   * Returns the {@link CFunctionCallExpression} of {@code reach_error("{pFile}", {pLine},
+   * "{pFunction}")}
    */
-  public static CFunctionCallExpression buildSeqErrorCall(String pFileName, int pLine) {
-    CStringLiteralExpression seqFileName =
-        SeqStringLiteralExpression.buildStringLiteralExpr(SeqUtil.wrapInQuotationMarks(pFileName));
+  public static CFunctionCallExpression buildReachErrorCall(
+      String pFile, int pLine, String pFunction) {
+    CStringLiteralExpression file =
+        SeqStringLiteralExpression.buildStringLiteralExpr(SeqUtil.wrapInQuotationMarks(pFile));
+    CIntegerLiteralExpression line = SeqIntegerLiteralExpression.buildIntLiteralExpr(pLine);
+    CStringLiteralExpression function =
+        SeqStringLiteralExpression.buildStringLiteralExpr(SeqUtil.wrapInQuotationMarks(pFunction));
     return new CFunctionCallExpression(
         FileLocation.DUMMY,
         SeqVoidType.VOID,
         SeqIdExpression.REACH_ERROR,
-        ImmutableList.of(
-            seqFileName,
-            SeqIntegerLiteralExpression.buildIntLiteralExpr(pLine),
-            SeqStringLiteralExpression.SEQUENTIALIZATION_ERROR),
+        ImmutableList.of(file, line, function),
         SeqFunctionDeclaration.REACH_ERROR);
   }
 

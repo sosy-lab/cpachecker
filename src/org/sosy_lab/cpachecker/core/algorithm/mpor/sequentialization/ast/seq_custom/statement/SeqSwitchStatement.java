@@ -39,7 +39,10 @@ public class SeqSwitchStatement implements SeqStatement {
       casesString.append(SeqUtil.prependTabsWithoutNewline(tabs + 1, caseClause.toASTString()));
     }
     String defaultCaseClause =
-        SeqToken.DEFAULT + SeqSyntax.COLON + SeqSyntax.SPACE + Sequentialization.errorPlaceholder;
+        SeqToken.DEFAULT
+            + SeqSyntax.COLON
+            + SeqSyntax.SPACE
+            + Sequentialization.outputReachErrorDummy;
     return SeqUtil.repeat(SeqSyntax.TAB, tabs)
         + SeqUtil.appendOpeningCurly(switchExpression.toASTString())
         + SeqSyntax.NEWLINE

@@ -46,6 +46,8 @@ public class SeqToken {
 
   public static final String __FUNCTION = "__function";
 
+  public static final String __FUNCTION_NAME_PLACEHOLDER__ = "\"__FUNCTION_NAME_PLACEHOLDER__\"";
+
   public static final String I = "i";
 
   public static final String JOINS = "joins";
@@ -63,13 +65,15 @@ public class SeqToken {
 
   public static final String PC = "pc";
 
+  public static final String __PRETTY_FUNCTION__ = "__PRETTY_FUNCTION__";
+
   public static final String PREV_THREAD = "prev_thread";
 
   public static final String REACH_ERROR = "reach_error";
 
   public static final String RETURN = "return";
 
-  public static final String __SEQUENTIALIZATION_ERROR__ = "\"__SEQUENTIALIZATION_ERROR__\"";
+  public static final String __SEQUENTIALIZATION_ERROR__ = "__SEQUENTIALIZATION_ERROR__";
 
   public static final String SIZE = "size";
 

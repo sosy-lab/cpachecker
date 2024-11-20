@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -109,7 +111,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     String seqName = createSeqName(inputFilePath);
     SequentializationWriter writer = new SequentializationWriter(logger, seqName, inputFilePath);
     String initSeq = buildInitSeq();
-    String finalSeq = buildFinalSeq(seqName + FileExtension.I.suffix, initSeq);
+    String finalSeq =
+        buildFinalSeq(
+            inputFilePath.getFileName().toString(), seqName + FileExtension.I.suffix, initSeq);
     writer.write(finalSeq);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
@@ -124,19 +128,28 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * file name and line in {@code reach_error("__FILE_NAME_PLACEHOLDER__", -1,
    * "__SEQUENTIALIZATION_ERROR__");} with pOutputFileName and the actual line.
    */
-  public String buildFinalSeq(String pOutputFileName, String pInitProgram) {
+  public String buildFinalSeq(String pInputFileName, String pOutputFileName, String pInitProgram) {
     // consider license and seq comment header for line numbers
     String header = extractLicenseComment() + seqHeaderComment;
     int currentLine = countLines(header);
     StringBuilder rFinal = new StringBuilder();
     rFinal.append(header);
     for (String line : Splitter.onPattern("\\r?\\n").split(pInitProgram)) {
-      if (line.contains(Sequentialization.errorPlaceholder)) {
+      if (line.contains(Sequentialization.inputReachErrorDummy)) {
         CFunctionCallExpression reachErrorCall =
-            Sequentialization.buildSeqErrorCall(pOutputFileName, currentLine);
+            Sequentialization.buildReachErrorCall(
+                pInputFileName, currentLine, SeqToken.__PRETTY_FUNCTION__);
         rFinal.append(
             line.replace(
-                Sequentialization.errorPlaceholder,
+                Sequentialization.inputReachErrorDummy,
+                reachErrorCall.toASTString() + SeqSyntax.SEMICOLON));
+      } else if (line.contains(Sequentialization.outputReachErrorDummy)) {
+        CFunctionCallExpression reachErrorCall =
+            Sequentialization.buildReachErrorCall(
+                pOutputFileName, currentLine, SeqToken.__SEQUENTIALIZATION_ERROR__);
+        rFinal.append(
+            line.replace(
+                Sequentialization.outputReachErrorDummy,
                 reachErrorCall.toASTString() + SeqSyntax.SEMICOLON));
       } else {
         rFinal.append(line);
@@ -149,10 +162,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /** Returns the number of lines, i.e. the amount of \n + 1 in pString. */
   private int countLines(String pString) {
-    if (pString == null || pString.isEmpty()) {
+    if (isNullOrEmpty(pString)) {
       return 0;
     }
-    return pString.split("\n", -1).length;
+    return Splitter.on('\n').splitToList(pString).size();
   }
 
   private String extractLicenseComment() {

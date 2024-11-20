@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqMutexLockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqMutexUnlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqParameterAssignStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReachErrorStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcRetrievalStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcStorageStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignStatements;
@@ -130,7 +131,7 @@ public class SeqUtil {
         int targetPc = threadEdge.getSuccessor().pc;
         CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(pThread.id, targetPc);
 
-        if (emptyCaseCode(sub.cfaEdge)) {
+        if (emptyCaseCode(sub, threadEdge.getPredecessor())) {
           assert pThreadNode.leavingEdges().size() == 1;
           stmts.add(new SeqBlankStatement(pcUpdate, targetPc));
 
@@ -146,29 +147,43 @@ public class SeqUtil {
             SeqControlFlowStatement stmt = new SeqControlFlowStatement(assumeEdge, stmtType);
             stmts.add(new SeqAssumeStatement(stmt, pcUpdate));
 
-          } else if (sub.cfaEdge instanceof CFunctionSummaryEdge) {
-            assert pThreadNode.leavingEdges().size() >= 2;
-            assert pFuncVars.returnPcStorages.containsKey(threadEdge);
-            FunctionReturnPcStorage storage = pFuncVars.returnPcStorages.get(threadEdge);
-            assert storage != null;
-            stmts.add(new SeqReturnPcStorageStatement(storage.assignmentStatement));
+          } else if (sub.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
+            String funcName =
+                funcSummary
+                    .getExpression()
+                    .getFunctionCallExpression()
+                    .getFunctionNameExpression()
+                    .toASTString();
+            if (!funcName.equals(SeqToken.REACH_ERROR)) { // no return_pc for reach_error
+              assert pThreadNode.leavingEdges().size() >= 2;
+              assert pFuncVars.returnPcStorages.containsKey(threadEdge);
+              FunctionReturnPcStorage storage = pFuncVars.returnPcStorages.get(threadEdge);
+              assert storage != null;
+              stmts.add(new SeqReturnPcStorageStatement(storage.assignmentStatement));
+            }
 
-          } else if (sub.cfaEdge instanceof CFunctionCallEdge) {
-            assert pThreadNode.leavingEdges().size() >= 2;
-            assert pFuncVars.parameterAssignments.containsKey(threadEdge);
-            ImmutableList<FunctionParameterAssignment> assigns =
-                pFuncVars.parameterAssignments.get(threadEdge);
-            assert assigns != null;
-            if (assigns.isEmpty()) {
-              stmts.add(new SeqBlankStatement(pcUpdate, targetPc));
+          } else if (sub.cfaEdge instanceof CFunctionCallEdge funcCall) {
+            String funcName =
+                funcCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
+            if (funcName.equals(SeqToken.REACH_ERROR)) {
+              stmts.add(new SeqReachErrorStatement()); // do not inline reach_error
             } else {
-              for (int i = 0; i < assigns.size(); i++) {
-                FunctionParameterAssignment assign = assigns.get(i);
-                // if this is the last param assign, add the pcUpdate, otherwise empty
-                stmts.add(
-                    new SeqParameterAssignStatement(
-                        assign.statement,
-                        i == assigns.size() - 1 ? Optional.of(pcUpdate) : Optional.empty()));
+              assert pThreadNode.leavingEdges().size() >= 2;
+              assert pFuncVars.parameterAssignments.containsKey(threadEdge);
+              ImmutableList<FunctionParameterAssignment> assigns =
+                  pFuncVars.parameterAssignments.get(threadEdge);
+              assert assigns != null;
+              if (assigns.isEmpty()) {
+                stmts.add(new SeqBlankStatement(pcUpdate, targetPc));
+              } else {
+                for (int i = 0; i < assigns.size(); i++) {
+                  FunctionParameterAssignment assign = assigns.get(i);
+                  // if this is the last param assign, add the pcUpdate, otherwise empty
+                  stmts.add(
+                      new SeqParameterAssignStatement(
+                          assign.statement,
+                          i == assigns.size() - 1 ? Optional.of(pcUpdate) : Optional.empty()));
+                }
               }
             }
 
@@ -378,14 +393,14 @@ public class SeqUtil {
   }
 
   /**
-   * Returns true if pEdge results in a case block with only pc adjustments, i.e. no code changing
+   * Returns true if pSub results in a case block with only pc adjustments, i.e. no code changing
    * the input program state.
    */
-  private static boolean emptyCaseCode(CFAEdge pEdge) {
-    if (pEdge instanceof BlankEdge) {
-      assert pEdge.getCode().isEmpty();
+  private static boolean emptyCaseCode(SubstituteEdge pSub, ThreadNode pPredecessor) {
+    if (pSub.cfaEdge instanceof BlankEdge) {
+      assert pSub.cfaEdge.getCode().isEmpty();
       return true;
-    } else if (pEdge instanceof CDeclarationEdge decEdge) {
+    } else if (pSub.cfaEdge instanceof CDeclarationEdge decEdge) {
       CDeclaration dec = decEdge.getDeclaration();
       if (!(dec instanceof CVariableDeclaration varDec)) {
         return true; // all non vars are declared beforehand
@@ -393,9 +408,11 @@ public class SeqUtil {
         // declaration of const int CPAchecker_TMP vars is included in the cases
         return !isConstCPAcheckerTMP(varDec);
       }
-    } else if (PthreadFuncType.callsAnyPthreadFunc(pEdge)) {
+    } else if (PthreadFuncType.callsAnyPthreadFunc(pSub.cfaEdge)) {
       // unsupported PthreadFunc -> empty case code
-      return !isExplicitlyHandledPthreadFunc(pEdge);
+      return !isExplicitlyHandledPthreadFunc(pSub.cfaEdge);
+    } else if (pPredecessor.cfaNode.getFunctionName().equals(SeqToken.REACH_ERROR)) {
+      return true; // code of reach_error is not inlined
     }
     return false;
   }
