@@ -340,15 +340,18 @@ public class SMGCPAAddressVisitor
           CArraySubscriptExpression exprCurrentlyUnderEval,
           SymbolicValue symOffsetToAssign)
           throws CPATransferException {
-
+    options.incConcreteValueForSymbolicOffsetsAssignmentMaximum();
     Optional<SymbolicValue> maybeVariableToAssign =
         pCurrentState.isVariableAssignmentFeasible(symOffsetToAssign);
 
     if (maybeVariableToAssign.isPresent()) {
       SymbolicValue variableToAssign = maybeVariableToAssign.orElseThrow();
-      return pCurrentState
-          .assignConcreteValuesForSymbolicValuesAndReevaluateExpressionInAddressVisitor(
-              variableToAssign, exprCurrentlyUnderEval, cfaEdge);
+      List<SMGStateAndOptionalSMGObjectAndOffset> assignedStates =
+          pCurrentState
+              .assignConcreteValuesForSymbolicValuesAndReevaluateExpressionInAddressVisitor(
+                  variableToAssign, exprCurrentlyUnderEval, cfaEdge);
+      options.decConcreteValueForSymbolicOffsetsAssignmentMaximum();
+      return assignedStates;
     } else {
       // Assignment using the solver only. While we get the concrete value here,
       //  we can't assign it to a variable.
@@ -364,6 +367,7 @@ public class SMGCPAAddressVisitor
                 assignedValueAndState.getState(),
                 exprCurrentlyUnderEval));
       }
+      options.decConcreteValueForSymbolicOffsetsAssignmentMaximum();
       return concreteSubscriptHandling.build();
     }
   }

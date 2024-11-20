@@ -19,9 +19,12 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGRuntimeCheck;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 
 @Options(prefix = "cpa.smg2")
 public class SMGOptions {
+
+  private int actualConcreteValueForSymbolicOffsetsAssignmentMaximum = 0;
 
   @Option(
       secure = true,
@@ -112,7 +115,7 @@ public class SMGOptions {
           "Maximum amount of concrete assignments before the assigning is aborted. The last offset"
               + " is then once treated as option overapproximateSymbolicOffsetsAsFallback"
               + " specifies.")
-  private int concreteValueForSymbolicOffsetsAssignmentMaximum = 200;
+  private int concreteValueForSymbolicOffsetsAssignmentMaximum = 300;
 
   /* TODO:
     @Option(
@@ -153,6 +156,21 @@ public class SMGOptions {
 
   public int getConcreteValueForSymbolicOffsetsAssignmentMaximum() {
     return concreteValueForSymbolicOffsetsAssignmentMaximum;
+  }
+
+  public void incConcreteValueForSymbolicOffsetsAssignmentMaximum() throws SMGException {
+    if (actualConcreteValueForSymbolicOffsetsAssignmentMaximum
+        > concreteValueForSymbolicOffsetsAssignmentMaximum) {
+      throw new SMGException(
+          "Exceeded maximum number of concrete symbolic assignments"
+              + " concreteValueForSymbolicOffsetsAssignmentMaximum = "
+              + concreteValueForSymbolicOffsetsAssignmentMaximum);
+    }
+    actualConcreteValueForSymbolicOffsetsAssignmentMaximum++;
+  }
+
+  public void decConcreteValueForSymbolicOffsetsAssignmentMaximum() {
+    actualConcreteValueForSymbolicOffsetsAssignmentMaximum--;
   }
 
   public enum UnknownFunctionHandling {

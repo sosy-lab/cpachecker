@@ -4145,23 +4145,7 @@ public class SMGState
       assignConcreteValuesForSymbolicValuesAndReevaluateExpressionInAddressVisitor(
           SymbolicValue valueToAssign, CArraySubscriptExpression expr, @Nullable CFAEdge edge)
           throws CPATransferException {
-    return assignConcreteValuesForSymbolicValuesAndReevaluateExpressionInAddressVisitor(
-        valueToAssign, expr, edge, options.getConcreteValueForSymbolicOffsetsAssignmentMaximum());
-  }
-
-  /**
-   * Handles pointer requests on subscript expressions with symbolic values. If there is no
-   * constraints that can be used to calculate the model for the assignment, null is returned.
-   * Usually this signals that the symbolic offset will lead to a memsafety violation or a change
-   * later.
-   */
-  public List<SMGStateAndOptionalSMGObjectAndOffset>
-      assignConcreteValuesForSymbolicValuesAndReevaluateExpressionInAddressVisitor(
-          SymbolicValue valueToAssign,
-          CArraySubscriptExpression expr,
-          @Nullable CFAEdge edge,
-          int recursionsTillAbort)
-          throws CPATransferException {
+    options.incConcreteValueForSymbolicOffsetsAssignmentMaximum();
 
     if (expr == null) {
       throw new SMGException(
@@ -4179,6 +4163,7 @@ public class SMGState
     // values in any of the size or offset expressions)
     if (assignedStates.isEmpty()) {
       // No more assignments possible.
+      options.decConcreteValueForSymbolicOffsetsAssignmentMaximum();
       return ImmutableList.of();
     }
 
@@ -4192,12 +4177,14 @@ public class SMGState
       if (options.isMemoryErrorTarget()) {
         for (SMGStateAndOptionalSMGObjectAndOffset assignedAndEvaldState : assignedAndEvaldStates) {
           if (assignedAndEvaldState.getSMGState().hasMemoryErrors()) {
+            options.decConcreteValueForSymbolicOffsetsAssignmentMaximum();
             return ImmutableList.of(assignedAndEvaldState);
           }
         }
       }
       results.addAll(assignedAndEvaldStates);
     }
+    options.decConcreteValueForSymbolicOffsetsAssignmentMaximum();
     return results.build();
   }
 
@@ -4401,7 +4388,6 @@ public class SMGState
       Preconditions.checkArgument(identsToReplace.size() > 1);
       // valueToAssign is exactly a variable to assign, but consists of more than one variable.
       // Assign it, remember the constraints and then replace the var with the concrete.
-      // TODO: this might stack-overflow
       List<ValueAndSMGState> concreteValueAndNewStates =
           findValueAssignmentsWithSolver(valueToAssign, edge);
 
