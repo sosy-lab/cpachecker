@@ -81,6 +81,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // TODO (not sure if important for our algorithm) PredicateAbstractState.abstractLocations
   //  contains all CFANodes visited so far
 
+  /**
+   * Used e.g. to throw {@code RuntimeExceptions} instead of {@code Output.fatalError()} for unit
+   * tests.
+   */
   public enum InstanceType {
     PRODUCTION,
     TEST
@@ -117,21 +121,23 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /**
    * Adds the license and sequentialization comments at the top of pInitProgram and replaces the
-   * file name and line in {@code __assert_fail("0", "__FILE_NAME_PLACEHOLDER__", -1,
+   * file name and line in {@code reach_error("__FILE_NAME_PLACEHOLDER__", -1,
    * "__SEQUENTIALIZATION_ERROR__");} with pOutputFileName and the actual line.
    */
   public String buildFinalSeq(String pOutputFileName, String pInitProgram) {
-    int currentLine = 1;
+    // consider license and seq comment header for line numbers
+    String header = extractLicenseComment() + seqHeaderComment;
+    int currentLine = countLines(header);
     StringBuilder rFinal = new StringBuilder();
-    rFinal.append(extractLicenseComment()).append(seqHeaderComment);
+    rFinal.append(header);
     for (String line : Splitter.onPattern("\\r?\\n").split(pInitProgram)) {
       if (line.contains(Sequentialization.errorPlaceholder)) {
-        CFunctionCallExpression assertFailCall =
+        CFunctionCallExpression reachErrorCall =
             Sequentialization.buildSeqErrorCall(pOutputFileName, currentLine);
         rFinal.append(
             line.replace(
                 Sequentialization.errorPlaceholder,
-                assertFailCall.toASTString() + SeqSyntax.SEMICOLON));
+                reachErrorCall.toASTString() + SeqSyntax.SEMICOLON));
       } else {
         rFinal.append(line);
       }
@@ -139,6 +145,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       currentLine++;
     }
     return rFinal.toString();
+  }
+
+  /** Returns the number of lines, i.e. the amount of \n + 1 in pString. */
+  private int countLines(String pString) {
+    if (pString == null || pString.isEmpty()) {
+      return 0;
+    }
+    return pString.split("\n", -1).length;
   }
 
   private String extractLicenseComment() {

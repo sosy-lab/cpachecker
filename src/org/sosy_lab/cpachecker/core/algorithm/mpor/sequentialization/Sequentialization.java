@@ -767,8 +767,8 @@ public class Sequentialization {
   // Helpers for better Overview =================================================================
 
   /**
-   * Returns the {@link CFunctionCallExpression} of {@code __assert_fail("0", "{pFileName}",
-   * {pLine}, "__SEQUENTIALIZATION_ERROR__")}
+   * Returns the {@link CFunctionCallExpression} of {@code reach_error("{pFileName}", {pLine},
+   * "__SEQUENTIALIZATION_ERROR__")}
    */
   public static CFunctionCallExpression buildSeqErrorCall(String pFileName, int pLine) {
     CStringLiteralExpression seqFileName =
@@ -776,13 +776,12 @@ public class Sequentialization {
     return new CFunctionCallExpression(
         FileLocation.DUMMY,
         SeqVoidType.VOID,
-        SeqIdExpression.ASSERT_FAIL,
+        SeqIdExpression.REACH_ERROR,
         ImmutableList.of(
-            SeqStringLiteralExpression.STRING_0,
             seqFileName,
             SeqIntegerLiteralExpression.buildIntLiteralExpr(pLine),
             SeqStringLiteralExpression.SEQUENTIALIZATION_ERROR),
-        SeqFunctionDeclaration.ASSERT_FAIL);
+        SeqFunctionDeclaration.REACH_ERROR);
   }
 
   private ThreadVars buildThreadVars(
