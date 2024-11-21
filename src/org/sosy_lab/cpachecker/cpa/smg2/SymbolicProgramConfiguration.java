@@ -480,6 +480,7 @@ public class SymbolicProgramConfiguration {
       Map<SMGNode, SMGNode> mapping2,
       int nestingDiff)
       throws SMGException {
+    Preconditions.checkNotNull(initialStatus);
     // 1. Let res := joinFields(G1 , G2 , o1 , o2 ). If res = ⊥, return ⊥.
     // Otherwise, let (s0 , G1 , G2 ) := res and s := updateJoinStatus(s, s0).
     Optional<MergingSPCsAndMergeStatus> maybeMergedFields =
@@ -712,10 +713,12 @@ public class SymbolicProgramConfiguration {
       res =
           insertLeftLLAndJoin(
               pSpc2, pSpc1, v2, v1, pNewSpc, mapping2, mapping1, initialJoinStatus, nestingDiff);
-      if (res.isEmpty() || res.orElseThrow().isRecoverableFailure()) {
-        return Optional.empty();
-      }
     }
+
+    if (res.isEmpty() || res.orElseThrow().isRecoverableFailure()) {
+      return Optional.empty();
+    }
+
     return res;
   }
 
@@ -779,7 +782,8 @@ public class SymbolicProgramConfiguration {
       }
     }
     // 7. Collect the set F of all pairs (of, t) occurring in has-value edges leading from o1 or o2.
-    Set<SMGHasValueEdge> hves1 = new HashSet<>(spc1.smg.getSMGObjectsWithSMGHasValueEdges().get(obj1));
+    Set<SMGHasValueEdge> hves1 =
+        new HashSet<>(spc1.smg.getSMGObjectsWithSMGHasValueEdges().get(obj1));
     Set<SMGHasValueEdge> hves2 =
         new HashSet<>(spc2.smg.getSMGObjectsWithSMGHasValueEdges().get(obj2));
     // 8. For each field (of, t) ∈ F do:
@@ -1206,6 +1210,7 @@ public class SymbolicProgramConfiguration {
           SMGMergeStatus initialJoinStatus,
           int nestingDiff)
           throws SMGException {
+    Preconditions.checkNotNull(initialJoinStatus);
     Preconditions.checkArgument(pSpc1.smg.isPointer(v1)); // a1
     Preconditions.checkArgument(pSpc2.smg.isPointer(v2)); // a2
 
@@ -1508,7 +1513,8 @@ public class SymbolicProgramConfiguration {
     // TODO: is the minimal overlapping set the same?
     // TODO: optimize
 
-    //   b  Extend the sets without zeros with the smallest set of edges to zero, that both original sets shared
+    //   b  Extend the sets without zeros with the smallest set of edges to zero, that both original
+    // sets shared
 
     // Adds the zero edges for hves1
     hves1 =
@@ -1572,7 +1578,8 @@ public class SymbolicProgramConfiguration {
               SMGValue.zeroValue());
     }
     // There might be concrete values on one, but not the other. So a mismatch in edges is possible!
-    // But there should be a match in pointer edges (not target/equal, but if there is one in one SMG, there is one in the other)
+    // But there should be a match in pointer edges (not target/equal, but if there is one in one
+    // SMG, there is one in the other)
 
     // 3. equal merge status
     SMGMergeStatus status = SMGMergeStatus.EQUAL;
@@ -1682,8 +1689,8 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Adds all 0 edges present in both to hves.
-   * The numbers in hves1OnlyZeros and hves2OnlyZeros do not matter.
+   * Adds all 0 edges present in both to hves. The numbers in hves1OnlyZeros and hves2OnlyZeros do
+   * not matter.
    */
   private static @Nullable PersistentSet<SMGHasValueEdge> addMinimalOverlappingZeroEdgesTo(
       Collection<SMGHasValueEdge> hves1OnlyZeros,
