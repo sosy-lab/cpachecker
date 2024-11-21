@@ -777,11 +777,13 @@ public class SymbolicProgramConfiguration {
       }
     }
     // 7. Collect the set F of all pairs (of, t) occurring in has-value edges leading from o1 or o2.
-    Set<SMGHasValueEdge> hves1 = spc1.smg.getSMGObjectsWithSMGHasValueEdges().get(obj1);
+    Set<SMGHasValueEdge> hves1 = new HashSet<>(spc1.smg.getSMGObjectsWithSMGHasValueEdges().get(obj1));
     Set<SMGHasValueEdge> hves2 =
         new HashSet<>(spc2.smg.getSMGObjectsWithSMGHasValueEdges().get(obj2));
     // 8. For each field (of, t) ∈ F do:
-    for (SMGHasValueEdge hve1 : hves1) {
+    Iterator<SMGHasValueEdge> iter1 = hves1.iterator();
+    while (iter1.hasNext()) {
+      SMGHasValueEdge hve1 = iter1.next();
       int offset1 = hve1.getOffset().intValueExact();
       int size1 = hve1.getSizeInBits().intValueExact();
       SMGValue v1 = hve1.hasValue();
@@ -800,6 +802,7 @@ public class SymbolicProgramConfiguration {
               && !mapping1.get(v1).equals(mapping2.get(v2))) {
             return Optional.empty();
           }
+          iter2 = hves2.iterator();
         }
       }
     }
