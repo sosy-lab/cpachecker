@@ -134,11 +134,11 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
 
   @Option(
       secure = true,
-      name = "CEXMemorySafetySubpropertyEagerly",
+      name = "checkMemorySafetySubproperty",
       description =
           "counterexample check checks MemSafety sub-properties (valid-deref, valid-free,"
               + " valid-memtrack) additionally to the path.")
-  private boolean checkMemorySafetySubpropertyEagerly = false;
+  private boolean checkMemorySafetySubproperty = false;
 
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
 
@@ -270,7 +270,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
         }
       }
 
-      if (checkMemorySafetySubpropertyEagerly
+      if (checkMemorySafetySubproperty
           && MEMORY_SPECIFICATIONS.containsAll(specification.getProperties())) {
         Set<TargetInformation> originalError = pErrorState.getTargetInformation();
         if (!originalError.isEmpty()) {
