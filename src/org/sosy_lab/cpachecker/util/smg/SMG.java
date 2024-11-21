@@ -402,11 +402,20 @@ public class SMG {
    * @return A modified copy of the SMG.
    */
   public SMG copyAndAddPTEdge(SMGPointsToEdge edge, SMGValue source) {
-    if (pointsToEdges.containsKey(source)) {
-      if (Objects.equals(pointsToEdges.get(source), edge)) {
+    @Nullable SMGPointsToEdge maybeExistingEdge = pointsToEdges.get(source);
+    if (maybeExistingEdge != null) {
+      if (Objects.equals(maybeExistingEdge, edge)) {
         return this;
+      } else {
+        throw new RuntimeException(
+            "A SMG-points-to-edge "
+                + edge
+                + " was attempted to be added to the SMG for value "
+                + source
+                + ", but the value had edge "
+                + maybeExistingEdge
+                + " already associated with it!");
       }
-      throw new RuntimeException("A SMG-points-to-edge can have only 1 target!");
     }
 
     ImmutableMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder = ImmutableMap.builder();
