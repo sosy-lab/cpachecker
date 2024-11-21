@@ -143,8 +143,6 @@ public class SeqUtil {
 
         } else if (successor instanceof FunctionExitNode
             && successor.getFunction().getType().equals(pThread.startRoutine)) {
-          // TODO add support and test for pthread_join(id, &start_routine_return)
-          //  where start_routine_return is assigned the return value of the threads start routine
           // exiting thread -> assign 0 to thread_active var if possible and set exit pc
           CExpressionAssignmentStatement activeAssign =
               new CExpressionAssignmentStatement(

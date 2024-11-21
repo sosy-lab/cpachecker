@@ -67,7 +67,7 @@ public class SequentializationTest {
     CFA inputCfa = creator.parseSourceAndCreateCFA(program);
 
     // create seq with mpor algorithm
-    MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa);
+    MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa, true);
     String initSeq = algorithm.buildInitSeq();
     String finalSeq = algorithm.buildFinalSeq("test.i", "__mpor_seq__test.i", initSeq);
 

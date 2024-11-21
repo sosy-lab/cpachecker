@@ -41,7 +41,7 @@ public class InputRejectionsTest {
 
     // test if MPORAlgorithm rejects program with correct throwable and pErrorMessage
     T throwable =
-        assertThrows(pExpectedThrowable, () -> MPORAlgorithm.testInstance(logger, inputCfa));
+        assertThrows(pExpectedThrowable, () -> MPORAlgorithm.testInstance(logger, inputCfa, true));
     assertThat(pExpectedThrowable.isInstance(throwable)).isTrue();
     assertThat(throwable.getMessage().contains(pExpectedMessage)).isTrue();
   }

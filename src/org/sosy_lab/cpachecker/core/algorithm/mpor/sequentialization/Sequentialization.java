@@ -115,7 +115,7 @@ public class Sequentialization {
 
   /** Generates and returns the sequentialized program. */
   public String generateProgram(
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions)
+      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions, boolean pIncludePOR)
       throws UnrecognizedCodeException {
 
     StringBuilder rProgram = new StringBuilder();
@@ -186,12 +186,16 @@ public class Sequentialization {
         mapCaseClauses(pSubstitutions, subEdges, returnPcVars, threadVars);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
         pruneCaseClauses(caseClauses);
+    ImmutableList<SeqFunctionCallExpression> porAssumptions =
+        pIncludePOR
+            ? createPartialOrderReductionAssumptions(prunedCaseClauses)
+            : ImmutableList.of();
     SeqMainFunction mainMethod =
         new SeqMainFunction(
             threadCount,
             createThreadSimulationAssertions(threadVars),
             createThreadSimulationAssumptions(threadVars),
-            createPartialOrderReductionAssumptions(prunedCaseClauses),
+            porAssumptions,
             prunedCaseClauses);
     rProgram.append(mainMethod.toASTString());
 

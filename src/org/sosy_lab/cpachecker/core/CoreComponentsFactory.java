@@ -356,6 +356,14 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
+      name = "algorithm.MPOR.includePOR",
+      description =
+          "whether to include partial order reduction assumptions in sequentialization"
+              + " to reduce the state space")
+  private boolean includePOR = false;
+
+  @Option(
+      secure = true,
       name = "algorithm.MPV",
       description = "use MPV algorithm for checking multiple properties")
   private boolean useMPV = false;
@@ -706,7 +714,7 @@ public class CoreComponentsFactory {
       }
 
       if (useMPOR) {
-        algorithm = new MPORAlgorithm(cpa, config, logger, shutdownNotifier, cfa);
+        algorithm = new MPORAlgorithm(cpa, config, logger, shutdownNotifier, cfa, includePOR);
       }
 
       if (useMPV) {

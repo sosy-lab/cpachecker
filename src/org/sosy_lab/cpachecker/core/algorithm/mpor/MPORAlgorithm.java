@@ -120,7 +120,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /** Returns the initial sequentialization, i.e. we adjust it in later stages */
   public String buildInitSeq() throws UnrecognizedCodeException {
-    return seq.generateProgram(substitutions);
+    return seq.generateProgram(substitutions, includePOR);
   }
 
   /**
@@ -230,6 +230,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final CFA inputCfa;
 
+  private final boolean includePOR;
+
   private final GlobalAccessChecker gac;
 
   private final PredicateTransferRelation ptr;
@@ -263,7 +265,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       Configuration pConfiguration,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      CFA pInputCfa)
+      CFA pInputCfa,
+      boolean pIncludePOR)
       throws InvalidConfigurationException {
 
     cpa = pCpa;
@@ -271,6 +274,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     logger = pLogManager;
     shutdownNotifier = pShutdownNotifier;
     inputCfa = pInputCfa;
+    includePOR = pIncludePOR;
 
     MPORStatics.setInstanceType(InstanceType.PRODUCTION);
     InputRejections.handleInitialRejections(inputCfa);
@@ -294,17 +298,20 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     seq = new Sequentialization(threads.size());
   }
 
-  public static MPORAlgorithm testInstance(LogManager pLogManager, CFA pInputCfa) {
-    return new MPORAlgorithm(pLogManager, pInputCfa);
+  public static MPORAlgorithm testInstance(
+      LogManager pLogManager, CFA pInputCfa, boolean pIncludePOR) {
+
+    return new MPORAlgorithm(pLogManager, pInputCfa, pIncludePOR);
   }
 
   /** Use this constructor only for test purposes. */
-  private MPORAlgorithm(LogManager pLogManager, CFA pInputCfa) {
+  private MPORAlgorithm(LogManager pLogManager, CFA pInputCfa, boolean pIncludePOR) {
     cpa = null;
     config = null;
     logger = pLogManager;
     shutdownNotifier = null;
     inputCfa = pInputCfa;
+    includePOR = pIncludePOR;
 
     if (!MPORStatics.isInstanceTypeSet()) {
       MPORStatics.setInstanceType(InstanceType.TEST);

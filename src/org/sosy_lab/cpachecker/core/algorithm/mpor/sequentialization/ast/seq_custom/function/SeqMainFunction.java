@@ -144,7 +144,9 @@ public class SeqMainFunction implements SeqFunction {
       String assumeStatement = assumption.toASTString() + SeqSyntax.SEMICOLON;
       assumptions.append(SeqUtil.prependTabsWithNewline(2, assumeStatement));
     }
-    assumptions.append(SeqSyntax.NEWLINE);
+    if (!porAssumptions.isEmpty()) {
+      assumptions.append(SeqSyntax.NEWLINE);
+    }
     for (SeqFunctionCallExpression assumption : porAssumptions) {
       String assumeStatement = assumption.toASTString() + SeqSyntax.SEMICOLON;
       assumptions.append(SeqUtil.prependTabsWithNewline(2, assumeStatement));
