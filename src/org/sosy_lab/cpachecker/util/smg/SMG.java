@@ -514,30 +514,25 @@ public class SMG {
   /**
    * Returns a new SMG with the HVEdges replaced by the given.
    *
-   * @param objectToReplace the object whose edges are supposed to be changed.
+   * @param objectToReplaceIn the object whose edges are supposed to be changed.
    * @param newHVEdges the new HVedges.
    */
   public SMG copyAndReplaceHVEdgesAt(
-      SMGObject objectToReplace, PersistentSet<SMGHasValueEdge> newHVEdges) {
+      SMGObject objectToReplaceIn, PersistentSet<SMGHasValueEdge> newHVEdges) {
     if (newHVEdges.isEmpty()) {
-      if (hasValueEdges.get(objectToReplace) == null) {
+      if (hasValueEdges.get(objectToReplaceIn) == null) {
         return this;
       }
-      return copyAndRemoveHVEdges(hasValueEdges.get(objectToReplace), objectToReplace);
+      return copyAndRemoveHVEdges(hasValueEdges.get(objectToReplaceIn), objectToReplaceIn);
     }
-    // TODO: this might change pointers
-    for (SMGHasValueEdge edge : newHVEdges) {
-      assert !pointsToEdges.containsKey(edge.hasValue());
+
+    SMG newSMG = copyAndRemoveHVEdges(hasValueEdges.get(objectToReplaceIn), objectToReplaceIn);
+
+    for (SMGHasValueEdge newEdge : newHVEdges) {
+      // TODO: a loop is inefficient here
+      newSMG = newSMG.copyAndAddHVEdge(newEdge, objectToReplaceIn);
     }
-    // TODO: valuesToRegionsTheyAreSavedIn is not updated
-    throw new RuntimeException("Implement me (CEGAR ONLY currently)");
-    /*
-    return new SMG(
-        smgObjects,
-        smgValues,
-        hasValueEdges.removeAndCopy(objectToReplace).putAndCopy(objectToReplace, newHVEdges), valuesToRegionsTheyAreSavedIn,
-        pointsToEdges, objectsAndPointersPointingAtThem,
-        sizeOfPointer);*/
+    return newSMG;
   }
 
   /**
