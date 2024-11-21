@@ -600,6 +600,8 @@ public class SymbolicProgramConfiguration {
       SMGMergeStatus initialJoinStatus,
       int nestingDiff)
       throws SMGException {
+    Preconditions.checkNotNull(initialJoinStatus);
+
     // 1. if v1 == v2, return
     Value v1v = pSpc1.getValueFromSMGValue(v1).orElseThrow();
     Value v2v = pSpc2.getValueFromSMGValue(v2).orElseThrow();
@@ -1495,6 +1497,8 @@ public class SymbolicProgramConfiguration {
     // the minimal set of 0s.
     // It is actually important here not to use a write reinterpretation,
     //   we want the offsets/sizes of even 0 edges to match between the objects as far as possible.
+
+    //   a  First, remove all 0 edges
     for (SMGHasValueEdge zeroEdge1 : offsetsToZero1.values()) {
       hves1 = hves1.removeAndCopy(zeroEdge1);
     }
@@ -1503,11 +1507,19 @@ public class SymbolicProgramConfiguration {
     }
     // TODO: is the minimal overlapping set the same?
     // TODO: optimize
+
+    //   b  Extend the sets without zeros with the smallest set of edges to zero, that both original sets shared
+
+    // Adds the zero edges for hves1
     hves1 =
         addMinimalOverlappingZeroEdgesTo(offsetsToZero1.values(), offsetsToZero2.values(), hves1);
+    // Adds the zero edges for hves2
     hves2 =
         addMinimalOverlappingZeroEdgesTo(offsetsToZero2.values(), offsetsToZero1.values(), hves2);
 
+    // From here on, both have zero edges at the same locations only
+
+    // Gather all non-zero pointers in the 2 sets that are not in the other
     ImmutableSet.Builder<SMGHasValueEdge> hves1NotZeroPtrsNotIn2Builder = ImmutableSet.builder();
     for (SMGHasValueEdge h1 : offsetsToNonZeroPtrs1.values()) {
       List<SMGHasValueEdge> maybeHve2 =
@@ -1541,26 +1553,30 @@ public class SymbolicProgramConfiguration {
     SymbolicProgramConfiguration updatedSPC2 =
         spc2.copyWithNewSMG(spc2.smg.copyAndReplaceHVEdgesAt(obj2, hves2));
 
-    //    Then, extend each object, that does not include a (non 0) ptr at a location
+    //   c Then, extend each object, that does not include a (non 0) ptr at a location
     //      where the other has a non 0 ptr, with a 0 ptr
-    for (SMGHasValueEdge hve1NotZeroPtrNotIn2 : hves1NotZeroPtrsNotIn2) {
+    for (SMGHasValueEdge hve2NotZeroPtrNotIn1 : hves2NotZeroPtrsNotIn1) {
       updatedSPC1 =
           updatedSPC1.writeValue(
               obj1,
-              hve1NotZeroPtrNotIn2.getOffset(),
-              hve1NotZeroPtrNotIn2.getSizeInBits(),
-              SMGValue.zeroValue());
-    }
-    for (SMGHasValueEdge hve2NotZeroPtrNotIn1 : hves2NotZeroPtrsNotIn1) {
-      updatedSPC2 =
-          updatedSPC2.writeValue(
-              obj2,
               hve2NotZeroPtrNotIn1.getOffset(),
               hve2NotZeroPtrNotIn1.getSizeInBits(),
               SMGValue.zeroValue());
     }
+    for (SMGHasValueEdge hve1NotZeroPtrNotIn1 : hves1NotZeroPtrsNotIn2) {
+      updatedSPC2 =
+          updatedSPC2.writeValue(
+              obj2,
+              hve1NotZeroPtrNotIn1.getOffset(),
+              hve1NotZeroPtrNotIn1.getSizeInBits(),
+              SMGValue.zeroValue());
+    }
+    // There might be concrete values on one, but not the other. So a mismatch in edges is possible!
+    // But there should be a match in pointer edges (not target/equal, but if there is one in one SMG, there is one in the other)
 
+    // 3. equal merge status
     SMGMergeStatus status = SMGMergeStatus.EQUAL;
+
     // 4. Update join status based on the (new) zero edges in both
     //      If a 0 edge in the original obj1 is shrunk or no longer present, ⊏
     status =
@@ -1665,10 +1681,14 @@ public class SymbolicProgramConfiguration {
     return currentStatus;
   }
 
+  /**
+   * Adds all 0 edges present in both to hves.
+   * The numbers in hves1OnlyZeros and hves2OnlyZeros do not matter.
+   */
   private static @Nullable PersistentSet<SMGHasValueEdge> addMinimalOverlappingZeroEdgesTo(
       Collection<SMGHasValueEdge> hves1OnlyZeros,
       Collection<SMGHasValueEdge> hves2OnlyZeros,
-      PersistentSet<SMGHasValueEdge> hves1) {
+      PersistentSet<SMGHasValueEdge> hves) {
     for (SMGHasValueEdge zeroEdge1 : hves1OnlyZeros) {
       int offset1 = zeroEdge1.getOffset().intValueExact();
       int size1 = zeroEdge1.getSizeInBits().intValueExact();
@@ -1682,8 +1702,8 @@ public class SymbolicProgramConfiguration {
           int overlapSize = Integer.min(offsetPlusSize1, offsetPlusSize2) - overlapStartOffset;
           if (overlapSize > 0) {
             // TODO: merge 0 blocks? Is this even possibly needed here?
-            hves1 =
-                hves1.addAndCopy(
+            hves =
+                hves.addAndCopy(
                     new SMGHasValueEdge(
                         SMGValue.zeroValue(),
                         BigInteger.valueOf(overlapStartOffset),
@@ -1693,7 +1713,7 @@ public class SymbolicProgramConfiguration {
         // TODO: we use sorted collections, abort if exceeds
       }
     }
-    return hves1;
+    return hves;
   }
 
   public CType getTypeForValue(SMGValue value) {
