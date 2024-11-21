@@ -557,6 +557,7 @@ public class SymbolicProgramConfiguration {
         currentNestingDiff = isNextOrPrev ? currentNestingDiff - 1 : currentNestingDiff;
       }
       // joinValues()
+      // Returns a value that represents both inputs, inclusive their memory, if it succeeds.
       Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeJoinedValuesResult =
           mergeValues(spc1, spc2, v1, v2, newSPC, mapping1, mapping2, status, currentNestingDiff);
       if (maybeJoinedValuesResult.isEmpty()) {
@@ -574,7 +575,7 @@ public class SymbolicProgramConfiguration {
       newSPC = joinedSPCsAndMappingsAndStatus.getMergedSPC();
       SMGValue newValue = joinedValuesResult.getSMGValue();
 
-      // add new HVE for joined value
+      // Add new HVE for joined value.
       newSPC =
           newSPC.writeValue(newObj, BigInteger.valueOf(offset), BigInteger.valueOf(size), newValue);
       // Check that the new pointer also has a PTE
@@ -609,8 +610,11 @@ public class SymbolicProgramConfiguration {
           "Error when merging. A symbolic value could not be compared or created due to a missing"
               + " type.");
     }
-    // TODO: is this really equal or !isNotEq() from the paper?
-    if ((v1v.isNumericValue() && v2v.isNumericValue() && v1v.equals(v2v)) || v1.equals(v2)) {
+
+    // Return for equal values (e.g. numeric values) but not pointers
+    // TODO: this only works if the memory is also eq, so pull areValuesEqual() down to SPC level
+    if ((v1v.isNumericValue() && v2v.isNumericValue() && v1v.equals(v2v))
+        || (v1.equals(v2) && !pSpc1.getSmg().isPointer(v1) && !pSpc2.getSmg().isPointer(v2))) {
       return Optional.of(
           MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.of(
               v1,
