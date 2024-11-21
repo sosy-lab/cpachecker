@@ -207,7 +207,7 @@ public class Sequentialization {
   //  and the invariants will not hold
   //  -> once we support intermediary thread terminations, remove these invariants
   private ImmutableList<SeqLogicalAndExpression> createThreadSimulationAssertions(
-      ThreadVars pThreadVars) throws UnrecognizedCodeException {
+      ThreadVars pThreadVars) {
 
     ImmutableList.Builder<SeqLogicalAndExpression> rAssertions = ImmutableList.builder();
     // add assertion over awaits: ti_awaits_m && !(ti_active) ==> assert_fail

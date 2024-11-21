@@ -134,14 +134,8 @@ public class SeqUtil {
         int targetPc = threadEdge.getSuccessor().pc;
         CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(pThread.id, targetPc);
 
-        CFANode predecessor = threadEdge.getPredecessor().cfaNode;
         CFANode successor = threadEdge.getSuccessor().cfaNode;
-
-        if (emptyCaseCode(predecessor, sub, successor, pThread)) {
-          assert pThreadNode.leavingEdges().size() == 1;
-          stmts.add(new SeqBlankStatement(pcUpdate, targetPc));
-
-        } else if (successor instanceof FunctionExitNode
+        if (successor instanceof FunctionExitNode
             && successor.getFunction().getType().equals(pThread.startRoutine)) {
           // exiting thread -> assign 0 to thread_active var if possible and set exit pc
           CExpressionAssignmentStatement activeAssign =
@@ -150,6 +144,10 @@ public class SeqUtil {
                   Objects.requireNonNull(pThreadVars.active.get(pThread)).idExpression,
                   SeqIntegerLiteralExpression.INT_0);
           stmts.add(new SeqThreadExitStatement(pThread.id, activeAssign));
+
+        } else if (emptyCaseCode(sub)) {
+          assert pThreadNode.leavingEdges().size() == 1;
+          stmts.add(new SeqBlankStatement(pcUpdate, targetPc));
 
         } else {
           // use (else) if (condition) for all assumes (if, for, while, switch, ...)
@@ -164,42 +162,35 @@ public class SeqUtil {
             stmts.add(new SeqAssumeStatement(stmt, pcUpdate));
 
           } else if (sub.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
-            String funcName =
-                funcSummary
-                    .getExpression()
-                    .getFunctionCallExpression()
-                    .getFunctionNameExpression()
-                    .toASTString();
-            if (!funcName.equals(SeqToken.REACH_ERROR)) { // no return_pc for reach_error
-              assert pThreadNode.leavingEdges().size() >= 2;
-              assert pFuncVars.returnPcStorages.containsKey(threadEdge);
-              FunctionReturnPcStorage storage = pFuncVars.returnPcStorages.get(threadEdge);
-              assert storage != null;
-              stmts.add(new SeqReturnPcStorageStatement(storage.assignmentStatement));
-            }
+            // assert that both call and summary edge are present
+            assert pThreadNode.leavingEdges().size() >= 2;
+            assert pFuncVars.returnPcStorages.containsKey(threadEdge);
+            FunctionReturnPcStorage storage = pFuncVars.returnPcStorages.get(threadEdge);
+            assert storage != null;
+            stmts.add(new SeqReturnPcStorageStatement(storage.assignmentStatement));
 
           } else if (sub.cfaEdge instanceof CFunctionCallEdge funcCall) {
             String funcName =
                 funcCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
             if (funcName.equals(SeqToken.REACH_ERROR)) {
               stmts.add(new SeqReachErrorStatement()); // do not inline reach_error
+            }
+            // assert that both call and summary edge are present
+            assert pThreadNode.leavingEdges().size() >= 2;
+            assert pFuncVars.parameterAssignments.containsKey(threadEdge);
+            ImmutableList<FunctionParameterAssignment> assigns =
+                pFuncVars.parameterAssignments.get(threadEdge);
+            assert assigns != null;
+            if (assigns.isEmpty()) {
+              stmts.add(new SeqBlankStatement(pcUpdate, targetPc));
             } else {
-              assert pThreadNode.leavingEdges().size() >= 2;
-              assert pFuncVars.parameterAssignments.containsKey(threadEdge);
-              ImmutableList<FunctionParameterAssignment> assigns =
-                  pFuncVars.parameterAssignments.get(threadEdge);
-              assert assigns != null;
-              if (assigns.isEmpty()) {
-                stmts.add(new SeqBlankStatement(pcUpdate, targetPc));
-              } else {
-                for (int i = 0; i < assigns.size(); i++) {
-                  FunctionParameterAssignment assign = assigns.get(i);
-                  // if this is the last param assign, add the pcUpdate, otherwise empty
-                  stmts.add(
-                      new SeqParameterAssignStatement(
-                          assign.statement,
-                          i == assigns.size() - 1 ? Optional.of(pcUpdate) : Optional.empty()));
-                }
+              for (int i = 0; i < assigns.size(); i++) {
+                FunctionParameterAssignment assign = assigns.get(i);
+                // if this is the last param assign, add the pcUpdate, otherwise empty
+                stmts.add(
+                    new SeqParameterAssignStatement(
+                        assign.statement,
+                        i == assigns.size() - 1 ? Optional.of(pcUpdate) : Optional.empty()));
               }
             }
 
@@ -404,17 +395,11 @@ public class SeqUtil {
    * Returns true if pSub results in a case block with only pc adjustments, i.e. no code changing
    * the input program state.
    */
-  private static boolean emptyCaseCode(
-      CFANode pPredecessor, SubstituteEdge pSub, CFANode pSuccessor, MPORThread pThread) {
+  private static boolean emptyCaseCode(SubstituteEdge pSub) {
 
     if (pSub.cfaEdge instanceof BlankEdge) {
       assert pSub.cfaEdge.getCode().isEmpty();
-      if (pSuccessor instanceof FunctionExitNode
-          && pSuccessor.getFunction().getType().equals(pThread.startRoutine)) {
-        return false; // exiting thread -> set active var to 0, i.e. not empty
-      } else {
-        return true;
-      }
+      return true;
     } else if (pSub.cfaEdge instanceof CDeclarationEdge decEdge) {
       CDeclaration dec = decEdge.getDeclaration();
       if (!(dec instanceof CVariableDeclaration varDec)) {
@@ -426,8 +411,6 @@ public class SeqUtil {
     } else if (PthreadFuncType.callsAnyPthreadFunc(pSub.cfaEdge)) {
       // not explicitly handled PthreadFunc -> empty case code
       return !isExplicitlyHandledPthreadFunc(pSub.cfaEdge);
-    } else if (pPredecessor.getFunctionName().equals(SeqToken.REACH_ERROR)) {
-      return true; // code of reach_error is not inlined
     }
     return false;
   }
