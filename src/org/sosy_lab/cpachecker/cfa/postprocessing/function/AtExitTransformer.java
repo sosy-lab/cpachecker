@@ -65,11 +65,10 @@ public class AtExitTransformer {
   /** Check if the atexit() function is used by the program */
   private boolean usesAtExit() {
     for (CFAEdge edge : ImmutableList.copyOf(cfa.edges())) {
-      if (edge instanceof CStatementEdge stmtEdge
-          && stmtEdge.getStatement() instanceof CFunctionCallStatement callStmt
-          && callStmt.getFunctionCallExpression().getFunctionNameExpression()
-              instanceof CIdExpression nameExpr
-          && nameExpr.getName().equals("atexit")) {
+      if (!(edge instanceof CDeclarationEdge) && edge.toString().contains("atexit")) {
+        // This will over-approximate and match on programs that use the name "atexit" for variables
+        // or their own function definitions. We're fine with this as long as no actual use of C
+        // library function "atexit" is missed.
         return true;
       }
     }
