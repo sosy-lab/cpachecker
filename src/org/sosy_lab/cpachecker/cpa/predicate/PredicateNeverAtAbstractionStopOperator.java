@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-class PredicateNeverAtAbstractionStopOperator implements StopOperator {
+public class PredicateNeverAtAbstractionStopOperator implements StopOperator {
 
   private final AbstractDomain domain;
 

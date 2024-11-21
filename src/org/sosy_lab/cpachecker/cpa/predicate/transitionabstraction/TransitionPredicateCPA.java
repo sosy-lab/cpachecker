@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 public class TransitionPredicateCPA extends PredicateCPA
     implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable {
 
+  private final PredicateCPAInvariantsManager invariantsManager;
 
   protected TransitionPredicateCPA(
       Configuration config,
@@ -50,9 +51,9 @@ public class TransitionPredicateCPA extends PredicateCPA
       Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException, InterruptedException {
-    // TODO: Modify constructor if necessary
-
     super(config, logger, pBlk, pCfa, pShutdownNotifier, specification, pAggregatedReachedSets);
+    // TODO: Modify constructor if necessary
+    invariantsManager = getInvariantsManager();
   }
 
   @Override
@@ -111,7 +112,7 @@ public class TransitionPredicateCPA extends PredicateCPA
         logger,
         shutdownNotifier,
         getAbstractionStats(),
-        getInvariantsManager()
+        getInvariantsManager().appendToAbstractionFormula()
         ? invariantsManager
         : TrivialInvariantSupplier.INSTANCE);
   }
