@@ -143,7 +143,7 @@ public class SeqUtil {
                   FileLocation.DUMMY,
                   Objects.requireNonNull(pThreadVars.active.get(pThread)).idExpression,
                   SeqIntegerLiteralExpression.INT_0);
-          stmts.add(new SeqThreadExitStatement(pThread.id, activeAssign));
+          stmts.add(new SeqThreadExitStatement(pThread.id, activeAssign, targetPc));
 
         } else if (emptyCaseCode(sub)) {
           assert pThreadNode.leavingEdges().size() == 1;
@@ -159,21 +159,21 @@ public class SeqUtil {
               firstEdge = false;
             }
             SeqControlFlowStatement stmt = new SeqControlFlowStatement(assumeEdge, stmtType);
-            stmts.add(new SeqAssumeStatement(stmt, pcUpdate));
+            stmts.add(new SeqAssumeStatement(stmt, pcUpdate, targetPc));
 
-          } else if (sub.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
+          } else if (sub.cfaEdge instanceof CFunctionSummaryEdge) {
             // assert that both call and summary edge are present
             assert pThreadNode.leavingEdges().size() >= 2;
             assert pFuncVars.returnPcStorages.containsKey(threadEdge);
             FunctionReturnPcStorage storage = pFuncVars.returnPcStorages.get(threadEdge);
             assert storage != null;
-            stmts.add(new SeqReturnPcStorageStatement(storage.assignmentStatement));
+            stmts.add(new SeqReturnPcStorageStatement(storage.assignmentStatement, storage.value));
 
           } else if (sub.cfaEdge instanceof CFunctionCallEdge funcCall) {
             String funcName =
                 funcCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
             if (funcName.equals(SeqToken.REACH_ERROR)) {
-              stmts.add(new SeqReachErrorStatement()); // do not inline reach_error
+              stmts.add(new SeqReachErrorStatement()); // inject non-inlined reach_error
             }
             // assert that both call and summary edge are present
             assert pThreadNode.leavingEdges().size() >= 2;
@@ -187,10 +187,12 @@ public class SeqUtil {
               for (int i = 0; i < assigns.size(); i++) {
                 FunctionParameterAssignment assign = assigns.get(i);
                 // if this is the last param assign, add the pcUpdate, otherwise empty
+                boolean lastParam = i == assigns.size() - 1;
                 stmts.add(
                     new SeqParameterAssignStatement(
                         assign.statement,
-                        i == assigns.size() - 1 ? Optional.of(pcUpdate) : Optional.empty()));
+                        lastParam ? Optional.of(pcUpdate) : Optional.empty(),
+                        lastParam ? Optional.of(targetPc) : Optional.empty()));
               }
             }
 
@@ -213,9 +215,11 @@ public class SeqUtil {
             SubstituteEdge subA = pSubEdges.get(statementA);
             SubstituteEdge subB = pSubEdges.get(statementB);
             assert subA != null && subB != null;
-            CExpressionAssignmentStatement skippedPcUpdate =
-                SeqStatements.buildPcUpdate(pThread.id, statementB.getSuccessor().pc);
-            stmts.add(new SeqConstCpaCheckerTmpStatement(decEdge, subA, subB, skippedPcUpdate));
+            int newTargetPc = statementB.getSuccessor().pc;
+            CExpressionAssignmentStatement newPcUpdate =
+                SeqStatements.buildPcUpdate(pThread.id, newTargetPc);
+            stmts.add(
+                new SeqConstCpaCheckerTmpStatement(decEdge, subA, subB, newPcUpdate, newTargetPc));
 
           } else if (sub.cfaEdge instanceof CReturnStatementEdge) {
             assert sub.cfaEdge.getSuccessor() != null;
@@ -228,7 +232,7 @@ public class SeqUtil {
             assert assigns != null;
             assert !assigns.isEmpty();
             CIdExpression returnPc = assigns.iterator().next().returnPcStorage.returnPc;
-            stmts.add(new SeqReturnValueAssignStatements(returnPc, assigns, pcUpdate));
+            stmts.add(new SeqReturnValueAssignStatements(returnPc, assigns, pcUpdate, targetPc));
 
           } else if (isExplicitlyHandledPthreadFunc(sub.cfaEdge)) {
             PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(edge);
@@ -241,7 +245,7 @@ public class SeqUtil {
                     SeqStatements.buildExprAssign(
                         Objects.requireNonNull(pThreadVars.active.get(thread)).idExpression,
                         SeqIntegerLiteralExpression.INT_1);
-                stmts.add(new SeqThreadCreationStatement(activeAssign, pcUpdate));
+                stmts.add(new SeqThreadCreationStatement(activeAssign, pcUpdate, targetPc));
                 break;
 
               case PTHREAD_MUTEX_LOCK:
@@ -257,7 +261,7 @@ public class SeqUtil {
                             Objects.requireNonNull(pThreadVars.awaits.get(pThread))
                                 .get(lockedMutexT))
                         .idExpression;
-                stmts.add(new SeqMutexLockStatement(lockedVar, mutexAwaits, pcUpdate));
+                stmts.add(new SeqMutexLockStatement(lockedVar, mutexAwaits, pcUpdate, targetPc));
                 break;
 
               case PTHREAD_MUTEX_UNLOCK:
@@ -268,7 +272,7 @@ public class SeqUtil {
                     SeqStatements.buildExprAssign(
                         Objects.requireNonNull(pThreadVars.locked.get(unlockedMutexT)).idExpression,
                         SeqIntegerLiteralExpression.INT_0);
-                stmts.add(new SeqMutexUnlockStatement(lockedFalse, pcUpdate));
+                stmts.add(new SeqMutexUnlockStatement(lockedFalse, pcUpdate, targetPc));
                 break;
 
               case PTHREAD_JOIN:
@@ -281,7 +285,9 @@ public class SeqUtil {
                             Objects.requireNonNull(pThreadVars.joins.get(pThread))
                                 .get(targetThread))
                         .idExpression;
-                stmts.add(new SeqThreadJoinStatement(targetThreadActive, threadJoins, pcUpdate));
+                stmts.add(
+                    new SeqThreadJoinStatement(
+                        targetThreadActive, threadJoins, pcUpdate, targetPc));
                 break;
 
               default:
@@ -290,7 +296,7 @@ public class SeqUtil {
 
           } else {
             assert sub.cfaEdge instanceof CStatementEdge;
-            stmts.add(new SeqDefaultStatement((CStatementEdge) sub.cfaEdge, pcUpdate));
+            stmts.add(new SeqDefaultStatement((CStatementEdge) sub.cfaEdge, pcUpdate, targetPc));
           }
         }
       }

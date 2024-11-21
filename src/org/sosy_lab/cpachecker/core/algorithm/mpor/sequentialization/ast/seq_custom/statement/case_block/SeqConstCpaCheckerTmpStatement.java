@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -46,11 +47,14 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement pcUpdate;
 
+  private final int targetPc;
+
   public SeqConstCpaCheckerTmpStatement(
       CDeclarationEdge pDeclaration,
       SubstituteEdge pStatementA,
       SubstituteEdge pStatementB,
-      CExpressionAssignmentStatement pPcUpdate) {
+      CExpressionAssignmentStatement pPcUpdate,
+      int pTargetPc) {
 
     checkArgument(
         pDeclaration.getDeclaration() instanceof CVariableDeclaration,
@@ -79,6 +83,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
     declaration = pDeclaration;
     pcUpdate = pPcUpdate;
+    targetPc = pTargetPc;
   }
 
   @Override
@@ -90,5 +95,10 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         + statementB.getCode()
         + SeqSyntax.SPACE
         + pcUpdate.toASTString();
+  }
+
+  @Override
+  public Optional<Integer> getTargetPc() {
+    return Optional.of(targetPc);
   }
 }

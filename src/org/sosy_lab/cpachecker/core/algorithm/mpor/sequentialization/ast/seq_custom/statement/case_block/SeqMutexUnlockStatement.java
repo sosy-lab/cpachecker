@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
@@ -17,15 +18,25 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement pcUpdate;
 
+  private final int targetPc;
+
   public SeqMutexUnlockStatement(
-      CExpressionAssignmentStatement pLockedFalse, CExpressionAssignmentStatement pPcUpdate) {
+      CExpressionAssignmentStatement pLockedFalse,
+      CExpressionAssignmentStatement pPcUpdate,
+      int pTargetPc) {
 
     lockedFalse = pLockedFalse;
     pcUpdate = pPcUpdate;
+    targetPc = pTargetPc;
   }
 
   @Override
   public String toASTString() {
     return lockedFalse.toASTString() + SeqSyntax.SPACE + pcUpdate;
+  }
+
+  @Override
+  public Optional<Integer> getTargetPc() {
+    return Optional.of(targetPc);
   }
 }

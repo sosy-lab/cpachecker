@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 
-public interface SeqCaseBlockStatement extends SeqStatement {}
+public interface SeqCaseBlockStatement extends SeqStatement {
+  Optional<Integer> getTargetPc();
+}

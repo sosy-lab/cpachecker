@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -40,10 +41,13 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement pcUpdate;
 
+  private final int targetPc;
+
   public SeqMutexLockStatement(
       CIdExpression pMutexLocked,
       CIdExpression pMutexAwaits,
-      CExpressionAssignmentStatement pPcUpdate) {
+      CExpressionAssignmentStatement pPcUpdate,
+      int pTargetPc) {
 
     ifLocked = new SeqControlFlowStatement(pMutexLocked, SeqControlFlowStatementType.IF);
     awaitsTrue =
@@ -56,6 +60,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, pMutexLocked, SeqIntegerLiteralExpression.INT_1);
     pcUpdate = pPcUpdate;
+    targetPc = pTargetPc;
   }
 
   @Override
@@ -74,5 +79,10 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
         + elseNotLocked.toASTString()
         + SeqSyntax.SPACE
         + elseStmts;
+  }
+
+  @Override
+  public Optional<Integer> getTargetPc() {
+    return Optional.of(targetPc);
   }
 }

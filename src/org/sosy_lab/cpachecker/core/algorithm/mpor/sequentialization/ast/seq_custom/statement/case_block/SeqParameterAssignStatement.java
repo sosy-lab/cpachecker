@@ -18,11 +18,16 @@ public class SeqParameterAssignStatement implements SeqCaseBlockStatement {
 
   private final Optional<CExpressionAssignmentStatement> pcUpdate;
 
+  private final Optional<Integer> targetPc;
+
   public SeqParameterAssignStatement(
-      CExpressionAssignmentStatement pAssign, Optional<CExpressionAssignmentStatement> pPcUpdate) {
+      CExpressionAssignmentStatement pAssign,
+      Optional<CExpressionAssignmentStatement> pPcUpdate,
+      Optional<Integer> pTargetPc) {
 
     assign = pAssign;
     pcUpdate = pPcUpdate;
+    targetPc = pTargetPc;
   }
 
   @Override
@@ -32,5 +37,10 @@ public class SeqParameterAssignStatement implements SeqCaseBlockStatement {
     } else {
       return assign.toASTString();
     }
+  }
+
+  @Override
+  public Optional<Integer> getTargetPc() {
+    return targetPc;
   }
 }

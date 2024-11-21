@@ -184,8 +184,10 @@ public class Sequentialization {
     // create pruned (i.e. only non-empty) cases statements
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
         mapCaseClauses(pSubstitutions, subEdges, returnPcVars, threadVars);
+    assert validCaseClauses(caseClauses);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
         pruneCaseClauses(caseClauses);
+    assert validCaseClauses(prunedCaseClauses);
     ImmutableList<SeqFunctionCallExpression> porAssumptions =
         pIncludePOR
             ? createPartialOrderReductionAssumptions(prunedCaseClauses)
@@ -301,6 +303,41 @@ public class Sequentialization {
       }
     }
     return rAssumptions.build();
+  }
+
+  /**
+   * Returns {@code true} if all targetPc (e.g. {@code pc[i] = 42;}) except {@code -1} in pCaseClauses are present as
+   * an originPc (e.g. {@code case 42:}), false otherwise. <br>
+   * Every sequentialization needs to fulfill this property, otherwise it is faulty.
+   */
+  private boolean validCaseClauses(
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
+
+    for (var entry : pCaseClauses.entrySet()) {
+      // create the map of originPc n (e.g. case n) to target pc(s) m (e.g. pc[i] = m)
+      ImmutableMap.Builder<Integer, ImmutableSet<Integer>> pcMapBuilder = ImmutableMap.builder();
+      for (SeqCaseClause caseClause : entry.getValue()) {
+        ImmutableSet.Builder<Integer> targetPcs = ImmutableSet.builder();
+        for (SeqCaseBlockStatement stmt : caseClause.caseBlock.statements) {
+          if (stmt.getTargetPc().isPresent()) {
+            targetPcs.add(stmt.getTargetPc().orElseThrow());
+          }
+        }
+        pcMapBuilder.put(caseClause.caseLabel.value, targetPcs.build());
+      }
+      ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = pcMapBuilder.build();
+      // check if each targetPc is also present as an origin pc
+      for (var pcEntry : pcMap.entrySet()) {
+        for (int targetPc : pcEntry.getValue()) {
+          if (targetPc != SeqUtil.EXIT_PC) {
+            if (!pcMap.containsKey(targetPc)) {
+              return false;
+            }
+          }
+        }
+      }
+    }
+    return true;
   }
 
   private ImmutableList<SeqFunctionCallExpression> createPartialOrderReductionAssumptions(
@@ -442,7 +479,7 @@ public class Sequentialization {
       if (pCurrent.isPrunable()) {
         pSkipped.add(pCurrent);
         SeqBlankStatement blank = (SeqBlankStatement) stmt;
-        SeqCaseClause nextCaseClause = pCaseLabelValueMap.get(blank.targetPc);
+        SeqCaseClause nextCaseClause = pCaseLabelValueMap.get(blank.getTargetPc().orElseThrow());
         if (nextCaseClause == null) {
           return null;
         }

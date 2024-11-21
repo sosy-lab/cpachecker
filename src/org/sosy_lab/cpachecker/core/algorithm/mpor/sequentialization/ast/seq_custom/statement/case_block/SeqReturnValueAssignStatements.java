@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -23,6 +24,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
+/**
+ * Handles the assignments of return values of functions, e.g. {@code int x = fib(5);} where {@code
+ * fib} has a return statement {@code return fibNumber;} then we create statements {@code x =
+ * fibNumber;} (where {@code x} is declared beforehand) in the sequentialization. <br>
+ * The function {@code fib} may be called multiple times by one thread, so we create a switch
+ * statement with one or multiple {@link SeqReturnValueAssignCaseBlockStatement}s where only the
+ * original calling context of the function {@code fib} is considered.
+ */
 public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
 
   private final boolean anyGlobal;
@@ -33,10 +42,13 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement pcUpdate;
 
+  private final int targetPc;
+
   public SeqReturnValueAssignStatements(
       CIdExpression pReturnPc,
       ImmutableSet<FunctionReturnValueAssignment> pAssigns,
-      CExpressionAssignmentStatement pPcUpdate) {
+      CExpressionAssignmentStatement pPcUpdate,
+      int pTargetPc) {
 
     checkArgument(!pAssigns.isEmpty(), "pAssigns must contain at least one entry");
 
@@ -44,6 +56,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
     assigns = pAssigns;
     returnPc = pReturnPc;
     pcUpdate = pPcUpdate;
+    targetPc = pTargetPc;
   }
 
   @Override
@@ -81,6 +94,11 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
     return false;
   }
 
+  @Override
+  public Optional<Integer> getTargetPc() {
+    return Optional.of(targetPc);
+  }
+
   private static class SeqReturnValueAssignCaseBlockStatement implements SeqCaseBlockStatement {
 
     private final CExpressionAssignmentStatement assignment;
@@ -92,6 +110,11 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
     @Override
     public String toASTString() {
       return assignment.toASTString();
+    }
+
+    @Override
+    public Optional<Integer> getTargetPc() {
+      return Optional.empty();
     }
   }
 }

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
@@ -18,13 +19,22 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement pcUpdate;
 
-  public SeqDefaultStatement(CStatementEdge pEdge, CExpressionAssignmentStatement pPcUpdate) {
+  private final int targetPc;
+
+  public SeqDefaultStatement(
+      CStatementEdge pEdge, CExpressionAssignmentStatement pPcUpdate, int pTargetPc) {
     edge = pEdge;
     pcUpdate = pPcUpdate;
+    targetPc = pTargetPc;
   }
 
   @Override
   public String toASTString() {
     return edge.getCode() + SeqSyntax.SPACE + pcUpdate.toASTString();
+  }
+
+  @Override
+  public Optional<Integer> getTargetPc() {
+    return Optional.of(targetPc);
   }
 }

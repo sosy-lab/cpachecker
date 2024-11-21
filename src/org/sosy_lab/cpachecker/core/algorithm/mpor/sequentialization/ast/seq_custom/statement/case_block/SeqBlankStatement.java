@@ -8,13 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 
 public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement pcUpdate;
 
-  public final int targetPc;
+  private final int targetPc;
 
   public SeqBlankStatement(CExpressionAssignmentStatement pPcUpdate, int pTargetPc) {
     pcUpdate = pPcUpdate;
@@ -24,5 +25,10 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
   @Override
   public String toASTString() {
     return pcUpdate.toASTString();
+  }
+
+  @Override
+  public Optional<Integer> getTargetPc() {
+    return Optional.of(targetPc);
   }
 }

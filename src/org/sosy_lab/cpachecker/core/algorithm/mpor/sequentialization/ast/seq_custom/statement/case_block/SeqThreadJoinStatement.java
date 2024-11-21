@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -29,10 +30,13 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement pcUpdate;
 
+  private final int targetPc;
+
   public SeqThreadJoinStatement(
       CIdExpression pThreadActive,
       CIdExpression pThreadJoins,
-      CExpressionAssignmentStatement pPcUpdate) {
+      CExpressionAssignmentStatement pPcUpdate,
+      int pTargetPc) {
 
     ifActive = new SeqControlFlowStatement(pThreadActive, SeqControlFlowStatementType.IF);
     joinsTrue =
@@ -42,6 +46,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, pThreadJoins, SeqIntegerLiteralExpression.INT_0);
     pcUpdate = pPcUpdate;
+    targetPc = pTargetPc;
   }
 
   @Override
@@ -56,5 +61,10 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
         + elseNotActive.toASTString()
         + SeqSyntax.SPACE
         + elseStmts;
+  }
+
+  @Override
+  public Optional<Integer> getTargetPc() {
+    return Optional.of(targetPc);
   }
 }

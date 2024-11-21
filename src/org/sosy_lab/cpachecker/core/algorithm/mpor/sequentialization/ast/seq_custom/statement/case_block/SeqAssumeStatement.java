@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
@@ -19,11 +20,16 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement pcUpdate;
 
+  private final int targetPc;
+
   public SeqAssumeStatement(
-      SeqControlFlowStatement pControlFlowStatement, CExpressionAssignmentStatement pPcUpdate) {
+      SeqControlFlowStatement pControlFlowStatement,
+      CExpressionAssignmentStatement pPcUpdate,
+      int pTargetPc) {
 
     controlFlowStatement = pControlFlowStatement;
     pcUpdate = pPcUpdate;
+    targetPc = pTargetPc;
   }
 
   @Override
@@ -31,5 +37,10 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
     return controlFlowStatement.toASTString()
         + SeqSyntax.SPACE
         + SeqUtil.wrapInCurlyInwards(pcUpdate.toASTString());
+  }
+
+  @Override
+  public Optional<Integer> getTargetPc() {
+    return Optional.of(targetPc);
   }
 }

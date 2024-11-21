@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
@@ -19,13 +20,23 @@ public class SeqThreadExitStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement assign;
 
-  public SeqThreadExitStatement(int pThreadId, CExpressionAssignmentStatement pAssign) {
+  private final int targetPc;
+
+  public SeqThreadExitStatement(
+      int pThreadId, CExpressionAssignmentStatement pAssign, int pTargetPc) {
+
     pcUpdate = SeqStatements.buildPcUpdate(pThreadId, SeqUtil.EXIT_PC);
     assign = pAssign;
+    targetPc = pTargetPc;
   }
 
   @Override
   public String toASTString() {
     return assign.toASTString() + SeqSyntax.SPACE + pcUpdate.toASTString();
+  }
+
+  @Override
+  public Optional<Integer> getTargetPc() {
+    return Optional.of(targetPc);
   }
 }
