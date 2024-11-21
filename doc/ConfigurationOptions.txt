@@ -1035,6 +1035,10 @@ counterexample.checker = CBMC
 # counterexample check, if available
 counterexample.checker.changeCEXInfo = false
 
+# counterexample check checks MemSafety sub-properties (valid-deref,
+# valid-free, valid-memtrack) additionally to the path.
+counterexample.checker.checkMemorySafetySubproperty = false
+
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = no default value
 
@@ -3205,6 +3209,13 @@ cpa.smg2.GCCZeroLengthArray = false
 # aborts the analysis for a non-concrete (this includes symbolic values)
 # memory allocation of any kind.
 cpa.smg2.abortOnNonConcreteMemorySize = true
+
+# Periodically removes concrete values from the memory model and replaces
+# them with symbolic values. Only the newest concrete values above this
+# threshold are removed. For negative numbers this option is ignored. Note: 0
+# also removes the null value, reducing impacting null dereference or free
+# soundness. Currently only supported for given value 0.
+cpa.smg2.abstraction.abstractConcreteValuesAboveThreshold = -1
 
 # If heap values are to be abstracted based on CEGAR.
 cpa.smg2.abstraction.abstractHeapValues = false
