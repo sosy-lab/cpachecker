@@ -1338,8 +1338,8 @@ public class SMGCPAExpressionEvaluator {
     CType memoryAddressTypeInBytes = CPointerType.POINTER_TO_CHAR;
     int sizeOfMemoryAddressTypeInBits =
         pMachineModel.getSizeofInBits(memoryAddressTypeInBytes).intValueExact();
-    if (sizeOfMemoryAddressTypeInBits
-        >= (pMachineModel.getSizeofInBits(CNumericTypes.LONG_LONG_INT) + 3)) {
+    int sizeOfLongLongInt = pMachineModel.getSizeofInBits(CNumericTypes.LONG_LONG_INT);
+    if (sizeOfMemoryAddressTypeInBits <= (sizeOfLongLongInt + 3)) {
       CType longDongInt =
           new CSimpleType(
               false, false, CBasicType.INT128, false, false, true, false, false, false, false);
