@@ -46,9 +46,8 @@ public class SeqExpressions {
 
   public static class SeqIntegerLiteralExpression {
 
-    // TODO use either exit_pc or termination_pc as name
     public static final CIntegerLiteralExpression INT_EXIT_PC =
-        buildIntLiteralExpr(SeqUtil.TERMINATION_PC);
+        buildIntLiteralExpr(SeqUtil.EXIT_PC);
 
     public static final CIntegerLiteralExpression INT_MINUS_1 = buildIntLiteralExpr(-1);
 

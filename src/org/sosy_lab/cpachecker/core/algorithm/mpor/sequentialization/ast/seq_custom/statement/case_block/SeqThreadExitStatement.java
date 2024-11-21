@@ -13,14 +13,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
-public class SeqThreadTerminationStatement implements SeqCaseBlockStatement {
+public class SeqThreadExitStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement pcUpdate;
 
   private final CExpressionAssignmentStatement assign;
 
-  public SeqThreadTerminationStatement(int pThreadId, CExpressionAssignmentStatement pAssign) {
-    pcUpdate = SeqStatements.buildPcUpdate(pThreadId, SeqUtil.TERMINATION_PC);
+  public SeqThreadExitStatement(int pThreadId, CExpressionAssignmentStatement pAssign) {
+    pcUpdate = SeqStatements.buildPcUpdate(pThreadId, SeqUtil.EXIT_PC);
     assign = pAssign;
   }
 

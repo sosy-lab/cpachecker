@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -64,8 +65,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcStorageStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadCreationStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadExitStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadJoinStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadTerminationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcRetrieval;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcStorage;
@@ -85,7 +86,7 @@ public class SeqUtil {
 
   public static final int INIT_PC = 0;
 
-  public static final int TERMINATION_PC = -1;
+  public static final int EXIT_PC = -1;
 
   // TODO create CaseBuilder class
   /**
@@ -110,7 +111,7 @@ public class SeqUtil {
 
     // no edges -> exit node reached (assert fail or main / start routine exit node)
     if (pThreadNode.leavingEdges().isEmpty()) {
-      assert pThreadNode.pc == TERMINATION_PC;
+      assert pThreadNode.pc == EXIT_PC;
       return null;
 
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
@@ -124,16 +125,33 @@ public class SeqUtil {
       // TODO create separate methods here to handle the different cases for better overview
       boolean firstEdge = true;
       for (ThreadEdge threadEdge : pThreadNode.leavingEdges()) {
+
         threadEdges.add(threadEdge);
         CFAEdge edge = threadEdge.cfaEdge;
         SubstituteEdge sub = pSubEdges.get(threadEdge);
         assert sub != null;
+
         int targetPc = threadEdge.getSuccessor().pc;
         CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(pThread.id, targetPc);
 
-        if (emptyCaseCode(sub, threadEdge.getPredecessor())) {
+        CFANode predecessor = threadEdge.getPredecessor().cfaNode;
+        CFANode successor = threadEdge.getSuccessor().cfaNode;
+
+        if (emptyCaseCode(predecessor, sub, successor, pThread)) {
           assert pThreadNode.leavingEdges().size() == 1;
           stmts.add(new SeqBlankStatement(pcUpdate, targetPc));
+
+        } else if (successor instanceof FunctionExitNode
+            && successor.getFunction().getType().equals(pThread.startRoutine)) {
+          // TODO add support and test for pthread_join(id, &start_routine_return)
+          //  where start_routine_return is assigned the return value of the threads start routine
+          // exiting thread -> assign 0 to thread_active var if possible and set exit pc
+          CExpressionAssignmentStatement activeAssign =
+              new CExpressionAssignmentStatement(
+                  FileLocation.DUMMY,
+                  Objects.requireNonNull(pThreadVars.active.get(pThread)).idExpression,
+                  SeqIntegerLiteralExpression.INT_0);
+          stmts.add(new SeqThreadExitStatement(pThread.id, activeAssign));
 
         } else {
           // use (else) if (condition) for all assumes (if, for, while, switch, ...)
@@ -210,26 +228,18 @@ public class SeqUtil {
                 SeqStatements.buildPcUpdate(pThread.id, statementB.getSuccessor().pc);
             stmts.add(new SeqConstCpaCheckerTmpStatement(decEdge, subA, subB, skippedPcUpdate));
 
-          } else if (sub.cfaEdge instanceof CReturnStatementEdge retStmt) {
+          } else if (sub.cfaEdge instanceof CReturnStatementEdge) {
+            assert sub.cfaEdge.getSuccessor() != null;
             assert pFuncVars.returnValueAssignments.containsKey(threadEdge);
-            if (retStmt.getSuccessor().getFunction().getType().equals(pThread.startRoutine)) {
-              // exiting thread -> assign 0 to thread_active var if possible and set exit pc
-              CExpressionAssignmentStatement activeAssign =
-                  new CExpressionAssignmentStatement(
-                      FileLocation.DUMMY,
-                      Objects.requireNonNull(pThreadVars.active.get(pThread)).idExpression,
-                      SeqIntegerLiteralExpression.INT_0);
-              stmts.add(new SeqThreadTerminationStatement(pThread.id, activeAssign));
-
-            } else {
-              // returning from any other function: assign return value to all return vars
-              ImmutableSet<FunctionReturnValueAssignment> assigns =
-                  pFuncVars.returnValueAssignments.get(threadEdge);
-              assert assigns != null;
-              assert !assigns.isEmpty();
-              CIdExpression returnPc = assigns.iterator().next().returnPcStorage.returnPc;
-              stmts.add(new SeqReturnValueAssignStatements(returnPc, assigns, pcUpdate));
-            }
+            // TODO add support and test for pthread_join(id, &start_routine_return)
+            //  where start_routine_return is assigned the return value of the threads start routine
+            // returning from any other function: assign return value to all return vars
+            ImmutableSet<FunctionReturnValueAssignment> assigns =
+                pFuncVars.returnValueAssignments.get(threadEdge);
+            assert assigns != null;
+            assert !assigns.isEmpty();
+            CIdExpression returnPc = assigns.iterator().next().returnPcStorage.returnPc;
+            stmts.add(new SeqReturnValueAssignStatements(returnPc, assigns, pcUpdate));
 
           } else if (isExplicitlyHandledPthreadFunc(sub.cfaEdge)) {
             PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(edge);
@@ -396,10 +406,17 @@ public class SeqUtil {
    * Returns true if pSub results in a case block with only pc adjustments, i.e. no code changing
    * the input program state.
    */
-  private static boolean emptyCaseCode(SubstituteEdge pSub, ThreadNode pPredecessor) {
+  private static boolean emptyCaseCode(
+      CFANode pPredecessor, SubstituteEdge pSub, CFANode pSuccessor, MPORThread pThread) {
+
     if (pSub.cfaEdge instanceof BlankEdge) {
       assert pSub.cfaEdge.getCode().isEmpty();
-      return true;
+      if (pSuccessor instanceof FunctionExitNode
+          && pSuccessor.getFunction().getType().equals(pThread.startRoutine)) {
+        return false; // exiting thread -> set active var to 0, i.e. not empty
+      } else {
+        return true;
+      }
     } else if (pSub.cfaEdge instanceof CDeclarationEdge decEdge) {
       CDeclaration dec = decEdge.getDeclaration();
       if (!(dec instanceof CVariableDeclaration varDec)) {
@@ -409,9 +426,9 @@ public class SeqUtil {
         return !isConstCPAcheckerTMP(varDec);
       }
     } else if (PthreadFuncType.callsAnyPthreadFunc(pSub.cfaEdge)) {
-      // unsupported PthreadFunc -> empty case code
+      // not explicitly handled PthreadFunc -> empty case code
       return !isExplicitlyHandledPthreadFunc(pSub.cfaEdge);
-    } else if (pPredecessor.cfaNode.getFunctionName().equals(SeqToken.REACH_ERROR)) {
+    } else if (pPredecessor.getFunctionName().equals(SeqToken.REACH_ERROR)) {
       return true; // code of reach_error is not inlined
     }
     return false;

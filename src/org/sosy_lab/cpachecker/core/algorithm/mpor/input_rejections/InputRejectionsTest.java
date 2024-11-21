@@ -81,6 +81,8 @@ public class InputRejectionsTest {
         inputFilePath, RuntimeException.class, InputRejections.NO_PTHREAD_OBJECT_ARRAYS);
   }
 
+  // TODO also create a test for pthread_create(...) != 0
+
   // TODO the pthread_create call is nested inside binary expression(s) -> need to handle
   @Ignore
   @Test
