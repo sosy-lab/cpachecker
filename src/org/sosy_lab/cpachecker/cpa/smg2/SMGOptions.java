@@ -328,11 +328,11 @@ public class SMGOptions {
 
   @Option(
       secure = true,
-      name = "abortOnUnknown",
+      name = "abortOnFatalMemoryError",
       description =
           "Determines if the analysis should abort for memory errors of the kind valid-deref and"
               + " valid-free. This also works if memory errors are not target states!")
-  private boolean abortOnFatalMemoryErrors = false;
+  private boolean abortOnFatalMemoryError = false;
 
   @Option(
       secure = true,
@@ -588,8 +588,8 @@ public class SMGOptions {
     return abortOnUnknown;
   }
 
-  public boolean isAbortOnFatalMemoryErrors() {
-    return abortOnFatalMemoryErrors;
+  public boolean isAbortOnFatalMemoryError() {
+    return abortOnFatalMemoryError;
   }
 
   public boolean unknownOnUndefined() {

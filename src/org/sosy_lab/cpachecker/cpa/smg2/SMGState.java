@@ -2968,7 +2968,7 @@ public class SMGState
 
   private SMGState copyWithNewErrorInfo(ImmutableList<SMGErrorInfo> pNewErrorInfo)
       throws SMGException {
-    if (options.isAbortOnFatalMemoryErrors()) {
+    if (options.isAbortOnFatalMemoryError()) {
       for (SMGErrorInfo info : pNewErrorInfo) {
         if (info.isInvalidFree() || info.isInvalidRead() || info.isInvalidWrite()) {
           throw new SMGException(
