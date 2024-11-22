@@ -114,6 +114,13 @@ public class SMGCPATest0 {
     currentState = currentState.copyAndAddDummyStackFrame();
   }
 
+  public SMGState getFreshState() {
+    SMGState newState =
+        SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
+    newState = newState.copyAndAddDummyStackFrame();
+    return newState;
+  }
+
   // Resets state and visitor to an empty state
   @After
   public void resetSMGStateAndVisitor() {

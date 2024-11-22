@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPATest0;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGMergeOperator;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager.SMGCandidate;
@@ -50,6 +51,185 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
   private static final CType LIST_POINTER_TYPE = CPointerType.POINTER_TO_VOID;
+
+  /*
+  TODO:
+   * Implements the following example (Ending the list means value 0):
+   * variable
+   *     |
+   *    [concrete] -> [2+]           [concrete] -> [2+]
+   *     |             |    merge      |             |
+   *    [2+]          [2+]           [concrete]     [2+]
+   *
+   * Expected result:
+   *    [concrete] -> [2+]
+   *     |             |
+   *    [1+]          [2+]
+   */
+
+  /*
+   * A nested SLL (top element 64 bits, nested 32) w variables pointing to the top and last
+   * nested element.
+   * Example (Ending the list means value 0):
+   * variable
+   *     |                          |
+   *    [concrete] -> 0         [concrete] -> 0
+   *     |                          |
+   *    [2+]         merge      [concrete]
+   *     |                          |
+   * -> [concrete]           -> [concrete]
+   *
+   * Expected result:
+   *     |
+   *    [concrete]
+   *     |
+   *    [1+]
+   *     |
+   * -> [concrete]
+   */
+  @Test
+  public void simpleMergeTest() throws SMGException, SMGSolverException {
+    SMGState stateLeft = getFreshState();
+    SMGState stateRight = getFreshState();
+    NumericValue zero = new NumericValue(BigInteger.ZERO);
+    NumericValue thirtyTwo = new NumericValue(BigInteger.valueOf(32));
+    NumericValue sixtyFour = new NumericValue(BigInteger.valueOf(64));
+    String variableName = "topList";
+    String variableName2 = "nestedList";
+    CType pointerType = CPointerType.POINTER_TO_VOID;
+
+    // Init left with nested abstraction
+    stateLeft = stateLeft.copyAndAddLocalVariable(thirtyTwo, variableName, pointerType);
+    ValueAndSMGState addressAndState =
+        evaluator.createHeapMemoryAndPointer(stateLeft, sixtyFour, pointerType);
+    Value addressToNewRegion = addressAndState.getValue();
+    stateLeft = addressAndState.getState();
+    stateLeft =
+        stateLeft.writeToStackOrGlobalVariable(
+            variableName, zero, thirtyTwo, addressToNewRegion, pointerType, null);
+    ValueAndSMGState ptrToNested2PlusAndState = createSLLAndReturnPointer(stateLeft, 64, 2, 0);
+    stateLeft = ptrToNested2PlusAndState.getState();
+    // Nested below first, concrete, list elem
+    Value ptrToNested2Plus = ptrToNested2PlusAndState.getValue();
+    // SMGStateAndOptionalSMGObjectAndOffset concreteFirstListElemAndState =
+    // stateLeft.dereferencePointerWithoutMaterilization(addressToNewRegion).orElseThrow();
+    // stateLeft = concreteFirstListElemAndState.getSMGState();
+    // SMGObject concreteFirstObj = concreteFirstListElemAndState.getSMGObject();
+    stateLeft =
+        stateLeft
+            .writeValueTo(
+                addressToNewRegion, BigInteger.ZERO, thirtyTwo, zero, CNumericTypes.INT, null)
+            .get(0);
+    stateLeft =
+        stateLeft
+            .writeValueTo(
+                addressToNewRegion,
+                BigInteger.valueOf(32),
+                thirtyTwo,
+                ptrToNested2Plus,
+                pointerType,
+                null)
+            .get(0);
+    // Now put target of abstracted region to concrete that is also pointed to by a stack var
+    stateLeft = stateLeft.copyAndAddLocalVariable(thirtyTwo, variableName2, pointerType);
+    ValueAndSMGState addressAndStateVar2 =
+        evaluator.createHeapMemoryAndPointer(stateLeft, thirtyTwo, pointerType);
+    Value addressToNewNestedRegion = addressAndStateVar2.getValue();
+    stateLeft = addressAndStateVar2.getState();
+    stateLeft =
+        stateLeft.writeToStackOrGlobalVariable(
+            variableName2, zero, thirtyTwo, addressToNewNestedRegion, pointerType, null);
+    stateLeft =
+        stateLeft
+            .writeValueTo(
+                ptrToNested2Plus,
+                BigInteger.ZERO,
+                thirtyTwo,
+                addressToNewNestedRegion,
+                pointerType,
+                null)
+            .get(0);
+
+    // Init right
+
+    stateRight = stateRight.copyAndAddLocalVariable(thirtyTwo, variableName, pointerType);
+    ValueAndSMGState addressFirstConcreteAndStateRight =
+        evaluator.createHeapMemoryAndPointer(stateRight, sixtyFour, pointerType);
+    Value addressToFirstConcreteRegionRight = addressFirstConcreteAndStateRight.getValue();
+    stateRight = addressFirstConcreteAndStateRight.getState();
+    stateRight =
+        stateRight.writeToStackOrGlobalVariable(
+            variableName, zero, thirtyTwo, addressToFirstConcreteRegionRight, pointerType, null);
+    ValueAndSMGState addressNestedConcreteAndStateRight =
+        evaluator.createHeapMemoryAndPointer(stateRight, thirtyTwo, pointerType);
+    stateRight = addressNestedConcreteAndStateRight.getState();
+    // Nested below first, concrete, list elem
+    Value ptrToNestedRight = addressNestedConcreteAndStateRight.getValue();
+    stateRight =
+        stateRight
+            .writeValueTo(
+                addressToFirstConcreteRegionRight,
+                BigInteger.ZERO,
+                thirtyTwo,
+                zero,
+                CNumericTypes.INT,
+                null)
+            .get(0);
+    stateRight =
+        stateRight
+            .writeValueTo(
+                addressToFirstConcreteRegionRight,
+                BigInteger.valueOf(32),
+                thirtyTwo,
+                ptrToNestedRight,
+                pointerType,
+                null)
+            .get(0);
+    // Now put target of abstracted region to concrete that is also pointed to by a stack var
+    stateRight = stateRight.copyAndAddLocalVariable(thirtyTwo, variableName2, pointerType);
+    ValueAndSMGState addressAndStateRightVar2 =
+        evaluator.createHeapMemoryAndPointer(stateRight, thirtyTwo, pointerType);
+    Value addressToSecondNestedRegion = addressAndStateRightVar2.getValue();
+    stateRight = addressAndStateRightVar2.getState();
+    stateRight =
+        stateRight.writeToStackOrGlobalVariable(
+            variableName2, zero, thirtyTwo, addressToSecondNestedRegion, pointerType, null);
+    stateRight =
+        stateRight
+            .writeValueTo(
+                ptrToNestedRight,
+                BigInteger.ZERO,
+                thirtyTwo,
+                addressToSecondNestedRegion,
+                pointerType,
+                null)
+            .get(0);
+
+    // Now merge
+    SMGMergeOperator mergeOp = new SMGMergeOperator(new SMGCPAStatistics());
+    // TODO:
+  }
+
+  private ValueAndSMGState createSLLAndReturnPointer(
+      SMGState state, int sizeOfObject, int length, int nestingLevel) {
+    CType pointerType = CPointerType.POINTER_TO_VOID;
+    SMGObject newObject =
+        new SMGSinglyLinkedListSegment(
+            nestingLevel,
+            new NumericValue(BigInteger.valueOf(sizeOfObject)),
+            BigInteger.ZERO,
+            hfo,
+            nfo,
+            BigInteger.ZERO,
+            length);
+    state = state.copyAndReplaceMemoryModel(state.getMemoryModel().copyAndAddHeapObject(newObject));
+    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    // New regions always have offset 0
+    return ValueAndSMGState.of(
+        addressValue,
+        state.createAndAddPointer(
+            addressValue, newObject, new NumericValue(BigInteger.ZERO), pointerType));
+  }
 
   // test list specifier after normal abstraction
   // TODO: fix test for non-abstraction of regions w pointers from outside of the list
