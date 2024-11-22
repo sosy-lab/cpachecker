@@ -123,34 +123,19 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
               && edges.get(0) instanceof CAssumeEdge
               && edges.get(1) instanceof CAssumeEdge)) {
         test = edges.size();
-        //        System.out.println("edges size is not 1");
-        //        throw new Error("edges size is not 1");
+
       }
-      //      ConcolicAlgorithm.tmpcounter = ConcolicAlgorithm.tmpcounter + 1;
-      //      if (ConcolicAlgorithm.tmpcounter >= 1000) {
-      //        edges = edges.subList(0, 0);
-      //      }
-      //      System.out.println(edges);
 
       for (CFAEdge edge : edges) {
-        //        if (edge instanceof CAssumeEdge) {
-        //          System.out.println("edge instanceof CAssumeEdge");
-
-        //          if(edge.getRawStatement().contains("tmp_ndt_9")){
-        //                System.out.println("tmp_ndt_9");
-        //          }
-        //        }
         getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
       }
     }
 
 //    if (test > 1 && results.size() > 1) {
-//      System.out.println("test > 1  && results.size() > 1");
-//      System.out.println(allEdges);
+//
 //    }
 //    if (results.size() > 1) {
-//      System.out.println("results.size() > 1");
-//      System.out.println(allEdges);
+//
 //    }
     return results;
   }

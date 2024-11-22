@@ -224,11 +224,6 @@ public class NondeterministicValueProvider {
       }
       if (type == CBasicType.CHAR) {
         return generateChar((CSimpleType) expressionType);
-        //        char c = 'a';
-//        this.rnd.;
-        // TODO
-//        throw new Error("Char type is not supported");
-//        return Value.of('a');
       }
       if (type == CBasicType.INT) {
 
@@ -244,7 +239,6 @@ public class NondeterministicValueProvider {
     // 128 bit ints and floats are not natively supported in Java, leave out for now
     // Ignore complex types for now
     if (!(expressionType instanceof CSimpleType)) {
-      System.out.println("Non-CSimpleType types are not supported");
       throw new Error("Non-CSimpleType types are not supported");
     }
 
@@ -277,7 +271,6 @@ public class NondeterministicValueProvider {
     // 128 bit ints and floats are not natively supported in Java, leave out for now
     // Ignore complex types for now
     if (!(expressionType instanceof CSimpleType)) {
-      System.out.println("Non-CSimpleType types are not supported");
       throw new Error("Non-CSimpleType types are not supported");
     }
 

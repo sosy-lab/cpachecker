@@ -114,7 +114,9 @@ public class ARGPath extends AbstractAppender {
     edges = Collections.unmodifiableList(edgesBuilder);
     assert states.size() - 1 == edges.size();
     if(tmpAllStates.size() != states.size()) {
-      System.out.println("Size mismatch");
+      //
+
+      // "ARGPath: Size mismatch"
     }
 
     // ---------------
@@ -129,13 +131,11 @@ public class ARGPath extends AbstractAppender {
     //                parent.getChildren().iterator().next(); // TODO check if there is more than
     // one
     ////     child
-    //          } catch (Exception e) {
-    //            System.out.println("No child found 1");
+    //          } catch (Exception e)
     //            break;
     //          }
     //          CFAEdge edge = parent.getEdgeToChild(child);
     //          if (edge == null) {
-    //            System.out.println("No edge found");
     //          }
     //          edgesBuilder.add(edge); // may return null
     //          parent = child;

@@ -380,10 +380,6 @@ public class ConstraintsTransferRelation
         return Optional.empty();
       }
 
-      if (pCfaEdge.toString().contains("tmp_ndt_10")){
-        System.out.println("tmp_ndt_10");
-      }
-
       final ValueAnalysisState valueState = (ValueAnalysisState) pValueState;
       final AssumeEdge assume = (AssumeEdge) pCfaEdge;
 

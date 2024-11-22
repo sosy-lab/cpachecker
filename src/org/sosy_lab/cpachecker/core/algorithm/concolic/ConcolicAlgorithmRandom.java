@@ -24,8 +24,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -60,14 +63,18 @@ import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 @SuppressWarnings("Duplicates")
-// @Options(prefix = "concolic")
+@Options(prefix = "concolic")
 public class ConcolicAlgorithmRandom implements Algorithm {
 
-  //  @Option(
-  //      secure = true,
-  //      name = "coverageCriterion",
-  //      description = "type of coverage criterion to use, condition, block, or error")
-  private CoverageCriterion coverageCriterion;
+  @Option(
+      secure = true,
+      name = "coverageCriterion",
+      description = "type of coverage criterion to use, branch or error")
+  private String coverageCriterion = "changed";
+
+  private CoverageCriterion coverageCriterionEnum;
+
+  //  private ConcolicAlgorithm.CoverageCriterion coverageCriterionEnum;
 
   //  private static boolean isInitialized = false;
   private final Algorithm algorithm;
@@ -78,7 +85,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
   //  public static MachineModel machineModel;
   private final CFA cfa;
   // visited blocks
-  //   AssumeEdges for condition coverage
+  //   AssumeEdges for branch coverage
   //   blocks after the AssumeEdge for block coverage
   private final Set<AbstractCFAEdge> visitedBlocks;
   private final Set<List<Constraint>> checkedConstraints;
@@ -115,9 +122,10 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
-      String concolicCoverageCriterion,
+      //      String concolicCoverageCriterion,
       String pSearchAlgorithm)
       throws Exception {
+    pConfig.inject(this, ConcolicAlgorithmRandom.class);
     if (pSearchAlgorithm.equals("random")) {
       this.searchAlgorithm = SearchAlgorithm.RANDOM;
     } else if (pSearchAlgorithm.equals("DFS")) {
@@ -131,10 +139,10 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     this.visitedBlocks = new HashSet<>();
     this.checkedConstraints = new HashSet<>();
     this.visitedPaths = new HashSet<>();
-    if (Objects.equals(concolicCoverageCriterion, "condition")) {
-      this.coverageCriterion = CoverageCriterion.CONDITION;
-    } else if (Objects.equals(concolicCoverageCriterion, "error")) {
-      this.coverageCriterion = CoverageCriterion.ERROR;
+    if (Objects.equals(coverageCriterion, "branch")) {
+      this.coverageCriterionEnum = CoverageCriterion.BRANCH;
+    } else if (Objects.equals(coverageCriterion, "error")) {
+      this.coverageCriterionEnum = CoverageCriterion.ERROR;
     } else {
       throw new Error("coverageCriterion unknown");
     }
@@ -164,7 +172,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       boolean isInitial) {}
 
   enum CoverageCriterion {
-    CONDITION,
+    BRANCH,
     ERROR,
   }
 
@@ -194,7 +202,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
         throw new Error("workList.size() > 1");
       }
 
-      if (coverageCriterion == CoverageCriterion.ERROR && !visitedBlocks.isEmpty()) {
+      if (coverageCriterionEnum == CoverageCriterion.ERROR && !visitedBlocks.isEmpty()) {
         // for error coverage, stop when one error location is found
         reachedSet.clearWaitlist();
         return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -219,14 +227,14 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       //      childInputs.removeIf(ci -> !ci.isNewPath);
       //      List<ConcolicInput> tmp =
       //          childInputs.stream().filter(ci -> !ci.isNewPath && ci.score() == 0).toList();
-      //      if (!tmp.isEmpty()) System.out.println("tmp: " + tmp.size());
       workList.addAll(childInputs);
-      // TODO !!!!!
+      // TODO
       //      if (visitedPaths.size() > 1000) {
       //        // if (visitedPaths.size() > 100) -> remove inputs that will probably not lead to a
       // new path
       //        // to prevent endless loop
-      //        System.out.println("visitedPaths.size() > 1000");
+      //
+      //    logger.log(Level.FINE,"ConcolicAlgorithm: visitedPaths.size() > 1000");
       //        workList.removeIf(ci -> ci.score == 0);
       //      }
     }
@@ -248,7 +256,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
         }
       }
     } catch (NoSuchElementException e) {
-      System.err.println("No child found3");
       throw new Error(e);
     }
   }
@@ -257,30 +264,24 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     List<CFAEdge> edges = pARGPath.getInnerEdges();
     try {
       for (CFAEdge ce : edges) {
-        if (ce instanceof FunctionCallEdge && ce.getCode().contains("reach_error")) {
+        if (ce instanceof FunctionCallEdge && ce.getRawStatement().equals("reach_error();")) {
           visitedBlocks.add((FunctionCallEdge) ce);
         }
       }
     } catch (NoSuchElementException e) {
-      System.out.println("No child found34");
       throw new Error(e);
     }
   }
 
-  private void fillVisitedBlocksConditionCoverage(ARGPath pARGPath) {
+  private void fillVisitedBlocksBranchCoverage(ARGPath pARGPath) {
     List<CFAEdge> edges = pARGPath.getInnerEdges();
     try {
       for (CFAEdge ce : edges) {
         if (ce instanceof AssumeEdge) {
-          //          if (ce.toString()
-          //              .contains("line 158:\tN88 -{[!(irpStack__MinorFunction == 20)]}-> N92")) {
-          //            System.out.println("found");
-          //          }
           visitedBlocks.add((AssumeEdge) ce);
         }
       }
     } catch (NoSuchElementException e) {
-      System.out.println("No child found3");
       throw new Error(e);
     }
   }
@@ -297,7 +298,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       }
       exporter.writeTestCaseFiles(ls, Optional.empty());
     } catch (Exception e) {
-      System.err.println(e);
       throw new Error(e);
     }
   }
@@ -324,7 +324,14 @@ public class ConcolicAlgorithmRandom implements Algorithm {
         model = optModel.orElseThrow();
       }
       List<Object> valueHistory = nonDetValueProvider.getReturnedValueHistory();
-      writeTestCaseFromValues(valueHistory);
+//      if (coverageCriterionEnum == CoverageCriterion.ERROR) {
+//        // for error, just write the test case that led to the error
+//        if (score > 0 || isInitial) {
+//          writeTestCaseFromValues(valueHistory);
+//        }
+//      } else {
+        writeTestCaseFromValues(valueHistory);
+//      }
       return new ConcolicInput(
           getValues(values, model, argPath),
           Optional.of(model),
@@ -361,21 +368,13 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       reachedSetFirstState.add(
           initialReachedSet.getFirstState(),
           initialReachedSet.getPrecision(initialReachedSet.getFirstState()));
-      argPath =
-          getARGPath(reachedSetFirstState, concolicInput.values); // ! Needed for state to fill
-      //    List<Object> tmp3 = nonDetValueProvider.getReturnedValueHistory();
-      //    System.out.println(tmp3);
-      //    writeTestCaseFromValues(tmp3);
-      if (concolicInput.model.stream()
-          .anyMatch(va -> va.toString().contains("tmp___8") || va.toString().contains("num1"))) {
-        System.out.println("found");
-      }
+      argPath = getARGPath(reachedSetFirstState, concolicInput.values);
       visitedPaths.add(argPath.getFullPath());
-      if (coverageCriterion == CoverageCriterion.CONDITION)
-        fillVisitedBlocksConditionCoverage(argPath);
+      if (coverageCriterionEnum == CoverageCriterion.BRANCH)
+        fillVisitedBlocksBranchCoverage(argPath);
       //      else if (Objects.equals(coverageCriterion, "block"))
       // fillVisitedBlocksBlockCoverage(argPath);
-      else if (coverageCriterion == CoverageCriterion.ERROR)
+      else if (coverageCriterionEnum == CoverageCriterion.ERROR)
         fillVisitedBlocksErrorCoverage(argPath);
       else throw new Error("coverageCriterion unknown");
 
@@ -412,7 +411,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     // use while loop for the case that the result is unsat
     while (true) {
       if (state.constraints.isEmpty()) {
-        System.out.println("state.constraints.isEmpty()");
+        logger.log(Level.FINE, "state.constraints.isEmpty()");
         return childInputs;
       }
 
@@ -444,7 +443,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
         }
       }
       if (i == -1) {
-        System.out.println("i == -1");
+        logger.log(Level.FINE, "i == -1");
         return childInputs;
       }
       //    for (int i = concolicInput.bound; i < state.constraints.size(); i++) {
@@ -475,34 +474,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
         List<ValueAssignment> model = result.model().orElseThrow();
 
         Map<NondetLocation, List<Value>> values = getValues(concolicInput.values, model, argPath);
-        //        Map<NondetLocation, List<Value>> values = getValues(previousValues, model,
-        // argPath);
-        System.out.println(nonDetValueProvider.getReturnedValueHistoryWithLocation());
-
-        // reset reached Set to set with one state
-        //        initialReachedSet.stream()
-        //            .forEach(as -> ((ARGState) as).deleteChildren()); // note: contains only one
-        // state
-        //        ReachedSet reachedSetConcrete = new PartitionedReachedSet(argCpaCE,
-        // TraversalMethod.BFS);
-        //        CompositeState seedState =
-        //            (CompositeState) ((ARGState)
-        // initialReachedSet.getFirstState()).getWrappedState(); //
-        //        // 0. state: LocationState, 1. State ValueAnalysis
-        //        //        concreteAbstractState
-        //        List<AbstractState> editableStates = new ArrayList<>();
-        //        assert seedState != null;
-        //        editableStates.add(seedState.get(0)); // location
-        //        editableStates.add(seedState.get(2)); // concrete
-        //        editableStates.add(seedState.get(4)); // callstack  // TODO csc
-        //        CompositeState concreteAbstractState = new CompositeState(editableStates);
-        //        ARGState concreteAbstractStateARG = new ARGState(concreteAbstractState, null);
-        //        reachedSetConcrete.add(
-        //            concreteAbstractStateARG,
-        //            initialReachedSet.getPrecision(initialReachedSet.getFirstState()));
-        //
-        //        ARGPath argPathConcrete = getARGPathConcrete(reachedSetConcrete, values);
-
         initialReachedSet.stream()
             .forEach(as -> ((ARGState) as).deleteChildren()); // contains only one state
         reachedSetFirstState = new PartitionedReachedSet(cpa, TraversalMethod.BFS);
@@ -522,11 +493,11 @@ public class ConcolicAlgorithmRandom implements Algorithm {
         }
 
         int score;
-        if (coverageCriterion == CoverageCriterion.CONDITION)
-          score = calculateScoreConditionCoverage(argPath);
+        if (coverageCriterionEnum == CoverageCriterion.BRANCH)
+          score = calculateScoreBranchCoverage(argPath);
         //        else if (Objects.equals(coverageCriterion, "block"))
         //          score = calculateScoreBlockCoverage(argPath);
-        else if (coverageCriterion == CoverageCriterion.ERROR)
+        else if (coverageCriterionEnum == CoverageCriterion.ERROR)
           score = calculateScoreErrorCoverage(argPath);
         else throw new Error("coverageCriterion unknown");
         childInputs.add(
@@ -583,12 +554,8 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     for (ValueAssignment assignment : model) {
       Object valueObject = assignment.getValue();
       String valueFormula = assignment.getValueAsFormula().toString();
-      if (valueObject.equals(new BigInteger("4294955008"))) {
-        System.out.println("found");
-      }
       // Workaround for int overflows
       if (valueObject instanceof BigInteger && valueFormula.endsWith("_32")) {
-        // Convert to int (wraps around)
         int intValue = ((BigInteger) valueObject).intValue();
         valueObject = BigInteger.valueOf(intValue);
       }
@@ -599,13 +566,12 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       try {
         fl = convertToFileLocation(assignment.getKey().toString(), argPath).orElseThrow();
       } catch (NoSuchElementException e) {
-        System.err.println(e);
+        logger.log(
+            Level.WARNING, "No result for convertToFileLocation, variable: " + assignment.getKey());
         // sometimes, new SymbolicIdentifiers are intruduced (when a function is called with a
         // parameter), so there is no nondet call and location for the SymbolicIdentifier
         // TODO -> ignore for now -> actually works without changes, test again
         continue;
-        //        throw new Error(e);
-        //        throw new Error(e);
       }
       NondetLocation location =
           new NondetLocation(
@@ -620,7 +586,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
         valueList.add(value);
         values.put(location, valueList);
       }
-      //      values.put(location, value); // Add the value to the list
     }
     for (Map.Entry<NondetLocation, List<Value>> entry : previousValues.entrySet()) {
       if (!values.containsKey(entry.getKey())) {
@@ -682,7 +647,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     return score;
   }
 
-  public int calculateScoreConditionCoverage(ARGPath pARGPath) {
+  public int calculateScoreBranchCoverage(ARGPath pARGPath) {
     List<CFAEdge> edges = pARGPath.getInnerEdges();
     List<CFAEdge> scoreEdges = new ArrayList<>();
 
@@ -705,7 +670,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     int score = 0;
     for (int i = 0; i < edges.size() - 1; i++) {
       CFAEdge ce = edges.get(i);
-      if (ce instanceof FunctionCallEdge && ce.getCode().contains("reach_error")) {
+      if (ce instanceof FunctionCallEdge && ce.getRawStatement().equals("reach_error();")) {
         // check if visitedBlocks contains the edge -> if not, add 1 to the score
         if (!visitedBlocks.contains(ce)) {
           score++;
@@ -716,8 +681,8 @@ public class ConcolicAlgorithmRandom implements Algorithm {
   }
 
   public ARGPath getARGPath(ReachedSet pReachedSet, Map<NondetLocation, List<Value>> values)
-      throws CPAException, InterruptedException {
-    System.out.println("getARGPath");
+      throws CPAException {
+    logger.log(Level.FINE, "ConcolicAlgorithmRandom: executing getARGPath concrete");
     nonDetValueProvider.clearKnownValues();
     nonDetValueProvider.setKnownValues(values);
     AlgorithmStatus algorithmStatus = null;
@@ -726,16 +691,13 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       algorithmStatus = algorithm.run(pReachedSet);
 
     } catch (InterruptedException e) {
-      System.out.println(e);
       if (e.toString().contains("The CPU-time limit")) {
-        System.out.println("CPU-time limit reached, reachedSet might not be intact");
+        logger.log(Level.SEVERE, "CPU-time limit reached, writing last test case...");
         isInterrupted = true;
       } else {
         throw new Error(e);
       }
     }
-    System.out.println(algorithmStatus);
-
     // create ARGPath
     List<ARGState> argStateSet = new ArrayList<>();
 
@@ -746,7 +708,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       if (state instanceof ARGState argState) {
         argStateSet.add(argState);
       } else {
-        System.err.println("State is not an ARGState");
         throw new Error("State is not an ARGState");
       }
     }
@@ -755,45 +716,4 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     else ap = new ARGPath(argStateSet);
     return ap;
   }
-
-  //  public ARGPath getARGPathConcrete(
-  //      ReachedSet reachedSetConcrete, Map<NondetLocation, List<Value>> values)
-  //      throws CPAException, InterruptedException {
-  //    System.out.println("getARGPath concrete");
-  //    nonDetValueProvider.clearKnownValues();
-  //    nonDetValueProvider.setKnownValues(values);
-  //
-  //    //    newConcreteAlgorithm
-  //    AlgorithmStatus algorithmStatus = null;
-  //    boolean isInterrupted = false;
-  //    try {
-  //      algorithmStatus = concreteAlgorithmCE.run(reachedSetConcrete);
-  //
-  //    } catch (InterruptedException e) {
-  //      System.out.println(e);
-  //      if (e.toString().contains("The CPU-time limit")) {
-  //        System.out.println("CPU-time limit reached, reachedSet might not be intact");
-  //        isInterrupted = true;
-  //      } else {
-  //        throw new Error(e);
-  //      }
-  //    }
-  //    System.out.println(algorithmStatus);
-  //
-  //    // create ARGPath
-  //    List<ARGState> argStateSet = new ArrayList<>();
-  //
-  //    Set<AbstractState> abstractStates =
-  //        reachedSetConcrete.asCollection(); // set is unordered, use getChildren later
-  //    for (AbstractState state : abstractStates) {
-  //
-  //      if (state instanceof ARGState argState) {
-  //        argStateSet.add(argState);
-  //      } else System.err.println("State is not an ARGState");
-  //    }
-  //    ARGPath ap;
-  //    if (!isInterrupted) ap = new ARGPath(argStateSet, true); // true
-  //    else ap = new ARGPath(argStateSet);
-  //    return ap;
-  //  }
 }

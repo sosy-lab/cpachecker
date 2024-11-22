@@ -2440,11 +2440,6 @@ public abstract class AbstractExpressionValueVisitor
       final LogManagerWithoutDuplicates logger,
       final FileLocation fileLocation) {
 
-    // TODO
-    if (value == null){
-      System.err.println("value is null");
-      return value;
-    }
 
     if (!value.isExplicitlyKnown()) {
       return castIfSymbolic(value, targetType);

@@ -513,8 +513,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
           CType expressionType = pLastFunctionCallExpression.getExpressionType();
           Optional<Value> value = ndvp.getNextNondetValueFor(expressionType, thisLocation);
           if (value.isPresent()) {
-            logger.log(Level.FINEST, "Used preloaded value", value);
-            System.out.println("Used preloaded value: " + value.get());
+            logger.log(Level.FINE, "Used preloaded value", value.get());
             ndvp.setValueToReturnedValueHistory(value.get(), thisLocation);
             return value
                 .get(); // Pair.of(value.get(), super.visit(pIastFunctionCallExpression)); // Value
@@ -522,7 +521,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
             // get random value
             Value randomValue = ndvp.getRandomValue(expressionType);
             ndvp.setValueToReturnedValueHistory(randomValue, thisLocation);
-            System.out.println("Used random value: " + randomValue);
+            logger.log(Level.FINE, "Used random value: " + randomValue);
             return randomValue;
           }
         }

@@ -400,12 +400,6 @@ public class CoreComponentsFactory {
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
-  @Option(
-      secure = true,
-      name = "concolicCoverageCriterion",
-      description = "type of coverage criterion to use, condition, block, or error")
-  private String concolicCoverageCriterion = "block";
-
   private final Configuration config;
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
@@ -672,11 +666,11 @@ public class CoreComponentsFactory {
       }
 
       if (useConcolic) {
-        System.out.println("Using Concolic Execution");
+        logger.log(Level.INFO, "Using Concolic Execution");
         try {
           switch (concolicSearchAlgorithm) {
             case "generational":
-              System.out.println("Using Generational Search Algorithm");
+              logger.log(Level.INFO, "Using Generational Search Algorithm");
               algorithm =
                   new ConcolicAlgorithm(
                       algorithm,
@@ -684,11 +678,10 @@ public class CoreComponentsFactory {
                       config,
                       logger,
                       shutdownNotifier,
-                      cfa,
-                      concolicCoverageCriterion);
+                      cfa  );
               break;
             case "random":
-              System.out.println("Using Random Search Algorithm");
+              logger.log(Level.INFO, "Using Random Search Algorithm");
               algorithm =
                   new ConcolicAlgorithmRandom(
                       algorithm,
@@ -697,11 +690,10 @@ public class CoreComponentsFactory {
                       logger,
                       shutdownNotifier,
                       cfa,
-                      concolicCoverageCriterion,
                       concolicSearchAlgorithm);
               break;
             case "DFS":
-              System.out.println("Using DFS Search Algorithm");
+              logger.log(Level.INFO, "Using DFS Search Algorithm");
               algorithm =
                   new ConcolicAlgorithmRandom(
                       algorithm,
@@ -710,7 +702,6 @@ public class CoreComponentsFactory {
                       logger,
                       shutdownNotifier,
                       cfa,
-                      concolicCoverageCriterion,
                       concolicSearchAlgorithm);
               break;
             default:
@@ -718,8 +709,6 @@ public class CoreComponentsFactory {
                   "Unknown concolic search algorithm: " + concolicSearchAlgorithm);
           }
         } catch (Exception e) {
-          System.out.println("Exception in ConcolicAlgorithm");
-          System.out.println(e.toString());
           throw new Error(e.toString());
         }
       }
