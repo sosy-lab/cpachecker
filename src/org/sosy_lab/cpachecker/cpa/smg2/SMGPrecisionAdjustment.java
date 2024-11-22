@@ -202,10 +202,6 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     public int getAbstractConcreteValuesAboveThreshold() {
-      Preconditions.checkState(
-          abstractConcreteValuesAboveThreshold <= 0,
-          "Error: option cpa.smg2.abstraction.abstractConcreteValuesAboveThreshold is currently"
-              + " only supported for argument 0.");
       return abstractConcreteValuesAboveThreshold;
     }
 
@@ -294,6 +290,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
   private final StatTimer totalLiveness;
   private final StatTimer totalAbstraction;
   private final StatTimer totalEnforcePath;
+
+  private Set<Value> concreteValuesSavedInSMGBelowThreashold = new HashSet<>();
 
   @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "false alarm")
   private boolean performPrecisionBasedAbstraction = false;
@@ -613,10 +611,32 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
     return currentState;
   }
 
-  @SuppressWarnings("unused")
+  /**
+   * Ordered list of concrete values that have been saved in the SMG, in order of saving. Note: does
+   * NOT delete values when removed from the SMG!
+   */
+  private Set<Value> getConcreteValueAllowed() {
+    return concreteValuesSavedInSMGBelowThreashold;
+  }
+
+  /**
+   * Ordered list of concrete values that have been saved in the SMG, in order of saving. Note: does
+   * NOT delete values when removed from the SMG!
+   */
+  private void updateConcreteValueOrder(SMGState state, int numOfConcreteValuesAllowed) {
+    // +2 because of 0, 0.0 and 0.0 (float and double) are always present
+    if (concreteValuesSavedInSMGBelowThreashold.size() < numOfConcreteValuesAllowed + 2) {
+      for (Wrapper<Value> wValue : state.getMemoryModel().getValueToSMGValueMapping().keySet()) {
+        if (wValue.get() != null && wValue.get().isNumericValue()) {
+          concreteValuesSavedInSMGBelowThreashold.add(wValue.get());
+        }
+      }
+    }
+  }
+
   private SMGState enforceConcreteValueThreshold(
       final SMGState state, int numOfConcreteValuesAllowed) {
-    // TODO: add tracking of concrete value order
+    updateConcreteValueOrder(state, numOfConcreteValuesAllowed);
     // TODO: try to remove 0 only for a non pointer type
     SMGState currentState = state;
     // Gather all concrete values first and filter out all above the threshold
@@ -630,8 +650,10 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       for (SMGHasValueEdge hve : objAndHVEs.getValue()) {
         SMGValue smgValue = hve.hasValue();
         Wrapper<Value> wValue = mapping.get(smgValue);
-        if (wValue == null || wValue.get().isNumericValue()) {
-          edgesToRemove.add(hve);
+        if (wValue != null && wValue.get().isNumericValue()) {
+          if (!getConcreteValueAllowed().contains(wValue.get())) {
+            edgesToRemove.add(hve);
+          }
         }
       }
       currentState =
