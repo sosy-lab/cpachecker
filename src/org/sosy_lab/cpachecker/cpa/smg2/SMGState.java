@@ -1171,7 +1171,7 @@ public class SMGState
         getMemoryModel().getSmg().getAllValidAbstractedObjects();
     Set<SMGSinglyLinkedListSegment> abstrObjs2 =
         pOther.getMemoryModel().getSmg().getAllValidAbstractedObjects();
-    if (abstrObjs1.isEmpty() || abstrObjs2.isEmpty()) {
+    if (abstrObjs1.isEmpty() && abstrObjs2.isEmpty()) {
       return Optional.empty();
     }
 
@@ -3950,7 +3950,8 @@ public class SMGState
    * just assumes that the {@link SMGObject} exist in the SPC, so make sure beforehand! The Value
    * will either add or find its {@link SMGValue} counterpart automatically. Also this checks that
    * the {@link SMGObject} is large enough for the write. If something fails, this throws an
-   * exception with an error info inside the state thrown with.
+   * exception with an error info inside the state thrown with. The dereference might materialize a
+   * list!
    *
    * @param addressToMemory the {@link Value} representing the address of the region to write to.
    * @param writeOffsetInBits the offset in bits for the write of the value.
