@@ -2368,9 +2368,9 @@ public class SMGState
     logMemoryError(errorMSG, true);
     try {
       return copyWithNewErrorInfo(newErrorInfo);
-    } catch (SMGException pE) {
+    } catch (SMGException e) {
       // Can not happen
-      throw new RuntimeException(pE);
+      throw new RuntimeException(e);
     }
   }
 
@@ -2518,9 +2518,9 @@ public class SMGState
     logMemoryError(errorMsg, true);
     try {
       return copyWithNewErrorInfo(newErrorInfo);
-    } catch (SMGException pE) {
+    } catch (SMGException e) {
       // Can not happen
-      throw new RuntimeException(pE);
+      throw new RuntimeException(e);
     }
   }
 
@@ -6006,8 +6006,8 @@ public class SMGState
         // Larger float types are almost always unknown
         try {
           valueRead = castValueForUnionFloatConversion(valueRead, readType);
-        } catch (SMGException pE) {
-          // Do nothin
+        } catch (SMGException e) {
+          // Do nothin. Can not happen.
         }
       }
       if (memoryModel.isPointer(valueRead)) {
