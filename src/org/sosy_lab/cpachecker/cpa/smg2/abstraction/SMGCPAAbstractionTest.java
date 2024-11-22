@@ -105,17 +105,18 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         evaluator.createHeapMemoryAndPointer(stateLeft, sixtyFour, pointerType);
     Value addressToNewRegion = addressAndState.getValue();
     stateLeft = addressAndState.getState();
+
+    SMGObject variableMemory =
+        stateLeft.getMemoryModel().getStackFrames().peek().getVariable(variableName);
+
     stateLeft =
-        stateLeft.writeToStackOrGlobalVariable(
-            variableName, zero, thirtyTwo, addressToNewRegion, pointerType, null);
+        stateLeft.writeValueWithChecks(
+            variableMemory, zero, thirtyTwo, addressToNewRegion, pointerType, null);
     ValueAndSMGState ptrToNested2PlusAndState = createSLLAndReturnPointer(stateLeft, 64, 2, 0);
     stateLeft = ptrToNested2PlusAndState.getState();
     // Nested below first, concrete, list elem
     Value ptrToNested2Plus = ptrToNested2PlusAndState.getValue();
-    // SMGStateAndOptionalSMGObjectAndOffset concreteFirstListElemAndState =
-    // stateLeft.dereferencePointerWithoutMaterilization(addressToNewRegion).orElseThrow();
-    // stateLeft = concreteFirstListElemAndState.getSMGState();
-    // SMGObject concreteFirstObj = concreteFirstListElemAndState.getSMGObject();
+
     stateLeft =
         stateLeft
             .writeValueTo(
@@ -137,30 +138,48 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         evaluator.createHeapMemoryAndPointer(stateLeft, thirtyTwo, pointerType);
     Value addressToNewNestedRegion = addressAndStateVar2.getValue();
     stateLeft = addressAndStateVar2.getState();
+
+    SMGStateAndOptionalSMGObjectAndOffset newNestedRegionAndState =
+        stateLeft.dereferencePointerWithoutMaterilization(addressToNewNestedRegion).orElseThrow();
+    SMGObject nestedConcreteEndList = newNestedRegionAndState.getSMGObject();
+    stateLeft = newNestedRegionAndState.getSMGState();
     stateLeft =
-        stateLeft.writeToStackOrGlobalVariable(
-            variableName2, zero, thirtyTwo, addressToNewNestedRegion, pointerType, null);
+        stateLeft.writeValueWithChecks(
+            nestedConcreteEndList, zero, thirtyTwo, zero, pointerType, null);
+
+    SMGObject variableMemory2 =
+        stateLeft.getMemoryModel().getStackFrames().peek().getVariable(variableName2);
+
     stateLeft =
-        stateLeft
-            .writeValueTo(
-                ptrToNested2Plus,
-                BigInteger.ZERO,
-                thirtyTwo,
-                addressToNewNestedRegion,
-                pointerType,
-                null)
-            .get(0);
+        stateLeft.writeValueWithChecks(
+            variableMemory2, zero, thirtyTwo, addressToNewNestedRegion, pointerType, null);
+
+    SMGStateAndOptionalSMGObjectAndOffset nested2PlusAndState =
+        stateLeft.dereferencePointerWithoutMaterilization(ptrToNested2Plus).orElseThrow();
+    SMGObject nested2Plus = nested2PlusAndState.getSMGObject();
+    stateLeft = nested2PlusAndState.getSMGState();
+    stateLeft =
+        stateLeft.writeValueWithChecks(
+            nested2Plus, zero, thirtyTwo, addressToNewNestedRegion, pointerType, null);
 
     // Init right
-
     stateRight = stateRight.copyAndAddLocalVariable(thirtyTwo, variableName, pointerType);
     ValueAndSMGState addressFirstConcreteAndStateRight =
         evaluator.createHeapMemoryAndPointer(stateRight, sixtyFour, pointerType);
     Value addressToFirstConcreteRegionRight = addressFirstConcreteAndStateRight.getValue();
     stateRight = addressFirstConcreteAndStateRight.getState();
+
+    SMGObject variableMemoryRight =
+        stateRight.getMemoryModel().getStackFrames().peek().getVariable(variableName);
     stateRight =
-        stateRight.writeToStackOrGlobalVariable(
-            variableName, zero, thirtyTwo, addressToFirstConcreteRegionRight, pointerType, null);
+        stateRight.writeValueWithChecks(
+            variableMemoryRight,
+            zero,
+            thirtyTwo,
+            addressToFirstConcreteRegionRight,
+            pointerType,
+            null);
+
     ValueAndSMGState addressNestedConcreteAndStateRight =
         evaluator.createHeapMemoryAndPointer(stateRight, thirtyTwo, pointerType);
     stateRight = addressNestedConcreteAndStateRight.getState();
@@ -192,9 +211,24 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         evaluator.createHeapMemoryAndPointer(stateRight, thirtyTwo, pointerType);
     Value addressToSecondNestedRegion = addressAndStateRightVar2.getValue();
     stateRight = addressAndStateRightVar2.getState();
+
+    SMGStateAndOptionalSMGObjectAndOffset lastNestedRegionAndStateRight =
+        stateRight
+            .dereferencePointerWithoutMaterilization(addressToSecondNestedRegion)
+            .orElseThrow();
+    SMGObject lastNestedRegionRight = lastNestedRegionAndStateRight.getSMGObject();
+    stateRight = lastNestedRegionAndStateRight.getSMGState();
     stateRight =
-        stateRight.writeToStackOrGlobalVariable(
-            variableName2, zero, thirtyTwo, addressToSecondNestedRegion, pointerType, null);
+        stateRight.writeValueWithChecks(
+            lastNestedRegionRight, zero, thirtyTwo, zero, pointerType, null);
+
+    SMGObject variableMemoryRight2 =
+        stateRight.getMemoryModel().getStackFrames().peek().getVariable(variableName2);
+
+    stateRight =
+        stateRight.writeValueWithChecks(
+            variableMemoryRight2, zero, thirtyTwo, addressToSecondNestedRegion, pointerType, null);
+
     stateRight =
         stateRight
             .writeValueTo(
@@ -210,6 +244,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     SMGMergeOperator mergeOp = new SMGMergeOperator(new SMGCPAStatistics());
     SMGState mergedState = (SMGState) mergeOp.merge(stateLeft, stateRight, null);
     assertThat(mergedState).isNotEqualTo(stateLeft);
+    // merge returns right for failing
     assertThat(mergedState).isNotEqualTo(stateRight);
   }
 
@@ -231,7 +266,12 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     return ValueAndSMGState.of(
         addressValue,
         state.createAndAddPointer(
-            addressValue, newObject, new NumericValue(BigInteger.ZERO), pointerType));
+            addressValue,
+            newObject,
+            pointerType,
+            new NumericValue(BigInteger.ZERO),
+            0,
+            SMGTargetSpecifier.IS_FIRST_POINTER));
   }
 
   // test list specifier after normal abstraction
