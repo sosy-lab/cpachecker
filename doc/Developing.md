@@ -219,7 +219,7 @@ Releasing a New Version
 
 1. Add a tag in the repository with name `cpachecker-<version>`.
 
-1. Prepare for next development cycle by adding the suffix `-dev`
+1. Prepare for next development cycle by adding the suffix `-git`
    to `version.base` in [`build.xml`](../build.xml).
 
 1. Publish the `.deb` package created in `dist-<version>/`
