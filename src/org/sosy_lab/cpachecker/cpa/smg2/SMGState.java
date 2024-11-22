@@ -1171,7 +1171,7 @@ public class SMGState
         getMemoryModel().getSmg().getAllValidAbstractedObjects();
     Set<SMGSinglyLinkedListSegment> abstrObjs2 =
         pOther.getMemoryModel().getSmg().getAllValidAbstractedObjects();
-    if (abstrObjs1.isEmpty()) {
+    if (abstrObjs1.isEmpty() || abstrObjs2.isEmpty()) {
       return Optional.empty();
     }
 
