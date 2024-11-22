@@ -20,12 +20,15 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPATest0;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGMergeOperator;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecision;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager.SMGCandidate;
@@ -38,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
@@ -88,7 +92,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * -> [concrete]
    */
   @Test
-  public void simpleMergeTest() throws SMGException, SMGSolverException {
+  public void simpleMergeTest() throws CPAException, InterruptedException {
     SMGState stateLeft = getFreshState();
     SMGState stateRight = getFreshState();
     NumericValue zero = new NumericValue(BigInteger.ZERO);
@@ -207,7 +211,9 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     // Now merge
     SMGMergeOperator mergeOp = new SMGMergeOperator(new SMGCPAStatistics());
-    // TODO:
+    SMGState mergedState = (SMGState) mergeOp.merge(stateLeft, stateRight, null);
+    assertThat(mergedState).isNotEqualTo(stateLeft);
+    assertThat(mergedState).isNotEqualTo(stateRight);
   }
 
   private ValueAndSMGState createSLLAndReturnPointer(
