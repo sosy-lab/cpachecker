@@ -817,9 +817,14 @@ public class SMGTransferRelation
     // SMGs. Assumptions are for example all comparisons like ==, !=, <.... and should
     // always be a CBinaryExpression.
     // We also might learn something by assuming symbolic or unknown values based on known values
+    return handleAssumption(expression, cfaEdge, truthAssumption);
+  }
+
+  private @Nullable Collection<SMGState> handleAssumption(
+      AExpression expression, CFAEdge cfaEdge, boolean truthValue)
+      throws CPATransferException, InterruptedException {
     try {
-      Collection<SMGState> handledAssumptions =
-          handleAssumption(expression, cfaEdge, truthAssumption);
+      Collection<SMGState> handledAssumptions = handleAssumption1(expression, cfaEdge, truthValue);
       if (handledAssumptions == null || handledAssumptions.isEmpty()) {
         return null;
       }
@@ -842,7 +847,8 @@ public class SMGTransferRelation
     }
   }
 
-  private @Nullable Collection<SMGState> handleAssumption(
+  // Only use handleAssumption()! It handles the return of this correctly!
+  private @Nullable Collection<SMGState> handleAssumption1(
       AExpression expression, CFAEdge cfaEdge, boolean truthValue)
       throws CPATransferException, SolverException, InterruptedException {
 
@@ -859,8 +865,11 @@ public class SMGTransferRelation
         && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound) {
       if (binEx.getOperator().equals(LESS_THAN) || binEx.getOperator().equals(LESS_EQUAL)) {
         // Concrete loop of the form x < 5, increment abstraction bound to 1 larger than loop
-        if (precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
-                <= loopBound.getValue().intValueExact()
+        if (precisionAdjustmentOptions.isAbstractLinkedLists()
+            && BigInteger.valueOf(
+                        precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold())
+                    .compareTo(loopBound.getValue())
+                <= 0
             && precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
                 < precisionAdjustmentOptions.getListAbstractionMaximumIncreaseLengthThreshold()) {
           precisionAdjustmentOptions.incListAbstractionMinimumLengthThreshold();
