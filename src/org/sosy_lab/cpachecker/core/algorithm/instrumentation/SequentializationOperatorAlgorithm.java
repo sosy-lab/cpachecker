@@ -102,6 +102,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                 instrumentationProperty, info.liveVariablesAndTypes(), index));
         index += 1;
       }
+      // Todo distance transition
     } else {
       mapNodesToLineNumbers = ImmutableMap.of(cfa.getMainFunction(), 0);
       mapAutomataToLocations.put(

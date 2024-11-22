@@ -7,17 +7,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 int main() {
-    int x;
     int y;
 
-    while (x<y)
+    for (int x = 0; x < y; x++)
     {
-        x++;
-        if (x==5)
-        {
-            x=3;
-        }
-        
+        y++;
     }
     
 

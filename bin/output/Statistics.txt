@@ -1,0 +1,62 @@
+
+Restart Algorithm statistics
+----------------------------
+Number of algorithms provided:    3
+Number of algorithms used:        3
+Last algorithm used:        /home/pearce/Dokumente/LMU/bach test/cpaloop/specification-transformation/lib/cpachecker/config/components/bddAnalysis-concurrency.properties
+Total time for algorithm 3:     0.213s
+
+CPAchecker general statistics
+-----------------------------
+Number of program locations:                       20
+Number of CFA edges (per node):                          22 (count: 20, min: 1, max: 2, avg: 1.10)
+Number of relevant variables:                      2
+Number of functions:                               1
+Number of loops (and loop nodes):                         1 (sum: 10, min: 10, max: 10, avg: 10.00)
+Size of reached set:             1
+  Number of reached locations:   1 (5%)
+    Avg states per location:     1
+    Max states per location:     1 (at node N1)
+  Number of reached functions:   1 (100%)
+  Number of target states:       0
+  Size of final wait list:       1
+
+Time for analysis setup:         12.713s
+  Time for loading CPAs:          7.891s
+  Time for loading parser:        0.257s
+  Time for CFA construction:      4.514s
+    Time for parsing file(s):     1.016s
+    Time for AST to CFA:          1.668s
+    Time for CFA sanity check:    0.003s
+    Time for post-processing:     1.629s
+    Time for loop structure:      0.181s
+    Time for AST structure:       0.000s
+    Time for CFA export:          6.744s
+      Time for function pointers resolving:            0.086s
+        Function calls via function pointers:             0 (count: 1, min: 0, max: 0, avg: 0.00)
+        Instrumented function pointer calls:              0 (count: 1, min: 0, max: 0, avg: 0.00)
+        Function calls with function pointer arguments:        0 (count: 1, min: 0, max: 0, avg: 0.00)
+        Instrumented function pointer arguments:          0 (count: 1, min: 0, max: 0, avg: 0.00)
+      Time for classifying variables:                  0.644s
+        Time for collecting variables:                 0.279s
+        Time for solving dependencies:                 0.013s
+        Time for building hierarchy:                   0.000s
+        Time for building classification:              0.336s
+        Time for exporting data:                       0.016s
+Time for Analysis:                0.216s
+CPU time for analysis:            0.400s
+Total time for CPAchecker:       12.932s
+Total CPU time for CPAchecker:   21.260s
+Time for statistics:              0.063s
+
+Time for Garbage Collector:       0.141s (in 4 runs)
+Garbage Collector(s) used:    G1 Old Generation, G1 Young Generation
+Used heap memory:                 47MB (    45 MiB) max;     28MB (    27 MiB) avg;     49MB (    47 MiB) peak
+Used non-heap memory:             36MB (    35 MiB) max;     27MB (    25 MiB) avg;     37MB (    36 MiB) peak
+Used in G1 Old Gen pool:          15MB (    14 MiB) max;     13MB (    12 MiB) avg;     15MB (    14 MiB) peak
+Allocated heap memory:            98MB (    94 MiB) max;     88MB (    84 MiB) avg
+Allocated non-heap memory:        40MB (    38 MiB) max;     30MB (    29 MiB) avg
+Total process virtual memory:   5276MB (  5032 MiB) max;   5262MB (  5019 MiB) avg
+
+Finished.
+More details about the verification run can be found in the directory "./output".

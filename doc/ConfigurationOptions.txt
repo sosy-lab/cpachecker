@@ -4239,9 +4239,10 @@ impact.useForcedCovering = true
 # toggle the strategy to determine the hardcoded instrumentation automaton to
 # be used
 # TERMINATION: transform termination to reachability
+# TERMINATION2: alternativly transform termination to reachability
 # NOOVERFLOW: transform no-overflow to reachability
 instrumentation.instrumentationProperty = TERMINATION
-  enum:     [TERMINATION, NOOVERFLOW]
+  enum:     [TERMINATION2, TERMINATION, NOOVERFLOW]
 
 # Where to write machine readable new edges.
 instrumentation.newEdgesFile = "newEdgesInfo.txt"

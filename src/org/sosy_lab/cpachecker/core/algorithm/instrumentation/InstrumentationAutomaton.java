@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+
 /**
  * Data structure that defines the required transformation of CFA. It is used in
  * InstrumentationOperatorAlgorithm and injects new transitions into an original CFA.
@@ -27,7 +28,8 @@ public class InstrumentationAutomaton {
   enum InstrumentationProperty {
     TERMINATION2,
     TERMINATION,
-    NOOVERFLOW
+    NOOVERFLOW,
+    DISTANCE
   }
 
   /** The annotation is used to match a property of a CFA node. */
@@ -58,7 +60,7 @@ public class InstrumentationAutomaton {
       ImmutableMap<String, String> pLiveVariablesAndTypes,
       int pIndex) {
     this.liveVariablesAndTypes = pLiveVariablesAndTypes;
-
+        // TODO: refactor chain of respons.
     if (pInstrumentationProperty == InstrumentationProperty.TERMINATION) {
         constructTerminationAutomaton(pIndex);
       }
@@ -71,6 +73,17 @@ public class InstrumentationAutomaton {
       constructOverflowAutomaton();
     }
   }
+
+  public InstrumentationAutomaton(
+      InstrumentationProperty pInstrumentationProperty,
+      ImmutableMap<String, String> pLiveVariablesAndTypes,
+      int pIndex,
+      VariableBoundInfo boundInfo) {
+        this.liveVariablesAndTypes = pLiveVariablesAndTypes;
+        if (pInstrumentationProperty == InstrumentationProperty.DISTANCE) {
+            constructDistanceAutomaton(pIndex,boundInfo);
+          }
+      }
 
   public InstrumentationState getInitialState() {
     return initialState;
@@ -430,6 +443,63 @@ public class InstrumentationAutomaton {
     this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
   }
 
+  // TODO
+  private void constructDistanceAutomaton(int pIndex, VariableBoundInfo boundInfo) {
+    if(boundInfo.getLoopType() == NormalLoopType.STRUCTURED){
+        InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
+        InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
+        InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
+        this.initialState = q1;
+
+        InstrumentationTransition t1 =
+            new InstrumentationTransition(
+                q1,
+                new InstrumentationPattern("true"),
+                new InstrumentationOperation(
+                    "int saved_"
+                        + pIndex
+                        + " = 0; "
+                        + "int distance;"
+                        + (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
+                InstrumentationOrder.BEFORE,
+                q2);
+        InstrumentationTransition t2 =
+            new InstrumentationTransition(
+                q2,
+                new InstrumentationPattern("[cond]"),
+                new InstrumentationOperation(
+                    "if(__VERIFIER_nondet_int() && saved_"
+                        + pIndex
+                        + " == 0) { saved_"
+                        + pIndex
+                        + " =1; "
+                        + distanceCalculationString(boundInfo)
+                        + (!liveVariablesAndTypes.isEmpty() ? "; " : "")
+                        + "} else { __VERIFIER_assert((saved_"
+                        + pIndex
+                        + " == 0) ||"
+                        + distanceComparsonString(boundInfo)),
+                        //TODO close bracket
+                InstrumentationOrder.AFTER,
+                q3);
+        InstrumentationTransition t3 =
+            new InstrumentationTransition(
+                q3,
+                new InstrumentationPattern("true"),
+                new InstrumentationOperation(""),
+                InstrumentationOrder.AFTER,
+                q3);
+        this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
+    }
+    
+  }
+  // Todo
+  private String distanceCalculationString(VariableBoundInfo boundInfo){
+    return "";
+  }
+  private String distanceComparsonString(VariableBoundInfo boundInfo){
+    return "";
+  }
 
 
 }

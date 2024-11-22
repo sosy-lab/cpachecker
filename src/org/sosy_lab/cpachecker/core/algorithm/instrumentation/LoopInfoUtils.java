@@ -24,6 +24,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -42,12 +44,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.core.algorithm.instrumentation.NormalLoopInfo;
+
 
 
 public class LoopInfoUtils {
@@ -75,7 +78,6 @@ public class LoopInfoUtils {
       Set<String> liveVariables = new HashSet<>();
       Set<String> variablesDeclaredInsideLoop = new HashSet<>();
       Map<String, String> liveVariablesAndTypes = new HashMap<>();
-      NormalLoopType loopType = NormalLoopType.NO_INFO;
       for (CFAEdge cfaEdge : loop.getInnerLoopEdges()) {
         if (cfaEdge.getRawAST().isPresent()) {
           AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
@@ -86,6 +88,10 @@ public class LoopInfoUtils {
           }
         }
       }
+      
+      // Get Bound Infos
+      VariableBoundInfo boundInfo = getBoundInfo(loop);
+
       liveVariables.removeAll(variablesDeclaredInsideLoop);
       liveVariables.removeIf(
           e ->
@@ -120,7 +126,7 @@ public class LoopInfoUtils {
 
       for (Integer loopLocation : loopLocations) {
         allNormalLoopInfos.add(
-            new NormalLoopInfo(loopLocation, ImmutableMap.copyOf(liveVariablesAndTypes), loopType));
+            new NormalLoopInfo(loopLocation, ImmutableMap.copyOf(liveVariablesAndTypes), boundInfo));
       }
     }
 
@@ -382,4 +388,54 @@ public class LoopInfoUtils {
     }
     return ImmutableSet.copyOf(allGlobalVariables);
   }
+
+ // TODO get bound variable
+  
+
+  private static VariableBoundInfo getBoundInfo(Loop loop) {
+      CFAEdge loopHeadEdge = getFirstEdge(loop);
+      VariableBoundInfo boundInfo = isBinaryComparison(loopHeadEdge);
+      if(boundInfo.isBinary()){
+        boundInfo.setLoopType(NormalLoopType.STRUCTURED);
+      } else {
+        boundInfo.setLoopType(NormalLoopType.UNSTRUCTURED);
+      }
+      return boundInfo;
+  }
+
+  private static CFAEdge getFirstEdge(Loop loop) {
+      // Todo: maybe stream is better?
+      CFANode firstLoopHead = loop.getLoopHeads().iterator().next();
+      return firstLoopHead.getLeavingEdge(0);
+  }
+
+  private static VariableBoundInfo isBinaryComparison(CFAEdge edge) {
+      if (edge instanceof AssumeEdge assumeEdge) {
+          AExpression expression = assumeEdge.getExpression();
+          if (expression instanceof CBinaryExpression binaryExpression) {
+              AExpression operand1 = binaryExpression.getOperand1();
+              AExpression operand2 = binaryExpression.getOperand2();
+
+              VariableInfo leftInfo = hasSingleVariable(operand1);
+              VariableInfo rightInfo = hasSingleVariable(operand2);
+              VariableBoundInfo boundInfo = new VariableBoundInfo(leftInfo, rightInfo, NormalLoopType.NO_INFO);
+              return  boundInfo;
+          }
+      }
+      return null;
+  }
+
+  private static VariableInfo hasSingleVariable(AExpression operand) {
+      String VariableName = "";
+      // Todo: check for const and variables
+      if(operand instanceof CIdExpression singleOperand){
+        VariableName = singleOperand.getName();
+        VariableInfo info = new VariableInfo(true, VariableName);
+        return info;
+      }
+      return null;
+  }
+
+
 }
+

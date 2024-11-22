@@ -1,0 +1,2 @@
+24|||if(__VERIFIER_nondet_int() && saved_0 == 0) { saved_0 =1; p3_instr_0 = p3; x_instr_0 = x; } else { __VERIFIER_assert((saved_0 == 0) || (p3 != p3_instr_0)||(x != x_instr_0));}
+23|||int saved_0 = 0; int p3_instr_0; int x_instr_0;

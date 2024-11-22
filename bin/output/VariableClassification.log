@@ -20,7 +20,7 @@ ALL
 
 DEPENDENCIES
 
-[[main::__CPAchecker_TMP_0, main::x, main::y] --> [0, 1, 5],
+[[main::__CPAchecker_TMP_0, main::x, main::y] --> [0, 1],
 [main::__retval__] --> [0]]
 
 RELEVANT VARS
