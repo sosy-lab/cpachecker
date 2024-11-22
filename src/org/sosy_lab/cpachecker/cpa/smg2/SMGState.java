@@ -1157,7 +1157,9 @@ public class SMGState
   }
 
   /*
-   * Merge 2 SMGStates and as a consequence its SMGs as far as possible or return no state if they are incomparable.
+   * Merge 2 SMGStates and as a consequence its SMGs as far as possible or return no state if they
+   * are incomparable.
+   *
    */
   public Optional<SMGState> merge(SMGState pOther) throws CPAException {
     if (getSize() != pOther.getSize()) {
@@ -1169,7 +1171,7 @@ public class SMGState
         getMemoryModel().getSmg().getAllValidAbstractedObjects();
     Set<SMGSinglyLinkedListSegment> abstrObjs2 =
         pOther.getMemoryModel().getSmg().getAllValidAbstractedObjects();
-    if (abstrObjs1.size() == 0 || abstrObjs2.size() != abstrObjs1.size()) {
+    if (abstrObjs1.isEmpty()) {
       return Optional.empty();
     }
 
