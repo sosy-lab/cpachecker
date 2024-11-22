@@ -497,7 +497,7 @@ public class SMGCPAExpressionEvaluator {
       // The offset of the pointer used. (the pointer might point to an offset != 0, the other
       // offset needs to the added to that!)
       Value baseOffset = maybeTargetAndOffset.getOffsetForObject();
-      if (!baseOffset.isNumericValue() && !options.trackErrorPredicates()) {
+      if (!baseOffset.isNumericValue() && !options.trackPredicates()) {
         returnBuilder.add(
             ValueAndSMGState.ofUnknownValue(
                 maybeTargetAndOffset.getSMGState(),
