@@ -217,10 +217,6 @@ public class SymbolicProgramConfiguration {
       return Optional.empty();
     }
 
-    if (!memoryAddressAssumptionsMap.equals(pOther.memoryAddressAssumptionsMap)) {
-      return Optional.empty();
-    }
-
     if (!currentMemoryAssumptionMax.equals(pOther.currentMemoryAssumptionMax)) {
       return Optional.empty();
     }
@@ -783,9 +779,11 @@ public class SymbolicProgramConfiguration {
     }
     // 7. Collect the set F of all pairs (of, t) occurring in has-value edges leading from o1 or o2.
     Set<SMGHasValueEdge> hves1 =
-        new HashSet<>(spc1.smg.getSMGObjectsWithSMGHasValueEdges().get(obj1));
+        new HashSet<>(
+            spc1.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj1, PersistentSet.of()));
     Set<SMGHasValueEdge> hves2 =
-        new HashSet<>(spc2.smg.getSMGObjectsWithSMGHasValueEdges().get(obj2));
+        new HashSet<>(
+            spc2.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj2, PersistentSet.of()));
     // 8. For each field (of, t) ∈ F do:
     Iterator<SMGHasValueEdge> iter1 = hves1.iterator();
     while (iter1.hasNext()) {
@@ -981,8 +979,8 @@ public class SymbolicProgramConfiguration {
     // 8. Initialize the labeling of d to match the labeling of d1 up to minimum length,
     //      which is fixed to 0
     d = sll1.copyWithNewMinimumLength(0);
-    // For SLLs we have the next pointer leading into this thats created below and aNext is the next
-    // pointer of d which is mapped below as well.
+    // For SLLs we have the next pointer leading into this that's created below and aNext is the
+    // next pointer of d which is mapped below as well.
     // For DLLs we have 2 cases, next pointer case: same as above + back of d is already known
     // (either the ptr or the obj or 0) while the back ptr of the "next" obj (behind aNext) is
     // mapped due to the mapping of m1(d1) = d
@@ -2310,7 +2308,7 @@ public class SymbolicProgramConfiguration {
       SMGObject target,
       Map<SMGNode, SMGNode> mappingBetweenStates)
       throws SMGException {
-    PersistentSet<SMGHasValueEdge> setOfValues =
+    PersistentSet<SMGHasValueEdge> setOfValuesSource =
         sourceSPC.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(source, PersistentSet.of());
     // We expect that there are NO edges in the target!
     assert targetSPC
@@ -2320,33 +2318,37 @@ public class SymbolicProgramConfiguration {
         .isEmpty();
 
     SymbolicProgramConfiguration newTargetState = targetSPC;
-    for (SMGHasValueEdge hve : setOfValues) {
-      SMGValue smgValue = hve.hasValue();
-      Value value = sourceSPC.getValueFromSMGValue(smgValue).orElseThrow();
-      if (mappingBetweenStates.containsKey(smgValue)) {
-        smgValue = (SMGValue) mappingBetweenStates.get(smgValue);
-        Preconditions.checkArgument(newTargetState.smg.getValues().containsKey(smgValue));
-        Optional<Value> maybeNewSPCValue = newTargetState.getValueFromSMGValue(smgValue);
+    for (SMGHasValueEdge hveSource : setOfValuesSource) {
+      SMGValue smgValueSource = hveSource.hasValue();
+      Value valueSource = sourceSPC.getValueFromSMGValue(smgValueSource).orElseThrow();
+      SMGValue smgValueTarget = smgValueSource;
+      if (mappingBetweenStates.containsKey(smgValueSource)) {
+        smgValueTarget = (SMGValue) mappingBetweenStates.get(smgValueSource);
+        Preconditions.checkArgument(newTargetState.smg.getValues().containsKey(smgValueTarget));
+        Optional<Value> maybeNewSPCValue = newTargetState.getValueFromSMGValue(smgValueTarget);
         if (maybeNewSPCValue.isEmpty()) {
           throw new SMGException("Error when mapping values when merging.");
         }
-        Preconditions.checkArgument(maybeNewSPCValue.orElseThrow().equals(value));
+
       } else {
-        if (!smgValue.isZero()) {
-          mappingBetweenStates.put(smgValue, smgValue);
+        if (!smgValueSource.isZero()) {
+          mappingBetweenStates.put(smgValueSource, smgValueSource);
         }
       }
-      CType type = sourceSPC.valueToTypeMap.get(smgValue);
-      Preconditions.checkNotNull(type);
+      CType typeSource = sourceSPC.valueToTypeMap.get(smgValueSource);
+      Preconditions.checkNotNull(typeSource);
+      Preconditions.checkState(!newTargetState.containsValueInMapping(valueSource));
+      Preconditions.checkState(!newTargetState.containsValueInMapping(valueSource));
       newTargetState =
-          newTargetState.copyAndPutValue(value, smgValue, sourceSPC.getNestingLevel(value), type);
+          newTargetState.copyAndPutValue(
+              valueSource, smgValueTarget, sourceSPC.getNestingLevel(smgValueSource), typeSource);
     }
     SMG newSMG = newTargetState.smg;
-    for (SMGHasValueEdge hve : setOfValues) {
+    for (SMGHasValueEdge hve : setOfValuesSource) {
       newSMG = newSMG.incrementValueToMemoryMapEntry(target, hve.hasValue());
     }
     return of(
-        newSMG.copyAndSetHVEdges(setOfValues, target),
+        newSMG.copyAndSetHVEdges(setOfValuesSource, target),
         newTargetState.globalVariableMapping,
         newTargetState.stackVariableMapping,
         newTargetState.heapObjects,
@@ -2641,6 +2643,10 @@ public class SymbolicProgramConfiguration {
               newAddressValue, newSMGValue, smg.getNestingLevel(pointerToNewObj), type);
     }
     return newSPC;
+  }
+
+  private boolean containsValueInMapping(Value value) {
+    return valueMapping.containsKey(valueWrapper.wrap(value));
   }
 
   /**
