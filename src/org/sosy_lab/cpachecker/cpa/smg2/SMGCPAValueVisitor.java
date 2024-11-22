@@ -710,15 +710,11 @@ public class SMGCPAValueVisitor
     }
 
     if (!leftValue.isNumericValue() || !rightValue.isNumericValue()) {
-      logger.logf(
-          Level.FINE,
-          "Parameters to binary operation '%s %s %s' are no numeric values. Returned unknown value"
-              + " in %s",
-          leftValue,
-          binaryOperator,
-          rightValue,
-          cfaEdge);
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState,
+              "Parameters to binary operation are no numeric values. Returned unknown value",
+              cfaEdge));
     }
 
     if (isArithmeticOperation(binaryOperator)) {
@@ -1118,12 +1114,11 @@ public class SMGCPAValueVisitor
                 currentState));
         continue;
       } else if (!value.isNumericValue()) {
-        logger.logf(
-            Level.FINE,
-            "Returned unknown due to invalid argument %s for unary operator %s.",
-            value,
-            unaryOperator);
-        builder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        builder.add(
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Returned unknown due to invalid argument for unary operator.",
+                cfaEdge));
         continue;
       }
 

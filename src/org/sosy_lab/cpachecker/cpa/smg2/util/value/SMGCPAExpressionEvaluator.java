@@ -618,7 +618,7 @@ public class SMGCPAExpressionEvaluator {
    * @return either unknown or a {@link Value} representing the address.
    */
   public ValueAndSMGState createAddressForLocalOrGlobalVariable(
-      String variableName, SMGState pState) {
+      String variableName, SMGState pState) throws SMGException {
     // Get the variable SMGObject
     Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeObjectAndOffset =
         getTargetObjectAndOffset(pState, variableName, new NumericValue(BigInteger.ZERO));
@@ -1081,9 +1081,11 @@ public class SMGCPAExpressionEvaluator {
       if (!offsetValueInBits.isNumericValue()) {
         // We can't discern the read value, but the read itself was safe
         // TODO: Idea: find all possible values for this access and create states with them
-        logger.log(
-            Level.INFO, "Safe read with symbolic read offset returned UNKNOWN symbolic value.");
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+        logger.log(Level.INFO, "");
+        return ImmutableList.of(
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Safe read with symbolic read offset returned UNKNOWN symbolic value."));
       }
       // Symbolic size, but concrete offset, we can actually read
       offsetInBits = offsetValueInBits.asNumericValue().bigIntegerValue();
@@ -1622,7 +1624,8 @@ public class SMGCPAExpressionEvaluator {
       BigInteger sizeToCopy,
       Value sourcePointer,
       Value targetPointer,
-      ImmutableList.Builder<SMGState> returnBuilder) {
+      ImmutableList.Builder<SMGState> returnBuilder)
+      throws SMGException {
     if (sourceObject.equals(targetObject)) {
       if (!finalTargetOffset.isNumericValue() && !finalSourceOffset.isNumericValue()) {
         // TODO: handle this symbolically

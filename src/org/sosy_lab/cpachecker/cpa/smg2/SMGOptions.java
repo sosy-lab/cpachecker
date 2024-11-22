@@ -320,6 +320,22 @@ public class SMGOptions {
 
   @Option(
       secure = true,
+      name = "abortOnUnknown",
+      description =
+          "Determines if the analysis should abort for any unknown value derived, e.g. "
+              + "due to memory errors when not tracking memory errors.")
+  private boolean abortOnUnknown = false;
+
+  @Option(
+      secure = true,
+      name = "abortOnUnknown",
+      description =
+          "Determines if the analysis should abort for memory errors of the kind valid-deref and"
+              + " valid-free. This also works if memory errors are not target states!")
+  private boolean abortOnFatalMemoryErrors = false;
+
+  @Option(
+      secure = true,
       name = "unknownOnUndefined",
       description = "Emit messages when we encounter non-target undefined behavior")
   private boolean unknownOnUndefined = true;
@@ -566,6 +582,14 @@ public class SMGOptions {
 
   public boolean isMemoryErrorTarget() {
     return memoryErrors;
+  }
+
+  public boolean isAbortOnUnknown() {
+    return abortOnUnknown;
+  }
+
+  public boolean isAbortOnFatalMemoryErrors() {
+    return abortOnFatalMemoryErrors;
   }
 
   public boolean unknownOnUndefined() {

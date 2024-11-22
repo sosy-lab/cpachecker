@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 
@@ -42,7 +43,7 @@ public class ValueAndSMGState {
    * Returns the entered state with a newly created unknown value, logging the returned unknown with
    * the edge given.
    */
-  public static ValueAndSMGState ofUnknownValue(SMGState pState, CFAEdge edge) {
+  public static ValueAndSMGState ofUnknownValue(SMGState pState, CFAEdge edge) throws SMGException {
     Preconditions.checkNotNull(pState);
     pState.logUnknownValue(edge);
     return new ValueAndSMGState(UnknownValue.getInstance(), pState);
@@ -52,7 +53,8 @@ public class ValueAndSMGState {
    * Returns the entered state with a newly created unknown value, logging the returned unknown with
    * the edge and message given.
    */
-  public static ValueAndSMGState ofUnknownValue(SMGState pState, String msg, CFAEdge edge) {
+  public static ValueAndSMGState ofUnknownValue(SMGState pState, String msg, CFAEdge edge)
+      throws SMGException {
     Preconditions.checkNotNull(pState);
     pState.logUnknownValue(msg, edge);
     return new ValueAndSMGState(UnknownValue.getInstance(), pState);
@@ -62,7 +64,7 @@ public class ValueAndSMGState {
    * Returns the entered state with a newly created unknown value, logging the returned unknown with
    * the message given.
    */
-  public static ValueAndSMGState ofUnknownValue(SMGState pState, String msg) {
+  public static ValueAndSMGState ofUnknownValue(SMGState pState, String msg) throws SMGException {
     Preconditions.checkNotNull(pState);
     pState.logUnknownValue(msg);
     return new ValueAndSMGState(UnknownValue.getInstance(), pState);

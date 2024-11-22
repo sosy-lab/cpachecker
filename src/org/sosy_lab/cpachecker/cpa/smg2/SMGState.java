@@ -309,15 +309,18 @@ public class SMGState
     return constraintsState.contains(o);
   }
 
-  public void logUnknownValue(String msg) {
+  public void logUnknownValue(String msg) throws SMGException {
+    if (options.isAbortOnUnknown()) {
+      throw new SMGException("Abort for unknown value due to option abortOnUnknown.");
+    }
     logger.log(Level.FINE, msg);
   }
 
-  public void logUnknownValue(String msg, CFAEdge edge) {
+  public void logUnknownValue(String msg, CFAEdge edge) throws SMGException {
     logUnknownValue(msg + edge);
   }
 
-  public void logUnknownValue(CFAEdge edge) {
+  public void logUnknownValue(CFAEdge edge) throws SMGException {
     logUnknownValue("A unknown value was assumed in ", edge);
   }
 
@@ -854,7 +857,7 @@ public class SMGState
    * @param pOther the state you want the error info from.
    * @return this state with the error info of this + other.
    */
-  public SMGState withViolationsOf(SMGState pOther) {
+  public SMGState withViolationsOf(SMGState pOther) throws SMGException {
     if (errorInfo.equals(pOther.errorInfo)) {
       return this;
     }
@@ -2351,7 +2354,12 @@ public class SMGState
             .withErrorMessage(errorMSG)
             .withInvalidObjects(leakedObjects);
     logMemoryError(errorMSG, true);
-    return copyWithNewErrorInfo(newErrorInfo);
+    try {
+      return copyWithNewErrorInfo(newErrorInfo);
+    } catch (SMGException pE) {
+      // Can not happen
+      throw new RuntimeException(pE);
+    }
   }
 
   // TODO: invalid read/write because of invalidated object/memory
@@ -2363,7 +2371,8 @@ public class SMGState
    * @param uninitializedVariableName the {@link String} that is not initialized.
    * @return A new {@link SMGState} with the error info.
    */
-  public SMGState withUninitializedVariableUsage(String uninitializedVariableName) {
+  public SMGState withUninitializedVariableUsage(String uninitializedVariableName)
+      throws SMGException {
     String errorMSG =
         "Usage of uninitialized variable: "
             + uninitializedVariableName
@@ -2387,7 +2396,8 @@ public class SMGState
    *     dereferenced.
    * @return A new {@link SMGState} with the error info.
    */
-  public SMGState withUnknownPointerDereferenceWhenReading(Value unknownAddress) {
+  public SMGState withUnknownPointerDereferenceWhenReading(Value unknownAddress)
+      throws SMGException {
     String errorMSG = "Unknown value pointer dereference for value: " + unknownAddress + ".";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
@@ -2399,7 +2409,8 @@ public class SMGState
     return copyWithNewErrorInfo(newErrorInfo);
   }
 
-  public SMGState withUnknownPointerDereferenceWhenReading(Value unknownAddress, CFAEdge edge) {
+  public SMGState withUnknownPointerDereferenceWhenReading(Value unknownAddress, CFAEdge edge)
+      throws SMGException {
     String errorMSG =
         "Unknown value pointer dereference for value: " + unknownAddress + " at " + edge;
     SMGErrorInfo newErrorInfo =
@@ -2420,7 +2431,8 @@ public class SMGState
    *     dereferenced.
    * @return A new {@link SMGState} with the error info.
    */
-  public SMGState withUnknownPointerDereferenceWhenWriting(Value unknownAddress) {
+  public SMGState withUnknownPointerDereferenceWhenWriting(Value unknownAddress)
+      throws SMGException {
     String errorMSG =
         "Unknown value pointer dereference with intent to write to it for value: "
             + unknownAddress
@@ -2441,7 +2453,7 @@ public class SMGState
    * @param variableName the variable name of the variable that was tried to write to.
    * @return A new {@link SMGState} with the error info.
    */
-  public SMGState withWriteToUnknownVariable(String variableName) {
+  public SMGState withWriteToUnknownVariable(String variableName) throws SMGException {
     String errorMSG = "Failed write to variable " + variableName + ".";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
@@ -2460,7 +2472,7 @@ public class SMGState
    * @param nullObject the {@link SMGObject} that is null and was tried to be dereferenced.
    * @return A new SMGState with the error info.
    */
-  public SMGState withNullPointerDereferenceWhenWriting(SMGObject nullObject) {
+  public SMGState withNullPointerDereferenceWhenWriting(SMGObject nullObject) throws SMGException {
     // Get the SMGValue and Value that lead to this null pointer dereference
     String errorMSG =
         "Null pointer dereference on read of object with the intent to write to: "
@@ -2492,7 +2504,12 @@ public class SMGState
             .withInvalidObjects(pUnreachableObjects);
     // Log the error in the logger
     logMemoryError(errorMsg, true);
-    return copyWithNewErrorInfo(newErrorInfo);
+    try {
+      return copyWithNewErrorInfo(newErrorInfo);
+    } catch (SMGException pE) {
+      // Can not happen
+      throw new RuntimeException(pE);
+    }
   }
 
   /**
@@ -2502,7 +2519,7 @@ public class SMGState
    * @param invalidAddress the invalid address pointing to nothing.
    * @return A new SMGState with the error info.
    */
-  public SMGState withInvalidWrite(Value invalidAddress) {
+  public SMGState withInvalidWrite(Value invalidAddress) throws SMGException {
     String errorMSG =
         "Write to invalid, unknown or non-existing memory region, pointed to by: "
             + invalidAddress
@@ -2524,7 +2541,7 @@ public class SMGState
    * @param invalidWriteRegion the invalid address pointing to nothing.
    * @return A new SMGState with the error info.
    */
-  public SMGState withInvalidWrite(SMGObject invalidWriteRegion) {
+  public SMGState withInvalidWrite(SMGObject invalidWriteRegion) throws SMGException {
     String errorMSG =
         "Write to invalid, unknown or non-existing or beyond the boundries of a memory region: "
             + invalidWriteRegion
@@ -2545,7 +2562,7 @@ public class SMGState
    * @param invalidWriteRegion the invalid address pointing to nothing.
    * @return A new SMGState with the error info.
    */
-  public SMGState withInvalidWriteToZeroObject(SMGObject invalidWriteRegion) {
+  public SMGState withInvalidWriteToZeroObject(SMGObject invalidWriteRegion) throws SMGException {
     String errorMSG = "Write to invalid memory region: NULL.";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
@@ -2564,7 +2581,7 @@ public class SMGState
    *     specifier etc.
    * @return A new SMGState with the error info.
    */
-  public SMGState withInvalidWrite(String errorMSG, Value invalidValue) {
+  public SMGState withInvalidWrite(String errorMSG, Value invalidValue) throws SMGException {
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.INVALID_WRITE)
@@ -2581,7 +2598,7 @@ public class SMGState
    * @param nullObject the {@link SMGObject} that is null and was tried to be dereferenced.
    * @return A new SMGState with the error info.
    */
-  public SMGState withNullPointerDereferenceWhenReading(SMGObject nullObject) {
+  public SMGState withNullPointerDereferenceWhenReading(SMGObject nullObject) throws SMGException {
     // getValueForSMGValue(pValue)
     // Get the SMGValue and Value that lead to this null pointer dereference
     String errorMSG =
@@ -2604,7 +2621,7 @@ public class SMGState
    * @param readVariable the variable that was tried to be read.
    * @return A new SMGState with the error info.
    */
-  public SMGState withInvalidStackVariableRead(String readVariable) {
+  public SMGState withInvalidStackVariableRead(String readVariable) throws SMGException {
     String errorMSG = "Invalid read of variable named: " + readVariable + ".";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
@@ -2622,7 +2639,7 @@ public class SMGState
    * @param readMemory the memory {@link SMGObject} that was tried to be read.
    * @return A new SMGState with the error info.
    */
-  public SMGState withInvalidRead(SMGObject readMemory) {
+  public SMGState withInvalidRead(SMGObject readMemory) throws SMGException {
     String errorMSG = "Invalid read of memory object: " + readMemory + ".";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
@@ -2640,7 +2657,7 @@ public class SMGState
    * @param readPointer the pointer {@link Value} that was evaluated.
    * @return A new SMGState with the error info.
    */
-  public SMGState withInvalidReadOfMallocZeroPointer(Value readPointer) {
+  public SMGState withInvalidReadOfMallocZeroPointer(Value readPointer) throws SMGException {
     if (readPointer instanceof AddressExpression addrExpr) {
       readPointer = addrExpr.getMemoryAddress();
     }
@@ -2669,7 +2686,8 @@ public class SMGState
    * @return A new SMGState with the error info.
    */
   public SMGState withOutOfRangeWrite(
-      SMGObject objectWrittenTo, Value writeOffset, Value writeSize, Value pValue, CFAEdge edge) {
+      SMGObject objectWrittenTo, Value writeOffset, Value writeSize, Value pValue, CFAEdge edge)
+      throws SMGException {
 
     if (getMemoryModel().isHeapObject(objectWrittenTo)) {
       // Invalid deref
@@ -2714,7 +2732,8 @@ public class SMGState
       Value writeOffset,
       BigInteger writeSize,
       Value pValue,
-      CFAEdge edge) {
+      CFAEdge edge)
+      throws SMGException {
 
     if (writeOffset.isNumericValue()) {
       return withOutOfRangeWrite(objectWrittenTo, writeOffset, writeSize, pValue, edge);
@@ -2742,7 +2761,8 @@ public class SMGState
     return copyWithNewErrorInfo(newErrorInfo);
   }
 
-  public SMGState withInvalidDerefForRead(SMGObject objectDerefed, CFAEdge edge) {
+  public SMGState withInvalidDerefForRead(SMGObject objectDerefed, CFAEdge edge)
+      throws SMGException {
     Preconditions.checkArgument(!getMemoryModel().isObjectValid(objectDerefed));
 
     String errorMSG = "valid-deref: invalid pointer dereference in : " + edge;
@@ -2757,7 +2777,7 @@ public class SMGState
     return copyWithNewErrorInfo(newErrorInfo);
   }
 
-  private SMGState withInvalidDeref(SMGObject objectDerefed, CFAEdge edge) {
+  private SMGState withInvalidDeref(SMGObject objectDerefed, CFAEdge edge) throws SMGException {
     Preconditions.checkArgument(
         getMemoryModel().isHeapObject(objectDerefed)
             || !getMemoryModel().isObjectValid(objectDerefed));
@@ -2786,7 +2806,8 @@ public class SMGState
    * @param readSize the size of the type in bits to read as {@link BigInteger}.
    * @return A new SMGState with the error info.
    */
-  public SMGState withOutOfRangeRead(SMGObject objectRead, Value readOffset, Value readSize) {
+  public SMGState withOutOfRangeRead(SMGObject objectRead, Value readOffset, Value readSize)
+      throws SMGException {
     // TODO: extract model for readOffset and print here
     if (readOffset.isNumericValue() && readSize.isNumericValue()) {
       return withOutOfRangeRead(
@@ -2815,7 +2836,7 @@ public class SMGState
   }
 
   public SMGState withOutOfRangeRead(
-      SMGObject objectRead, BigInteger readOffset, BigInteger readSize) {
+      SMGObject objectRead, BigInteger readOffset, BigInteger readSize) throws SMGException {
     // TODO: extract model for readOffset and print here
     String sizeToPrint = objectRead.getSize().toString();
     if (objectRead.getSize().isNumericValue()) {
@@ -2841,7 +2862,8 @@ public class SMGState
     return copyWithNewErrorInfo(newErrorInfo);
   }
 
-  public SMGState withOutOfRangeRead(SMGObject objectRead, Value readOffset, BigInteger readSize) {
+  public SMGState withOutOfRangeRead(SMGObject objectRead, Value readOffset, BigInteger readSize)
+      throws SMGException {
     // TODO: extract model for readOffset and print here
     if (readOffset.isNumericValue()) {
       return withOutOfRangeRead(
@@ -2867,7 +2889,7 @@ public class SMGState
     return copyWithNewErrorInfo(newErrorInfo);
   }
 
-  public SMGState withUnknownOffsetMemoryAccess() {
+  public SMGState withUnknownOffsetMemoryAccess() throws SMGException {
     String errorMSG =
         "Memory access with an invalid or unknown offset detected. This might be the result of"
             + " an overapproximation and might be a false positive.";
@@ -2888,7 +2910,8 @@ public class SMGState
    * @param reason the reasons for the undefined behavior. I.e. invalid memcpy pointers.
    * @return a new state with the error attached.
    */
-  public SMGState withUndefinedbehavior(String errorMSG, Collection<Object> reason) {
+  public SMGState withUndefinedbehavior(String errorMSG, Collection<Object> reason)
+      throws SMGException {
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.UNDEFINED_BEHAVIOR)
@@ -2907,7 +2930,7 @@ public class SMGState
    * @param invalidValue the {@link Value} that was invalidly freed.
    * @return A new SMGState with the error info.
    */
-  public SMGState withInvalidFree(String errorMSG, Value invalidValue) {
+  public SMGState withInvalidFree(String errorMSG, Value invalidValue) throws SMGException {
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.INVALID_FREE)
@@ -2926,12 +2949,22 @@ public class SMGState
    * @return a copy of the {@link SMGState} this is based on with the newly entered SPC and error
    *     info.
    */
-  public SMGState copyWithNewErrorInfo(SMGErrorInfo pErrorInfo) {
+  public SMGState copyWithNewErrorInfo(SMGErrorInfo pErrorInfo) throws SMGException {
     return copyWithNewErrorInfo(
         new ImmutableList.Builder<SMGErrorInfo>().addAll(errorInfo).add(pErrorInfo).build());
   }
 
-  private SMGState copyWithNewErrorInfo(ImmutableList<SMGErrorInfo> pNewErrorInfo) {
+  private SMGState copyWithNewErrorInfo(ImmutableList<SMGErrorInfo> pNewErrorInfo)
+      throws SMGException {
+    if (options.isAbortOnFatalMemoryErrors()) {
+      for (SMGErrorInfo info : pNewErrorInfo) {
+        if (info.isInvalidFree() || info.isInvalidRead() || info.isInvalidWrite()) {
+          throw new SMGException(
+              "Abort SMG based analysis due to found memory error and option"
+                  + " bortOnFatalMemoryErrors.");
+        }
+      }
+    }
     return new SMGState(
         machineModel,
         memoryModel,

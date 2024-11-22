@@ -3210,6 +3210,13 @@ cpa.smg2.GCCZeroLengthArray = false
 # memory allocation of any kind.
 cpa.smg2.abortOnNonConcreteMemorySize = true
 
+# Determines if the analysis should abort for any unknown value derived, e.g.
+# due to memory errors when not tracking memory errors.
+# Determines if the analysis should abort for memory errors of the kind
+# valid-deref and valid-free. This also works if memory errors are not target
+# states!
+cpa.smg2.abortOnUnknown = false
+
 # Periodically removes concrete values from the memory model and replaces
 # them with symbolic values. Only the newest concrete values above this
 # threshold are removed. For negative numbers this option is ignored. Note: 0
