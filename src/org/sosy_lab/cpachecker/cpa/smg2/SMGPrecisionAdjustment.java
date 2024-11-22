@@ -209,6 +209,10 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       return abstractConcreteValuesAboveThreshold;
     }
 
+    public boolean isAbstractLinkedLists() {
+      return abstractLinkedLists;
+    }
+
     public int getListAbstractionMinimumLengthThreshold() {
       return listAbstractionMinimumLengthThreshold;
     }
