@@ -195,6 +195,10 @@ public class SMGCPAExpressionEvaluator {
     SMGState currentState = rightValueAndState.getState();
     // Check that both Values are truly addresses
     if (!isPointerValue(rightValue, currentState) || !isPointerValue(leftValue, currentState)) {
+      if (options.isAbortOnUnknown()) {
+        throw new SMGException(
+            "Abort analysis due to found unknown value and option abortOnUnknown");
+      }
       return UnknownValue.getInstance();
     }
 
@@ -1973,6 +1977,10 @@ public class SMGCPAExpressionEvaluator {
         // Sometimes a pointer is cast to a long or something
         if (!paramAddrOffsetValue.isNumericValue()) {
           // Write unknown for unknown offset
+          if (options.isAbortOnUnknown()) {
+            throw new SMGException(
+                "Abort analysis due to found unknown value and option abortOnUnknown");
+          }
           return currentState.writeToStackOrGlobalVariable(
               qualifiedVarName,
               ZeroOffsetInBits,

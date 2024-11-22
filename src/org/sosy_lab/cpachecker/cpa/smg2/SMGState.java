@@ -810,6 +810,10 @@ public class SMGState
     // Null for new interpolants, return unknown
     @Nullable BigInteger sizeOfReadInBits = valueAndSize.getSizeInBits();
     if (sizeOfReadInBits == null) {
+      if (options.isAbortOnUnknown()) {
+        throw new SMGException(
+            "Abort analysis due to found unknown value and option abortOnUnknown");
+      }
       return UnknownValue.getInstance();
     }
 
@@ -2254,13 +2258,21 @@ public class SMGState
    * @param pValue some {@link Value} that may be a pointer.
    * @return UNKNOWN or a {@link NumericValue} that is the offset.
    */
-  public Value getPointerOffset(Value pValue) {
+  public Value getPointerOffset(Value pValue) throws SMGException {
     if (!memoryModel.isPointer(pValue)) {
+      if (options.isAbortOnUnknown()) {
+        throw new SMGException(
+            "Abort analysis due to found unknown value and option abortOnUnknown");
+      }
       return UnknownValue.getInstance();
     }
 
     Optional<SMGValue> maybeSmgValue1 = memoryModel.getSMGValueFromValue(pValue);
     if (maybeSmgValue1.isEmpty()) {
+      if (options.isAbortOnUnknown()) {
+        throw new SMGException(
+            "Abort analysis due to found unknown value and option abortOnUnknown");
+      }
       return UnknownValue.getInstance();
     }
 
@@ -3264,6 +3276,10 @@ public class SMGState
       throws SMGException {
     Preconditions.checkArgument(!(pObject instanceof SMGSinglyLinkedListSegment));
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
+      if (options.isAbortOnUnknown()) {
+        throw new SMGException(
+            "Abort analysis due to found unknown value and option abortOnUnknown");
+      }
       return ImmutableList.of(
           ValueAndSMGState.of(UnknownValue.getInstance(), withInvalidRead(pObject)));
     }
@@ -3360,7 +3376,7 @@ public class SMGState
       @Nullable CType readType)
       throws SMGException {
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
-      return ValueAndSMGState.of(UnknownValue.getInstance(), withInvalidRead(pObject));
+      return ValueAndSMGState.ofUnknownValue(withInvalidRead(pObject));
     }
     // TODO: it is a assumption that we don't need precise reads here, as the top value needs to be
     // the same?
@@ -3378,7 +3394,8 @@ public class SMGState
   }
 
   // Expects an exact read
-  private ValueAndSMGState handleReadSMGValue(SMGValue readSMGValue, @Nullable CType readType) {
+  private ValueAndSMGState handleReadSMGValue(SMGValue readSMGValue, @Nullable CType readType)
+      throws SMGException {
     Optional<Value> maybeValue = getMemoryModel().getValueFromSMGValue(readSMGValue);
     if (maybeValue.isPresent()) {
       // The Value to the SMGValue is already known, use it
@@ -3414,6 +3431,10 @@ public class SMGState
       shiftRight = readOffset.intValueExact() - readSMGHVValue.getOffset().intValueExact();
       if (shiftRight < 0) {
         // Read larger edge on smaller, not supported
+        if (options.isAbortOnUnknown()) {
+          throw new SMGException(
+              "Abort analysis due to found unknown value and option abortOnUnknown");
+        }
         return UnknownValue.getInstance();
       }
       assert shiftRight >= 0;
@@ -3470,6 +3491,9 @@ public class SMGState
     }
 
     // Fallthrough. Unknown value -> unknown value
+    if (options.isAbortOnUnknown()) {
+      throw new SMGException("Abort analysis due to found unknown value and option abortOnUnknown");
+    }
     return UnknownValue.getInstance();
   }
 
@@ -3554,7 +3578,8 @@ public class SMGState
    * The only important thing is that the expectedType is NOT the left hand side type or any cast
    * type, but the type of the read before any casts etc.! *
    */
-  private Value castValueForUnionFloatConversion(Value readValue, CType expectedType) {
+  private Value castValueForUnionFloatConversion(Value readValue, CType expectedType)
+      throws SMGException {
     if (readValue.isNumericValue()) {
       if (isFloatingPointType(readValue)) {
         return extractFloatingPointValueAsIntegralValue(readValue);
@@ -3566,10 +3591,13 @@ public class SMGState
       }
     }
 
+    if (options.isAbortOnUnknown()) {
+      throw new SMGException("Abort analysis due to found unknown value and option abortOnUnknown");
+    }
     return UnknownValue.getInstance();
   }
 
-  private Value extractFloatingPointValueAsIntegralValue(Value readValue) {
+  private Value extractFloatingPointValueAsIntegralValue(Value readValue) throws SMGException {
     Number numberValue = readValue.asNumericValue().getNumber();
 
     if (numberValue instanceof Float) {
@@ -3584,10 +3612,14 @@ public class SMGState
       return new NumericValue(BigInteger.valueOf(longBits));
     }
 
+    if (options.isAbortOnUnknown()) {
+      throw new SMGException("Abort analysis due to found unknown value and option abortOnUnknown");
+    }
     return UnknownValue.getInstance();
   }
 
-  private Value extractIntegralValueAsFloatingPointValue(CType pReadType, Value readValue) {
+  private Value extractIntegralValueAsFloatingPointValue(CType pReadType, Value readValue)
+      throws SMGException {
     if (pReadType instanceof CSimpleType) {
       CBasicType basicReadType = ((CSimpleType) pReadType.getCanonicalType()).getType();
       NumericValue numericValue = readValue.asNumericValue();
@@ -3603,6 +3635,9 @@ public class SMGState
 
         return new NumericValue(doubleValue);
       }
+    }
+    if (options.isAbortOnUnknown()) {
+      throw new SMGException("Abort analysis due to found unknown value and option abortOnUnknown");
     }
     return UnknownValue.getInstance();
   }
@@ -5969,7 +6004,11 @@ public class SMGState
       if (readType != null && doesRequireUnionFloatConversion(valueRead, readType)) {
         // Float conversion is limited to the Java float types at the moment.
         // Larger float types are almost always unknown
-        valueRead = castValueForUnionFloatConversion(valueRead, readType);
+        try {
+          valueRead = castValueForUnionFloatConversion(valueRead, readType);
+        } catch (SMGException pE) {
+          // Do nothin
+        }
       }
       if (memoryModel.isPointer(valueRead)) {
         builder.append(memLoc.getKey() + ":  pointer: " + valueRead);

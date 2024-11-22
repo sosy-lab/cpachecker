@@ -252,6 +252,9 @@ public class SMGCPAValueVisitor
         pExp,
         SMGValue.zeroValue(),
         cfaEdge.getRawStatement());
+    if (options.isAbortOnUnknown()) {
+      throw new SMGException("Abort analysis due to found unknown value and option abortOnUnknown");
+    }
     return ImmutableList.of(ValueAndSMGState.of(UnknownValue.getInstance(), state));
   }
 
@@ -781,6 +784,10 @@ public class SMGCPAValueVisitor
         return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
 
       } else {
+        if (options.isAbortOnUnknown()) {
+          throw new SMGException(
+              "Abort analysis due to found unknown value and option abortOnUnknown");
+        }
         return ValueAndSMGState.of(UnknownValue.getInstance(), currentState);
       }
     }
@@ -1315,7 +1322,8 @@ public class SMGCPAValueVisitor
       @NonNull final NumericValue numericValue,
       final CType type,
       final MachineModel machineModel,
-      final int size) {
+      final int size)
+      throws SMGException {
 
     if (!(type instanceof CSimpleType)) {
       return numericValue;
@@ -1332,6 +1340,10 @@ public class SMGCPAValueVisitor
         {
           if (isNan(numericValue)) {
             // result of conversion of NaN to integer is undefined
+            if (options.isAbortOnUnknown()) {
+              throw new SMGException(
+                  "Abort analysis due to found unknown value and option abortOnUnknown");
+            }
             return UnknownValue.getInstance();
 
           } else if ((numericValue.getNumber() instanceof Float
@@ -1339,6 +1351,10 @@ public class SMGCPAValueVisitor
               && Math.abs(numericValue.doubleValue() - numericValue.longValue()) >= 1) {
             // if number is a float and float can not be exactly represented as integer, the
             // result of the conversion of float to integer is undefined
+            if (options.isAbortOnUnknown()) {
+              throw new SMGException(
+                  "Abort analysis due to found unknown value and option abortOnUnknown");
+            }
             return UnknownValue.getInstance();
           }
 
@@ -1403,6 +1419,10 @@ public class SMGCPAValueVisitor
             } else if (numericValue.bigDecimalValue().floatValue() == numericValue.floatValue()) {
               result = new NumericValue(numericValue.floatValue());
             } else {
+              if (options.isAbortOnUnknown()) {
+                throw new SMGException(
+                    "Abort analysis due to found unknown value and option abortOnUnknown");
+              }
               result = UnknownValue.getInstance();
             }
           } else {
@@ -1503,7 +1523,7 @@ public class SMGCPAValueVisitor
     return new NumericValue(op2bd);
   }
 
-  private Value fdim(Number pOp1, Number pOp2, String pFunctionName) {
+  private Value fdim(Number pOp1, Number pOp2, String pFunctionName) throws SMGException {
     if (Double.isNaN(pOp1.doubleValue()) || Double.isNaN(pOp2.doubleValue())) {
       return new NumericValue(Double.NaN);
     }
@@ -1553,6 +1573,10 @@ public class SMGCPAValueVisitor
           maxValue = BigDecimal.valueOf(Double.MAX_VALUE);
           break;
         default:
+          if (options.isAbortOnUnknown()) {
+            throw new SMGException(
+                "Abort analysis due to found unknown value and option abortOnUnknown");
+          }
           return Value.UnknownValue.getInstance();
       }
       if (difference.compareTo(maxValue) > 0) {
@@ -1674,6 +1698,11 @@ public class SMGCPAValueVisitor
            * return BuiltinOverflowFunctions.evaluateFunctionCall(
            *   pIastFunctionCallExpression, this, evaluator.getMachineModel(), logger);
            */
+          // TODO: look at this for overflows!
+          if (options.isAbortOnUnknown()) {
+            throw new SMGException(
+                "Abort analysis due to found unknown value and option abortOnUnknown");
+          }
           return ImmutableList.of(ValueAndSMGState.of(UnknownValue.getInstance(), currentState));
         } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
           assert parameterValues.size() == 1;
@@ -1930,6 +1959,10 @@ public class SMGCPAValueVisitor
 
               Value result = fdim(op1, op2, calledFunctionName);
               if (!Value.UnknownValue.getInstance().equals(result)) {
+                if (options.isAbortOnUnknown()) {
+                  throw new SMGException(
+                      "Abort analysis due to found unknown value and option abortOnUnknown");
+                }
                 return ImmutableList.of(ValueAndSMGState.of(result, currentState));
               }
             }
@@ -2531,6 +2564,10 @@ public class SMGCPAValueVisitor
           Level.ALL,
           "Could not determine result of %s operation on one or more memory addresses.",
           pExpression);
+      if (options.isAbortOnUnknown()) {
+        throw new SMGException(
+            "Abort analysis due to found unknown value and option abortOnUnknown");
+      }
       return UnknownValue.getInstance();
     }
 
@@ -2661,13 +2698,18 @@ public class SMGCPAValueVisitor
       final NumericValue lNum,
       final NumericValue rNum,
       final BinaryOperator op,
-      final CType calculationType) {
+      final CType calculationType)
+      throws SMGException {
 
     // At this point we're only handling values of simple types.
     final CSimpleType type = getArithmeticType(calculationType);
     if (type == null) {
       logger.logf(
           Level.FINE, "unsupported type %s for result of binary operation %s", calculationType, op);
+      if (options.isAbortOnUnknown()) {
+        throw new SMGException(
+            "Abort analysis due to found unknown value and option abortOnUnknown");
+      }
       return Value.UnknownValue.getInstance();
     }
 
@@ -2711,6 +2753,10 @@ public class SMGCPAValueVisitor
           {
             logger.logf(
                 Level.FINE, "unsupported type for result of binary operation %s", type.toString());
+            if (options.isAbortOnUnknown()) {
+              throw new SMGException(
+                  "Abort analysis due to found unknown value and option abortOnUnknown");
+            }
             return Value.UnknownValue.getInstance();
           }
       }
@@ -2722,14 +2768,22 @@ public class SMGCPAValueVisitor
           lNum.bigDecimalValue(),
           op.getOperator(),
           rNum.bigDecimalValue());
+      if (options.isAbortOnUnknown()) {
+        throw new SMGException(
+            "Abort analysis due to found unknown value and option abortOnUnknown");
+      }
       return Value.UnknownValue.getInstance();
     }
   }
 
   @SuppressWarnings("unused")
   private Value arithmeticOperationForLongDouble(
-      NumericValue pLNum, NumericValue pRNum, BinaryOperator pOp, CType pCalculationType) {
+      NumericValue pLNum, NumericValue pRNum, BinaryOperator pOp, CType pCalculationType)
+      throws SMGException {
     // TODO: cf. https://gitlab.com/sosy-lab/software/cpachecker/issues/507
+    if (options.isAbortOnUnknown()) {
+      throw new SMGException("Abort analysis due to found unknown value and option abortOnUnknown");
+    }
     return Value.UnknownValue.getInstance();
   }
 
@@ -2928,13 +2982,18 @@ public class SMGCPAValueVisitor
       final NumericValue l,
       final NumericValue r,
       final BinaryOperator op,
-      final CType calculationType) {
+      final CType calculationType)
+      throws SMGException {
 
     // At this point we're only handling values of simple types.
     final CSimpleType type = getArithmeticType(calculationType);
     if (type == null) {
       logger.logf(
           Level.FINE, "unsupported type %s for result of binary operation %s", calculationType, op);
+      if (options.isAbortOnUnknown()) {
+        throw new SMGException(
+            "Abort analysis due to found unknown value and option abortOnUnknown");
+      }
       return Value.UnknownValue.getInstance();
     }
 
@@ -2988,6 +3047,10 @@ public class SMGCPAValueVisitor
               "unsupported type %s for result of binary operation %s",
               type.toString(),
               op);
+          if (options.isAbortOnUnknown()) {
+            throw new SMGException(
+                "Abort analysis due to found unknown value and option abortOnUnknown");
+          }
           return Value.UnknownValue.getInstance();
         }
     }
@@ -3007,7 +3070,8 @@ public class SMGCPAValueVisitor
    * @return the cast Value
    */
   public Value castCValue(
-      @NonNull final Value value, final CType targetType, final MachineModel machineModel) {
+      @NonNull final Value value, final CType targetType, final MachineModel machineModel)
+      throws SMGException {
 
     if (!value.isExplicitlyKnown()) {
       if (value instanceof AddressExpression

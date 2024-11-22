@@ -1300,6 +1300,10 @@ public class SMGTransferRelation
         AddressExpression addressInValue = (AddressExpression) valueToWrite;
         Value pointerOffset = addressInValue.getOffset();
         if (!pointerOffset.isNumericValue()) {
+          if (options.isAbortOnUnknown()) {
+            throw new SMGException(
+                "Abort analysis due to found unknown value and option abortOnUnknown");
+          }
           // Write unknown to left
           return ImmutableList.of(
               currentState.writeValueWithChecks(
@@ -1370,6 +1374,10 @@ public class SMGTransferRelation
           valueToWrite = newAddressAndState.getValue();
         } else {
           // Offset unknown/symbolic. This is not usable!
+          if (options.isAbortOnUnknown()) {
+            throw new SMGException(
+                "Abort analysis due to found unknown value and option abortOnUnknown");
+          }
           valueToWrite = UnknownValue.getInstance();
         }
         Preconditions.checkArgument(
