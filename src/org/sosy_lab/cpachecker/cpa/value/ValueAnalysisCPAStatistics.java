@@ -157,7 +157,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   }
 
   void incrementDeterministicAssumptions() {
-    assumptions.inc();
+    deterministicAssumptions.inc();
   }
 
   int getCurrentNumberOfIterations() {

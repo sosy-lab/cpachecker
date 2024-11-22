@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -480,6 +482,87 @@ public class ExpressionTransformer
     // offset + read size > size of memory region
     SymbolicExpression offsetPlusSizeGTRegion =
         factory.greaterThan(
+            offsetPlusReadSize, memoryRegionSizeValue, comparisonType, comparisonType);
+    constraintBuilder.add((Constraint) offsetPlusSizeGTRegion);
+
+    return constraintBuilder.build();
+  }
+
+  public Constraint getUnequalConstraint(
+      SymbolicValue symbolicValueUnequalTo,
+      Value valueUnequalTo,
+      CType comparisonType,
+      SMGState currentState) {
+    SymbolicExpression constSymbolicValueUnequalTo =
+        SymbolicValueFactory.getInstance()
+            .asConstant(symbolicValueUnequalTo, comparisonType)
+            .copyForState(currentState);
+    SymbolicExpression constValueUnequalTo =
+        SymbolicValueFactory.getInstance()
+            .asConstant(valueUnequalTo, comparisonType)
+            .copyForState(currentState);
+
+    return (Constraint)
+        factory.notEqual(
+            constSymbolicValueUnequalTo, constValueUnequalTo, comparisonType, comparisonType);
+  }
+
+  public Constraint getEqualConstraint(
+      Value arbitrarySymbolicExpression,
+      Value valueEqualTo,
+      CType comparisonType,
+      SMGState currentState) {
+    SymbolicExpression constSymbolicValueEqualTo =
+        SymbolicValueFactory.getInstance()
+            .asConstant(arbitrarySymbolicExpression, comparisonType)
+            .copyForState(currentState);
+    SymbolicExpression constValueEqualTo =
+        SymbolicValueFactory.getInstance()
+            .asConstant(valueEqualTo, comparisonType)
+            .copyForState(currentState);
+
+    return factory.equal(
+        constSymbolicValueEqualTo, constValueEqualTo, comparisonType, comparisonType);
+  }
+
+  public List<Constraint> getValidMemoryAccessConstraints(
+      Value offsetInBits,
+      Value readSizeInBits,
+      Value memoryRegionSizeInBits,
+      CType comparisonType,
+      SMGState currentState) {
+    ImmutableList.Builder<Constraint> constraintBuilder = ImmutableList.builder();
+
+    SymbolicExpression symbOffsetValue =
+        SymbolicValueFactory.getInstance()
+            .asConstant(offsetInBits, comparisonType)
+            .copyForState(currentState);
+
+    SymbolicExpression zeroValue =
+        SymbolicValueFactory.getInstance()
+            .asConstant(createNumericValue(BigInteger.ZERO), comparisonType);
+
+    SymbolicExpression readSizeValue =
+        SymbolicValueFactory.getInstance()
+            .asConstant(readSizeInBits, comparisonType)
+            .copyForState(currentState);
+
+    SymbolicExpression offsetPlusReadSize =
+        factory.add(symbOffsetValue, readSizeValue, comparisonType, comparisonType);
+
+    SymbolicExpression memoryRegionSizeValue =
+        SymbolicValueFactory.getInstance()
+            .asConstant(memoryRegionSizeInBits, comparisonType)
+            .copyForState(currentState);
+
+    // offset >= 0
+    SymbolicExpression offsetLessZero =
+        factory.greaterThanOrEqual(symbOffsetValue, zeroValue, comparisonType, comparisonType);
+    constraintBuilder.add((Constraint) offsetLessZero);
+
+    // offset + read size <= size of memory region
+    SymbolicExpression offsetPlusSizeGTRegion =
+        factory.lessThanOrEqual(
             offsetPlusReadSize, memoryRegionSizeValue, comparisonType, comparisonType);
     constraintBuilder.add((Constraint) offsetPlusSizeGTRegion);
 

@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -35,6 +36,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -122,7 +124,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       Specification pSpecification,
       CFA pCfa,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws InvalidConfigurationException, InterruptedException {
     config.inject(this);
 
     stats = new ParallelAlgorithmStatistics(pLogger, writeUnsuccessfulAnalysisFiles);
@@ -148,7 +150,10 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     mainEntryNode = AbstractStates.extractLocation(pReachedSet.getFirstState());
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
 
-    ListeningExecutorService exec = listeningDecorator(newFixedThreadPool(analyses.size()));
+    ThreadFactory threadFactory =
+        new ThreadFactoryBuilder().setNameFormat(getClass().getSimpleName() + "-thread-%d").build();
+    ListeningExecutorService exec =
+        listeningDecorator(newFixedThreadPool(analyses.size(), threadFactory));
 
     List<ListenableFuture<ParallelAnalysisResult>> futures = new ArrayList<>(analyses.size());
     for (Callable<ParallelAnalysisResult> call : analyses) {
@@ -236,7 +241,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   private Callable<ParallelAnalysisResult> createParallelAnalysis(
       final AnnotatedValue<Path> pSingleConfigFileName, final int analysisNumber)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws InvalidConfigurationException, InterruptedException {
     final Path singleConfigFileName = pSingleConfigFileName.value();
     final boolean supplyReached;
     final boolean refineAnalysis;
@@ -286,9 +291,17 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             singleShutdownManager.getNotifier(),
             aggregatedReachedSetManager.asView());
 
-    final ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
-    final Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
-    final ReachedSet reached = coreComponents.createReachedSet(cpa);
+    final ConfigurableProgramAnalysis cpa;
+    final Algorithm algorithm;
+    final ReachedSet reached;
+    try {
+      cpa = coreComponents.createCPA(cfa, specification);
+      algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
+      reached = coreComponents.createReachedSet(cpa);
+    } catch (CPAException e) {
+      singleLogger.logfUserException(Level.WARNING, e, "Failed to initialize analysis");
+      return () -> ParallelAnalysisResult.absent(singleConfigFileName.toString());
+    }
 
     AtomicBoolean terminated = new AtomicBoolean(false);
     StatisticsEntry statisticsEntry =

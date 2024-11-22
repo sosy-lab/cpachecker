@@ -401,9 +401,44 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       FunctionPointerState.Builder pNewState, CStatement pStatement, CFAEdge pCfaEdge)
       throws UnrecognizedCodeException {
 
-    if (pStatement instanceof CAssignment) {
+    // TODO: Handle calls like "int r = atexit(argExpr)" that don't ignore the return value
+    if (pStatement instanceof CFunctionCallAssignmentStatement callAssignStmt
+        && callAssignStmt.getLeftHandSide() instanceof CIdExpression leftSide
+        && callAssignStmt.getRightHandSide().getFunctionNameExpression()
+            instanceof CIdExpression fnExpr
+        && fnExpr.getName().equals("__CPACHECKER_atexit_next")) {
+      // We found a call "x = __CPA_CHECKER_atexit_next()":
+      // Get the target for the function pointer returned by __CPACHECKER_atexit_next() from the
+      // atexit stack and store it in "x".
+      // Then remove the last element from the stack.
+      String varName = getLeftHandSide(leftSide, pCfaEdge);
+      FunctionPointerTarget target = pNewState.popTarget();
+      pNewState.setTarget(varName, target);
+
+    } else if (pStatement instanceof CAssignment) {
       // assignment like "a = b" or "a = foo()"
       handleAssignment(pNewState, (CAssignment) pStatement, pCfaEdge);
+
+    } else if (pStatement instanceof CFunctionCallStatement callStmt
+        && callStmt.getFunctionCallExpression().getFunctionNameExpression()
+            instanceof CIdExpression fnExpr
+        && fnExpr.getName().equals("atexit")) {
+      // We've found a statement "atexit(<argExpr>)":
+      // Evaluate <argExpr> to get a target for the function pointer and store it on the stack
+      List<CExpression> params = callStmt.getFunctionCallExpression().getParameterExpressions();
+      Preconditions.checkArgument(
+          params.size() == 1,
+          "atexit() takes one argument, but it was called with %s",
+          params.size());
+      CExpression argExpr = params.get(0);
+      ExpressionValueVisitor evaluator = new ExpressionValueVisitor(pNewState);
+      FunctionPointerTarget target = argExpr.accept(evaluator);
+      // Note: We want AtExitState.peek() to only return NullTarget when the stack is actually
+      // empty. Because of this we have to use abstractInvalidTarget() here to make sure no
+      // NullTarget can be pushed onto the stack by calling atexit(0). The call to
+      // abstractInvalidTarget() makes sure that in such cases the target is always replaced by
+      // UnknowTarget before being pushed onto the stack.
+      pNewState.pushTarget(abstractInvalidTarget(target));
 
     } else if (pStatement instanceof CFunctionCallStatement) {
       // external function call without return value

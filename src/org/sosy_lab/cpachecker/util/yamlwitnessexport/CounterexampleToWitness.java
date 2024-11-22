@@ -256,6 +256,15 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
           return ImmutableList.of();
         }
 
+        if (iterationElement.getBody().edges().isEmpty()) {
+          // This happens when the loop contains no body. This can happen when the whole computation
+          // is being done in the condition. In this case we cannot distinguish if the edge goes
+          // into the loop or exits it, since the ASTStructure does not contain information about
+          // the edges exiting the loop.
+          // TODO: Handle this case correctly by exporting useful information for this type of loop
+          return ImmutableList.of();
+        }
+
         if (!iterationElement.getControllingExpression().orElseThrow().edges().contains(pEdge)) {
           // In this case we have an assume edge inside the loop which has nothing to do with its
           // controlling expression. This case should be ignored.
@@ -269,7 +278,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         // and then added to the AstCfaRelation. The problem is that this occurs at the expression
         // level and we currently only consider statements. The relevant parser expression type is
         // IASTConditionalExpression.
-        logger.log(Level.INFO, "Could not find the AST structure for the edge: " + pEdge);
+        logger.log(Level.FINEST, "Could not find the AST structure for the edge: " + pEdge);
         return ImmutableList.of();
       }
 
