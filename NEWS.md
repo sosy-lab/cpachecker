@@ -8,8 +8,8 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-Changes since CPAchecker 3.0
-----------------------------
+Changes from CPAchecker 3.0 to CPAchecker 4.0
+---------------------------------------------
 * Improved default configuration of CPAchecker.  
   The default configuration of CPAchecker is now more advanced and effective.
   For standard reachability properties it now uses strategy selection on
@@ -18,6 +18,7 @@ Changes since CPAchecker 3.0
   k-induction, IMC, predicate abstraction, and value analysis is used.
   Parallel portfolios of different analyses are also used for verification of
   memory-safety and termination properties.
+* Initial support for handling `atexit`.
 * The generated HTML report does no longer contain the witness tab by default.  
   In some cases, it can take a long time to generated.
   Set the option `report.addWitness=true` to re-enable it.
