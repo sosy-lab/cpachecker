@@ -219,11 +219,8 @@ Releasing a New Version
 
 1. Add a tag in the repository with name `cpachecker-<version>`.
 
-1. Prepare for next development cycle by setting `version.base` in [`build.xml`](../build.xml)
-   to a new development version, which is the next possible version number
-   with the suffix `-svn`.
-   For example, if `3.0` was just released, the next possible feature release
-   is `3.1` and the new development version should be `3.1-svn`.
+1. Prepare for next development cycle by adding the suffix `-dev`
+   to `version.base` in [`build.xml`](../build.xml).
 
 1. Publish the `.deb` package created in `dist-<version>/`
    in our [APT repository](https://apt.sosy-lab.org)
@@ -254,8 +251,8 @@ Releasing a New Version
    cpachecker-users mailing lists.
 
 
-Version Numbering and Release Tagging from Release 3.0
-------------------------------------------------------
+Version Numbering and Release Tagging
+-------------------------------------
 
 We use the following schema to construct version numbers for CPAchecker releases
 (from version 3.0 onwards):
@@ -265,8 +262,9 @@ We use the following schema to construct version numbers for CPAchecker releases
   and an increase of `Y` indicates a minor change (e.g., added functionality).
 - `X.Y.Z` indicates a bug-fix release,
   where `Z` is increased (starting from `0`).
-- Extensions with hyphen are possible,
-  for example, `-dev` indicates unstable development versions that are not released.
-  Note that `X.Y-suffix` is ordered *before* `X.Y`.
+- Development versions have versions as produced by `git describe`,
+  i.e. `4.0-2-gabcdef` for commit `abcdef` if it is the second commit after version 4.0.
+  Note that this differs from semantic versioning and for CPAchecker versions before 4.0,
+  where development version `X.Y-svn-suffix` was ordered before `X.Y`.
 
 The tags in our repository are named `cpachecker-VERSION`, e.g., `cpachecker-3.0`.
