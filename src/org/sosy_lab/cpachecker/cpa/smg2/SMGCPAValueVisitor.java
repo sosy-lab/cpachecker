@@ -348,14 +348,18 @@ public class SMGCPAValueVisitor
         }
 
         resultBuilder.addAll(
-            evaluateReadOfValueAndOffset(arrayValue, subscriptOffset, returnType, newState));
+            evaluateReadOfValueAndOffset(arrayValue, subscriptOffset, returnType, newState, e));
       }
     }
     return resultBuilder.build();
   }
 
   private List<ValueAndSMGState> evaluateReadOfValueAndOffset(
-      Value arrayValue, Value additionalOffset, CType pReturnType, SMGState pCurrentState)
+      Value arrayValue,
+      Value additionalOffset,
+      CType pReturnType,
+      SMGState pCurrentState,
+      CExpression exprThatCalledThis)
       throws CPATransferException {
     SMGState newState = pCurrentState;
     CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(pReturnType);
@@ -378,7 +382,12 @@ public class SMGCPAValueVisitor
         ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
         for (ValueAndSMGState readPointerAndState :
             evaluator.readValueWithPointerDereference(
-                newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits, returnType)) {
+                newState,
+                arrayAddr.getMemoryAddress(),
+                finalOffset,
+                typeSizeInBits,
+                returnType,
+                exprThatCalledThis)) {
 
           newState = readPointerAndState.getState();
           if (readPointerAndState.getValue().isUnknown()) {
@@ -399,7 +408,12 @@ public class SMGCPAValueVisitor
 
       } else {
         return evaluator.readValueWithPointerDereference(
-            newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits, returnType);
+            newState,
+            arrayAddr.getMemoryAddress(),
+            finalOffset,
+            typeSizeInBits,
+            returnType,
+            exprThatCalledThis);
       }
     } else if (arrayValue instanceof SymbolicIdentifier
         && ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent()) {
@@ -886,7 +900,7 @@ public class SMGCPAValueVisitor
 
       builder.addAll(
           evaluateReadOfValueAndOffset(
-              structValue, new NumericValue(fieldOffset), returnType, currentState));
+              structValue, new NumericValue(fieldOffset), returnType, currentState, e));
     }
     return builder.build();
   }
@@ -1245,7 +1259,12 @@ public class SMGCPAValueVisitor
         ValueAndSMGState readValueAndState =
             evaluator
                 .readValueWithPointerDereference(
-                    currentState, pointerValue.getMemoryAddress(), offset, sizeInBits, returnType)
+                    currentState,
+                    pointerValue.getMemoryAddress(),
+                    offset,
+                    sizeInBits,
+                    returnType,
+                    e)
                 .get(0);
         currentState = readValueAndState.getState();
 

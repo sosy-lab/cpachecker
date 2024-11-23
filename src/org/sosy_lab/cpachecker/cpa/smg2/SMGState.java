@@ -3941,7 +3941,7 @@ public class SMGState
       // Memsafety not violated
 
       if (!writeOffsetInBits.isNumericValue()) {
-        return handleSymbolicOffset(
+        return handleSymbolicOffsetForWriteOperation(
             object,
             writeOffsetInBits,
             sizeInBits,
@@ -4008,12 +4008,91 @@ public class SMGState
   }
 
   /**
+   * Handles symbolic offsets (and sizes if they are symbolic as well) in read operations. Will
+   * check if there are options to handle symbolic values, if yes, will use those, e.g.
+   * overapproximate or find concrete values.
+   */
+  @NonNull
+  public List<ValueAndSMGState> handleSymbolicOffsetForReadOperation(
+      SMGObject object,
+      Value readOffsetInBits,
+      BigInteger sizeInBits,
+      CExpression exprReadingFromValueVisitor,
+      @Nullable CFAEdge edge,
+      SMGState currentState)
+      throws SMGException, SMGSolverException {
+    if (options.isOverapproximateSymbolicOffsets()) {
+      // Delete ALL edges in the target region, as they may all be now different
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState.copyAndReplaceMemoryModel(
+                  currentState.memoryModel.copyAndReplaceHVEdgesAt(object, PersistentSet.of())),
+              "Returned unknown as a result of option isOverapproximateSymbolicOffsets true for a"
+                  + " symbolic offset.",
+              edge));
+
+    } else if (options.isFindConcreteValuesForSymbolicOffsets()) {
+      // Find the possible assignments of the offset (or the symbolic value therein)
+      //   and create concrete states based on concrete offsets them.
+      // We know that memory-safety is not violated, so the values are most likely finite.
+      return assignConcreteValuesForSymbolicValuesAndRead(
+          object, readOffsetInBits, sizeInBits, exprReadingFromValueVisitor, edge, currentState);
+
+    } else {
+      throw new SMGException(
+          "Stop analysis because of an error in symbolic offset in read operation. Enable the"
+              + " option findConcreteValuesForSymbolicOffsets or overapproximateSymbolicOffsets if"
+              + " you want to continue. "
+              + edge);
+    }
+  }
+
+  @NonNull
+  private List<ValueAndSMGState> assignConcreteValuesForSymbolicValuesAndRead(
+      SMGObject object,
+      Value offsetValueInBits,
+      BigInteger sizeInBits,
+      CExpression exprReadingFromValueVisitor,
+      @Nullable CFAEdge edge,
+      SMGState currentState)
+      throws SMGException, SMGSolverException {
+    options.incConcreteValueForSymbolicOffsetsAssignmentMaximum();
+
+    List<SMGState> assignedStates =
+        findAssignmentsWithSolverAndReplaceSymbolicValues(
+            object, offsetValueInBits, new NumericValue(sizeInBits), edge, currentState);
+
+    // (The concrete assignments don't invoke an SMT check anymore if there are no more symbolic
+    // values in any of the size or offset expressions)
+    if (assignedStates.isEmpty()) {
+      // No more assignments possible.
+      options.decConcreteValueForSymbolicOffsetsAssignmentMaximum();
+      return ImmutableList.of();
+    }
+
+    // Temporary restriction
+    Preconditions.checkArgument(assignedStates.size() == 2);
+    // Run the evaluation for the values with symbolic idents assigned in them again
+    // e.g. offset/size
+    ImmutableList.Builder<ValueAndSMGState> finalValuesAndStates = ImmutableList.builder();
+    for (SMGState assignedState : assignedStates) {
+      // The offset is not necessarily concrete now! We assign a concrete value in one state and
+      //   block it in the symbolic value for another state.
+      List<ValueAndSMGState> assignedValuesAndStates =
+          reEvaluateValueAfterConcreteAssignment(exprReadingFromValueVisitor, edge, assignedState);
+      finalValuesAndStates.addAll(assignedValuesAndStates);
+    }
+    options.decConcreteValueForSymbolicOffsetsAssignmentMaximum();
+    return finalValuesAndStates.build();
+  }
+
+  /**
    * Handles smybolic offsets (and sizes if they are symbolic as well) in write operations. Will
    * check if there are options to handle symbolic values, if yes, will use those, e.g.
    * overapproximate or find concrete values.
    */
   @NonNull
-  private List<SMGState> handleSymbolicOffset(
+  private List<SMGState> handleSymbolicOffsetForWriteOperation(
       SMGObject object,
       Value writeOffsetInBits,
       Value sizeInBits,
@@ -4189,7 +4268,7 @@ public class SMGState
   @NonNull
   private SMGStateAndOptionalSMGObjectAndOffset
       reEvaluateTargetObjectAndOffsetAfterConcreteAssignment(
-          CExpression lValueExpr, @javax.annotation.Nullable CFAEdge edge, SMGState assignedState)
+          CExpression lValueExpr, @Nullable CFAEdge edge, SMGState assignedState)
           throws SMGException, SMGSolverException {
     List<SMGStateAndOptionalSMGObjectAndOffset> targetsAndOffsetsAndStates;
     try {
@@ -4218,6 +4297,28 @@ public class SMGState
               + edge);
     }
     return targetAndOffsetAndState;
+  }
+
+  /** Re-evaluates the value visitor with the given expression */
+  private List<ValueAndSMGState> reEvaluateValueAfterConcreteAssignment(
+      CExpression exprReading, @Nullable CFAEdge edge, SMGState assignedState)
+      throws SMGException, SMGSolverException {
+    List<ValueAndSMGState> valuesAndStates;
+    try {
+      valuesAndStates =
+          exprReading.accept(
+              new SMGCPAValueVisitor(evaluator, assignedState, edge, logger, options));
+    } catch (CPATransferException e) {
+      if (e instanceof SMGException) {
+        throw (SMGException) e;
+      } else if (e instanceof SMGSolverException) {
+        throw (SMGSolverException) e;
+      }
+      // This can never happen, but i am forced to do this as the visitor demands the
+      // CPATransferException
+      throw new RuntimeException(e);
+    }
+    return valuesAndStates;
   }
 
   @NonNull
@@ -4267,7 +4368,6 @@ public class SMGState
         ImmutableMap.builder();
     for (Entry<SymbolicIdentifier, CType> sizeIdentAndType : sizeIdentsAndTypes.entrySet()) {
       if (!offsetIdentsAndTypes.containsKey(sizeIdentAndType.getKey())) {
-
         allIdentsAndTypesBuilder.put(sizeIdentAndType);
       } else {
         Preconditions.checkArgument(

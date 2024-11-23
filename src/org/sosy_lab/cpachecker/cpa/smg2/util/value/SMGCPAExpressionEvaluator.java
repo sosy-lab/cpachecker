@@ -759,7 +759,13 @@ public class SMGCPAExpressionEvaluator {
               initialState.getMemoryModel().validateSMGObject(maybeObject.orElseThrow()));
     }
     return readValue(
-        currentState, maybeObject.orElseThrow(), offsetInBits, sizeInBits, readType, materialize);
+        currentState,
+        maybeObject.orElseThrow(),
+        offsetInBits,
+        sizeInBits,
+        readType,
+        materialize,
+        null);
   }
 
   /**
@@ -781,6 +787,31 @@ public class SMGCPAExpressionEvaluator {
       Value pOffset,
       BigInteger pSizeInBits,
       CType readType)
+      throws SMGException, SMGSolverException {
+    return readValueWithPointerDereference(
+        pState, pointerValueToDeref, pOffset, pSizeInBits, readType, null);
+  }
+
+  /**
+   * Read the value at the address of the supplied {@link Value} at the offset with the size (type
+   * size) given.
+   *
+   * @param pState current {@link SMGState}.
+   * @param pointerValueToDeref the {@link Value} for the address of the memory to be read. This
+   *     should map to a known {@link SMGObject} or a {@link SMGPointsToEdge}.
+   * @param pOffset the offset as {@link BigInteger} in bits where to start reading in the object.
+   * @param pSizeInBits the size of the type to read in bits as {@link BigInteger}.
+   * @param readType the type of the read value before casts etc. Used to determine union float
+   *     conversion.
+   * @return {@link ValueAndSMGState} tuple for the read {@link Value} and the new {@link SMGState}.
+   */
+  public List<ValueAndSMGState> readValueWithPointerDereference(
+      SMGState pState,
+      Value pointerValueToDeref,
+      Value pOffset,
+      BigInteger pSizeInBits,
+      CType readType,
+      CExpression exprReading)
       throws SMGException, SMGSolverException {
 
     // Offsets are always interpreted as int in C
@@ -819,7 +850,8 @@ public class SMGCPAExpressionEvaluator {
       // offset  needs to the added to that!)
       Value finalOffset = addBitOffsetValues(pOffset, maybeTargetAndOffset.getOffsetForObject());
 
-      returnBuilder.addAll(readValue(pState, object, finalOffset, pSizeInBits, readType, true));
+      returnBuilder.addAll(
+          readValue(pState, object, finalOffset, pSizeInBits, readType, true, exprReading));
     }
     return returnBuilder.build();
   }
@@ -973,27 +1005,36 @@ public class SMGCPAExpressionEvaluator {
                       + " allocating function call when calculating address distance."));
           continue;
         }
-        // int because this is always an int
 
-        // TODO: handle this symbolically
         Value rightOffset = rightTargetAndOffset.getOffsetForObject();
         Value leftOffset = leftTargetAndOffset.getOffsetForObject();
-        if (!rightOffset.isNumericValue() && !leftOffset.isNumericValue()) {
-          returnBuilder.add(
-              ValueAndSMGState.ofUnknownValue(
-                  state,
-                  "Returned unknown value due to unknown offset when calculating address"
-                      + " distance."));
+        Value distance;
+        if (!rightOffset.isNumericValue() || !leftOffset.isNumericValue()) {
+          if (!options.trackPredicates()) {
+            returnBuilder.add(
+                ValueAndSMGState.ofUnknownValue(
+                    state,
+                    "Returned unknown value due to unknown offset when calculating address"
+                        + " distance."));
+            break;
+          }
+          final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+          CType addressDistanceType = getCTypeForBitPreciseMemoryAddresses();
+          SymbolicExpression leftOffsetSym = factory.asConstant(leftOffset, addressDistanceType);
+          SymbolicExpression rightOffsetSym = factory.asConstant(rightOffset, addressDistanceType);
+          distance =
+              factory.minus(
+                  leftOffsetSym, rightOffsetSym, addressDistanceType, addressDistanceType);
+        } else {
+          distance =
+              new NumericValue(
+                  leftOffset
+                      .asNumericValue()
+                      .bigIntegerValue()
+                      .subtract(rightOffset.asNumericValue().bigIntegerValue())
+                      .intValue());
         }
-        returnBuilder.add(
-            ValueAndSMGState.of(
-                new NumericValue(
-                    leftOffset
-                        .asNumericValue()
-                        .bigIntegerValue()
-                        .subtract(rightOffset.asNumericValue().bigIntegerValue())
-                        .intValue()),
-                state));
+        returnBuilder.add(ValueAndSMGState.of(distance, state));
       }
     }
     return returnBuilder.build();
@@ -1016,13 +1057,14 @@ public class SMGCPAExpressionEvaluator {
    * @return {@link ValueAndSMGState} bundeling the most up-to-date state and the read value.
    * @throws SMGException for critical errors when materializing lists.
    */
-  private List<ValueAndSMGState> readValue(
+  public List<ValueAndSMGState> readValue(
       SMGState initialState,
       SMGObject object,
       Value offsetValueInBits,
       BigInteger sizeInBits,
       @Nullable CType readType,
-      boolean materialize)
+      boolean materialize,
+      CExpression exprReading)
       throws SMGException, SMGSolverException {
     initialState.getMemoryModel().checkReadBlackList(object);
     SMGState currentState = initialState;
@@ -1080,10 +1122,8 @@ public class SMGCPAExpressionEvaluator {
 
       if (!offsetValueInBits.isNumericValue()) {
         // We can't discern the read value, but the read itself was safe
-        // TODO: Idea: find all possible values for this access and create states with them
-        logger.log(
-            Level.INFO, "Safe read with symbolic read offset returned UNKNOWN symbolic value.");
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+        return currentState.handleSymbolicOffsetForReadOperation(
+            object, offsetValueInBits, sizeInBits, exprReading, null, currentState);
       }
       // Symbolic size, but concrete offset, we can actually read
       offsetInBits = offsetValueInBits.asNumericValue().bigIntegerValue();
@@ -1307,8 +1347,8 @@ public class SMGCPAExpressionEvaluator {
     CType memoryAddressTypeInBytes = CPointerType.POINTER_TO_CHAR;
     int sizeOfMemoryAddressTypeInBits =
         pMachineModel.getSizeofInBits(memoryAddressTypeInBytes).intValueExact();
-    if (sizeOfMemoryAddressTypeInBits
-        >= (pMachineModel.getSizeofInBits(CNumericTypes.LONG_LONG_INT) + 3)) {
+    int sizeOfLongLongInt = pMachineModel.getSizeofInBits(CNumericTypes.LONG_LONG_INT);
+    if (sizeOfMemoryAddressTypeInBits <= (sizeOfLongLongInt + 3)) {
       CType longDongInt =
           new CSimpleType(
               false, false, CBasicType.INT128, false, false, true, false, false, false, false);
