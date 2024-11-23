@@ -1005,27 +1005,36 @@ public class SMGCPAExpressionEvaluator {
                       + " allocating function call when calculating address distance."));
           continue;
         }
-        // int because this is always an int
 
-        // TODO: handle this symbolically
         Value rightOffset = rightTargetAndOffset.getOffsetForObject();
         Value leftOffset = leftTargetAndOffset.getOffsetForObject();
-        if (!rightOffset.isNumericValue() && !leftOffset.isNumericValue()) {
-          returnBuilder.add(
-              ValueAndSMGState.ofUnknownValue(
-                  state,
-                  "Returned unknown value due to unknown offset when calculating address"
-                      + " distance."));
+        Value distance;
+        if (!rightOffset.isNumericValue() || !leftOffset.isNumericValue()) {
+          if (!options.trackPredicates()) {
+            returnBuilder.add(
+                ValueAndSMGState.ofUnknownValue(
+                    state,
+                    "Returned unknown value due to unknown offset when calculating address"
+                        + " distance."));
+            break;
+          }
+          final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+          CType addressDistanceType = getCTypeForBitPreciseMemoryAddresses();
+          SymbolicExpression leftOffsetSym = factory.asConstant(leftOffset, addressDistanceType);
+          SymbolicExpression rightOffsetSym = factory.asConstant(rightOffset, addressDistanceType);
+          distance =
+              factory.minus(
+                  leftOffsetSym, rightOffsetSym, addressDistanceType, addressDistanceType);
+        } else {
+          distance =
+              new NumericValue(
+                  leftOffset
+                      .asNumericValue()
+                      .bigIntegerValue()
+                      .subtract(rightOffset.asNumericValue().bigIntegerValue())
+                      .intValue());
         }
-        returnBuilder.add(
-            ValueAndSMGState.of(
-                new NumericValue(
-                    leftOffset
-                        .asNumericValue()
-                        .bigIntegerValue()
-                        .subtract(rightOffset.asNumericValue().bigIntegerValue())
-                        .intValue()),
-                state));
+        returnBuilder.add(ValueAndSMGState.of(distance, state));
       }
     }
     return returnBuilder.build();
