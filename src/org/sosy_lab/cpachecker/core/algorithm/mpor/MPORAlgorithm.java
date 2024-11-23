@@ -120,7 +120,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /** Returns the initial sequentialization, i.e. we adjust it in later stages */
   public String buildInitSeq() throws UnrecognizedCodeException {
-    return seq.generateProgram(substitutions, includePOR);
+    return seq.generateProgram(substitutions, includePOR, logger);
   }
 
   /**

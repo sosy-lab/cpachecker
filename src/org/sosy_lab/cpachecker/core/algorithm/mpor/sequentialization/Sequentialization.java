@@ -19,7 +19,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -115,7 +117,9 @@ public class Sequentialization {
 
   /** Generates and returns the sequentialized program. */
   public String generateProgram(
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions, boolean pIncludePOR)
+      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
+      boolean pIncludePOR,
+      LogManager pLogger)
       throws UnrecognizedCodeException {
 
     StringBuilder rProgram = new StringBuilder();
@@ -187,7 +191,13 @@ public class Sequentialization {
     assert validCaseClauses(caseClauses);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
         pruneCaseClauses(caseClauses);
-    assert validCaseClauses(prunedCaseClauses);
+    boolean validPrune = validCaseClauses(prunedCaseClauses);
+    // TODO fix pruning so that all cases are correctly pruned
+    if (!validPrune) {
+      pLogger.log(
+          Level.WARNING,
+          () -> "MPOR could not correctly prune case clauses, using unpruned case clauses.");
+    }
     ImmutableList<SeqFunctionCallExpression> porAssumptions =
         pIncludePOR
             ? createPartialOrderReductionAssumptions(prunedCaseClauses)
@@ -198,7 +208,8 @@ public class Sequentialization {
             createThreadSimulationAssertions(threadVars),
             createThreadSimulationAssumptions(threadVars),
             porAssumptions,
-            prunedCaseClauses);
+            // only use pruned case clauses if they are valid
+            validPrune ? prunedCaseClauses : caseClauses);
     rProgram.append(mainMethod.toASTString());
 
     return rProgram.toString();
@@ -306,8 +317,8 @@ public class Sequentialization {
   }
 
   /**
-   * Returns {@code true} if all targetPc (e.g. {@code pc[i] = 42;}) except {@code -1} in pCaseClauses are present as
-   * an originPc (e.g. {@code case 42:}), false otherwise. <br>
+   * Returns {@code true} if all targetPc (e.g. {@code pc[i] = 42;}) except {@code -1} in
+   * pCaseClauses are present as an originPc (e.g. {@code case 42:}), false otherwise. <br>
    * Every sequentialization needs to fulfill this property, otherwise it is faulty.
    */
   private boolean validCaseClauses(
@@ -325,7 +336,7 @@ public class Sequentialization {
         }
         pcMapBuilder.put(caseClause.caseLabel.value, targetPcs.build());
       }
-      ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = pcMapBuilder.build();
+      ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = pcMapBuilder.buildOrThrow();
       // check if each targetPc is also present as an origin pc
       for (var pcEntry : pcMap.entrySet()) {
         for (int targetPc : pcEntry.getValue()) {

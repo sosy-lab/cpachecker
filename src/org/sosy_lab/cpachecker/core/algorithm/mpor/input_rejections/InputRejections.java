@@ -79,7 +79,6 @@ public class InputRejections {
    * </ul>
    */
   public static void handleInitialRejections(CFA pInputCfa) {
-    // TODO check for preprocessed files (all files must have .i ending)
     checkLanguageC(pInputCfa);
     checkOneInputFile(pInputCfa);
     checkIsParallelProgram(pInputCfa);
