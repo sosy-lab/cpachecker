@@ -16,4 +16,4 @@
 	dh $@
 
 override_dh_shlibdeps:
-	dh_shlibdeps -a -- -lCPAchecker-3.0-unix/lib/native/x86_64-linux/apron -lCPAchecker-3.0-unix/lib/java/runtime
+	dh_shlibdeps -a --exclude=libopensmtjava -- -lCPAchecker-3.0-unix/lib/native/x86_64-linux/apron -lCPAchecker-3.0-unix/lib/java/runtime
