@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
@@ -116,7 +117,9 @@ public class SMGCPABuiltins {
           "__builtin_va_start",
           "__builtin_va_arg",
           "__builtin_va_end",
-          "__builtin_va_copy");
+          "__builtin_va_copy",
+          "atexit",
+          "__CPACHECKER_atexit_next");
 
   /**
    * Returns true if the functionName equals a built in function handleable by this class. This
@@ -270,6 +273,10 @@ public class SMGCPABuiltins {
         return evaluateVaCopy(cFCExpression, pCfaEdge, pState);
       case "__builtin_va_end":
         return evaluateVaEnd(cFCExpression, pCfaEdge, pState);
+      case "atexit":
+        return evaluateAtExit(cFCExpression, pCfaEdge, pState);
+      case "__CPACHECKER_atexit_next":
+        return evaluateAtExitNext(pState);
 
       default:
         if (isNondetBuiltin(calledFunctionName)) {
@@ -463,6 +470,74 @@ public class SMGCPABuiltins {
     }
 
     return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+  }
+
+  /*
+   * The atexit function from the C standard. Returns 0 for successful registration, non-zero otherwise.
+   */
+  private List<ValueAndSMGState> evaluateAtExit(
+      CFunctionCallExpression cFCExpression, CFAEdge cfaEdge, SMGState pState)
+      throws CPATransferException {
+    // Get the CExpression for the first argument
+    List<CExpression> argsExpr = cFCExpression.getParameterExpressions();
+    Preconditions.checkArgument(argsExpr.size() == 1);
+    CExpression fpExpr = argsExpr.get(0);
+
+    // Evaluate the expression
+    SMGCPAValueVisitor valueVisitor =
+        new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
+    List<ValueAndSMGState> evalStates = fpExpr.accept(valueVisitor);
+    Preconditions.checkArgument(evalStates.size() == 1);
+
+    // Get the value for the expression and the new state
+    Value atExitAddressValue = evalStates.get(0).getValue();
+    SMGState newState = evalStates.get(0).getState();
+
+    if (atExitAddressValue instanceof AddressExpression pAddressExpression) {
+      Preconditions.checkArgument(
+          pAddressExpression.getOffset().isNumericValue()
+              && pAddressExpression
+                  .getOffset()
+                  .asNumericValue()
+                  .bigIntegerValue()
+                  .equals(BigInteger.ZERO));
+      atExitAddressValue = pAddressExpression.getMemoryAddress();
+    }
+
+    ImmutableList.Builder<ValueAndSMGState> retBuilder = ImmutableList.builder();
+    if (options.canAtexitFail()) {
+      // TODO: return non-zero symbolic for symExec
+      retBuilder.add(ValueAndSMGState.of(new NumericValue(BigInteger.ONE), pState));
+    }
+
+    newState =
+        newState.copyAndReplaceMemoryModel(
+            newState
+                .getMemoryModel()
+                .copyAndReplaceAtExitStack(
+                    newState.getMemoryModel().getAtExitStack().pushAndCopy(atExitAddressValue)));
+    // Push the value onto the stack and update our memory model
+    return retBuilder.add(ValueAndSMGState.of(new NumericValue(0), newState)).build();
+  }
+
+  /*
+   * This function is added to the CFA during the atexit transformation.
+   * It gets the next handler from the atexit stack or returns the null pointer if the stack is
+   * empty.
+   */
+  private List<ValueAndSMGState> evaluateAtExitNext(SMGState pState) {
+    PersistentStack<Value> atExitStack = pState.getMemoryModel().getAtExitStack();
+    if (atExitStack.isEmpty()) {
+      // If the stack is empty return a null pointer
+      return ImmutableList.of(ValueAndSMGState.of(new NumericValue(BigInteger.ZERO), pState));
+    } else {
+      // Otherwise, return the next pointer from the stack
+      return ImmutableList.of(
+          ValueAndSMGState.of(
+              atExitStack.peek(),
+              pState.copyAndReplaceMemoryModel(
+                  pState.getMemoryModel().copyAndReplaceAtExitStack(atExitStack.popAndCopy()))));
+    }
   }
 
   /**
