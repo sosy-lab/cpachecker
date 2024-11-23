@@ -132,8 +132,8 @@ SPDX-License-Identifier: Apache-2.0
 
     <!-- Auxiliary targets -->
 
-    <target name="init" depends="create-version-file">
-        <echo message="Building ${ant.project.name} ${version.base}"/>
+    <target name="init" depends="determine-version">
+        <echo message="Building ${ant.project.name} ${version}"/>
     </target>
 
     <target name="build-subprojects">

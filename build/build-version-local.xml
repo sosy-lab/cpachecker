@@ -15,8 +15,13 @@ SPDX-License-Identifier: Apache-2.0
 
     <!-- Targets for determining the version number based on the version-control revision. -->
 
-    <target name="determine-version-revision">
-        <!-- Determine full CPAchecker version including SVN revision. -->
+    <!-- For release versions, set version directly -->
+    <condition property="version" value="${version.base}">
+        <not><contains string="${version.base}" substring="-svn"/></not>
+    </condition>
+
+    <target name="determine-version-revision" unless="version">
+        <!-- Determine full CPAchecker version including git commit. -->
         <exec executable="python3"
             outputProperty="version.revision"
             failifexecutionfails="false"
@@ -24,22 +29,16 @@ SPDX-License-Identifier: Apache-2.0
             <arg value="build/determine-revision.py"/>
             <arg value="${basedir}"/>
         </exec>
+        <!-- Make property defined in case of failure -->
+        <property name="version.revision" value=""/>
     </target>
 
-    <target name="create-version-file-exact" depends="determine-version-revision">
+    <target name="determine-version" depends="determine-version-revision">
         <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
         <condition property="version" value="${version.base}-${version.revision}" else="${version.base}">
-            <contains string="${version.base}" substring="-svn"/>
+            <length string="${version.revision}" when="greater" length="0"/>
         </condition>
         <echo message="${version}" file="${version.file}"/>
-    </target>
-
-    <target name="determine-version" depends="create-version-file-exact"/>
-
-    <target name="create-version-file" unless="version">
-        <!-- Replacement for create-version-file-exact when we don't need the exact version (faster). -->
-        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
-        <echo message="${version.base}" file="${version.file}"/>
     </target>
 
 </project>
