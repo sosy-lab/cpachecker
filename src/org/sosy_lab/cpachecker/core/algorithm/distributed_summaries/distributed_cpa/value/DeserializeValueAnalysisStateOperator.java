@@ -103,7 +103,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     boolean isImaginary = false;
     boolean isLongLong = false;
     CBasicType basicType = CBasicType.UNSPECIFIED;
-
+    
     for (String typePart : Splitter.on(' ').split(typeString)) {
       switch (typePart) {
         case "const":
