@@ -352,9 +352,6 @@ build-docker:test:jdk-11:
 build:jdk-11:
   only: []
 
-build-project-ecj:jdk-11:
-  only: []
-
 unit-tests:jdk-11:
   only: []
 
