@@ -253,7 +253,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   }
 
   private BlockSummaryCFADecomposer getDecomposer()
-      throws InvalidConfigurationException, IOException {
+      throws InvalidConfigurationException, IOException, CPAException {
     if (importDecomposition != null) {
       return new ImportDecomposition(importDecomposition);
     }
