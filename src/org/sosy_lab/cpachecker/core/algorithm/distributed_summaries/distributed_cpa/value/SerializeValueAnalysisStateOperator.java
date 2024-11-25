@@ -26,13 +26,13 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
     StringBuilder stringBuilder = new StringBuilder();
     SerializeValueVisitor visitor = new SerializeValueVisitor();
     for (Entry<MemoryLocation, ValueAndType> entry : valueState.getConstants()) {
-        stringBuilder.append(entry.getKey().getExtendedQualifiedName())
-            .append("->")
-            .append(entry.getValue().getType())
-            .append("=")
-            .append(entry.getValue().getValue().accept(visitor))
-            .append(" && ");
-  
+      stringBuilder
+          .append(entry.getKey().getExtendedQualifiedName())
+          .append("->")
+          .append(entry.getValue().getType())
+          .append("=")
+          .append(entry.getValue().getValue().accept(visitor))
+          .append(" && ");
     }
     String serializedValueString = stringBuilder.toString();
     if (serializedValueString.isEmpty()) {

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
 import com.google.common.base.Splitter;
-
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
@@ -52,23 +51,22 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     } else {
       Map<MemoryLocation, ValueAndType> constantsMap = new HashMap<>();
 
-        for (String constant : Splitter.on(" && ").split(valueAnalysisString)) {
-            List<String> parts = Splitter.on("->").splitToList(constant);
-            String identifier = parts.get(0);
-            List<String> valueParts = Splitter.on('=').splitToList(parts.get(1));
+      for (String constant : Splitter.on(" && ").split(valueAnalysisString)) {
+        List<String> parts = Splitter.on("->").splitToList(constant);
+        String identifier = parts.get(0);
+        List<String> valueParts = Splitter.on('=').splitToList(parts.get(1));
 
-            if (valueParts.get(1).equals("")) continue;
+        if (valueParts.get(1).equals("")) continue;
 
-            String valueString = valueParts.get(1);
-            Value value = extractValueFromString(valueString);
+        String valueString = valueParts.get(1);
+        Value value = extractValueFromString(valueString);
 
-            if (value != null) {
-            constantsMap.put(
-                MemoryLocation.forIdentifier(identifier),
-                new ValueAndType(value, getSimpleTypeFromString(valueParts.get(0)))
-            );
-            }
+        if (value != null) {
+          constantsMap.put(
+              MemoryLocation.forIdentifier(identifier),
+              new ValueAndType(value, getSimpleTypeFromString(valueParts.get(0))));
         }
+      }
       return new ValueAnalysisState(
           Optional.of(cfa.getMachineModel()), PathCopyingPersistentTreeMap.copyOf(constantsMap));
     }
@@ -88,7 +86,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
 
     } else if (valueString.equals("UnknownValue")) {
       return Value.UnknownValue.getInstance();
-    } 
+    }
     return null;
   }
 
@@ -103,7 +101,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     boolean isImaginary = false;
     boolean isLongLong = false;
     CBasicType basicType = CBasicType.UNSPECIFIED;
-    
+
     for (String typePart : Splitter.on(' ').split(typeString)) {
       switch (typePart) {
         case "const":

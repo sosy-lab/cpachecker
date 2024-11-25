@@ -28,8 +28,8 @@ public class DistributedValueAnalysisCPA
   private final ValueAnalysisCPA valueAnalysisCPA;
   private final SerializeOperator serializeOperator;
   private final DeserializeOperator deserializeOperator;
-  //private final SerializePrecisionOperator serializePrecisionOperator;
-  //private final DeserializePrecisionOperator deserializePrecisionOperator;
+  // private final SerializePrecisionOperator serializePrecisionOperator;
+  // private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final BlockNode blockNode;
 
   public DistributedValueAnalysisCPA(
@@ -37,19 +37,18 @@ public class DistributedValueAnalysisCPA
     valueAnalysisCPA = pValueAnalysisCPA;
     serializeOperator = new SerializeValueAnalysisStateOperator();
     deserializeOperator = new DeserializeValueAnalysisStateOperator(pCFA);
-    //serializePrecisionOperator = new SerializeVariableTrackingPrecision();
-    //deserializePrecisionOperator = new DeserializeVariableTrackingPrecision(pValueAnalysisCPA);
+    // serializePrecisionOperator = new SerializeVariableTrackingPrecision();
+    // deserializePrecisionOperator = new DeserializeVariableTrackingPrecision(pValueAnalysisCPA);
     blockNode = pNode;
   }
 
   /*
    * @Override public DeserializePrecisionOperator getDeserializePrecisionOperator() { return
    * deserializePrecisionOperator; }
-   * 
+   *
    * @Override public SerializePrecisionOperator getSerializePrecisionOperator() { return
    * serializePrecisionOperator; }
    */
-  
 
   @Override
   public SerializeOperator getSerializeOperator() {
