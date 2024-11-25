@@ -1,0 +1,57 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "violation witness validation",
+            "request": "launch",
+            "mainClass": "",
+            "args": ["--violation-witness-validation",
+                    "--option",
+                    "witness.checkProgramHash=false",
+                    "--option",
+                    "cpa.predicate.memoryAllocationsAlwaysSucceed=true",
+                    "--timelimit",
+                    "900s",
+                    "--stats",
+                    "--spec",
+                    "sv-comp-reachability",
+                    "--witness",
+                    "output/violation-witness.yml",
+                    "/home/tim/cpachecker/test/programs/policyiteration/loop.c"
+                    ]
+        },
+        {
+            "type": "java",
+            "name": "Generate Witness",
+            "request": "launch",
+            "mainClass": "",
+            "args": ["--preprocess",
+                    "--svcomp24",
+                    "--spec",
+                    "sv-comp-reachability",
+                    "--timelimit",
+                    "900s",
+                    "--32",
+                    "--stats",
+                    "/home/tim/cpachecker/test/programs/policyiteration/loop.c"
+                    ]
+        },
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "CPAMain",
+            "request": "launch",
+            "mainClass": "org.sosy_lab.cpachecker.cmdline.CPAMain",
+            "projectName": "CPAchecker"
+        }
+    ]
+}
