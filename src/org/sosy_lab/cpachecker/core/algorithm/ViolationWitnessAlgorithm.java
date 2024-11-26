@@ -38,7 +38,12 @@ public class ViolationWitnessAlgorithm implements Algorithm{
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-
+    // get cpa
+    // extract specification automaton
+    // create copy with inverted states and replace it in the CPA
+    // extract violation automaton
+    // create copy with inverted states and replace it in the CPA
+    // run CPA
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 }

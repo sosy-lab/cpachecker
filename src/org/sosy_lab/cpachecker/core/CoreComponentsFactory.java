@@ -521,10 +521,10 @@ public class CoreComponentsFactory {
     } else if (useRandomTestCaseGeneratorAlgorithm) {
       algorithm =
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
-    } else if (useViolationWitness) {
-      algorithm =
-          new ViolationWitnessAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else {
+      if (useViolationWitness) {
+        // TODO: cpa = new ViolationWitnessInstrumentation(cpa, config, logger, shutdownNotifier, cfa, specification)
+      }
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
       if (testGoalConverter) {
