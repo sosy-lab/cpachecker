@@ -9,26 +9,34 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 
 public class SeqBlankStatement implements SeqCaseBlockStatement {
 
-  private final CExpressionAssignmentStatement pcUpdate;
+  private final int threadId;
 
   private final int targetPc;
 
-  public SeqBlankStatement(CExpressionAssignmentStatement pPcUpdate, int pTargetPc) {
-    pcUpdate = pPcUpdate;
+  public SeqBlankStatement(int pThreadId, int pTargetPc) {
+    threadId = pThreadId;
     targetPc = pTargetPc;
   }
 
   @Override
   public String toASTString() {
+    CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(threadId, targetPc);
     return pcUpdate.toASTString();
   }
 
   @Override
   public Optional<Integer> getTargetPc() {
     return Optional.of(targetPc);
+  }
+
+  @Override
+  public @NonNull SeqBlankStatement cloneWithTargetPc(int pTargetPc) {
+    return new SeqBlankStatement(threadId, pTargetPc);
   }
 }

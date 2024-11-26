@@ -9,34 +9,40 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement assign;
 
-  private final CExpressionAssignmentStatement pcUpdate;
+  private final int threadId;
 
   private final int targetPc;
 
   public SeqThreadCreationStatement(
-      CExpressionAssignmentStatement pAssign,
-      CExpressionAssignmentStatement pPcUpdate,
-      int pTargetPc) {
+      CExpressionAssignmentStatement pAssign, int pThreadId, int pTargetPc) {
 
     assign = pAssign;
-    pcUpdate = pPcUpdate;
+    threadId = pThreadId;
     targetPc = pTargetPc;
   }
 
   @Override
   public String toASTString() {
+    CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(threadId, targetPc);
     return assign.toASTString() + SeqSyntax.SPACE + pcUpdate.toASTString();
   }
 
   @Override
   public Optional<Integer> getTargetPc() {
     return Optional.of(targetPc);
+  }
+
+  @Override
+  public @NonNull SeqThreadCreationStatement cloneWithTargetPc(int pTargetPc) {
+    return new SeqThreadCreationStatement(assign, threadId, pTargetPc);
   }
 }

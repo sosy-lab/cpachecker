@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -19,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
@@ -41,11 +43,11 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
   private final CDeclarationEdge declaration;
 
-  private final CStatementEdge statementA;
+  private final SubstituteEdge statementA;
 
-  private final CStatementEdge statementB;
+  private final SubstituteEdge statementB;
 
-  private final CExpressionAssignmentStatement pcUpdate;
+  private final int threadId;
 
   private final int targetPc;
 
@@ -53,7 +55,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
       CDeclarationEdge pDeclaration,
       SubstituteEdge pStatementA,
       SubstituteEdge pStatementB,
-      CExpressionAssignmentStatement pPcUpdate,
+      int pThreadId,
       int pTargetPc) {
 
     checkArgument(
@@ -69,11 +71,12 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         pStatementB.cfaEdge instanceof CStatementEdge,
         "pStatementB.cfaEdge must be CStatementEdge");
 
-    statementA = (CStatementEdge) pStatementA.cfaEdge;
-    statementB = (CStatementEdge) pStatementB.cfaEdge;
+    statementA = pStatementA;
+    statementB = pStatementB;
 
     CSimpleDeclaration decA = pDeclaration.getDeclaration();
-    CExpressionStatement stmtB = (CExpressionStatement) statementB.getStatement();
+    CExpressionStatement stmtB =
+        (CExpressionStatement) ((CStatementEdge) statementB.cfaEdge).getStatement();
     CIdExpression idB = (CIdExpression) stmtB.getExpression();
     CSimpleDeclaration decB = idB.getDeclaration();
 
@@ -82,17 +85,18 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         "pDeclaration and pStatementB must use the same __CPAchecker_TMP variable");
 
     declaration = pDeclaration;
-    pcUpdate = pPcUpdate;
+    threadId = pThreadId;
     targetPc = pTargetPc;
   }
 
   @Override
   public String toASTString() {
+    CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(threadId, targetPc);
     return declaration.getCode()
         + SeqSyntax.SPACE
-        + statementA.getCode()
+        + statementA.cfaEdge.getCode()
         + SeqSyntax.SPACE
-        + statementB.getCode()
+        + statementB.cfaEdge.getCode()
         + SeqSyntax.SPACE
         + pcUpdate.toASTString();
   }
@@ -100,5 +104,11 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
   @Override
   public Optional<Integer> getTargetPc() {
     return Optional.of(targetPc);
+  }
+
+  @Override
+  public @NonNull SeqConstCpaCheckerTmpStatement cloneWithTargetPc(int pTargetPc) {
+    return new SeqConstCpaCheckerTmpStatement(
+        declaration, statementA, statementB, threadId, pTargetPc);
   }
 }

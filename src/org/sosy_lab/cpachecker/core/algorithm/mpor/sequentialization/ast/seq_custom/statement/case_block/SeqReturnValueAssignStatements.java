@@ -13,11 +13,13 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause.CaseBlockTerminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
@@ -40,14 +42,14 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
 
   private final CIdExpression returnPc;
 
-  private final CExpressionAssignmentStatement pcUpdate;
+  private final int threadId;
 
   private final int targetPc;
 
   public SeqReturnValueAssignStatements(
       CIdExpression pReturnPc,
       ImmutableSet<FunctionReturnValueAssignment> pAssigns,
-      CExpressionAssignmentStatement pPcUpdate,
+      int pThreadId,
       int pTargetPc) {
 
     checkArgument(!pAssigns.isEmpty(), "pAssigns must contain at least one entry");
@@ -55,7 +57,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
     anyGlobal = anyGlobalAssign(pAssigns);
     assigns = pAssigns;
     returnPc = pReturnPc;
-    pcUpdate = pPcUpdate;
+    threadId = pThreadId;
     targetPc = pTargetPc;
   }
 
@@ -74,6 +76,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
               CaseBlockTerminator.BREAK));
     }
     SeqSwitchStatement switchStatement = new SeqSwitchStatement(returnPc, caseClauses.build(), 6);
+    CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(threadId, targetPc);
     return SeqSyntax.NEWLINE
         + switchStatement.toASTString()
         + SeqSyntax.NEWLINE
@@ -99,6 +102,11 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
     return Optional.of(targetPc);
   }
 
+  @Override
+  public @NonNull SeqReturnValueAssignStatements cloneWithTargetPc(int pTargetPc) {
+    return new SeqReturnValueAssignStatements(returnPc, assigns, threadId, pTargetPc);
+  }
+
   private static class SeqReturnValueAssignCaseBlockStatement implements SeqCaseBlockStatement {
 
     private final CExpressionAssignmentStatement assignment;
@@ -115,6 +123,12 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
     @Override
     public Optional<Integer> getTargetPc() {
       return Optional.empty();
+    }
+
+    @Override
+    public @NonNull SeqReturnValueAssignCaseBlockStatement cloneWithTargetPc(int pTargetPc) {
+      throw new UnsupportedOperationException(
+          "SeqReturnValueAssignCaseBlockStatement do not have targetPcs");
     }
   }
 }

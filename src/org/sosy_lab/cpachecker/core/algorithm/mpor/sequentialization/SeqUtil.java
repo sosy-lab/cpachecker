@@ -130,11 +130,9 @@ public class SeqUtil {
         CFAEdge edge = threadEdge.cfaEdge;
         SubstituteEdge sub = pSubEdges.get(threadEdge);
         assert sub != null;
-
         int targetPc = threadEdge.getSuccessor().pc;
-        CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(pThread.id, targetPc);
-
         CFANode successor = threadEdge.getSuccessor().cfaNode;
+
         if (successor instanceof FunctionExitNode
             && successor.getFunction().getType().equals(pThread.startRoutine)) {
           // exiting thread -> assign 0 to thread_active var if possible and set exit pc
@@ -143,11 +141,11 @@ public class SeqUtil {
                   FileLocation.DUMMY,
                   Objects.requireNonNull(pThreadVars.active.get(pThread)).idExpression,
                   SeqIntegerLiteralExpression.INT_0);
-          stmts.add(new SeqThreadExitStatement(pThread.id, activeAssign, targetPc));
+          stmts.add(new SeqThreadExitStatement(activeAssign, pThread.id));
 
         } else if (emptyCaseCode(sub)) {
           assert pThreadNode.leavingEdges().size() == 1;
-          stmts.add(new SeqBlankStatement(pcUpdate, targetPc));
+          stmts.add(new SeqBlankStatement(pThread.id, targetPc));
 
         } else {
           // use (else) if (condition) for all assumes (if, for, while, switch, ...)
@@ -159,7 +157,7 @@ public class SeqUtil {
               firstEdge = false;
             }
             SeqControlFlowStatement stmt = new SeqControlFlowStatement(assumeEdge, stmtType);
-            stmts.add(new SeqAssumeStatement(stmt, pcUpdate, targetPc));
+            stmts.add(new SeqAssumeStatement(stmt, pThread.id, targetPc));
 
           } else if (sub.cfaEdge instanceof CFunctionSummaryEdge) {
             // assert that both call and summary edge are present
@@ -167,7 +165,7 @@ public class SeqUtil {
             assert pFuncVars.returnPcStorages.containsKey(threadEdge);
             FunctionReturnPcStorage storage = pFuncVars.returnPcStorages.get(threadEdge);
             assert storage != null;
-            stmts.add(new SeqReturnPcStorageStatement(storage.assignmentStatement, storage.value));
+            stmts.add(new SeqReturnPcStorageStatement(storage.returnPcVar, storage.value));
 
           } else if (sub.cfaEdge instanceof CFunctionCallEdge funcCall) {
             String funcName =
@@ -182,7 +180,7 @@ public class SeqUtil {
                 pFuncVars.parameterAssignments.get(threadEdge);
             assert assigns != null;
             if (assigns.isEmpty()) {
-              stmts.add(new SeqBlankStatement(pcUpdate, targetPc));
+              stmts.add(new SeqBlankStatement(pThread.id, targetPc));
             } else {
               for (int i = 0; i < assigns.size(); i++) {
                 FunctionParameterAssignment assign = assigns.get(i);
@@ -191,7 +189,7 @@ public class SeqUtil {
                 stmts.add(
                     new SeqParameterAssignStatement(
                         assign.statement,
-                        lastParam ? Optional.of(pcUpdate) : Optional.empty(),
+                        lastParam ? Optional.of(pThread.id) : Optional.empty(),
                         lastParam ? Optional.of(targetPc) : Optional.empty()));
               }
             }
@@ -216,10 +214,8 @@ public class SeqUtil {
             SubstituteEdge subB = pSubEdges.get(statementB);
             assert subA != null && subB != null;
             int newTargetPc = statementB.getSuccessor().pc;
-            CExpressionAssignmentStatement newPcUpdate =
-                SeqStatements.buildPcUpdate(pThread.id, newTargetPc);
             stmts.add(
-                new SeqConstCpaCheckerTmpStatement(decEdge, subA, subB, newPcUpdate, newTargetPc));
+                new SeqConstCpaCheckerTmpStatement(decEdge, subA, subB, pThread.id, newTargetPc));
 
           } else if (sub.cfaEdge instanceof CReturnStatementEdge) {
             assert sub.cfaEdge.getSuccessor() != null;
@@ -231,8 +227,8 @@ public class SeqUtil {
                 pFuncVars.returnValueAssignments.get(threadEdge);
             assert assigns != null;
             assert !assigns.isEmpty();
-            CIdExpression returnPc = assigns.iterator().next().returnPcStorage.returnPc;
-            stmts.add(new SeqReturnValueAssignStatements(returnPc, assigns, pcUpdate, targetPc));
+            CIdExpression returnPc = assigns.iterator().next().returnPcStorage.returnPcVar;
+            stmts.add(new SeqReturnValueAssignStatements(returnPc, assigns, pThread.id, targetPc));
 
           } else if (isExplicitlyHandledPthreadFunc(sub.cfaEdge)) {
             PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(edge);
@@ -245,7 +241,7 @@ public class SeqUtil {
                     SeqStatements.buildExprAssign(
                         Objects.requireNonNull(pThreadVars.active.get(thread)).idExpression,
                         SeqIntegerLiteralExpression.INT_1);
-                stmts.add(new SeqThreadCreationStatement(activeAssign, pcUpdate, targetPc));
+                stmts.add(new SeqThreadCreationStatement(activeAssign, pThread.id, targetPc));
                 break;
 
               case PTHREAD_MUTEX_LOCK:
@@ -261,7 +257,7 @@ public class SeqUtil {
                             Objects.requireNonNull(pThreadVars.awaits.get(pThread))
                                 .get(lockedMutexT))
                         .idExpression;
-                stmts.add(new SeqMutexLockStatement(lockedVar, mutexAwaits, pcUpdate, targetPc));
+                stmts.add(new SeqMutexLockStatement(lockedVar, mutexAwaits, pThread.id, targetPc));
                 break;
 
               case PTHREAD_MUTEX_UNLOCK:
@@ -272,7 +268,7 @@ public class SeqUtil {
                     SeqStatements.buildExprAssign(
                         Objects.requireNonNull(pThreadVars.locked.get(unlockedMutexT)).idExpression,
                         SeqIntegerLiteralExpression.INT_0);
-                stmts.add(new SeqMutexUnlockStatement(lockedFalse, pcUpdate, targetPc));
+                stmts.add(new SeqMutexUnlockStatement(lockedFalse, pThread.id, targetPc));
                 break;
 
               case PTHREAD_JOIN:
@@ -287,16 +283,15 @@ public class SeqUtil {
                         .idExpression;
                 stmts.add(
                     new SeqThreadJoinStatement(
-                        targetThreadActive, threadJoins, pcUpdate, targetPc));
+                        targetThreadActive, threadJoins, pThread.id, targetPc));
                 break;
 
               default:
                 throw new AssertionError("unhandled relevant pthread method: " + funcType.name);
             }
-
           } else {
             assert sub.cfaEdge instanceof CStatementEdge;
-            stmts.add(new SeqDefaultStatement((CStatementEdge) sub.cfaEdge, pcUpdate, targetPc));
+            stmts.add(new SeqDefaultStatement((CStatementEdge) sub.cfaEdge, pThread.id, targetPc));
           }
         }
       }

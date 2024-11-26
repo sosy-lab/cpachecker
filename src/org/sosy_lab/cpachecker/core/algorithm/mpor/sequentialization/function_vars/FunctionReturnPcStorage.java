@@ -15,17 +15,17 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 
 public class FunctionReturnPcStorage {
 
-  public final CIdExpression returnPc;
+  public final CIdExpression returnPcVar;
 
   public final int value;
 
   public final CExpressionAssignmentStatement assignmentStatement;
 
   public FunctionReturnPcStorage(CIdExpression pReturnPc, int pValue) {
-    returnPc = pReturnPc;
+    returnPcVar = pReturnPc;
     value = pValue;
     assignmentStatement =
         SeqExpressions.buildExprAssignStmt(
-            returnPc, SeqIntegerLiteralExpression.buildIntLiteralExpr(value));
+            returnPcVar, SeqIntegerLiteralExpression.buildIntLiteralExpr(value));
   }
 }

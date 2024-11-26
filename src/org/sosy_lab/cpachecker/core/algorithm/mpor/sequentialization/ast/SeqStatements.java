@@ -23,10 +23,11 @@ public class SeqStatements {
     return new CExpressionAssignmentStatement(FileLocation.DUMMY, pLhs, pRhs);
   }
 
-  public static CExpressionAssignmentStatement buildPcUpdate(int pThreadId, int targetPc) {
+  public static CExpressionAssignmentStatement buildPcUpdate(int pThreadId, int pTargetPc) {
     CIntegerLiteralExpression index = SeqIntegerLiteralExpression.buildIntLiteralExpr(pThreadId);
     CArraySubscriptExpression pcExpr = SeqExpressions.buildPcSubscriptExpr(index);
-    CIntegerLiteralExpression targetInt = SeqIntegerLiteralExpression.buildIntLiteralExpr(targetPc);
+    CIntegerLiteralExpression targetInt =
+        SeqIntegerLiteralExpression.buildIntLiteralExpr(pTargetPc);
     return SeqExpressions.buildExprAssignStmt(pcExpr, targetInt);
   }
 }
