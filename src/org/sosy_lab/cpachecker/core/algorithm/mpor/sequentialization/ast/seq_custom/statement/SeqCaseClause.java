@@ -59,17 +59,23 @@ public class SeqCaseClause implements SeqStatement {
       long pId,
       boolean pIsGlobal,
       SeqCaseLabel pCaseLabel,
-      SeqCaseBlock pCaseBlocks,
-      CaseBlockTerminator pCaseBlockEndingType) {
+      SeqCaseBlock pCaseBlock,
+      CaseBlockTerminator pCaseBlockTerminator) {
+
     id = pId;
     isGlobal = pIsGlobal;
     caseLabel = pCaseLabel;
-    caseBlock = pCaseBlocks;
-    caseBlockTerminator = pCaseBlockEndingType;
+    caseBlock = pCaseBlock;
+    caseBlockTerminator = pCaseBlockTerminator;
   }
 
   public SeqCaseClause cloneWithCaseLabel(SeqCaseLabel pCaseLabel) {
     return new SeqCaseClause(id, isGlobal, pCaseLabel, caseBlock, caseBlockTerminator);
+  }
+
+  public SeqCaseClause cloneWithCaseBlock(SeqCaseBlock pCaseBlock) {
+    // id is not imported at this stage of pruning case clauses
+    return new SeqCaseClause(isGlobal, caseLabel.value, pCaseBlock.statements, caseBlockTerminator);
   }
 
   private static long createNewId() {
