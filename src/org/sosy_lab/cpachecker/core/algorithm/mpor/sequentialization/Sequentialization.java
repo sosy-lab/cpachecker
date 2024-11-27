@@ -424,7 +424,6 @@ public class Sequentialization {
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rPruned = ImmutableMap.builder();
-
     for (var entry : pCaseClauses.entrySet()) {
       ImmutableList<SeqCaseClause> caseClauses = entry.getValue();
       ImmutableMap<Integer, SeqCaseClause> caseLabelValueMap =

@@ -32,7 +32,12 @@ public class SequentializationTest {
   // TODO this triggers a pthread_create loop error, even though its outside the loop
   // "divinefifo-bug_1w1r.i"
 
-  // TODO add more compile tests
+  @Test
+  public void testCompileSeqLazy() throws Exception {
+    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/lazy01.i");
+    assertThat(Files.exists(path)).isTrue();
+    testCompile(path);
+  }
 
   @Test
   public void testCompileSeqQueueLongest() throws Exception {
@@ -48,7 +53,7 @@ public class SequentializationTest {
     testCompile(path);
   }
 
-  // TODO this triggers SeqUtil#214
+  // TODO this triggers an assertion failure in SeqUtil
   @Ignore
   @Test
   public void testCompileSeqSingletonWithUninitProblems() throws Exception {
