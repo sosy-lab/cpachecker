@@ -1742,7 +1742,11 @@ public class ValueAnalysisTransferRelation
           valuesFromFile);
     } else if (options.isIgnoreFunctionValue()) {
       return new ExpressionValueVisitor(
-          pState, pFunctionName, machineModel, logger, stats.getName());
+          pState,
+          pFunctionName,
+          machineModel,
+          logger,
+          stats != null ? stats.getName() : "unknown");
     } else {
       return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     }

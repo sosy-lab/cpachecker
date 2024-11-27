@@ -480,8 +480,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     // only give concrete values to the ValueAnalysisConcreteCPA
     if (cpaName.equals("ValueAnalysisCPA")) {
       return super.visit(pLastFunctionCallExpression);
-    } else if (cpaName.equals("unknown")) {
-      throw new Error("CPA name is unknown");
+     } else if (cpaName.equals("unknown") && ConcolicAlgorithmIsInitialized.getIsInitialized()) {
+      throw new Error("Concolic Execution: CPA name is unknown");
     }
     if (cpaName.equals("ValueAnalysisConcreteCPA")) {
 
