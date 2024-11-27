@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Ignore;
@@ -24,38 +25,38 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 public class SequentializationTest {
 
   // TODO these trigger an error where the return value assignment is empty
-  // "singleton-b.i",
-  // "fib_safe-5.i",
+  // "singleton-b",
+  // "fib_safe-5",
   // TODO this triggers a substitute not found because the pthread_create call passes
   //  a parameter to the start routine and the thread reads it
-  // "ring_2w1r-2.i",
+  // "ring_2w1r-2",
   // TODO this triggers a pthread_create loop error, even though its outside the loop
-  // "divinefifo-bug_1w1r.i"
+  // "divinefifo-bug_1w1r"
 
   @Test
   public void testCompileSeq_lazy01() throws Exception {
-    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/lazy01.i");
+    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/lazy01.c");
     assertThat(Files.exists(path)).isTrue();
     testCompile(path);
   }
 
   @Test
   public void testCompileSeq_queue_longest() throws Exception {
-    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/queue_longest.i");
+    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/queue_longest.c");
     assertThat(Files.exists(path)).isTrue();
     testCompile(path);
   }
 
   @Test
   public void testCompileSeq_simple_two() throws Exception {
-    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/simple_two.i");
+    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/simple_two.c");
     assertThat(Files.exists(path)).isTrue();
     testCompile(path);
   }
 
   @Test
   public void testCompileSeq_stack1() throws Exception {
-    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/stack-1.i");
+    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/stack-1.c");
     assertThat(Files.exists(path)).isTrue();
     testCompile(path);
   }
@@ -65,7 +66,7 @@ public class SequentializationTest {
   @Test
   public void testCompileSeqSingletonWithUninitProblems() throws Exception {
     Path path =
-        Path.of("./test/programs/mpor_seq/seq_compilable/singleton_with-uninit-problems-b.i");
+        Path.of("./test/programs/mpor_seq/seq_compilable/singleton_with-uninit-problems-b.c");
     assertThat(Files.exists(path)).isTrue();
     testCompile(path);
   }
@@ -73,10 +74,14 @@ public class SequentializationTest {
   private void testCompile(Path pInputFilePath) throws Exception {
     // create cfa for test program pFileName
     LogManager logger = LogManager.createTestLogManager();
-    CFACreator creator =
-        new CFACreator(Configuration.builder().build(), logger, ShutdownNotifier.createDummy());
-    String program = Files.readString(pInputFilePath);
-    CFA inputCfa = creator.parseSourceAndCreateCFA(program);
+    ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
+    CFACreator creatorWithPreProcessor =
+        new CFACreator(
+            Configuration.builder().setOption("parser.usePreprocessor", "true").build(),
+            logger,
+            ShutdownNotifier.createDummy());
+    CFA inputCfa =
+        creatorWithPreProcessor.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
 
     // create seq with mpor algorithm
     MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa, true);
@@ -84,6 +89,7 @@ public class SequentializationTest {
     String finalSeq = algorithm.buildFinalSeq("test.i", "__mpor_seq__test.i", initSeq);
 
     // test that seq can be parsed and cfa created ==> code compiles
+    CFACreator creator = new CFACreator(Configuration.builder().build(), logger, shutdownNotifier);
     CFA seqCfa = creator.parseSourceAndCreateCFA(finalSeq);
     assertThat(seqCfa != null).isTrue();
 
@@ -93,7 +99,7 @@ public class SequentializationTest {
     // test that we get an exception while parsing the new "faulty" program
     boolean fail = false;
     try {
-      creator.parseSourceAndCreateCFA(faultySeq);
+      creatorWithPreProcessor.parseSourceAndCreateCFA(faultySeq);
     } catch (Exception exception) {
       fail = true;
     }
