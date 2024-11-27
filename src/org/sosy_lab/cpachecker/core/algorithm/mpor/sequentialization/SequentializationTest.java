@@ -33,21 +33,28 @@ public class SequentializationTest {
   // "divinefifo-bug_1w1r.i"
 
   @Test
-  public void testCompileSeqLazy() throws Exception {
+  public void testCompileSeq_lazy01() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/lazy01.i");
     assertThat(Files.exists(path)).isTrue();
     testCompile(path);
   }
 
   @Test
-  public void testCompileSeqQueueLongest() throws Exception {
+  public void testCompileSeq_queue_longest() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/queue_longest.i");
     assertThat(Files.exists(path)).isTrue();
     testCompile(path);
   }
 
   @Test
-  public void testCompileSeqStack() throws Exception {
+  public void testCompileSeq_simple_two() throws Exception {
+    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/simple_two.i");
+    assertThat(Files.exists(path)).isTrue();
+    testCompile(path);
+  }
+
+  @Test
+  public void testCompileSeq_stack1() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/stack-1.i");
     assertThat(Files.exists(path)).isTrue();
     testCompile(path);

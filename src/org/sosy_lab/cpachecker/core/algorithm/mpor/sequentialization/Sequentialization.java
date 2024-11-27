@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
@@ -185,13 +187,13 @@ public class Sequentialization {
     rProgram.append(reachError.toASTString()).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
     rProgram.append(assume.toASTString()).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
-    // create pruned (i.e. only non-empty) cases statements
+    // create pruned (i.e. only non-empty) cases statements in main method
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
         mapCaseClauses(pSubstitutions, subEdges, returnPcVars, threadVars);
-    assert validCaseClauses(caseClauses);
+    assert validCaseClauses(caseClauses, pLogger);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
         pruneCaseClauses(caseClauses);
-    assert validCaseClauses(prunedCaseClauses);
+    assert validCaseClauses(prunedCaseClauses, pLogger);
     ImmutableList<SeqFunctionCallExpression> porAssumptions =
         pIncludePOR
             ? createPartialOrderReductionAssumptions(prunedCaseClauses)
@@ -315,7 +317,7 @@ public class Sequentialization {
    * Every sequentialization needs to fulfill this property, otherwise it is faulty.
    */
   private boolean validCaseClauses(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses, LogManager pLogger) {
 
     for (var entry : pCaseClauses.entrySet()) {
       // create the map of originPc n (e.g. case n) to target pc(s) m (e.g. pc[i] = m)
@@ -336,6 +338,7 @@ public class Sequentialization {
           // exclude EXIT_PC, it is never present as a pc
           if (targetPc != SeqUtil.EXIT_PC) {
             if (!pcMap.containsKey(targetPc)) {
+              pLogger.log(Level.SEVERE, "targetPc %s does not exist as an origin pc", targetPc);
               return false;
             }
           }
@@ -428,7 +431,8 @@ public class Sequentialization {
       ImmutableList<SeqCaseClause> caseClauses = entry.getValue();
       ImmutableMap<Integer, SeqCaseClause> caseLabelValueMap =
           mapCaseLabelValueToCaseClauses(caseClauses);
-      // map from pre- to post-prune pcs
+      // map from post- to pre-prune pcs (pre-prune pcs may be duplicate -> can't use them as keys.
+      // this is e.g. the case when having a label ERROR and multiple goto ERROR statements)
       ImmutableMap.Builder<Integer, Integer> newPcsBuilder = ImmutableMap.builder();
       ImmutableList.Builder<SeqCaseClause> initPrune = ImmutableList.builder();
 
@@ -442,7 +446,7 @@ public class Sequentialization {
             SeqCaseClause nonEmptyCaseClause =
                 findNonEmptyCaseClause(caseLabelValueMap, caseClause, skipped, caseClause);
             if (nonEmptyCaseClause != null) {
-              newPcsBuilder.put(nonEmptyCaseClause.caseLabel.value, caseClause.caseLabel.value);
+              newPcsBuilder.put(caseClause.caseLabel.value, nonEmptyCaseClause.caseLabel.value);
               initPrune.add(nonEmptyCaseClause.cloneWithCaseLabel(caseClause.caseLabel));
               newCaseClauseIds.add(nonEmptyCaseClause.id);
             }
@@ -460,17 +464,12 @@ public class Sequentialization {
       for (SeqCaseClause caseClause : initPrune.build()) {
         ImmutableList.Builder<SeqCaseBlockStatement> newStmts = ImmutableList.builder();
         for (SeqCaseBlockStatement stmt : caseClause.caseBlock.statements) {
-          // if the statement target a pc
-          if (stmt.getTargetPc().isPresent()) {
-            int targetPc = stmt.getTargetPc().orElseThrow();
-            // if the statement targets a pruned pc, clone it with the new pc
-            if (newPcs.containsKey(targetPc)) {
-              int newTargetPc = Objects.requireNonNull(newPcs.get(targetPc));
-              newStmts.add(stmt.cloneWithTargetPc(newTargetPc));
-            } else {
-              // otherwise, add unchanged statement
-              newStmts.add(stmt);
-            }
+          Optional<Integer> targetPc = stmt.getTargetPc();
+          // if the statement targets a pruned pc, clone it with the new pc
+          if (targetPc.isPresent() && newPcs.containsValue(targetPc.orElseThrow())) {
+            int newTargetPc =
+                Objects.requireNonNull(MPORUtil.getKeyByValue(newPcs, targetPc.orElseThrow()));
+            newStmts.add(stmt.cloneWithTargetPc(newTargetPc));
           } else {
             // otherwise, add unchanged statement
             newStmts.add(stmt);

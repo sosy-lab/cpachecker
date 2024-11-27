@@ -15,9 +15,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -183,6 +185,19 @@ public final class MPORUtil {
    */
   public static <E> boolean shouldVisit(Set<E> pVisitedElem, E pNewElem) {
     return pVisitedElem.add(pNewElem);
+  }
+
+  /**
+   * Returns the first key in pMap that is mapped to pValue and {@code null} if pValue is not found
+   * in pMap.
+   */
+  public static <K, V> @Nullable K getKeyByValue(Map<K, V> pMap, V pValue) {
+    for (var entry : pMap.entrySet()) {
+      if (entry.getValue().equals(pValue)) {
+        return entry.getKey();
+      }
+    }
+    return null;
   }
 
   /**
