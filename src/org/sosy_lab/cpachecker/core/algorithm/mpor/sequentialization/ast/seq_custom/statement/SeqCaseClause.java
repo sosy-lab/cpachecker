@@ -19,8 +19,8 @@ public class SeqCaseClause implements SeqStatement {
 
   /** The suffix of the case block, either {@code break;} or {@code continue;} */
   public enum CaseBlockTerminator {
-    BREAK(SeqToken.BREAK),
-    CONTINUE(SeqToken.CONTINUE);
+    BREAK(SeqToken._break),
+    CONTINUE(SeqToken._continue);
 
     private final String asString;
 

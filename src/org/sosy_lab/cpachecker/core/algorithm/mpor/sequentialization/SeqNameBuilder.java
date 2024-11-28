@@ -12,7 +12,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqPrefix;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
@@ -24,8 +23,13 @@ public class SeqNameBuilder {
     return SeqSyntax.UNDERSCORE + varId++ + SeqSyntax.UNDERSCORE;
   }
 
+  /** Returns {@code "__MPOR_SEQ__THREAD{pThreadId}_"}. */
+  private static String buildThreadPrefix(int pThreadId) {
+    return SeqToken.__MPOR_SEQ__ + SeqToken.THREAD + pThreadId + SeqSyntax.UNDERSCORE;
+  }
+
   public static String createFuncName(String pFuncName) {
-    return SeqPrefix.__MPOR_SEQ + SeqSyntax.UNDERSCORE + pFuncName;
+    return SeqToken.__MPOR_SEQ__ + pFuncName;
   }
 
   /**
@@ -34,54 +38,49 @@ public class SeqNameBuilder {
    */
   public static String createVarName(CVariableDeclaration pVarDec, int pThreadId) {
     String prefix =
-        pVarDec.isGlobal() ? SeqPrefix.VAR_SUB_GLOBAL : SeqPrefix.VAR_SUB_THREAD + pThreadId;
+        pVarDec.isGlobal()
+            ? SeqToken.GLOBAL
+            : SeqToken.LOCAL + SeqSyntax.UNDERSCORE + SeqToken.THREAD + pThreadId;
     return prefix + createVarId() + pVarDec.getName();
   }
 
   /** Returns a var name of the form {@code __p{pThreadId}_{varId}_{pParamDec.getName()}}. */
   public static String createParamName(CParameterDeclaration pParamDec, int pThreadId) {
-    return SeqPrefix.VAR_SUB_PARAMETER + pThreadId + createVarId() + pParamDec.getName();
+    return buildThreadPrefix(pThreadId) + SeqToken.PARAM + createVarId() + pParamDec.getName();
   }
 
   /** Returns a var name of the form {@code __return_pc_t{pThreadId}_{pFuncName}}. */
   public static String createReturnPcName(int pThreadId, String pFuncName) {
-    return SeqPrefix.RETURN_PC_THREAD + pThreadId + SeqSyntax.UNDERSCORE + pFuncName;
+    return buildThreadPrefix(pThreadId) + SeqToken.RETURN_PC + SeqSyntax.UNDERSCORE + pFuncName;
   }
 
   /** Returns a var name of the form {@code __t{pThreadId}_active} */
   public static String buildThreadActiveName(int pThreadId) {
-    return SeqPrefix.THREAD_ACTIVE + pThreadId + SeqSyntax.UNDERSCORE + SeqToken.ACTIVE;
+    return buildThreadPrefix(pThreadId) + SeqToken.ACTIVE;
   }
 
   /** Returns a var name of the form {@code {pMutexName}_locked} */
   public static String buildMutexLockedName(String pMutexName) {
-    return pMutexName + SeqSyntax.UNDERSCORE + SeqToken.LOCKED;
+    return SeqToken.__MPOR_SEQ__ + pMutexName + SeqSyntax.UNDERSCORE + SeqToken.LOCKED;
   }
 
   /** Returns a var name of the form {@code __t{pThreadId}_awaits_{pMutexName}} */
   public static String buildThreadAwaitsMutexName(int pThreadId, String pMutexName) {
-    return SeqPrefix.THREAD_AWAITS
-        + pThreadId
-        + SeqSyntax.UNDERSCORE
-        + SeqToken.AWAITS
-        + SeqSyntax.UNDERSCORE
-        + pMutexName;
+    return buildThreadPrefix(pThreadId) + SeqToken.AWAITS + SeqSyntax.UNDERSCORE + pMutexName;
   }
 
   /** Returns a var name of the form {@code __t{pWaitingId}_joins_t{pTargetId}} */
   public static String buildThreadJoinsThreadName(int pWaitingId, int pTargetId) {
-    return SeqPrefix.THREAD_JOINING
-        + pWaitingId
-        + SeqSyntax.UNDERSCORE
+    return buildThreadPrefix(pWaitingId)
         + SeqToken.JOINS
         + SeqSyntax.UNDERSCORE
-        + SeqToken.T
+        + SeqToken.THREAD
         + pTargetId;
   }
 
   public static String createQualifiedName(String pVarName) {
     // TODO the qualified names are not relevant in the seq, so we just use dummy::
-    return SeqToken.DUMMY + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
+    return SeqToken.dummy + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
   }
 
   // TODO unused

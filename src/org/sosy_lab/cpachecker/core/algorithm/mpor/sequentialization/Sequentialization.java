@@ -467,8 +467,7 @@ public class Sequentialization {
           Optional<Integer> targetPc = stmt.getTargetPc();
           // if the statement targets a pruned pc, clone it with the new pc
           if (targetPc.isPresent() && newPcs.containsValue(targetPc.orElseThrow())) {
-            int newTargetPc =
-                Objects.requireNonNull(MPORUtil.getKeyByValue(newPcs, targetPc.orElseThrow()));
+            int newTargetPc = MPORUtil.getKeyByValue(newPcs, targetPc.orElseThrow()).orElseThrow();
             newStmts.add(stmt.cloneWithTargetPc(newTargetPc));
           } else {
             // otherwise, add unchanged statement

@@ -107,8 +107,7 @@ public class SeqExpressions {
 
   public static class SeqStringLiteralExpression {
 
-    public static final CStringLiteralExpression STRING_0 =
-        buildStringLiteralExpr(SeqToken.STRING_O);
+    public static final CStringLiteralExpression STRING_0 = buildStringLiteralExpr(SeqToken._0);
 
     public static final CStringLiteralExpression SEQUENTIALIZATION_ERROR =
         buildStringLiteralExpr(SeqToken.__SEQUENTIALIZATION_ERROR__);

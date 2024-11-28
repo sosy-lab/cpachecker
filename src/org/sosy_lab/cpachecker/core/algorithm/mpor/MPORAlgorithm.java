@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter.FileExtension;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqPrefix;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
@@ -212,7 +211,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   private String createSeqName(Path pInputFilePath) {
-    return SeqPrefix.__MPOR_SEQ + "__" + getFileNameWithoutExtension(pInputFilePath);
+    return SeqToken.__MPOR_SEQ__ + getFileNameWithoutExtension(pInputFilePath);
   }
 
   private String getFileNameWithoutExtension(Path pInputFilePath) {

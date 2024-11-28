@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -188,16 +187,16 @@ public final class MPORUtil {
   }
 
   /**
-   * Returns the first key in pMap that is mapped to pValue and {@code null} if pValue is not found
-   * in pMap.
+   * Returns the first key in pMap that is mapped to pValue and {@link Optional#empty()} if pValue
+   * is not found in pMap.
    */
-  public static <K, V> @Nullable K getKeyByValue(Map<K, V> pMap, V pValue) {
+  public static <K, V> Optional<K> getKeyByValue(Map<K, V> pMap, V pValue) {
     for (var entry : pMap.entrySet()) {
       if (entry.getValue().equals(pValue)) {
-        return entry.getKey();
+        return Optional.of(entry.getKey());
       }
     }
-    return null;
+    return Optional.empty();
   }
 
   /**

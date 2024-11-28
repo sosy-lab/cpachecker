@@ -170,7 +170,7 @@ public class SeqUtil {
           } else if (sub.cfaEdge instanceof CFunctionCallEdge funcCall) {
             String funcName =
                 funcCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
-            if (funcName.equals(SeqToken.REACH_ERROR)) {
+            if (funcName.equals(SeqToken.reach_error)) {
               stmts.add(new SeqReachErrorStatement()); // inject non-inlined reach_error
             }
             // assert that both call and summary edge are present
@@ -364,7 +364,7 @@ public class SeqUtil {
   public static boolean isConstCPAcheckerTMP(CVariableDeclaration pVarDec) {
     return pVarDec.getType().isConst()
         && !pVarDec.isGlobal()
-        && pVarDec.getName().contains(SeqToken.__CPACHECKER_TMP_);
+        && pVarDec.getName().contains(SeqToken.__CPAchecker_TMP_);
   }
 
   private static boolean allEdgesAssume(List<ThreadEdge> pThreadEdges) {

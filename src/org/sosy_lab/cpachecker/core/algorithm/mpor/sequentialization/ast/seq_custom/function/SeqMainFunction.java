@@ -101,7 +101,7 @@ public class SeqMainFunction implements SeqFunction {
         SeqInitializerList.buildIntInitializerList(SeqIntegerLiteralExpression.INT_0, pNumThreads);
     declarePc =
         SeqVariableDeclaration.buildVarDec(
-            false, SeqArrayType.INT_ARRAY, SeqToken.PC, pcInitializerList);
+            false, SeqArrayType.INT_ARRAY, SeqToken.pc, pcInitializerList);
 
     assignNextThread =
         new CFunctionCallAssignmentStatement(

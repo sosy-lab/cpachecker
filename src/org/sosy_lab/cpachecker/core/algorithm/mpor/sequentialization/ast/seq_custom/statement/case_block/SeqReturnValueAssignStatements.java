@@ -75,12 +75,12 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
               ImmutableList.of(assignmentStatement),
               CaseBlockTerminator.BREAK));
     }
-    SeqSwitchStatement switchStatement = new SeqSwitchStatement(returnPc, caseClauses.build(), 6);
+    SeqSwitchStatement switchStatement = new SeqSwitchStatement(returnPc, caseClauses.build(), 5);
     CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(threadId, targetPc);
     return SeqSyntax.NEWLINE
         + switchStatement.toASTString()
         + SeqSyntax.NEWLINE
-        + SeqUtil.prependTabsWithoutNewline(6, pcUpdate.toASTString());
+        + SeqUtil.prependTabsWithoutNewline(5, pcUpdate.toASTString());
   }
 
   /** Returns {@code true} if any {@link CLeftHandSide} in pAssignments is a global variable. */

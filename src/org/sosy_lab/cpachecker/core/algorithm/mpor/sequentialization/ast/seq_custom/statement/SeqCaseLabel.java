@@ -21,6 +21,6 @@ public class SeqCaseLabel implements SeqStatement {
 
   @Override
   public String toASTString() {
-    return SeqToken.CASE + SeqSyntax.SPACE + value + SeqSyntax.COLON;
+    return SeqToken._case + SeqSyntax.SPACE + value + SeqSyntax.COLON;
   }
 }

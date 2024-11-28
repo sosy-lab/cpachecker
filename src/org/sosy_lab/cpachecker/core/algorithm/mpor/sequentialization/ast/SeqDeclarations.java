@@ -32,13 +32,13 @@ public class SeqDeclarations {
   public static class SeqVariableDeclaration {
 
     protected static final CVariableDeclaration DUMMY_PC =
-        buildVarDec(false, SeqArrayType.INT_ARRAY, SeqToken.PC, SeqInitializerList.EMPTY_LIST);
+        buildVarDec(false, SeqArrayType.INT_ARRAY, SeqToken.pc, SeqInitializerList.EMPTY_LIST);
 
     public static final CVariableDeclaration PREV_THREAD =
-        buildVarDec(false, SeqSimpleType.INT, SeqToken.PREV_THREAD, SeqInitializer.INT_MINUS_1);
+        buildVarDec(false, SeqSimpleType.INT, SeqToken.prev_thread, SeqInitializer.INT_MINUS_1);
 
     public static final CVariableDeclaration NEXT_THREAD =
-        buildVarDec(false, SeqSimpleType.INT, SeqToken.NEXT_THREAD, SeqInitializer.INT_MINUS_1);
+        buildVarDec(false, SeqSimpleType.INT, SeqToken.next_thread, SeqInitializer.INT_MINUS_1);
 
     // TODO SubstituteBuilder.substituteVarDec also uses CVariableDeclaration constructor
     public static CVariableDeclaration buildVarDec(
@@ -70,22 +70,22 @@ public class SeqDeclarations {
   public static class SeqParameterDeclaration {
 
     public static final CParameterDeclaration COND =
-        new CParameterDeclaration(FileLocation.DUMMY, SeqSimpleType.CONST_INT, SeqToken.COND);
+        new CParameterDeclaration(FileLocation.DUMMY, SeqSimpleType.CONST_INT, SeqToken.cond);
 
     public static final CParameterDeclaration ASSERTION =
         new CParameterDeclaration(
-            FileLocation.DUMMY, SeqPointerType.POINTER_CONST_CHAR, SeqToken.__ASSERTION);
+            FileLocation.DUMMY, SeqPointerType.POINTER_CONST_CHAR, SeqToken.__assertion);
 
     public static final CParameterDeclaration FILE =
         new CParameterDeclaration(
-            FileLocation.DUMMY, SeqPointerType.POINTER_CONST_CHAR, SeqToken.__FILE);
+            FileLocation.DUMMY, SeqPointerType.POINTER_CONST_CHAR, SeqToken.__file);
 
     public static final CParameterDeclaration LINE =
-        new CParameterDeclaration(FileLocation.DUMMY, SeqSimpleType.UNSIGNED_INT, SeqToken.__LINE);
+        new CParameterDeclaration(FileLocation.DUMMY, SeqSimpleType.UNSIGNED_INT, SeqToken.__line);
 
     public static final CParameterDeclaration FUNCTION =
         new CParameterDeclaration(
-            FileLocation.DUMMY, SeqPointerType.POINTER_CONST_CHAR, SeqToken.__FUNCTION);
+            FileLocation.DUMMY, SeqPointerType.POINTER_CONST_CHAR, SeqToken.__function);
   }
 
   public static class SeqFunctionDeclaration {
@@ -94,7 +94,7 @@ public class SeqDeclarations {
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             SeqFunctionType.ABORT,
-            SeqToken.ABORT,
+            SeqToken.abort,
             ImmutableList.of(),
             ImmutableSet.of(FunctionAttribute.NO_RETURN));
 
@@ -102,7 +102,7 @@ public class SeqDeclarations {
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             SeqFunctionType.VERIFIER_NONDET_INT,
-            SeqToken.__VERIFIER_NONDET_INT,
+            SeqToken.__VERIFIER_nondet_int,
             ImmutableList.of(),
             ImmutableSet.of());
 
@@ -110,7 +110,7 @@ public class SeqDeclarations {
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             SeqFunctionType.REACH_ERROR,
-            SeqToken.REACH_ERROR,
+            SeqToken.reach_error,
             ImmutableList.of(
                 SeqParameterDeclaration.FILE,
                 SeqParameterDeclaration.LINE,
@@ -121,7 +121,7 @@ public class SeqDeclarations {
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             SeqFunctionType.ASSERT_FAIL,
-            SeqToken.__ASSERT_FAIL,
+            SeqToken.__assert_fail,
             ImmutableList.of(
                 SeqParameterDeclaration.ASSERTION,
                 SeqParameterDeclaration.FILE,
@@ -133,7 +133,7 @@ public class SeqDeclarations {
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             SeqFunctionType.ASSUME,
-            SeqNameBuilder.createFuncName(SeqToken.ASSUME),
+            SeqNameBuilder.createFuncName(SeqToken.assume),
             ImmutableList.of(SeqParameterDeclaration.COND),
             ImmutableSet.of());
 
@@ -141,7 +141,7 @@ public class SeqDeclarations {
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             SeqFunctionType.MAIN,
-            SeqToken.MAIN,
+            SeqToken.main,
             ImmutableList.of(),
             ImmutableSet.of());
   }
