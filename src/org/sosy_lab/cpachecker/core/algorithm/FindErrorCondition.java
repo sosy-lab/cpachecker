@@ -96,7 +96,11 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       PredicateCPA predicateCPA = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, getClass());
       PathFormulaManager manager = predicateCPA.getPathFormulaManager();
       Solver solver = predicateCPA.getSolver();
-      Solver quantifier_solver = Solver.create(Configuration.builder().copyFrom(config).setOption("solver.solver", Solvers.Z3.name()).build(),logger,shutdownNotifier);
+      Solver quantifier_solver = Solver.create(
+          Configuration.builder().copyFrom(config)
+              .setOption("solver.solver", Solvers.Z3.name())
+              .build()
+          ,logger,shutdownNotifier);
       AbstractState initialState = getInitialState();
       SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
       PathFormula exclude = manager.makeEmptyPathFormula();
@@ -184,8 +188,9 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
             quantifier_solver);
 
     eliminated_with_quantifier = solver.getFormulaManager().translateFrom(eliminated_with_quantifier, quantifier_solver.getFormulaManager());
+    logger.log(Level.INFO,"Eliminated:" + eliminated_with_quantifier + "\n");
     eliminated_with_quantifier = solver.getFormulaManager().simplify(eliminated_with_quantifier);
-    logger.log(Level.INFO,"Eliminated:" + eliminated_with_quantifier);
+    logger.log(Level.INFO,"Eliminated Simplified:" + eliminated_with_quantifier + "\n");
     //exclude path formula to ignore already covered paths.
     exclude = manager.makeAnd(exclude,
             solver.getFormulaManager().getBooleanFormulaManager().not(eliminated_with_quantifier))
@@ -212,8 +217,8 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         .toList();
     BooleanFormula quantified = pSolver.getFormulaManager().getQuantifiedFormulaManager()
         .mkQuantifier(Quantifier.EXISTS, eliminate, pFormula);
-    logger.log(Level.INFO, "Eliminating variables: " + eliminate);
-    logger.log(Level.INFO, "Quantified variables: " + quantified);
+    //logger.log(Level.INFO, "Eliminating variables: " + eliminate);
+    //logger.log(Level.INFO, "Quantified variables: " + quantified);
 
     return pSolver.getFormulaManager().getQuantifiedFormulaManager()
         .eliminateQuantifiers(quantified);
