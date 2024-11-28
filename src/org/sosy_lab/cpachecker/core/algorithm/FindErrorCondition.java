@@ -179,15 +179,16 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       }
     }
 
-    BooleanFormula eliminated =
+    BooleanFormula eliminated_with_quantifier =
         eliminateVariables(quantifier_solver.getFormulaManager().translateFrom(fullPath.getFormula(), solver.getFormulaManager()), entry -> !entry.getKey().contains("_nondet"),
             quantifier_solver);
-    eliminated = solver.getFormulaManager().translateFrom(eliminated, quantifier_solver.getFormulaManager());
-    eliminated = solver.getFormulaManager().simplify(eliminated);
-    logger.log(Level.INFO,"Eliminated:" + eliminated);
+
+    eliminated_with_quantifier = solver.getFormulaManager().translateFrom(eliminated_with_quantifier, quantifier_solver.getFormulaManager());
+    eliminated_with_quantifier = solver.getFormulaManager().simplify(eliminated_with_quantifier);
+    logger.log(Level.INFO,"Eliminated:" + eliminated_with_quantifier);
     //exclude path formula to ignore already covered paths.
     exclude = manager.makeAnd(exclude,
-            solver.getFormulaManager().getBooleanFormulaManager().not(eliminated))
+            solver.getFormulaManager().getBooleanFormulaManager().not(eliminated_with_quantifier))
         .withContext(ssaBuilder.build(), fullPath.getPointerTargetSet());
 
     // use visitor to translate the formula
@@ -199,7 +200,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   }
 
   // 5. eliminate variables matching a predicate (Quantifier Elimination )
-  public static BooleanFormula eliminateVariables(
+  public BooleanFormula eliminateVariables(
       BooleanFormula pFormula,
       Predicate<Entry<String, Formula>> pVariablesToEliminate,
       Solver pSolver) throws InterruptedException, SolverException {
@@ -211,6 +212,9 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         .toList();
     BooleanFormula quantified = pSolver.getFormulaManager().getQuantifiedFormulaManager()
         .mkQuantifier(Quantifier.EXISTS, eliminate, pFormula);
+    logger.log(Level.INFO, "Eliminating variables: " + eliminate);
+    logger.log(Level.INFO, "Quantified variables: " + quantified);
+
     return pSolver.getFormulaManager().getQuantifiedFormulaManager()
         .eliminateQuantifiers(quantified);
   }

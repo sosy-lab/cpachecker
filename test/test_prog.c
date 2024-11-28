@@ -6,11 +6,11 @@ int main() {
   //  reach_error(); // Error State 1
   //  return 1;
   // }
-  if (0 < x < 10) { // Error Condition -> x is negative
+  if (0 < x && x < 10) { // Error Condition -> x is negative
     reach_error(); // Error State 1
     return 1;
   }
-  if (x == 2) { // Error Condition -> x is even
+  if (x == -2) { // Error Condition -> x is even
     reach_error(); // Error State 2
     return 1;
   }
