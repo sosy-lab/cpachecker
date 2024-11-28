@@ -88,7 +88,7 @@ public class SequentializationTest {
     String initSeq = algorithm.buildInitSeq();
     String finalSeq = algorithm.buildFinalSeq("test.i", "__mpor_seq__test.i", initSeq);
 
-    // test that seq can be parsed and cfa created ==> code compiles
+    // test that seq can be parsed and cfa created -> code compiles
     CFACreator creator = new CFACreator(Configuration.builder().build(), logger, shutdownNotifier);
     CFA seqCfa = creator.parseSourceAndCreateCFA(finalSeq);
     assertThat(seqCfa != null).isTrue();
@@ -99,7 +99,7 @@ public class SequentializationTest {
     // test that we get an exception while parsing the new "faulty" program
     boolean fail = false;
     try {
-      creatorWithPreProcessor.parseSourceAndCreateCFA(faultySeq);
+      creator.parseSourceAndCreateCFA(faultySeq);
     } catch (Exception exception) {
       fail = true;
     }
