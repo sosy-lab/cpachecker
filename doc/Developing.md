@@ -20,19 +20,10 @@ the [style guide](StyleGuide.md),
 For JavaScript code read [`ReportTemplateStyleGuide.md`](ReportTemplateStyleGuide.md),
 and for Python code read [`PythonStyleGuide.md`](PythonStyleGuide.md).
 
-
-Getting the code
-----------------
-
-There are two possibilities to retrieve the source code:
-
-- The [main repository on GitLab](https://gitlab.com/sosy-lab/software/cpachecker/)
-
-- A read-only mirror at [GitHub](https://github.com/sosy-lab/cpachecker)
+How to checkout and build the source code on the command line is described in
+[the installation instructions](../INSTALL.md#install-cpachecker----source).
 
 For bug tracking, we use [GitLab](https://gitlab.com/sosy-lab/software/cpachecker/issues).
-
-For building the code on the command line, c.f. [`../INSTALL.md`](../INSTALL.md).
 
 
 Develop CPAchecker from within Eclipse
