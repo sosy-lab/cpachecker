@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithmIsInitialized;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreatorUsingCConverter;
@@ -182,10 +183,12 @@ public class ConstraintsSolver {
       stats.timeForSolving.start();
 
       boolean unsat;
-      // TODO getRelevantConstraints analysieren
-      //  -> für concolic alle relevant
-//      ImmutableSet<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
-      ImmutableSet<Constraint> relevantConstraints = ImmutableSet.copyOf(new HashSet<>(pConstraints));
+      ImmutableSet<Constraint> relevantConstraints;
+      if (ConcolicAlgorithmIsInitialized.getIsInitialized()) {
+        relevantConstraints = ImmutableSet.copyOf(new HashSet<>(pConstraints));
+      } else {
+        relevantConstraints = getRelevantConstraints(pConstraints);
+      }
 
       Collection<BooleanFormula> constraintsAsFormulas =
           getFullFormula(relevantConstraints, pFunctionName);
@@ -266,7 +269,8 @@ public class ConstraintsSolver {
 
   // TODO
   //  verstehen:
-  //  fügt nur die Constraints hinzu, die einen Identifier beinhalten, der auch im letzten Constraint vorkommt
+  //  fügt nur die Constraints hinzu, die einen Identifier beinhalten, der auch im letzten
+  // Constraint vorkommt
   //  vermutlich, soll nur der letzte Constraint gechecked werden
   private ImmutableSet<Constraint> getRelevantConstraints(ConstraintsState pConstraints) {
     ImmutableSet.Builder<Constraint> relevantConstraints = ImmutableSet.builder();

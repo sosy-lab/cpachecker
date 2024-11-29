@@ -480,7 +480,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     // only give concrete values to the ValueAnalysisConcreteCPA
     if (cpaName.equals("ValueAnalysisCPA")) {
       return super.visit(pLastFunctionCallExpression);
-     } else if (cpaName.equals("unknown") && ConcolicAlgorithmIsInitialized.getIsInitialized()) {
+    } else if (cpaName.equals("unknown") && ConcolicAlgorithmIsInitialized.getIsInitialized()) {
       throw new Error("Concolic Execution: CPA name is unknown");
     }
     if (cpaName.equals("ValueAnalysisConcreteCPA")) {
@@ -513,21 +513,21 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
           CType expressionType = pLastFunctionCallExpression.getExpressionType();
           Optional<Value> value = ndvp.getNextNondetValueFor(expressionType, thisLocation);
           if (value.isPresent()) {
-            logger.log(Level.FINE, "Used preloaded value", value.get());
+            logger.log(Level.FINE, "Using preloaded value: ", value.get());
             ndvp.setValueToReturnedValueHistory(value.get(), thisLocation);
             return value
                 .get(); // Pair.of(value.get(), super.visit(pIastFunctionCallExpression)); // Value
           } else {
+
             // get random value
             Value randomValue = ndvp.getRandomValue(expressionType);
             ndvp.setValueToReturnedValueHistory(randomValue, thisLocation);
-            logger.log(Level.FINE, "Used random value: " + randomValue);
+            logger.log(Level.FINE, "Using random value: " + randomValue);
             return randomValue;
           }
         }
       }
 
-      // should not be executed, otherwise: generate random value?
       // CPointerType ignored through this
       if (pLastFunctionCallExpression.getFunctionNameExpression().toString().equals("malloc")
           || pLastFunctionCallExpression.getFunctionNameExpression().toString().equals("calloc")) {

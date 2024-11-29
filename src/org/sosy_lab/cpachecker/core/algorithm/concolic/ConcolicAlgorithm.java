@@ -24,6 +24,13 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -117,7 +124,7 @@ public class ConcolicAlgorithm implements Algorithm {
       CFA pCfa)
       throws Exception {
     pConfig.inject(this, ConcolicAlgorithm.class);
-    setIsInitialized(AlgorithmType.GENERATIONAL);
+    setIsInitialized(AlgorithmType.GENERATIONAL, pLogger);
     this.visitedEdges = new HashSet<>();
     this.visitedPaths = new HashSet<>();
     if (Objects.equals(coverageCriterion, "branch")) {
@@ -144,11 +151,11 @@ public class ConcolicAlgorithm implements Algorithm {
     Configuration configCE = null;
     if (coverageCriterionEnum == CoverageCriterion.BRANCH) {
       configCE =
-          Configuration.builder().loadFromFile("cpachecker/config/concolic-only-concrete.properties").build();
+          Configuration.builder().loadFromFile("config/concolic-only-concrete.properties").build();
     } else if (coverageCriterionEnum == CoverageCriterion.ERROR) {
       configCE =
           Configuration.builder()
-              .loadFromFile("cpachecker/config/concolic-only-concrete-error-coverage.properties")
+              .loadFromFile("config/concolic-only-concrete-error-coverage.properties")
               .build();
     }
 
@@ -233,16 +240,48 @@ public class ConcolicAlgorithm implements Algorithm {
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
 
+      // optimization: re-calculate score
+      if (coverageCriterionEnum == CoverageCriterion.BRANCH) {
+        List<ConcolicAlgorithm.ConcolicInput> inputsToRemove = new ArrayList<>();
+        List<ConcolicAlgorithm.ConcolicInput> inputsToAdd = new ArrayList<>();
+        for (ConcolicInput ci : workList) {
+          if (ci.argPath().isPresent()) {
+            // circumvent ConcurrentModificationException
+            ARGPath argPath = ci.argPath().orElseThrow();
+            inputsToRemove.add(ci);
+            inputsToAdd.add(
+                new ConcolicInput(
+                    ci.values(),
+                    ci.model(),
+                    ci.reachedSet(),
+                    ci.argPath(),
+                    ci.bound(),
+                    calculateScoreBranchCoverage(argPath),
+                    ci.isNewPath,
+                    ci.isInitial));
+          }
+        }
+        workList.removeAll(inputsToRemove);
+        workList.addAll(inputsToAdd);
+      }
+      if (workList.stream().noneMatch(ci -> ci.score() > 0)) {
+        // we are probably finished
+        logger.log(Level.INFO, "ConcolicAlgorithm: no input with score > 0 in the worklist");
+      }
+
       // Get the element with the highest score and remove it
       ConcolicInput highestScoreSeed =
-          workList.stream().max(Comparator.comparing(ci -> ci.score())).get();
+          workList.stream()
+              .max(
+                  Comparator.comparing(ci -> ((ConcolicInput) ci).score())
+                      .thenComparing(ci -> ((ConcolicInput) ci).bound(), Comparator.reverseOrder()))
+              .get();
+      workList.remove(highestScoreSeed);
       // check the path again
       if (highestScoreSeed.argPath().isPresent()
           && visitedPaths.contains(highestScoreSeed.argPath().orElseThrow().getFullPath())) {
-        workList.remove(highestScoreSeed);
         continue;
       }
-      workList.remove(highestScoreSeed);
       // run concolic execution
       List<ConcolicInput> childInputs = expandExecution(highestScoreSeed, reachedSet);
       // own optimization: filter out inputs with score 0
@@ -253,12 +292,12 @@ public class ConcolicAlgorithm implements Algorithm {
       //          childInputs.stream().filter(ci -> !ci.isNewPath && ci.score() == 0).toList();
       workList.addAll(childInputs);
       // TODO
-      // if (visitedPaths.size() > 1000) {
-        // if (visitedPaths.size() > 100) -> remove inputs that will probably not lead to a new path
-        // to prevent endless loop
-      //   logger.log(Level.WARNING, "ConcolicAlgorithm: visitedPaths.size() > 1000");
-      //   workList.removeIf(ci -> ci.score == 0);
-      // }
+      //      if (visitedPaths.size() > 1000) {
+      // if (visitedPaths.size() > 100) -> remove inputs that will probably not lead to a new path
+      // to prevent endless loop
+      //        logger.log(Level.WARNING, "ConcolicAlgorithm: visitedPaths.size() > 1000");
+      //        workList.removeIf(ci -> ci.score == 0);
+      //      }
     }
     // clear Waitlist for nice end result in the console
     reachedSet.clearWaitlist();
@@ -346,14 +385,14 @@ public class ConcolicAlgorithm implements Algorithm {
         model = optModel.orElseThrow();
       }
       List<Object> valueHistory = nonDetValueProvider.getReturnedValueHistory();
-//      if (coverageCriterionEnum == CoverageCriterion.ERROR) {
-//        // for error, just write the test case that led to the error
-//        if (score > 0 || isInitial) {
-//          writeTestCaseFromValues(valueHistory);
-//        }
-//      } else {
-        writeTestCaseFromValues(valueHistory);
-//      }
+      //      if (coverageCriterionEnum == CoverageCriterion.ERROR) {
+      //        // for error, just write the test case that led to the error
+      //        if (score > 0 || isInitial) {
+      //          writeTestCaseFromValues(valueHistory);
+      //        }
+      //      } else {
+      writeTestCaseFromValues(valueHistory);
+      //      }
       return new ConcolicInput(
           getValues(values, model, argPath),
           Optional.of(model),
@@ -532,10 +571,27 @@ public class ConcolicAlgorithm implements Algorithm {
   }
 
   public Optional<FileLocation> convertToFileLocation(String pLocation, ARGPath pARGPath) {
-    String variableNameWithoutFunctionname = Iterables.get(Splitter.on("::").split(pLocation), 1);
-    String variableName = Iterables.get(Splitter.on('#').split(variableNameWithoutFunctionname), 0);
+    String variableNameWithoutFunctionname;
+    String variableName;
+    String identifier;
+    try {
+      Iterable<String> locationSplit = Splitter.on("::").split(pLocation);
 
-    String identifier = Iterables.get(Splitter.on('#').split(pLocation), 0);
+      // some pLocations do not contain a function name, so we need to check if the split is
+      // possible, otherwise, use the whole pLocation
+      if (Iterables.size(locationSplit) == 2) {
+        variableNameWithoutFunctionname = Iterables.get(locationSplit, 1);
+      } else {
+        variableNameWithoutFunctionname = pLocation;
+      }
+
+      variableName = Iterables.get(Splitter.on('#').split(variableNameWithoutFunctionname), 0);
+
+      identifier = Iterables.get(Splitter.on('#').split(pLocation), 0);
+    } catch (Exception e) {
+      logger.log(Level.WARNING, "Error in convertToFileLocation: " + e);
+      return Optional.empty();
+    }
     for (int i = 0; i < pARGPath.getInnerEdges().size(); i++) {
       CFAEdge edge = pARGPath.getInnerEdges().get(i);
       //       new code
@@ -626,9 +682,26 @@ public class ConcolicAlgorithm implements Algorithm {
     nonDetValueProvider.setKnownValues(values);
     AlgorithmStatus algorithmStatus = null;
     boolean isInterrupted = false;
+    boolean isStopped = false;
     try {
+      //    boolean isStopped = runAlgorithmWithTimeout(pReachedSet, isConcrete); // !! TODO
+
+      //      ResourceLimitChecker limits = null;
+      //      WalltimeLimit l = WalltimeLimit.fromNowOn(TimeSpan.of(10, TimeUnit.MILLISECONDS));
+      //      ShutdownManager loopGenerationShutdown =
+      // ShutdownManager.createWithParent(shutdownNotifier);
+      //      limits = new ResourceLimitChecker(loopGenerationShutdown,
+      // Collections.singletonList(l));
+      //      limits.start();
+      //
       if (isConcrete) algorithmStatus = concreteAlgorithmCE.run(pReachedSet);
       else algorithmStatus = algorithm.run(pReachedSet);
+
+      if (algorithmStatus == AlgorithmStatus.NO_PROPERTY_CHECKED) {
+        isStopped = true;
+      }
+      //
+      //      limits.cancel();
 
     } catch (InterruptedException e) {
       if (e.toString().contains("The CPU-time limit")) {
@@ -637,6 +710,9 @@ public class ConcolicAlgorithm implements Algorithm {
       } else {
         throw new Error(e);
       }
+    } catch (Exception pE) {
+      logger.log(Level.SEVERE, "Exception in getARGPath: " + pE);
+      logger.log(Level.SEVERE, "Continuing...");
     }
 
     // create ARGPath
@@ -651,7 +727,7 @@ public class ConcolicAlgorithm implements Algorithm {
       } else throw new Error("State is not an ARGState");
     }
     ARGPath ap;
-    if (!isInterrupted) ap = new ARGPath(argStateSet, true); // true
+    if (!isInterrupted && !isStopped) ap = new ARGPath(argStateSet, true); // true
     else ap = new ARGPath(argStateSet);
     return ap;
   }

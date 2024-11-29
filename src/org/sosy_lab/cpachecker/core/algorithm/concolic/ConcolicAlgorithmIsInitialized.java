@@ -8,23 +8,33 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concolic;
 
+import org.sosy_lab.common.log.LogManager;
+
 public class ConcolicAlgorithmIsInitialized {
   static boolean isInitialized = false;
   static AlgorithmType algorithmType;
+  static LogManager logger;
 
   public enum AlgorithmType {
     GENERATIONAL,
     RANDOM_OR_DFS,
   }
-  public static void setIsInitialized(AlgorithmType pAlgorithmType){
-        algorithmType = pAlgorithmType;
+
+  public static void setIsInitialized(AlgorithmType pAlgorithmType, LogManager pLogger) {
+    logger = pLogger;
+    algorithmType = pAlgorithmType;
     isInitialized = true;
   }
 
-  public static boolean getIsInitialized(){
+  public static boolean getIsInitialized() {
     return isInitialized;
   }
-  public static AlgorithmType getAlgorithmType(){
+
+  public static AlgorithmType getAlgorithmType() {
     return algorithmType;
+  }
+
+  public static LogManager getLogger() {
+    return logger;
   }
 }

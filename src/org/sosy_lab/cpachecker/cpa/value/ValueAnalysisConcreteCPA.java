@@ -138,7 +138,7 @@ public class ValueAnalysisConcreteCPA extends ValueAnalysisCPA
   public ValueAnalysisConcreteCPA(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException {
-    super( pConfig,  pLogger,  pShutdownNotifier,  pCfa);
+    super(pConfig, pLogger, pShutdownNotifier, pCfa);
     this.config = pConfig;
     this.logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -149,7 +149,8 @@ public class ValueAnalysisConcreteCPA extends ValueAnalysisCPA
     predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
 
     precision = initializePrecision(config, cfa);
-    statistics = new ValueAnalysisConcreteCPAStatistics(this, cfa, config, logger, pShutdownNotifier);
+    statistics =
+        new ValueAnalysisConcreteCPAStatistics(this, cfa, config, logger, pShutdownNotifier);
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
     errorPathAllocator =
         new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());

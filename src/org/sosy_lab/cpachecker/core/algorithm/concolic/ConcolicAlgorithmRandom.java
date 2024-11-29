@@ -87,7 +87,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
   // visited blocks
   //   AssumeEdges for branch coverage
   //   blocks after the AssumeEdge for block coverage
-  private final Set<AbstractCFAEdge> visitedBlocks;
+  private final Set<AbstractCFAEdge> visitedEdges;
   private final Set<List<Constraint>> checkedConstraints;
   private final Set<List<CFAEdge>> visitedPaths;
   private int testsWritten = 0;
@@ -135,8 +135,8 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     }
     //    this.searchAlgorithm = pSearchAlgorithm;
     //    isInitialized = true;
-    setIsInitialized(AlgorithmType.RANDOM_OR_DFS);
-    this.visitedBlocks = new HashSet<>();
+    setIsInitialized(AlgorithmType.RANDOM_OR_DFS, pLogger);
+    this.visitedEdges = new HashSet<>();
     this.checkedConstraints = new HashSet<>();
     this.visitedPaths = new HashSet<>();
     if (Objects.equals(coverageCriterion, "branch")) {
@@ -202,7 +202,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
         throw new Error("workList.size() > 1");
       }
 
-      if (coverageCriterionEnum == CoverageCriterion.ERROR && !visitedBlocks.isEmpty()) {
+      if (coverageCriterionEnum == CoverageCriterion.ERROR && !visitedEdges.isEmpty()) {
         // for error coverage, stop when one error location is found
         reachedSet.clearWaitlist();
         return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -252,7 +252,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
         if (ce instanceof AssumeEdge && !(ceChild instanceof AssumeEdge)) {
           // TODO letzte Assume Edge wird vielleicht ignoriert, auch bei calculateScore -> prüfen
           // if so, check if visitedBlocks contains the edge -> if not, add 1 to the score
-          visitedBlocks.add((AssumeEdge) ce);
+          visitedEdges.add((AssumeEdge) ce);
         }
       }
     } catch (NoSuchElementException e) {
@@ -265,7 +265,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     try {
       for (CFAEdge ce : edges) {
         if (ce instanceof FunctionCallEdge && ce.getRawStatement().equals("reach_error();")) {
-          visitedBlocks.add((FunctionCallEdge) ce);
+          visitedEdges.add((FunctionCallEdge) ce);
         }
       }
     } catch (NoSuchElementException e) {
@@ -278,7 +278,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     try {
       for (CFAEdge ce : edges) {
         if (ce instanceof AssumeEdge) {
-          visitedBlocks.add((AssumeEdge) ce);
+          visitedEdges.add((AssumeEdge) ce);
         }
       }
     } catch (NoSuchElementException e) {
@@ -324,14 +324,14 @@ public class ConcolicAlgorithmRandom implements Algorithm {
         model = optModel.orElseThrow();
       }
       List<Object> valueHistory = nonDetValueProvider.getReturnedValueHistory();
-//      if (coverageCriterionEnum == CoverageCriterion.ERROR) {
-//        // for error, just write the test case that led to the error
-//        if (score > 0 || isInitial) {
-//          writeTestCaseFromValues(valueHistory);
-//        }
-//      } else {
-        writeTestCaseFromValues(valueHistory);
-//      }
+      //      if (coverageCriterionEnum == CoverageCriterion.ERROR) {
+      //        // for error, just write the test case that led to the error
+      //        if (score > 0 || isInitial) {
+      //          writeTestCaseFromValues(valueHistory);
+      //        }
+      //      } else {
+      writeTestCaseFromValues(valueHistory);
+      //      }
       return new ConcolicInput(
           getValues(values, model, argPath),
           Optional.of(model),
@@ -596,10 +596,27 @@ public class ConcolicAlgorithmRandom implements Algorithm {
   }
 
   public Optional<FileLocation> convertToFileLocation(String pLocation, ARGPath pARGPath) {
-    String variableNameWithoutFunctionname = Iterables.get(Splitter.on("::").split(pLocation), 1);
-    String variableName = Iterables.get(Splitter.on('#').split(variableNameWithoutFunctionname), 0);
+    String variableNameWithoutFunctionname;
+    String variableName;
+    String identifier;
+    try {
+      Iterable<String> locationSplit = Splitter.on("::").split(pLocation);
 
-    String identifier = Iterables.get(Splitter.on('#').split(pLocation), 0);
+      // some pLocations do not contain a function name, so we need to check if the split is
+      // possible, otherwise, use the whole pLocation
+      if (Iterables.size(locationSplit) == 2) {
+        variableNameWithoutFunctionname = Iterables.get(locationSplit, 1);
+      } else {
+        variableNameWithoutFunctionname = pLocation;
+      }
+
+      variableName = Iterables.get(Splitter.on('#').split(variableNameWithoutFunctionname), 0);
+
+      identifier = Iterables.get(Splitter.on('#').split(pLocation), 0);
+    } catch (Exception e) {
+      logger.log(Level.WARNING, "Error in convertToFileLocation: " + e);
+      return Optional.empty();
+    }
     for (int i = 0; i < pARGPath.getInnerEdges().size(); i++) {
       CFAEdge edge = pARGPath.getInnerEdges().get(i);
       //       new code
@@ -639,7 +656,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       // ceChild can also be null here
       if (ce instanceof AssumeEdge && !(ceChild instanceof AssumeEdge)) {
         // if so, check if visitedBlocks contains the edge -> if not, add 1 to the score
-        if (!visitedBlocks.contains((AssumeEdge) ce)) {
+        if (!visitedEdges.contains((AssumeEdge) ce)) {
           score++;
         }
       }
@@ -656,7 +673,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       CFAEdge ce = edges.get(i);
       if (ce instanceof AssumeEdge) {
         // check if visitedBlocks contains the edge -> if not, add 1 to the score
-        if (!visitedBlocks.contains((AssumeEdge) ce) && !scoreEdges.contains(ce)) {
+        if (!visitedEdges.contains((AssumeEdge) ce) && !scoreEdges.contains(ce)) {
           score++;
           scoreEdges.add(ce);
         }
@@ -672,7 +689,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       CFAEdge ce = edges.get(i);
       if (ce instanceof FunctionCallEdge && ce.getRawStatement().equals("reach_error();")) {
         // check if visitedBlocks contains the edge -> if not, add 1 to the score
-        if (!visitedBlocks.contains(ce)) {
+        if (!visitedEdges.contains(ce)) {
           score++;
         }
       }

@@ -30,6 +30,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithmIsInitialized;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -179,6 +181,12 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
                 + " Useful for incomplete analysis with no counterexample checking.")
     private boolean reportFalseAsUnknown = false;
 
+//    @Option(
+//        secure = true,
+//        description =
+//            "Set the timeout for Concolic Execution in seconds")
+//    private int concolicTimeout = 20;
+
     private final ForcedCovering forcedCovering;
 
     private final ConfigurableProgramAnalysis cpa;
@@ -271,7 +279,15 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private AlgorithmStatus run0(final ReachedSet reachedSet)
       throws CPAException, InterruptedException {
+    long start = System.currentTimeMillis();
     while (reachedSet.hasWaitingState()) {
+
+      // when concolic execution is used, limit the time to 20 seconds
+      // check if the time limit is reached
+      if (ConcolicAlgorithmIsInitialized.getIsInitialized() &&  System.currentTimeMillis() - start > 20 * 1000) {
+        logger.log(Level.INFO, "Time Limit Reached Exiting.");
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      }
       shutdownNotifier.shutdownIfNecessary();
 
       stats.countIterations++;

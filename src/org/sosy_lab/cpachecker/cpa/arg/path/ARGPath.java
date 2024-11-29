@@ -22,8 +22,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Level;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.concolic.ConcolicAlgorithmIsInitialized;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder.DefaultARGPathBuilder;
@@ -83,6 +85,7 @@ public class ARGPath extends AbstractAppender {
   // TODO should be unused
   // finds longest path in pStates and uses this one for the ARGPath
   public ARGPath(List<ARGState> pStates, boolean foo) {
+    ImmutableList<ARGState> tmpStates = null;
     //    checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
     //    states = ImmutableList.copyOf(pStates);
     //
@@ -102,8 +105,18 @@ public class ARGPath extends AbstractAppender {
     ARGState firstState = pStates.get(0);
     List<ARGState> newList = new ArrayList<>();
     newList.add(firstState);
-    states = ImmutableList.copyOf(getLongestPath(newList).getFirstNotNull());
+    try {
+      tmpStates = ImmutableList.copyOf(getLongestPath(newList).getFirstNotNull());
+    } catch (StackOverflowError e) {
+      if (ConcolicAlgorithmIsInitialized.getIsInitialized()) {
+        ConcolicAlgorithmIsInitialized.getLogger()
+            .log(Level.WARNING, "StackOverflowError in ARGPath, getLongestPath, Location 1");
+      }
+      // the path is too long to analyze, use the original list
+      tmpStates = ImmutableList.copyOf(pStates);
+    }
 
+    states = tmpStates;
     List<CFAEdge> edgesBuilder = new ArrayList<>(states.size() - 1);
     for (int i = 0; i < states.size() - 1; i++) {
       ARGState parent = states.get(i);
@@ -113,10 +126,10 @@ public class ARGPath extends AbstractAppender {
 
     edges = Collections.unmodifiableList(edgesBuilder);
     assert states.size() - 1 == edges.size();
-    if(tmpAllStates.size() != states.size()) {
-      //
-
-      // "ARGPath: Size mismatch"
+    if (tmpAllStates.size() != states.size()) {
+      if (ConcolicAlgorithmIsInitialized.getIsInitialized()) {
+        ConcolicAlgorithmIsInitialized.getLogger().log(Level.WARNING, "ARGPath: Size Mismatch");
+      }
     }
 
     // ---------------
@@ -159,7 +172,16 @@ public class ARGPath extends AbstractAppender {
       }
       List<ARGState> newList = new ArrayList<>(pARGStates);
       newList.add(child);
-      newList = getLongestPath(newList).getFirstNotNull();
+      try {
+        newList = getLongestPath(newList).getFirstNotNull();
+      } catch (StackOverflowError e) {
+        if (ConcolicAlgorithmIsInitialized.getIsInitialized()) {
+          ConcolicAlgorithmIsInitialized.getLogger()
+              .log(Level.WARNING, "StackOverflowError in ARGPath, getLongestPath, Location 2");
+        }
+        // the path is too long to analyze, skip
+        continue;
+      }
       if (newList.size() > maxLength) {
         maxLength = newList.size();
         longestList = newList;
