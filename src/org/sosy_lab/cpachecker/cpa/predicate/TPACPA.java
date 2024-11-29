@@ -6,43 +6,42 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.predicate.transitionabstraction;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractDomain;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPAInvariantsManager;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateMergeOperator;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateNeverAtAbstractionStopOperator;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePCCStopOperator;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateStatistics;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateStopOperator;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
-public class TransitionPredicateCPA extends PredicateCPA
+@Options(prefix = "cpa.predicate.transitionpredicateabstraction")
+public class TPACPA extends PredicateCPA
     implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable {
+
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(TPACPA.class).withOptions(BlockOperator.class);
+  }
 
   private final PredicateCPAInvariantsManager invariantsManager;
 
-  protected TransitionPredicateCPA(
+  protected TPACPA(
       Configuration config,
       LogManager logger,
       BlockOperator pBlk,
@@ -52,8 +51,12 @@ public class TransitionPredicateCPA extends PredicateCPA
       AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     super(config, logger, pBlk, pCfa, pShutdownNotifier, specification, pAggregatedReachedSets);
+
+    logger.log(Level.INFO, "TPA-CPA is initialized");
+
     // TODO: Modify constructor if necessary
-    invariantsManager = getInvariantsManager();
+    config.inject(this, TPACPA.class);
+    invariantsManager = super.getInvariantsManager();
   }
 
   @Override
@@ -63,7 +66,7 @@ public class TransitionPredicateCPA extends PredicateCPA
 
   @Override
   public PredicateTransferRelation getTransferRelation() {
-    return new PredicateTransferRelation(
+    return new TPATransferRelation(
         logger,
         getDirection(),
         getFormulaManager(),
@@ -100,6 +103,7 @@ public class TransitionPredicateCPA extends PredicateCPA
     };
   }
 
+  @Override
   public PredicateAbstractionManager getPredicateManager() {
 
     return new PredicateAbstractionManager(
@@ -115,5 +119,18 @@ public class TransitionPredicateCPA extends PredicateCPA
         getInvariantsManager().appendToAbstractionFormula()
         ? invariantsManager
         : TrivialInvariantSupplier.INSTANCE);
+  }
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return new TPAPrecisionAdjustment(
+        logger,
+        getFormulaManager(),
+        getPathFormulaManager(),
+        getBlk(),
+        getPredicateManager(),
+        invariantsManager,
+        getPredicateProvider(),
+        getStatistics());
   }
 }
