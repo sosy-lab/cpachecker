@@ -110,7 +110,7 @@ public class ARGPath extends AbstractAppender {
     } catch (StackOverflowError e) {
       if (ConcolicAlgorithmIsInitialized.getIsInitialized()) {
         ConcolicAlgorithmIsInitialized.getLogger()
-            .log(Level.WARNING, "StackOverflowError in ARGPath, getLongestPath, Location 1");
+            .log(Level.WARNING, "StackOverflowError in ARGPath, getLongestPath");
       }
       // the path is too long to analyze, use the original list
       tmpStates = ImmutableList.copyOf(pStates);
@@ -172,16 +172,16 @@ public class ARGPath extends AbstractAppender {
       }
       List<ARGState> newList = new ArrayList<>(pARGStates);
       newList.add(child);
-      try {
+//      try {
         newList = getLongestPath(newList).getFirstNotNull();
-      } catch (StackOverflowError e) {
-        if (ConcolicAlgorithmIsInitialized.getIsInitialized()) {
-          ConcolicAlgorithmIsInitialized.getLogger()
-              .log(Level.WARNING, "StackOverflowError in ARGPath, getLongestPath, Location 2");
-        }
-        // the path is too long to analyze, skip
-        continue;
-      }
+//      } catch (StackOverflowError e) {
+//        if (ConcolicAlgorithmIsInitialized.getIsInitialized()) {
+//          ConcolicAlgorithmIsInitialized.getLogger()
+//              .log(Level.WARNING, "StackOverflowError in ARGPath, getLongestPath, Location 2");
+//        }
+//        // the path is too long to analyze, skip
+//        continue;
+//      }
       if (newList.size() > maxLength) {
         maxLength = newList.size();
         longestList = newList;
