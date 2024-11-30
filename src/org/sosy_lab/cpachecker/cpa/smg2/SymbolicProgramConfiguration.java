@@ -973,7 +973,7 @@ public class SymbolicProgramConfiguration {
 
     // 7. Extend new SMG with a fresh copy of the nf restricted sub-SMG of SMG1 rooted at d1 (sll1),
     // but excluding the nodes that are already mapped in m1, such that the copy of d1 is a linked
-    // list d.
+    // list d. (nf either next or prev, depending on specifier)
     // Then, extend the mapping m1 such that the newly created nodes in O u V are mapped from
     // the corresponding nodes of O1 u V1.
     // 8. Initialize the labeling of d to match the labeling of d1 up to minimum length,
