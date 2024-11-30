@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -100,6 +101,7 @@ public class ConcolicAlgorithm implements Algorithm {
   // visited blocks
   //   AssumeEdges for branches coverage
   private final Set<AbstractCFAEdge> visitedEdges;
+  private final Set<AbstractCFAEdge> allVisitedEdges;
   private final Set<List<CFAEdge>> visitedPaths;
 
   // TODO remove public -> Singleton in NondeterministicValueProvider?
@@ -126,6 +128,7 @@ public class ConcolicAlgorithm implements Algorithm {
     pConfig.inject(this, ConcolicAlgorithm.class);
     setIsInitialized(AlgorithmType.GENERATIONAL, pLogger);
     this.visitedEdges = new HashSet<>();
+    this.allVisitedEdges = new HashSet<>();
     this.visitedPaths = new HashSet<>();
     if (Objects.equals(coverageCriterion, "branch")) {
       this.coverageCriterionEnum = CoverageCriterion.BRANCH;
@@ -232,6 +235,9 @@ public class ConcolicAlgorithm implements Algorithm {
             true,
             true));
 
+    int numAllAssumeEdges =
+        cfa.edges().stream().filter(e -> e instanceof CAssumeEdge).toList().size();
+
     while (!workList.isEmpty()) {
 
       if (coverageCriterionEnum == CoverageCriterion.ERROR && !visitedEdges.isEmpty()) {
@@ -298,6 +304,22 @@ public class ConcolicAlgorithm implements Algorithm {
       //        logger.log(Level.WARNING, "ConcolicAlgorithm: visitedPaths.size() > 1000");
       //        workList.removeIf(ci -> ci.score == 0);
       //      }
+
+      // print statistics
+      // TODO teilweise auslagern -> effizienter
+      // TODO if brnach coverage
+      if (coverageCriterionEnum == CoverageCriterion.BRANCH) {
+        logger.log(Level.FINE, "Size CFA Edges: " + numAllAssumeEdges);
+        logger.log(Level.FINE, "Size All Visited Edges: " + allVisitedEdges.size());
+        //        logger.log(
+        //            Level.FINE,
+        //            "Size Missing Edges: "
+        //                + cfa.edges().stream()
+        //                    .filter(e -> e instanceof CAssumeEdge && !allVisitedEdges.contains(e))
+        //                    .toList()
+        //                    .size());
+        logger.log(Level.FINE, "Estimated Coverage: " + (float) allVisitedEdges.size() / numAllAssumeEdges);
+      }
     }
     // clear Waitlist for nice end result in the console
     reachedSet.clearWaitlist();
@@ -339,7 +361,20 @@ public class ConcolicAlgorithm implements Algorithm {
     try {
       for (CFAEdge ce : edges) {
         if (ce instanceof AssumeEdge) {
-          visitedEdges.add((AssumeEdge) ce);
+          allVisitedEdges.add((AssumeEdge) ce);
+        }
+      }
+    } catch (NoSuchElementException e) {
+      throw new Error(e);
+    }
+  }
+
+  private void fillAllVisitedBlocksBranchCoverage(ARGPath pARGPath) {
+    List<CFAEdge> edges = pARGPath.getInnerEdges();
+    try {
+      for (CFAEdge ce : edges) {
+        if (ce instanceof AssumeEdge) {
+          allVisitedEdges.add((AssumeEdge) ce);
         }
       }
     } catch (NoSuchElementException e) {
@@ -427,6 +462,9 @@ public class ConcolicAlgorithm implements Algorithm {
       fillVisitedBlocksErrorCoverage(argPath);
     else throw new Error("coverageCriterion unknown");
 
+    // also fill allVisitedBlocks for branch coverage
+    if (coverageCriterionEnum == CoverageCriterion.BRANCH) fillAllVisitedBlocksBranchCoverage(argPath);
+
     ConstraintsState state =
         (ConstraintsState)
             ((CompositeState) argPath.getLastState().getWrappedState()).getWrappedStates().get(3);
@@ -492,6 +530,9 @@ public class ConcolicAlgorithm implements Algorithm {
             initialReachedSet.getPrecision(initialReachedSet.getFirstState()));
 
         ARGPath argPathConcrete = getARGPath(reachedSetConcrete, values, true);
+
+        // also fill allVisitedBlocks for branch coverage
+        if (coverageCriterionEnum == CoverageCriterion.BRANCH) fillAllVisitedBlocksBranchCoverage(argPathConcrete);
 
         int score;
         if (coverageCriterionEnum == CoverageCriterion.BRANCH)
