@@ -6,7 +6,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# This is a Docker image for running the latest development version of CPAchecker.
+# This is a container image for running the latest development version of CPAchecker.
 # It is built automatically using GitLab CI and pushed to
 # registry.gitlab.com/sosy-lab/software/cpachecker:dev.
 #
@@ -15,9 +15,9 @@
 # mkdir tmp
 # mv cpachecker.tar.bz2 tmp/
 # cp build/Dockerfile.dev tmp/Dockerfile
-# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:dev -t sosylab/cpachecker:dev tmp
-# docker push registry.gitlab.com/sosy-lab/software/cpachecker:dev
-# docker push sosylab/cpachecker:dev
+# podman build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:dev -t sosylab/cpachecker:dev tmp
+# podman push registry.gitlab.com/sosy-lab/software/cpachecker:dev
+# podman push sosylab/cpachecker:dev
 
 FROM ubuntu:latest
 

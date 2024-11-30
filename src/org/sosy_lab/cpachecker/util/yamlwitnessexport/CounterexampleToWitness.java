@@ -29,15 +29,19 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -154,12 +158,27 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       return Optional.empty();
     }
 
-    return Optional.of(
-        handleAssumptionWaypoint(
-            ImmutableList.of(
-                pEdgeToAssumptions.get(pEdge).get(edgeToCurrentExpressionIndex.get(pEdge))),
-            pEdge,
-            pAstCfaRelation));
+    ImmutableList<AExpressionStatement> assumptions =
+        ImmutableList.of(
+            pEdgeToAssumptions.get(pEdge).get(edgeToCurrentExpressionIndex.get(pEdge)));
+
+    // We should not export any assumptions which contains a restriction on the value where a
+    // pointer points to in memory, since this may change or not even be valid. CPAchecker tracks
+    // this information internally, but it is meaningless to the user. This is a heuristic to avoid
+    // exporting this information.
+    //
+    // One example of such a case happens in:
+    // sv-benchmarks/c/termination-recursive-malloc/rec_malloc_ex6.i
+    // where the assumption `p1 == 8LL` is present, where p1 is a pointer.
+    ComparesPointerWithNonPointer visitor = new ComparesPointerWithNonPointer();
+    if (FluentIterable.from(assumptions)
+        .transform(AExpressionStatement::getExpression)
+        .filter(CExpression.class)
+        .anyMatch(stmt -> stmt.accept(visitor))) {
+      return Optional.empty();
+    }
+
+    return Optional.of(handleAssumptionWaypoint(assumptions, pEdge, pAstCfaRelation));
   }
 
   /**
@@ -230,9 +249,26 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         astElementLocation = iterationElement.getCompleteElement().location();
 
         if (iterationElement.getControllingExpression().isEmpty()) {
-          // This can only happen for an expression of the form `for(;;)`, which is an infinite
-          // loop. In this case we directly export the assumption waypoint and continue.
-          return ImmutableList.of(handleBranchingWaypoint(true, astElementLocation, assumeEdge));
+          // This can only happen for an expression of the form `for(A;;B)`, which is a loop which
+          // always evaluates to true. In this case an AssumeEdge will never be used, but a blank
+          // edge will be used instead
+          // TODO: Handle this case correctly by exporting useful information for this type of loop
+          return ImmutableList.of();
+        }
+
+        if (iterationElement.getBody().edges().isEmpty()) {
+          // This happens when the loop contains no body. This can happen when the whole computation
+          // is being done in the condition. In this case we cannot distinguish if the edge goes
+          // into the loop or exits it, since the ASTStructure does not contain information about
+          // the edges exiting the loop.
+          // TODO: Handle this case correctly by exporting useful information for this type of loop
+          return ImmutableList.of();
+        }
+
+        if (!iterationElement.getControllingExpression().orElseThrow().edges().contains(pEdge)) {
+          // In this case we have an assume edge inside the loop which has nothing to do with its
+          // controlling expression. This case should be ignored.
+          return ImmutableList.of();
         }
 
         nodesBetweenConditionAndFirstBranch = iterationElement.getNodesBetweenConditionAndBody();
@@ -242,7 +278,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         // and then added to the AstCfaRelation. The problem is that this occurs at the expression
         // level and we currently only consider statements. The relevant parser expression type is
         // IASTConditionalExpression.
-        logger.log(Level.INFO, "Could not find the AST structure for the edge: " + pEdge);
+        logger.log(Level.FINEST, "Could not find the AST structure for the edge: " + pEdge);
         return ImmutableList.of();
       }
 
@@ -273,6 +309,60 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
     // Not all edges are relevant for the counterexample, so we do not export them
     return ImmutableList.of();
+  }
+
+  private static WaypointRecord defaultTargetWaypoint(CFAEdge pEdge) {
+    return new WaypointRecord(
+        WaypointRecord.WaypointType.TARGET,
+        WaypointRecord.WaypointAction.FOLLOW,
+        null,
+        LocationRecord.createLocationRecordAtStart(
+            pEdge.getFileLocation(), pEdge.getPredecessor().getFunctionName()));
+  }
+
+  /**
+   * Create a target waypoint for a specification violation for the given edge.
+   *
+   * @param pEdge the edge whose execution violates the specification
+   * @return a target waypoint pointing to the location in which the specification was violated. For
+   *     example for the `unreach-call` specification this is the call statement and for the
+   *     `no-overflow` specification this is the full expression whose execution caused the
+   *     violation
+   */
+  private WaypointRecord targetWaypoint(CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
+    Specification specification = getSpecification();
+    Set<Property> properties = specification.getProperties();
+
+    if (properties.size() != 1) {
+      return defaultTargetWaypoint(pEdge);
+    }
+
+    Property property = properties.iterator().next();
+    if (property instanceof CommonVerificationProperty verificationProperty) {
+      if (verificationProperty == CommonVerificationProperty.OVERFLOW) {
+        // The target waypoint needs to point to the full expression which caused the overflow
+        //
+        // If we did not find the closest full expression to the edge this is a bug and should be
+        // fixed, since we need to export the target waypoint to it as defined in the standard. This
+        // is well-defined, since every edge used here contains an operation whose execution causes
+        // an overflow in a C program
+        FileLocation fullExpressionLocation =
+            CFAUtils.getClosestFullExpression((CCfaEdge) pEdge, pAstCfaRelation).orElseThrow();
+
+        return new WaypointRecord(
+            WaypointRecord.WaypointType.TARGET,
+            WaypointRecord.WaypointAction.FOLLOW,
+            null,
+            LocationRecord.createLocationRecordAtStart(
+                fullExpressionLocation, pEdge.getPredecessor().getFunctionName()));
+      } else {
+        // This is well-defined for the reeachability property, for all others violation witnesses
+        // are not really well-defined
+        return defaultTargetWaypoint(pEdge);
+      }
+    }
+
+    return defaultTargetWaypoint(pEdge);
   }
 
   /**
@@ -331,14 +421,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // segment point. Therefore instead of creating a location record the way as is for assumptions,
     // this needs to be done using another function
     CFAEdge lastEdge = edges.get(edges.size() - 1);
-    segments.add(
-        SegmentRecord.ofOnlyElement(
-            new WaypointRecord(
-                WaypointRecord.WaypointType.TARGET,
-                WaypointRecord.WaypointAction.FOLLOW,
-                null,
-                LocationRecord.createLocationRecordAtStart(
-                    lastEdge.getFileLocation(), lastEdge.getPredecessor().getFunctionName()))));
+    segments.add(SegmentRecord.ofOnlyElement(targetWaypoint(lastEdge, astCFARelation)));
 
     exportEntries(
         new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments.build()), pPath);

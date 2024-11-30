@@ -26,9 +26,9 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--option">counterexample.export.compressWitness=true</option>
   <option name="--option">counterexample.export.graphml=witness.graphml</option>
   <option name="--option">cpa.arg.proofWitness=witness.graphml</option>
-  <option name="--option">termination.violation.witness=witness.graphml</option>
+  <option name="--option">cpa.smg2.enableMallocFail=false</option>
 
-  <tasks>
+  <tasks name="MemSafety-MemCleanup">
     <includesfile>../programs/benchmarks/Heap.set</includesfile>
     <includesfile>../programs/benchmarks/Juliet.set</includesfile>
     <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>

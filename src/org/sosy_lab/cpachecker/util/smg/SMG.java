@@ -11,9 +11,11 @@ package org.sosy_lab.cpachecker.util.smg;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -36,7 +38,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGAndSMGObjects;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
@@ -333,6 +337,19 @@ public class SMG {
    * @return number of usages of the pValue.
    */
   public int getNumberOfSMGValueUsages(SMGValue pValue) {
+    PersistentMap<SMGObject, Integer> maybeRegions = valuesToRegionsTheyAreSavedIn.get(pValue);
+    int found = 0;
+    if (maybeRegions != null) {
+      for (int x : maybeRegions.values()) {
+        found += x;
+      }
+    }
+    assert found == getOldNumberOfSMGValueUsages(pValue);
+    return found;
+  }
+
+  // Old version
+  private int getOldNumberOfSMGValueUsages(SMGValue pValue) {
     int found = 0;
     for (PersistentSet<SMGHasValueEdge> hvEdges : hasValueEdges.values()) {
       for (SMGHasValueEdge hve : hvEdges) {
@@ -398,11 +415,20 @@ public class SMG {
    * @return A modified copy of the SMG.
    */
   public SMG copyAndAddPTEdge(SMGPointsToEdge edge, SMGValue source) {
-    if (pointsToEdges.containsKey(source)) {
-      if (Objects.equals(pointsToEdges.get(source), edge)) {
+    @Nullable SMGPointsToEdge maybeExistingEdge = pointsToEdges.get(source);
+    if (maybeExistingEdge != null) {
+      if (Objects.equals(maybeExistingEdge, edge)) {
         return this;
+      } else {
+        throw new RuntimeException(
+            "A SMG-points-to-edge "
+                + edge
+                + " was attempted to be added to the SMG for value "
+                + source
+                + ", but the value had edge "
+                + maybeExistingEdge
+                + " already associated with it!");
       }
-      throw new RuntimeException("A SMG-points-to-edge can have only 1 target!");
     }
 
     ImmutableMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder = ImmutableMap.builder();
@@ -2036,6 +2062,46 @@ public class SMG {
         oldObj, newTarget, levelToReplace, 0, specifierToSwitch);
   }
 
+  public SMG replaceValueWithAndCopy(Value oldValue, SMGValue oldSMGValue, SMGValue newSMGValue)
+      throws SMGException {
+    Preconditions.checkArgument(smgValuesAndNestingLvl.containsKey(newSMGValue));
+    Preconditions.checkArgument(smgValuesAndNestingLvl.containsKey(oldSMGValue));
+    Preconditions.checkArgument(!isPointer(oldSMGValue) || oldSMGValue.isZero());
+    // Replace the SMGValue in HVEdges(values of the edges, offsets and sizes), Objects (sizes)
+    PersistentMap<SMGObject, Integer> oldValueHVELocations =
+        valuesToRegionsTheyAreSavedIn.getOrDefault(oldSMGValue, PathCopyingPersistentTreeMap.of());
+
+    SMG newSMG = this;
+    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> hvesForObj : hasValueEdges.entrySet()) {
+      if (oldValueHVELocations.containsKey(hvesForObj.getKey())) {
+        for (SMGHasValueEdge hve : hvesForObj.getValue()) {
+          if (hve.hasValue().equals(oldSMGValue)) {
+            SMGHasValueEdge newHVE =
+                new SMGHasValueEdge(newSMGValue, hve.getOffset(), hve.getSizeInBits());
+            newSMG = newSMG.copyAndReplaceHVEdge(hvesForObj.getKey(), hve, newHVE);
+          }
+        }
+      }
+    }
+
+    for (SMGObject obj : smgObjects.keySet()) {
+      if (obj.getSize().equals(oldValue)) {
+        throw new SMGException("Replacement of SMGObject size currently not supported.");
+      }
+    }
+
+    Preconditions.checkArgument(
+        newSMG
+            .valuesToRegionsTheyAreSavedIn
+            .getOrDefault(oldSMGValue, PathCopyingPersistentTreeMap.of())
+            .isEmpty());
+
+    // Remove the old value from the known values
+    newSMG = newSMG.copyAndRemoveValue(oldSMGValue);
+
+    return newSMG;
+  }
+
   /**
    * Search for all pointers towards the object old and replaces them with pointers pointing towards
    * the new object only if their nesting level is equal to the given. Then switches the nesting
@@ -2592,6 +2658,43 @@ public class SMG {
         }
       }
     }
+    return true;
+  }
+
+  @SuppressWarnings("unused")
+  public boolean checkValueMappingConsistency(
+      ImmutableBiMap<Wrapper<Value>, SMGValue> pExistingValueMapping, ValueWrapper pValueWrapper) {
+    // Check that every value in the mapping is existing in some form.
+    // The 0 values are exceptions and should not be counted, they always exist but are wrapped.
+    // for (SMGValue valueInValuesSet : smgValuesAndNestingLvl.keySet()) {
+    // TODO: we clean the SMGValues more often than the mapping, fix in SPC first.
+    // if (!pExistingValueMapping.containsValue(valueInValuesSet)) {
+    // return false;
+    // }
+    // }
+
+    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objAndHves : hasValueEdges.entrySet()) {
+      // SMGObject obj = objAndHves.getKey();
+      for (SMGHasValueEdge hve : objAndHves.getValue()) {
+        if (!pExistingValueMapping.containsValue(hve.hasValue())) {
+          return false;
+        }
+      }
+    }
+
+    /*for (Entry<SMGObject, Boolean> obj : smgObjects.entrySet()) {
+      // References to invalid objects might exist, as well as references to invalid objects sizes
+      Value sizeOfObj = obj.getKey().getSize();
+      if (!sizeOfObj.isNumericValue()
+          && !pExistingValueMapping.containsKey(pValueWrapper.wrap(sizeOfObj))
+          && obj.getValue()) {
+        // If the size is in a valid object, we need a mapping!
+        // TODO: not really, if its only put into the size, there is currently not a need for a
+        // SMGValue
+        // return false;
+      }
+    }*/
+
     return true;
   }
 }

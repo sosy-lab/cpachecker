@@ -1,4 +1,5 @@
 @echo off
+setlocal enableDelayedExpansion
 
 REM This file is part of CPAchecker,
 REM a tool for configurable software verification:
@@ -17,10 +18,6 @@ IF "%JAVA%"=="" (
     SET JAVA=java
   )
 )
-
-REM the default heap and stack sizes of the Java VM
-SET DEFAULT_HEAP_SIZE=1200M
-SET DEFAULT_STACK_SIZE=1024k
 
 REM ------------------------------------------------------------------------------
 REM From here on you should not need to change anything
@@ -43,17 +40,24 @@ SET "CLASSPATH=%CLASSPATH%;%PATH_TO_CPACHECKER%\classes;%PATH_TO_CPACHECKER%\cpa
 
 REM loop over all input parameters and parse them
 SET OPTIONS=
-SET JAVA_ASSERTIONS=-ea
+SET BENCHMARK_MODE=
 
 :loop
 IF NOT [%1]==[] (
-  IF [%1]==[--benchmark] (
-    SET JAVA_ASSERTIONS=-da
-    SET DEFAULT_HEAP_SIZE=xxxx
+  ECHO %1 | findstr /b /c:-X > nul
+  IF NOT errorlevel 1 (
+    REM params starting with "-X" are used for JVM
+    ECHO %1| findstr "^\-XX:+.*GC$" > nul
+    IF NOT errorlevel 1 (
+      REM looks like an option for choosing a GC, skip our default
+      SET JAVA_GC=ignore_default
+    )
+    SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% %1"
+  ) ELSE IF [%1]==[--benchmark] (
+    SET BENCHMARK_MODE=true
     SET "OPTIONS=%OPTIONS% %1"
   ) ELSE IF [%1]==[-benchmark] (
-    SET JAVA_ASSERTIONS=-da
-    SET DEFAULT_HEAP_SIZE=xxxx
+    SET BENCHMARK_MODE=true
     SET "OPTIONS=%OPTIONS% %1"
   ) ELSE IF [%1]==[--heap] (
     SET JAVA_HEAP_SIZE=%2
@@ -106,6 +110,7 @@ IF NOT [%1]==[] (
   GOTO :loop
 )
 
+REM Determine temp dir to use for JVM
 IF NOT "%TMPDIR%"=="" (
   SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Djava.io.tmpdir^=%TMPDIR%"
 ) ELSE IF NOT "%TEMP%"=="" (
@@ -114,25 +119,51 @@ IF NOT "%TMPDIR%"=="" (
   SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Djava.io.tmpdir^=%TMP%"
 )
 
+REM Determine whether to enable Java assertions
+IF defined BENCHMARK_MODE (
+  SET JAVA_ASSERTIONS=-da
+) ELSE (
+  SET JAVA_ASSERTIONS=-ea
+)
+
+REM Determine heap size
 IF NOT "%JAVA_HEAP_SIZE%"=="" (
   ECHO Running CPAchecker with Java heap of size %JAVA_HEAP_SIZE%.
   SET USE_JAVA_HEAP_SIZE=%JAVA_HEAP_SIZE%
+) ELSE IF defined BENCHMARK_MODE (
+  ECHO A heap size needs to be specified with --heap if --benchmark is given.
+  ECHO Please see doc/Benchmark.md for further information.
+  EXIT /B 1
 ) ELSE (
-  SET JAVA_HEAP_SIZE=%DEFAULT_HEAP_SIZE%
-  IF "%DEFAULT_HEAP_SIZE%"=="xxxx" (
-    ECHO A heap size needs to be specified with --heap if --benchmark is given.
-    ECHO Please see doc/Benchmark.md for further information.
-    EXIT /B 1
-  )
-  ECHO Running CPAchecker with default heap size %DEFAULT_HEAP_SIZE%. Specify a larger value with --heap if you have more RAM.
+  SET JAVA_HEAP_SIZE=1200M
+  ECHO Running CPAchecker with default heap size !JAVA_HEAP_SIZE!. Specify a larger value with --heap if you have more RAM.
 )
 
+REM Determine garbage collector
+IF not defined JAVA_GC (
+  REM Recommendations are from BSc thesis
+  REM "Evaluation of JVM Garbage Collectors for CPAchecker", Tobias Maget, 2024.
+  REM https://www.sosy-lab.org/research/bib/All/index.html#MagetEvaluationJVMGarbageCollectorsCPAchecker
+  IF defined BENCHMARK_MODE (
+    REM SerialGC improves CPU time and memory consumption,
+    REM and should provide more consistent performance.
+    SET JAVA_GC=-XX:+UseSerialGC
+  ) ELSE (
+    REM This configuration of parallel GC is good overall for CPU time, wall time, and memory.
+    SET "JAVA_GC=-XX:+UseParallelGC -XX:MinHeapFreeRatio=80"
+  )
+) ELSE (
+  SET JAVA_GC=
+)
+
+REM Determine stack size
 IF NOT "%JAVA_STACK_SIZE%"=="" (
   ECHO Running CPAchecker with Java stack of size %JAVA_STACK_SIZE%.
 ) ELSE (
-  SET JAVA_STACK_SIZE=%DEFAULT_STACK_SIZE%
-  ECHO Running CPAchecker with default stack size %DEFAULT_STACK_SIZE%. Specify a larger value with --stack if needed.
+  SET JAVA_STACK_SIZE=1024k
+  ECHO Running CPAchecker with default stack size !JAVA_STACK_SIZE!. Specify a larger value with --stack if needed.
 )
+
 
 IF NOT "%JAVA_VM_ARGUMENTS%"=="" (
   ECHO Running CPAchecker with the following extra VM options:%JAVA_VM_ARGUMENTS%.
@@ -151,6 +182,7 @@ REM PerfDisableSharedMem avoids hsperfdata in /tmp (disable it to connect easily
     -cp "%CLASSPATH%" ^
     -XX:+PerfDisableSharedMem ^
     -Djava.awt.headless=true ^
+    %JAVA_GC% ^
     %JAVA_VM_ARGUMENTS% ^
     -Xss%JAVA_STACK_SIZE% ^
     -Xmx%JAVA_HEAP_SIZE% ^

@@ -20,7 +20,7 @@ SPDX-License-Identifier: Apache-2.0
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="3.1-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="4.0-git"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="class.dir" value="classes"/>
@@ -132,8 +132,8 @@ SPDX-License-Identifier: Apache-2.0
 
     <!-- Auxiliary targets -->
 
-    <target name="init" depends="create-version-file">
-        <echo message="Building ${ant.project.name} ${version.base}"/>
+    <target name="init" depends="determine-version">
+        <echo message="Building ${ant.project.name} ${version}"/>
     </target>
 
     <target name="build-subprojects">
