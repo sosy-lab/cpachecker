@@ -1139,6 +1139,7 @@ public class SymbolicProgramConfiguration {
       SMGObject rootTargetMemory = pteRoot.pointsTo();
       Preconditions.checkArgument(mappingOfNodes.containsKey(smgValueRoot));
       SMGValue newSMGValue = (SMGValue) mappingOfNodes.get(smgValueRoot);
+      boolean copyRecursivly = false;
 
       // Replicate sub-SMG if not yet done
       if (!currentNewSPC.smg.isPointer(newSMGValue)) {
@@ -1146,12 +1147,26 @@ public class SymbolicProgramConfiguration {
         if (mappingOfNodes.containsKey(rootTargetMemory)) {
           // Known memory, just insert ptr
           newMemoryTargetObject = (SMGObject) mappingOfNodes.get(rootTargetMemory);
-          assert currentNewSPC.heapObjects.contains(newMemoryTargetObject);
+          Preconditions.checkState(currentNewSPC.heapObjects.contains(newMemoryTargetObject));
 
         } else {
           // Copy memory and insert new pointer
+          Preconditions.checkState(!currentNewSPC.heapObjects.contains(rootTargetMemory));
           currentNewSPC = currentNewSPC.copyAndAddHeapObject(rootTargetMemory);
           mappingOfNodes.put(rootTargetMemory, rootTargetMemory);
+          newMemoryTargetObject = rootTargetMemory;
+          copyRecursivly = true;
+        }
+        // Insert correct PTE in new SPC
+        SMGPointsToEdge newPTE =
+            new SMGPointsToEdge(
+                newMemoryTargetObject, pteRoot.getOffset(), pteRoot.targetSpecifier());
+        Preconditions.checkState(!currentNewSPC.smg.getPTEdges().anyMatch(e -> e.equals(newPTE)));
+        currentNewSPC =
+            currentNewSPC.copyWithNewSMG(
+                currentNewSPC.smg.copyAndAddPTEdgeWithInternalMapping(newPTE, newSMGValue));
+
+        if (copyRecursivly) {
           // Now copy all values and copy all memory for pointers again recursively
           currentNewSPC =
               copyMemoryOfTo(
@@ -1161,15 +1176,7 @@ public class SymbolicProgramConfiguration {
                   currentNewSPC,
                   mappingOfNodes,
                   ImmutableSet.of());
-          newMemoryTargetObject = rootTargetMemory;
         }
-        // Insert correct PTE in new SPC
-        SMGPointsToEdge newPTE =
-            new SMGPointsToEdge(
-                newMemoryTargetObject, pteRoot.getOffset(), pteRoot.targetSpecifier());
-        assert !currentNewSPC.smg.getPTEdges().anyMatch(e -> e.equals(newPTE));
-        currentNewSPC =
-            currentNewSPC.copyWithNewSMG(currentNewSPC.smg.copyAndAddPTEdge(newPTE, newSMGValue));
 
         if (rootSPC.externalObjectAllocation.containsKey(rootTargetMemory)) {
           currentNewSPC = currentNewSPC.copyAndAddExternalObject(newMemoryTargetObject);
