@@ -24,13 +24,6 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -101,7 +94,7 @@ public class ConcolicAlgorithm implements Algorithm {
   // visited blocks
   //   AssumeEdges for branches coverage
   private final Set<AbstractCFAEdge> visitedEdges;
-  private final Set<AbstractCFAEdge> allVisitedEdges;
+//  private final Set<AbstractCFAEdge> allVisitedEdges;
   private final Set<List<CFAEdge>> visitedPaths;
 
   // TODO remove public -> Singleton in NondeterministicValueProvider?
@@ -128,7 +121,7 @@ public class ConcolicAlgorithm implements Algorithm {
     pConfig.inject(this, ConcolicAlgorithm.class);
     setIsInitialized(AlgorithmType.GENERATIONAL, pLogger);
     this.visitedEdges = new HashSet<>();
-    this.allVisitedEdges = new HashSet<>();
+//    this.allVisitedEdges = new HashSet<>();
     this.visitedPaths = new HashSet<>();
     if (Objects.equals(coverageCriterion, "branch")) {
       this.coverageCriterionEnum = CoverageCriterion.BRANCH;
@@ -154,11 +147,11 @@ public class ConcolicAlgorithm implements Algorithm {
     Configuration configCE = null;
     if (coverageCriterionEnum == CoverageCriterion.BRANCH) {
       configCE =
-          Configuration.builder().loadFromFile("config/concolic-only-concrete.properties").build();
+          Configuration.builder().loadFromFile("cpachecker/config/concolic-only-concrete.properties").build();
     } else if (coverageCriterionEnum == CoverageCriterion.ERROR) {
       configCE =
           Configuration.builder()
-              .loadFromFile("config/concolic-only-concrete-error-coverage.properties")
+              .loadFromFile("cpachecker/config/concolic-only-concrete-error-coverage.properties")
               .build();
     }
 
@@ -235,8 +228,8 @@ public class ConcolicAlgorithm implements Algorithm {
             true,
             true));
 
-    int numAllAssumeEdges =
-        cfa.edges().stream().filter(e -> e instanceof CAssumeEdge).toList().size();
+//    int numAllAssumeEdges =
+//        cfa.edges().stream().filter(e -> e instanceof CAssumeEdge).toList().size();
 
     while (!workList.isEmpty()) {
 
@@ -263,7 +256,7 @@ public class ConcolicAlgorithm implements Algorithm {
                     ci.argPath(),
                     ci.bound(),
                     calculateScoreBranchCoverage(argPath),
-                    ci.isNewPath,
+                    !visitedPaths.contains(argPath.getFullPath()),
                     ci.isInitial));
           }
         }
@@ -306,20 +299,20 @@ public class ConcolicAlgorithm implements Algorithm {
       //      }
 
       // print statistics
-      // TODO teilweise auslagern -> effizienter
-      // TODO if brnach coverage
-      if (coverageCriterionEnum == CoverageCriterion.BRANCH) {
-        logger.log(Level.FINE, "Size CFA Edges: " + numAllAssumeEdges);
-        logger.log(Level.FINE, "Size All Visited Edges: " + allVisitedEdges.size());
-        //        logger.log(
-        //            Level.FINE,
-        //            "Size Missing Edges: "
-        //                + cfa.edges().stream()
-        //                    .filter(e -> e instanceof CAssumeEdge && !allVisitedEdges.contains(e))
-        //                    .toList()
-        //                    .size());
-        logger.log(Level.FINE, "Estimated Coverage: " + (float) allVisitedEdges.size() / numAllAssumeEdges);
-      }
+//      if (coverageCriterionEnum == CoverageCriterion.BRANCH) {
+//        logger.log(Level.FINE, "Size CFA Edges: " + numAllAssumeEdges);
+//        logger.log(Level.FINE, "Size All Visited Edges: " + allVisitedEdges.size());
+//        //        logger.log(
+//        //            Level.FINE,
+//        //            "Size Missing Edges: "
+//        //                + cfa.edges().stream()
+//        //                    .filter(e -> e instanceof CAssumeEdge && !allVisitedEdges.contains(e))
+//        //                    .toList()
+//        //                    .size());
+//        logger.log(
+//            Level.FINE,
+//            "Estimated Coverage: " + (float) allVisitedEdges.size() / numAllAssumeEdges);
+//      }
     }
     // clear Waitlist for nice end result in the console
     reachedSet.clearWaitlist();
@@ -361,7 +354,7 @@ public class ConcolicAlgorithm implements Algorithm {
     try {
       for (CFAEdge ce : edges) {
         if (ce instanceof AssumeEdge) {
-          allVisitedEdges.add((AssumeEdge) ce);
+          visitedEdges.add((AssumeEdge) ce);
         }
       }
     } catch (NoSuchElementException e) {
@@ -369,18 +362,18 @@ public class ConcolicAlgorithm implements Algorithm {
     }
   }
 
-  private void fillAllVisitedBlocksBranchCoverage(ARGPath pARGPath) {
-    List<CFAEdge> edges = pARGPath.getInnerEdges();
-    try {
-      for (CFAEdge ce : edges) {
-        if (ce instanceof AssumeEdge) {
-          allVisitedEdges.add((AssumeEdge) ce);
-        }
-      }
-    } catch (NoSuchElementException e) {
-      throw new Error(e);
-    }
-  }
+//  private void fillAllVisitedBlocksBranchCoverage(ARGPath pARGPath) {
+//    List<CFAEdge> edges = pARGPath.getInnerEdges();
+//    try {
+//      for (CFAEdge ce : edges) {
+//        if (ce instanceof AssumeEdge) {
+//          allVisitedEdges.add((AssumeEdge) ce);
+//        }
+//      }
+//    } catch (NoSuchElementException e) {
+//      throw new Error(e);
+//    }
+//  }
 
   private void writeTestCaseFromValues(List<Object> model) {
     testsWritten++;
@@ -463,7 +456,8 @@ public class ConcolicAlgorithm implements Algorithm {
     else throw new Error("coverageCriterion unknown");
 
     // also fill allVisitedBlocks for branch coverage
-    if (coverageCriterionEnum == CoverageCriterion.BRANCH) fillAllVisitedBlocksBranchCoverage(argPath);
+//    if (coverageCriterionEnum == CoverageCriterion.BRANCH)
+//      fillAllVisitedBlocksBranchCoverage(argPath);
 
     ConstraintsState state =
         (ConstraintsState)
@@ -532,7 +526,8 @@ public class ConcolicAlgorithm implements Algorithm {
         ARGPath argPathConcrete = getARGPath(reachedSetConcrete, values, true);
 
         // also fill allVisitedBlocks for branch coverage
-        if (coverageCriterionEnum == CoverageCriterion.BRANCH) fillAllVisitedBlocksBranchCoverage(argPathConcrete);
+//        if (coverageCriterionEnum == CoverageCriterion.BRANCH)
+//          fillAllVisitedBlocksBranchCoverage(argPathConcrete);
 
         int score;
         if (coverageCriterionEnum == CoverageCriterion.BRANCH)
@@ -735,8 +730,20 @@ public class ConcolicAlgorithm implements Algorithm {
       // Collections.singletonList(l));
       //      limits.start();
       //
-      if (isConcrete) algorithmStatus = concreteAlgorithmCE.run(pReachedSet);
-      else algorithmStatus = algorithm.run(pReachedSet);
+      if (isConcrete) {
+
+        long start = System.currentTimeMillis();
+        algorithmStatus = concreteAlgorithmCE.run(pReachedSet);
+        logger.log(
+            Level.FINE,
+            "Time in milliseconds for concrete execution: " + (System.currentTimeMillis() - start));
+      } else {
+        long start = System.currentTimeMillis();
+        algorithmStatus = algorithm.run(pReachedSet);
+        logger.log(
+            Level.FINE,
+            "Time in milliseconds for concolic execution: " + (System.currentTimeMillis() - start));
+      }
 
       if (algorithmStatus == AlgorithmStatus.NO_PROPERTY_CHECKED) {
         isStopped = true;
