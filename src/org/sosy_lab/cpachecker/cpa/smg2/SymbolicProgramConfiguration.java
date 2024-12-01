@@ -1179,7 +1179,8 @@ public class SymbolicProgramConfiguration {
         }
 
       } else {
-        SMGPointsToEdge pteNew = rootSPC.smg.getPTEdge(smgValueRoot).orElseThrow();
+        // There is a PTE in the new SPC already, make some checks that it's OK.
+        SMGPointsToEdge pteNew = currentNewSPC.smg.getPTEdge(newSMGValue).orElseThrow();
         Preconditions.checkArgument(pteRoot.getOffset().equals(pteNew.getOffset()));
         Preconditions.checkArgument(mappingOfNodes.containsKey(pteRoot.pointsTo()));
         Preconditions.checkArgument(
