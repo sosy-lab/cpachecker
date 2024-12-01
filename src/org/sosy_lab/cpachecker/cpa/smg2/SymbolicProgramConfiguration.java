@@ -1115,8 +1115,8 @@ public class SymbolicProgramConfiguration {
     // It does not copy memory. So while the SMGValue and Value of ptrs are present now, the PTE and
     // the Object behind them are missing.
     SymbolicProgramConfiguration currentNewSPC =
-        copyHVEdgesFromTo(rootSPC, rootObj, newSPC, newMemory, mappingOfNodes);
-    // All HVEs copied in root with the exception filtered out
+        copyHVEdgesFromTo(rootSPC, rootObj, newSPC, newMemory, mappingOfNodes, excludedOffsets);
+    // All HVEs copied from root to new SPC, with the exception filtered out
     Set<SMGHasValueEdge> ptrValues =
         rootSPC
             .getSmg()
@@ -1141,7 +1141,7 @@ public class SymbolicProgramConfiguration {
       SMGValue newSMGValue = (SMGValue) mappingOfNodes.get(smgValueRoot);
 
       // Replicate sub-SMG if not yet done
-      if (rootSPC.getSmg().isPointer(smgValueRoot) && !currentNewSPC.smg.isPointer(newSMGValue)) {
+      if (!currentNewSPC.smg.isPointer(newSMGValue)) {
         SMGObject newMemoryTargetObject;
         if (mappingOfNodes.containsKey(rootTargetMemory)) {
           // Known memory, just insert ptr
@@ -2306,59 +2306,65 @@ public class SymbolicProgramConfiguration {
       SMGObject source,
       SymbolicProgramConfiguration targetSPC,
       SMGObject target,
-      Map<SMGNode, SMGNode> mappingBetweenStates)
+      Map<SMGNode, SMGNode> mappingBetweenStates,
+      Set<BigInteger> excludedOffsets)
       throws SMGException {
+    // Get edges in source
     PersistentSet<SMGHasValueEdge> setOfValuesSource =
         sourceSPC.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(source, PersistentSet.of());
     // We expect that there are NO edges in the target!
-    assert targetSPC
-        .smg
-        .getSMGObjectsWithSMGHasValueEdges()
-        .getOrDefault(target, PersistentSet.of())
-        .isEmpty();
+    Preconditions.checkState(
+        targetSPC
+            .smg
+            .getSMGObjectsWithSMGHasValueEdges()
+            .getOrDefault(target, PersistentSet.of())
+            .isEmpty());
 
+    // Go through edges in source and copy all to the new, but use existing mappings if possible
     SymbolicProgramConfiguration newTargetState = targetSPC;
     for (SMGHasValueEdge hveSource : setOfValuesSource) {
+      if (excludedOffsets.contains(hveSource.getOffset())) {
+        continue;
+      }
       SMGValue smgValueSource = hveSource.hasValue();
-      Value valueSource = sourceSPC.getValueFromSMGValue(smgValueSource).orElseThrow();
-      SMGValue smgValueTarget = smgValueSource;
+      Value valueInSource = sourceSPC.getValueFromSMGValue(smgValueSource).orElseThrow();
+      SMGValue smgValueInTarget = smgValueSource;
+      Value valueInTarget = valueInSource;
+      int nestingLevel = sourceSPC.getNestingLevel(smgValueSource);
       if (mappingBetweenStates.containsKey(smgValueSource)) {
-        smgValueTarget = (SMGValue) mappingBetweenStates.get(smgValueSource);
-        Preconditions.checkArgument(newTargetState.smg.getValues().containsKey(smgValueTarget));
-        Optional<Value> maybeNewSPCValue = newTargetState.getValueFromSMGValue(smgValueTarget);
+        // We know the value mapping already, use it
+        smgValueInTarget = (SMGValue) mappingBetweenStates.get(smgValueSource);
+        Preconditions.checkArgument(newTargetState.smg.getValues().containsKey(smgValueInTarget));
+        Optional<Value> maybeNewSPCValue = newTargetState.getValueFromSMGValue(smgValueInTarget);
         if (maybeNewSPCValue.isEmpty()) {
           throw new SMGException("Error when mapping values when merging.");
         }
+        valueInTarget = maybeNewSPCValue.orElseThrow();
+        nestingLevel = sourceSPC.getNestingLevel(smgValueInTarget);
 
       } else {
+        // Never map 0, 0 is always present and the same values.
         if (!smgValueSource.isZero()) {
+          // Add new mapping
+          // Check that the target SPC/SMG does not have a mapping for this value
+          Preconditions.checkState(!newTargetState.containsValueInMapping(valueInSource));
+          Preconditions.checkState(!newTargetState.containsValueInMapping(smgValueSource));
           mappingBetweenStates.put(smgValueSource, smgValueSource);
         }
       }
       CType typeSource = sourceSPC.valueToTypeMap.get(smgValueSource);
+      // Check that the type exists and can be copied
       Preconditions.checkNotNull(typeSource);
-      Preconditions.checkState(!newTargetState.containsValueInMapping(valueSource));
-      Preconditions.checkState(!newTargetState.containsValueInMapping(valueSource));
+
+      // This only updates the nesting level if a mapping exists
       newTargetState =
-          newTargetState.copyAndPutValue(
-              valueSource, smgValueTarget, sourceSPC.getNestingLevel(smgValueSource), typeSource);
+          newTargetState.copyAndPutValue(valueInTarget, smgValueInTarget, nestingLevel, typeSource);
+      targetSPC =
+          targetSPC.writeValue(
+              target, hveSource.getOffset(), hveSource.getSizeInBits(), smgValueInTarget);
     }
-    SMG newSMG = newTargetState.smg;
-    for (SMGHasValueEdge hve : setOfValuesSource) {
-      newSMG = newSMG.incrementValueToMemoryMapEntry(target, hve.hasValue());
-    }
-    return of(
-        newSMG.copyAndSetHVEdges(setOfValuesSource, target),
-        newTargetState.globalVariableMapping,
-        newTargetState.stackVariableMapping,
-        newTargetState.heapObjects,
-        newTargetState.externalObjectAllocation,
-        newTargetState.valueMapping,
-        newTargetState.variableToTypeMap,
-        newTargetState.memoryAddressAssumptionsMap,
-        newTargetState.mallocZeroMemory,
-        newTargetState.readBlacklist,
-        newTargetState.valueToTypeMap);
+
+    return targetSPC;
   }
 
   private SymbolicProgramConfiguration updateNestingLevelOf(
@@ -2647,6 +2653,10 @@ public class SymbolicProgramConfiguration {
 
   private boolean containsValueInMapping(Value value) {
     return valueMapping.containsKey(valueWrapper.wrap(value));
+  }
+
+  private boolean containsValueInMapping(SMGValue value) {
+    return valueMapping.inverse().containsKey(value);
   }
 
   /**
