@@ -2289,6 +2289,7 @@ public class SMG {
    * @return the nesting level.
    */
   public int getNestingLevel(SMGValue pSMGValue) {
+    assert smgValuesAndNestingLvl.containsKey(pSMGValue);
     return smgValuesAndNestingLvl.get(pSMGValue);
   }
 
