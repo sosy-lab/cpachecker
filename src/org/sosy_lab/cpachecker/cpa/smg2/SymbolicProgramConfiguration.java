@@ -845,11 +845,15 @@ public class SymbolicProgramConfiguration {
   /*
    * Tries to save a failing merge by inserting a 0+ in between list segments.
    * The left (v1) value points towards an abstracted objects, while the right does not.
-   * We insert a 0+ element before the objects pointed to by right (v2) and merge based on the 2 abstracted objects.
+   * We insert a 0+ element before the objects pointed to by right (v2) and merge
+   * based on the 2 abstracted objects.
+   * aNext is the next or last pointer of the linked-list, depending on 2.
    *
-   * (The suppression is needed because of the variable a not being used for some reason. But that's how their algorithm looks like.)
+   * The value (pointer) a points to the new copy of the linked-list d1 called d.
+   * JoinValues() in 10. merges the sub-SMG from the next or prev pointer of the linked-list to the
+   * value a2. This ensures that the new linked-list is inserted,
+   * but the rest is merged normally, skipping the linked-list in a sense.
    */
-  @SuppressWarnings("unused")
   private static Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue>
       insertLeftLLAndJoin(
           SymbolicProgramConfiguration pSpc1,
@@ -945,8 +949,8 @@ public class SymbolicProgramConfiguration {
       }
       MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue res = maybeRes.orElseThrow();
       // If res = bottom, return bottom.
-      // TODO: this a is wierd. It is never actually used in the algorithm.
-      SMGValue a = res.getSMGValue();
+      // TODO: this a is wierd. It is never actually used in the algorithm. SMG1 also never used it.
+      // SMGValue a = res.getSMGValue();
       MergedSPCAndMergeStatusWithMergingSPCsAndMapping resRest =
           res.getJoinSPCAndJoinStatusWithJoinedSPCsAndMapping();
       status = resRest.getMergeStatus();
@@ -997,7 +1001,7 @@ public class SymbolicProgramConfiguration {
     Preconditions.checkArgument(newSPC.heapObjects.contains(d));
     Preconditions.checkArgument(((SMGSinglyLinkedListSegment) d).getMinLength() == 0);
     // 9. Let value a be the address such that the PTE of a equals the offset,
-    //      size and target d is such an address already exists in new SMG.
+    //      size and target d if such an address already exists in new SMG.
     //    Otherwise, create a new value a with those characteristics and
     //      extend the mapping of nodes such that m1(v1) = a
     Optional<SMGValue> maybeAddressValue =
@@ -1007,16 +1011,20 @@ public class SymbolicProgramConfiguration {
       Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
       CType type1 = spc1.valueToTypeMap.get(v1);
       Preconditions.checkNotNull(type1);
+      int nestingLevel = spc1.getNestingLevel(v1);
       newSPC =
           newSPC.copyAndAddPointerFromAddressToMemory(
-              addressValue, d, type1, pte1.getOffset(), 0, pte1.targetSpecifier());
+              addressValue, d, type1, pte1.getOffset(), nestingLevel, pte1.targetSpecifier());
       a = newSPC.getSMGValueFromValue(addressValue).orElseThrow();
     } else {
       a = maybeAddressValue.orElseThrow();
     }
+    // Remember the mapping of v1 to a
     mapping1.put(v1, a);
 
     // 10. Let res = joinValues(..., aNext, v2, ...); if bot, return bot.
+    // Note: we merge the next/prev pointer of the linked-list a1 points to and v2,
+    //   skipping the inserted list element in a sense.
     Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
         mergeValues(spc1, spc2, aNext, v2, newSPC, mapping1, mapping2, status, nestingDiff);
     if (maybeRes.isEmpty()) {
@@ -1039,7 +1047,7 @@ public class SymbolicProgramConfiguration {
     newSPC =
         newSPC.writeValue(d, BigInteger.valueOf(workingOffset), newSPC.getSizeOfPointer(), aStar);
     // 12. Return with value a
-    Preconditions.checkArgument(true);
+    Preconditions.checkArgument(newSPC.smg.isPointer(aStar));
     return Optional.of(
         MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.of(
             a,
