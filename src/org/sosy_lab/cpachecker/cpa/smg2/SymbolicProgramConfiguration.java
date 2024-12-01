@@ -2375,7 +2375,7 @@ public class SymbolicProgramConfiguration {
           throw new SMGException("Error when mapping values when merging.");
         }
         valueInTarget = maybeNewSPCValue.orElseThrow();
-        nestingLevel = sourceSPC.getNestingLevel(smgValueInTarget);
+        nestingLevel = sourceSPC.getNestingLevel(smgValueSource);
 
       } else {
         // Never map 0, 0 is always present and the same values.
