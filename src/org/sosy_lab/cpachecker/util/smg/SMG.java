@@ -391,7 +391,8 @@ public class SMG {
   }
 
   /**
-   * Creates a copy of the SMG an adds/replaces the given points to edge.
+   * Creates a copy of the SMG an adds/replaces the given points to edge. Does NOT increment the
+   * pointer to object map of the SMG.
    *
    * @param edge - The edge to be added/replaced.
    * @param source - The source value.
@@ -413,6 +414,31 @@ public class SMG {
     // SMG newSMG = incrementPointerToObjectMap(source, edge.pointsTo());
     SMG newSMG = of(pointsToEdgesBuilder.buildOrThrow());
     return newSMG;
+  }
+
+  /**
+   * Creates a copy of the SMG an adds/replaces the given points to edge and increments the pointer
+   * to object map of the SMG.
+   *
+   * @param edge - The edge to be added/replaced.
+   * @param source - The source value.
+   * @return A modified copy of the SMG.
+   */
+  public SMG copyAndAddPTEdgeWithInternalMapping(SMGPointsToEdge edge, SMGValue source) {
+    if (pointsToEdges.containsKey(source)) {
+      if (Objects.equals(pointsToEdges.get(source), edge)) {
+        return this;
+      }
+      throw new RuntimeException("A SMG-points-to-edge can have only 1 target!");
+    }
+
+    ImmutableMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder = ImmutableMap.builder();
+    pointsToEdgesBuilder.putAll(pointsToEdges);
+    pointsToEdgesBuilder.put(source, edge);
+    // Don't increment the pointer to target obj map, as this might add pointers that are not really
+    // saved in an object yet. Increment when they are saved in an obj.
+    SMG newSMG = of(pointsToEdgesBuilder.buildOrThrow());
+    return newSMG.incrementPointerToObjectMap(source, edge.pointsTo());
   }
 
   /**
