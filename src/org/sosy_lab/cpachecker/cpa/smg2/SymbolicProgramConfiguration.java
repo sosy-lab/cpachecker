@@ -657,6 +657,7 @@ public class SymbolicProgramConfiguration {
       // Extend mapping such that m1(v1) == m2(v2) == v
       mapping1.put(v1, v);
       mapping2.put(v2, v);
+      assert pNewSpc.smg.hasValue(v);
       // If level(v1) - level(v2) < nestingLevel, update join status with ⊏
       if (level1 - level2 < nestingDiff) {
         status = status.updateWith(SMGMergeStatus.LEFT_ENTAIL);
@@ -716,6 +717,18 @@ public class SymbolicProgramConfiguration {
     }
 
     return res;
+  }
+
+  private static boolean areMappedValuesInSPC(
+      SymbolicProgramConfiguration pNewSpc, Map<SMGNode, SMGNode> mapping) {
+    for (SMGNode targetMappings : mapping.values()) {
+      if (targetMappings instanceof SMGValue v1Target) {
+        if (!pNewSpc.smg.hasValue(v1Target)) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   private static Optional<SMGMergeStatus> matchObjects(
@@ -866,6 +879,8 @@ public class SymbolicProgramConfiguration {
           SMGMergeStatus initialJoinStatus,
           int nestingDiff)
           throws SMGException {
+    assert areMappedValuesInSPC(pNewSpc, mapping1);
+    assert areMappedValuesInSPC(pNewSpc, mapping2);
     Preconditions.checkArgument(
         pSpc1.smg.isPointer(v1)
             && pSpc1.smg.getPTEdge(v1).orElseThrow().pointsTo()
@@ -931,7 +946,9 @@ public class SymbolicProgramConfiguration {
         newSPC =
             newSPC.copyAndAddPointerFromAddressToMemory(
                 addressValue, d, type1, pte1.getOffset(), 0, pte1.targetSpecifier());
-        mapping1.put(v1, newSPC.getSMGValueFromValue(addressValue).orElseThrow());
+        SMGValue newSMGValue = newSPC.getSMGValueFromValue(addressValue).orElseThrow();
+        mapping1.put(v1, newSMGValue);
+        assert newSPC.smg.hasValue(newSMGValue);
       } else {
         //   Otherwise let a = m1(v1) and return with a.
         SMGValue a = (SMGValue) mapping1.get(v1);
@@ -1021,6 +1038,7 @@ public class SymbolicProgramConfiguration {
     }
     // Remember the mapping of v1 to a
     mapping1.put(v1, a);
+    assert newSPC.smg.hasValue(a);
 
     // 10. Let res = joinValues(..., aNext, v2, ...); if bot, return bot.
     // Note: we merge the next/prev pointer of the linked-list a1 points to and v2,
@@ -1450,6 +1468,7 @@ public class SymbolicProgramConfiguration {
     // 6. Extend the mapping of nodes such that m1 (a1) = m2 (a2) = a.
     pMapping1.put(a1, a);
     pMapping2.put(a2, a);
+    assert mergedSPC.smg.hasValue(a);
     // 7. Return (G, m1 , m2 , a).
     return MergedSPCWithMappingsAndAddressValue.of(mergedSPC, a, pMapping1, pMapping2);
   }
@@ -2364,8 +2383,8 @@ public class SymbolicProgramConfiguration {
           // Add new mapping
           // Check that the target SPC/SMG does not have a mapping for this value
           Preconditions.checkState(!newTargetState.containsValueInMapping(valueInSource));
-          Preconditions.checkState(!newTargetState.containsValueInMapping(smgValueSource));
-          mappingBetweenStates.put(smgValueSource, smgValueSource);
+          Preconditions.checkState(!newTargetState.containsValueInMapping(smgValueInTarget));
+          mappingBetweenStates.put(smgValueSource, smgValueInTarget);
         }
       }
       CType typeSource = sourceSPC.valueToTypeMap.get(smgValueSource);
@@ -2378,6 +2397,7 @@ public class SymbolicProgramConfiguration {
       targetSPC =
           targetSPC.writeValue(
               target, hveSource.getOffset(), hveSource.getSizeInBits(), smgValueInTarget);
+      assert targetSPC.smg.hasValue(smgValueInTarget);
     }
 
     return targetSPC;

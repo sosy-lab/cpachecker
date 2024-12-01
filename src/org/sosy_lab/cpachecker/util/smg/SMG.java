@@ -2293,6 +2293,10 @@ public class SMG {
     return smgValuesAndNestingLvl.get(pSMGValue);
   }
 
+  public boolean hasValue(SMGValue pSMGValue) {
+    return smgValuesAndNestingLvl.containsKey(pSMGValue);
+  }
+
   public SMG copyAndSetTargetSpecifierForPointer(
       SMGValue pValue, SMGTargetSpecifier pSpecifierToSet) {
     Preconditions.checkArgument(isPointer(pValue));
