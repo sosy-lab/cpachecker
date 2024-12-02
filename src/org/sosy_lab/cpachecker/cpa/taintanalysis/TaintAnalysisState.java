@@ -24,8 +24,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class TaintAnalysisState
     implements LatticeAbstractState<TaintAnalysisState>, Targetable, Serializable, Graphable {
 
-  @Serial
-  private static final long serialVersionUID = -7715698130795640052L;
+  @Serial private static final long serialVersionUID = -7715698130795640052L;
 
   private boolean violatesProperty = false;
   private Set<CIdExpression> taintedVariables;
@@ -83,7 +82,7 @@ public class TaintAnalysisState
     } else if (pOther.isLessOrEqual(this)) {
       return this;
     }
-    Set<CIdExpression> resSet = new HashSet<>();
+    Set<CIdExpression> resSet = new HashSet<>(this.taintedVariables);
     resSet.addAll(this.taintedVariables);
     resSet.addAll(pOther.getTaintedVariables());
     return new TaintAnalysisState(resSet);
