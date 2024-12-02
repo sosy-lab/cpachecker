@@ -1137,11 +1137,22 @@ public class SymbolicProgramConfiguration {
       Map<SMGNode, SMGNode> mappingOfNodes,
       Set<BigInteger> excludedOffsets)
       throws SMGException {
+    // We can't handle stack variables here. Alloca would be fine.
+    // TODO: handle non variable stack memory here.
+    Preconditions.checkState(rootSPC.isHeapObject(rootObj));
+    SymbolicProgramConfiguration currentNewSPC = newSPC.copyAndAddHeapObject(newMemory);
+    if (rootSPC.externalObjectAllocation.containsKey(rootObj)) {
+      currentNewSPC = currentNewSPC.copyAndAddExternalObject(newMemory);
+    }
+    if (!rootSPC.isObjectValid(rootObj)) {
+      currentNewSPC = currentNewSPC.invalidateSMGObject(newMemory, false);
+    }
     // copyHVEdgesFromTo() uses the mapping and adds the mapping for SMGValues only
     // It does not copy memory. So while the SMGValue and Value of ptrs are present now, the PTE and
     // the Object behind them are missing.
-    SymbolicProgramConfiguration currentNewSPC =
-        copyHVEdgesFromTo(rootSPC, rootObj, newSPC, newMemory, mappingOfNodes, excludedOffsets);
+    currentNewSPC =
+        copyHVEdgesFromTo(
+            rootSPC, rootObj, currentNewSPC, newMemory, mappingOfNodes, excludedOffsets);
     // All HVEs copied from root to new SPC, with the exception filtered out
     Set<SMGHasValueEdge> ptrValues =
         rootSPC
@@ -1178,6 +1189,9 @@ public class SymbolicProgramConfiguration {
         } else {
           // Copy memory and insert new pointer
           Preconditions.checkState(!currentNewSPC.heapObjects.contains(rootTargetMemory));
+          // We can't handle stack variables here. Alloca would be fine.
+          // TODO: handle non variable stack memory here.
+          Preconditions.checkState(rootSPC.isHeapObject(rootTargetMemory));
           currentNewSPC = currentNewSPC.copyAndAddHeapObject(rootTargetMemory);
           mappingOfNodes.put(rootTargetMemory, rootTargetMemory);
           newMemoryTargetObject = rootTargetMemory;
@@ -1202,13 +1216,6 @@ public class SymbolicProgramConfiguration {
                   currentNewSPC,
                   mappingOfNodes,
                   ImmutableSet.of());
-        }
-
-        if (rootSPC.externalObjectAllocation.containsKey(rootTargetMemory)) {
-          currentNewSPC = currentNewSPC.copyAndAddExternalObject(newMemoryTargetObject);
-        }
-        if (!rootSPC.isObjectValid(rootTargetMemory)) {
-          currentNewSPC = currentNewSPC.invalidateSMGObject(newMemoryTargetObject, false);
         }
 
       } else {
