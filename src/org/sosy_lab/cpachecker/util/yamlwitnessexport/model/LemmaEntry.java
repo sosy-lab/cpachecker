@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
+
 
 public class LemmaEntry extends AbstractInformationRecord {
 
