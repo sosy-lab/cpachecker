@@ -57,6 +57,9 @@ Development is done in branches. Please follow these guidelines:
   to explain the goal of the branch.
   MRs are also useful for ongoing discussions and feedback
   during the development, not just for final approvals.
+  However, create a branch and the respective MR only once you have something to push.
+  Empty branches and MRs just clutter the repository
+  and usually become outdated until the work is actually started.
 
 - While a branch exists, keep it close to the main branch,
   i.e., regularly merge the main branch into your branch.
