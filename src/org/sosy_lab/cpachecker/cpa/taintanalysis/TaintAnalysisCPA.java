@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -22,11 +23,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 
-
-
 public class TaintAnalysisCPA extends AbstractCPA implements ProofCheckerCPA {
-
-
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TaintAnalysisCPA.class);
@@ -47,7 +44,8 @@ public class TaintAnalysisCPA extends AbstractCPA implements ProofCheckerCPA {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return TaintAnalysisState.getInitial(pNode);
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
+    return new TaintAnalysisState(ImmutableSet.of());
   }
 }

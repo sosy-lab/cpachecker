@@ -12,12 +12,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.log.*;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -45,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -177,25 +177,24 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       CAssumeEdge pCfaEdge,
       CExpression pExpression,
       boolean pTruthAssumption) {
-    Set<CIdExpression> killedVars = Sets.newHashSet();
-    Set<CIdExpression> generatedVars = Sets.newHashSet();
+    Set<CIdExpression> killedVars = new HashSet<>();
+    Set<CIdExpression> generatedVars = new HashSet<>();
 
     return generateNewState(pState, killedVars, generatedVars);
   }
 
   @SuppressWarnings("unused")
   private TaintAnalysisState handleBlankEdge(TaintAnalysisState pState, BlankEdge pCfaEdge) {
-    Set<CIdExpression> killedVars = Sets.newHashSet();
-    Set<CIdExpression> generatedVars = Sets.newHashSet();
+    Set<CIdExpression> killedVars = new HashSet<>();
+    Set<CIdExpression> generatedVars = new HashSet<>();
 
     return generateNewState(pState, killedVars, generatedVars);
   }
 
   private TaintAnalysisState handleDeclarationEdge(
       TaintAnalysisState pState, CDeclarationEdge pCfaEdge, CDeclaration pDeclaration) {
-    Set<CIdExpression> killedVars = Sets.newHashSet();
-    Set<CIdExpression> generatedVars = Sets.newHashSet();
-
+    Set<CIdExpression> killedVars = new HashSet<>();
+    Set<CIdExpression> generatedVars = new HashSet<>();
 
     if (pDeclaration instanceof CVariableDeclaration) {
       CVariableDeclaration dec = (CVariableDeclaration) pCfaEdge.getDeclaration();
@@ -205,8 +204,9 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       // LHS as tainted. If no variable or not expression is present, kill is
       if (Objects.nonNull(initializer) && initializer instanceof CInitializerExpression) {
         CExpression expr = ((CInitializerExpression) initializer).getExpression();
-        boolean taintedVarsRHS = TaintAnalysisUtils.getAllVarsAsCExpr(expr).stream()
-            .anyMatch(var -> pState.getTaintedVariables().contains(var));
+        boolean taintedVarsRHS =
+            TaintAnalysisUtils.getAllVarsAsCExpr(expr).stream()
+                .anyMatch(var -> pState.getTaintedVariables().contains(var));
         if (taintedVarsRHS) {
           generatedVars.add(variableLHS);
         } else {
@@ -216,7 +216,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         killedVars.add(variableLHS);
       }
     }
-
 
     return generateNewState(pState, killedVars, generatedVars);
   }
@@ -228,8 +227,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       List<? extends CExpression> pArguments,
       List<? extends AParameterDeclaration> pFunctionParameters,
       String pCalledFunctionName) {
-    // This is only needed for intra-procedural analayzes
-    return new TaintAnalysisState(Sets.newHashSet(pState.getTaintedVariables()));
+    // This is only needed for intra-procedural analyzes
+    return new TaintAnalysisState(new HashSet<>(pState.getTaintedVariables()));
   }
 
   @SuppressWarnings("unused")
@@ -239,31 +238,30 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       CFunctionSummaryEdge pSummaryEdge,
       CFunctionCall pExpression,
       String pCallerFunctionName) {
-    //This is only needed for intra-procedural analayzes
-    return new TaintAnalysisState(Sets.newHashSet(pState.getTaintedVariables()));
+    // This is only needed for intra-procedural analayzes
+    return new TaintAnalysisState(new HashSet<>(pState.getTaintedVariables()));
   }
 
   @SuppressWarnings("unused")
   private TaintAnalysisState handleFunctionSummaryEdge(
       TaintAnalysisState pState, CFunctionSummaryEdge pCfaEdge) {
-    //This is only needed for intra-procedural analayzes
-    return new TaintAnalysisState(Sets.newHashSet(pState.getTaintedVariables()));
+    // This is only needed for intra-procedural analayzes
+    return new TaintAnalysisState(new HashSet<>(pState.getTaintedVariables()));
   }
 
   @SuppressWarnings("unused")
   private TaintAnalysisState handleReturnStatementEdge(
       TaintAnalysisState pState, CReturnStatementEdge pCfaEdge) {
-    Set<CIdExpression> killedVars = Sets.newHashSet();
-    Set<CIdExpression> generatedVars = Sets.newHashSet();
+    Set<CIdExpression> killedVars = new HashSet<>();
+    Set<CIdExpression> generatedVars = new HashSet<>();
 
     return generateNewState(pState, killedVars, generatedVars);
   }
 
   private TaintAnalysisState handleStatementEdge(
       TaintAnalysisState pState, CStatementEdge pCfaEdge, CStatement pStatement) {
-    Set<CIdExpression> killedVars = Sets.newHashSet();
-    Set<CIdExpression> generatedVars = Sets.newHashSet();
-
+    Set<CIdExpression> killedVars = new HashSet<>();
+    Set<CIdExpression> generatedVars = new HashSet<>();
 
     if (pCfaEdge.getStatement() instanceof CExpressionAssignmentStatement) {
       CLeftHandSide lhs =
@@ -275,8 +273,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         CExpression rhs =
             ((CExpressionAssignmentStatement) pCfaEdge.getStatement()).getRightHandSide();
         boolean taintedVarsRHS =
-            TaintAnalysisUtils.getAllVarsAsCExpr(rhs)
-                .stream()
+            TaintAnalysisUtils.getAllVarsAsCExpr(rhs).stream()
                 .anyMatch(var -> pState.getTaintedVariables().contains(var));
         if (taintedVarsRHS) {
           generatedVars.add(variableLHS);
@@ -305,8 +302,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         CFunctionCallExpression call =
             ((CFunctionCallStatement) pStatement).getFunctionCallExpression();
         boolean leaked =
-            call.getParameterExpressions()
-                .stream().filter(e -> e instanceof CIdExpression)
+            call.getParameterExpressions().stream()
+                .filter(e -> e instanceof CIdExpression)
                 .anyMatch(arg -> pState.getTaintedVariables().contains(arg));
         if (leaked) {
           logger.log(Level.WARNING, "Leaking information");
@@ -316,7 +313,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         }
       }
     }
-
 
     return generateNewState(pState, killedVars, generatedVars);
   }

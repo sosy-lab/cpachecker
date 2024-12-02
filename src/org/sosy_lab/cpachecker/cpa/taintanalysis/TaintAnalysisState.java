@@ -8,16 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
-
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -25,6 +24,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class TaintAnalysisState
     implements LatticeAbstractState<TaintAnalysisState>, Targetable, Serializable, Graphable {
 
+  @Serial
   private static final long serialVersionUID = -7715698130795640052L;
 
   private boolean violatesProperty = false;
@@ -48,18 +48,21 @@ public class TaintAnalysisState
     return Objects.hash(taintedVariables);
   }
 
+  /**
+   * Compares the specified object with this TaintAnalysisState for equality. Returns {@code true}
+   * if the specified object is also a TaintAnalysisState, and both have equivalent sets of tainted
+   * variables.
+   *
+   * @param obj the object to be compared for equality with this state
+   * @return {@code true} if the specified object is equal to this state; {@code false} otherwise
+   */
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (!(obj instanceof TaintAnalysisState other)) {
-      return false;
-    }
-    return Objects.equals(taintedVariables, other.taintedVariables);
+    return obj instanceof TaintAnalysisState other
+        && Objects.equals(taintedVariables, other.taintedVariables);
   }
 
   @Override
@@ -69,28 +72,18 @@ public class TaintAnalysisState
 
   @Override
   public String toDOTLabel() {
-    String sb = "{"
-        + this.taintedVariables.toString()
-        + "}";
-
-    return sb;
+    return "{" + this.taintedVariables + "}";
   }
-
-
-
-  public static AbstractState getInitial(CFANode pNode) {
-    return new TaintAnalysisState( new HashSet<>());
-  }
-
 
   @Override
-  public TaintAnalysisState join(TaintAnalysisState pOther) throws CPAException, InterruptedException {
+  public TaintAnalysisState join(TaintAnalysisState pOther)
+      throws CPAException, InterruptedException {
     if (this.isLessOrEqual(pOther)) {
       return pOther;
     } else if (pOther.isLessOrEqual(this)) {
       return this;
     }
-    HashSet<CIdExpression> resSet = new HashSet<>();
+    Set<CIdExpression> resSet = new HashSet<>();
     resSet.addAll(this.taintedVariables);
     resSet.addAll(pOther.getTaintedVariables());
     return new TaintAnalysisState(resSet);
@@ -107,19 +100,18 @@ public class TaintAnalysisState
   }
 
   @Override
-  public  Set<TargetInformation> getTargetInformation() throws IllegalStateException {
-    if (isTarget()){
-      HashSet<TargetInformation> resSet = new HashSet<>();
+  public Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+    if (isTarget()) {
+      Set<TargetInformation> resSet = new HashSet<>();
       resSet.add(SimpleTargetInformation.create("Leaking inforation"));
       return resSet;
+    } else {
+      return new HashSet<>();
     }
-    else return new HashSet<>();
   }
 
-@SuppressWarnings("unused")
+  @SuppressWarnings("unused")
   public void setViolatesProperty() {
     violatesProperty = true;
   }
-
-
 }

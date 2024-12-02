@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import com.google.common.collect.Sets;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -17,11 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 
 public class TaintAnalysisUtils {
-
-
-
-
-
 
   /**
    * Collects all variables present in the given pExpression and returns them as {@link
@@ -37,16 +34,12 @@ public class TaintAnalysisUtils {
     } else if (pExpression instanceof CUnaryExpression) {
       return getAllVarsAsCExpr(((CUnaryExpression) pExpression).getOperand());
     } else if (pExpression instanceof CIdExpression) {
-      return Sets.newHashSet((CIdExpression) pExpression);
+      return new HashSet<>(Collections.singleton((CIdExpression) pExpression));
     }
-    return Sets.newHashSet();
+    return new HashSet<>();
   }
-
-
 
   public static CIdExpression getCidExpressionForCVarDec(CVariableDeclaration pDec) {
     return new CIdExpression(pDec.getFileLocation(), pDec);
   }
-
 }
-
