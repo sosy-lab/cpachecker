@@ -34,6 +34,26 @@
         },
         {
             "type": "java",
+            "name": "basic violation witness test",
+            "request": "launch",
+            "mainClass": "",
+            "args": ["--violation-witness-validation",
+                    "--option",
+                    "witness.checkProgramHash=false",
+                    "--option",
+                    "cpa.predicate.memoryAllocationsAlwaysSucceed=true",
+                    "--timelimit",
+                    "900s",
+                    "--stats",
+                    "--spec",
+                    "sv-comp-reachability",
+                    "--witness",
+                    "/home/tim/codetests/basicviolationwitness.yml",
+                    "/home/tim/codetests/counterto5.c"
+                    ]
+        },
+        {
+            "type": "java",
             "name": "Generate Witness",
             "request": "launch",
             "mainClass": "",
@@ -45,7 +65,7 @@
                     "900s",
                     "--32",
                     "--stats",
-                    "/home/tim/cpachecker/test/programs/policyiteration/loop.c"
+                    "/home/tim/codetests/counterto5.c"
                     ]
         },
         {
