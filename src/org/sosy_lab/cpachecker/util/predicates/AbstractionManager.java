@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -80,7 +81,7 @@ public final class AbstractionManager {
 
   private final Map<Region, BooleanFormula> toConcreteCache;
 
-  private int numberOfPredicates = 0;
+  private final UniqueIdGenerator numberOfPredicates = new UniqueIdGenerator();
 
   @Option(
       secure = true,
@@ -107,7 +108,7 @@ public final class AbstractionManager {
   }
 
   public int getNumberOfPredicates() {
-    return numberOfPredicates;
+    return symbVarToPredicate.size();
   }
 
   /** creates a Predicate from the Boolean symbolic variable (var) and the atom that defines it */
@@ -121,7 +122,8 @@ public final class AbstractionManager {
               + "but attempting to create predicate for instantiated formula %s",
           atom);
 
-      BooleanFormula symbVar = fmgr.createPredicateVariable("PRED" + numberOfPredicates);
+      BooleanFormula symbVar =
+          fmgr.createPredicateVariable("PRED" + numberOfPredicates.getFreshId());
       Region absVar =
           (rmgr instanceof SymbolicRegionManager)
               ? ((SymbolicRegionManager) rmgr).createPredicate(atom)
@@ -134,8 +136,6 @@ public final class AbstractionManager {
       symbVarToPredicate.put(symbVar, result);
       absVarToPredicate.put(absVar, result);
       atomToPredicate.put(atom, result);
-
-      numberOfPredicates++;
     }
 
     return result;
