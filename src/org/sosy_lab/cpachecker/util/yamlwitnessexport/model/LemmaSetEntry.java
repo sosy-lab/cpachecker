@@ -9,16 +9,18 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 
 public class LemmaSetEntry extends AbstractEntry {
-  @JsonProperty("value")
-  public final String value;
+
   private static final String LEMMA_SET_ENTRY_IDENTIFIER = "lemma_set";
 
-  public LemmaSetEntry(
-      @JsonProperty("value") String lvalue) {
-    super(LEMMA_SET_ENTRY_IDENTIFIER);
-    value = lvalue;
-  }
+  @JsonProperty("content")
+  public final List<LemmaEntry> content;
 
+  public LemmaSetEntry(
+      @JsonProperty("content") List<LemmaEntry> pContent) {
+    super(LEMMA_SET_ENTRY_IDENTIFIER);
+    content = pContent;
+  }
 }

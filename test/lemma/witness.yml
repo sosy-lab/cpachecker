@@ -11,5 +11,11 @@
           line: 10
           column: 3
           function: max
-        value: "m == maxArray(a,l)"
+        value: "m == m"
         format: c_expression
+- entry_type: lemma_set
+  content:
+    -lemma:
+      value: "integer maxArray(int *a, integer l) =
+        l == 1 ? a[0] : max(a[l-1],maxArray(a,l-1))"
+      format: c_expression

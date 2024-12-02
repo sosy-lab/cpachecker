@@ -71,13 +71,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
               + " doc/examples/predmap.txt for an example)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> predicatesFiles = ImmutableList.of();
-
-  @Option(
-      secure = true,
-      name = "abstraction.lemmata",
-      description = "get supplementary lemmata for the initial predicats from a list of files")
-  @FileOption(Type.OPTIONAL_INPUT_FILE)
-  private List<Path> lemmataFiles = ImmutableList.of();
+  
 
   @Option(
       secure = true,
@@ -212,15 +206,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
         } catch (PredicateParsingFailedException e) {
           logger.logUserException(Level.WARNING, e, "Could not read predicate map");
-        }
-      }
-      if (!lemmataFiles.isEmpty()) {
-        for (Path lemmataFile : lemmataFiles) {
-          try {
-            Lemma.parseLemmaFromYAML(lemmataFile);
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not read lemmata file");
-          }
         }
       }
     }
