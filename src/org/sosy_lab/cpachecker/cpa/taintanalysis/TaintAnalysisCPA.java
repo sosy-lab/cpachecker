@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -33,7 +32,7 @@ public class TaintAnalysisCPA extends AbstractCPA implements ProofCheckerCPA {
     return AutomaticCPAFactory.forType(TaintAnalysisCPA.class);
   }
 
-  private TaintAnalysisCPA(LogManager logger, CFA pCfa) {
+  private TaintAnalysisCPA(LogManager logger) {
     super(DelegateAbstractDomain.getInstance(), new TaintAnalysisTransferRelation(logger));
   }
 
