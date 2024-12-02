@@ -16,6 +16,7 @@ import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Verify;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collection;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -43,7 +44,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public abstract sealed class PredicateAbstractState
     implements AbstractState, Partitionable, Serializable, Splitable {
 
-  private static final long serialVersionUID = -265763837277453447L;
+  @Serial private static final long serialVersionUID = -265763837277453447L;
 
   public static boolean containsAbstractionState(AbstractState state) {
     return AbstractStates.extractStateByType(state, PredicateAbstractState.class)
@@ -63,7 +64,7 @@ public abstract sealed class PredicateAbstractState
   private static final class AbstractionState extends PredicateAbstractState
       implements Graphable, FormulaReportingState, ExpressionTreeReportingState {
 
-    private static final long serialVersionUID = 8341054099315063986L;
+    @Serial private static final long serialVersionUID = 8341054099315063986L;
 
     private transient PredicateAbstractState mergedInto = null;
 
@@ -126,15 +127,49 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
+    public BooleanFormula getScopedFormulaApproximation(
+        final FormulaManagerView pManager, final FunctionEntryNode pFunctionScope) {
+      try {
+        return pManager.renameFreeVariablesAndUFs(
+            pManager.filterLiterals(
+                super.abstractionFormula.asFormulaFromOtherSolver(pManager),
+                literal -> {
+                  for (String name : pManager.extractVariableNames(literal)) {
+                    if (name.contains("::") && !name.startsWith(pFunctionScope.getFunctionName())) {
+                      return false;
+                    }
+                  }
+                  return true;
+                }),
+            name -> {
+              int separatorIndex = name.indexOf("::");
+              if (separatorIndex >= 0) {
+                return name.substring(separatorIndex + 2);
+              } else {
+                return name;
+              }
+            });
+      } catch (InterruptedException e) {
+        return pManager.getBooleanFormulaManager().makeTrue();
+      }
+    }
+
+    @Override
     public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-        FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException {
+        FunctionEntryNode pFunctionScope, CFANode pLocation)
+        throws InterruptedException, TranslationToExpressionTreeFailedException {
       return super.abstractionFormula.asExpressionTree(pLocation);
     }
 
     @Override
     public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
-        FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-        throws InterruptedException, ReportingMethodNotImplementedException {
+        FunctionEntryNode pFunctionScope,
+        CFANode pLocation,
+        AstCfaRelation pAstCfaRelation,
+        boolean useOldKeywordForVariables)
+        throws InterruptedException,
+            ReportingMethodNotImplementedException,
+            TranslationToExpressionTreeFailedException {
       return super.abstractionFormula.asExpressionTree(
           name ->
               (!name.contains(FUNCTION_DELIMITER)
@@ -148,22 +183,25 @@ public abstract sealed class PredicateAbstractState
                                       .equals(name)
                                   // For global variables
                                   || var.getName().equals(name))
-                  && !name.contains("__CPAchecker_"));
+                  && !name.contains("__CPAchecker_"),
+          name -> useOldKeywordForVariables ? "\\old(" + name + ")" : name);
     }
 
     @Override
     public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
         FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-        throws InterruptedException {
+        throws InterruptedException, TranslationToExpressionTreeFailedException {
       Verify.verify(pFunctionScope.getExitNode().isPresent());
       FunctionExitNode functionExitNode = pFunctionScope.getExitNode().orElseThrow();
+      String smtNameReturnVariable = "__retval__";
       return super.abstractionFormula.asExpressionTree(
           name ->
               name.startsWith(functionExitNode.getFunctionName() + FUNCTION_DELIMITER)
                   && Splitter.on(FUNCTION_DELIMITER)
                       .splitToList(name)
                       .get(1)
-                      .equals(pFunctionReturnVariable.getName()));
+                      .equals(smtNameReturnVariable),
+          name -> name.equals(smtNameReturnVariable) ? pFunctionReturnVariable.getName() : name);
     }
 
     @Override
@@ -179,7 +217,7 @@ public abstract sealed class PredicateAbstractState
   }
 
   private static final class NonAbstractionState extends PredicateAbstractState {
-    private static final long serialVersionUID = -6912172362012773999L;
+    @Serial private static final long serialVersionUID = -6912172362012773999L;
 
     /** The abstract state this element was merged into. Used for fast coverage checks. */
     private transient PredicateAbstractState mergedInto = null;
@@ -348,6 +386,7 @@ public abstract sealed class PredicateAbstractState
     return pathFormula;
   }
 
+  @Serial
   protected Object readResolve() {
     if (this instanceof AbstractionState) {
       // consistency check

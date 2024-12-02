@@ -8,13 +8,21 @@
 
 include: /build/gitlab-ci.yml
 
+# Run either MR pipelines or regular pipelines, but never both at the same time.
+# Cf. https://docs.gitlab.com/ee/ci/yaml/workflow.html#switch-between-branch-pipelines-and-merge-request-pipelines
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - when: always
+
 variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
   REFASTER_REPO_REVISION: bba447e6b8e1df7ef8cdb6864319a4569e3e275b
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.27.1
+  REFASTER_VERSION: 2.30.0
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
   npm_config_cache: "${CI_PROJECT_DIR}/.cache/npm"
   npm_config_prefer_offline: "true"
@@ -55,15 +63,15 @@ configuration-checks:jdk-17:
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-configuration-checks:jdk-22:
+configuration-checks:jdk-23:
   <<: *configuration-checks
   dependencies:
     - build-dependencies
-    - build:jdk-22
+    - build:jdk-23
   needs:
     - build-dependencies
-    - build:jdk-22
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-22
+    - build:jdk-23
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
 
 
 configuration-documentation:
@@ -127,15 +135,15 @@ python-unit-tests:jdk-17:
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-python-unit-tests:jdk-22:
+python-unit-tests:jdk-23:
   <<: *python-unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-22
+    - build:jdk-23
   needs:
     - build-dependencies
-    - build:jdk-22
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-22
+    - build:jdk-23
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
 
 
 javascript-build:
@@ -219,7 +227,7 @@ build-docker:release:
   extends: .build-docker-hub
   variables:
     DOCKERFILE: build/Dockerfile.release
-    TAG: "3.0"
+    TAG: "4.0"
     EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest --destination docker.io/sosylab/cpachecker:latest"
   only:
     refs:
@@ -323,7 +331,7 @@ unit-tests:jdk-21:
     reports:
       junit: "output/junit/TESTS-TestSuites.xml"
 
-unit-tests:jdk-22:
+unit-tests:jdk-23:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     reports:
@@ -350,9 +358,6 @@ build-docker:test:jdk-11:
   only: []
 
 build:jdk-11:
-  only: []
-
-build-project-ecj:jdk-11:
   only: []
 
 unit-tests:jdk-11:

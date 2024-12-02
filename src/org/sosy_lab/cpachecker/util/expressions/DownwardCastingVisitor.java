@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.expressions;
 
+import java.io.Serial;
+
 /**
  * Casts an ExpressionTree to a subclass of the generic LeafType. This visitor checks compatibility
  * of the corresponding types and performes a static cast.
@@ -23,7 +25,7 @@ public class DownwardCastingVisitor<ActualType, DesiredType extends ActualType>
    * but might be able to recover.
    */
   public static class IncompatibleLeafTypesException extends Exception {
-    private static final long serialVersionUID = -2173628713139897329L;
+    @Serial private static final long serialVersionUID = -2173628713139897329L;
     private final Class<?> actual;
     private final Class<?> desired;
 

@@ -186,6 +186,10 @@ with considerably less effort!
 - Use `switch` expressions instead of `switch` statements as far as possible,
   this allows the compiler to check exhaustiveness.
 - Do not write `this.` were not necessary.
+- Be careful with serialization, it has lots of unexpected pitfalls
+  (read "Effective Java" before using it).
+  If you have serializable classes,
+  mark all serialization-related fields and methods with `@Serial`.
 
 ### Use Guava's immutable data structures
 

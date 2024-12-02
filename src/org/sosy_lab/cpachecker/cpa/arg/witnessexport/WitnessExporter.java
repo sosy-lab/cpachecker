@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -65,9 +66,16 @@ public class WitnessExporter {
         Set<ExpressionTree<Object>> approximations = new LinkedHashSet<>();
         for (ExpressionTreeReportingState etrs :
             AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
-          approximations.add(
-              etrs.getFormulaApproximationAllVariablesInFunctionScope(
-                  cfa.getFunctionHead(functionName), pEdge.getSuccessor()));
+          ExpressionTree<Object> expressionTree;
+          try {
+            expressionTree =
+                etrs.getFormulaApproximationAllVariablesInFunctionScope(
+                    cfa.getFunctionHead(functionName), pEdge.getSuccessor());
+          } catch (TranslationToExpressionTreeFailedException e) {
+            // Keep consistency with the previous implementation
+            expressionTree = ExpressionTrees.getTrue();
+          }
+          approximations.add(expressionTree);
         }
         stateInvariants.add(factory.and(approximations));
       }

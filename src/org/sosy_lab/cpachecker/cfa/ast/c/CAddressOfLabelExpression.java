@@ -10,13 +10,14 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CAddressOfLabelExpression extends AbstractExpression implements CExpression {
 
-  private static final long serialVersionUID = -6304788147442934412L;
+  @Serial private static final long serialVersionUID = -6304788147442934412L;
   private final String label;
 
   public CAddressOfLabelExpression(

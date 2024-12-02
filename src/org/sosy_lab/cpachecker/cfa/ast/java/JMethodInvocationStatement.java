@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -21,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class JMethodInvocationStatement extends AFunctionCallStatement
     implements JMethodOrConstructorInvocation {
 
-  private static final long serialVersionUID = 8432702267615877780L;
+  @Serial private static final long serialVersionUID = 8432702267615877780L;
 
   public JMethodInvocationStatement(
       FileLocation pFileLocation, JMethodInvocationExpression pFunctionCall) {

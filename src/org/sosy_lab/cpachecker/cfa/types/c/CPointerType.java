@@ -10,12 +10,13 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class CPointerType implements CType {
 
-  private static final long serialVersionUID = -6423006826454509009L;
+  @Serial private static final long serialVersionUID = -6423006826454509009L;
   public static final CPointerType POINTER_TO_VOID = new CPointerType(false, false, CVoidType.VOID);
   public static final CPointerType POINTER_TO_CHAR =
       new CPointerType(false, false, CNumericTypes.CHAR);
@@ -58,9 +59,7 @@ public final class CPointerType implements CType {
 
   @Override
   public String toString() {
-    String decl;
-
-    decl = "(" + type + ")*";
+    String decl = "(" + type + ")*";
 
     return (isConst() ? "const " : "") + (isVolatile() ? "volatile " : "") + decl;
   }

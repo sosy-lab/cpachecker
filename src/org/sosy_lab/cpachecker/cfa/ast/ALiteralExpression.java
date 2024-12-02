@@ -8,11 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class ALiteralExpression extends AbstractExpression {
 
-  private static final long serialVersionUID = -457755136896976625L;
+  @Serial private static final long serialVersionUID = -457755136896976625L;
 
   protected ALiteralExpression(FileLocation pFileLocation, Type pType) {
     super(pFileLocation, pType);

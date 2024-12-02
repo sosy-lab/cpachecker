@@ -82,7 +82,6 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
         expectAnswer.merge(senderId, -1, Integer::sum);
         return response(pMessage);
       case FOUND_RESULT:
-        // fall through
       case ERROR:
         shutdown = true;
         return ImmutableSet.of();

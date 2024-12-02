@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.exceptions;
 
+import java.io.Serial;
+
 /**
  * Super class for all exceptions thrown by CPA operators.
  *
@@ -16,7 +18,7 @@ package org.sosy_lab.cpachecker.exceptions;
  */
 public class CPAException extends Exception {
 
-  private static final long serialVersionUID = 6846683924964869559L;
+  @Serial private static final long serialVersionUID = 6846683924964869559L;
 
   public CPAException(String msg) {
     super(msg);

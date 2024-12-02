@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -35,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
  */
 public final class JArrayCreationExpression extends AbstractExpression implements JExpression {
 
-  private static final long serialVersionUID = 8794036217601570272L;
+  @Serial private static final long serialVersionUID = 8794036217601570272L;
   private final ImmutableList<JExpression> length;
   private final @Nullable JArrayInitializer initializer;
 

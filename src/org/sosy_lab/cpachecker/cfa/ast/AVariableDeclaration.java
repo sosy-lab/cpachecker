@@ -11,12 +11,13 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AVariableDeclaration extends AbstractDeclaration
     implements Comparable<AVariableDeclaration> {
 
-  private static final long serialVersionUID = -8792173769663524307L;
+  @Serial private static final long serialVersionUID = -8792173769663524307L;
   private final String qualifiedName;
   private AInitializer initializer;
 

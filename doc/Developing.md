@@ -13,8 +13,9 @@ CPAchecker Developing Instructions
 
 More details can be found in the other files in this directory.
 
-Please read and follow at least [`StyleGuide.md`](StyleGuide.md),
-[`Logging.md`](Logging.md), [`Test.md`](Test.md), and [`VersionControl.md`](VersionControl.md).
+Please read and follow at least our [contribution guidelines](../CONTRIBUTING.md),
+the [style guide](StyleGuide.md),
+[`Logging.md`](Logging.md), and [`Test.md`](Test.md).
 
 For JavaScript code read [`ReportTemplateStyleGuide.md`](ReportTemplateStyleGuide.md),
 and for Python code read [`PythonStyleGuide.md`](PythonStyleGuide.md).
@@ -23,44 +24,15 @@ and for Python code read [`PythonStyleGuide.md`](PythonStyleGuide.md).
 Getting the code
 ----------------
 
-There are four possibilities to retrieve the source code:
+There are two possibilities to retrieve the source code:
 
-- The main [SVN repository](https://svn.sosy-lab.org/software/cpachecker)
+- The [main repository on GitLab](https://gitlab.com/sosy-lab/software/cpachecker/)
 
-- Our [Git mirror](https://svn.sosy-lab.org/software/cpachecker.git)
-
-- A Git mirror at [GitLab](https://gitlab.com/sosy-lab/software/cpachecker/)
-
-- A Git mirror at [GitHub](https://github.com/sosy-lab/cpachecker)
-
-Only our `SVN` repository allows committing,
-all mirrors are read-only.
-We recommend to use our own repository hosting,
-because it avoids the risk that the synchronization to a third party
-fails or causes problems.
-
-For browsing through the code online,
-there are these possibilities:
-
-- https://gitlab.com/sosy-lab/software/cpachecker/tree/trunk/
-- https://github.com/sosy-lab/cpachecker/tree/trunk/
+- A read-only mirror at [GitHub](https://github.com/sosy-lab/cpachecker)
 
 For bug tracking, we use [GitLab](https://gitlab.com/sosy-lab/software/cpachecker/issues).
 
 For building the code on the command line, c.f. [`../INSTALL.md`](../INSTALL.md).
-
-If you like to use Git, use the following commands
-to create a working copy that allows you to transparently
-commit to the SVN repository (with `git svn dcommit`)
-while still using Git to fetch the commits:
-
-```
-git clone -o mirror https://svn.sosy-lab.org/software/cpachecker.git/
-cd cpachecker
-git svn init --prefix=mirror/ -s https://svn.sosy-lab.org/software/cpachecker
-```
-
-This also works with GitHub.
 
 
 Develop CPAchecker from within Eclipse
@@ -89,26 +61,22 @@ Develop CPAchecker from within Eclipse
 --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED
 ```
 
-3. Install an SVN plugin for Eclipse, e.g. [SubClipse](http://subclipse.tigris.org).
-   Create new project from [SVN repository](https://svn.sosy-lab.org/software/cpachecker/trunk)
-   (or use GIT as described above).
-
-4. Create a copy of the file `.factorypath.template` and name it `.factorypath`,
+3. Create a copy of the file `.factorypath.template` and name it `.factorypath`,
    and (if necessary) adjust the path to the CPAchecker directory within it.
 
-5. If Eclipse complains about a missing JDK
+4. If Eclipse complains about a missing JDK
    (`Unbound classpath container: 'JRE System Library [JavaSE-17]'`),
    go to Window -> Preferences -> Java -> Installed JREs,
    click the "Search" button and select the path where your Java 17 installation
    can be found (on Ubuntu `/usr/lib/jvm` will do).
 
-6. In order to run CPAchecker, use one of the supplied launch configurations
+5. In order to run CPAchecker, use one of the supplied launch configurations
    or create your own.
    To select the configuration, specification, and program files use the
    text box "program arguments" in the launch configuration editor.
    The text box "VM arguments" should contain "-ea" to enable assertion checking.
 
-7. Recommended:
+6. Recommended:
    If you want the sources of the libraries (like Guava or CDT),
    run `ant install-contrib` once in the CPAchecker directory.
 
@@ -156,7 +124,7 @@ please fix them as soon as possible (ideally before committing).
 
 Additionally, our [BuildBot](https://buildbot.sosy-lab.org/cpachecker/)
 executes integration tests with thousands of CPAchecker runs
-in various configurations on every commit to `trunk` and checks for regression.
+in various configurations on every commit to the main branch and checks for regressions.
 All major projects and configurations within CPAchecker should be part of this test suite.
 Please refer to [`Test.md`](Test.md) for more information.
 
@@ -251,11 +219,8 @@ Releasing a New Version
 
 1. Add a tag in the repository with name `cpachecker-<version>`.
 
-1. Prepare for next development cycle by setting `version.base` in [`build.xml`](../build.xml)
-   to a new development version, which is the next possible version number
-   with the suffix `-svn`.
-   For example, if `3.0` was just released, the next possible feature release
-   is `3.1` and the new development version should be `3.1-svn`.
+1. Prepare for next development cycle by adding the suffix `-git`
+   to `version.base` in [`build.xml`](../build.xml).
 
 1. Publish the `.deb` package created in `dist-<version>/`
    in our [APT repository](https://apt.sosy-lab.org)
@@ -286,8 +251,8 @@ Releasing a New Version
    cpachecker-users mailing lists.
 
 
-Version Numbering and Release Tagging from Release 3.0
-------------------------------------------------------
+Version Numbering and Release Tagging
+-------------------------------------
 
 We use the following schema to construct version numbers for CPAchecker releases
 (from version 3.0 onwards):
@@ -297,8 +262,9 @@ We use the following schema to construct version numbers for CPAchecker releases
   and an increase of `Y` indicates a minor change (e.g., added functionality).
 - `X.Y.Z` indicates a bug-fix release,
   where `Z` is increased (starting from `0`).
-- Extensions with hyphen are possible,
-  for example, `-dev` indicates unstable development versions that are not released.
-  Note that `X.Y-suffix` is ordered *before* `X.Y`.
+- Development versions have versions as produced by `git describe`,
+  i.e. `4.0-2-gabcdef` for commit `abcdef` if it is the second commit after version 4.0.
+  Note that this differs from semantic versioning and for CPAchecker versions before 4.0,
+  where development version `X.Y-svn-suffix` was ordered before `X.Y`.
 
 The tags in our repository are named `cpachecker-VERSION`, e.g., `cpachecker-3.0`.

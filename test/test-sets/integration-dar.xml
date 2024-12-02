@@ -14,15 +14,9 @@
     <option name="--no-output-files"/>
     <option name="--heap">2000M</option>
 
-    <rundefinition name="dar">
+    <rundefinition>
         <option name="--bmc-interpolationDualSequence"/>
         <option name="--option">dar.fallBack=false</option>
-    </rundefinition>
-
-    <rundefinition name="dar-without-global">
-        <option name="--bmc-interpolationDualSequence"/>
-        <option name="--option">dar.fallBack=false</option>
-        <option name="--option">replaceGlobalPhaseWithBMC=true</option>
     </rundefinition>
 
     <tasks>
@@ -38,13 +32,13 @@
         <propertyfile>../config/Assertion.spc</propertyfile>
     </tasks>
     <tasks>
-        <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
+        <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         <!-- SV-Comp files assume that malloc always succeeds -->
         <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     </tasks>
     <tasks>
-        <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
+        <includesfile>../programs/benchmarks/Floats.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         <!-- SV-Comp files assume that malloc always succeeds -->
         <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
@@ -57,19 +51,21 @@
         <exclude>../programs/benchmarks/loop-floats-scientific-comp/loop3.yml</exclude> <!-- flapping timeout -->
     </tasks>
     <tasks>
-        <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+        <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         <!-- SV-Comp files assume that malloc always succeeds -->
         <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     </tasks>
     <tasks>
-        <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+        <includesfile>../programs/benchmarks/Heap.set</includesfile>
+        <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         <!-- SV-Comp files assume that malloc always succeeds -->
         <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     </tasks>
     <tasks>
-        <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+        <includesfile>../programs/benchmarks/Loops.set</includesfile>
+        <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         <!-- SV-Comp files assume that malloc always succeeds -->
         <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
@@ -79,7 +75,7 @@
         <exclude>../programs/benchmarks/nla-digbench-scaling/knuth_valuebound50.yml</exclude> <!-- flapping timeout -->
     </tasks>
     <tasks>
-        <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+        <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         <!-- SV-Comp files assume that malloc always succeeds -->
         <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
@@ -105,7 +101,7 @@
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.5.4.ufo.BOUNDED-10.pals.c.p+lhb-reducer.yml</exclude> <!-- flapping timeout -->
     </tasks>
     <tasks>
-        <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+        <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
         <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
         <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         <option name="--skip-recursion"/>

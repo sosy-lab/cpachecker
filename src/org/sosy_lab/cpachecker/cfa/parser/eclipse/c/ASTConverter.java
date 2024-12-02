@@ -27,7 +27,6 @@ import java.util.Deque;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.LongSummaryStatistics;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -1284,11 +1283,9 @@ class ASTConverter {
           && FUNC_EXPECT.equals(((CIdExpression) functionNameExpression).getName())
           && params.size() == 2) {
 
-        // This is the GCC built-in function __builtin_expect(exp, c)
-        // that behaves like (exp == c).
+        // This is the GCC built-in function __builtin_expect(exp, c) that behaves like (exp).
         // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005fexpect-3345
-
-        return buildBinaryExpression(params.get(0), params.get(1), BinaryOperator.EQUALS);
+        return params.get(0);
       }
     }
 
@@ -1583,8 +1580,7 @@ class ASTConverter {
       case IASTUnaryExpression.op_prefixDecr:
         // instead of ++x, create "x = x+1"
 
-        BinaryOperator preOp;
-        preOp =
+        BinaryOperator preOp =
             switch (e.getOperator()) {
               case IASTUnaryExpression.op_prefixIncr -> BinaryOperator.PLUS;
               case IASTUnaryExpression.op_prefixDecr -> BinaryOperator.MINUS;
@@ -1601,8 +1597,7 @@ class ASTConverter {
       case IASTUnaryExpression.op_postFixDecr:
         // instead of x++ create "x = x + 1"
 
-        BinaryOperator postOp;
-        postOp =
+        BinaryOperator postOp =
             switch (e.getOperator()) {
               case IASTUnaryExpression.op_postFixIncr -> BinaryOperator.PLUS;
               case IASTUnaryExpression.op_postFixDecr -> BinaryOperator.MINUS;
@@ -2649,7 +2644,8 @@ class ASTConverter {
 
   private CEnumType convert(IASTEnumerationSpecifier d) {
     List<CEnumerator> list = new ArrayList<>(d.getEnumerators().length);
-    long lastValue = -1L; // initialize with -1, so the first one gets value 0
+    BigInteger lastValue =
+        BigInteger.valueOf(-1L); // initialize with -1, so the first one gets value 0
     for (IASTEnumerationSpecifier.IASTEnumerator c : d.getEnumerators()) {
       CEnumerator newC = convert(c, lastValue);
       list.add(newC);
@@ -2675,9 +2671,16 @@ class ASTConverter {
   }
 
   private static final ImmutableList<CSimpleType> ENUM_REPRESENTATION_CANDIDATE_TYPES =
-      // list of types with incrementing size
+      // list of types with incrementing size.
+      // clang stops at unsigned long long, but GCC also uses its special signed/unsigned int128
+      // when values of that size are required.
+      // Supporting int128 may require additional implementation effort,
+      // so we stop at unsigned long long for now.
       ImmutableList.of(
-          CNumericTypes.SIGNED_INT, CNumericTypes.UNSIGNED_INT, CNumericTypes.SIGNED_LONG_LONG_INT);
+          CNumericTypes.SIGNED_INT,
+          CNumericTypes.UNSIGNED_INT,
+          CNumericTypes.SIGNED_LONG_LONG_INT,
+          CNumericTypes.UNSIGNED_LONG_LONG_INT);
 
   /**
    * Compute a matching integer type for an enumeration. We use SIGNED_INT and switch to larger type
@@ -2688,13 +2691,12 @@ class ASTConverter {
    * representing the values of all the members of the enumeration.
    */
   private CSimpleType getEnumerationType(final List<CEnumerator> enumerators) {
-    LongSummaryStatistics enumStatistics =
-        enumerators.stream().mapToLong(CEnumerator::getValue).summaryStatistics();
+    List<BigInteger> enumeratorValues = enumerators.stream().map(CEnumerator::getValue).toList();
 
     Preconditions.checkState(
-        enumStatistics.getCount() > 0, "enumeration does not provide any values");
-    final BigInteger minValue = BigInteger.valueOf(enumStatistics.getMin());
-    final BigInteger maxValue = BigInteger.valueOf(enumStatistics.getMax());
+        !enumeratorValues.isEmpty(), "enumeration does not provide any values");
+    final BigInteger minValue = Collections.min(enumeratorValues);
+    final BigInteger maxValue = Collections.max(enumeratorValues);
     for (CSimpleType integerType : ENUM_REPRESENTATION_CANDIDATE_TYPES) {
       if (minValue.compareTo(machinemodel.getMinimalIntegerValue(integerType)) >= 0
           && maxValue.compareTo(machinemodel.getMaximalIntegerValue(integerType)) <= 0) {
@@ -2702,19 +2704,25 @@ class ASTConverter {
         return integerType;
       }
     }
-    // if nothing works, use the largest type we have: ULL
-    return CNumericTypes.UNSIGNED_LONG_LONG_INT;
+    throw new CFAGenerationRuntimeException(
+        "The range of enum values does not fit into any of the available integer types of the"
+            + " selected machine model. Machine model: '"
+            + machinemodel.name()
+            + "', available integer types: '"
+            + ENUM_REPRESENTATION_CANDIDATE_TYPES.stream().map(CType::toString).toList()
+            + "', enum values: "
+            + enumerators.stream().map(CEnumerator::getValue).toList());
   }
 
-  private CEnumerator convert(IASTEnumerationSpecifier.IASTEnumerator e, long lastValue) {
-    long value;
+  private CEnumerator convert(IASTEnumerationSpecifier.IASTEnumerator e, BigInteger lastValue) {
+    BigInteger value;
 
     if (e.getValue() == null) {
-      value = lastValue + 1;
+      value = lastValue.add(BigInteger.ONE);
     } else {
       // TODO Because we fully evaluate the expression here and never add e.getValue() itself
       // to the AST, any overflows in it will not be detectable by the analysis.
-      value = evaluateIntegerConstantExpression(e.getValue()).longValueExact();
+      value = evaluateIntegerConstantExpression(e.getValue());
     }
 
     String name = convert(e.getName());

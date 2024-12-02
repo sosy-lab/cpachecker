@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.util.smg.datastructures;
 
 import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
@@ -21,7 +23,8 @@ import org.sosy_lab.common.collect.PersistentMap;
  * internal value for the map.
  */
 @Immutable(containerOf = "K")
-public class PersistentSet<K extends Comparable<? super K>> implements Set<K> {
+public class PersistentSet<K extends Comparable<? super K>> implements Set<K>, Serializable {
+  @Serial private static final long serialVersionUID = -3518541218022546560L;
 
   private final PersistentMap<K, Void> delegate;
 

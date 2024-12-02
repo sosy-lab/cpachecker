@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 
@@ -22,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
  */
 public final class CComplexTypeDeclaration extends CTypeDeclaration {
 
-  private static final long serialVersionUID = -1789123397167943609L;
+  @Serial private static final long serialVersionUID = -1789123397167943609L;
 
   public CComplexTypeDeclaration(
       FileLocation pFileLocation, boolean pIsGlobal, CComplexType pType) {

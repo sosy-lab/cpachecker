@@ -20,7 +20,7 @@ SPDX-License-Identifier: Apache-2.0
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="3.1-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="4.0-git"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="class.dir" value="classes"/>
@@ -38,14 +38,12 @@ SPDX-License-Identifier: Apache-2.0
          BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
          ReferenceEquality: TODO enable this and fix alarms (but there are many cases where reference equality is desired)
          UnusedMethods: Most CPAs have private constructors that are called only via reflection
-         UnusedVariable: false alarms for private records: https://github.com/google/error-prone/issues/2713
          -->
     <property name="errorprone.options" value="
         -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
         -Xep:BanSerializableRead:OFF
         -Xep:UnusedMethod:OFF
-        -Xep:UnusedVariable:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>
@@ -134,8 +132,8 @@ SPDX-License-Identifier: Apache-2.0
 
     <!-- Auxiliary targets -->
 
-    <target name="init" depends="create-version-file">
-        <echo message="Building ${ant.project.name} ${version.base}"/>
+    <target name="init" depends="determine-version">
+        <echo message="Building ${ant.project.name} ${version}"/>
     </target>
 
     <target name="build-subprojects">

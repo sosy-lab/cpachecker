@@ -15,6 +15,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.io.Serial;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -295,7 +296,7 @@ public class SymbolEncoding {
 
   public static class UnknownFormulaSymbolException extends CPAException {
 
-    private static final long serialVersionUID = 150615L;
+    @Serial private static final long serialVersionUID = 150615L;
 
     public UnknownFormulaSymbolException(String symbol) {
       super("unknown symbol in formula: " + symbol);

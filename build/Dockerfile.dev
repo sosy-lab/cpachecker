@@ -6,7 +6,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# This is a Docker image for running the latest development version of CPAchecker.
+# This is a container image for running the latest development version of CPAchecker.
 # It is built automatically using GitLab CI and pushed to
 # registry.gitlab.com/sosy-lab/software/cpachecker:dev.
 #
@@ -15,9 +15,9 @@
 # mkdir tmp
 # mv cpachecker.tar.bz2 tmp/
 # cp build/Dockerfile.dev tmp/Dockerfile
-# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:dev -t sosylab/cpachecker:dev tmp
-# docker push registry.gitlab.com/sosy-lab/software/cpachecker:dev
-# docker push sosylab/cpachecker:dev
+# podman build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:dev -t sosylab/cpachecker:dev tmp
+# podman push registry.gitlab.com/sosy-lab/software/cpachecker:dev
+# podman push sosylab/cpachecker:dev
 
 FROM ubuntu:latest
 
@@ -25,18 +25,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   gcc \
   libgmp10 \
   libgomp1 \
+  locales \
   openjdk-17-jre-headless \
-  python3
+  python3 \
+  && rm -rf /var/lib/apt/lists/*
 
 ADD cpachecker.tar.bz2 /
 # Make cpachecker executable and further scripts available for execution
 ENV PATH "${PATH}:/cpachecker/bin:/cpachecker/scripts"
 
 # Set locale to UTF-8 to have UTF-8 encoding in JVM
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  locales \
-  && rm -rf /var/lib/apt/lists/* \
-  && locale-gen en_US.UTF-8
+RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US.UTF-8
 ENV LC_ALL en_US.UTF-8

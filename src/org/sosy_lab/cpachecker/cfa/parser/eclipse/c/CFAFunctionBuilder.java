@@ -134,7 +134,7 @@ import org.sosy_lab.cpachecker.util.Pair;
  *   <li>Inlined assembler code is ignored
  * </ul>
  */
-@SuppressWarnings({"InvalidBlockTag", "MissingSummary"}) // for @category
+@SuppressWarnings({"InvalidBlockTag", "MissingSummary", "dangling-doc-comments"}) // for comments
 class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structure for maintaining our scope stack in a function
@@ -1996,9 +1996,9 @@ class CFAFunctionBuilder extends ASTVisitor {
     final CExpression exp = astCreator.simplifyExpressionOneStep(binExp);
     final CFANode nextCaseStartsAtNode =
         switch (astCreator.getConditionKind(exp)) {
-            // no edge connecting rootNode with caseNode,
-            // so the "case" branch won't be connected to the rest of the CFA.
-            // also ignore the edge from rootNode to notCaseNode, it is not needed
+          // no edge connecting rootNode with caseNode,
+          // so the "case" branch won't be connected to the rest of the CFA.
+          // also ignore the edge from rootNode to notCaseNode, it is not needed
           case ALWAYS_FALSE -> rootNode;
           case ALWAYS_TRUE -> {
             final BlankEdge trueEdge =

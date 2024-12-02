@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
@@ -17,7 +18,7 @@ import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRe
 public class RedundantRequirementsRemoverSignStateImplementation
     extends RedundantRequirementsRemoverImplementation<SignState, SIGN> {
 
-  private static final long serialVersionUID = 7689875020110766102L;
+  @Serial private static final long serialVersionUID = 7689875020110766102L;
 
   @Override
   public int compare(SIGN pO1, SIGN pO2) {
