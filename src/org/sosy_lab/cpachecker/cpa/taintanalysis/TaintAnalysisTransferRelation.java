@@ -52,8 +52,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
-  public static final List<String> SOURCES = Lists.newArrayList("getRSAKey");
-  public static final List<String> SINKS = Lists.newArrayList("printf");
+  private static final List<String> SOURCES = Lists.newArrayList("getRSAKey");
+  private static final List<String> SINKS = Lists.newArrayList("printf");
 
   private final LogManager logger;
 
