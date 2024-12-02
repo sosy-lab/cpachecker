@@ -1,3 +1,11 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # add new commits on top
 b4c108f78988bdec853771d893f35066267f6c44 # reformat with Google Java Format 1.19
 b4c1a2604a4db6df4732aadfa5a9a392a3831661 # reformat with Google Java Format 1.16
