@@ -82,11 +82,14 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    *
    * Expected result:
    *     |
+   *    [concrete] -> 0
+   *     |
+   *    [0+]
+   *     |
    *    [concrete]
    *     |
-   *    [1+]
-   *     |
    * -> [concrete]
+   * By inserting a 0+ in the right list.
    */
   @Test
   public void simpleMergeTest() throws CPAException, InterruptedException {
@@ -112,7 +115,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     stateLeft =
         stateLeft.writeValueWithChecks(
             variableMemory, zero, thirtyTwo, addressToNewRegion, pointerType, null);
-    ValueAndSMGState ptrToNested2PlusAndState = createSLLAndReturnPointer(stateLeft, 64, 2, 0);
+    ValueAndSMGState ptrToNested2PlusAndState =
+        createSLLAndReturnPointer(stateLeft, 64, 2, 0, 0, 0);
     stateLeft = ptrToNested2PlusAndState.getState();
     // Nested below first, concrete, list elem
     Value ptrToNested2Plus = ptrToNested2PlusAndState.getValue();
@@ -249,15 +253,20 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   private ValueAndSMGState createSLLAndReturnPointer(
-      SMGState state, int sizeOfObject, int length, int nestingLevel) {
+      SMGState state,
+      int sizeOfObject,
+      int length,
+      int nestingLevel,
+      int headOffset,
+      int nextOffset) {
     CType pointerType = CPointerType.POINTER_TO_VOID;
     SMGObject newObject =
         new SMGSinglyLinkedListSegment(
             nestingLevel,
             new NumericValue(BigInteger.valueOf(sizeOfObject)),
             BigInteger.ZERO,
-            hfo,
-            nfo,
+            BigInteger.valueOf(headOffset),
+            BigInteger.valueOf(nextOffset),
             BigInteger.ZERO,
             length);
     state = state.copyAndReplaceMemoryModel(state.getMemoryModel().copyAndAddHeapObject(newObject));
