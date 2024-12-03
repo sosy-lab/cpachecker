@@ -113,7 +113,8 @@ public class InstrumentationAutomaton {
         new InstrumentationTransition(
             q1,
             new InstrumentationPattern("true"),
-            new InstrumentationOperation("int TRANS_INT_MAX = 2147483647; int TRANS_INT_MIN = -2147483648;"),
+            new InstrumentationOperation(
+                "int TRANS_INT_MAX = 2147483647; int TRANS_INT_MIN = -2147483648;"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t2 =
@@ -121,8 +122,9 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("ADD"),
             new InstrumentationOperation(
-                "if (x_instr_3) { __VERIFIER_assert(!(((x_instr_2 > 0) && (x_instr_1 > (TRANS_INT_MAX - x_instr_2))) "
-                    + "|| ((x_instr_2 < 0) && (x_instr_1 < (TRANS_INT_MIN - x_instr_2))))); }"),
+                "if (x_instr_3) { __VERIFIER_assert(!(((x_instr_2 > 0) && (x_instr_1 >"
+                    + " (TRANS_INT_MAX - x_instr_2))) || ((x_instr_2 < 0) && (x_instr_1 <"
+                    + " (TRANS_INT_MIN - x_instr_2))))); }"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t3 =
@@ -130,8 +132,9 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("SUB"),
             new InstrumentationOperation(
-                "if (x_instr_3) { __VERIFIER_assert(!(((x_instr_2 > 0 && x_instr_1 < TRANS_INT_MIN + x_instr_2) ||"
-                    + " (x_instr_2 < 0 && x_instr_1 > TRANS_INT_MAX + x_instr_2))));}"),
+                "if (x_instr_3) { __VERIFIER_assert(!(((x_instr_2 > 0 && x_instr_1 < TRANS_INT_MIN"
+                    + " + x_instr_2) || (x_instr_2 < 0 && x_instr_1 > TRANS_INT_MAX +"
+                    + " x_instr_2))));}"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t4 =
@@ -139,11 +142,12 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("MUL"),
             new InstrumentationOperation(
-                "if (x_instr_3) { __VERIFIER_assert(!(((x_instr_1 > 0) && (x_instr_2 > 0) && (x_instr_1 > (TRANS_INT_MAX / x_instr_2)))"
-                    + "|| ((x_instr_1 > 0) && (x_instr_2 <= 0) && (x_instr_2 < (TRANS_INT_MIN / x_instr_1)))"
-                    + "|| ((x_instr_1 <= 0) && (x_instr_2 > 0) && (x_instr_1 < (TRANS_INT_MIN / x_instr_2)))"
-                    + "|| ((x_instr_1 <= 0) && (x_instr_2 <= 0) && (x_instr_1 != 0 && (x_instr_2 < (TRANS_INT_MAX / x_instr_1))))"
-                    + ")); }"),
+                "if (x_instr_3) { __VERIFIER_assert(!(((x_instr_1 > 0) && (x_instr_2 > 0) &&"
+                    + " (x_instr_1 > (TRANS_INT_MAX / x_instr_2)))|| ((x_instr_1 > 0) && (x_instr_2"
+                    + " <= 0) && (x_instr_2 < (TRANS_INT_MIN / x_instr_1)))|| ((x_instr_1 <= 0) &&"
+                    + " (x_instr_2 > 0) && (x_instr_1 < (TRANS_INT_MIN / x_instr_2)))|| ((x_instr_1"
+                    + " <= 0) && (x_instr_2 <= 0) && (x_instr_1 != 0 && (x_instr_2 < (TRANS_INT_MAX"
+                    + " / x_instr_1)))))); }"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t5 =
@@ -151,7 +155,8 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("DIV"),
             new InstrumentationOperation(
-                "if (x_instr_3) { __VERIFIER_assert(!((x_instr_2 == 0) || ((x_instr_1 == TRANS_INT_MIN) && (x_instr_2 == -1))));}"),
+                "if (x_instr_3) { __VERIFIER_assert(!((x_instr_2 == 0) || ((x_instr_1 =="
+                    + " TRANS_INT_MIN) && (x_instr_2 == -1))));}"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t6 =
@@ -159,7 +164,8 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("MOD"),
             new InstrumentationOperation(
-                "if (x_instr_3) { __VERIFIER_assert(!((x_instr_2 == 0) || ((x_instr_1 == TRANS_INT_MIN) && (x_instr_2 == -1))));}"),
+                "if (x_instr_3) { __VERIFIER_assert(!((x_instr_2 == 0) || ((x_instr_1 =="
+                    + " TRANS_INT_MIN) && (x_instr_2 == -1))));}"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t7 =
@@ -246,7 +252,8 @@ public class InstrumentationAutomaton {
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("NEG"),
-            new InstrumentationOperation("if(x_instr_2) { __VERIFIER_assert(!(x_instr_1 == TRANS_INT_MIN));}"),
+            new InstrumentationOperation(
+                "if(x_instr_2) { __VERIFIER_assert(!(x_instr_1 == TRANS_INT_MIN));}"),
             InstrumentationOrder.BEFORE,
             q2);
 

@@ -358,7 +358,7 @@ public class LoopInfoUtils {
     Set<String> allGlobalVariables = new HashSet<>();
     Set<CFAEdge> internalEdges =
         new HashSet<>(); // Include only edges that occur in the source code,
-                         // excluding those from imported files.
+    // excluding those from imported files.
     pCfa.edges().stream()
         .filter(e -> !e.toString().startsWith("/"))
         .forEach(e -> internalEdges.add(e));

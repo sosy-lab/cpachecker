@@ -31,7 +31,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -184,7 +183,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       return "1";
     }
     try {
-      //TODO: The location should be computed differently !
+      // TODO: The location should be computed differently !
       int location;
       String fileLocation = pEdge.getFileLocation().toString();
       if (pTransition.getPattern().toString().equals("[!cond]")) {
@@ -244,7 +243,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
 
     AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
     if (astNode instanceof CFunctionCallAssignmentStatement) {
-      decomposeFunction(pCFAEdge,
+      decomposeFunction(
+          pCFAEdge,
           pTransition,
           pWaitlist,
           pDecomposedMap,
@@ -296,19 +296,17 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     return true;
   }
 
-  /**
-   * Decomposes a CFAEdge with function call.
-   */
-  private void decomposeFunction(CFAEdge pCFAEdge,
-                                 InstrumentationTransition pTransition,
-                                 List<Pair<CFANode, InstrumentationState>> pWaitlist,
-                                 Map<CFANode, String> pDecomposedMap,
-                                 ImmutableList<String> pMatchedVariables,
-                                 CFunctionCallAssignmentStatement pCallAssignmentStatement) {
+  /** Decomposes a CFAEdge with function call. */
+  private void decomposeFunction(
+      CFAEdge pCFAEdge,
+      InstrumentationTransition pTransition,
+      List<Pair<CFANode, InstrumentationState>> pWaitlist,
+      Map<CFANode, String> pDecomposedMap,
+      ImmutableList<String> pMatchedVariables,
+      CFunctionCallAssignmentStatement pCallAssignmentStatement) {
     String condition = pMatchedVariables.size() != 3 ? "true" : pMatchedVariables.get(2);
-    List<CExpression> parameters = pCallAssignmentStatement
-        .getFunctionCallExpression()
-        .getParameterExpressions();
+    List<CExpression> parameters =
+        pCallAssignmentStatement.getFunctionCallExpression().getParameterExpressions();
 
     for (CExpression parameter : parameters.subList(1, parameters.size())) {
       CFANode node1 = CFANode.newDummyCFANode();
