@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
+import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -76,18 +76,19 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
 
   private Value extractValueFromString(String valueString) {
     if (valueString.startsWith("BooleanValue")) {
-      long boolNumericValue = Long.parseLong(valueString.replaceAll("\\D+", ""));
+      long boolNumericValue =
+          Long.parseLong(valueString.substring(valueString.indexOf('('), valueString.length() - 1));
       return BooleanValue.valueOf(boolNumericValue != 0);
 
     } else if (valueString.startsWith("NumericValue")) {
-      long numericValue = Long.parseLong(valueString.replaceAll("\\D+", ""));
+      long numericValue =
+          Long.parseLong(valueString.substring(valueString.indexOf('('), valueString.length() - 1));
       return new NumericValue(BigInteger.valueOf(numericValue));
 
-    } else if (valueString.equals("NullValue")) {
-      return NullValue.getInstance();
-
-    } else if (valueString.equals("UnknownValue")) {
-      return Value.UnknownValue.getInstance();
+    } else if (valueString.startsWith("FunctionValue")) {
+      String functionName =
+          valueString.substring(valueString.indexOf('('), valueString.length() - 1);
+      return new FunctionValue(functionName);
     }
     return null;
   }

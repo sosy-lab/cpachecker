@@ -24,7 +24,7 @@ public class SerializeValueVisitor implements ValueVisitor<String> {
 
   @Override
   public String visit(UnknownValue pValue) {
-    return "UnknownValue";
+    return "";
   }
 
   @Override
@@ -34,12 +34,18 @@ public class SerializeValueVisitor implements ValueVisitor<String> {
 
   @Override
   public String visit(BooleanValue pValue) {
-    return "BooleanValue(" + pValue.asNumericValue().getNumber().longValue() + ")";
+    int asInt;
+    if (pValue.isTrue()) {
+      asInt = 1;
+    } else {
+      asInt = 0;
+    }
+    return "BooleanValue(" + asInt + ")";
   }
 
   @Override
   public String visit(FunctionValue pValue) {
-    return "";
+    return "FunctionValue(" + pValue.getName() + ")";
   }
 
   @Override
@@ -49,6 +55,6 @@ public class SerializeValueVisitor implements ValueVisitor<String> {
 
   @Override
   public String visit(NullValue pValue) {
-    return "NullValue";
+    return "";
   }
 }
