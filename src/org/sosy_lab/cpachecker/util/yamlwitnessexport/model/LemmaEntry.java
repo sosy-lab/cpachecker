@@ -11,16 +11,15 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 
-
 public class LemmaEntry extends AbstractInformationRecord {
 
   @JsonProperty("value")
   protected final String value;
+
   public LemmaEntry(
       @JsonProperty("value") String pString,
-      //@JsonProperty("type") String pType,
-      @JsonProperty("format")YAMLWitnessExpressionType pFormat
-      ) {
+      // @JsonProperty("type") String pType,
+      @JsonProperty("format") YAMLWitnessExpressionType pFormat) {
     super("lemma", pFormat);
     value = pString;
   }

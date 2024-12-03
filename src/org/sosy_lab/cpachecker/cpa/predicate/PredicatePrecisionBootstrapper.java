@@ -71,7 +71,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
               + " doc/examples/predmap.txt for an example)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> predicatesFiles = ImmutableList.of();
-  
 
   @Option(
       secure = true,
@@ -330,9 +329,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     return builder.build();
   }
 
-  /**
-   * Extracts the given {@link ExpressionTree}'s leaf nodes and adds them to the given builder.
-   */
+  /** Extracts the given {@link ExpressionTree}'s leaf nodes and adds them to the given builder. */
   private void split0(
       ExpressionTree<AExpression> pExpr,
       ImmutableSet.Builder<ExpressionTree<AExpression>> pSetBuilder) {
@@ -347,9 +344,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     }
   }
 
-  /**
-   * Read the (initial) precision (predicates to track) from a file.
-   */
+  /** Read the (initial) precision (predicates to track) from a file. */
   public PredicatePrecision prepareInitialPredicates()
       throws InvalidConfigurationException, InterruptedException {
     PredicatePrecision result = internalPrepareInitialPredicates();

@@ -18,8 +18,7 @@ public class LemmaSetEntry extends AbstractEntry {
   @JsonProperty("content")
   public final List<LemmaEntry> content;
 
-  public LemmaSetEntry(
-      @JsonProperty("content") List<LemmaEntry> pContent) {
+  public LemmaSetEntry(@JsonProperty("content") List<LemmaEntry> pContent) {
     super(LEMMA_SET_ENTRY_IDENTIFIER);
     content = pContent;
   }

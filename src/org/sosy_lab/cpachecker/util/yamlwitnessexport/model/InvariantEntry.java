@@ -46,7 +46,7 @@ public class InvariantEntry extends AbstractInvariantEntry {
       @JsonProperty("value") String pString,
       @JsonProperty("type") String pType,
       @JsonProperty("format") YAMLWitnessExpressionType pFormat,
-      @JsonProperty("location") LocationRecord pLocation){
+      @JsonProperty("location") LocationRecord pLocation) {
     super(pType, pFormat);
     location = pLocation;
     value = pString;
