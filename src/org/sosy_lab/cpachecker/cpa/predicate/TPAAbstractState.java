@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cpa.arg.Splitable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormulaTPA;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -47,7 +47,7 @@ public abstract sealed class TPAAbstractState
    */
   private PathFormula pathFormula;
   /** The abstraction which is updated only on abstraction locations */
-  private AbstractionFormula abstractionFormula;
+  private AbstractionFormulaTPA abstractionFormula;
   /** How often each abstraction location was visited on the path to the current state. */
   private final transient PersistentMap<CFANode, Integer> abstractionLocations;
 
@@ -59,7 +59,7 @@ public abstract sealed class TPAAbstractState
 
   // TODO: Constructors: One for the initial state with no previous state, the other is for following states
   private TPAAbstractState(
-      PathFormula pf, AbstractionFormula a, PersistentMap<CFANode, Integer> pAbstractionLocations) {
+      PathFormula pf, AbstractionFormulaTPA a, PersistentMap<CFANode, Integer> pAbstractionLocations) {
     pathFormula = pf;
     abstractionFormula = a;
     abstractionLocations = pAbstractionLocations;
@@ -67,7 +67,7 @@ public abstract sealed class TPAAbstractState
   }
   private TPAAbstractState(
       PathFormula pf,
-      AbstractionFormula a,
+      AbstractionFormulaTPA a,
       PersistentMap<CFANode, Integer> pAbstractionLocations,
       TPAAbstractState pPreviousAbstractionState) {
     pathFormula = pf;
@@ -88,7 +88,7 @@ public abstract sealed class TPAAbstractState
    */
   public static TPAAbstractState mkAbstractionState(
       PathFormula pF,
-      AbstractionFormula pA,
+      AbstractionFormulaTPA pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
     return new TPAAbstractState.AbstractionState(pF, pA, pAbstractionLocations);
   }
@@ -102,7 +102,7 @@ public abstract sealed class TPAAbstractState
    */
   public static TPAAbstractState mkAbstractionState(
       PathFormula pF,
-      AbstractionFormula pA,
+      AbstractionFormulaTPA pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations,
       TPAAbstractState pPreviousAbstractionState) {
     return new TPAAbstractState.AbstractionState(pF, pA, pAbstractionLocations, pPreviousAbstractionState);
@@ -116,12 +116,12 @@ public abstract sealed class TPAAbstractState
    */
   static TPAAbstractState mkNonAbstractionState(
       PathFormula pF,
-      AbstractionFormula pA,
+      AbstractionFormulaTPA pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
     return new TPAAbstractState.NonAbstractionState(pF, pA, pAbstractionLocations);
   }
   /**
-   * Create a new NonAbstractionState with input new PathFormula. AbstractionFormula and AbstractionLocationsOnPath stay the same.
+   * Create a new NonAbstractionState with input new PathFormula. AbstractionFormulaTPA and AbstractionLocationsOnPath stay the same.
    * pseudo PathFormula setters
    * @param pF
    * @param oldState
@@ -157,14 +157,14 @@ public abstract sealed class TPAAbstractState
 
 
   // Getters and Setters
-  public AbstractionFormula getAbstractionFormula() {
+  public AbstractionFormulaTPA getAbstractionFormula() {
     return abstractionFormula;
   }
   /**
    * TODO: Check PredicateAbstractionState for warning note of this methos
    * @param pAbstractionFormula
    */
-  public void setAbstraction(AbstractionFormula pAbstractionFormula) {
+  public void setAbstraction(AbstractionFormulaTPA pAbstractionFormula) {
     if (isAbstractionState()) {
       abstractionFormula = checkNotNull(pAbstractionFormula);
     } else {
@@ -243,13 +243,13 @@ public abstract sealed class TPAAbstractState
     // 2 constructors corresponding to 2 constructors of TPAAbstractState parent class
     private NonAbstractionState(
         PathFormula pF,
-        AbstractionFormula pA,
+        AbstractionFormulaTPA pA,
         PersistentMap<CFANode, Integer> pAbstractionLocations) {
       super(pF, pA, pAbstractionLocations);
     }
     private NonAbstractionState(
         PathFormula pF,
-        AbstractionFormula pA,
+        AbstractionFormulaTPA pA,
         PersistentMap<CFANode, Integer> pAbstractionLocations,
         TPAAbstractState pPreviousAbstractState) {
       super(pF, pA, pAbstractionLocations, pPreviousAbstractState);
@@ -291,7 +291,7 @@ public abstract sealed class TPAAbstractState
     // Constructors
     private AbstractionState(
         PathFormula pf,
-        AbstractionFormula pA,
+        AbstractionFormulaTPA pA,
         PersistentMap<CFANode, Integer> pAbstractionLocations) {
       super(pf, pA, pAbstractionLocations);
       // Check whether the pathFormula of an abstraction element is just "true".
@@ -304,7 +304,7 @@ public abstract sealed class TPAAbstractState
     }
     private AbstractionState(
         PathFormula pf,
-        AbstractionFormula pA,
+        AbstractionFormulaTPA pA,
         PersistentMap<CFANode, Integer> pAbstractionLocations,
         TPAAbstractState pPreviousAbstractState) {
       super(pf, pA, pAbstractionLocations, pPreviousAbstractState);

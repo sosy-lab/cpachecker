@@ -30,5 +30,4 @@ public class TPATransferRelation extends PredicateTransferRelation {
       PredicateCpaOptions pOptions) {
     super(pLogger, pDirection, pFmgr, pPfmgr, pBlk, pPredAbsManager, pStatistics, pOptions);
   }
-
 }

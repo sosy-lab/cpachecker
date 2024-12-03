@@ -427,6 +427,10 @@ public class PredicateCPA
   }
 
   // Below will be necessary additional code for TransitionPredicate
+  public PredicateProvider getPredicateProvider() {
+    return predicateProvider;
+  }
+
   public boolean isSymbolicCoverageCheck() {
     return symbolicCoverageCheck;
   }

@@ -48,7 +48,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * Transfer relation for symbolic predicate abstraction. First it computes the strongest post for
  * the given CFA edge. Afterwards it optionally computes an abstraction.
  */
-public final class PredicateTransferRelation extends SingleEdgeTransferRelation {
+public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
