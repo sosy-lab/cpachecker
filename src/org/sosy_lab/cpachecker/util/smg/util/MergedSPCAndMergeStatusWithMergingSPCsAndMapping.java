@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.util.smg.util;
 
 import com.google.common.base.Preconditions;
-import java.util.Map;
+import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGNode;
 import org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus;
@@ -20,16 +20,16 @@ public class MergedSPCAndMergeStatusWithMergingSPCsAndMapping {
   private final SMGMergeStatus mergeStatus;
   private final SymbolicProgramConfiguration mergingSpc1;
   private final SymbolicProgramConfiguration mergingSpc2;
-  private final Map<SMGNode, SMGNode> mapping1;
-  private final Map<SMGNode, SMGNode> mapping2;
+  private final ImmutableMap<SMGNode, SMGNode> mapping1;
+  private final ImmutableMap<SMGNode, SMGNode> mapping2;
 
   private MergedSPCAndMergeStatusWithMergingSPCsAndMapping(
       SymbolicProgramConfiguration pMergedSPC,
       SMGMergeStatus pMergeStatus,
       SymbolicProgramConfiguration pMergingSpc1,
       SymbolicProgramConfiguration pMergingSpc2,
-      Map<SMGNode, SMGNode> pMapping1,
-      Map<SMGNode, SMGNode> pMapping2) {
+      ImmutableMap<SMGNode, SMGNode> pMapping1,
+      ImmutableMap<SMGNode, SMGNode> pMapping2) {
     Preconditions.checkNotNull(pMergedSPC);
     Preconditions.checkNotNull(pMergeStatus);
     Preconditions.checkNotNull(pMergingSpc1);
@@ -49,8 +49,8 @@ public class MergedSPCAndMergeStatusWithMergingSPCsAndMapping {
       SMGMergeStatus pMergeStatus,
       SymbolicProgramConfiguration pMergingSpc1,
       SymbolicProgramConfiguration pMergingSpc2,
-      Map<SMGNode, SMGNode> pMapping1,
-      Map<SMGNode, SMGNode> pMapping2) {
+      ImmutableMap<SMGNode, SMGNode> pMapping1,
+      ImmutableMap<SMGNode, SMGNode> pMapping2) {
     return new MergedSPCAndMergeStatusWithMergingSPCsAndMapping(
         pMergedSpc, pMergeStatus, pMergingSpc1, pMergingSpc2, pMapping1, pMapping2);
   }
@@ -71,11 +71,11 @@ public class MergedSPCAndMergeStatusWithMergingSPCsAndMapping {
     return mergingSpc2;
   }
 
-  public Map<SMGNode, SMGNode> getMapping1() {
+  public ImmutableMap<SMGNode, SMGNode> getMapping1() {
     return mapping1;
   }
 
-  public Map<SMGNode, SMGNode> getMapping2() {
+  public ImmutableMap<SMGNode, SMGNode> getMapping2() {
     return mapping2;
   }
 }
