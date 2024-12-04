@@ -87,14 +87,26 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     Map<Integer, InstrumentationAutomaton> mapAutomataToLocations = new HashMap<>();
     Map<CFANode, Integer> mapNodesToLineNumbers;
 
-    if (instrumentationProperty == InstrumentationProperty.TERMINATION) {
+    if (instrumentationProperty == InstrumentationProperty.TERMINATION ||
+        instrumentationProperty == InstrumentationProperty.TERMINATIONWITHCOUNTERS) {
       int index = 0;
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
+      // We have to track what variables have already been defined
+      Map<String, String> alreadyDefinedVariables = new HashMap<>();
       for (NormalLoopInfo info : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
-        mapAutomataToLocations.put(
-            info.loopLocation(),
-            new InstrumentationAutomaton(
-                instrumentationProperty, info.liveVariablesAndTypes(), index));
+        try {
+          mapAutomataToLocations.put(
+              info.loopLocation(),
+              new InstrumentationAutomaton(
+                  instrumentationProperty,
+                  substractDefinedVariable(info.liveVariablesAndTypes(), alreadyDefinedVariables),
+                  index));
+        } catch (IllegalArgumentException e) {
+          logger.log(Level.SEVERE,"Unrecognized property to instrument.");
+        }
+        if (instrumentationProperty == InstrumentationProperty.TERMINATIONWITHCOUNTERS) {
+          alreadyDefinedVariables.putAll(info.liveVariablesAndTypes());
+        }
         index += 1;
       }
     } else {
@@ -346,5 +358,17 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       successors.add(pCFANode.getLeavingEdge(i).getSuccessor());
     }
     return successors;
+  }
+
+  private ImmutableMap<String, String> substractDefinedVariable(
+      ImmutableMap<String, String> pLiveVariables,
+      Map<String, String> pAlreadyDefinedVariables) {
+    Map<String, String> difference = new HashMap<>();
+    for (String key : pLiveVariables.keySet()) {
+      if (!pAlreadyDefinedVariables.containsKey(key)) {
+        difference.put(key, pLiveVariables.get(key));
+      }
+    }
+    return ImmutableMap.copyOf(difference);
   }
 }

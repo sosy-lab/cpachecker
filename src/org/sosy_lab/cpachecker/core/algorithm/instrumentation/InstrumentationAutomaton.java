@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 
 /**
  * Data structure that defines the required transformation of CFA. It is used in
@@ -26,6 +27,7 @@ public class InstrumentationAutomaton {
   /** Currently supported properties with encoded automata. */
   enum InstrumentationProperty {
     TERMINATION,
+    TERMINATIONWITHCOUNTERS,
     NOOVERFLOW
   }
 
@@ -58,12 +60,11 @@ public class InstrumentationAutomaton {
       int pIndex) {
     this.liveVariablesAndTypes = pLiveVariablesAndTypes;
 
-    if (pInstrumentationProperty == InstrumentationProperty.TERMINATION) {
-      constructTerminationAutomaton(pIndex);
-    }
-
-    if (pInstrumentationProperty == InstrumentationProperty.NOOVERFLOW) {
-      constructOverflowAutomaton();
+    switch (pInstrumentationProperty) {
+      case TERMINATION -> constructTerminationAutomaton(pIndex);
+      case TERMINATIONWITHCOUNTERS -> constructTerminationWithCountersAutomaton(pIndex);
+      case NOOVERFLOW -> constructOverflowAutomaton();
+      default -> throw new IllegalArgumentException();
     }
   }
 
@@ -332,6 +333,81 @@ public class InstrumentationAutomaton {
                                     + pIndex
                                     + ")")
                         .collect(Collectors.joining("||"))
+                    + ");}"),
+            InstrumentationOrder.AFTER,
+            q3);
+    InstrumentationTransition t3 =
+        new InstrumentationTransition(
+            q3,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation(""),
+            InstrumentationOrder.AFTER,
+            q3);
+    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
+  }
+
+  private void constructTerminationWithCountersAutomaton(int pIndex) {
+    InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
+    InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
+    InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
+    this.initialState = q1;
+
+    InstrumentationTransition t1 =
+        new InstrumentationTransition(
+            q1,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation(
+                (pIndex == 0 ? "int saved = 0; int pc = 0; int pc_instr; " : ("pc = " + pIndex + "; "))
+                    + liveVariablesAndTypes.entrySet().stream()
+                    .map(
+                        (entry) ->
+                            entry.getValue()
+                                + " "
+                                + entry.getKey()
+                                + "_instr"
+                                + (entry.getValue().charAt(entry.getValue().length() - 1) == '*'
+                                   ? " = alloca(sizeof("
+                                       + getAllocationForPointer(entry.getValue())
+                                       + "))"
+                                   : ""))
+                    .collect(Collectors.joining("; "))
+                    + (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t2 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("[cond]"),
+            new InstrumentationOperation(
+                "if(__VERIFIER_nondet_int() && saved"
+                    + " == 0) { saved"
+                    + " =1; pc_instr = pc; "
+                    + liveVariablesAndTypes.entrySet().stream()
+                    .map(
+                        (entry) ->
+                            getDereferencesForPointer(entry.getValue())
+                                + entry.getKey()
+                                + "_instr"
+                                + " = "
+                                + getDereferencesForPointer(entry.getValue())
+                                + entry.getKey())
+                    .collect(Collectors.joining("; "))
+                    + (!liveVariablesAndTypes.isEmpty() ? "; " : "")
+                    + "} else { __VERIFIER_assert((saved"
+                    + " == 0) || (pc_instr != pc)"
+                    + (!liveVariablesAndTypes.isEmpty() ? " || " : "")
+                    + liveVariablesAndTypes.entrySet().stream()
+                    .map(
+                        (entry) ->
+                            "("
+                                + getDereferencesForPointer(entry.getValue())
+                                + entry.getKey()
+                                + " != "
+                                + getDereferencesForPointer(entry.getValue())
+                                + entry.getKey()
+                                + "_instr"
+                                + ")")
+                    .collect(Collectors.joining("||"))
                     + ");}"),
             InstrumentationOrder.AFTER,
             q3);
