@@ -99,7 +99,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
               info.loopLocation(),
               new InstrumentationAutomaton(
                   instrumentationProperty,
-                  substractDefinedVariable(info.liveVariablesAndTypes(), alreadyDefinedVariables),
+                  info.liveVariablesAndTypes(),
+                  substractDeclaredVariables(info.liveVariablesAndTypes(), alreadyDefinedVariables),
                   index));
         } catch (IllegalArgumentException e) {
           logger.log(Level.SEVERE,"Unrecognized property to instrument.");
@@ -112,7 +113,11 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     } else {
       mapNodesToLineNumbers = ImmutableMap.of(cfa.getMainFunction(), 0);
       mapAutomataToLocations.put(
-          0, new InstrumentationAutomaton(instrumentationProperty, ImmutableMap.of(), 0));
+          0, new InstrumentationAutomaton(
+              instrumentationProperty,
+              ImmutableMap.of(),
+              ImmutableMap.of(),
+              0));
     }
     // MAIN INSTRUMENTATION OPERATOR ALGORITHM
     // Initialize the search
@@ -360,7 +365,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     return successors;
   }
 
-  private ImmutableMap<String, String> substractDefinedVariable(
+  private ImmutableMap<String, String> substractDeclaredVariables(
       ImmutableMap<String, String> pLiveVariables,
       Map<String, String> pAlreadyDefinedVariables) {
     Map<String, String> difference = new HashMap<>();

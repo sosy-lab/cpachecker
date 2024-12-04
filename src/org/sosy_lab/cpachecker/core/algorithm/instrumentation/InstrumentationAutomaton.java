@@ -21,6 +21,8 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
  */
 public class InstrumentationAutomaton {
   private ImmutableMap<String, String> liveVariablesAndTypes;
+  // Subset of liveVariables but those that are not yet declared
+  private ImmutableMap<String, String> undeclaredVariables;
   private ImmutableList<InstrumentationTransition> instrumentationTransitions;
   private InstrumentationState initialState;
 
@@ -57,8 +59,10 @@ public class InstrumentationAutomaton {
   public InstrumentationAutomaton(
       InstrumentationProperty pInstrumentationProperty,
       ImmutableMap<String, String> pLiveVariablesAndTypes,
+      ImmutableMap<String, String> pUndeclaredVariables,
       int pIndex) {
     this.liveVariablesAndTypes = pLiveVariablesAndTypes;
+    this.undeclaredVariables = pUndeclaredVariables;
 
     switch (pInstrumentationProperty) {
       case TERMINATION -> constructTerminationAutomaton(pIndex);
@@ -358,7 +362,7 @@ public class InstrumentationAutomaton {
             new InstrumentationPattern("true"),
             new InstrumentationOperation(
                 (pIndex == 0 ? "int saved = 0; int pc = 0; int pc_instr; " : ("pc = " + pIndex + "; "))
-                    + liveVariablesAndTypes.entrySet().stream()
+                    + undeclaredVariables.entrySet().stream()
                     .map(
                         (entry) ->
                             entry.getValue()
@@ -371,7 +375,7 @@ public class InstrumentationAutomaton {
                                        + "))"
                                    : ""))
                     .collect(Collectors.joining("; "))
-                    + (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
+                    + (!undeclaredVariables.isEmpty() ? ";" : "")),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t2 =
