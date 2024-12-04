@@ -10,10 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -93,7 +95,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
       // We have to track what variables have already been defined
       Map<String, String> alreadyDefinedVariables = new HashMap<>();
-      for (NormalLoopInfo info : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
+      for (NormalLoopInfo info :
+          LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope).stream()
+              .sorted((info1, info2) -> Integer.compare(info1.loopLocation(), info2.loopLocation()))
+              .collect(ImmutableSet.toImmutableSet())) {
         try {
           mapAutomataToLocations.put(
               info.loopLocation(),
