@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.VerificationConditionReportingState;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
@@ -95,7 +96,8 @@ public final class ValueAnalysisState
         Serializable,
         Graphable,
         LatticeAbstractState<ValueAnalysisState>,
-        PseudoPartitionable {
+        PseudoPartitionable,
+        VerificationConditionReportingState {
 
   @Serial private static final long serialVersionUID = -3152134511524554358L;
 
@@ -1003,6 +1005,11 @@ public final class ValueAnalysisState
     }
 
     return result;
+  }
+
+  @Override
+  public BooleanFormula getVerificationCondition(FormulaManagerView manager) {
+    return getFormulaApproximation(manager);
   }
 
   public static class ValueAndType implements Serializable {
