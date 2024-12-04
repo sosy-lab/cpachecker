@@ -84,9 +84,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    *     |
    *    [concrete] -> 0
    *     |
-   *    [0+]
-   *     |
-   *    [concrete]
+   *    [1+]
    *     |
    * -> [concrete]
    * By inserting a 0+ in the right list.
@@ -116,7 +114,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         stateLeft.writeValueWithChecks(
             variableMemory, zero, thirtyTwo, addressToNewRegion, pointerType, null);
     ValueAndSMGState ptrToNested2PlusAndState =
-        createSLLAndReturnPointer(stateLeft, 64, 2, 0, 0, 0);
+        createSLLAndReturnPointer(stateLeft, 32, 2, 0, 0, 0);
     stateLeft = ptrToNested2PlusAndState.getState();
     // Nested below first, concrete, list elem
     Value ptrToNested2Plus = ptrToNested2PlusAndState.getValue();
