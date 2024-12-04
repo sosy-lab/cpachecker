@@ -178,7 +178,18 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
 
   @Override
   public String toString() {
-    return minLength + "+SLL " + super.hashCode();
+    String sizeToPrint = super.getSize().toString();
+    if (super.getSize().isNumericValue()) {
+      sizeToPrint = super.getSize().asNumericValue().bigIntegerValue().toString();
+    }
+    return minLength
+        + "+SLL "
+        + super.hashCode()
+        + "["
+        + super.getOffset()
+        + ", "
+        + sizeToPrint
+        + ")";
   }
 
   @Override

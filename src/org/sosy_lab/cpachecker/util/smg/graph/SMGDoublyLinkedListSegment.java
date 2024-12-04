@@ -132,7 +132,18 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
 
   @Override
   public String toString() {
-    return getMinLength() + "+DLL " + super.hashCode();
+    String sizeToPrint = super.getSize().toString();
+    if (super.getSize().isNumericValue()) {
+      sizeToPrint = super.getSize().asNumericValue().bigIntegerValue().toString();
+    }
+    return getMinLength()
+        + "+DLL "
+        + super.hashCode()
+        + "["
+        + super.getOffset()
+        + ", "
+        + sizeToPrint
+        + ")";
   }
 
   @Override
