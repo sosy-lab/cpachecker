@@ -18,7 +18,6 @@ public class LemmaEntry extends AbstractInformationRecord {
 
   public LemmaEntry(
       @JsonProperty("value") String pString,
-      // @JsonProperty("type") String pType,
       @JsonProperty("format") YAMLWitnessExpressionType pFormat) {
     super("lemma", pFormat);
     value = pString;
