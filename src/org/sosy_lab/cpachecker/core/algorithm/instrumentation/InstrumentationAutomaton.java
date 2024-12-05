@@ -361,19 +361,18 @@ public class InstrumentationAutomaton {
             q1,
             new InstrumentationPattern("true"),
             new InstrumentationOperation(
-                (pIndex == 0 ? "int saved = 0; int pc = 0; int pc_instr; " : ("pc = " + pIndex + "; "))
+                (pIndex == 0 ? "int saved = 0; int pc = 0; int pc_instr = 0; " : ("pc = " + pIndex + "; "))
                     + undeclaredVariables.entrySet().stream()
                     .map(
                         (entry) ->
                             entry.getValue()
                                 + " "
                                 + entry.getKey()
-                                + "_instr"
+                                + "_instr = "
                                 + (entry.getValue().charAt(entry.getValue().length() - 1) == '*'
-                                   ? " = alloca(sizeof("
-                                       + getAllocationForPointer(entry.getValue())
-                                       + "))"
-                                   : ""))
+                                   ? getDereferencesForPointer(entry.getValue())
+                                       + entry.getKey()
+                                   : entry.getKey()))
                     .collect(Collectors.joining("; "))
                     + (!undeclaredVariables.isEmpty() ? ";" : "")),
             InstrumentationOrder.BEFORE,
