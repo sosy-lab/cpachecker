@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -89,9 +88,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     Map<Integer, InstrumentationAutomaton> mapAutomataToLocations = new HashMap<>();
     Map<CFANode, Integer> mapNodesToLineNumbers;
 
-    if (instrumentationProperty == InstrumentationProperty.TERMINATION ||
-        instrumentationProperty == InstrumentationProperty.TERMINATIONWITHCOUNTERS ||
-        instrumentationProperty == InstrumentationProperty.ONESTEPREACHABILITY) {
+    if (instrumentationProperty == InstrumentationProperty.TERMINATION
+        || instrumentationProperty == InstrumentationProperty.TERMINATIONWITHCOUNTERS
+        || instrumentationProperty == InstrumentationProperty.ONESTEPREACHABILITY) {
       int index = 0;
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
       // We have to track what variables have already been defined
@@ -109,7 +108,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                   substractDeclaredVariables(info.liveVariablesAndTypes(), alreadyDefinedVariables),
                   index));
         } catch (IllegalArgumentException e) {
-          logger.log(Level.SEVERE,"Unrecognized property to instrument.");
+          logger.log(Level.SEVERE, "Unrecognized property to instrument.");
         }
         if (instrumentationProperty == InstrumentationProperty.TERMINATIONWITHCOUNTERS) {
           alreadyDefinedVariables.putAll(info.liveVariablesAndTypes());
@@ -119,11 +118,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     } else {
       mapNodesToLineNumbers = ImmutableMap.of(cfa.getMainFunction(), 0);
       mapAutomataToLocations.put(
-          0, new InstrumentationAutomaton(
-              instrumentationProperty,
-              ImmutableMap.of(),
-              ImmutableMap.of(),
-              0));
+          0,
+          new InstrumentationAutomaton(
+              instrumentationProperty, ImmutableMap.of(), ImmutableMap.of(), 0));
     }
     // MAIN INSTRUMENTATION OPERATOR ALGORITHM
     // Initialize the search
@@ -372,8 +369,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   }
 
   private ImmutableMap<String, String> substractDeclaredVariables(
-      ImmutableMap<String, String> pLiveVariables,
-      Map<String, String> pAlreadyDefinedVariables) {
+      ImmutableMap<String, String> pLiveVariables, Map<String, String> pAlreadyDefinedVariables) {
     Map<String, String> difference = new HashMap<>();
     for (String key : pLiveVariables.keySet()) {
       if (!pAlreadyDefinedVariables.containsKey(key)) {

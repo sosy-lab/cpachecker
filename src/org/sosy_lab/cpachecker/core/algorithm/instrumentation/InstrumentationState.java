@@ -34,10 +34,7 @@ public class InstrumentationState {
     this.stateAnnotation = StateAnnotation.TRUE;
     this.automatonOfTheState =
         new InstrumentationAutomaton(
-            InstrumentationProperty.TERMINATION,
-            ImmutableMap.of(),
-            ImmutableMap.of(),
-            0);
+            InstrumentationProperty.TERMINATION, ImmutableMap.of(), ImmutableMap.of(), 0);
   }
 
   public InstrumentationAutomaton getAutomatonOfTheState() {

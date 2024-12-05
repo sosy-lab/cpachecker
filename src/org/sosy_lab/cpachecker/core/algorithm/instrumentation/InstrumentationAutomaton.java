@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 
 /**
  * Data structure that defines the required transformation of CFA. It is used in
@@ -363,19 +362,21 @@ public class InstrumentationAutomaton {
             q1,
             new InstrumentationPattern("true"),
             new InstrumentationOperation(
-                (pIndex == 0 ? "int saved = 0; int pc = 0; int pc_instr = 0; " : ("pc = " + pIndex + "; "))
+                (pIndex == 0
+                        ? "int saved = 0; int pc = 0; int pc_instr = 0; "
+                        : ("pc = " + pIndex + "; "))
                     + undeclaredVariables.entrySet().stream()
-                    .map(
-                        (entry) ->
-                            entry.getValue()
-                                + " "
-                                + entry.getKey()
-                                + "_instr = "
-                                + (entry.getValue().charAt(entry.getValue().length() - 1) == '*'
-                                   ? getDereferencesForPointer(entry.getValue())
-                                       + entry.getKey()
-                                   : entry.getKey()))
-                    .collect(Collectors.joining("; "))
+                        .map(
+                            (entry) ->
+                                entry.getValue()
+                                    + " "
+                                    + entry.getKey()
+                                    + "_instr = "
+                                    + (entry.getValue().charAt(entry.getValue().length() - 1) == '*'
+                                        ? getDereferencesForPointer(entry.getValue())
+                                            + entry.getKey()
+                                        : entry.getKey()))
+                        .collect(Collectors.joining("; "))
                     + (!undeclaredVariables.isEmpty() ? ";" : "")),
             InstrumentationOrder.BEFORE,
             q2);
@@ -388,31 +389,31 @@ public class InstrumentationAutomaton {
                     + " == 0) { saved"
                     + " =1; pc_instr = pc; "
                     + liveVariablesAndTypes.entrySet().stream()
-                    .map(
-                        (entry) ->
-                            getDereferencesForPointer(entry.getValue())
-                                + entry.getKey()
-                                + "_instr"
-                                + " = "
-                                + getDereferencesForPointer(entry.getValue())
-                                + entry.getKey())
-                    .collect(Collectors.joining("; "))
+                        .map(
+                            (entry) ->
+                                getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + "_instr"
+                                    + " = "
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey())
+                        .collect(Collectors.joining("; "))
                     + (!liveVariablesAndTypes.isEmpty() ? "; " : "")
                     + "} else { __VERIFIER_assert((saved"
                     + " == 0) || (pc_instr != pc)"
                     + (!liveVariablesAndTypes.isEmpty() ? " || " : "")
                     + liveVariablesAndTypes.entrySet().stream()
-                    .map(
-                        (entry) ->
-                            "("
-                                + getDereferencesForPointer(entry.getValue())
-                                + entry.getKey()
-                                + " != "
-                                + getDereferencesForPointer(entry.getValue())
-                                + entry.getKey()
-                                + "_instr"
-                                + ")")
-                    .collect(Collectors.joining("||"))
+                        .map(
+                            (entry) ->
+                                "("
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + " != "
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + "_instr"
+                                    + ")")
+                        .collect(Collectors.joining("||"))
                     + ");}"),
             InstrumentationOrder.AFTER,
             q3);
@@ -436,7 +437,7 @@ public class InstrumentationAutomaton {
         new InstrumentationTransition(
             q1,
             new InstrumentationPattern("true"),
-            new InstrumentationOperation(pIndex == 0 ? "int first = 0;" : ("first = 0;")),
+            new InstrumentationOperation(pIndex == 0 ? "int first = 0;" : "first = 0;"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t2 =

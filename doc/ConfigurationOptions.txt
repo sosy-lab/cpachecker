@@ -4241,7 +4241,7 @@ impact.useForcedCovering = true
 # TERMINATION: transform termination to reachability
 # NOOVERFLOW: transform no-overflow to reachability
 instrumentation.instrumentationProperty = TERMINATION
-  enum:     [TERMINATION, NOOVERFLOW]
+  enum:     [TERMINATION, TERMINATIONWITHCOUNTERS, ONESTEPREACHABILITY, NOOVERFLOW]
 
 # Where to write machine readable new edges.
 instrumentation.newEdgesFile = "newEdgesInfo.txt"
