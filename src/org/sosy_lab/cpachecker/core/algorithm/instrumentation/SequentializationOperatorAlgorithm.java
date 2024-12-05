@@ -90,7 +90,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     Map<CFANode, Integer> mapNodesToLineNumbers;
 
     if (instrumentationProperty == InstrumentationProperty.TERMINATION ||
-        instrumentationProperty == InstrumentationProperty.TERMINATIONWITHCOUNTERS) {
+        instrumentationProperty == InstrumentationProperty.TERMINATIONWITHCOUNTERS ||
+        instrumentationProperty == InstrumentationProperty.ONESTEPREACHABILITY) {
       int index = 0;
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
       // We have to track what variables have already been defined

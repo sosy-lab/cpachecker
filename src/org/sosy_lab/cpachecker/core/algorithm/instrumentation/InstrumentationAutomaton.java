@@ -30,6 +30,7 @@ public class InstrumentationAutomaton {
   enum InstrumentationProperty {
     TERMINATION,
     TERMINATIONWITHCOUNTERS,
+    ONESTEPREACHABILITY,
     NOOVERFLOW
   }
 
@@ -67,6 +68,7 @@ public class InstrumentationAutomaton {
     switch (pInstrumentationProperty) {
       case TERMINATION -> constructTerminationAutomaton(pIndex);
       case TERMINATIONWITHCOUNTERS -> constructTerminationWithCountersAutomaton(pIndex);
+      case ONESTEPREACHABILITY -> constructOneStepReachabilityAutomaton(pIndex);
       case NOOVERFLOW -> constructOverflowAutomaton();
       default -> throw new IllegalArgumentException();
     }
@@ -412,6 +414,36 @@ public class InstrumentationAutomaton {
                                 + ")")
                     .collect(Collectors.joining("||"))
                     + ");}"),
+            InstrumentationOrder.AFTER,
+            q3);
+    InstrumentationTransition t3 =
+        new InstrumentationTransition(
+            q3,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation(""),
+            InstrumentationOrder.AFTER,
+            q3);
+    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
+  }
+
+  private void constructOneStepReachabilityAutomaton(int pIndex) {
+    InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
+    InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
+    InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
+    this.initialState = q1;
+
+    InstrumentationTransition t1 =
+        new InstrumentationTransition(
+            q1,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation(pIndex == 0 ? "int first = 0;" : ("first = 0;")),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t2 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("[cond]"),
+            new InstrumentationOperation("first = 1;"),
             InstrumentationOrder.AFTER,
             q3);
     InstrumentationTransition t3 =
