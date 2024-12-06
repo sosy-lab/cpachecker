@@ -297,7 +297,8 @@ public class CFASecondPassBuilder {
       // exit node of called functions is not reachable, i.e. this function never returns
       // no need to add return edges, instead we can remove the part after this function call
 
-      CFACreationUtils.removeChainOfNodesFromCFA(successorNode);
+      FunctionEntryNode functionEntry = cfa.getFunctionHead(predecessorNode.getFunctionName());
+      CFACreationUtils.removeChainOfNodesFromCFA(functionEntry, successorNode);
 
       // remove exit node from entry node if it has not already been removed
       if (fExitNode.isPresent()) {
@@ -417,6 +418,8 @@ public class CFASecondPassBuilder {
       if (call instanceof AFunctionCallAssignmentStatement) {
         logger.logf(Level.WARNING, "Function-call assignment with non-returning method %s.", name);
       }
+      FunctionEntryNode functionEntry =
+          cfa.getFunctionHead(edge.getPredecessor().getFunctionName());
       CFATerminationNode terminationNode =
           new CFATerminationNode(edge.getPredecessor().getFunction());
       CStatementEdge edgeToTermination =
@@ -427,7 +430,7 @@ public class CFASecondPassBuilder {
               cEdge.getPredecessor(),
               terminationNode);
       CFACreationUtils.removeEdgeFromNodes(edge);
-      CFACreationUtils.removeChainOfNodesFromCFA(edge.getSuccessor());
+      CFACreationUtils.removeChainOfNodesFromCFA(functionEntry, edge.getSuccessor());
       cfa.addNode(terminationNode);
       CFACreationUtils.addEdgeUnconditionallyToCFA(edgeToTermination);
 

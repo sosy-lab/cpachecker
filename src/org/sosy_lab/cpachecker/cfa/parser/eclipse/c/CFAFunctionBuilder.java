@@ -575,7 +575,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           }
 
           // now we can delete this whole unreachable part
-          CFACreationUtils.removeChainOfNodesFromCFA(n);
+          CFACreationUtils.removeChainOfNodesFromCFA(functionExitNode.getEntryNode(), n);
         }
       }
     }

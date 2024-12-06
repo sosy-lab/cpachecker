@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -16,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 
 /**
  * Helper class that contains some complex operations that may be useful during the creation of a
@@ -106,9 +108,21 @@ public class CFACreationUtils {
    * via some other path (not going through n). Useful for eliminating dead node, if node n is not
    * reachable.
    */
-  public static void removeChainOfNodesFromCFA(CFANode n) {
+  public static void removeChainOfNodesFromCFA(CFANode entry, CFANode n) {
     if (n.getNumEnteringEdges() > 0) {
-      return;
+      // If the node still has incoming edges it may be connected. However, it's also possible that
+      // the edges are part of a loop and that and that the node is unreachable. We test this by
+      // calculating the set of reachable nodes with the (backwards) transition relation and then
+      // checking if it contains the entrypoint.
+      CFATraversal cfaTraversal = CFATraversal.dfs().backwards().ignoreFunctionCalls();
+      Set<CFANode> reached = cfaTraversal.collectNodesReachableFromTo(n, entry);
+      if (!reached.contains(entry)) {
+        for (int i = 0; i < n.getNumEnteringEdges(); i++) {
+          removeEdgeFromNodes(n.getEnteringEdge(i));
+        }
+      } else {
+        return; // Keep the node, it's connected
+      }
     }
 
     if (n instanceof FunctionExitNode) {
@@ -121,7 +135,7 @@ public class CFACreationUtils {
       CFANode succ = e.getSuccessor();
 
       removeEdgeFromNodes(e);
-      removeChainOfNodesFromCFA(succ);
+      removeChainOfNodesFromCFA(entry, succ);
     }
   }
 
