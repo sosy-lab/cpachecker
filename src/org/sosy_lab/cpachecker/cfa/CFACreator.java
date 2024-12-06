@@ -607,20 +607,19 @@ public class CFACreator {
     // Annotate CFA nodes with reverse postorder information for later use.
     cfa.entryNodes().forEach(CFAReversePostorder::assignIds);
 
-    // get loop information
-    // (needs post-order information)
-    if (useLoopStructure) {
-      stats.loopStructureTime.start();
-      addLoopStructure(cfa);
-      stats.loopStructureTime.stop();
-    }
-
     // FOURTH, insert call and return edges and build the supergraph
     if (interprocedural) {
       logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
       CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language, logger, config);
       spbuilder.insertCallEdgesRecursively();
       cfa.setMetadata(cfa.getMetadata().withConnectedness(CfaConnectedness.SUPERGRAPH));
+    }
+
+    // get loop information (needs post-order information from the THIRD step)
+    if (useLoopStructure) {
+      stats.loopStructureTime.start();
+      addLoopStructure(cfa);
+      stats.loopStructureTime.stop();
     }
 
     // FIFTH, do post-processings on the supergraph
