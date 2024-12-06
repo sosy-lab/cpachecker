@@ -3757,7 +3757,7 @@ cpa.value.assignEqualityAssumptions = true
 
 # configure when to export loop invariants
 cpa.value.exportLoopInvariants = IF_TRUE
-  enum:     [ALWAYS, IF_NOT_FALSE, IF_TRUE]
+  enum:     [ALWAYS, IF_NOT_FALSE, IF_TRUE, IF_UNKNOWN]
 
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
