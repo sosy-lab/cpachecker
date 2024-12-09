@@ -515,10 +515,12 @@ public class SymbolicProgramConfiguration {
 
     // 2. Collect the set F of all pairs (of, t) occurring in has-value edges leading from o1 or o2
     SortedMap<Integer, Integer> offsetsToSize1 = new TreeMap<>();
-    for (SMGHasValueEdge hve1 : spc1.smg.getSMGObjectsWithSMGHasValueEdges().get(obj1)) {
+    for (SMGHasValueEdge hve1 :
+        spc1.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj1, PersistentSet.of())) {
       offsetsToSize1.put(hve1.getOffset().intValue(), hve1.getSizeInBits().intValue());
     }
-    for (SMGHasValueEdge hve2 : spc2.smg.getSMGObjectsWithSMGHasValueEdges().get(obj2)) {
+    for (SMGHasValueEdge hve2 :
+        spc2.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj2, PersistentSet.of())) {
       boolean offsetsMatch = offsetsToSize1.containsKey(hve2.getOffset().intValue());
       boolean sizesMatch =
           offsetsToSize1.get(hve2.getOffset().intValue()).equals(hve2.getSizeInBits().intValue());
@@ -1999,7 +2001,11 @@ public class SymbolicProgramConfiguration {
       SMGMergeStatus currentStatus,
       SMGMergeStatus newStatus) {
     SortedMap<Integer, SMGHasValueEdge> newOffsetsToZero = new TreeMap<>();
-    for (SMGHasValueEdge hve : currentSPC.smg.getSMGObjectsWithSMGHasValueEdges().get(object)) {
+    for (SMGHasValueEdge hve :
+        currentSPC
+            .smg
+            .getSMGObjectsWithSMGHasValueEdges()
+            .getOrDefault(object, PersistentSet.of())) {
       if (hve.hasValue().isZero()) {
         newOffsetsToZero.put(hve.getOffset().intValue(), hve);
       }
