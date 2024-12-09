@@ -18,7 +18,6 @@ import java.nio.file.Path;
 import java.time.Year;
 import java.time.ZoneId;
 import java.util.Optional;
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cmdline.Output;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejections.InputRejections;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
@@ -62,9 +60,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 
 /**
  * This is an implementation of a Partial Order Reduction (POR) algorithm, presented in the 2022
@@ -93,9 +88,18 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private static final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
-  private static final String licenseFilePath = ".idea/copyright/CPAchecker.xml";
+  private static final String licenseHeader =
+      "// This file is part of CPAchecker,"
+          + "// a tool for configurable software verification:"
+          + "// https://cpachecker.sosy-lab.org"
+          + "//"
+          + "// SPDX-FileCopyrightText: "
+          + Year.now(ZoneId.systemDefault()).getValue()
+          + " Dirk Beyer <https://www.sosy-lab.org>"
+          + "//"
+          + "// SPDX-License-Identifier: Apache-2.0";
 
-  private static final String seqHeaderComment =
+  private static final String seqHeader =
       "\n// This sequentialization (transformation of a parallel program into an equivalent \n"
           + "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker. \n"
           + "// \n"
@@ -129,7 +133,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    */
   public String buildFinalSeq(String pInputFileName, String pOutputFileName, String pInitProgram) {
     // consider license and seq comment header for line numbers
-    String header = extractLicenseComment() + seqHeaderComment;
+    String header = licenseHeader + seqHeader;
     int currentLine = countLines(header);
     StringBuilder rFinal = new StringBuilder();
     rFinal.append(header);
@@ -165,49 +169,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       return 0;
     }
     return Splitter.on('\n').splitToList(pString).size();
-  }
-
-  private String extractLicenseComment() {
-    try {
-      DocumentBuilder builder = factory.newDocumentBuilder();
-      Document document = builder.parse(licenseFilePath);
-      document.getDocumentElement().normalize();
-
-      // get the <copyright> element
-      NodeList nodeList = document.getElementsByTagName("copyright");
-      if (nodeList.getLength() > 0) {
-        Element copyrightElement = (Element) nodeList.item(0);
-
-        // get the <option> element with name="notice"
-        NodeList optionList = copyrightElement.getElementsByTagName("option");
-        for (int i = 0; i < optionList.getLength(); i++) {
-          Element optionElement = (Element) optionList.item(i);
-          String optionName = optionElement.getAttribute("name");
-
-          if ("notice".equals(optionName)) {
-            String license = optionElement.getAttribute("value");
-            // add current year
-            String currentYear = String.valueOf(Year.now(ZoneId.systemDefault()).getValue());
-            license = license.replace("&#36;today.year", currentYear);
-            // add comment
-            Iterable<String> lines = Splitter.on('\n').split(license);
-            StringBuilder commentedLicense = new StringBuilder();
-            for (String line : lines) {
-              commentedLicense.append("// ").append(line).append("\n");
-            }
-            return commentedLicense.toString();
-          }
-        }
-      } else {
-        throw Output.fatalError("MPOR FAIL. No <copyright> element found.");
-      }
-    } catch (Exception e) {
-      throw Output.fatalError(
-          "MPOR FAIL. An exception occurred while extracting the license: %s", e.getMessage());
-    }
-    throw Output.fatalError(
-        "MPOR FAIL. No sequentialization created, could not extract the license from %s",
-        licenseFilePath);
   }
 
   private String createSeqName(Path pInputFilePath) {
