@@ -16,10 +16,14 @@ public class LemmaSetEntry extends AbstractEntry {
   private static final String LEMMA_SET_ENTRY_IDENTIFIER = "lemma_set";
 
   @JsonProperty("content")
-  public final List<LemmaEntry> content;
+  private final List<LemmaEntry> content;
 
   public LemmaSetEntry(@JsonProperty("content") List<LemmaEntry> pContent) {
     super(LEMMA_SET_ENTRY_IDENTIFIER);
     content = pContent;
+  }
+
+  public List<LemmaEntry> getContent() {
+    return content;
   }
 }

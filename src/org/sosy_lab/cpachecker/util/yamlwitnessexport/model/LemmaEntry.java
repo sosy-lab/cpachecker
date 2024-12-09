@@ -22,4 +22,8 @@ public class LemmaEntry extends AbstractInformationRecord {
     super("lemma", pFormat);
     value = pString;
   }
+
+  public String getValue() {
+    return value;
+  }
 }
