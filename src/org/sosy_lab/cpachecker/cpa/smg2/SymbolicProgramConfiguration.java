@@ -1787,8 +1787,10 @@ public class SymbolicProgramConfiguration {
       SMGObject obj2)
       throws SMGException {
     // TreeMap is sorted. Entry set and even key/value sets are always sorted ascending by key.
-    PersistentSet<SMGHasValueEdge> hves1 = spc1.smg.getSMGObjectsWithSMGHasValueEdges().get(obj1);
-    PersistentSet<SMGHasValueEdge> hves2 = spc2.smg.getSMGObjectsWithSMGHasValueEdges().get(obj2);
+    PersistentSet<SMGHasValueEdge> hves1 =
+        spc1.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj1, PersistentSet.of());
+    PersistentSet<SMGHasValueEdge> hves2 =
+        spc2.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj2, PersistentSet.of());
 
     SortedMap<Integer, SMGHasValueEdge> offsetsToZero1 = new TreeMap<>();
     ImmutableMap.Builder<Integer, SMGHasValueEdge> offsetsToNonZeroPtrs1Builder =
