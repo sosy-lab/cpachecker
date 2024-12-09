@@ -23,9 +23,9 @@
         format: c_expression
 - entry_type: lemma_set
   content:
-    -lemma:
-      value: "MaxArray(A,0) = A[0]"
-      format: c_expression
-    -lemma:
-      value: "MaxArray(A,I) = A[I] > MaxArray[A,I-1] ? A[I] : MaxArray[A,I-1]"
-      format: c_expression
+    - lemma:
+        value: "MaxArray(A,0) = A[0]"
+        format: c_expression
+    - lemma:
+        value: "MaxArray(A,I) = A[I] > MaxArray[A,I-1] ? A[I] : MaxArray[A,I-1]"
+        format: c_expression
