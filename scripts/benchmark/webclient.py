@@ -504,7 +504,7 @@ class WebInterface:
             )
 
     def _request_tool_revision(self, revision):
-        path = "tool/version_string?revision=" + revision
+        path = "tool/revision_string?revision=" + revision
         (resolved_svn_revision, _) = self._request("GET", path)
         return resolved_svn_revision.decode("UTF-8")
 
