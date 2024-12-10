@@ -181,7 +181,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return equals(NULL_OBJECT);
   }
 
-  public SMGObject copyWithNewLevel(int pNewLevel) {
+  public SMGObject copyWithNewNestingLevel(int pNewLevel) {
     Preconditions.checkArgument(pNewLevel >= 0);
     return of(pNewLevel, size, offset);
   }
@@ -198,10 +198,6 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return false;
   }
 
-  public SMGObject withNestingLevelAndCopy(int pNewLevel) {
-    return new SMGObject(pNewLevel, size, offset);
-  }
-
   public SMGObject join(SMGObject otherObj) {
     // From: Algorithm 6; joinTargetObjects()
     // 7. Create new Object o.
@@ -213,9 +209,9 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     int newNestingLevel = Integer.max(nestingLevel, otherObj.nestingLevel);
     if (otherObj instanceof SMGSinglyLinkedListSegment otherSLL) {
       // This includes DLLs
-      return otherSLL.withNestingLevelAndCopy(newNestingLevel);
+      return otherSLL.copyWithNewNestingLevel(newNestingLevel);
     } else {
-      return withNestingLevelAndCopy(newNestingLevel);
+      return copyWithNewNestingLevel(newNestingLevel);
     }
   }
 }
