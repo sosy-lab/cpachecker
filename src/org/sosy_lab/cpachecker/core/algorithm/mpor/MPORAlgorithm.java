@@ -89,18 +89,18 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private static final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
   private static final String licenseHeader =
-      "// This file is part of CPAchecker,"
-          + "// a tool for configurable software verification:"
-          + "// https://cpachecker.sosy-lab.org"
-          + "//"
-          + "// SPDX-FileCopyrightText: "
+      "// This file is part of CPAchecker,\n"
+          + "// a tool for configurable software verification:\n"
+          + "// https://cpachecker.sosy-lab.org\n"
+          + "//\n"
+          + "// SPDX-FileCopyrightText:"
           + Year.now(ZoneId.systemDefault()).getValue()
-          + " Dirk Beyer <https://www.sosy-lab.org>"
-          + "//"
-          + "// SPDX-License-Identifier: Apache-2.0";
+          + " Dirk Beyer <https://www.sosy-lab.org>\n"
+          + "//\n"
+          + "// SPDX-License-Identifier: Apache-2.0\n\n";
 
   private static final String seqHeader =
-      "\n// This sequentialization (transformation of a parallel program into an equivalent \n"
+      "// This sequentialization (transformation of a parallel program into an equivalent \n"
           + "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker. \n"
           + "// \n"
           + "// Assertion fails from the function "

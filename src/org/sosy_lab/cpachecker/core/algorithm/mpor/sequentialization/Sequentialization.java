@@ -20,7 +20,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -339,7 +339,7 @@ public class Sequentialization {
   }
 
   /** Maps origin pcs n in {@code case n} to the set of target pcs m {@code pc[t_id] = m}. */
-  private static @Nonnull ImmutableMap<Integer, ImmutableSet<Integer>> getPcMap(
+  private static @NonNull ImmutableMap<Integer, ImmutableSet<Integer>> getPcMap(
       ImmutableList<SeqCaseClause> pCaseClauses) {
 
     ImmutableMap.Builder<Integer, ImmutableSet<Integer>> pcMapBuilder = ImmutableMap.builder();
