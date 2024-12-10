@@ -432,6 +432,7 @@ class WebInterface:
         self._read_hash_code_cache()
         self._revision = self._request_tool_revision(revision)
         self._tool_name = self._request_tool_name()
+        self._tool_version = self.request_tool_version(revision)
 
         if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
             logging.warning(
@@ -441,7 +442,7 @@ class WebInterface:
                 revision,
             )
         else:
-            logging.info("Using %s version %s.", self._tool_name, self._revision)
+            logging.info("Using %s version %s.", self._tool_name, self._tool_version)
 
         if HAS_SSECLIENT:
             self._result_downloader = SseResultDownloader(self, result_poll_interval)
@@ -512,11 +513,19 @@ class WebInterface:
         (tool_name, _) = self._request("GET", path)
         return tool_name.decode("UTF-8")
 
+    def request_tool_version(self, revision):
+        path = "tool/tool_version?revision=" + revision
+        (resolved_version, _) = self._request("GET", path)
+        return resolved_version.decode("UTF-8")
+
     def tool_revision(self):
         return self._revision
 
     def tool_name(self):
         return self._tool_name
+
+    def tool_version(self):
+        return self._tool_version
 
     def _get_sha256_hash(self, path):
         path = os.path.abspath(path)
