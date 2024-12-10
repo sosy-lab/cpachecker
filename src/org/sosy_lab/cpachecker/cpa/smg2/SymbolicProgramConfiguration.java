@@ -292,12 +292,12 @@ public class SymbolicProgramConfiguration {
           ImmutableMap.<SMGNode, SMGNode>builder()
               .putAll(mapping1)
               .put(thisGlobalObj, newObject)
-              .build();
+              .buildOrThrow();
       mapping2 =
           ImmutableMap.<SMGNode, SMGNode>builder()
               .putAll(mapping2)
               .put(otherGlobalObj, newObject)
-              .build();
+              .buildOrThrow();
     }
 
     Iterator<StackFrame> thisStackFrames = thisSMG.stackVariableMapping.iterator();
@@ -674,8 +674,10 @@ public class SymbolicProgramConfiguration {
       SymbolicProgramConfiguration newSPC =
           pNewSpc.copyAndPutValue(valueToWrite, v, level, maybeV1Type);
       // Extend mapping such that m1(v1) == m2(v2) == v
-      mapping1 = ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping1).put(v1, v).build();
-      mapping2 = ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping2).put(v2, v).build();
+      mapping1 =
+          ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping1).put(v1, v).buildOrThrow();
+      mapping2 =
+          ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping2).put(v2, v).buildOrThrow();
       assert pNewSpc.smg.hasValue(v);
       // If level(v1) - level(v2) < nestingLevel, update join status with ⊏
       if (level1 - level2 < nestingDiff) {
@@ -977,7 +979,10 @@ public class SymbolicProgramConfiguration {
                 addressValue, d, type1, pte1.getOffset(), 0, pte1.targetSpecifier());
         SMGValue newSMGValue = newSPC.getSMGValueFromValue(addressValue).orElseThrow();
         mapping1 =
-            ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping1).put(v1, newSMGValue).build();
+            ImmutableMap.<SMGNode, SMGNode>builder()
+                .putAll(mapping1)
+                .put(v1, newSMGValue)
+                .buildOrThrow();
         assert newSPC.smg.hasValue(newSMGValue);
       } else {
         //   Otherwise let a = m1(v1) and return with a.
@@ -1069,7 +1074,7 @@ public class SymbolicProgramConfiguration {
       a = maybeAddressValue.orElseThrow();
     }
     // Remember the mapping of v1 to a
-    mapping1 = ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping1).put(v1, a).build();
+    mapping1 = ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping1).put(v1, a).buildOrThrow();
     assert newSPC.smg.hasValue(a);
 
     // 10. Let res = joinValues(..., aNext, v2, ...); if bot, return bot.
@@ -1208,7 +1213,10 @@ public class SymbolicProgramConfiguration {
                 addressValue, d, type2, pte2.getOffset(), 0, pte2.targetSpecifier());
         SMGValue newSMGValue = newSPC.getSMGValueFromValue(addressValue).orElseThrow();
         mapping2 =
-            ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping2).put(v2, newSMGValue).build();
+            ImmutableMap.<SMGNode, SMGNode>builder()
+                .putAll(mapping2)
+                .put(v2, newSMGValue)
+                .buildOrThrow();
         assert newSPC.smg.hasValue(newSMGValue);
       } else {
         //   Otherwise let a = m2(v2) and return with a.
@@ -1300,7 +1308,7 @@ public class SymbolicProgramConfiguration {
       a = maybeAddressValue.orElseThrow();
     }
     // Remember the mapping of v2 to a
-    mapping2 = ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping2).put(v2, a).build();
+    mapping2 = ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping2).put(v2, a).buildOrThrow();
     assert newSPC.smg.hasValue(a);
 
     // 10. Let res = joinValues(..., v1, aNext, ...); if bot, return bot.
@@ -1463,7 +1471,7 @@ public class SymbolicProgramConfiguration {
               ImmutableMap.<SMGNode, SMGNode>builder()
                   .putAll(mappingOfNodes)
                   .put(rootTargetMemory, rootTargetMemory)
-                  .build();
+                  .buildOrThrow();
           newMemoryTargetObject = rootTargetMemory;
           copyRecursivly = true;
         }
@@ -2728,7 +2736,7 @@ public class SymbolicProgramConfiguration {
     }
     SymbolicProgramConfiguration newSPC = this;
     Preconditions.checkArgument(getSmg().isValid(objectToUpdate) && isHeapObject(objectToUpdate));
-    SMGObject newObjWNestingLevel = objectToUpdate.copyWithNewLevel(newNestingLevel);
+    SMGObject newObjWNestingLevel = objectToUpdate.copyWithNewNestingLevel(newNestingLevel);
     // Add new heap obj
     newSPC = newSPC.copyAndAddHeapObject(newObjWNestingLevel);
     // Switch all HVEs to new
@@ -3810,9 +3818,9 @@ public class SymbolicProgramConfiguration {
   }
 
   public SymbolicProgramConfiguration copyAndSetSpecifierOfPtrsTowards(
-      SMGObject target, int nestingLvlToChange, SMGTargetSpecifier specifierToSet) {
+      SMGObject target, SMGTargetSpecifier specifierToSet) {
     return new SymbolicProgramConfiguration(
-        smg.copyAndSetTargetSpecifierForPtrsTowards(target, nestingLvlToChange, specifierToSet),
+        smg.copyAndSetTargetSpecifierForPtrsTowards(target, specifierToSet),
         globalVariableMapping,
         stackVariableMapping,
         heapObjects,
@@ -3827,12 +3835,10 @@ public class SymbolicProgramConfiguration {
 
   public SymbolicProgramConfiguration copyAndSetSpecifierOfPtrsTowards(
       SMGObject target,
-      int nestingLvlToChange,
       SMGTargetSpecifier specifierToSet,
       Set<SMGTargetSpecifier> specifierToSwitch) {
     return new SymbolicProgramConfiguration(
-        smg.copyAndSetTargetSpecifierForPtrsTowards(
-            target, nestingLvlToChange, specifierToSet, specifierToSwitch),
+        smg.copyAndSetTargetSpecifierForPtrsTowards(target, specifierToSet, specifierToSwitch),
         globalVariableMapping,
         stackVariableMapping,
         heapObjects,
@@ -3926,17 +3932,16 @@ public class SymbolicProgramConfiguration {
 
   /**
    * Search for all pointers towards the object old and replaces them with pointers pointing towards
-   * the new object. All pointer nesting levels are decremented by 1. If the newTarget is a region,
-   * specifiers are set to region. All other specifiers are retained.
+   * the new object. Sets the specifier to the given one.
    *
    * @param oldObj old object.
    * @param newObject new target object.
    * @return a new SPC with the replacement.
    */
-  public SymbolicProgramConfiguration replaceAllPointersTowardsWithAndDecrementNestingLevel(
-      SMGObject oldObj, SMGObject newObject) {
+  public SymbolicProgramConfiguration replaceAllPointersTowardsWithAndSetSpecifier(
+      SMGObject oldObj, SMGObject newObject, SMGTargetSpecifier newSpecifier) {
     return new SymbolicProgramConfiguration(
-        smg.replaceAllPointersTowardsWithAndDecrementNestingLevel(oldObj, newObject),
+        smg.replaceAllPointersTowardsWithAndSetSpecifier(oldObj, newObject, newSpecifier),
         globalVariableMapping,
         stackVariableMapping,
         heapObjects,
@@ -3950,20 +3955,16 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Search for all pointers towards the oldObj and switch them to newTarget. Then increments the
-   * nesting level of the values of the changed pointers by 1. We expect that the newTarget does not
-   * have any pointers towards it. Sets the specifiers for pointers so that if oldObj is not
-   * abstracted, it's a first, all others become all.
+   * Search for all self-pointers from and towards the object given and replaces their specifier
+   * with ALL or REGION. pointers at exemptOffsets are ignored.
    *
-   * @param oldObj old object.
-   * @param newObject new target object.
-   * @return a new SMG with the replacement.
+   * @param object object to switch self-pointers.
+   * @param exemptOffsets ignored offsets.
    */
-  public SymbolicProgramConfiguration replaceAllPointersTowardsWithAndIncrementNestingLevel(
-      SMGObject oldObj, SMGObject newObject, int incrementAmount) {
+  public SymbolicProgramConfiguration replaceAllSelfPointersWithNewSpecifier(
+      SMGObject object, Set<BigInteger> exemptOffsets) {
     return new SymbolicProgramConfiguration(
-        smg.replaceAllPointersTowardsWithAndIncrementNestingLevel(
-            oldObj, newObject, incrementAmount),
+        smg.replaceAllSelfPointersWithNewSpecifier(object, exemptOffsets),
         globalVariableMapping,
         stackVariableMapping,
         heapObjects,
@@ -3978,55 +3979,20 @@ public class SymbolicProgramConfiguration {
 
   /**
    * Search for all pointers towards the object old and replaces them with pointers pointing towards
-   * the new object only if their nesting level and specifier is equal to the given. Then switches
-   * the nesting level of the switched to 0.
+   * the new object only if their specifier is equal to the given. Then switches the nesting level
+   * of the switched pointers to 0.
    *
    * @param oldObj old object.
    * @param newObject new target object.
-   * @param replacementLevel the level to switch
    * @param specifierToSwitch the specifiers that are allowed to be switched to the new object. All
    *     others remain on old obj.
    * @return a new SMG with the replacement.
    */
   public SymbolicProgramConfiguration replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
-      SMGObject oldObj,
-      SMGObject newObject,
-      int replacementLevel,
-      Set<SMGTargetSpecifier> specifierToSwitch) {
+      SMGObject oldObj, SMGObject newObject, Set<SMGTargetSpecifier> specifierToSwitch) {
     return new SymbolicProgramConfiguration(
         smg.replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
-            oldObj, newObject, replacementLevel, specifierToSwitch),
-        globalVariableMapping,
-        stackVariableMapping,
-        heapObjects,
-        externalObjectAllocation,
-        valueMapping,
-        variableToTypeMap,
-        memoryAddressAssumptionsMap,
-        mallocZeroMemory,
-        readBlacklist,
-        valueToTypeMap);
-  }
-
-  /**
-   * Search for all pointers towards the object old and replaces them with pointers pointing towards
-   * the new object only if their nesting level is equal to the given. Then switches the nesting
-   * level of the switched to 0.
-   *
-   * @param oldTargetObj old target object of pointers to switch.
-   * @param replacementValue new tSMGValue that replaces all pointers found.
-   * @param nestingLevelToSwitch the level of pointers to switch to the new value.
-   * @param specifierToSwitch all specifiers to switch to the new value.
-   * @return a new SMG with the replacement.
-   */
-  public SymbolicProgramConfiguration replacePointersWithSMGValue(
-      SMGObject oldTargetObj,
-      SMGValue replacementValue,
-      int nestingLevelToSwitch,
-      Set<SMGTargetSpecifier> specifierToSwitch) {
-    return new SymbolicProgramConfiguration(
-        smg.replacePointersWithSMGValue(
-            oldTargetObj, replacementValue, nestingLevelToSwitch, specifierToSwitch),
+            oldObj, newObject, specifierToSwitch),
         globalVariableMapping,
         stackVariableMapping,
         heapObjects,
@@ -4417,5 +4383,15 @@ public class SymbolicProgramConfiguration {
       }
     }
     return newSPC.withNewValueMappings(newValueMapping.buildOrThrow());
+  }
+
+  public SymbolicProgramConfiguration removeValueMappings(Set<SMGValue> valueMappingsToRemove) {
+    ImmutableBiMap.Builder<Wrapper<Value>, SMGValue> newValueMapping = ImmutableBiMap.builder();
+    for (Entry<Wrapper<Value>, SMGValue> mappedValue : valueMapping.entrySet()) {
+      if (!valueMappingsToRemove.contains(mappedValue.getValue())) {
+        newValueMapping.put(mappedValue);
+      }
+    }
+    return withNewValueMappings(newValueMapping.buildOrThrow());
   }
 }
