@@ -7643,8 +7643,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       // derefWOMat is the top of the list
       SMGStateAndOptionalSMGObjectAndOffset derefWOMat =
           currentState.dereferencePointerWithoutMaterilization(newHeadPtr).orElseThrow();
-      if (derefWOMat.getSMGObject() instanceof SMGSinglyLinkedListSegment sllDeref) {
-        int minSize = sllDeref.getMinLength();
+      if (derefWOMat.getSMGObject() instanceof SMGSinglyLinkedListSegment) {
         SMGValue smgPointerToHead =
             derefWOMat
                 .getSMGState()
@@ -7652,7 +7651,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                 .getSMGValueFromValue(newHeadPtr)
                 .orElseThrow();
         assertThat(derefWOMat.getSMGState().getMemoryModel().getNestingLevel(smgPointerToHead))
-            .isEqualTo(minSize - 1);
+            .isEqualTo(0);
       }
     }
   }
