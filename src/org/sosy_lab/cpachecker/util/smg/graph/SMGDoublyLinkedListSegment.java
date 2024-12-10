@@ -85,7 +85,7 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
   }
 
   @Override
-  public SMGObject copyWithNewLevel(int newLevel) {
+  public SMGObject copyWithNewNestingLevel(int newLevel) {
     Preconditions.checkArgument(newLevel >= 0);
     return new SMGDoublyLinkedListSegment(
         newLevel,
@@ -217,7 +217,7 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
     if (otherObj instanceof SMGDoublyLinkedListSegment otherDLL) {
       newMinLength = Integer.min(newMinLength, otherDLL.getMinLength());
     }
-    return ((SMGDoublyLinkedListSegment) copyWithNewLevel(newNestingLevel))
+    return ((SMGDoublyLinkedListSegment) this.copyWithNewNestingLevel(newNestingLevel))
         .copyWithNewMinimumLength(newMinLength);
   }
 }

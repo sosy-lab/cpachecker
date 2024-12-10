@@ -169,7 +169,7 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
   private void increaseLevelOfMapped() {
     for (SMGObject mappedObj : mapping1.getMappedObjects()) {
       mapping1.replaceObjectMapping(
-          mappedObj, mappedObj.withNestingLevelAndCopy(mappedObj.getNestingLevel() + 1));
+          mappedObj, mappedObj.copyWithNewNestingLevel(mappedObj.getNestingLevel() + 1));
     }
     for (SMGValue mappedVal : mapping1.getMappedValues()) {
       // mapping1.replaceValueMapping(
@@ -177,7 +177,7 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
     }
     for (SMGObject mappedObj : mapping2.getMappedObjects()) {
       mapping2.replaceObjectMapping(
-          mappedObj, mappedObj.withNestingLevelAndCopy(mappedObj.getNestingLevel() + 1));
+          mappedObj, mappedObj.copyWithNewNestingLevel(mappedObj.getNestingLevel() + 1));
     }
     for (SMGValue mappedVal : mapping2.getMappedValues()) {
       // mapping2.replaceValueMapping(

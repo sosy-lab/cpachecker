@@ -18,7 +18,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
   private final int minLength;
   private final BigInteger headOffset;
   private final BigInteger nextOffset;
-  private final BigInteger nextPointerTargetoffset;
+  private final BigInteger nextPointerTargetOffset;
 
   // Track the equality cache used in the latest creation of this abstraction.
   // Can be used to argue about whether Values are equal or identical and need
@@ -40,7 +40,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
     minLength = pMinLength;
     headOffset = pHeadOffset;
     nextOffset = pNextOffset;
-    nextPointerTargetoffset = pNextPointerTargetOffset;
+    nextPointerTargetOffset = pNextPointerTargetOffset;
     relevantEqualities = EqualityCache.of();
   }
 
@@ -57,7 +57,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
     minLength = pMinLength;
     headOffset = pHeadOffset;
     nextOffset = pNextOffset;
-    nextPointerTargetoffset = pNextPointerTargetoffset;
+    nextPointerTargetOffset = pNextPointerTargetoffset;
     relevantEqualities = pRelevantEqualities;
   }
 
@@ -66,7 +66,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
   }
 
   public BigInteger getNextPointerTargetOffset() {
-    return nextPointerTargetoffset;
+    return nextPointerTargetOffset;
   }
 
   public BigInteger getHeadOffset() {
@@ -101,13 +101,13 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         objectToCopy.getOffset(),
         objectToCopy.headOffset,
         objectToCopy.nextOffset,
-        objectToCopy.nextPointerTargetoffset,
+        objectToCopy.nextPointerTargetOffset,
         objectToCopy.minLength,
         objectToCopy.relevantEqualities);
   }
 
   @Override
-  public SMGObject copyWithNewLevel(int newLevel) {
+  public SMGObject copyWithNewNestingLevel(int newLevel) {
     Preconditions.checkArgument(newLevel >= 0);
     return new SMGSinglyLinkedListSegment(
         newLevel,
@@ -115,7 +115,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         getOffset(),
         headOffset,
         nextOffset,
-        nextPointerTargetoffset,
+        nextPointerTargetOffset,
         minLength,
         relevantEqualities);
   }
@@ -128,7 +128,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         getOffset(),
         headOffset,
         nextOffset,
-        nextPointerTargetoffset,
+        nextPointerTargetOffset,
         newMinimumLength,
         relevantEqualities);
   }
@@ -141,7 +141,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         getOffset(),
         headOffset,
         nextOffset,
-        nextPointerTargetoffset,
+        nextPointerTargetOffset,
         minLength,
         pRelevantEqualities);
   }
@@ -158,7 +158,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         getOffset(),
         headOffset,
         nextOffset,
-        nextPointerTargetoffset,
+        nextPointerTargetOffset,
         Integer.max(getMinLength() - 1, 0),
         relevantEqualities);
   }
@@ -171,7 +171,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         getOffset(),
         headOffset,
         nextOffset,
-        nextPointerTargetoffset,
+        nextPointerTargetOffset,
         minLength,
         relevantEqualities);
   }
@@ -226,7 +226,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         return otherDLL.join(this);
       }
     }
-    return ((SMGSinglyLinkedListSegment) copyWithNewLevel(newNestingLevel))
+    return ((SMGSinglyLinkedListSegment) this.copyWithNewNestingLevel(newNestingLevel))
         .copyWithNewMinimumLength(newMinLength);
   }
 }

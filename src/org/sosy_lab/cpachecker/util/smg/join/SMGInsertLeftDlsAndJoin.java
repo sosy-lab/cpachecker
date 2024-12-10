@@ -186,7 +186,7 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
                 // map object
                 if (!mapping1.hasMapping(subSmgObject)) {
                   mappedSubSmgObject =
-                      subSmgObject.copyWithNewLevel(
+                      subSmgObject.copyWithNewNestingLevel(
                           subSmgObject.getNestingLevel() + pNestingLevelDiff);
                   destSMG = destSMG.copyAndAddObject(mappedSubSmgObject);
                   mapping1.addMapping(subSmgObject, mappedSubSmgObject);
