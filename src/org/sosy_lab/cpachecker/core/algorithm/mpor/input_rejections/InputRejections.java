@@ -12,6 +12,8 @@ import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -22,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.cmdline.Output;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORStatics;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
@@ -30,6 +31,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class InputRejections {
+
+  private static LogManager logger;
 
   public static final String LANGUAGE_NOT_C = "MPOR only supports language C";
 
@@ -78,7 +81,8 @@ public class InputRejections {
    *   <li>contains a recursive function call (both direct and indirect)
    * </ul>
    */
-  public static void handleInitialRejections(CFA pInputCfa) {
+  public static void handleInitialRejections(LogManager pLogger, CFA pInputCfa) {
+    logger = pLogger;
     checkLanguageC(pInputCfa);
     checkOneInputFile(pInputCfa);
     checkIsParallelProgram(pInputCfa);
@@ -92,10 +96,17 @@ public class InputRejections {
 
   @FormatMethod
   private static void handleRejection(@FormatString final String pMessage, Object... args) {
+    // using AssertionError instead of Output.fatalError -> CPAchecker stops instantly
     switch (MPORStatics.instanceType()) {
-      case PRODUCTION -> throw Output.fatalError(pMessage, args);
-      case TEST -> throw new RuntimeException(String.format(pMessage, args));
-      default -> throw Output.fatalError("Invalid InstanceType: %s", MPORStatics.instanceType());
+      case PRODUCTION:
+        logger.log(Level.SEVERE, String.format(pMessage, args));
+        throw new AssertionError();
+      case TEST:
+        // when testing, use catch-able exceptions to match error messages to input programs
+        throw new RuntimeException(String.format(pMessage, args));
+      default:
+        logger.log(Level.SEVERE, "Invalid InstanceType: %s", MPORStatics.instanceType());
+        throw new AssertionError();
     }
   }
 
@@ -135,7 +146,9 @@ public class InputRejections {
               if (typedefName.equals(PthreadObjectType.PTHREAD_T.name)
                   || typedefName.equals(PthreadObjectType.PTHREAD_MUTEX_T.name)) {
                 handleRejection(
-                    NO_PTHREAD_OBJECT_ARRAYS_FORMAT, edge.getLineNumber(), edge.getCode());
+                    NO_PTHREAD_OBJECT_ARRAYS_FORMAT,
+                    Integer.toString(edge.getLineNumber()),
+                    edge.getCode());
               }
             }
           }

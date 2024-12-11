@@ -237,7 +237,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     includePOR = pIncludePOR;
 
     MPORStatics.setInstanceType(InstanceType.PRODUCTION);
-    InputRejections.handleInitialRejections(inputCfa);
+    InputRejections.handleInitialRejections(logger, inputCfa);
 
     gac = new GlobalAccessChecker();
     PredicateCPA predicateCpa =
@@ -276,7 +276,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     if (!MPORStatics.isInstanceTypeSet()) {
       MPORStatics.setInstanceType(InstanceType.TEST);
     }
-    InputRejections.handleInitialRejections(inputCfa);
+    InputRejections.handleInitialRejections(logger, inputCfa);
 
     gac = new GlobalAccessChecker();
     ptr = null;
