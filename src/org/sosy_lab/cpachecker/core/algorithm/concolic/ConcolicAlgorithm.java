@@ -147,11 +147,11 @@ public class ConcolicAlgorithm implements Algorithm {
     Configuration configCE = null;
     if (coverageCriterionEnum == CoverageCriterion.BRANCH) {
       configCE =
-          Configuration.builder().loadFromFile("cpachecker/config/concolic-only-concrete.properties").build();
+          Configuration.builder().loadFromFile("config/concolic-only-concrete.properties").build();
     } else if (coverageCriterionEnum == CoverageCriterion.ERROR) {
       configCE =
           Configuration.builder()
-              .loadFromFile("cpachecker/config/concolic-only-concrete-error-coverage.properties")
+              .loadFromFile("config/concolic-only-concrete-error-coverage.properties")
               .build();
     }
 
