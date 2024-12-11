@@ -21,13 +21,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 /**
- * Represents a statement of the form
+ * Represents a statement that simulates calls to {@code pthread_mutex_lock} of the form:
  *
- * <p>{@code if (m_locked) { __t_awaits_m = 1; }}
+ * <p>{@code if (__MPOR_SEQ__GLOBAL_14_m_LOCKED) { __MPOR_SEQ__THREAD1_AWAITS_GLOBAL_14_m = 1; }}
  *
- * <p>{@code else { __t_awaits_m = 0; m_locked = 1; pc[...] = ...; }}
- *
- * <p>{@code continue;}
+ * <p>{@code else { __MPOR_SEQ__THREAD1_AWAITS_GLOBAL_14_m = 0; __MPOR_SEQ__GLOBAL_14_m_LOCKED = 1;
+ * pc[...] = ...; }}
  */
 public class SeqMutexLockStatement implements SeqCaseBlockStatement {
 

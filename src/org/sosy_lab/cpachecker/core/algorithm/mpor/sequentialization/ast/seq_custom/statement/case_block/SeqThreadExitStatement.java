@@ -11,10 +11,19 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
+/**
+ * Represents a statement that simulates the termination of a thread of the form:
+ *
+ * <p>{@code __MPOR_SEQ__THREAD1_ACTIVE = 0; }
+ *
+ * <p>This statement is injected when encountering the {@link FunctionExitNode} of the respective
+ * threads start routine / main function.
+ */
 public class SeqThreadExitStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement assign;

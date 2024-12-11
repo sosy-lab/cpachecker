@@ -16,6 +16,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
+/**
+ * Represents the assignment of a parameter given to a function to an injected parameter variable in
+ * the sequentialization.
+ *
+ * <p>E.g. {@code __MPOR_SEQ__THREAD0_PARAM_q = GLOBAL_queue; }
+ */
 public class SeqParameterAssignStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement assign;

@@ -20,6 +20,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
+/**
+ * Represents a statement that simulates calls to {@code pthread_join} of the form:
+ *
+ * <p>{@code if (__MPOR_SEQ__THREAD1_ACTIVE) { __MPOR_SEQ__THREAD0_JOINS_THREAD1 = 1; }}
+ *
+ * <p>{@code else { __MPOR_SEQ__THREAD0_JOINS_THREAD1 = 0; pc[...] = ...; }}
+ */
 public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private static final SeqControlFlowStatement elseNotActive = new SeqControlFlowStatement();

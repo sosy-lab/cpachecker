@@ -14,6 +14,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
+/**
+ * Represents a statement that simulates calls to {@code pthread_create} of the form:
+ *
+ * <p>{@code __MPOR_SEQ__THREAD1_ACTIVE = 1; }
+ */
 public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement assign;

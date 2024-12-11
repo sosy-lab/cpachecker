@@ -12,6 +12,10 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
+/**
+ * Represents an injected call to {@code reach_error} so that the sequentialization actually adopts
+ * {@code reach_error}s from the input program for the property {@code unreach-call.prp}.
+ */
 public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
   public SeqReachErrorStatement() {}

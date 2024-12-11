@@ -13,6 +13,12 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 
+/**
+ * Represents a blank case block which only has a {@code pc} update. All blank statements are later
+ * pruned from the sequentialization.
+ *
+ * <p>E.g. {@code case m: pc[thread_id] = n; continue;}
+ */
 public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   private final int threadId;

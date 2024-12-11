@@ -93,7 +93,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           + "// a tool for configurable software verification:\n"
           + "// https://cpachecker.sosy-lab.org\n"
           + "//\n"
-          + "// SPDX-FileCopyrightText:"
+          + "// SPDX-FileCopyrightText: "
           + Year.now(ZoneId.systemDefault()).getValue()
           + " Dirk Beyer <https://www.sosy-lab.org>\n"
           + "//\n"

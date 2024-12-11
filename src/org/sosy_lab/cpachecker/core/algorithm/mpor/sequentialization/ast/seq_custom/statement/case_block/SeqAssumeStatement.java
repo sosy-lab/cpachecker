@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStat
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
+/** Represents a conditional case block statement with {@code if} and {@code else if} statements. */
 public class SeqAssumeStatement implements SeqCaseBlockStatement {
 
   private final SeqControlFlowStatement controlFlowStatement;
