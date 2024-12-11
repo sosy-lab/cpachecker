@@ -17,17 +17,24 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class TaintAnalysisState
-    implements LatticeAbstractState<TaintAnalysisState>, Targetable, Serializable, Graphable {
+    implements LatticeAbstractState<TaintAnalysisState>,
+        Targetable,
+        Serializable,
+        Graphable,
+        AbstractQueryableState {
 
   @Serial private static final long serialVersionUID = -7715698130795640052L;
 
   private boolean violatesProperty = false;
   private Set<CIdExpression> taintedVariables;
+  private static final String PROPERTY_TAINTED = "taintViolation";
 
   public TaintAnalysisState(Set<CIdExpression> pElements) {
     this.taintedVariables = pElements;
@@ -112,5 +119,18 @@ public class TaintAnalysisState
   @SuppressWarnings("unused")
   public void setViolatesProperty() {
     violatesProperty = true;
+  }
+
+  @Override
+  public String getCPAName() {
+    return "TaintAnalysisCPA";
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    if (pProperty.equals(PROPERTY_TAINTED)) {
+      return isTarget();
+    }
+    throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
   }
 }
