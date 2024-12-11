@@ -222,13 +222,18 @@ public class SeqUtil {
             assert pFuncVars.returnValueAssignments.containsKey(threadEdge);
             // TODO add support and test for pthread_join(id, &start_routine_return)
             //  where start_routine_return is assigned the return value of the threads start routine
-            // returning from any other function: assign return value to all return vars
+            // returning from non-start-routine function: assign return value to return vars
             ImmutableSet<FunctionReturnValueAssignment> assigns =
                 pFuncVars.returnValueAssignments.get(threadEdge);
             assert assigns != null;
-            assert !assigns.isEmpty();
-            CIdExpression returnPc = assigns.iterator().next().returnPcStorage.returnPcVar;
-            stmts.add(new SeqReturnValueAssignStatements(returnPc, assigns, pThread.id, targetPc));
+            if (assigns.isEmpty()) { // -> function does not return anything, i.e. return;
+              stmts.add(new SeqBlankStatement(pThread.id, targetPc));
+            } else {
+              // just get the first element in the set for the RETURN_PC
+              CIdExpression returnPc = assigns.iterator().next().returnPcStorage.returnPcVar;
+              stmts.add(
+                  new SeqReturnValueAssignStatements(returnPc, assigns, pThread.id, targetPc));
+            }
 
           } else if (isExplicitlyHandledPthreadFunc(sub.cfaEdge)) {
             PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(edge);

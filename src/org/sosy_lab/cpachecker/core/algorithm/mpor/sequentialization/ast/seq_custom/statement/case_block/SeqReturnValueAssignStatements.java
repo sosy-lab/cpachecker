@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -52,8 +50,6 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
       int pThreadId,
       int pTargetPc) {
 
-    checkArgument(!pAssigns.isEmpty(), "pAssigns must contain at least one entry");
-
     assigns = pAssigns;
     returnPc = pReturnPc;
     threadId = pThreadId;
@@ -74,6 +70,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
               ImmutableList.of(assignmentStatement),
               CaseBlockTerminator.BREAK));
     }
+    // TODO remove hardcoded int values?
     SeqSwitchStatement switchStatement = new SeqSwitchStatement(returnPc, caseClauses.build(), 5);
     CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(threadId, targetPc);
     return SeqSyntax.NEWLINE

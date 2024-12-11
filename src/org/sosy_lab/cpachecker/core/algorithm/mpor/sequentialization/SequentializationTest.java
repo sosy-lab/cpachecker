@@ -13,7 +13,6 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -24,9 +23,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 
 public class SequentializationTest {
 
-  // TODO these trigger an error where the return value assignment is empty
-  // "singleton-b",
-  // "fib_safe-5",
   // TODO this triggers a substitute not found because the pthread_create call passes
   //  a parameter to the start routine and the thread reads it
   // "ring_2w1r-2",
@@ -61,8 +57,6 @@ public class SequentializationTest {
     testCompile(path);
   }
 
-  // TODO this triggers an assertion failure in SeqUtil
-  @Ignore
   @Test
   public void testCompileSeqSingletonWithUninitProblems() throws Exception {
     Path path =
