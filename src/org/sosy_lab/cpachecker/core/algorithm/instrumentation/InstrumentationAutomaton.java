@@ -362,7 +362,7 @@ public class InstrumentationAutomaton {
             q1,
             new InstrumentationPattern("true"),
             new InstrumentationOperation(
-                (pIndex == 0 ? "int saved = 0; int pc = 0; int pc_instr = 0; " : "pc_instr = pc; ")
+                (pIndex == 0 ? "int saved = 0; int pc = 0; int pc_instr = 0; " : "")
                     + undeclaredVariables.entrySet().stream()
                         .map(
                             (entry) ->
