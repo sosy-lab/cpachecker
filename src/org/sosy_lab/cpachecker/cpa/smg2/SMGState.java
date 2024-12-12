@@ -5404,6 +5404,9 @@ public class SMGState
       }
     }
 
+    // Update nesting level of nested values and objects
+    currentState = currentState.incrementNestingLevelOfSubSMG(newDLL, ImmutableSet.of(nfo, pfo));
+
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
     assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(root) == 0);
     assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj)
@@ -5569,6 +5572,9 @@ public class SMGState
         currentState.copyAndReplaceMemoryModel(
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(nextObj).getSPC());
 
+    // Update nesting level of nested values and objects
+    currentState = currentState.incrementNestingLevelOfSubSMG(newSLL, ImmutableSet.of(nfo));
+
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
     assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(root) == 0);
     assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj)
@@ -5581,6 +5587,29 @@ public class SMGState
         ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build(),
         nestingLevel,
         listPointerType);
+  }
+
+  private SMGState incrementNestingLevelOfSubSMG(
+      SMGSinglyLinkedListSegment newSLL, Set<BigInteger> restrictedOffsets) {
+    SMGState currentState = this;
+    for (SMGHasValueEdge hve :
+        getMemoryModel()
+            .getSmg()
+            .getHasValueEdgesByPredicate(newSLL, h -> !restrictedOffsets.contains(h.getOffset()))) {
+      // TODO: currently we don't discern between singular nested and ALL nested. If value were an
+      // ALL pointer, it creates a new copy of the nested obj each materialization. This obj would
+      // have a changed nesting level. A region pointer would not have a changed nesting level and
+      // even after materialization all pointers point to the exact same obj. We currently do this
+      // by equalityCache.
+      SMGValue value = hve.hasValue();
+      // Each object nested should have a nesting level that is at least 1 greater than the current
+      if (currentState.getMemoryModel().getSmg().isPointer(value)) {
+        SMGObject nestedObj =
+            currentState.getMemoryModel().getSmg().getPTEdge(value).orElseThrow().pointsTo();
+        // copyAndReplaceObjectAndRemoveOld();
+      }
+    }
+    return currentState;
   }
 
   public SMGState removeUnusedValues() {
