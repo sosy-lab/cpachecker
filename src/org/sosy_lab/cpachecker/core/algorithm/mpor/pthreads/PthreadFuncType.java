@@ -15,6 +15,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+/**
+ * Contains mostly methods from the pthread standard, though we also include e.g. {@code
+ * __VERIFIER_atomic_begin} here.
+ */
 public enum PthreadFuncType {
 
   // TODO create barrier logic, see e.g. pthread-divine/barrier_2t.i
@@ -75,6 +79,15 @@ public enum PthreadFuncType {
       Optional.of(false),
       Optional.empty(),
       Optional.empty()),
+  PTHREAD_EQUAL(
+      "pthread_equal",
+      false,
+      false,
+      // TODO this method has pthread_t at index 1 and 2 -> add list as param later
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty()),
   PTHREAD_EXIT(
       "pthread_exit",
       false,
@@ -89,6 +102,14 @@ public enum PthreadFuncType {
       true,
       Optional.of(0),
       Optional.of(false),
+      Optional.empty(),
+      Optional.empty()),
+  PTHREAD_KILL(
+      "pthread_kill",
+      false,
+      false,
+      Optional.of(0),
+      Optional.empty(),
       Optional.empty(),
       Optional.empty()),
   PTHREAD_MUTEX_INIT(
@@ -114,13 +135,76 @@ public enum PthreadFuncType {
       Optional.empty(),
       Optional.empty(),
       Optional.of(0),
+      Optional.empty()),
+  PTHREAD_ONCE(
+      "pthread_once",
+      false,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty()),
+  PTHREAD_RWLOCK_RDLOCK(
+      "pthread_rwlock_rdlock",
+      false,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty()),
+  PTHHREAD_RWLOCK_TRYRDLOCK(
+      "pthread_rwlock_tryrdlock",
+      false,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty()),
+  PTHHREAD_RWLOCK_UNLOCK(
+      "pthread_rwlock_unlock",
+      false,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty()),
+  PTHHREAD_RWLOCK_WRLOCK(
+      "pthread_rwlock_wrlock",
+      false,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty()),
+  PTHREAD_SELF(
+      "pthread_self",
+      false,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty()),
+  __VERIFIER_ATOMIC_BEGIN(
+      "__VERIFIER_atomic_begin",
+      false,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty()),
+  __VERIFIER_ATOMIC_END(
+      "__VERIFIER_atomic_end",
+      false,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
       Optional.empty());
 
   // TODO unsure about yield, mutex_destroy
   //  pthread_mutex_t amutex = PTHREAD_MUTEX_INITIALIZER; // also used instead of mutex init
   //  pthread_barrier stuff
   //  etc. probably a lot more things
-  //  __VERIFIER_atomic_begin and _end will be relevant to identify too
 
   public final String name;
 
@@ -141,6 +225,9 @@ public enum PthreadFuncType {
 
   private final Optional<Integer> startRoutineIndex;
 
+  // TODO maybe its best to create a class that states the type of the pthread object, the index /
+  //  indices and whether it is never / always / sometimes a pointer
+  //  then just create an immutablelist with the desired properties of the function
   PthreadFuncType(
       String pName,
       boolean pIsSupported,

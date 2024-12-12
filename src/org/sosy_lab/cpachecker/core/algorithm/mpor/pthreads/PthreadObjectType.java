@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
+// TODO pthread_once_t
+// TODO pthread_rwlock_t
 public enum PthreadObjectType {
   PTHREAD_T("pthread_t"),
   PTHREAD_MUTEX_T("pthread_mutex_t");

@@ -23,6 +23,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 
 public class SequentializationTest {
 
+  // TODO need explicit support for __VERIFIER_atomic_begin (put all in one case until end)
+
   // TODO this triggers a substitute not found because the pthread_create call passes
   //  a parameter to the start routine and the thread reads it
   // "ring_2w1r-2",
