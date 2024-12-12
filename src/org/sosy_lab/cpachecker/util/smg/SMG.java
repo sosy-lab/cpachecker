@@ -865,7 +865,7 @@ public class SMG {
 
     // replace object
     PersistentMap<SMGObject, Boolean> newObjects =
-        smgObjects.removeAndCopy(pOldObject).putAndCopy(pNewObject, true);
+        smgObjects.removeAndCopy(pOldObject).putAndCopy(pNewObject, smgObjects.get(pOldObject));
 
     return newSMG.of(newObjects, newHVEdges);
   }
