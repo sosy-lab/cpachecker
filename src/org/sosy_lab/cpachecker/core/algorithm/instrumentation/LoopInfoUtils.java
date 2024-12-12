@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
-
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -41,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -73,19 +71,12 @@ public class LoopInfoUtils {
 
       // Determine the names of all variables used except those declared inside the loop
       Set<String> liveVariables = new HashSet<>();
-      Set<String> variablesDeclaredInsideLoop = new HashSet<>();
       Map<String, String> liveVariablesAndTypes = new HashMap<>();
       for (CFAEdge cfaEdge : loop.getInnerLoopEdges()) {
         if (cfaEdge.getRawAST().isPresent()) {
-          AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
-          if (aAstNode instanceof CSimpleDeclaration) {
-            variablesDeclaredInsideLoop.add(((CSimpleDeclaration) aAstNode).getQualifiedName());
-          } else {
-            liveVariables.addAll(getVariablesFromAAstNode(cfaEdge.getRawAST().orElseThrow()));
-          }
+          liveVariables.addAll(getVariablesFromAAstNode(cfaEdge.getRawAST().orElseThrow()));
         }
       }
-      liveVariables.removeAll(variablesDeclaredInsideLoop);
       liveVariables.removeIf(
           e ->
               e.contains("::")
