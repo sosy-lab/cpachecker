@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.Iterables;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -39,12 +38,6 @@ public class CFAUtilsTest {
     return CPATestRunner.run(config, program.toString(), Level.FINEST);
   }
 
-  /** Get the edge from the CFA that contains the given string. */
-  private static CFAEdge getEdge(String pStringsInEdge, CFA pCFA) {
-    return Iterables.getOnlyElement(
-        CFAUtils.allEdges(pCFA).filter(edge -> edge.toString().contains(pStringsInEdge)));
-  }
-
   private void fullExpressionAtCorrectPosition(
       CFA pCFA,
       String pStringsToIdentifyEdge,
@@ -53,7 +46,7 @@ public class CFAUtilsTest {
       int pExpectedEndingLine,
       int pExpectedEndColumnInLine) {
     AstCfaRelation astCfaRelation = pCFA.getAstCfaRelation();
-    CFAEdge edge = getEdge(pStringsToIdentifyEdge, pCFA);
+    CFAEdge edge = TestDataTools.getEdge(pStringsToIdentifyEdge, pCFA);
     assertThat(edge instanceof CCfaEdge).isTrue();
 
     Optional<FileLocation> optionalExpressionLocation =
