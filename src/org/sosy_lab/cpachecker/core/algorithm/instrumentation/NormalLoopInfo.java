@@ -9,13 +9,15 @@
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
 import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 /**
  * Represents a container for normal loop information(for, while, do-while, and goto loop).
  *
  * @param loopLocation the line number where the loop is located
+ * @param loop in CFA
  * @param liveVariablesAndTypes the mapping from variable names used, but not declared, in the loop
  *     to their types
  */
 public record NormalLoopInfo(
-    int loopLocation, ImmutableMap<String, String> liveVariablesAndTypes) {}
+    int loopLocation, Loop loop, ImmutableMap<String, String> liveVariablesAndTypes) {}

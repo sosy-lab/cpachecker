@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
+
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -20,6 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -117,11 +119,11 @@ public class LoopInfoUtils {
 
       for (Integer loopLocation : loopLocations) {
         allNormalLoopInfos.add(
-            new NormalLoopInfo(loopLocation, ImmutableMap.copyOf(liveVariablesAndTypes)));
+            new NormalLoopInfo(loopLocation, loop, ImmutableMap.copyOf(liveVariablesAndTypes)));
       }
     }
 
-    return ImmutableSet.copyOf(allNormalLoopInfos);
+    return ImmutableSet.copyOf(includeAllTheOuterLiveVariablesInNestedLoop(allNormalLoopInfos));
   }
 
   public static Map<CFANode, Integer> getMapOfLoopHeadsToLineNumbers(CFA pCfa) {
@@ -206,6 +208,28 @@ public class LoopInfoUtils {
       }
     }
     return null;
+  }
+
+  private static Set<NormalLoopInfo> includeAllTheOuterLiveVariablesInNestedLoop(
+      Set<NormalLoopInfo> pNormalLoopInfo) {
+    Set<NormalLoopInfo> updatedLoopInfo = new HashSet<>();
+    for (NormalLoopInfo info : pNormalLoopInfo) {
+      Set<NormalLoopInfo> outerLoops =
+          pNormalLoopInfo.stream()
+              .filter(l -> l.loop().isOuterLoopOf(info.loop()))
+              .collect(Collectors.toSet());
+      Map<String, String> updatedLiveVariables = new HashMap<>();
+      updatedLiveVariables.putAll(info.liveVariablesAndTypes());
+
+      for (ImmutableMap<String, String> liveVariables :
+          outerLoops.stream().map(l -> l.liveVariablesAndTypes()).collect(Collectors.toSet())) {
+        updatedLiveVariables.putAll(liveVariables);
+      }
+      updatedLoopInfo.add(
+          new NormalLoopInfo(
+              info.loopLocation(), info.loop(), ImmutableMap.copyOf(updatedLiveVariables)));
+    }
+    return updatedLoopInfo;
   }
 
   private static ImmutableSet<String> getVariablesFromAAstNode(AAstNode pAAstNode) {
