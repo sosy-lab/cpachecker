@@ -1346,6 +1346,32 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
+   * @param pOldObject object to be removed.
+   * @param pNewObject object that replaces pOldObject, i.e. all pointers pointing to pOldObject are
+   *     switched to point at this and all values of pOldObject are copied to be in this obj. This
+   *     obj retains the validity of pOldObject.
+   * @return new SPC with the changes.
+   */
+  public SymbolicProgramConfiguration copyAndReplaceObjectAndRemoveOld(
+      SMGObject pOldObject, SMGObject pNewObject) {
+    SymbolicProgramConfiguration newSPC =
+        copyAndAddHeapObject(pNewObject)
+            .copyWithNewSMG(smg.copyAndReplaceObject(pOldObject, pNewObject));
+    return new SymbolicProgramConfiguration(
+        newSPC.smg,
+        newSPC.globalVariableMapping,
+        newSPC.stackVariableMapping,
+        newSPC.heapObjects.removeAndCopy(pOldObject),
+        newSPC.externalObjectAllocation,
+        newSPC.valueMapping,
+        newSPC.variableToTypeMap,
+        newSPC.memoryAddressAssumptionsMap.removeAndCopy(pOldObject),
+        newSPC.mallocZeroMemory,
+        newSPC.readBlacklist,
+        newSPC.valueToTypeMap);
+  }
+
+  /**
    * Copies the SMG rooted at root with SPC rootSPC into newMemory with newSPC. First, copies all
    * values of root to newMemory except restrictionOffset. Then copies the memory behind pointers.
    * For all copies this tries to find mappings and use those if they exist. Values and objects are
