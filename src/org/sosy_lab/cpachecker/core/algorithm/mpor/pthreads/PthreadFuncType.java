@@ -108,7 +108,9 @@ public enum PthreadFuncType {
       "pthread_kill",
       false,
       false,
-      Optional.of(0),
+      // TODO actually want Optional.of(0) here, but it causes an ExceptionInInitializerError
+      //  -> fix once we support pthread_kill
+      Optional.empty(),
       Optional.empty(),
       Optional.empty(),
       Optional.empty()),
@@ -152,7 +154,7 @@ public enum PthreadFuncType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty()),
-  PTHHREAD_RWLOCK_TRYRDLOCK(
+  PTHREAD_RWLOCK_TRYRDLOCK(
       "pthread_rwlock_tryrdlock",
       false,
       false,
@@ -160,7 +162,7 @@ public enum PthreadFuncType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty()),
-  PTHHREAD_RWLOCK_UNLOCK(
+  PTHREAD_RWLOCK_UNLOCK(
       "pthread_rwlock_unlock",
       false,
       false,
@@ -168,7 +170,7 @@ public enum PthreadFuncType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty()),
-  PTHHREAD_RWLOCK_WRLOCK(
+  PTHREAD_RWLOCK_WRLOCK(
       "pthread_rwlock_wrlock",
       false,
       false,
