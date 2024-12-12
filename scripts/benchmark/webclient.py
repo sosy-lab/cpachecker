@@ -23,6 +23,7 @@ import threading
 import ssl
 import zipfile
 import zlib
+import json
 
 from getpass import getpass
 from time import sleep
@@ -430,9 +431,10 @@ class WebInterface:
         self._hash_code_cache = {}
         self._group_id = str(random.randint(0, 1000000))  # noqa: S311
         self._read_hash_code_cache()
-        self._revision = self._request_tool_revision(revision)
+        self._revision = self._request_version_information(revision).get("commitHash", "")
         self._tool_name = self._request_tool_name()
-        self._tool_version = self.request_tool_version(revision)
+        self._tool_version = self._request_version_information(revision).get("toolVersion", "")
+
 
         if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
             logging.warning(
@@ -503,20 +505,15 @@ class WebInterface:
                 e.strerror,
             )
 
-    def _request_tool_revision(self, revision):
-        path = "tool/version_string?revision=" + revision
-        (resolved_svn_revision, _) = self._request("GET", path)
-        return resolved_svn_revision.decode("UTF-8")
+    def _request_version_information(self, revision):
+        path = "tool/version_info?revision=" + revision
+        (version_information, _) = self._request("GET", path)
+        return json.loads(version_information.decode("UTF-8"))
 
     def _request_tool_name(self):
         path = "tool/name"
         (tool_name, _) = self._request("GET", path)
         return tool_name.decode("UTF-8")
-
-    def request_tool_version(self, revision):
-        path = "tool/tool_version?revision=" + revision
-        (resolved_version, _) = self._request("GET", path)
-        return resolved_version.decode("UTF-8")
 
     def tool_revision(self):
         return self._revision
