@@ -33,7 +33,7 @@ auto-update-dependencies:
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
   before_script:
     - apt-get update
-    - apt-get install -y --no-install-recommends git xmlstarlet
+    - apt-get install -y --no-install-recommends git xmlstarlet openssh-client
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY_BASE64" | base64 -d | ssh-add -
     - mkdir -p ~/.ssh
