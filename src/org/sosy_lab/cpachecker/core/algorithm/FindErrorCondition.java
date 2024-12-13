@@ -68,8 +68,8 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
 
-  @Option(description = "Max Iterations")
-  private int maxIterations = -1;
+  @Option(description = "Maximum iterations for error condition refinement.")
+  private int maxIterations = -1; // Default: No limit
 
   public FindErrorCondition(
       Algorithm pAlgorithm,
@@ -91,39 +91,51 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Finding error condition...");
+
     try {
       AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
       PredicateCPA predicateCPA = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, getClass());
       PathFormulaManager manager = predicateCPA.getPathFormulaManager();
       Solver solver = predicateCPA.getSolver();
-      Solver quantifier_solver = Solver.create(
+      Solver quantifierSolver = Solver.create(
           Configuration.builder().copyFrom(config)
               .setOption("solver.solver", Solvers.Z3.name())
               .build()
-          ,logger,shutdownNotifier);
+          , logger, shutdownNotifier);
+
+      // Initialize exclusion formula and iteration variables
       AbstractState initialState = getInitialState();
       SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
-      PathFormula exclude = manager.makeEmptyPathFormula();
+      PathFormula exclusionFormula = manager.makeEmptyPathFormula();
       boolean foundNewCounterexamples;
 
       // TODO: run until no new counterexamples are found!
       int currentIteration = 0;
       do {
         foundNewCounterexamples = false;
-        status = performReachabilityAnalysis(reachedSet, initialState, ssaBuilder, exclude, manager, solver, quantifier_solver);
+
+        // Run reachability analysis
+        status = performReachabilityAnalysis(reachedSet, initialState, ssaBuilder, exclusionFormula,
+            manager, solver, quantifierSolver);
         FluentIterable<CounterexampleInfo> counterExamples = getCounterexamples(reachedSet);
 
+        // Collect counterexamples and refine
         if (!counterExamples.isEmpty()) {
           foundNewCounterexamples = true;
           for (CounterexampleInfo cex : counterExamples) {
-            PathFormula fullPath = manager.makeFormulaForPath(cex.getTargetPath().getFullPath());
-            exclude = updateExclusionFormula(exclude, fullPath, ssaBuilder, solver, manager, quantifier_solver);
+            PathFormula cexFormula = manager.makeFormulaForPath(cex.getTargetPath().getFullPath());
+            exclusionFormula =
+                updateExclusionFormula(exclusionFormula, cexFormula, ssaBuilder, solver, manager,
+                    quantifierSolver);
           }
-          initialState = updateInitialStateWithExclusions(initialState, exclude);
+          initialState = updateInitialStateWithExclusions(initialState, exclusionFormula);
         }
 
-      } while (foundNewCounterexamples && (++currentIteration < maxIterations || maxIterations == -1));
+      } while (foundNewCounterexamples && (++currentIteration < maxIterations
+          || maxIterations == -1));
+
       return status;
+
     } catch (InvalidConfigurationException | SolverException ex) {
       throw new CPAException("Error during the execution of FindErrorCondition", ex);
     }
@@ -152,7 +164,8 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     FluentIterable<CounterexampleInfo> counterExamples = getCounterexamples(reachedSet);
     for (CounterexampleInfo cex : counterExamples) {
       PathFormula fullPath = manager.makeFormulaForPath(cex.getTargetPath().getFullPath());
-      exclude = updateExclusionFormula(exclude, fullPath, ssaBuilder, solver, manager, quantifier_solver);
+      exclude =
+          updateExclusionFormula(exclude, fullPath, ssaBuilder, solver, manager, quantifier_solver);
     }
 
     return status;
@@ -184,23 +197,23 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     }
 
     BooleanFormula eliminated_with_quantifier =
-        eliminateVariables(quantifier_solver.getFormulaManager().translateFrom(fullPath.getFormula(), solver.getFormulaManager()), entry -> !entry.getKey().contains("_nondet"),
+        eliminateVariables(quantifier_solver.getFormulaManager()
+                .translateFrom(fullPath.getFormula(), solver.getFormulaManager()),
+            entry -> !entry.getKey().contains("_nondet"),
             quantifier_solver);
 
-    eliminated_with_quantifier = solver.getFormulaManager().translateFrom(eliminated_with_quantifier, quantifier_solver.getFormulaManager());
-    logger.log(Level.INFO,"Eliminated:" + eliminated_with_quantifier + "\n");
+    eliminated_with_quantifier = solver.getFormulaManager()
+        .translateFrom(eliminated_with_quantifier, quantifier_solver.getFormulaManager());
+    logger.log(Level.INFO, "Eliminated:" + eliminated_with_quantifier + "\n");
     eliminated_with_quantifier = solver.getFormulaManager().simplify(eliminated_with_quantifier);
-    logger.log(Level.INFO,"Eliminated Simplified:" + eliminated_with_quantifier + "\n");
+    logger.log(Level.INFO, "Eliminated Simplified:" + eliminated_with_quantifier + "\n");
     //exclude path formula to ignore already covered paths.
     exclude = manager.makeAnd(exclude,
             solver.getFormulaManager().getBooleanFormulaManager().not(eliminated_with_quantifier))
         .withContext(ssaBuilder.build(), fullPath.getPointerTargetSet());
 
-    // use visitor to translate the formula
-    FormulaToCVisitor visitor = new FormulaToCVisitor(solver.getFormulaManager(), id->id);
-    solver.getFormulaManager().visit(exclude.getFormula(), visitor);
-
-    logger.log(Level.INFO,"Error Condition: " + visitor.getString());
+    String visitorOutput = formatErrorCondition(exclude.getFormula(), solver);
+    logger.log(Level.INFO, "Error Condition: " + visitorOutput);
     return exclude;
   }
 
@@ -246,6 +259,21 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       }
     }
     return new ARGState(new CompositeState(initialAbstractStates.build()), null);
+  }
+
+  private String formatErrorCondition(BooleanFormula formula, Solver solver) {
+    FormulaToCVisitor visitor = new FormulaToCVisitor(solver.getFormulaManager(), id -> id);
+    solver.getFormulaManager().visit(formula, visitor);
+    return visitor.getString()
+        .replace("_nondet", "")
+        .replace("bvadd_32", "+")
+        .replace("bvsub_32", "-")
+        .replace("bvslt_32", "<");
+  }
+
+  private BooleanFormula minimizeErrorCondition(BooleanFormula formula, Solver solver)
+      throws SolverException, InterruptedException {
+    return solver.getFormulaManager().simplify(formula);
   }
 
   @Override
