@@ -3115,15 +3115,15 @@ public class SMGCPAValueVisitor
   private boolean isArithmeticOperation(BinaryOperator binaryOperator) {
     return switch (binaryOperator) {
       case PLUS,
-              MINUS,
-              DIVIDE,
-              MODULO,
-              MULTIPLY,
-              SHIFT_LEFT,
-              SHIFT_RIGHT,
-              BINARY_AND,
-              BINARY_OR,
-              BINARY_XOR ->
+          MINUS,
+          DIVIDE,
+          MODULO,
+          MULTIPLY,
+          SHIFT_LEFT,
+          SHIFT_RIGHT,
+          BINARY_AND,
+          BINARY_OR,
+          BINARY_XOR ->
           true;
       default -> false;
     };
