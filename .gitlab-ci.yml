@@ -10,6 +10,8 @@
 # Most jobs are included here:
 include:
   - local: build/gitlab-ci.local.yml
+    rules:
+      - if: $AUTO_UPDATE_DEPENDENCIES != "true"
 
 # Run either MR pipelines or regular pipelines, but never both at the same time.
 # Cf. https://docs.gitlab.com/ee/ci/yaml/workflow.html#switch-between-branch-pipelines-and-merge-request-pipelines
@@ -25,3 +27,14 @@ variables:
   REFASTER_REPO_REVISION: bba447e6b8e1df7ef8cdb6864319a4569e3e275b
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
   REFASTER_VERSION: 2.30.0
+
+auto-update-dependencies:
+  stage: deploy
+  image: ubuntu:24.04
+  before_script:
+    - apt-get update
+    - apt-get install -y git xmlstarlet yq
+  script:
+    - build/auto-update-dependencies.sh
+  rules:
+    - if: $AUTO_UPDATE_DEPENDENCIES == "true"
