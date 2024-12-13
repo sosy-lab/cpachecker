@@ -33,7 +33,7 @@ auto-update-dependencies:
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
   before_script:
     - apt-get update
-    - apt-get install -y --no-install-recommends git xmlstarlet yq
+    - apt-get install -y --no-install-recommends git xmlstarlet
   script:
     - build/auto-update-dependencies.sh
   rules:
