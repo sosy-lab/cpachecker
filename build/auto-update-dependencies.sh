@@ -86,6 +86,7 @@ if [[ "$current_commit" != "$previous_commit" ]]; then
     git push "$PUSH" "HEAD:refs/heads/$BRANCH" \
         -o merge_request.create \
         -o merge_request.merge_when_pipeline_succeeds \
+        -o merge_request.description="Created automatically by CI job auto-update-dependencies and build/auto-update-dependencies.sh" \
         -o merge_request.title="Auto-update dependencies $(date -I)"
   else
     echo
