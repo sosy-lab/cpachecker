@@ -38,3 +38,7 @@ auto-update-dependencies:
     - build/auto-update-dependencies.sh
   rules:
     - if: $AUTO_UPDATE_DEPENDENCIES == "true"
+  cache:
+    key: "$CI_JOB_NAME"
+    paths:
+      - ".ivy2/"
