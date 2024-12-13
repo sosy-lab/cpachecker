@@ -32,7 +32,7 @@ DEPENDENCIES=(
     "com.github.spotbugs:spotbugs-annotations"
     "de.thetaphi:forbiddenapis"
 )
-BRANCH=auto-update-dependencies
+: "${BRANCH:=auto-update-dependencies}"
 
 # Configure git if running in CI, either from GitLab or manually set variables
 [[ -v GITLAB_USER_NAME ]] && git config --global user.name "${GITLAB_USER_NAME}"
@@ -83,7 +83,7 @@ current_commit="$(git rev-parse HEAD)"
 if [[ "$current_commit" != "$previous_commit" ]]; then
   if [[ -v PUSH ]]; then
     # Create or update MR
-    git push "$PUSH" "HEAD:$BRANCH" \
+    git push "$PUSH" "HEAD:refs/heads/$BRANCH" \
         -o merge_request.create \
         -o merge_request.merge_when_pipeline_succeeds \
         -o merge_request.title="Auto-update dependencies $(date -I)"
