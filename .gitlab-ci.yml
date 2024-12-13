@@ -30,10 +30,10 @@ variables:
 
 auto-update-dependencies:
   stage: deploy
-  image: ubuntu:24.04
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
   before_script:
     - apt-get update
-    - apt-get install -y git xmlstarlet yq
+    - apt-get install -y --no-install-recommends git xmlstarlet yq
   script:
     - build/auto-update-dependencies.sh
   rules:
