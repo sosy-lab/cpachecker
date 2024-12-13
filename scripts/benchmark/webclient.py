@@ -431,10 +431,10 @@ class WebInterface:
         self._hash_code_cache = {}
         self._group_id = str(random.randint(0, 1000000))  # noqa: S311
         self._read_hash_code_cache()
-        version_information = self._request_version_information(revision)
+        version_information = self._request_tool_information(revision)
         self._revision = version_information.get("commitHash", "")
         self._tool_version = version_information.get("toolVersion", "")
-        self._tool_name = self._request_tool_name()
+        self._tool_name = version_information.get("toolName", "")
 
         if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
             logging.warning(
@@ -505,15 +505,10 @@ class WebInterface:
                 e.strerror,
             )
 
-    def _request_version_information(self, revision):
-        path = "tool/version_info?revision=" + revision
+    def _request_tool_information(self, revision):
+        path = "tool/info?revision=" + revision
         (version_information, _) = self._request("GET", path)
         return json.loads(version_information.decode("UTF-8"))
-
-    def _request_tool_name(self):
-        path = "tool/name"
-        (tool_name, _) = self._request("GET", path)
-        return tool_name.decode("UTF-8")
 
     def tool_revision(self):
         return self._revision
