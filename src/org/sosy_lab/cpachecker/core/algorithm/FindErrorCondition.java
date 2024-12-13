@@ -109,24 +109,30 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       boolean foundNewCounterexamples;
 
       int currentIteration = 0;
+      logger.log(Level.INFO, "Entering While Loop...");
       do {
+        logger.log(Level.INFO, "Current Iteration: " + currentIteration);
+
         foundNewCounterexamples = false;
 
         // Run reachability analysis
         status = performReachabilityAnalysis(reachedSet, initialState, ssaBuilder, exclusionFormula,
             manager, solver, quantifierSolver);
         // Collect counterexamples
+        logger.log(Level.INFO, String.format("Iteration %d:Performed Reachability Analysis: %s", currentIteration, status));
         FluentIterable<CounterexampleInfo> counterExamples = getCounterexamples(reachedSet);
+        logger.log(Level.INFO, String.format("Iteration %d:Found %d Counterexamples",currentIteration ,counterExamples.size()));
         // Refinement
         if (!counterExamples.isEmpty()) {
           foundNewCounterexamples = true;
+          logger.log(Level.INFO, String.format("Iteration %d:Entering For Loop...", currentIteration));
           for (CounterexampleInfo cex : counterExamples) {
             PathFormula cexFormula = manager.makeFormulaForPath(cex.getTargetPath().getFullPath());
             exclusionFormula =
                 updateExclusionFormula(exclusionFormula, cexFormula, ssaBuilder, solver, manager,
                     quantifierSolver, currentIteration);
           }
-          initialState = updateInitialStateWithExclusions(initialState, exclusionFormula);
+          initialState = updateInitialStateWithExclusions(initialState, exclusionFormula, currentIteration);
         }
 
       } while (foundNewCounterexamples && (++currentIteration < maxIterations
@@ -190,12 +196,15 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       Solver quantifierSolver,
       Integer currentIteration) throws SolverException, InterruptedException {
     logger.log(Level.INFO, "******************************** Exclusion Formula Update ********************************");
+    logger.log(Level.INFO, String.format("Iteration %d: Current CEX FORMULA: %s \n",currentIteration, cexFormula.getFormula()));
 
     for (String variable : cexFormula.getSsa().allVariables()) {
       if (!ssaBuilder.build().containsVariable(variable)) {
         ssaBuilder.setIndex(variable, cexFormula.getSsa().getType(variable), 1);
       }
     }
+
+    logger.log(Level.INFO, String.format("Iteration %d: SSABuilder All variables: %s \n",currentIteration, ssaBuilder.allVariables()));
     // formula translation between solvers, e.g. MATHSAT5 and Z3
     BooleanFormula translatedFormula = quantifierSolver.getFormulaManager().translateFrom(
         cexFormula.getFormula(), solver.getFormulaManager());
@@ -203,23 +212,23 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     BooleanFormula eliminatedByQuantifier = eliminateVariables(
         translatedFormula,
         entry -> !entry.getKey().contains("_nondet"),
-        quantifierSolver);
+        quantifierSolver, currentIteration);
 
     // translate back
     eliminatedByQuantifier = solver.getFormulaManager()
         .translateFrom(eliminatedByQuantifier, quantifierSolver.getFormulaManager());
-    logger.log(Level.INFO, "Eliminated:" + eliminatedByQuantifier + "\n");
+    logger.log(Level.INFO, String.format("Iteration %d: To Be Eliminated: %s \n", currentIteration, eliminatedByQuantifier));
 
     //exclude path formula to ignore already covered paths.
     exclusionFormula = manager.makeAnd(exclusionFormula,
             solver.getFormulaManager().getBooleanFormulaManager().not(eliminatedByQuantifier))
         .withContext(ssaBuilder.build(), cexFormula.getPointerTargetSet());
 
-    logger.log(Level.INFO, String.format("Exclusion Formula at Iteration %d: %s", currentIteration,
+    logger.log(Level.INFO, String.format("Iteration %d: Exclusion Formula: %s \n", currentIteration,
         exclusionFormula.getFormula()));
 
     String visitorOutput = formatErrorCondition(exclusionFormula.getFormula(), solver);
-    logger.log(Level.INFO, "Error Condition: " + visitorOutput);
+    logger.log(Level.INFO, String.format("Iteration %d: Error Condition: %s \n", currentIteration, visitorOutput));
     return exclusionFormula;
   }
 
@@ -227,26 +236,28 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   public BooleanFormula eliminateVariables(
       BooleanFormula translatedFormula,
       Predicate<Entry<String, Formula>> pVariablesToEliminate,
-      Solver quantifierSolver) throws InterruptedException, SolverException {
+      Solver quantifierSolver,
+      Integer currentIteration
+  ) throws InterruptedException, SolverException {
 
     logger.log(Level.INFO, "******************************** Quantifier Elimination ********************************");
-    logger.log(Level.INFO, "Variables To Eliminate: " + pVariablesToEliminate + "\n");
-    logger.log(Level.INFO, "Translated Formula: " + translatedFormula + "\n");
+    logger.log(Level.INFO, String.format("Iteration %d: Translated Formula: %s \n", currentIteration, translatedFormula));
+    logger.log(Level.INFO, String.format("Iteration %d: Variables To Eliminate: %s \n" ,currentIteration, pVariablesToEliminate ));
 
 
     Map<String, Formula> formulaNameToFormulaMap =
         quantifierSolver.getFormulaManager().extractVariables(translatedFormula);
-    logger.log(Level.INFO, "formulaNameToFormulaMap: " + formulaNameToFormulaMap.entrySet() + "\n");
+    logger.log(Level.INFO, String.format("Iteration %d: formulaNameToFormulaMap: %s", currentIteration, formulaNameToFormulaMap.entrySet()));
 
     ImmutableList<Formula> eliminate = FluentIterable.from(formulaNameToFormulaMap.entrySet())
         .filter(pVariablesToEliminate::test)
         .transform(Entry::getValue)
         .toList();
-    logger.log(Level.INFO, "Eliminate variables: " + eliminate + "\n");
+    logger.log(Level.INFO, String.format("Iteration %d: Eliminate variables: %s", currentIteration, eliminate ));
 
     BooleanFormula quantified = quantifierSolver.getFormulaManager().getQuantifiedFormulaManager()
         .mkQuantifier(Quantifier.EXISTS, eliminate, translatedFormula);
-    logger.log(Level.INFO, "Quantified variables: " + quantified + "\n");
+    logger.log(Level.INFO, String.format("Iteration %d: Quantified variables: %s", currentIteration, quantified));
 
     return quantifierSolver.getFormulaManager().getQuantifiedFormulaManager()
         .eliminateQuantifiers(quantified);
@@ -255,7 +266,8 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   // 6. Update the initial state with exclusion formulas for the next run
   private AbstractState updateInitialStateWithExclusions(
       AbstractState initialState,
-      PathFormula exclude) {
+      PathFormula exclude,
+      Integer currentIteration) {
     ImmutableList.Builder<AbstractState> initialAbstractStates = ImmutableList.builder();
     for (AbstractState abstractState : AbstractStates.asIterable(initialState)) {
       if (abstractState instanceof ARGState) {
@@ -273,6 +285,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         initialAbstractStates.add(abstractState);
       }
     }
+    logger.log(Level.INFO, String.format("Iteration %d: Updated initial state with the exclusion formula",currentIteration));
     return new ARGState(new CompositeState(initialAbstractStates.build()), null);
   }
 
@@ -297,11 +310,10 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     return rawFormula;
   }
 
-  private void minimizeErrorCondition(BooleanFormula formula, Solver solver)
-      throws SolverException, InterruptedException {
-    // TODO minimize Error condition remove redundant expressions
-    return;
-  }
+//  private void minimizeErrorCondition(BooleanFormula formula, Solver solver)
+//      throws SolverException, InterruptedException {
+//    // TODO minimize Error condition remove redundant expressions
+//  }
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
