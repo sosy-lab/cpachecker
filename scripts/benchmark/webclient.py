@@ -432,12 +432,8 @@ class WebInterface:
         self._group_id = str(random.randint(0, 1000000))  # noqa: S311
         self._read_hash_code_cache()
         version_information = self._request_version_information(revision)
-        self._revision = version_information(revision).get(
-            "commitHash", ""
-        )
-        self._tool_version = version_information(revision).get(
-            "toolVersion", ""
-        )
+        self._revision = version_information.get("commitHash", "")
+        self._tool_version = version_information.get("toolVersion", "")
         self._tool_name = self._request_tool_name()
 
         if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
