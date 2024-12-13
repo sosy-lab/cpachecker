@@ -44,7 +44,7 @@ BRANCH=auto-update-dependencies
 # we want to get into a state where we have all changes from main the auto-update branch.
 # But this is only relevant if we are going to push in the end.
 # If a developer executes the script locally, we just run on the current branch.
-if [[ "${PUSH:-}" == true ]] && git fetch origin "$BRANCH" "${CI_COMMIT_BRANCH:-main}" 2>/dev/null; then
+if [[ -v PUSH ]] && git fetch "$PUSH" "$BRANCH" "${CI_COMMIT_BRANCH:-main}" 2>/dev/null; then
   git checkout "$BRANCH"
   git merge --no-edit "${CI_COMMIT_BRANCH:-main}"
 fi
@@ -81,17 +81,17 @@ fi
 current_commit="$(git rev-parse HEAD)"
 
 if [[ "$current_commit" != "$previous_commit" ]]; then
-  if [[ "${PUSH:-}" == true ]]; then
+  if [[ -v PUSH ]]; then
     # Create or update MR
-    git push origin "HEAD:$BRANCH" \
+    git push "$PUSH" "HEAD:$BRANCH" \
         -o merge_request.create \
         -o merge_request.merge_when_pipeline_succeeds \
         -o merge_request.title="Auto-update dependencies $(date -I)"
   else
     echo
-    echo "==========================================="
+    echo "==============================================="
     echo "Dependencies updated and committed."
-    echo "Omitting push because PUSH=true is not set."
+    echo "Omitting push because variable PUSH is not set."
     echo "The changes are:"
     echo
     git --no-pager show "$previous_commit..$current_commit"

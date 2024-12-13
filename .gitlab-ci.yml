@@ -34,6 +34,12 @@ auto-update-dependencies:
   before_script:
     - apt-get update
     - apt-get install -y --no-install-recommends git xmlstarlet
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY_BASE64" | base64 -d | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
   script:
     - build/auto-update-dependencies.sh
   rules:
