@@ -23,7 +23,6 @@ import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -109,7 +108,6 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       PathFormula exclusionFormula = manager.makeEmptyPathFormula();
       boolean foundNewCounterexamples;
 
-      // TODO: run until no new counterexamples are found!
       int currentIteration = 0;
       do {
         foundNewCounterexamples = false;
@@ -117,16 +115,16 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         // Run reachability analysis
         status = performReachabilityAnalysis(reachedSet, initialState, ssaBuilder, exclusionFormula,
             manager, solver, quantifierSolver);
+        // Collect counterexamples
         FluentIterable<CounterexampleInfo> counterExamples = getCounterexamples(reachedSet);
-
-        // Collect counterexamples and refine
+        // Refinement
         if (!counterExamples.isEmpty()) {
           foundNewCounterexamples = true;
           for (CounterexampleInfo cex : counterExamples) {
             PathFormula cexFormula = manager.makeFormulaForPath(cex.getTargetPath().getFullPath());
             exclusionFormula =
                 updateExclusionFormula(exclusionFormula, cexFormula, ssaBuilder, solver, manager,
-                    quantifierSolver);
+                    quantifierSolver, currentIteration);
           }
           initialState = updateInitialStateWithExclusions(initialState, exclusionFormula);
         }
@@ -151,22 +149,23 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       ReachedSet reachedSet,
       AbstractState initialState,
       SSAMapBuilder ssaBuilder,
-      PathFormula exclude,
+      PathFormula exclusionFormula,
       PathFormulaManager manager,
       Solver solver,
       Solver quantifier_solver) throws CPAException, InterruptedException, SolverException {
+
     reachedSet.clear();
     reachedSet.add(initialState,
         cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
 
     AlgorithmStatus status = algorithm.run(reachedSet);
 
-    FluentIterable<CounterexampleInfo> counterExamples = getCounterexamples(reachedSet);
-    for (CounterexampleInfo cex : counterExamples) {
-      PathFormula fullPath = manager.makeFormulaForPath(cex.getTargetPath().getFullPath());
-      exclude =
-          updateExclusionFormula(exclude, fullPath, ssaBuilder, solver, manager, quantifier_solver);
-    }
+//    FluentIterable<CounterexampleInfo> counterExamples = getCounterexamples(reachedSet);
+//    for (CounterexampleInfo cex : counterExamples) {
+//      PathFormula fullPath = manager.makeFormulaForPath(cex.getTargetPath().getFullPath());
+//      exclusionFormula =
+//          updateExclusionFormula(exclusionFormula, fullPath, ssaBuilder, solver, manager, quantifier_solver);
+//    }
 
     return status;
   }
@@ -183,57 +182,73 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
 
   // 4. update exclusion formula with counterexample information
   private PathFormula updateExclusionFormula(
-      PathFormula exclude,
-      PathFormula fullPath,
+      PathFormula exclusionFormula,
+      PathFormula cexFormula,
       SSAMapBuilder ssaBuilder,
       Solver solver,
       PathFormulaManager manager,
-      Solver quantifier_solver) throws SolverException, InterruptedException {
+      Solver quantifierSolver,
+      Integer currentIteration) throws SolverException, InterruptedException {
+    logger.log(Level.INFO, "******************************** Exclusion Formula Update ********************************");
 
-    for (String variable : fullPath.getSsa().allVariables()) {
+    for (String variable : cexFormula.getSsa().allVariables()) {
       if (!ssaBuilder.build().containsVariable(variable)) {
-        ssaBuilder.setIndex(variable, fullPath.getSsa().getType(variable), 1);
+        ssaBuilder.setIndex(variable, cexFormula.getSsa().getType(variable), 1);
       }
     }
+    // formula translation between solvers, e.g. MATHSAT5 and Z3
+    BooleanFormula translatedFormula = quantifierSolver.getFormulaManager().translateFrom(
+        cexFormula.getFormula(), solver.getFormulaManager());
 
-    BooleanFormula eliminated_with_quantifier =
-        eliminateVariables(quantifier_solver.getFormulaManager()
-                .translateFrom(fullPath.getFormula(), solver.getFormulaManager()),
-            entry -> !entry.getKey().contains("_nondet"),
-            quantifier_solver);
+    BooleanFormula eliminatedByQuantifier = eliminateVariables(
+        translatedFormula,
+        entry -> !entry.getKey().contains("_nondet"),
+        quantifierSolver);
 
-    eliminated_with_quantifier = solver.getFormulaManager()
-        .translateFrom(eliminated_with_quantifier, quantifier_solver.getFormulaManager());
-    logger.log(Level.INFO, "Eliminated:" + eliminated_with_quantifier + "\n");
-    eliminated_with_quantifier = solver.getFormulaManager().simplify(eliminated_with_quantifier);
-    logger.log(Level.INFO, "Eliminated Simplified:" + eliminated_with_quantifier + "\n");
+    // translate back
+    eliminatedByQuantifier = solver.getFormulaManager()
+        .translateFrom(eliminatedByQuantifier, quantifierSolver.getFormulaManager());
+    logger.log(Level.INFO, "Eliminated:" + eliminatedByQuantifier + "\n");
+
     //exclude path formula to ignore already covered paths.
-    exclude = manager.makeAnd(exclude,
-            solver.getFormulaManager().getBooleanFormulaManager().not(eliminated_with_quantifier))
-        .withContext(ssaBuilder.build(), fullPath.getPointerTargetSet());
+    exclusionFormula = manager.makeAnd(exclusionFormula,
+            solver.getFormulaManager().getBooleanFormulaManager().not(eliminatedByQuantifier))
+        .withContext(ssaBuilder.build(), cexFormula.getPointerTargetSet());
 
-    String visitorOutput = formatErrorCondition(exclude.getFormula(), solver);
+    logger.log(Level.INFO, String.format("Exclusion Formula at Iteration %d: %s", currentIteration,
+        exclusionFormula.getFormula()));
+
+    String visitorOutput = formatErrorCondition(exclusionFormula.getFormula(), solver);
     logger.log(Level.INFO, "Error Condition: " + visitorOutput);
-    return exclude;
+    return exclusionFormula;
   }
 
-  // 5. eliminate variables matching a predicate (Quantifier Elimination )
+  // 5. eliminate variables matching a predicate (Quantifier Elimination)
   public BooleanFormula eliminateVariables(
-      BooleanFormula pFormula,
+      BooleanFormula translatedFormula,
       Predicate<Entry<String, Formula>> pVariablesToEliminate,
-      Solver pSolver) throws InterruptedException, SolverException {
+      Solver quantifierSolver) throws InterruptedException, SolverException {
+
+    logger.log(Level.INFO, "******************************** Quantifier Elimination ********************************");
+    logger.log(Level.INFO, "Variables To Eliminate: " + pVariablesToEliminate + "\n");
+    logger.log(Level.INFO, "Translated Formula: " + translatedFormula + "\n");
+
+
     Map<String, Formula> formulaNameToFormulaMap =
-        pSolver.getFormulaManager().extractVariables(pFormula);
+        quantifierSolver.getFormulaManager().extractVariables(translatedFormula);
+    logger.log(Level.INFO, "formulaNameToFormulaMap: " + formulaNameToFormulaMap.entrySet() + "\n");
+
     ImmutableList<Formula> eliminate = FluentIterable.from(formulaNameToFormulaMap.entrySet())
         .filter(pVariablesToEliminate::test)
         .transform(Entry::getValue)
         .toList();
-    BooleanFormula quantified = pSolver.getFormulaManager().getQuantifiedFormulaManager()
-        .mkQuantifier(Quantifier.EXISTS, eliminate, pFormula);
-    //logger.log(Level.INFO, "Eliminating variables: " + eliminate);
-    //logger.log(Level.INFO, "Quantified variables: " + quantified);
+    logger.log(Level.INFO, "Eliminate variables: " + eliminate + "\n");
 
-    return pSolver.getFormulaManager().getQuantifiedFormulaManager()
+    BooleanFormula quantified = quantifierSolver.getFormulaManager().getQuantifiedFormulaManager()
+        .mkQuantifier(Quantifier.EXISTS, eliminate, translatedFormula);
+    logger.log(Level.INFO, "Quantified variables: " + quantified + "\n");
+
+    return quantifierSolver.getFormulaManager().getQuantifiedFormulaManager()
         .eliminateQuantifiers(quantified);
   }
 
@@ -264,16 +279,28 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   private String formatErrorCondition(BooleanFormula formula, Solver solver) {
     FormulaToCVisitor visitor = new FormulaToCVisitor(solver.getFormulaManager(), id -> id);
     solver.getFormulaManager().visit(formula, visitor);
-    return visitor.getString()
-        .replace("_nondet", "")
-        .replace("bvadd_32", "+")
-        .replace("bvsub_32", "-")
-        .replace("bvslt_32", "<");
+
+    String rawFormula = visitor.getString();
+
+    // Replace SSA variables with their original names
+//    for (Map.Entry<String, String> entry : variableMapping.entrySet()) {
+//      String ssaVariable = entry.getKey();
+//      String originalName = entry.getValue();
+//      rawFormula = rawFormula.replace(ssaVariable, originalName);
+//    }
+
+    rawFormula = rawFormula
+        .replace("bvadd_32", "+") // Replace SSA-specific operators
+        .replace("bvslt_32", "<")
+        .replace("_nondet", ""); // Clean up nondet annotations
+
+    return rawFormula;
   }
 
-  private BooleanFormula minimizeErrorCondition(BooleanFormula formula, Solver solver)
+  private void minimizeErrorCondition(BooleanFormula formula, Solver solver)
       throws SolverException, InterruptedException {
-    return solver.getFormulaManager().simplify(formula);
+    // TODO minimize Error condition remove redundant expressions
+    return;
   }
 
   @Override
