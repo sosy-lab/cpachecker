@@ -206,6 +206,8 @@ public class InputRejections {
     }
   }
 
+  // TODO this can probably be removed entirely -> take a look how the exitnode is used
+  //  at the moment just for the TSOs, which are not used
   /**
    * Tries to extract the FunctionExitNode from the given FunctionEntryNode and throws an {@link
    * IllegalArgumentException} if there is none.

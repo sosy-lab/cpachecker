@@ -121,6 +121,7 @@ public class Sequentialization {
   public String generateProgram(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
       boolean pIncludePOR,
+      boolean pIncludeLoopInvariants,
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
@@ -194,14 +195,16 @@ public class Sequentialization {
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
         pruneCaseClauses(caseClauses);
     assert validCaseClauses(prunedCaseClauses, pLogger);
-    ImmutableList<SeqFunctionCallExpression> porAssumptions =
-        pIncludePOR
-            ? createPartialOrderReductionAssumptions(prunedCaseClauses)
-            : ImmutableList.of();
+    // optional: include POR assumptions
+    Optional<ImmutableList<SeqFunctionCallExpression>> porAssumptions =
+        pIncludePOR ? Optional.of(createPORAssumptions(prunedCaseClauses)) : Optional.empty();
+    // optional: include loop invariant assertions over thread variables
+    Optional<ImmutableList<SeqLogicalAndExpression>> loopInvariants =
+        pIncludeLoopInvariants ? Optional.of(createThreadAssertions(threadVars)) : Optional.empty();
     SeqMainFunction mainMethod =
         new SeqMainFunction(
             threadCount,
-            createThreadSimulationAssertions(threadVars),
+            loopInvariants,
             createThreadSimulationAssumptions(threadVars),
             porAssumptions,
             prunedCaseClauses);
@@ -214,8 +217,7 @@ public class Sequentialization {
   //  so if thread i waits for a mutex or a thread, then another thread can cancel i
   //  and the invariants will not hold
   //  -> once we support intermediary thread terminations, remove these invariants
-  private ImmutableList<SeqLogicalAndExpression> createThreadSimulationAssertions(
-      ThreadVars pThreadVars) {
+  private ImmutableList<SeqLogicalAndExpression> createThreadAssertions(ThreadVars pThreadVars) {
 
     ImmutableList.Builder<SeqLogicalAndExpression> rAssertions = ImmutableList.builder();
     // add assertion over awaits: ti_awaits_m && !(ti_active) ==> assert_fail
@@ -355,7 +357,7 @@ public class Sequentialization {
     return pcMapBuilder.buildOrThrow();
   }
 
-  private ImmutableList<SeqFunctionCallExpression> createPartialOrderReductionAssumptions(
+  private ImmutableList<SeqFunctionCallExpression> createPORAssumptions(
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pPrunedCaseClauses)
       throws UnrecognizedCodeException {
 

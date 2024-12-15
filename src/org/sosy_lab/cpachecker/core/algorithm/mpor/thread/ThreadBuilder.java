@@ -76,13 +76,7 @@ public class ThreadBuilder {
     ImmutableSet.Builder<CFunctionDeclaration> calledFuncs = ImmutableSet.builder();
 
     initThreadVariables(
-        pExitNode,
-        visitedNodes,
-        threadNodes,
-        threadEdges,
-        calledFuncs,
-        pEntryNode,
-        Optional.empty());
+        visitedNodes, threadNodes, threadEdges, calledFuncs, pEntryNode, Optional.empty());
 
     ThreadCFA threadCfa =
         new ThreadCFA(
@@ -119,7 +113,6 @@ public class ThreadBuilder {
    * Recursively searches the CFA of a thread specified by its entry node (the first pCurrentNode)
    * and pExitNode.
    *
-   * @param pExitNode the FunctionExitNode of the start routine or main function of the thread
    * @param pVisitedNodes the set of already visited CFANodes
    * @param pThreadNodes the set of ThreadNodes reachable by the thread
    * @param pCurrentNode the current CFANode whose leaving CFAEdges are analyzed
@@ -127,7 +120,6 @@ public class ThreadBuilder {
    *     of another function.
    */
   private void initThreadVariables(
-      final FunctionExitNode pExitNode,
       Set<CFANode> pVisitedNodes,
       ImmutableSet.Builder<ThreadNode> pThreadNodes,
       ImmutableSet.Builder<ThreadEdge> pThreadEdges,
@@ -151,7 +143,6 @@ public class ThreadBuilder {
               pCalledFuncs.add(funcCallEdge.getFunctionCallExpression().getDeclaration());
             }
             initThreadVariables(
-                pExitNode,
                 pVisitedNodes,
                 pThreadNodes,
                 pThreadEdges,

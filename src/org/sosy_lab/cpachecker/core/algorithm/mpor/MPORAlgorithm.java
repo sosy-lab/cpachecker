@@ -78,8 +78,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   //  contains all CFANodes visited so far
 
   /**
-   * Used e.g. to throw {@code RuntimeExceptions} instead of {@code Output.fatalError()} for unit
-   * tests.
+   * Used e.g. to throw {@link RuntimeException}s instead of {@link AssertionError} for unit tests.
    */
   public enum InstanceType {
     PRODUCTION,
@@ -123,7 +122,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /** Returns the initial sequentialization, i.e. we adjust it in later stages */
   public String buildInitSeq() throws UnrecognizedCodeException {
-    return seq.generateProgram(substitutions, includePOR, logger);
+    return seq.generateProgram(substitutions, includePOR, includeLoopInvariants, logger);
   }
 
   /**
@@ -192,6 +191,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final boolean includePOR;
 
+  private final boolean includeLoopInvariants;
+
   private final GlobalAccessChecker gac;
 
   private final PredicateTransferRelation ptr;
@@ -226,7 +227,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       CFA pInputCfa,
-      boolean pIncludePOR)
+      boolean pIncludePOR,
+      boolean pIncludeLoopInvariants)
       throws InvalidConfigurationException {
 
     cpa = pCpa;
@@ -235,6 +237,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     shutdownNotifier = pShutdownNotifier;
     inputCfa = pInputCfa;
     includePOR = pIncludePOR;
+    includeLoopInvariants = pIncludeLoopInvariants;
 
     MPORStatics.setInstanceType(InstanceType.PRODUCTION);
     InputRejections.handleInitialRejections(logger, inputCfa);
@@ -259,19 +262,21 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   public static MPORAlgorithm testInstance(
-      LogManager pLogManager, CFA pInputCfa, boolean pIncludePOR) {
+      LogManager pLogManager, CFA pInputCfa, boolean pIncludePOR, boolean pIncludeSeqErrors) {
 
-    return new MPORAlgorithm(pLogManager, pInputCfa, pIncludePOR);
+    return new MPORAlgorithm(pLogManager, pInputCfa, pIncludePOR, pIncludeSeqErrors);
   }
 
   /** Use this constructor only for test purposes. */
-  private MPORAlgorithm(LogManager pLogManager, CFA pInputCfa, boolean pIncludePOR) {
+  private MPORAlgorithm(
+      LogManager pLogManager, CFA pInputCfa, boolean pIncludePOR, boolean pIncludeLoopInvariants) {
     cpa = null;
     config = null;
     logger = pLogManager;
     shutdownNotifier = null;
     inputCfa = pInputCfa;
     includePOR = pIncludePOR;
+    includeLoopInvariants = pIncludeLoopInvariants;
 
     if (!MPORStatics.isInstanceTypeSet()) {
       MPORStatics.setInstanceType(InstanceType.TEST);
