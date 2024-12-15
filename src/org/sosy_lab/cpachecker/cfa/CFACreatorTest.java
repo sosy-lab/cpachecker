@@ -249,33 +249,33 @@ public class CFACreatorTest {
 
     Path testFilepath = Path.of("./test");
     assertThat(TestDataTools.getEdge("x = 0", createdCFA).getFileLocation())
-        .isEqualTo(new FileLocation(testFilepath, 17, 10, 4, 4, 3, 13));
+        .isEqualTo(new FileLocation(testFilepath, 252, 10, 10, 10, 3, 13));
     assertThat(TestDataTools.getEdge("y = 0", createdCFA).getFileLocation())
-        .isEqualTo(new FileLocation(testFilepath, 30, 10, 5, 5, 3, 13));
+        .isEqualTo(new FileLocation(testFilepath, 265, 10, 11, 11, 3, 13));
     assertThat(TestDataTools.getEdge("[x == y]", createdCFA).getFileLocation())
-        .isEqualTo(new FileLocation(testFilepath, 47, 6, 6, 6, 7, 13));
+        .isEqualTo(new FileLocation(testFilepath, 282, 6, 12, 12, 7, 13));
     assertThat(TestDataTools.getEdge("!(x == y)", createdCFA).getFileLocation())
-        .isEqualTo(new FileLocation(testFilepath, 47, 6, 6, 6, 7, 13));
+        .isEqualTo(new FileLocation(testFilepath, 282, 6, 12, 12, 7, 13));
     assertThat(TestDataTools.getEdge("[x == 0]", createdCFA).getFileLocation())
-        .isEqualTo(new FileLocation(testFilepath, 57, 6, 6, 6, 17, 23));
+        .isEqualTo(new FileLocation(testFilepath, 292, 6, 12, 12, 17, 23));
     assertThat(TestDataTools.getEdge("!(x == 0)", createdCFA).getFileLocation())
-        .isEqualTo(new FileLocation(testFilepath, 57, 6, 6, 6, 17, 23));
+        .isEqualTo(new FileLocation(testFilepath, 292, 6, 12, 12, 17, 23));
     assertThat(TestDataTools.getEdge("[y == 0]", createdCFA).getFileLocation())
-        .isEqualTo(new FileLocation(testFilepath, 73, 6, 7, 7, 7, 13));
+        .isEqualTo(new FileLocation(testFilepath, 308, 6, 13, 13, 7, 13));
     assertThat(TestDataTools.getEdge("!(y == 0)", createdCFA).getFileLocation())
-        .isEqualTo(new FileLocation(testFilepath, 73, 6, 7, 7, 7, 13));
+        .isEqualTo(new FileLocation(testFilepath, 308, 6, 13, 13, 7, 13));
     assertThat(TestDataTools.getEdge("[t1 == t2]", createdCFA).getFileLocation())
-        .isEqualTo(new FileLocation(testFilepath, 149, 8, 15, 15, 10, 18));
+        .isEqualTo(new FileLocation(testFilepath, 384, 8, 21, 21, 10, 18));
     assertThat(TestDataTools.getEdge("!(t1 == t2)", createdCFA).getFileLocation())
-        .isEqualTo(new FileLocation(testFilepath, 149, 8, 15, 15, 10, 18));
+        .isEqualTo(new FileLocation(testFilepath, 384, 8, 21, 21, 10, 18));
     assertThat(TestDataTools.getEdge("[t1 == t3]", createdCFA).getFileLocation())
-        .isEqualTo(new FileLocation(testFilepath, 170, 8, 16, 16, 10, 18));
+        .isEqualTo(new FileLocation(testFilepath, 405, 8, 22, 22, 10, 18));
     assertThat(TestDataTools.getEdge("!(t1 == t3)", createdCFA).getFileLocation())
-        .isEqualTo(new FileLocation(testFilepath, 170, 8, 16, 16, 10, 18));
+        .isEqualTo(new FileLocation(testFilepath, 405, 8, 22, 22, 10, 18));
     assertThat(TestDataTools.getEdge("[t2 == t3]", createdCFA).getFileLocation())
-        .isEqualTo(new FileLocation(testFilepath, 191, 17, 17, 18, 10, 12));
+        .isEqualTo(new FileLocation(testFilepath, 426, 17, 23, 24, 10, 12));
     assertThat(TestDataTools.getEdge("!(t2 == t3)", createdCFA).getFileLocation())
-        .isEqualTo(new FileLocation(testFilepath, 191, 17, 17, 18, 10, 12));
+        .isEqualTo(new FileLocation(testFilepath, 426, 17, 23, 24, 10, 12));
   }
 
   private CFACreator createCfaCreatorForTesting(Configuration config)
