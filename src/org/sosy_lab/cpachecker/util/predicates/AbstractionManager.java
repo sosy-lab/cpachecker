@@ -138,7 +138,7 @@ public final class AbstractionManager {
           (rmgr instanceof SymbolicRegionManager)
               ? ((SymbolicRegionManager) rmgr).createPredicate(atom)
               : rmgr.createPredicate();
-
+  
       logger.log(
           Level.FINEST, "Created predicate", absVar, "from variable", symbVar, "and atom", atom);
 

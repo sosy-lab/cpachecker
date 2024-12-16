@@ -486,7 +486,7 @@ public class PredicateAbstractionManager {
     if (pPredicates.isEmpty() && (options.getAbstractionType() != AbstractionType.ELIMINATION)) {
       logger.log(Level.FINEST, "Abstraction", currentAbstractionId, "with empty precision is true");
       stats.numSymbolicAbstractions.incrementAndGet();
-      return makeTrueAbstractionFormula(pathFormula);
+      return makeTrueAbstractionFormulaTPA(pathFormula);
     }
 
     final Function<BooleanFormula, BooleanFormula> instantiator =
@@ -547,7 +547,7 @@ public class PredicateAbstractionManager {
             currentAbstractionId,
             "was cached and is false.");
         stats.numCallsAbstractionCached.incrementAndGet();
-        return new AbstractionFormula(
+        return new AbstractionFormulaTPA(
             fmgr,
             rmgr.makeFalse(),
             bfmgr.makeFalse(),
@@ -600,7 +600,7 @@ public class PredicateAbstractionManager {
       abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
     }
 
-    AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
+    AbstractionFormulaTPA result = makeAbstractionFormulaTPA(abs, ssa, pathFormula);
 
     if (options.isUseCache()) {
       abstractionCache.put(absKey, result);
@@ -673,7 +673,7 @@ public class PredicateAbstractionManager {
     return symbolicAbs;
   }
 
-  private BooleanFormula getFormulaFromPathFormula(PathFormula pathFormula) {
+  protected BooleanFormula getFormulaFromPathFormula(PathFormula pathFormula) {
     BooleanFormula symbFormula = pathFormula.getFormula();
 
     return pfmgr.addBitwiseAxiomsIfNeeded(symbFormula, symbFormula);
@@ -802,7 +802,7 @@ public class PredicateAbstractionManager {
    * @param instantiator A function that will be applied to instantiate each abstraction predicate.
    * @return A subset of pPredicates.
    */
-  private Collection<AbstractionPredicate> getRelevantPredicates(
+  protected Collection<AbstractionPredicate> getRelevantPredicates(
       final Collection<AbstractionPredicate> pPredicates,
       final BooleanFormula f,
       final Function<BooleanFormula, BooleanFormula> instantiator) {
@@ -1387,6 +1387,20 @@ public class PredicateAbstractionManager {
         noAbstractionReuse);
   }
 
+  public AbstractionFormulaTPA makeTrueAbstractionFormulaTPA(PathFormula pPreviousBlockFormula) {
+    if (pPreviousBlockFormula == null) {
+      pPreviousBlockFormula = pfmgr.makeEmptyPathFormula();
+    }
+
+    return new AbstractionFormulaTPA(
+        fmgr,
+        amgr.getRegionCreator().makeTrue(),
+        bfmgr.makeTrue(),
+        bfmgr.makeTrue(),
+        pPreviousBlockFormula,
+        noAbstractionReuse);
+  }
+
   /** Conjuncts two abstractions. Both need to have the same block formula. */
   public AbstractionFormula makeAnd(AbstractionFormula a1, AbstractionFormula a2) {
     checkArgument(a1.getBlockFormula().equals(a2.getBlockFormula()));
@@ -1424,6 +1438,20 @@ public class PredicateAbstractionManager {
     }
 
     return new AbstractionFormula(
+        fmgr, abs, symbolicAbs, instantiatedSymbolicAbs, blockFormula, noAbstractionReuse);
+  }
+
+  AbstractionFormulaTPA makeAbstractionFormulaTPA(Region abs, SSAMap ssaMap, PathFormula blockFormula)
+      throws InterruptedException {
+    BooleanFormula symbolicAbs = amgr.convertRegionToFormula(abs);
+    BooleanFormula instantiatedSymbolicAbs = fmgr.instantiate(symbolicAbs, ssaMap);
+
+    if (options.isSimplifyAbstractionFormula()) {
+      symbolicAbs = fmgr.simplify(symbolicAbs);
+      instantiatedSymbolicAbs = fmgr.simplify(instantiatedSymbolicAbs);
+    }
+
+    return new AbstractionFormulaTPA(
         fmgr, abs, symbolicAbs, instantiatedSymbolicAbs, blockFormula, noAbstractionReuse);
   }
 

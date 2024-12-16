@@ -1430,6 +1430,91 @@ public class FormulaManagerView {
   }
 
   /**
+   * Return BooleanFormula instead of Option<BooleanFormula>. Strip negation from formula. (not A) to (A)
+   * @param f
+   * @return Remove "not" from the input formula. That means it has opposite value of input.
+   */
+  public BooleanFormula stripNegation2(BooleanFormula f) {
+    return booleanFormulaManager.visit(
+        f,
+        new DefaultBooleanFormulaVisitor<>() {
+          @Override
+          protected BooleanFormula visitDefault() {
+            return null;
+          }
+
+          @Override
+          public BooleanFormula visitNot(BooleanFormula negated) {
+            return negated;
+          }
+        });
+  }
+
+  /**
+   * Check if formula is not formula.
+   * @param f Formula needs to check
+   * @return True if formuala is "not" formula, else return false
+   */
+  public Boolean isNotFormula(BooleanFormula f) {
+    return booleanFormulaManager.visit(
+        f,
+        new DefaultBooleanFormulaVisitor<>() {
+          @Override
+          protected Boolean visitDefault() {
+            return false;
+          }
+
+          @Override
+          public Boolean visitNot(BooleanFormula negated) {
+            return true;
+          }
+        });
+  }
+
+  /**
+   * Name of the function (UF name / "LT" / etc...).
+   * @param f
+   * @return
+   */
+  public String extractFunctionDeclarationName(BooleanFormula f) {
+    return booleanFormulaManager.visit(
+        f,
+        new DefaultBooleanFormulaVisitor<>() {
+          @Override
+          protected String visitDefault() {
+            return null;
+          }
+
+          @Override
+          public  String visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
+            return decl.getName();
+          }
+        });
+  }
+
+  /**
+   * Type of the function (LT / GT / UF / etc...).
+   * @param f
+   * @return
+   */
+  public FunctionDeclarationKind extractFunctionDeclarationKind(BooleanFormula f) {
+    return booleanFormulaManager.visit(
+        f,
+        new DefaultBooleanFormulaVisitor<>() {
+          @Override
+          protected FunctionDeclarationKind visitDefault() {
+            return null;
+          }
+
+          @Override
+          public  FunctionDeclarationKind visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
+            return decl.getKind();
+          }
+        });
+  }
+
+
+  /**
    * For an equality {@code x = y} where {@code x} and {@code y} are not boolean, return a list
    * {@code x<=y, x>=y}.
    *

@@ -12,7 +12,10 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -28,19 +31,29 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormulaTPA;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
+import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
+import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
+import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 
 public class TPAPrecisionAdjustment implements PrecisionAdjustment {
   private final LogManager logger;
   private final BlockOperator blk;
-  private final PredicateAbstractionManager formulaManager;
+  private final TPAPredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView fmgr;
 
@@ -54,7 +67,7 @@ public class TPAPrecisionAdjustment implements PrecisionAdjustment {
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       BlockOperator pBlk,
-      PredicateAbstractionManager pPredAbsManager,
+      TPAPredicateAbstractionManager pPredAbsManager,
       PredicateCPAInvariantsManager pInvariantSupplier,
       PredicateProvider pPredicateProvider,
       PredicateStatistics pPredicateStatistics) {
@@ -165,7 +178,6 @@ public class TPAPrecisionAdjustment implements PrecisionAdjustment {
 
     // get additional predicates
     Set<AbstractionPredicate> additionalPredicates = predicateProvider.getPredicates(fullState);
-
     AbstractionFormula newAbstractionFormula = null;
 
     // compute new abstraction
@@ -177,6 +189,8 @@ public class TPAPrecisionAdjustment implements PrecisionAdjustment {
         // update abstraction locations map
         abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
       }
+
+      pathFormula = addPredicateWithPrimeToPathFormula(additionalPredicates, pathFormula);
 
       // compute a new abstraction with a precision based on `preds`
       newAbstractionFormula =
@@ -211,5 +225,83 @@ public class TPAPrecisionAdjustment implements PrecisionAdjustment {
             element.getPreviousAbstractionState());
     return Optional.of(
         new PrecisionAdjustmentResult(state, precision, PrecisionAdjustmentResult.Action.CONTINUE));
+  }
+
+  private PathFormula addPredicateWithPrimeToPathFormula(
+      Set<AbstractionPredicate> pPredicates,
+      PathFormula pPathFormula
+      ) {
+    PathFormula pathFormulaWithPrimeConstraints = pPathFormula;
+    SSAMap ssaMap = pPathFormula.getSsa();
+
+    for (AbstractionPredicate predicate : pPredicates) {
+      BooleanFormula symbAtom = predicate.getSymbolicAtom();
+      for (String varName : fmgr.extractVariableNames(symbAtom)) {
+        if (varName.contains("_prime")) { // This predicate has prime variable
+
+          // Check if path formula contain the constrained variable
+          String varNameWithOutPrimeSuffix = varName.replace("_prime", "");
+          if (ssaMap.allVariables().contains(varNameWithOutPrimeSuffix)) { // Path formula has the variable with prime value
+            BooleanFormula predicateSymbolicAtom = predicate.getSymbolicAtom();
+            int ssaIndex = ssaMap.getIndex(varNameWithOutPrimeSuffix);
+
+            // Extract corresponding variable from path formula
+            Formula varPrime =  fmgr.extractVariables(pPathFormula.getFormula()).get(varNameWithOutPrimeSuffix + "@" + ssaIndex);
+            Formula var = fmgr.extractVariables(pPathFormula.getFormula()).get(varNameWithOutPrimeSuffix + "@" + (ssaIndex - 1));
+            // variable with ssa index - 1 may not be in path formula (not created) beforehand
+            if (var == null) {
+              // TODO: Make new variable when path formula doesn't have that variable with correct ssa index
+              // TODO: Bug, can't make variable if it's created even when it's not in path formula
+//              var = fmgr.makeVariable(FormulaType.BooleanType, varNameWithOutPrimeSuffix, ssaIndex - 1);
+              break;
+            } else if (varPrime == null) {
+              break;
+            }
+
+            // TODO: Find which variable comes first in the formula, prime or non-prime variable?
+
+            // TODO: Signed and Unsigned?
+            BooleanFormula newConstraint;
+            if (fmgr.isNotFormula(predicateSymbolicAtom)) { // If is not formula then reverse make operation between 2 variable
+              BooleanFormula negatedAtom = fmgr.stripNegation2(predicateSymbolicAtom);
+              FunctionDeclarationKind funcKind = fmgr.extractFunctionDeclarationKind(negatedAtom);
+              newConstraint = switch (funcKind) {
+                case BV_SLT -> fmgr.makeGreaterOrEqual(varPrime, var, true);
+                case BV_ULT -> fmgr.makeGreaterOrEqual(varPrime, var, false);
+                case BV_SGT -> fmgr.makeLessOrEqual(varPrime, var, true);
+                case BV_UGT -> fmgr.makeLessOrEqual(varPrime, var, false);
+                case BV_SLE -> fmgr.makeGreaterThan(varPrime, var, false);
+                case BV_ULE -> fmgr.makeGreaterThan(varPrime, var, true);
+                case BV_SGE -> fmgr.makeLessThan(varPrime, var, false);
+                case BV_UGE -> fmgr.makeLessThan(varPrime, var, true);
+                case BV_EQ -> fmgr.makeEqual(varPrime, var);
+                default -> null;
+              };
+            } else {
+              FunctionDeclarationKind funcKind = fmgr.extractFunctionDeclarationKind(predicateSymbolicAtom);
+              newConstraint = switch (funcKind) {
+                case BV_SLT -> fmgr.makeLessThan(varPrime, var, false);
+                case BV_ULT -> fmgr.makeLessThan(varPrime, var, true);
+                case BV_SGT -> fmgr.makeGreaterThan(varPrime, var, false);
+                case BV_UGT -> fmgr.makeGreaterThan(varPrime, var, true);
+                case BV_SLE -> fmgr.makeLessOrEqual(varPrime, var, true);
+                case BV_ULE -> fmgr.makeLessOrEqual(varPrime, var, false);
+                case BV_SGE -> fmgr.makeGreaterOrEqual(varPrime, var, true);
+                case BV_UGE -> fmgr.makeGreaterOrEqual(varPrime, var, false);
+                case BV_EQ -> fmgr.makeEqual(varPrime, var);
+                default -> null;
+              };
+            }
+
+            if (newConstraint != null) {
+//              pathFormulaWithPrimeConstraints = pathFormulaManager.makeAnd(pathFormulaWithPrimeConstraints, newConstraint);
+            }
+          }
+          break;
+        }
+      }
+    }
+    System.out.println("Result of adding prime to path" + pathFormulaWithPrimeConstraints);
+    return pathFormulaWithPrimeConstraints;
   }
 }

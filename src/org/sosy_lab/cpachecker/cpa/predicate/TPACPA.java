@@ -104,9 +104,9 @@ public class TPACPA extends PredicateCPA
   }
 
   @Override
-  public PredicateAbstractionManager getPredicateManager() {
+  public TPAPredicateAbstractionManager getPredicateManager() {
 
-    return new PredicateAbstractionManager(
+    return new TPAPredicateAbstractionManager(
         getAbstractionManager(),
         getPathFormulaManager(),
         getSolver(),
