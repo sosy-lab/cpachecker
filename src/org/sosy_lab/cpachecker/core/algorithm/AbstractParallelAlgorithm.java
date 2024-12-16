@@ -207,25 +207,22 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
       final boolean pSupplyRefinableReached)
       throws InvalidConfigurationException, InterruptedException {
 
-    final LogManager singleLogger =
+    LogManager singleLogger =
         logger.withComponentName("Parallel analysis " + pAnalysisNumber);
 
-    final ShutdownManager singleShutdownManager =
+    ShutdownManager singleShutdownManager =
         ShutdownManager.createWithParent(shutdownManager.getNotifier());
 
-    final ResourceLimitChecker singleAnalysisOverallLimit =
-        ResourceLimitChecker.fromConfiguration(pConfiguration, singleLogger, singleShutdownManager);
-
-    final CoreComponentsFactory coreComponents =
+    CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
             pConfiguration,
             singleLogger,
             singleShutdownManager.getNotifier(),
             aggregatedReachedSetManager.asView());
 
-    final ConfigurableProgramAnalysis cpa;
-    final Algorithm algorithm;
-    final ReachedSet reached;
+    ConfigurableProgramAnalysis cpa;
+    Algorithm algorithm;
+    ReachedSet reached;
     try {
       cpa = coreComponents.createCPA(cfa, pSpecification);
       algorithm = coreComponents.createAlgorithm(cpa, cfa, pSpecification);
@@ -237,6 +234,10 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
 
     AtomicBoolean terminated = new AtomicBoolean(false);
     return () -> {
+      ResourceLimitChecker singleAnalysisOverallLimit =
+          ResourceLimitChecker.fromConfiguration(
+              pConfiguration, singleLogger, singleShutdownManager);
+
       StatisticsEntry statisticsEntry =
           stats.getNewSubStatistics(
               reached,
