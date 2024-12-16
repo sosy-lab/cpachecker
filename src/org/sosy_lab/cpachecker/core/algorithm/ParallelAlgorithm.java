@@ -9,23 +9,15 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
-import static java.util.concurrent.Executors.newFixedThreadPool;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -110,34 +102,8 @@ public class ParallelAlgorithm extends AbstractParallelAlgorithm implements Stat
   protected AlgorithmStatus determineAlgorithmStatus(
       ReachedSet pReachedSet, List<ListenableFuture<ParallelAnalysisResult>> pFutures)
       throws InterruptedException, CPAException {
+
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
-
-    ThreadFactory threadFactory =
-        new ThreadFactoryBuilder().setNameFormat(getClass().getSimpleName() + "-thread-%d").build();
-    ListeningExecutorService exec =
-        listeningDecorator(newFixedThreadPool(analyses.size(), threadFactory));
-
-    List<ListenableFuture<ParallelAnalysisResult>> futures = new ArrayList<>(analyses.size());
-    for (Callable<ParallelAnalysisResult> call : analyses) {
-      futures.add(exec.submit(call));
-    }
-
-    // shutdown the executor service,
-    exec.shutdown();
-
-    try {
-      handleFutureResults(futures);
-
-    } finally {
-      // Wait some time so that all threads are shut down and we have a happens-before relation
-      // (necessary for statistics).
-      // Time limit here should be somewhat shorter than in ForceTerminationOnShutdown.
-      if (!Uninterruptibles.awaitTerminationUninterruptibly(exec, 8, TimeUnit.SECONDS)) {
-        logger.log(Level.WARNING, "Not all threads are terminated although we have a result.");
-      }
-
-      exec.shutdownNow();
-    }
 
     if (finalResult != null) {
       forwardingReachedSet.setDelegate(finalResult.getReached());

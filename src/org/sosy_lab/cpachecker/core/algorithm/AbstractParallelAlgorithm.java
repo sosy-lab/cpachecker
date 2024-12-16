@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -110,7 +112,10 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     mainEntryNode = AbstractStates.extractLocation(pReachedSet.getFirstState());
 
-    ListeningExecutorService exec = listeningDecorator(newFixedThreadPool(analyses.size()));
+    ThreadFactory threadFactory =
+        new ThreadFactoryBuilder().setNameFormat(getClass().getSimpleName() + "-thread-%d").build();
+    ListeningExecutorService exec =
+        listeningDecorator(newFixedThreadPool(analyses.size(), threadFactory));
 
     List<ListenableFuture<ParallelAnalysisResult>> futures = new ArrayList<>(analyses.size());
     for (Callable<ParallelAnalysisResult> call : analyses) {
@@ -212,6 +217,9 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
     ShutdownManager singleShutdownManager =
         ShutdownManager.createWithParent(shutdownManager.getNotifier());
 
+    ResourceLimitChecker singleAnalysisOverallLimit =
+        ResourceLimitChecker.fromConfiguration(pConfiguration, singleLogger, singleShutdownManager);
+
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
             pConfiguration,
@@ -233,10 +241,6 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
 
     AtomicBoolean terminated = new AtomicBoolean(false);
     return () -> {
-      ResourceLimitChecker singleAnalysisOverallLimit =
-          ResourceLimitChecker.fromConfiguration(
-              pConfiguration, singleLogger, singleShutdownManager);
-
       StatisticsEntry statisticsEntry =
           stats.getNewSubStatistics(
               reached,
