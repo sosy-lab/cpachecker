@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.automaton.RangedConditionFactory;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.rangedconditions.CFAPath;
 
 @Options(prefix = "parallelRangedConditionsAlgorithm")
@@ -79,7 +78,7 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
       Specification pSpecification,
       CFA pCfa,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws InvalidConfigurationException, InterruptedException {
     super(
         pLogger,
         pShutdownNotifier,
@@ -183,7 +182,7 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
       Specification pSpecification,
       CFA pCfa,
       AggregatedReachedSets pReachedSet)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws InvalidConfigurationException, InterruptedException {
     ParallelRangedConditionsAlgorithm algorithm =
         new ParallelRangedConditionsAlgorithm(
             pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa, pReachedSet);
