@@ -207,8 +207,7 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
       final boolean pSupplyRefinableReached)
       throws InvalidConfigurationException, InterruptedException {
 
-    LogManager singleLogger =
-        logger.withComponentName("Parallel analysis " + pAnalysisNumber);
+    LogManager singleLogger = logger.withComponentName("Parallel analysis " + pAnalysisNumber);
 
     ShutdownManager singleShutdownManager =
         ShutdownManager.createWithParent(shutdownManager.getNotifier());
