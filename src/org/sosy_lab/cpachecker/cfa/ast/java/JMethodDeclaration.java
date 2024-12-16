@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Strings;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -41,7 +42,7 @@ public sealed class JMethodDeclaration extends AFunctionDeclaration implements J
 
   // TODO Type Variables, Exceptions, Annotations
 
-  private static final long serialVersionUID = 2250464052511901845L;
+  @Serial private static final long serialVersionUID = 2250464052511901845L;
   private final boolean isFinal;
   private final boolean isAbstract;
   private final boolean isStatic;
@@ -103,7 +104,7 @@ public sealed class JMethodDeclaration extends AFunctionDeclaration implements J
   }
 
   @Override
-  public String toASTString(boolean pQualified, boolean pOriginalVariableNames) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return toASTString();
   }
 

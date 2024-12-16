@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUti
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -270,6 +271,13 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     } catch (CPAException | InvalidConfigurationException e) {
       logger.logUserException(
           Level.WARNING, e, "Predicate from correctness witness invariants could not be computed");
+    } catch (InvalidWitnessException e) {
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "Could not match witness to CFA. When reading invariants as predicates the semantics of"
+              + " the witness need not be strictly followed. If necessary disable the options"
+              + " responsible for strictly checking the witness.");
     }
     return result;
   }

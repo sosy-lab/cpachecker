@@ -49,6 +49,8 @@ public class ToBitvectorFormulaVisitor
    */
   private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
 
+  private final boolean useQualifiedNames;
+
   /**
    * Creates a new visitor for converting compound state invariants formulae to bit vector formulae
    * by using the given formula manager, and evaluation visitor.
@@ -59,9 +61,17 @@ public class ToBitvectorFormulaVisitor
    */
   public ToBitvectorFormulaVisitor(
       FormulaManagerView pFmgr, FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+    this(pFmgr, pEvaluationVisitor, true);
+  }
+
+  public ToBitvectorFormulaVisitor(
+      FormulaManagerView pFmgr,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
+      boolean pUseQualifiedNames) {
     bfmgr = pFmgr.getBooleanFormulaManager();
     bvfmgr = pFmgr.getBitvectorFormulaManager();
     evaluationVisitor = pEvaluationVisitor;
+    useQualifiedNames = pUseQualifiedNames;
   }
 
   /**
@@ -188,7 +198,7 @@ public class ToBitvectorFormulaVisitor
     if (numerator == null || denominator == null) {
       return evaluate(pModulo, pEnvironment);
     }
-    return bvfmgr.modulo(numerator, denominator, true);
+    return bvfmgr.remainder(numerator, denominator, true);
   }
 
   @Override
@@ -232,7 +242,9 @@ public class ToBitvectorFormulaVisitor
     if (typeInfo instanceof BitVectorInfo) {
       return bvfmgr.makeVariable(
           ((BitVectorInfo) typeInfo).getSize(),
-          pVariable.getMemoryLocation().getExtendedQualifiedName());
+          useQualifiedNames
+              ? pVariable.getMemoryLocation().getExtendedQualifiedName()
+              : pVariable.getMemoryLocation().getIdentifier());
     }
     return null;
   }

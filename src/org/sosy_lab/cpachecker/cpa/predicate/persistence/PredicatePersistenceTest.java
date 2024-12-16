@@ -42,6 +42,7 @@ public class PredicatePersistenceTest extends SolverViewBasedTest0 {
 
   @Test
   public void testSplitFormula_Syntactically() {
+    requireIntegers();
 
     BooleanFormula f1 =
         imgr.equal(imgr.makeVariable("variable_with_long_name"), imgr.makeNumber(1));

@@ -10,12 +10,19 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -24,6 +31,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -41,9 +49,14 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -72,8 +85,23 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
                 + " to be enabled for this.")
     private boolean alwaysAtLoop = false;
 
-    @Option(secure = true, description = "toggle liveness abstraction")
-    private boolean doLivenessAbstraction = false;
+    @Option(
+        secure = true,
+        description =
+            "toggle liveness abstraction. Is independent of CEGAR, but dependent on the CFAs"
+                + " liveness variables being tracked. Might be unsound for stack-based memory"
+                + " structures like arrays.")
+    private boolean doLivenessAbstraction = true;
+
+    @Option(
+        secure = true,
+        description =
+            "toggle memory sensitive liveness abstraction. Liveness abstraction is supposed to"
+                + " simply abstract all variables away (invalidating memory) when unused, even if"
+                + " there is valid outside pointers on them. With this option enabled, it is first"
+                + " checked if there is a valid address still pointing to the variable before"
+                + " removing it. Liveness abstraction might be unsound without this option.")
+    private boolean doEnforcePointerSensitiveLiveness = true;
 
     @Option(
         secure = true,
@@ -102,11 +130,23 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
 
     @Option(
         secure = true,
-        name = "listAbstractionMinimumLengthThreshhold",
+        name = "listAbstractionMinimumLengthThreshold",
         description =
             "The minimum list segments directly following each other with the same value needed to"
                 + " abstract them.Minimum is 2.")
-    private int listAbstractionMinimumLengthThreshhold = 12;
+    private int listAbstractionMinimumLengthThreshold = 4;
+
+    @Option(
+        secure = true,
+        name = "listAbstractionMaximumIncreaseLengthThreshold",
+        description =
+            "The minimum list segments that are needed for abstraction may be increased during the"
+                + " analysis based on a heuristic in fixed sized loops. This is the maximum"
+                + " increase that is allowed. E.g. all lists with the length given here are"
+                + " abstracted in any case. If you want to prevent dynamic increase of list"
+                + " abstraction min threshold set this to the same value as"
+                + " listAbstractionMinimumLengthThreshold.")
+    private int listAbstractionMaximumIncreaseLengthThreshold = 6;
 
     @Option(
         secure = true,
@@ -126,6 +166,24 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         description = "Abstraction of all detected linked lists at loop heads.")
     private boolean abstractLinkedLists = true;
 
+    @Option(
+        secure = true,
+        name = "removeUnusedConstraints",
+        description = "Periodically removes unused constraints from the state.")
+    private boolean cleanUpUnusedConstraints = false;
+
+    // TODO: the goal is to set this in a CEGAR loop one day
+    @Option(
+        secure = true,
+        name = "abstractConcreteValuesAboveThreshold",
+        description =
+            "Periodically removes concrete values from the memory model and replaces them with"
+                + " symbolic values. Only the newest concrete values above this threshold are"
+                + " removed. For negative numbers this option is ignored. Note: 0 also removes the"
+                + " null value, reducing impacting null dereference or free soundness. Currently"
+                + " only supported for given value 0.")
+    private int abstractConcreteValuesAboveThreshold = -1;
+
     private final @Nullable ImmutableSet<CFANode> loopHeads;
 
     public PrecAdjustmentOptions(Configuration config, CFA pCfa)
@@ -139,8 +197,32 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       }
     }
 
-    public int getListAbstractionMinimumLengthThreshhold() {
-      return listAbstractionMinimumLengthThreshhold;
+    public boolean getCleanUpUnusedConstraints() {
+      return cleanUpUnusedConstraints;
+    }
+
+    public int getAbstractConcreteValuesAboveThreshold() {
+      Preconditions.checkState(
+          abstractConcreteValuesAboveThreshold <= 0,
+          "Error: option cpa.smg2.abstraction.abstractConcreteValuesAboveThreshold is currently"
+              + " only supported for argument 0.");
+      return abstractConcreteValuesAboveThreshold;
+    }
+
+    public int getListAbstractionMinimumLengthThreshold() {
+      return listAbstractionMinimumLengthThreshold;
+    }
+
+    public boolean isEnforcePointerSensitiveLiveness() {
+      return doEnforcePointerSensitiveLiveness;
+    }
+
+    public int getListAbstractionMaximumIncreaseLengthThreshold() {
+      return listAbstractionMaximumIncreaseLengthThreshold;
+    }
+
+    public void incListAbstractionMinimumLengthThreshold() {
+      listAbstractionMinimumLengthThreshold++;
     }
 
     /**
@@ -205,6 +287,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
   private final PrecAdjustmentOptions options;
   private final Optional<LiveVariables> liveVariables;
   private final Optional<ImmutableSet<CFANode>> maybeLoops;
+  private Optional<Set<CFANode>> maybeLoopLeavers;
 
   // for statistics
   private final StatCounter abstractions;
@@ -225,6 +308,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
     stats = pStats;
     liveVariables = pCfa.getLiveVariables();
     maybeLoops = pCfa.getAllLoopHeads();
+    maybeLoopLeavers = Optional.empty();
 
     abstractions = pStatistics.abstractions;
     pStatistics.renewTimers();
@@ -256,11 +340,10 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       UniqueAssignmentsInPathConditionState assignments) {
     SMGState resultState = pState;
 
-    if (options.doLivenessAbstraction && liveVariables.isPresent()) {
+    if ((options.doLivenessAbstraction || options.abstractProgramVariables)
+        && liveVariables.isPresent()) {
       totalLiveness.start();
-      if (options.abstractProgramVariables) {
-        resultState = enforceLiveness(pState, location, resultState);
-      }
+      resultState = enforceLiveness(pState, location, resultState);
       totalLiveness.stop();
     }
 
@@ -280,12 +363,18 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       totalEnforcePath.stop();
     }
 
+    if (options.getAbstractConcreteValuesAboveThreshold() >= 0) {
+      resultState =
+          enforceConcreteValueThreshold(
+              resultState, options.getAbstractConcreteValuesAboveThreshold());
+    }
+
     if (options.abstractLinkedLists && checkAbstractListAt(location)) {
       // Abstract Lists at loop heads
       try {
         resultState =
             new SMGCPAAbstractionManager(
-                    resultState, options.getListAbstractionMinimumLengthThreshhold(), stats)
+                    resultState, options.getListAbstractionMinimumLengthThreshold(), stats)
                 .findAndAbstractLists();
       } catch (SMGException e) {
         // Do nothing. This should never happen anyway
@@ -293,11 +382,87 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       }
     }
 
+    if (options.getCleanUpUnusedConstraints()) {
+      resultState = resultState.removeOldConstraints();
+    }
+
     return Optional.of(new PrecisionAdjustmentResult(resultState, pPrecision, Action.CONTINUE));
   }
 
   private boolean isLoopHead(LocationState location) {
     return maybeLoops.isPresent() && maybeLoops.orElseThrow().contains(location.getLocationNode());
+  }
+
+  @SuppressWarnings("unused")
+  private boolean isLoopLeaving(LocationState location) {
+    if (maybeLoopLeavers.isEmpty()) {
+      ImmutableSet.Builder<CFANode> builder = ImmutableSet.builder();
+      for (Set<CFANode> bla : getAllLoopHeadNodesToLeavingNodes().orElseThrow().values()) {
+        builder.addAll(bla);
+      }
+      // TODO: clean this up once it is sufficiently debugged
+      maybeLoopLeavers = Optional.ofNullable(builder.build());
+    }
+    // Just left a loop.
+    // We detect this by checking if the current location is a node that is following a loop head
+    // Abstracting here allows us to subsume most lists into the first abstracted that left the loop
+    return maybeLoopLeavers.isPresent()
+        && maybeLoopLeavers.orElseThrow().contains(location.getLocationNode());
+  }
+
+  private Optional<Map<CFANode, Set<CFANode>>> getAllLoopHeadNodesToLeavingNodes() {
+    if (maybeLoops.isEmpty()) {
+      return Optional.empty();
+    }
+    Map<CFANode, Set<CFANode>> loopHeadToLoopLeavers = new HashMap<>();
+    for (CFANode loopHeadNode : maybeLoops.orElseThrow()) {
+      Set<CFANode> cache = new HashSet<>();
+      for (int i = 0; i < loopHeadNode.getNumLeavingEdges(); i++) {
+        CFAEdge leavingEdge = loopHeadNode.getLeavingEdge(i);
+        int loopBeginLine = leavingEdge.getFileLocation().getStartingLineInOrigin();
+        int loopEndLine = leavingEdge.getFileLocation().getEndingLineInOrigin();
+        // The first CFAEdge that exceeds loopEndLine is a loop exiting location
+        Optional<CFANode> maybeLoopLeavingNode =
+            getLeavingNode(leavingEdge.getSuccessor(), loopBeginLine, loopEndLine, cache);
+        if (maybeLoopLeavingNode.isPresent()) {
+          CFANode loopLeavingNode = maybeLoopLeavingNode.orElseThrow();
+          if (loopHeadToLoopLeavers.containsKey(loopHeadNode)) {
+            loopHeadToLoopLeavers.get(loopHeadNode).add(loopLeavingNode);
+          } else {
+            Set<CFANode> newSet = new HashSet<>();
+            newSet.add(loopLeavingNode);
+            loopHeadToLoopLeavers.put(loopHeadNode, newSet);
+          }
+        }
+      }
+      Preconditions.checkArgument(loopHeadToLoopLeavers.containsKey(loopHeadNode));
+    }
+    return Optional.of(loopHeadToLoopLeavers);
+  }
+
+  private Optional<CFANode> getLeavingNode(
+      CFANode node, int loopBeginLine, int loopEndLine, Set<CFANode> visited) {
+    if (visited.contains(node)) {
+      return Optional.empty();
+    }
+    visited.add(node);
+    for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+      CFAEdge leavingEdge = node.getLeavingEdge(i);
+      if (leavingEdge.getFileLocation().getStartingLineInOrigin() > loopEndLine) {
+        // Loop leaving edge
+        return Optional.of(node);
+      }
+      if (leavingEdge.getFileLocation().getStartingLineInOrigin() < loopBeginLine) {
+        // Loop leaving edge (e.g. a goTo)
+        return Optional.of(node);
+      }
+      Optional<CFANode> recNode =
+          getLeavingNode(leavingEdge.getSuccessor(), loopBeginLine, loopEndLine, visited);
+      if (recNode.isPresent()) {
+        return recNode;
+      }
+    }
+    return Optional.empty();
   }
 
   private boolean checkAbstractListAt(LocationState location) {
@@ -352,10 +517,35 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       // less live
       if (!onlyBlankEdgesEntering) {
         for (MemoryLocation variable : pState.getTrackedMemoryLocations()) {
+          String qualifiedVarName = variable.getQualifiedName();
           if (!liveVariables
               .orElseThrow()
-              .isVariableLive(variable.getExtendedQualifiedName(), location.getLocationNode())) {
-            currentState = currentState.copyAndForget(variable).getState();
+              .isVariableLive(qualifiedVarName, location.getLocationNode())) {
+            if (!options.isEnforcePointerSensitiveLiveness()) {
+              // TODO: LiveVariablesCPA fails to track stack based memory correctly and invalidates
+              //  e.g. arrays to early. Hence isEnforcePointerInsensitiveLiveness = true is unsound!
+              currentState = currentState.invalidateVariable(variable);
+
+            } else {
+              // Don't invalidate memory that may have valid outside pointers to it that may keep it
+              // alive!
+              Optional<SMGObject> maybeVarObj =
+                  currentState.getMemoryModel().getObjectForVariable(qualifiedVarName);
+              if (maybeVarObj.isPresent()) {
+                // Does not contain itself
+                Set<SMGObject> allObjsPointingTowards =
+                    currentState
+                        .getMemoryModel()
+                        .getSmg()
+                        .getAllSourcesForPointersPointingTowards(maybeVarObj.orElseThrow())
+                        .stream()
+                        .filter(o -> !o.equals(maybeVarObj.orElseThrow()))
+                        .collect(ImmutableSet.toImmutableSet());
+                if (allObjsPointingTowards.isEmpty()) {
+                  currentState = currentState.invalidateVariable(variable);
+                }
+              }
+            }
           }
         }
       }
@@ -419,6 +609,40 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       if (assignments.exceedsThreshold(memoryLocation)) {
         currentState = currentState.copyAndForget(memoryLocation).getState();
       }
+    }
+    return currentState;
+  }
+
+  @SuppressWarnings("unused")
+  private SMGState enforceConcreteValueThreshold(
+      final SMGState state, int numOfConcreteValuesAllowed) {
+    // TODO: add tracking of concrete value order
+    // TODO: try to remove 0 only for a non pointer type
+    SMGState currentState = state;
+    // Gather all concrete values first and filter out all above the threshold
+    ImmutableBiMap<SMGValue, Wrapper<Value>> mapping =
+        currentState.getMemoryModel().getValueToSMGValueMapping().inverse();
+    // remove all concrete values above the threshold (will be replaced by symbolics by reading)
+    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objAndHVEs :
+        currentState.getMemoryModel().getSmg().getSMGObjectsWithSMGHasValueEdges().entrySet()) {
+      SMGObject object = objAndHVEs.getKey();
+      Set<SMGHasValueEdge> edgesToRemove = new HashSet<>();
+      for (SMGHasValueEdge hve : objAndHVEs.getValue()) {
+        SMGValue smgValue = hve.hasValue();
+        Wrapper<Value> wValue = mapping.get(smgValue);
+        if (wValue == null || wValue.get().isNumericValue()) {
+          edgesToRemove.add(hve);
+        }
+      }
+      currentState =
+          currentState.copyAndReplaceMemoryModel(
+              currentState
+                  .getMemoryModel()
+                  .copyWithNewSMG(
+                      currentState
+                          .getMemoryModel()
+                          .getSmg()
+                          .copyAndRemoveHVEdges(edgesToRemove, object)));
     }
     return currentState;
   }

@@ -9,12 +9,9 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
-import java.io.Serializable;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -31,15 +28,12 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * CFA metadata stores additional data about a CFA and may contain all data that isn't necessary for
  * the actual graph representation of a program.
  */
-public final class CfaMetadata implements Serializable {
-
-  private static final long serialVersionUID = -4976424764995656485L;
+public final class CfaMetadata {
 
   private final MachineModel machineModel;
   private final Language cfaLanguage;
   private final Language inputLanguage;
-  // `fileNames` isn't `final` due to serialization, but shouldn't be reassigned anywhere else
-  private transient ImmutableList<Path> fileNames;
+  private final ImmutableList<Path> fileNames;
   private final FunctionEntryNode mainFunctionEntry;
   private final CfaConnectedness connectedness;
 
@@ -229,13 +223,13 @@ public final class CfaMetadata implements Serializable {
   }
 
   /**
-   * Returns the AST structure for the CFA, if it's stored in this metadata instance.
+   * Returns the relation between the AST and the CFA, if it's stored in this metadata instance.
    *
    * @return If this metadata instance contains the AST structure for the CFA, an optional
    *     containing the AST structure is returned. Otherwise, if this metadata instance does not
    *     contain the AST structure for the CFA, an empty optional is returned.
    */
-  public AstCfaRelation getASTStructure() {
+  public AstCfaRelation getAstCfaRelation() {
     return astCFARelation;
   }
 
@@ -257,7 +251,7 @@ public final class CfaMetadata implements Serializable {
    *     null} to create an instance without AST structure)
    * @return a copy of this metadata instance, but with the specified AST structure
    */
-  public CfaMetadata withASTStructure(@Nullable AstCfaRelation pAstCfaRelation) {
+  public CfaMetadata withAstCfaRelation(@Nullable AstCfaRelation pAstCfaRelation) {
     return new CfaMetadata(
         machineModel,
         cfaLanguage,
@@ -355,25 +349,6 @@ public final class CfaMetadata implements Serializable {
         loopStructure,
         variableClassification,
         pLiveVariables);
-  }
-
-  /** Serializes CFA metadata. */
-  private void writeObject(java.io.ObjectOutputStream pObjectOutputStream) throws IOException {
-    pObjectOutputStream.defaultWriteObject();
-
-    // some `Path` implementations are not serializable, so we serialize paths as list of strings
-    List<String> stringFileNames = transformedImmutableListCopy(fileNames, Path::toString);
-    pObjectOutputStream.writeObject(stringFileNames);
-  }
-
-  /** Deserializes CFA metadata. */
-  private void readObject(java.io.ObjectInputStream pObjectInputStream)
-      throws IOException, ClassNotFoundException {
-    pObjectInputStream.defaultReadObject();
-
-    @SuppressWarnings("unchecked") // paths are always serialized as a list of strings
-    List<String> stringFileNames = (List<String>) pObjectInputStream.readObject();
-    fileNames = transformedImmutableListCopy(stringFileNames, Path::of);
   }
 
   @Override

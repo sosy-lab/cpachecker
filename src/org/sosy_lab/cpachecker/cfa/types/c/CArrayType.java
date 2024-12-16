@@ -11,9 +11,11 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import java.util.Objects;
 import java.util.OptionalInt;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -21,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
 public final class CArrayType extends AArrayType implements CType {
 
-  private static final long serialVersionUID = -6314468260643330323L;
+  @Serial private static final long serialVersionUID = -6314468260643330323L;
 
   private final @Nullable CExpression length;
   private final boolean isConst;
@@ -93,21 +95,23 @@ public final class CArrayType extends AArrayType implements CType {
 
   @Override
   public String toASTString(String pDeclarator) {
-    return toASTString(pDeclarator, false);
+    return toASTString(pDeclarator, AAstNodeRepresentation.DEFAULT);
   }
 
-  private String toASTString(String pDeclarator, boolean pQualified) {
+  private String toASTString(String pDeclarator, AAstNodeRepresentation pAAstNodeRepresentation) {
     checkNotNull(pDeclarator);
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
         + getType()
             .toASTString(
                 pDeclarator
-                    + ("[" + (length != null ? length.toASTString(pQualified, false) : "") + "]"));
+                    + ("["
+                        + (length != null ? length.toASTString(pAAstNodeRepresentation) : "")
+                        + "]"));
   }
 
   public String toQualifiedASTString(String pDeclarator) {
-    return toASTString(pDeclarator, true);
+    return toASTString(pDeclarator, AAstNodeRepresentation.QUALIFIED);
   }
 
   @Override

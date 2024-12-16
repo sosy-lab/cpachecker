@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
@@ -35,7 +36,7 @@ public sealed class JMethodInvocationExpression extends AFunctionCallExpression
 
   // TODO Type parameters
 
-  private static final long serialVersionUID = 4603127283599981678L;
+  @Serial private static final long serialVersionUID = 4603127283599981678L;
   // TODO erase these two fields and change the algorithm to find known run time type bindings,
   private boolean hasKnownRunTimeBinding = false;
   private JClassOrInterfaceType runTimeBinding = null;

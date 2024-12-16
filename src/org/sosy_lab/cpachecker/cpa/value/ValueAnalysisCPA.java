@@ -149,7 +149,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
 
     precision = initializePrecision(config, cfa);
-    statistics = new ValueAnalysisCPAStatistics(this, config);
+    statistics = new ValueAnalysisCPAStatistics(this, cfa, config, logger, pShutdownNotifier);
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
     errorPathAllocator =
         new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());

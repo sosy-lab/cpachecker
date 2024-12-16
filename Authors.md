@@ -17,22 +17,16 @@ SPDX-License-Identifier: Apache-2.0
 
 # Developers/Contributors
 - Baier, Daniel (since 2021); LMU Munich, Germany
-- Bunk, Thomas (since 2018); LMU Munich, Germany
+- Bajczi, Levente (since 2024); Budapest University of Technology and Economics, Hungary
 - Chien, Po-Chun (since 2021); LMU Munich, Germany
-- Cimbalnik, Klara (since 2020); LMU Munich, Germany
-- Damböck, Benedikt (since 2023); LMU Munich, Germany
 - Friedberger, Karlheinz (since 2011); LMU Munich, Germany
-- Haltermann, Jan (since 2019); University of Oldenburg, Germany
 - Jakobs, Marie-Christine (since 2012); LMU Munich, Germany
 - Jankola, Marek (since 2023); LMU Munich, Germany
 - Kettl, Matthias (since 2019); LMU Munich, Germany
 - Lee, Nian-Ze (since 2020); LMU Munich, Germany
 - Lemberger, Thomas (since 2014); LMU Munich, Germany
-- Lingsch, Marian (since 2020): LMU Munich, Germany
-- Onderka, Jan (since 2023); CTU Prague, Czech Republic
-- Port, Valentin (since 2019); LMU Munich, Germany
-- Spießl, Martin (since 2017); LMU Munich, Germany
-- Umbricht, Sven (since 2020); LMU Munich, Germany
+- Lingsch-Rosenfeld, Marian (since 2020); LMU Munich, Germany
+- Raffler, Daniel (since 2024); LMU Munich, Germany
 - Wachowitz, Henrik (since 2022); LMU Munich, Germany
 
 # Former Developers/Contributors
@@ -48,12 +42,15 @@ SPDX-License-Identifier: Apache-2.0
 - Bruckmeier, Michael (2011); University of Passau, Germany
 - Brunn, Jens (2020 - 2021); TU Darmstadt, Germany
 - Buhl, Moritz (2018); LMU Munich, Germany
+- Bunk, Thomas (2018 - 2023); LMU Munich, Germany
 - Bürdek, Johannes (2014 - 2018); TU Darmstadt, Germany
 - Castaño, Rodrigo (2017 - 2018); University of Buenos Aires, Argentina
 - Chalupa, Marek (2018 - 2019); Masaryk University, Czechia
+- Cimbalnik, Klara (2020 - 2023); LMU Munich, Germany
 - Czech, Mike (2013 - 2014); University of Paderborn, Germany
 - Daca, Przemislaw (2011 - 2012); Technical University of Denmark, Denmark
 - Dahlberg, Peter (2013 - 2016); University of Passau, Germany
+- Damböck, Benedikt (2023); LMU Munich, Germany
 - Dangl, Matthias (2012 - 2019); LMU Munich, Germany
 - Dittrich, Matthias (2013); University of Passau, Germany
 - Donig, Andreas (2010 - 2013); University of Passau, Germany
@@ -70,6 +67,7 @@ SPDX-License-Identifier: Apache-2.0
 - Hagenhof, Christian (2015); University of Passau, Germany
 - Hagl, Raphael (2018 - 2019); LMU Munich, Germany
 - Hailer, Maximilian (2022); LMU Munich, Germany
+- Haltermann, Jan (2019 - 2023); University of Oldenburg, Germany
 - Häring, Peter (2011 - 2014); University of Passau, Germany
 - Heydebrand, Julian (2015); University of Passau, Germany
 - Hoffmann, Sascha (2022 - 2023); TU Darmstadt, Germany
@@ -103,10 +101,12 @@ SPDX-License-Identifier: Apache-2.0
 - Mutilin, Vadim (2012 - 2020); ISP RAS, Russia
 - Nandanwar, Lokesh (2018); National Institute of Technology Durgapur, India
 - Olbrich, Christian (2014); University of Passau, Germany
+- Onderka, Jan (2023); CTU Prague, Czech Republic
 - Ott, Sebastian (2013 - 2016); University of Passau, Germany
 - Peters, Stefan (2011 - 2012); University of Passau, Germany
 - Pollandt, Tim (2021 - 2022); TU Darmstadt, Germany
 - Pöllmann, Daniel (2019); LMU Munich, Germany
+- Port, Valentin (2019 - 2023); LMU Munich, Germany
 - Quadt, Florian (2013 - 2014); University of Passau, Germany
 - Ratke, Sabine (2020); LMU Munich, Germany
 - Rhein, Alexander von (2010); University of Passau, Germany
@@ -120,6 +120,7 @@ SPDX-License-Identifier: Apache-2.0
 - Sell, Leon (2015 - 2016); University of Passau, Germany
 - Serdyukov, Denys (2021); TU Darmstadt, Germany
 - Speidel, Hendrik (2010); University of Passau, Germany
+- Spießl, Martin (2017 - 2023); LMU Munich, Germany
 - Sridharan, Sarita (2019 - 2020); LMU Munich, Germany
 - Stahlbauer, Andreas (2011 - 2016); University of Passau, Germany / GrammaTech, USA
 - Stieglmaier, Thomas (2011 - 2016); University of Passau, Germany
@@ -130,6 +131,7 @@ SPDX-License-Identifier: Apache-2.0
 - Tornede, Tanja (2014 - 2016); University of Paderborn, Germany
 - Trapp, Mirjam (2018 - 2019); LMU Munich, Germany
 - Tschöpel, Sebastian (2021); LMU Munich, Germany
+- Umbricht, Sven (2020 - 2024); LMU Munich, Germany
 - Vasilyev, Anton (2015 - 2022); ISP RAS, Russia
 - Volkov, Anton (2015 - 2018); ISP RAS, Russia
 - Weise, Nico (2019 - 2021); LMU Munich, Germany

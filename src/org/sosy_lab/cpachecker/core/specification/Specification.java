@@ -156,7 +156,7 @@ public final class Specification {
               String.format(
                   "Entry function %s specified in %s is not consistent with configured entry"
                       + " function %s. Please set 'analysis.entryFunction=%s' or pass property file"
-                      + " on command line with '-spec %s'.",
+                      + " on command line with '--spec %s'.",
                   parser.getEntryFunction(),
                   specFile,
                   configuredEntryFunction,

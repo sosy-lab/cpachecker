@@ -6,13 +6,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# This is a Docker image for running the Javascript unit tests.
+# This is a container image for running the Javascript unit tests.
 # It should be pushed to registry.gitlab.com/sosy-lab/software/cpachecker/test
 # and will be used by CI as declared in .gitlab-ci.yml.
 #
 # Commands for updating the image:
-# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker/test:node - < build/gitlab-ci.Dockerfile.node
-# docker push registry.gitlab.com/sosy-lab/software/cpachecker/test
+# podman build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker/test:node - < build/gitlab-ci.Dockerfile.node
+# podman push registry.gitlab.com/sosy-lab/software/cpachecker/test:node
 
 # We base it on Ubuntu 20.04 instead of some Node image
 # to make sure that the tests are also executable on a standard Ubuntu easily.
@@ -26,8 +26,8 @@ RUN apt-get update && apt-get install -y \
       nodejs \
       npm \
       wget \
-      git
-
-RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    apt-get install -y ./google-chrome-stable_current_amd64.deb && \
-    rm google-chrome-stable_current_amd64.deb
+      git \
+    && wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    && apt-get install -y ./google-chrome-stable_current_amd64.deb \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm google-chrome-stable_current_amd64.deb

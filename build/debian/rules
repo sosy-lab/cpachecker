@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
+
+%:
+	dh $@
+
+override_dh_shlibdeps:
+	dh_shlibdeps -a --exclude=libopensmtjava -- -lCPAchecker-4.0-unix/lib/native/x86_64-linux/apron -lCPAchecker-4.0-unix/lib/java/runtime

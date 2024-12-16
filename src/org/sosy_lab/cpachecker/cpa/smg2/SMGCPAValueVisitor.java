@@ -64,7 +64,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -87,7 +86,6 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * This visitor visits values mostly on the right hand side to get values (SMG or not) (but also on
@@ -194,7 +192,7 @@ public class SMGCPAValueVisitor
         }
         SMGObject ptrTarget = maybePtrTarget.orElseThrow().getSMGObject();
         ptrTargetOffset =
-            SMGCPAExpressionEvaluator.addOffsetValues(
+            evaluator.addBitOffsetValues(
                 ptrTargetOffset, maybePtrTarget.orElseThrow().getOffsetForObject());
         currentState = maybePtrTarget.orElseThrow().getSMGState();
 
@@ -211,8 +209,7 @@ public class SMGCPAValueVisitor
               evaluator.getFieldOffsetInBits(
                   SMGCPAExpressionEvaluator.getCanonicalType(explicitFieldRef),
                   explicitFieldRef.getFieldName());
-          Value finalReadOffset =
-              SMGCPAExpressionEvaluator.addOffsetValues(ptrTargetOffset, fieldOffset);
+          Value finalReadOffset = evaluator.addBitOffsetValues(ptrTargetOffset, fieldOffset);
 
           if (finalReadOffset.isExplicitlyKnown()
               && finalReadOffset
@@ -294,8 +291,12 @@ public class SMGCPAValueVisitor
                 arrayValue, SMGCPAExpressionEvaluator.getCanonicalType(arrayExpr));
       } else if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(arrayValue)) {
         // Not a valid pointer/address
-        // TODO: log this!
-        resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        resultBuilder.add(
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Returned unknown value due to a invalid address or offset in subscript expression"
+                    + " in ",
+                cfaEdge));
         continue;
       }
       // Lonely pointers in arrayValue signal local array access
@@ -313,15 +314,17 @@ public class SMGCPAValueVisitor
         // We also overapproximate the access and assume unsafe
         if (!subscriptValue.isNumericValue() && !options.trackErrorPredicates()) {
           resultBuilder.add(
-              ValueAndSMGState.ofUnknownValue(newState.withUnknownOffsetMemoryAccess()));
+              ValueAndSMGState.ofUnknownValue(
+                  newState.withUnknownOffsetMemoryAccess(),
+                  "Returned unknown value due to a unknown address or offset in subscript"
+                      + " expression with a memory error in ",
+                  cfaEdge));
           continue;
         }
 
         // Calculate the offset out of the subscript value and the type
         BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
-        Value subscriptOffset =
-            SMGCPAExpressionEvaluator.multiplyValues(
-                subscriptValue, typeSizeInBits, returnType, state.getMachineModel());
+        Value subscriptOffset = evaluator.multiplyBitOffsetValues(subscriptValue, typeSizeInBits);
 
         if (arrayExpr.getExpressionType() instanceof CPointerType) {
           Preconditions.checkArgument(arrayValue instanceof AddressExpression);
@@ -345,14 +348,18 @@ public class SMGCPAValueVisitor
         }
 
         resultBuilder.addAll(
-            evaluateReadOfValueAndOffset(arrayValue, subscriptOffset, returnType, newState));
+            evaluateReadOfValueAndOffset(arrayValue, subscriptOffset, returnType, newState, e));
       }
     }
     return resultBuilder.build();
   }
 
   private List<ValueAndSMGState> evaluateReadOfValueAndOffset(
-      Value arrayValue, Value additionalOffset, CType pReturnType, SMGState pCurrentState)
+      Value arrayValue,
+      Value additionalOffset,
+      CType pReturnType,
+      SMGState pCurrentState,
+      CExpression exprThatCalledThis)
       throws CPATransferException {
     SMGState newState = pCurrentState;
     CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(pReturnType);
@@ -360,8 +367,7 @@ public class SMGCPAValueVisitor
     if (arrayValue instanceof AddressExpression arrayAddr) {
       Value addrOffsetValue = arrayAddr.getOffset();
 
-      Value finalOffset =
-          SMGCPAExpressionEvaluator.addOffsetValues(addrOffsetValue, additionalOffset);
+      Value finalOffset = evaluator.addBitOffsetValues(addrOffsetValue, additionalOffset);
 
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)
           || returnType instanceof CArrayType
@@ -376,11 +382,21 @@ public class SMGCPAValueVisitor
         ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
         for (ValueAndSMGState readPointerAndState :
             evaluator.readValueWithPointerDereference(
-                newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits, returnType)) {
+                newState,
+                arrayAddr.getMemoryAddress(),
+                finalOffset,
+                typeSizeInBits,
+                returnType,
+                exprThatCalledThis)) {
 
           newState = readPointerAndState.getState();
           if (readPointerAndState.getValue().isUnknown()) {
-            returnBuilder.add(ValueAndSMGState.ofUnknownValue(newState));
+            returnBuilder.add(
+                ValueAndSMGState.ofUnknownValue(
+                    newState,
+                    "Returned unknown value due to a invalid address or offset in read expression"
+                        + " with dereference in ",
+                    cfaEdge));
           } else {
             returnBuilder.add(
                 ValueAndSMGState.of(
@@ -392,7 +408,12 @@ public class SMGCPAValueVisitor
 
       } else {
         return evaluator.readValueWithPointerDereference(
-            newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits, returnType);
+            newState,
+            arrayAddr.getMemoryAddress(),
+            finalOffset,
+            typeSizeInBits,
+            returnType,
+            exprThatCalledThis);
       }
     } else if (arrayValue instanceof SymbolicIdentifier
         && ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent()) {
@@ -400,8 +421,7 @@ public class SMGCPAValueVisitor
           ((SymbolicIdentifier) arrayValue).getRepresentedLocation().orElseThrow();
       String qualifiedVarName = memloc.getIdentifier();
       Value finalOffset =
-          SMGCPAExpressionEvaluator.addOffsetValues(
-              additionalOffset, BigInteger.valueOf(memloc.getOffset()));
+          evaluator.addBitOffsetValues(additionalOffset, BigInteger.valueOf(memloc.getOffset()));
 
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)
           || returnType instanceof CArrayType
@@ -430,7 +450,12 @@ public class SMGCPAValueVisitor
 
           newState = readPointerAndState.getState();
           if (readPointerAndState.getValue().isUnknown()) {
-            returnBuilder.add(ValueAndSMGState.ofUnknownValue(newState));
+            returnBuilder.add(
+                ValueAndSMGState.ofUnknownValue(
+                    newState,
+                    "Returned unknown value due to a invalid address or offset in read with"
+                        + " dereference expression in ",
+                    cfaEdge));
           } else {
             returnBuilder.add(
                 ValueAndSMGState.of(
@@ -446,7 +471,12 @@ public class SMGCPAValueVisitor
       }
 
     } else {
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(newState));
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              newState,
+              "Returned unknown value due to unknown target address in read with dereference"
+                  + " expression in ",
+              cfaEdge));
     }
   }
 
@@ -468,7 +498,11 @@ public class SMGCPAValueVisitor
       // Return the unknown value directly and not a new one! The mapping to the Value
       // object is important!
       if (leftValue.isUnknown()) {
-        resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        resultBuilder.add(
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Returned unknown value due unknown left value in binary expression in ",
+                cfaEdge));
         continue;
       }
 
@@ -481,7 +515,11 @@ public class SMGCPAValueVisitor
 
         Value rightValue = rightValueAndState.getValue();
         if (rightValue.isUnknown()) {
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown value due unknown right value in binary expression in ",
+                  cfaEdge));
           continue;
         }
 
@@ -523,6 +561,7 @@ public class SMGCPAValueVisitor
       currentState = castRightValue.getState();
     }
 
+    // TODO: extract this mess into a method and clean it up
     if ((leftValue instanceof AddressExpression
             || rightValue instanceof AddressExpression
             || (evaluator.isPointerValue(rightValue, currentState)
@@ -559,7 +598,12 @@ public class SMGCPAValueVisitor
                 && !evaluator.isPointerValue(nonConstLeftValue, currentState))
             || (!(nonConstRightValue instanceof AddressExpression)
                 && !evaluator.isPointerValue(nonConstRightValue, currentState))) {
-          return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+          return ImmutableList.of(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown value due non-address value in binary expression evaluated as"
+                      + " pointer arithmetics in ",
+                  cfaEdge));
         }
         // address == address or address == not address
         return ImmutableList.of(
@@ -624,19 +668,34 @@ public class SMGCPAValueVisitor
         currentState = rightValueAndState.getState();
         if (!evaluator.isPointerValue(rightValue, currentState)
             || !evaluator.isPointerValue(leftValue, currentState)) {
-          return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+          return ImmutableList.of(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown value due to non-address value in binary pointer comparison"
+                      + " expression in ",
+                  cfaEdge));
         }
         if (!currentState.pointsToSameMemoryRegion(leftValue, rightValue)) {
           // This is undefined behavior in C99/C11
           // But since we don't really handle this we just return unknown :D
-          return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+          return ImmutableList.of(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown value due to address values in binary pointer comparison"
+                      + " expression not pointing to the same target memory in ",
+                  cfaEdge));
         }
 
         // Then get the offsets
         Value offsetLeft = currentState.getPointerOffset(leftValue);
         Value offsetRight = currentState.getPointerOffset(rightValue);
         if (offsetLeft.isUnknown() || offsetRight.isUnknown()) {
-          return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+          return ImmutableList.of(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown value due to unknown offset value(s) in binary pointer"
+                      + " comparison expression in ",
+                  cfaEdge));
         }
 
         // Create binary expr with offsets and restart this with it
@@ -667,10 +726,12 @@ public class SMGCPAValueVisitor
     if (!leftValue.isNumericValue() || !rightValue.isNumericValue()) {
       logger.logf(
           Level.FINE,
-          "Parameters to binary operation '%s %s %s' are no numeric values.",
+          "Parameters to binary operation '%s %s %s' are no numeric values. Returned unknown value"
+              + " in %s",
           leftValue,
           binaryOperator,
-          rightValue);
+          rightValue,
+          cfaEdge);
       return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
     }
 
@@ -733,6 +794,9 @@ public class SMGCPAValueVisitor
       } else if (value.isNumericValue() && options.isCastMemoryAddressesToNumeric()) {
         logger.logf(Level.FINE, "Numeric Value '%s' interpreted as memory address.", value);
         return evaluator.getPointerFromNumeric(value, currentState);
+
+      } else if (options.trackPredicates() && value instanceof SymbolicValue) {
+        return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
 
       } else {
         return ValueAndSMGState.of(UnknownValue.getInstance(), currentState);
@@ -802,7 +866,12 @@ public class SMGCPAValueVisitor
       // SymbolicValue
       Value structValue = valueAndState.getValue();
       if (structValue.isUnknown()) {
-        builder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        builder.add(
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Returned unknown value due to unknown address value for struct in field reference"
+                    + " expression in ",
+                cfaEdge));
         continue;
       }
 
@@ -831,7 +900,7 @@ public class SMGCPAValueVisitor
 
       builder.addAll(
           evaluateReadOfValueAndOffset(
-              structValue, new NumericValue(fieldOffset), returnType, currentState));
+              structValue, new NumericValue(fieldOffset), returnType, currentState, e));
     }
     return builder.build();
   }
@@ -913,6 +982,14 @@ public class SMGCPAValueVisitor
           Value readValue = readValueAndState.getValue();
           SMGState newState = readValueAndState.getState();
 
+          if (returnType instanceof CFunctionType
+              || ((CPointerType) returnType).getType() instanceof CFunctionType) {
+            // TODO: lift into more general place
+            if (newState.isPointingToMallocZero(readValue)) {
+              newState = newState.withInvalidReadOfMallocZeroPointer(readValue);
+            }
+          }
+
           Value addressValue;
           if (evaluator.isPointerValue(readValue, newState)) {
             addressValue = AddressExpression.withZeroOffset(readValue, returnType);
@@ -977,6 +1054,7 @@ public class SMGCPAValueVisitor
     // TODO: both the value and old smg analysis simply return unknown in this case
     // String string = e.getContentString();
     // ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
+    logger.log(Level.WARNING, "Analysis approximated string literal expression in " + cfaEdge);
     return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
   }
 
@@ -1002,6 +1080,10 @@ public class SMGCPAValueVisitor
       case TYPEOF: // This can't really be solved here as we can only return Values
 
       default:
+        logger.log(
+            Level.WARNING,
+            "Approximated unknown value due to missing handling of type id expression in "
+                + cfaEdge);
         return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
     }
   }
@@ -1050,7 +1132,11 @@ public class SMGCPAValueVisitor
                 currentState));
         continue;
       } else if (!value.isNumericValue()) {
-        logger.logf(Level.FINE, "Invalid argument %s for unary operator %s.", value, unaryOperator);
+        logger.logf(
+            Level.FINE,
+            "Returned unknown due to invalid argument %s for unary operator %s.",
+            value,
+            unaryOperator);
         builder.add(ValueAndSMGState.ofUnknownValue(currentState));
         continue;
       }
@@ -1095,7 +1181,7 @@ public class SMGCPAValueVisitor
         // A possibility is that the program tries to deref a nondet for example
         builder.add(
             ValueAndSMGState.ofUnknownValue(
-                currentState.withUnknownPointerDereferenceWhenReading(value, cfaEdge)));
+                currentState.withUnknownPointerDereferenceWhenReading(value, cfaEdge), cfaEdge));
         continue;
       }
 
@@ -1106,12 +1192,17 @@ public class SMGCPAValueVisitor
       }
 
       if (!(value instanceof AddressExpression)) {
-        // The only valid pointer is numeric 0
+        // Non-pointer dereference, either numeric or symbolic
         Preconditions.checkArgument(
             (value.isNumericValue()
                     && value.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO))
                 || !evaluator.isPointerValue(value, currentState));
-        builder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        builder.add(
+            ValueAndSMGState.ofUnknownValue(
+                currentState.withUnknownPointerDereferenceWhenReading(value, cfaEdge),
+                "Returned unknown value due to non-pointer dereference with invalid-deref in"
+                    + " expression in ",
+                cfaEdge));
         continue;
       }
 
@@ -1122,7 +1213,12 @@ public class SMGCPAValueVisitor
       if (!offset.isNumericValue() && !options.trackErrorPredicates()) {
         // If the offset is not numericly known we can't read a value, return unknown iff we don't
         // check with SMT solvers later
-        builder.add(ValueAndSMGState.ofUnknownValue(currentState.withUnknownOffsetMemoryAccess()));
+        builder.add(
+            ValueAndSMGState.ofUnknownValue(
+                currentState.withUnknownOffsetMemoryAccess(),
+                "Returned unknown value due to unknown offset value in pointer dereference"
+                    + " expression in ",
+                cfaEdge));
         continue;
       }
 
@@ -1132,7 +1228,11 @@ public class SMGCPAValueVisitor
         if (!offset.isNumericValue()) {
           // If the offset is not numericly known we can't read a value
           builder.add(
-              ValueAndSMGState.ofUnknownValue(currentState.withUnknownOffsetMemoryAccess()));
+              ValueAndSMGState.ofUnknownValue(
+                  currentState.withUnknownOffsetMemoryAccess(),
+                  "Returned unknown value due to unknown offset value in pointer dereference"
+                      + " expression in ",
+                  cfaEdge));
           continue;
         }
         // We don't want to read struct/union! In those cases we return the AddressExpression
@@ -1156,13 +1256,17 @@ public class SMGCPAValueVisitor
         // The precondition is a precondition for get(0) because of no state split
         Preconditions.checkArgument(
             !currentState.getMemoryModel().pointsToZeroPlus(pointerValue.getMemoryAddress()));
-        ValueAndSMGState readValueAndState;
-
-        readValueAndState =
+        ValueAndSMGState readValueAndState =
             evaluator
                 .readValueWithPointerDereference(
-                    currentState, pointerValue.getMemoryAddress(), offset, sizeInBits, returnType)
+                    currentState,
+                    pointerValue.getMemoryAddress(),
+                    offset,
+                    sizeInBits,
+                    returnType,
+                    e)
                 .get(0);
+        currentState = readValueAndState.getState();
 
         if (returnType instanceof CPointerType) {
           // In the pointer case we would need to encapsulate it again
@@ -1553,7 +1657,13 @@ public class SMGCPAValueVisitor
 
         if (isUnspecifiedType(functionType) && !calledFunctionName.equals("__builtin_alloca")) {
           // unsupported formula
-          return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
+          return ImmutableList.of(
+              ValueAndSMGState.ofUnknownValue(
+                  state,
+                  "Returned unknown value due to unknown function "
+                      + calledFunctionName
+                      + " in expression in ",
+                  cfaEdge));
         }
 
         List<CExpression> parameterExpressions =
@@ -2149,14 +2259,17 @@ public class SMGCPAValueVisitor
 
       // This checks and uses builtins and also unknown functions based on the options
       SMGCPABuiltins smgBuiltins = evaluator.getBuiltinFunctionHandler();
-      try {
-        return smgBuiltins.handleFunctionCall(
-            pIastFunctionCallExpression, calledFunctionName, state, cfaEdge);
-      } catch (InterruptedException | SolverException e) {
-        throw new SMGSolverException(e, state);
-      }
+
+      return smgBuiltins.handleFunctionCall(
+          pIastFunctionCallExpression, calledFunctionName, state, cfaEdge);
     }
-    return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
+    return ImmutableList.of(
+        ValueAndSMGState.ofUnknownValue(
+            state,
+            "Returned unknown value due to unknown function "
+                + pIastFunctionCallExpression.getFunctionNameExpression()
+                + " in expression in ",
+            cfaEdge));
   }
 
   /* ++++++++++++++++++ Below this point value arithmetics and comparisons  ++++++++++++++++++ */
@@ -2203,7 +2316,13 @@ public class SMGCPAValueVisitor
     // are addresses we allow the distance, else unknown (we can't dereference symbolics)
     // TODO: stop for illegal pointer arith?
     if (binaryOperator != BinaryOperator.PLUS && binaryOperator != BinaryOperator.MINUS) {
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState,
+              "Returned unknown value due to invalid pointer arithmetics operator "
+                  + binaryOperator
+                  + " in ",
+              cfaEdge));
     }
 
     // The canonical type is the return type of the pointer expression!
@@ -2215,9 +2334,14 @@ public class SMGCPAValueVisitor
     if (leftValue instanceof AddressExpression addressValue
         && !(rightValue instanceof AddressExpression)) {
       Value addressOffset = addressValue.getOffset();
-      if (!rightValue.isNumericValue() || !addressOffset.isNumericValue()) {
-        // TODO: symbolic values if possible
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+      if (!options.trackPredicates()
+          && (!rightValue.isNumericValue() || !addressOffset.isNumericValue())) {
+        return ImmutableList.of(
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Returned unknown value due to symbolic or unknown offset value in pointer"
+                    + " arithmetics expression without predicate tracking in ",
+                cfaEdge));
       }
 
       Value correctlyTypedOffset;
@@ -2226,29 +2350,41 @@ public class SMGCPAValueVisitor
         // We need the correct types here; the types of the returned value after the pointer
         // expression!
         correctlyTypedOffset =
-            arithmeticOperation(
+            calculateArithmeticOperationWithBitPromotion(
                 new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
-                (NumericValue) rightValue,
-                BinaryOperator.MULTIPLY,
-                // TODO This is just some random int type with same size, check if this is correct.
-                evaluator.getMachineModel().getPointerSizedIntType());
+                leftValueType,
+                rightValue,
+                rightValueType,
+                BinaryOperator.MULTIPLY);
       } else {
         // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
         // then this is just the numeric value * 8 and then the operation.
         correctlyTypedOffset =
-            arithmeticOperation(
+            calculateArithmeticOperationWithBitPromotion(
                 new NumericValue(BigInteger.valueOf(8)),
-                (NumericValue) rightValue,
-                BinaryOperator.MULTIPLY,
-                calculationType);
+                leftValueType,
+                rightValue,
+                rightValueType,
+                BinaryOperator.MULTIPLY);
       }
 
       Value finalOffset =
-          arithmeticOperation(
-              (NumericValue) addressOffset,
-              (NumericValue) correctlyTypedOffset,
-              binaryOperator,
-              calculationType);
+          calculateArithmeticOperationWithBitPromotion(
+              addressOffset, leftValueType, correctlyTypedOffset, rightValueType, binaryOperator);
+
+      if (finalOffset instanceof SymbolicExpression symOffset) {
+        int currentOffsetTypeBits =
+            evaluator
+                .getMachineModel()
+                .getSizeofInBits((CType) symOffset.getType())
+                .intValueExact();
+        int pointerTypeInBits =
+            evaluator
+                .getMachineModel()
+                .getSizeofInBits(CPointerType.POINTER_TO_CHAR)
+                .intValueExact();
+        Preconditions.checkArgument(currentOffsetTypeBits >= (pointerTypeInBits + 3));
+      }
 
       return ImmutableList.of(
           ValueAndSMGState.of(addressValue.copyWithNewOffset(finalOffset), currentState));
@@ -2260,7 +2396,12 @@ public class SMGCPAValueVisitor
           || !addressOffset.isNumericValue()
           || binaryOperator == BinaryOperator.MINUS) {
         // TODO: symbolic values if possible
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+        return ImmutableList.of(
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Returned unknown value due to unknown offset value in pointer arithmetics"
+                    + " expression in ",
+                cfaEdge));
       }
       Value correctlyTypedOffset;
       if (calculationType instanceof CPointerType) {
@@ -2314,7 +2455,12 @@ public class SMGCPAValueVisitor
           || !rightOffset.isNumericValue()
           || !leftOffset.isNumericValue()) {
         // TODO: symbolic values if possible
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+        return ImmutableList.of(
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Returned unknown value due to unknown offset value in pointer dereference"
+                    + " expression in ",
+                cfaEdge));
       }
 
       ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
@@ -2342,7 +2488,11 @@ public class SMGCPAValueVisitor
               new NumericValue(
                   evaluator.getBitSizeof(currentState, ((CArrayType) leftValueType).getType()));
         } else {
-          returnBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          returnBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown value due to type error in pointer arithmetics expression in ",
+                  cfaEdge));
           continue;
         }
         // Undefined behavior if this assertion does not hold
@@ -2361,6 +2511,30 @@ public class SMGCPAValueVisitor
     }
   }
 
+  private Value calculateArithmeticOperationWithBitPromotion(
+      Value leftValue,
+      CType leftValueType,
+      Value rightValue,
+      CType rightValueType,
+      BinaryOperator binOp)
+      throws CPATransferException {
+    if (rightValue instanceof NumericValue numValueRight
+        && leftValue instanceof NumericValue numValueLeft) {
+      return arithmeticOperation(
+          numValueLeft, numValueRight, binOp, evaluator.getCTypeForBitPreciseMemoryAddresses());
+    } else {
+      // Symbolic offset
+      return createSymbolicExpression(
+          leftValue,
+          leftValueType,
+          rightValue,
+          rightValueType,
+          binOp,
+          evaluator.getCTypeForBitPreciseMemoryAddresses(),
+          evaluator.getCTypeForBitPreciseMemoryAddresses());
+    }
+  }
+
   /**
    * Join a symbolic expression with something else using a binary expression.
    *
@@ -2372,7 +2546,7 @@ public class SMGCPAValueVisitor
    * @return the calculated Value
    */
   public Value calculateSymbolicBinaryExpression(
-      Value pLValue, Value pRValue, final CBinaryExpression pExpression) {
+      Value pLValue, Value pRValue, final CBinaryExpression pExpression) throws SMGException {
 
     // While the offsets and even the values of the addresses may be symbolic, the address
     // expressions themselves may never be handled in such a way
@@ -2406,21 +2580,54 @@ public class SMGCPAValueVisitor
         calculationType);
   }
 
-  private SymbolicValue createSymbolicExpression(
+  private Value createSymbolicExpression(
       Value pLeftValue,
       CType pLeftType,
       Value pRightValue,
       CType pRightType,
       CBinaryExpression.BinaryOperator pOperator,
       CType pExpressionType,
-      CType pCalculationType) {
+      CType pCalculationType)
+      throws SMGException {
+
+    if (pLeftValue.isNumericValue() && pRightValue.isNumericValue()) {
+      throw new SMGException(
+          "Error when creating a symbolic expression. Please inform the maintainer of SMG2.");
+    }
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    SymbolicExpression leftOperand;
-    SymbolicExpression rightOperand;
+    SymbolicExpression leftOperand = factory.asConstant(pLeftValue, pLeftType);
+    SymbolicExpression rightOperand = factory.asConstant(pRightValue, pRightType);
 
-    leftOperand = factory.asConstant(pLeftValue, pLeftType);
-    rightOperand = factory.asConstant(pRightValue, pRightType);
+    if (pLeftValue.isNumericValue()) {
+      BigInteger leftNum = pLeftValue.asNumericValue().bigIntegerValue();
+      rightOperand = factory.asConstant(pRightValue, pRightType);
+      if ((pOperator == BinaryOperator.PLUS && leftNum.equals(BigInteger.ZERO))
+          || (pOperator == BinaryOperator.MULTIPLY && leftNum.equals(BigInteger.ONE))) {
+        if (!pLeftType.equals(pExpressionType)) {
+          return factory.cast(rightOperand, pExpressionType);
+        }
+        return rightOperand;
+      } else if (pOperator == BinaryOperator.MINUS && leftNum.equals(BigInteger.ZERO)) {
+        return factory.negate(rightOperand, pExpressionType);
+      } else if ((pOperator == BinaryOperator.MULTIPLY && leftNum.equals(BigInteger.ZERO))
+          || (pOperator == BinaryOperator.DIVIDE && leftNum.equals(BigInteger.ZERO))) {
+        return new NumericValue(BigInteger.ZERO);
+      }
+    } else if (pRightValue.isNumericValue()) {
+      leftOperand = factory.asConstant(pLeftValue, pLeftType);
+      BigInteger rightNum = pRightValue.asNumericValue().bigIntegerValue();
+      if ((pOperator == BinaryOperator.MULTIPLY && rightNum.equals(BigInteger.ONE))
+          || (pOperator == BinaryOperator.PLUS && rightNum.equals(BigInteger.ZERO))
+          || (pOperator == BinaryOperator.MINUS && rightNum.equals(BigInteger.ZERO))) {
+        if (!pLeftType.equals(pExpressionType)) {
+          return factory.cast(leftOperand, pExpressionType);
+        }
+        return leftOperand;
+      } else if (pOperator == BinaryOperator.MULTIPLY && rightNum.equals(BigInteger.ZERO)) {
+        return new NumericValue(BigInteger.ZERO);
+      }
+    }
 
     return switch (pOperator) {
       case PLUS -> factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
@@ -2908,15 +3115,15 @@ public class SMGCPAValueVisitor
   private boolean isArithmeticOperation(BinaryOperator binaryOperator) {
     return switch (binaryOperator) {
       case PLUS,
-              MINUS,
-              DIVIDE,
-              MODULO,
-              MULTIPLY,
-              SHIFT_LEFT,
-              SHIFT_RIGHT,
-              BINARY_AND,
-              BINARY_OR,
-              BINARY_XOR ->
+          MINUS,
+          DIVIDE,
+          MODULO,
+          MULTIPLY,
+          SHIFT_LEFT,
+          SHIFT_RIGHT,
+          BINARY_AND,
+          BINARY_OR,
+          BINARY_XOR ->
           true;
       default -> false;
     };

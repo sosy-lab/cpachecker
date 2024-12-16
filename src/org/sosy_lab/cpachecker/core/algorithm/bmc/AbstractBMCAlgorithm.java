@@ -1267,7 +1267,7 @@ abstract class AbstractBMCAlgorithm
         current = current.causingObligation;
         ++depth;
       }
-      assert (depth == 0 && causingObligation == null) || (depth > 0 && causingObligation != null);
+      assert causingObligation == null ? depth == 0 : depth > 0;
       return depth;
     }
 

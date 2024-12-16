@@ -49,7 +49,7 @@ build-dependencies:
   interruptible: true
   artifacts:
     paths:
-      - "bin/"
+      - "classes/"
       - "*.jar"
 
 build:jdk-11:
@@ -64,9 +64,9 @@ build:jdk-21:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-build:jdk-22:
+build:jdk-23:
   <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-22
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
 
 
 # For checks that need the binaries
@@ -88,10 +88,6 @@ build:jdk-22:
   <<: *source_check
   script: "ant $ANT_PROPS_BUILD build-project-ecj"
 
-build-project-ecj:jdk-11:
-  <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
-
 build-project-ecj:jdk-17:
   <<: *build-project-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
@@ -100,9 +96,9 @@ build-project-ecj:jdk-21:
   <<: *build-project-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-build-project-ecj:jdk-22:
+build-project-ecj:jdk-23:
   <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-22
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
 
 
 check-format:
@@ -190,15 +186,15 @@ unit-tests:jdk-21:
     - build:jdk-21
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-unit-tests:jdk-22:
+unit-tests:jdk-23:
   <<: *unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-22
+    - build:jdk-23
   needs:
     - build-dependencies
-    - build:jdk-22
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-22
+    - build:jdk-23
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
 
 
 refaster:
@@ -260,7 +256,7 @@ deploy-gh-pages:
       - $GH_TOKEN == null # required for job
 
 
-# Build Docker images
+# Build container images
 # following this guideline: https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
 .build-docker:
   stage: images
@@ -295,8 +291,8 @@ build-docker:test:jdk-21:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-21
     IMAGE: /test:jdk-21
 
-build-docker:test:jdk-22:
+build-docker:test:jdk-23:
   extends: .build-docker
   variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-22
-    IMAGE: /test:jdk-22
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-23
+    IMAGE: /test:jdk-23

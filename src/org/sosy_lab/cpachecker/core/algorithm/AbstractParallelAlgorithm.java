@@ -78,7 +78,7 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
   private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
       new CopyOnWriteArrayList<>();
   private CFANode mainEntryNode = null;
-  private ImmutableList<Callable<ParallelAnalysisResult>> analyses;
+  protected ImmutableList<Callable<ParallelAnalysisResult>> analyses;
 
   protected boolean hasValidResult = false;
 
@@ -138,7 +138,8 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
   }
 
   protected abstract AlgorithmStatus determineAlgorithmStatus(
-      ReachedSet pReachedSet, List<ListenableFuture<ParallelAnalysisResult>> pFutures);
+      ReachedSet pReachedSet, List<ListenableFuture<ParallelAnalysisResult>> pFutures)
+      throws InterruptedException, CPAException;
 
   protected void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
       throws InterruptedException, CPAException {
@@ -192,7 +193,7 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
       int pAnanlysisNumber,
       Configuration pConfiguration,
       Specification pSpecification)
-      throws CPAException, InterruptedException, InvalidConfigurationException {
+      throws InterruptedException, InvalidConfigurationException {
     return createParallelAnalysis(
         pAnalysisName, pAnanlysisNumber, pConfiguration, pSpecification, false, false);
   }
@@ -204,7 +205,7 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
       final Specification pSpecification,
       final boolean pSupplyReached,
       final boolean pSupplyRefinableReached)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws InvalidConfigurationException, InterruptedException {
 
     final LogManager singleLogger =
         logger.withComponentName("Parallel analysis " + pAnalysisNumber);
@@ -222,9 +223,17 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
             singleShutdownManager.getNotifier(),
             aggregatedReachedSetManager.asView());
 
-    final ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, pSpecification);
-    final Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, pSpecification);
-    final ReachedSet reached = coreComponents.createReachedSet(cpa);
+    final ConfigurableProgramAnalysis cpa;
+    final Algorithm algorithm;
+    final ReachedSet reached;
+    try {
+      cpa = coreComponents.createCPA(cfa, pSpecification);
+      algorithm = coreComponents.createAlgorithm(cpa, cfa, pSpecification);
+      reached = coreComponents.createReachedSet(cpa);
+    } catch (CPAException e) {
+      singleLogger.logfUserException(Level.WARNING, e, "Failed to initialize analysis");
+      return () -> ParallelAnalysisResult.absent(pAnalysisName);
+    }
 
     AtomicBoolean terminated = new AtomicBoolean(false);
     return () -> {
@@ -305,12 +314,7 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
                   newReached.addNoWaitlist(as, pReachedSet.getPrecision(as));
                 }
 
-                ReachedSet oldReachedSet = oldReached.get();
-                if (oldReachedSet != null) {
-                  aggregatedReachedSetManager.updateReachedSet(oldReachedSet, newReached);
-                } else {
-                  aggregatedReachedSetManager.addReachedSet(newReached);
-                }
+                updateOrAddReachedSetToReachedSetManager(oldReached.get(), newReached);
                 oldReached.set(newReached);
               }
             });
@@ -336,12 +340,7 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
           if (status.isSound()
               && !from(currentReached)
                   .anyMatch(or(AbstractStates::isTargetState, AbstractStates::hasAssumptions))) {
-            ReachedSet oldReachedSet = oldReached.get();
-            if (oldReachedSet != null) {
-              aggregatedReachedSetManager.updateReachedSet(oldReachedSet, currentReached);
-            } else {
-              aggregatedReachedSetManager.addReachedSet(currentReached);
-            }
+            updateOrAddReachedSetToReachedSetManager(oldReached.get(), currentReached);
             return ParallelAnalysisResult.of(currentReached, status, analysisName);
           }
 
@@ -366,12 +365,7 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
 
           if (status.isSound()) {
             singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
-            ReachedSet oldReachedSet = oldReached.get();
-            if (oldReachedSet != null) {
-              aggregatedReachedSetManager.updateReachedSet(oldReachedSet, currentReached);
-            } else {
-              aggregatedReachedSetManager.addReachedSet(currentReached);
-            }
+            updateOrAddReachedSetToReachedSetManager(oldReached.get(), currentReached);
             oldReached.set(currentReached);
           }
 
@@ -398,6 +392,16 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
     } catch (InterruptedException e) {
       singleLogger.log(Level.INFO, "Analysis was terminated");
       return ParallelAnalysisResult.absent(analysisName);
+    }
+  }
+
+  /** Give the reached set to {@link #aggregatedReachedSetManager}. */
+  private void updateOrAddReachedSetToReachedSetManager(
+      @Nullable ReachedSet oldReachedSet, ReachedSet currentReached) {
+    if (oldReachedSet != null) {
+      aggregatedReachedSetManager.updateReachedSet(oldReachedSet, currentReached);
+    } else {
+      aggregatedReachedSetManager.addReachedSet(currentReached);
     }
   }
 

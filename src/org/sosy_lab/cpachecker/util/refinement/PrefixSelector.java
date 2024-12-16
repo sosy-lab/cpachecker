@@ -144,7 +144,7 @@ public class PrefixSelector {
         case RANDOM:
           return randomScorer;
 
-          // illegal arguments
+        // illegal arguments
         case NONE:
         default:
           throw new IllegalArgumentException(

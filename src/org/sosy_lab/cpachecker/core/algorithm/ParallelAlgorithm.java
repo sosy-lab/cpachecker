@@ -9,15 +9,23 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
+import static java.util.concurrent.Executors.newFixedThreadPool;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -48,14 +56,18 @@ public class ParallelAlgorithm extends AbstractParallelAlgorithm implements Stat
       required = true,
       description =
           "List of files with configurations to use. Files can be suffixed with"
-              + " ::supply-reached this signalizes that the (finished) reached set"
-              + " of an analysis can be used in other analyses (e.g. for invariants"
-              + " computation). If you use the suffix ::supply-reached-refinable instead"
-              + " this means that the reached set supplier is additionally continously"
-              + " refined (so one of the analysis has to be instanceof ReachedSetAdjustingCPA)"
-              + " to make this work properly.")
+              + " ::refinable to enable iterative refinement of the analysis precision"
+              + " (one of the CPAs has to be instanceof ReachedSetAdjustingCPA),"
+              + " ::supply-reached to enabled sharing of the (parial or finished) reached set"
+              + " for use in other analyses (e.g. for invariants computation),"
+              + " or ::supply-reached-refinable for both.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
+
+  @Option(
+      secure = true,
+      description = "toggle to write all the files also for the unsuccessful analyses")
+  private boolean writeUnsuccessfulAnalysisFiles = false;
 
   private static final String SUCCESS_MESSAGE =
       "One of the parallel analyses has finished successfully, cancelling all other runs.";
@@ -71,7 +83,7 @@ public class ParallelAlgorithm extends AbstractParallelAlgorithm implements Stat
       Specification pSpecification,
       CFA pCfa,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws InvalidConfigurationException, InterruptedException {
     super(
         pLogger,
         pShutdownNotifier,
@@ -79,7 +91,8 @@ public class ParallelAlgorithm extends AbstractParallelAlgorithm implements Stat
         pAggregatedReachedSets,
         new ParallelAlgorithmStatistics(pLogger));
     config.inject(this);
-
+    ((ParallelAlgorithmStatistics) stats)
+        .setWriteUnsuccessfulAnalysisFiles(writeUnsuccessfulAnalysisFiles);
     globalConfig = config;
     specification = checkNotNull(pSpecification);
 
@@ -95,8 +108,37 @@ public class ParallelAlgorithm extends AbstractParallelAlgorithm implements Stat
 
   @Override
   protected AlgorithmStatus determineAlgorithmStatus(
-      ReachedSet pReachedSet, List<ListenableFuture<ParallelAnalysisResult>> pFutures) {
+      ReachedSet pReachedSet, List<ListenableFuture<ParallelAnalysisResult>> pFutures)
+      throws InterruptedException, CPAException {
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
+
+    ThreadFactory threadFactory =
+        new ThreadFactoryBuilder().setNameFormat(getClass().getSimpleName() + "-thread-%d").build();
+    ListeningExecutorService exec =
+        listeningDecorator(newFixedThreadPool(analyses.size(), threadFactory));
+
+    List<ListenableFuture<ParallelAnalysisResult>> futures = new ArrayList<>(analyses.size());
+    for (Callable<ParallelAnalysisResult> call : analyses) {
+      futures.add(exec.submit(call));
+    }
+
+    // shutdown the executor service,
+    exec.shutdown();
+
+    try {
+      handleFutureResults(futures);
+
+    } finally {
+      // Wait some time so that all threads are shut down and we have a happens-before relation
+      // (necessary for statistics).
+      // Time limit here should be somewhat shorter than in ForceTerminationOnShutdown.
+      if (!Uninterruptibles.awaitTerminationUninterruptibly(exec, 8, TimeUnit.SECONDS)) {
+        logger.log(Level.WARNING, "Not all threads are terminated although we have a result.");
+      }
+
+      exec.shutdownNow();
+    }
+
     if (finalResult != null) {
       forwardingReachedSet.setDelegate(finalResult.getReached());
       return finalResult.getStatus();
@@ -116,7 +158,6 @@ public class ParallelAlgorithm extends AbstractParallelAlgorithm implements Stat
       finalResult = result;
       hasValidResult = true;
       ((ParallelAlgorithmStatistics) stats).successfulAnalysisName = result.getAnalysisName();
-
       // cancel other computations
       futures.forEach(future -> future.cancel(true));
       logger.log(Level.INFO, result.getAnalysisName() + " finished successfully.");
@@ -128,10 +169,10 @@ public class ParallelAlgorithm extends AbstractParallelAlgorithm implements Stat
 
   private Callable<ParallelAnalysisResult> createParallelAnalysis(
       final AnnotatedValue<Path> pSingleConfigFileName, final int analysisNumber)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws InvalidConfigurationException, InterruptedException {
     final Path singleConfigFileName = pSingleConfigFileName.value();
     final boolean supplyReached;
-    final boolean supplyRefinableReached;
+    final boolean refineAnalysis;
 
     final Configuration singleConfig = createSingleConfig(singleConfigFileName, logger);
     if (singleConfig == null) {
@@ -139,26 +180,29 @@ public class ParallelAlgorithm extends AbstractParallelAlgorithm implements Stat
     }
 
     if (pSingleConfigFileName.annotation().isPresent()) {
-      supplyRefinableReached =
-          switch (pSingleConfigFileName.annotation().orElseThrow()) {
-            case "supply-reached" -> {
-              supplyReached = true;
-              yield false;
-            }
-            case "supply-reached-refinable" -> {
-              supplyReached = false;
-              yield true;
-            }
-            default ->
-                throw new InvalidConfigurationException(
-                    String.format(
-                        "Annotation %s is not valid for config %s in option"
-                            + " parallelAlgorithm.configFiles",
-                        pSingleConfigFileName.annotation(), pSingleConfigFileName.value()));
-          };
+      switch (pSingleConfigFileName.annotation().orElseThrow()) {
+        case "refinable" -> {
+          supplyReached = false;
+          refineAnalysis = true;
+        }
+        case "supply-reached" -> {
+          supplyReached = true;
+          refineAnalysis = false;
+        }
+        case "supply-reached-refinable" -> {
+          supplyReached = true;
+          refineAnalysis = true;
+        }
+        default ->
+            throw new InvalidConfigurationException(
+                String.format(
+                    "Annotation %s is not valid for config %s in option"
+                        + " parallelAlgorithm.configFiles",
+                    pSingleConfigFileName.annotation(), pSingleConfigFileName.value()));
+      }
     } else {
       supplyReached = false;
-      supplyRefinableReached = false;
+      refineAnalysis = false;
     }
 
     return createParallelAnalysis(
@@ -167,7 +211,7 @@ public class ParallelAlgorithm extends AbstractParallelAlgorithm implements Stat
         singleConfig,
         specification,
         supplyReached,
-        supplyRefinableReached);
+        refineAnalysis);
   }
 
   @Nullable
@@ -195,10 +239,16 @@ public class ParallelAlgorithm extends AbstractParallelAlgorithm implements Stat
   }
 
   private static class ParallelAlgorithmStatistics extends AbstractParallelAlgorithmStatistics {
+
+    private boolean writeUnsuccessfulAnalysisFiles;
     private String successfulAnalysisName = null;
 
     ParallelAlgorithmStatistics(LogManager pLogger) {
       super(pLogger);
+    }
+
+    private void setWriteUnsuccessfulAnalysisFiles(boolean pWriteUnsuccessfulAnalysisFiles) {
+      writeUnsuccessfulAnalysisFiles = pWriteUnsuccessfulAnalysisFiles;
     }
 
     @Override
@@ -221,7 +271,7 @@ public class ParallelAlgorithm extends AbstractParallelAlgorithm implements Stat
       for (StatisticsEntry subStats : getAllAnalysesStats()) {
         if (isSuccessfulAnalysis(subStats)) {
           successfullAnalysisStats = subStats;
-        } else {
+        } else if (writeUnsuccessfulAnalysisFiles) {
           writeSubOutputFiles(pResult, subStats);
         }
       }

@@ -39,12 +39,14 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 
@@ -105,7 +107,7 @@ public class SMGCPATest0 {
             logger,
             SMGCPAExportOptions.getNoExportInstance(),
             smgOptions,
-            makeTestSolver());
+            makeTestSolver(machineModel, logger));
     currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
     numericPointerSizeInBits = new NumericValue(pointerSizeInBits);
     currentState = currentState.copyAndAddDummyStackFrame();
@@ -117,7 +119,9 @@ public class SMGCPATest0 {
     currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
   }
 
-  private ConstraintsSolver makeTestSolver() throws InvalidConfigurationException {
+  public static ConstraintsSolver makeTestSolver(
+      MachineModel machineModel, LogManagerWithoutDuplicates logger)
+      throws InvalidConfigurationException {
     Solver smtSolver =
         Solver.create(Configuration.defaultConfiguration(), logger, ShutdownNotifier.createDummy());
     FormulaManagerView formulaManager = smtSolver.getFormulaManager();
@@ -383,14 +387,25 @@ public class SMGCPATest0 {
         currentState =
             currentState.copyAndAddLocalVariable(
                 numericPointerSizeInBits, i == 0 ? "first" : "last", null);
-        currentState =
-            currentState.writeToStackOrGlobalVariable(
-                i == 0 ? "first" : "last",
-                new NumericValue(BigInteger.ZERO),
-                new NumericValue(pointerSizeInBits),
-                pointerAndState.getValue(),
-                null,
-                dummyCDAEdge);
+        try {
+          currentState =
+              currentState.writeToStackOrGlobalVariable(
+                  i == 0 ? "first" : "last",
+                  new NumericValue(BigInteger.ZERO),
+                  new NumericValue(pointerSizeInBits),
+                  pointerAndState.getValue(),
+                  null,
+                  dummyCDAEdge);
+        } catch (CPATransferException e) {
+          if (e instanceof SMGException) {
+            throw (SMGException) e;
+          } else if (e instanceof SMGSolverException) {
+            throw (SMGSolverException) e;
+          }
+          // This can never happen, but we are forced to do this as the visitor demands the
+          // CPATransferException
+          throw new RuntimeException(e);
+        }
       }
       if (listLength == 1) {
         ValueAndSMGState pointerAndState =
@@ -399,14 +414,25 @@ public class SMGCPATest0 {
         currentState = pointerAndState.getState();
         // Save all pointers in objects to not confuse the internal SMG assertions
         currentState = currentState.copyAndAddLocalVariable(numericPointerSizeInBits, "last", null);
-        currentState =
-            currentState.writeToStackOrGlobalVariable(
-                "last",
-                new NumericValue(BigInteger.ZERO),
-                numericPointerSizeInBits,
-                pointerAndState.getValue(),
-                null,
-                dummyCDAEdge);
+        try {
+          currentState =
+              currentState.writeToStackOrGlobalVariable(
+                  "last",
+                  new NumericValue(BigInteger.ZERO),
+                  numericPointerSizeInBits,
+                  pointerAndState.getValue(),
+                  null,
+                  dummyCDAEdge);
+        } catch (CPATransferException e) {
+          if (e instanceof SMGException) {
+            throw (SMGException) e;
+          } else if (e instanceof SMGSolverException) {
+            throw (SMGSolverException) e;
+          }
+          // This can never happen, but we are forced to do this as the visitor demands the
+          // CPATransferException
+          throw new RuntimeException(e);
+        }
       }
 
       prevObject = listSegment;
@@ -652,5 +678,22 @@ public class SMGCPATest0 {
     }
 
     return array;
+  }
+
+  public static SMGState stateFromSMG(SMG pSmg) throws InvalidConfigurationException {
+    MachineModel machineModel = MachineModel.LINUX32;
+    LogManagerWithoutDuplicates logger =
+        new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
+    SMGOptions smgOptions = new SMGOptions(Configuration.defaultConfiguration());
+    SMGCPAExpressionEvaluator evaluator =
+        new SMGCPAExpressionEvaluator(
+            machineModel,
+            logger,
+            SMGCPAExportOptions.getNoExportInstance(),
+            smgOptions,
+            SMGCPATest0.makeTestSolver(machineModel, logger));
+    SMGState state =
+        SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
+    return state.copyAndReplaceMemoryModel(state.getMemoryModel().copyWithNewSMG(pSmg));
   }
 }

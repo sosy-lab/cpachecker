@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import com.google.common.base.Preconditions;
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -21,7 +22,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 /** Abstract state for the Collector CPA. Encapsulate a symbolic formula */
 public class AssumptionStorageState implements AbstractState, Serializable {
 
-  private static final long serialVersionUID = -3738604180058424317L;
+  @Serial private static final long serialVersionUID = -3738604180058424317L;
 
   // this formula provides the assumption generated from other sources than heuristics,
   // e.g. assumptions for arithmetic overflow
@@ -130,6 +131,7 @@ public class AssumptionStorageState implements AbstractState, Serializable {
     return new AssumptionStorageState(fmgr, trueFormula, trueFormula);
   }
 
+  @Serial
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     Preconditions.checkState(
         isAssumptionTrue() && isStopFormulaTrue(),
@@ -137,6 +139,7 @@ public class AssumptionStorageState implements AbstractState, Serializable {
     out.defaultWriteObject();
   }
 
+  @Serial
   private Object readResolve() {
     FormulaManagerView fManager =
         SerializationInfoStorage.getInstance().getAssumptionStorageFormulaManager();

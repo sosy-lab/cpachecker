@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -26,13 +27,16 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordDeserializer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordSerializer;
 
 @JsonDeserialize(using = InvariantRecordDeserializer.class)
 @JsonSerialize(using = InvariantRecordSerializer.class)
-public sealed class InvariantEntry extends AbstractInformationRecord
-    implements CorrectnessWitnessSetElementEntry permits InvariantEntryV3 {
+public class InvariantEntry extends AbstractInvariantEntry {
+
+  @JsonAlias({"value", "string"})
+  protected final String value;
 
   @JsonProperty("location")
   @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -41,14 +45,19 @@ public sealed class InvariantEntry extends AbstractInformationRecord
   public InvariantEntry(
       @JsonProperty("value") String pString,
       @JsonProperty("type") String pType,
-      @JsonProperty("format") String pFormat,
+      @JsonProperty("format") YAMLWitnessExpressionType pFormat,
       @JsonProperty("location") LocationRecord pLocation) {
-    super(pString, pType, pFormat);
+    super(pType, pFormat);
     location = pLocation;
+    value = pString;
   }
 
   public LocationRecord getLocation() {
     return location;
+  }
+
+  public String getValue() {
+    return value;
   }
 
   public enum InvariantRecordType {
@@ -102,7 +111,7 @@ public sealed class InvariantEntry extends AbstractInformationRecord
           new InvariantEntry(
               mapper.treeToValue(invariantNode.get("value"), String.class),
               mapper.treeToValue(invariantNode.get("type"), String.class),
-              mapper.treeToValue(invariantNode.get("format"), String.class),
+              mapper.treeToValue(invariantNode.get("format"), YAMLWitnessExpressionType.class),
               mapper.treeToValue(invariantNode.get("location"), LocationRecord.class));
 
       return result;

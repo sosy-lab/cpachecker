@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.types.java;
 
+import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.AbstractFunctionType;
 
@@ -17,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.types.AbstractFunctionType;
 public sealed class JMethodType extends AbstractFunctionType implements JType
     permits JConstructorType {
 
-  private static final long serialVersionUID = 1324108617808888102L;
+  @Serial private static final long serialVersionUID = 1324108617808888102L;
 
   /**
    * Creates a new <code>JMethodType</code> object that stores the given information.

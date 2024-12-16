@@ -106,6 +106,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
 
 /**
  * Creates assumption along an error path based on a given {@link CFAEdge} edge and a given {@link
@@ -1104,7 +1105,7 @@ public class AssumptionToEdgeAllocator {
                     && rVarInBinaryExp instanceof ALiteralExpression) {
                   break;
                 }
-                // $FALL-THROUGH$
+              // $FALL-THROUGH$
               case BINARY_AND:
               case BINARY_OR:
               case BINARY_XOR:
@@ -1407,6 +1408,16 @@ public class AssumptionToEdgeAllocator {
       return new ValueLiterals();
     }
 
+    private static boolean isSinglePrecision(FloatingPointNumber pFloatingPointNumber) {
+      return pFloatingPointNumber.getExponentSize() == 8
+          && pFloatingPointNumber.getMantissaSize() == 23;
+    }
+
+    private static boolean isDoublePrecision(FloatingPointNumber pFloatingPointNumber) {
+      return pFloatingPointNumber.getExponentSize() == 11
+          && pFloatingPointNumber.getMantissaSize() == 52;
+    }
+
     private ValueLiteral handleFloatingPointNumbers(Object pValue, CSimpleType pType) {
 
       if (pValue instanceof Rational) {
@@ -1431,6 +1442,19 @@ public class AssumptionToEdgeAllocator {
           return UnknownValueLiteral.getInstance();
         }
         return ExplicitValueLiteral.valueOf(BigDecimal.valueOf(floatValue), pType);
+      } else if (pValue instanceof FloatingPointNumber floatingPointNumber) {
+        if (!isDoublePrecision(floatingPointNumber) && !isSinglePrecision(floatingPointNumber)) {
+          // TODO return correct value once we have arbitrary floats
+          return UnknownValueLiteral.getInstance();
+        }
+
+        double doubleValue = floatingPointNumber.doubleValue();
+        if (Double.isInfinite(doubleValue) || Double.isNaN(doubleValue)) {
+          // TODO return correct value once we have arbitrary floats
+          return UnknownValueLiteral.getInstance();
+        }
+
+        return ExplicitValueLiteral.valueOf(BigDecimal.valueOf(doubleValue), pType);
       }
 
       BigDecimal val;
@@ -1574,7 +1598,7 @@ public class AssumptionToEdgeAllocator {
               // if it had neither specifier it is a plain (unsigned) int
               return CNumericTypes.SIGNED_LONG_INT;
             }
-            // $FALL-THROUGH$
+          // $FALL-THROUGH$
           default:
             // just log and do not throw an exception in order to not break things
             logger.logf(Level.WARNING, "Cannot find next larger type for %s", pType);

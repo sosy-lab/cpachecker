@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph.BlockGraphFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
@@ -49,7 +50,11 @@ public class BlockOperatorDecomposer implements CFADecomposer {
 
   @Override
   public BlockGraph cut(CFA cfa) throws InterruptedException {
-    operator.setCFA(cfa);
+    try {
+      operator.setCFA(cfa);
+    } catch (CPAException e) {
+      throw new IllegalArgumentException(e);
+    }
     // start with the first node of the CFA
     CFANode startNode = cfa.getMainFunction();
 

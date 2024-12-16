@@ -87,7 +87,7 @@ public class CPAMain {
 
     if (args.length == 0) {
       // be nice to user
-      args = new String[] {"-help"};
+      args = new String[] {"--help"};
     }
 
     // initialize various components
@@ -176,7 +176,8 @@ public class CPAMain {
     }
 
     // We want to print the statistics completely now that we have come so far,
-    // so we disable all the limits, shutdown hooks, etc.
+    // so we disable all the limits, shutdown requests on Ctrl+C, etc.
+    // The shutdownHook still runs and blocks JVM exit until we finish.
     shutdownHook.disableShutdownRequests();
     shutdownNotifier.unregister(forcedExitOnShutdown);
     ForceTerminationOnShutdown.cancelPendingTermination();
@@ -192,6 +193,20 @@ public class CPAMain {
     System.out.flush();
     System.err.flush();
     logManager.flush();
+
+    // Now the shutdownHook should not prevent JVM exit anymore.
+    shutdownHook.disableAndStop();
+
+    String otherThreads = ForceTerminationOnShutdown.buildLiveThreadInfo();
+    if (!otherThreads.isEmpty()) {
+      logManager.log(
+          Level.WARNING,
+          "\nCPAchecker has finished but some threads are still running:\n",
+          otherThreads);
+    }
+
+    // If other threads are running, simply ending the main thread will not work, but exit does.
+    System.exit(0);
   }
 
   // Default values for options from external libraries
@@ -657,7 +672,16 @@ public class CPAMain {
     private boolean useACSLAnnotatedProgram = false;
   }
 
-  private static Configuration handleWitnessOptions(
+  /**
+   * Read witness file if present, switch to appropriate config and adjust cmdline options.
+   *
+   * @param config the CPAchecker configuration
+   * @param overrideOptions additional options to override the ones possibly in config
+   * @param configFileName the name of the file which was the source of the config
+   * @return a new configuration where the witness options have been processed
+   * @throws InvalidConfigurationException if the witness cannot be parsed or is unsupported
+   */
+  public static Configuration handleWitnessOptions(
       Configuration config, Map<String, String> overrideOptions, Optional<String> configFileName)
       throws InvalidConfigurationException, IOException, InterruptedException {
     WitnessOptions options = new WitnessOptions();

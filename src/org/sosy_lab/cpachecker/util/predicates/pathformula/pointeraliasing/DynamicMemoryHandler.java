@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -132,6 +133,8 @@ class DynamicMemoryHandler {
 
     } else if (conv.options.isMemoryFreeFunction(functionName)) {
       return handleMemoryFree(e, expressionVisitor);
+    } else if (conv.options.isMemoryReallocFunction(functionName)) {
+      throw new UnsupportedCodeException(functionName, edge);
     } else {
       throw new AssertionError("Unknown memory allocation function " + functionName);
     }

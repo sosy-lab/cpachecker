@@ -8,6 +8,61 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes from CPAchecker 3.0 to CPAchecker 4.0
+---------------------------------------------
+* Improved default configuration of CPAchecker.  
+  The default configuration of CPAchecker is now more advanced and effective.
+  For standard reachability properties it now uses strategy selection on
+  program features such as the whether loops exist to choose a particular analysis.
+  In most cases, a parallel portfolio of a diverse range of analyses such as
+  k-induction, IMC, predicate abstraction, and value analysis is used.
+  Parallel portfolios of different analyses are also used for verification of
+  memory-safety and termination properties.
+* Initial support for handling `atexit`.
+* The generated HTML report does no longer contain the witness tab by default.  
+  In some cases, it can take a long time to generated.
+  Set the option `report.addWitness=true` to re-enable it.
+* On 2024-10-18 the CPAchecker repository was migrated from Subversion to git  
+  Please see our [post on the migration](https://groups.google.com/g/cpachecker-users/c/1s6YbhvKq6Y/m/ElnLV4CkAAAJ)
+  for information on how to adjust your local repository if necessary.
+
+
+Changes from CPAchecker 2.4 to CPAchecker 3.0
+---------------------------------------------
+* Default analysis no longer needs to be explicitly requested.  
+  If neither a configuration file nor the argument `--cpas` is given,
+  CPAchecker will automatically use its default configuration,
+  i.e., `--default` no longer needs to be used.
+
+
+Changes from CPAchecker 2.3.1 to CPAchecker 2.4
+-----------------------------------------------
+* Debian/Ubuntu package and APT repository  
+  CPAchecker is now available as an easy-to-install `.deb` package for Debian/Ubuntu
+  via the [SoSy-Lab APT repository](https://apt.sosy-lab.org).
+  Follow the link for usage instructions.
+* Container images on Docker Hub  
+  The official container images of CPAchecker are now also available
+  as [`sosylab/cpachecker` on Docker Hub](https://hub.docker.com/r/sosylab/cpachecker).
+* Executables of CPAchecker renamed  
+  Instead of `scripts/cpa.sh` and `scripts/cpa.bat` we now provide
+  `bin/cpachecker` and `bin/cpachecker.bat` as the main executables of CPAchecker.
+  The new executables are drop-in replacements.
+  The old executables are deprecated but will continue to exist
+  at least until the next major version of CPAchecker.
+  Similarly, we now provide `bin/cpa-witness2test` for CPA-witness2test.
+* Command-line arguments of CPAchecker renamed  
+  All arguments of CPAchecker now follow standard conventions
+  and start with two dashes ("--") for long arguments, e.g., `--default`.
+  Some arguments have also been renamed slightly,
+  or have been removed due to them being rarely used.
+  As before, [`doc/Configuration.md`](https://gitlab.com/sosy-lab/software/cpachecker/-/blob/trunk/doc/Configuration.md)
+  documents the supported arguments.
+  Previous command-line arguments with a single dash are deprecated,
+  but continue to work, and CPAchecker will print warning messages
+  that inform about their recommended replacements.
+
+
 Changes from CPAchecker 2.3 to CPAchecker 2.3.1
 -----------------------------------------------
 * Dual Approximated Reachability (DAR)  

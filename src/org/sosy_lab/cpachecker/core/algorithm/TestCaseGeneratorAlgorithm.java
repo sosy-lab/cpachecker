@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -283,7 +284,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     Preconditions.checkState(shouldReportCoveredErrorCallAsError());
     pReached.add(
         new DummyErrorState(pReached.getLastState()) {
-          private static final long serialVersionUID = 5522643115974481914L;
+          @Serial private static final long serialVersionUID = 5522643115974481914L;
 
           @Override
           public Set<TargetInformation> getTargetInformation() {
