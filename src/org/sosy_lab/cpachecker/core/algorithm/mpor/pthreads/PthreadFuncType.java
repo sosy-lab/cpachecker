@@ -188,16 +188,16 @@ public enum PthreadFuncType {
       Optional.empty()),
   __VERIFIER_ATOMIC_BEGIN(
       "__VERIFIER_atomic_begin",
-      false,
-      false,
+      true,
+      true,
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
       Optional.empty()),
   __VERIFIER_ATOMIC_END(
       "__VERIFIER_atomic_end",
-      false,
-      false,
+      true,
+      true,
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
@@ -213,7 +213,8 @@ public enum PthreadFuncType {
   public final boolean isSupported;
 
   /**
-   * If this function is explicitly handled in the sequentialization, i.e. contains case block code.
+   * If this function is explicitly handled in the sequentialization, i.e. contains case block code
+   * simulating the function's behavior.
    */
   public final boolean isExplicitlyHandled;
 

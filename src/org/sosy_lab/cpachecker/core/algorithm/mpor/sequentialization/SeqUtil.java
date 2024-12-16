@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadExitStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadJoinStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqVerifierAtomicStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcRetrieval;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcStorage;
@@ -199,16 +200,16 @@ public class SeqUtil {
             ThreadNode successorA = threadEdge.getSuccessor();
             assert successorA.leavingEdges().size() == 1;
             ThreadEdge statementA = successorA.leavingEdges().iterator().next();
-            threadEdges.add(statementA);
             assert statementA.cfaEdge instanceof CStatementEdge;
             ThreadNode successorB = statementA.getSuccessor();
             assert successorB.leavingEdges().size() == 1;
             ThreadEdge statementB = successorB.leavingEdges().iterator().next();
-            threadEdges.add(statementB);
             assert statementB.cfaEdge instanceof CStatementEdge;
+            // add successors to visited edges / nodes
+            threadEdges.add(statementA);
+            threadEdges.add(statementB);
             pCoveredNodes.add(successorA);
             pCoveredNodes.add(successorB);
-
             // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
             SubstituteEdge subA = pSubEdges.get(statementA);
             SubstituteEdge subB = pSubEdges.get(statementB);
@@ -235,7 +236,7 @@ public class SeqUtil {
                   new SeqReturnValueAssignStatements(returnPc, assigns, pThread.id, targetPc));
             }
 
-          } else if (isExplicitlyHandledPthreadFunc(sub.cfaEdge)) {
+          } else if (isExplicitlyHandledPthreadFunc(edge)) {
             PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(edge);
             switch (funcType) {
               case PTHREAD_CREATE:
@@ -289,6 +290,29 @@ public class SeqUtil {
                 stmts.add(
                     new SeqThreadJoinStatement(
                         targetThreadActive, threadJoins, pThread.id, targetPc));
+                break;
+
+              case __VERIFIER_ATOMIC_BEGIN:
+                // TODO improve support, atm we assume that between begin and end there is one edge
+                assert pThreadNode.leavingEdges().size() == 1;
+                ThreadNode successorA = threadEdge.getSuccessor();
+                assert successorA.leavingEdges().size() == 1;
+                ThreadEdge edgeA = successorA.leavingEdges().iterator().next();
+                ThreadNode successorB = edgeA.getSuccessor();
+                assert successorB.leavingEdges().size() == 1;
+                ThreadEdge edgeB = successorB.leavingEdges().iterator().next();
+                assert PthreadFuncType.getPthreadFuncType(edgeB.cfaEdge)
+                    .equals(PthreadFuncType.__VERIFIER_ATOMIC_END);
+                // add successors to visited edges / nodes
+                threadEdges.add(edgeA);
+                threadEdges.add(edgeB);
+                pCoveredNodes.add(successorA);
+                pCoveredNodes.add(successorB);
+                // remove begin / end from seq, only intermediate statement is included
+                SubstituteEdge subA = pSubEdges.get(edgeA);
+                assert subA != null;
+                int newTargetPc = edgeB.getSuccessor().pc;
+                stmts.add(new SeqVerifierAtomicStatement(subA.cfaEdge, pThread.id, newTargetPc));
                 break;
 
               default:

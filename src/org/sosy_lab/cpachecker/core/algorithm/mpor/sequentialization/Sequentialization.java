@@ -200,7 +200,7 @@ public class Sequentialization {
         pIncludePOR ? Optional.of(createPORAssumptions(prunedCaseClauses)) : Optional.empty();
     // optional: include loop invariant assertions over thread variables
     Optional<ImmutableList<SeqLogicalAndExpression>> loopInvariants =
-        pIncludeLoopInvariants ? Optional.of(createThreadAssertions(threadVars)) : Optional.empty();
+        pIncludeLoopInvariants ? Optional.of(createLoopInvariants(threadVars)) : Optional.empty();
     SeqMainFunction mainMethod =
         new SeqMainFunction(
             threadCount,
@@ -217,7 +217,7 @@ public class Sequentialization {
   //  so if thread i waits for a mutex or a thread, then another thread can cancel i
   //  and the invariants will not hold
   //  -> once we support intermediary thread terminations, remove these invariants
-  private ImmutableList<SeqLogicalAndExpression> createThreadAssertions(ThreadVars pThreadVars) {
+  private ImmutableList<SeqLogicalAndExpression> createLoopInvariants(ThreadVars pThreadVars) {
 
     ImmutableList.Builder<SeqLogicalAndExpression> rAssertions = ImmutableList.builder();
     // add assertion over awaits: ti_awaits_m && !(ti_active) ==> assert_fail
