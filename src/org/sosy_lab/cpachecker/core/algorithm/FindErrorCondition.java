@@ -14,6 +14,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
@@ -69,6 +70,8 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
 
   @Option(description = "Maximum iterations for error condition refinement.")
   private int maxIterations = -1; // Default: No limit
+  private final Map<String, String> variableMapping = new HashMap<>();
+
 
   public FindErrorCondition(
       Algorithm pAlgorithm,
@@ -212,6 +215,11 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       if (!ssaBuilder.build().containsVariable(variable)) {
         ssaBuilder.setIndex(variable, cexFormula.getSsa().getType(variable), 1);
       }
+      // Map SSA variable names to original names (e.g., `__VERIFIER_int!2@` -> `x`)
+      if (variable.contains("_nondet")) {
+        String originalName = extractOriginalName(variable);
+        variableMapping.put(variable, originalName);
+      }
     }
 
     // formula translation between solvers, e.g. MATHSAT5 and Z3
@@ -221,6 +229,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     BooleanFormula eliminatedByQuantifier = eliminateVariables(
         translatedFormula,
         entry -> !entry.getKey().contains("_nondet"),
+        entry -> entry.getKey().contains("_nondet"),
         // this predicate filters out variables (keys) that include "_nondet" in their names
         quantifierSolver, currentIteration);
 
@@ -245,10 +254,17 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     return exclusionFormula;
   }
 
+  private String extractOriginalName(String ssaVariable) {
+    // Replace SSA-specific annotations to extract original variable names
+    return ssaVariable.replaceAll("(_nondet|!\\d+@)", "");
+  }
+
+
   // 5. eliminate variables matching a predicate (Quantifier Elimination)
   public BooleanFormula eliminateVariables(
       BooleanFormula translatedFormula,
-      Predicate<Entry<String, Formula>> pVariablesToEliminate,
+      Predicate<Entry<String, Formula>> deterministicVariablesPredicate,
+      Predicate<Entry<String, Formula>> noneDetVariablesPredicate,
       Solver quantifierSolver,
       Integer currentIteration
   ) throws InterruptedException, SolverException {
@@ -262,20 +278,35 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     Map<String, Formula> formulaNameToFormulaMap =
         quantifierSolver.getFormulaManager().extractVariables(translatedFormula);
     logger.log(Level.INFO,
+        String.format("Iteration %d: formulaNameToFormulaMap keys: %s", currentIteration,
+            formulaNameToFormulaMap.keySet()));
+    logger.log(Level.INFO,
+        String.format("Iteration %d: formulaNameToFormulaMap values: %s", currentIteration,
+            formulaNameToFormulaMap.values()));
+    logger.log(Level.INFO,
         String.format("Iteration %d: formulaNameToFormulaMap: %s", currentIteration,
             formulaNameToFormulaMap.entrySet()));
 
     ImmutableList<Formula> eliminate = FluentIterable.from(formulaNameToFormulaMap.entrySet())
-        .filter(pVariablesToEliminate::test)
+        .filter(deterministicVariablesPredicate::test)
         .transform(Entry::getValue)
         .toList();
+
+    ImmutableList<Formula> nonDetVairalbes = FluentIterable.from(formulaNameToFormulaMap.entrySet())
+        .filter(noneDetVariablesPredicate::test)
+        .transform(Entry::getValue)
+        .toList();
+
+
     logger.log(Level.INFO,
         String.format("Iteration %d: Deterministic variables to eliminate: %s", currentIteration, eliminate));
+    logger.log(Level.INFO,
+        String.format("Iteration %d: Non-Deterministic variables : %s", currentIteration, nonDetVairalbes));
 
     BooleanFormula quantified = quantifierSolver.getFormulaManager().getQuantifiedFormulaManager()
         .mkQuantifier(Quantifier.EXISTS, eliminate, translatedFormula);
     logger.log(Level.INFO,
-        String.format("Iteration %d: Quantified  variables: %s", currentIteration, quantified));
+        String.format("Iteration %d: Quantified  variables: \n%s", currentIteration, quantified));
 
     return quantifierSolver.getFormulaManager().getQuantifiedFormulaManager()
         .eliminateQuantifiers(quantified);
@@ -319,11 +350,11 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     String rawFormula = visitor.getString();
 
     // Replace SSA variables with their original names
-//    for (Map.Entry<String, String> entry : variableMapping.entrySet()) {
-//      String ssaVariable = entry.getKey();
-//      String originalName = entry.getValue();
-//      rawFormula = rawFormula.replace(ssaVariable, originalName);
-//    }
+    for (Map.Entry<String, String> entry : variableMapping.entrySet()) {
+      String ssaVariable = entry.getKey();
+      String originalName = entry.getValue();
+      rawFormula = rawFormula.replace(ssaVariable, originalName);
+    }
 
     rawFormula = rawFormula
         .replace("bvadd_32", "+") // Replace SSA-specific operators
