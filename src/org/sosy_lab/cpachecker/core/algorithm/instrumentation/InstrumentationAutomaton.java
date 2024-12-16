@@ -352,7 +352,7 @@ public class InstrumentationAutomaton {
   }
 
   private void constructTerminationWithCountersAutomaton(int pIndex) {
-    InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
+    InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.INIT, this);
     InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
     InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
     this.initialState = q1;
@@ -364,16 +364,7 @@ public class InstrumentationAutomaton {
             new InstrumentationOperation(
                 (pIndex == 0 ? "int saved = 0; int pc = 0; int pc_instr = 0; " : "")
                     + undeclaredVariables.entrySet().stream()
-                        .map(
-                            (entry) ->
-                                entry.getValue()
-                                    + " "
-                                    + entry.getKey()
-                                    + "_instr = "
-                                    + (entry.getValue().charAt(entry.getValue().length() - 1) == '*'
-                                        ? getDereferencesForPointer(entry.getValue())
-                                            + entry.getKey()
-                                        : entry.getKey()))
+                        .map((entry) -> entry.getValue() + " " + entry.getKey() + "_instr")
                         .collect(Collectors.joining("; "))
                     + (!undeclaredVariables.isEmpty() ? ";" : "")),
             InstrumentationOrder.BEFORE,
