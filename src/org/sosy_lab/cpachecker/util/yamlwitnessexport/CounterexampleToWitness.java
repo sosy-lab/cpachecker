@@ -387,7 +387,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   private void exportWitnessVersion2(CounterexampleInfo pCex, Path pPath) throws IOException {
     AstCfaRelation astCFARelation = getASTStructure();
 
-    ImmutableListMultimap.Builder<CFAEdge, AExpressionStatement> edgeToAssumptionsBuilder = new ImmutableListMultimap.Builder<>();
+    ImmutableListMultimap.Builder<CFAEdge, AExpressionStatement> edgeToAssumptionsBuilder =
+        new ImmutableListMultimap.Builder<>();
     Map<CFAEdge, Integer> edgeToCurrentExpressionIndex = new HashMap<>();
     if (pCex.isPreciseCounterExample()) {
       for (CFAEdgeWithAssumptions edgeWithAssumptions : pCex.getCFAPathWithAssignments()) {
