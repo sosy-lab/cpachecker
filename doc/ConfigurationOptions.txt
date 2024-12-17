@@ -3810,6 +3810,9 @@ cpa.value.invExport.exportBitops = true
 # + by + c = 0, ax + bx + c <= 0, ax + bx + c >= 0, or ax + by + cy + d = 0
 cpa.value.invExport.exportLinear = true
 
+# Enable invariants that relate (compare) two variables
+cpa.value.invExport.exportRelational = true
+
 # Enable invariants that use a shift operator, note that additionally
 # exportBitops must be enabled
 cpa.value.invExport.exportShiftops = true
@@ -3817,6 +3820,9 @@ cpa.value.invExport.exportShiftops = true
 # Enable to export invariants that include three variables, currently only
 # effective if exportLinear is enabled, too
 cpa.value.invExport.exportTernary = true
+
+# Enable to export invariants on single variables
+cpa.value.invExport.exportUnary = true
 
 # enable if loop invariant export should consider context
 cpa.value.invExport.invariantsContextSensitive = true
