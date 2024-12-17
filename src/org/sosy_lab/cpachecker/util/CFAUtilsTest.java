@@ -117,6 +117,7 @@ public class CFAUtilsTest {
   }
 
   @Test
+  @SuppressWarnings("DistinctVarargsChecker")
   public void testDisconnectedBase() {
     Set<CFANode> nodes = ImmutableSet.of(CFANode.newDummyCFANode(), CFANode.newDummyCFANode());
     assertThat(CFAUtils.isConnected(nodes)).isFalse();
