@@ -448,28 +448,19 @@ public class CPAchecker {
   private static void logErrorMessage(Exception e, LogManager pLogger) {
     if (e instanceof IOException) {
       pLogger.logUserException(Level.SEVERE, e, "Could not read file");
-      return;
-    }
-    if (e instanceof InvalidConfigurationException) {
+    } else if (e instanceof InvalidConfigurationException) {
       pLogger.logUserException(Level.SEVERE, e, "Invalid configuration");
-      return;
-    }
-    if (e instanceof ClassNotFoundException) {
-      pLogger.logUserException(Level.SEVERE, e, "Could not read serialized CFA. Class is missing.");
-      return;
-    }
-    if (e instanceof ParserException) {
+    } else if (e instanceof ParserException) {
       handleParserException((ParserException) e, pLogger);
-    }
-    if (e instanceof InterruptedException) {
+    } else if (e instanceof InterruptedException) {
       // CPAchecker must exit because it was asked to
       // we return normally instead of propagating the exception
       // so we can return the partial result we have so far
       pLogger.logUserException(Level.WARNING, e, "Analysis interrupted");
-      return;
-    }
-    if (e instanceof CPAException) {
+    } else if (e instanceof CPAException) {
       pLogger.logUserException(Level.SEVERE, e, null);
+    } else {
+      throw new AssertionError("unexpected exception type", e);
     }
   }
 
