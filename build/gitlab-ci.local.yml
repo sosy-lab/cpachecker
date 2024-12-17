@@ -287,7 +287,7 @@ build-tar:
       - "cpachecker.tar.bz2"
   only:
     refs:
-      - trunk
+      - main
 
 deploy-docker:
   stage: deploy
@@ -302,7 +302,7 @@ deploy-docker:
     EXTRA_ARGS: "--context dir://."
   only:
     refs:
-      - trunk
+      - main
 
 
 # No coverage is computed for CPAchecker
