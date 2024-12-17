@@ -10,15 +10,21 @@ package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
@@ -108,5 +114,128 @@ public class CFAUtilsTest {
     fullExpressionAtCorrectPosition(cfa, "rec: __CPAchecker_TMP_0 = rec(3);}", 42, 12, 42, 23);
     fullExpressionAtCorrectPosition(cfa, "rec: __CPAchecker_TMP_1 = rec(4);}", 43, 4, 43, 19);
     fullExpressionAtCorrectPosition(cfa, "{rec(x - 2)}", 44, 11, 44, 21);
+  }
+
+  @Test
+  public void testDisconnectedBase() {
+    Set<CFANode> nodes = ImmutableSet.of(CFANode.newDummyCFANode(), CFANode.newDummyCFANode());
+    assertThat(CFAUtils.isConnected(nodes)).isFalse();
+  }
+
+  @Test
+  public void testDisconnectedComponentsSimple() {
+    CFAEdge edge =
+        new BlankEdge(
+            "dummy",
+            FileLocation.DUMMY,
+            CFANode.newDummyCFANode(),
+            CFANode.newDummyCFANode(),
+            "dummy");
+    CFACreationUtils.addEdgeUnconditionallyToCFA(edge);
+
+    Set<CFANode> nodes =
+        FluentIterable.from(CFAUtils.nodes(edge)).append(CFANode.newDummyCFANode()).toSet();
+    assertThat(CFAUtils.isConnected(nodes)).isFalse();
+  }
+
+  @Test
+  public void testDisconnectedComponents() {
+    CFANode node1 = CFANode.newDummyCFANode();
+    CFANode node2 = CFANode.newDummyCFANode();
+    CFANode node3 = CFANode.newDummyCFANode();
+    CFANode node4 = CFANode.newDummyCFANode();
+
+    ImmutableSet.Builder<CFAEdge> edges = ImmutableSet.builder();
+
+    edges
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node1, node2, "dummy"))
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node1, node3, "dummy"))
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node3, CFANode.newDummyCFANode(), "dummy"))
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node4, CFANode.newDummyCFANode(), "dummy"));
+
+    for (CFAEdge edge : edges.build()) {
+      CFACreationUtils.addEdgeUnconditionallyToCFA(edge);
+    }
+
+    Set<CFANode> nodes =
+        FluentIterable.from(edges.build()).transformAndConcat(CFAUtils::nodes).toSet();
+    assertThat(CFAUtils.isConnected(nodes)).isFalse();
+  }
+
+  @Test
+  public void testConnectedComponentsBase() {
+    CFAEdge edge =
+        new BlankEdge(
+            "dummy",
+            FileLocation.DUMMY,
+            CFANode.newDummyCFANode(),
+            CFANode.newDummyCFANode(),
+            "dummy");
+    CFACreationUtils.addEdgeUnconditionallyToCFA(edge);
+
+    Set<CFANode> nodes = ImmutableSet.copyOf(CFAUtils.nodes(edge));
+    assertThat(CFAUtils.isConnected(nodes)).isTrue();
+  }
+
+  @Test
+  public void testConnectedComponentsSelfLoop() {
+    CFANode node = CFANode.newDummyCFANode();
+    CFAEdge edge = new BlankEdge("dummy", FileLocation.DUMMY, node, node, "dummy");
+    CFACreationUtils.addEdgeUnconditionallyToCFA(edge);
+
+    Set<CFANode> nodes = ImmutableSet.copyOf(CFAUtils.nodes(edge));
+    assertThat(CFAUtils.isConnected(nodes)).isTrue();
+  }
+
+  @Test
+  public void testConnectedComponentsBranching() {
+    CFANode node1 = CFANode.newDummyCFANode();
+    CFANode node2 = CFANode.newDummyCFANode();
+    CFANode node3 = CFANode.newDummyCFANode();
+    CFANode node4 = CFANode.newDummyCFANode();
+
+    ImmutableSet.Builder<CFAEdge> edges = ImmutableSet.builder();
+
+    edges
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node1, node2, "dummy"))
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node1, node3, "dummy"))
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node3, node4, "dummy"))
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node3, CFANode.newDummyCFANode(), "dummy"))
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node4, CFANode.newDummyCFANode(), "dummy"));
+
+    for (CFAEdge edge : edges.build()) {
+      CFACreationUtils.addEdgeUnconditionallyToCFA(edge);
+    }
+
+    Set<CFANode> nodes =
+        FluentIterable.from(edges.build()).transformAndConcat(CFAUtils::nodes).toSet();
+    assertThat(CFAUtils.isConnected(nodes)).isTrue();
+  }
+
+  @Test
+  public void testConnectedComponentsMultiReachability() {
+    CFANode node1 = CFANode.newDummyCFANode();
+    CFANode node2 = CFANode.newDummyCFANode();
+    CFANode node3 = CFANode.newDummyCFANode();
+    CFANode node4 = CFANode.newDummyCFANode();
+
+    ImmutableSet.Builder<CFAEdge> edges = ImmutableSet.builder();
+
+    edges
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node1, node2, "dummy"))
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node2, node3, "dummy"))
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node2, node4, "dummy"))
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node1, node3, "dummy"))
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node3, node4, "dummy"))
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node3, CFANode.newDummyCFANode(), "dummy"))
+        .add(new BlankEdge("dummy", FileLocation.DUMMY, node4, CFANode.newDummyCFANode(), "dummy"));
+
+    for (CFAEdge edge : edges.build()) {
+      CFACreationUtils.addEdgeUnconditionallyToCFA(edge);
+    }
+
+    Set<CFANode> nodes =
+        FluentIterable.from(edges.build()).transformAndConcat(CFAUtils::nodes).toSet();
+    assertThat(CFAUtils.isConnected(nodes)).isTrue();
   }
 }
