@@ -42,6 +42,7 @@ auto-update-dependencies:
     - chmod 644 ~/.ssh/known_hosts
   script:
     - build/auto-update-dependencies.sh
+  environment: repo/auto-update-dependencies
   rules:
     - if: $AUTO_UPDATE_DEPENDENCIES == "true"
   cache:
