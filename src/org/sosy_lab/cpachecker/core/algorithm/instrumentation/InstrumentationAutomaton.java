@@ -364,16 +364,17 @@ public class InstrumentationAutomaton {
             new InstrumentationOperation(
                 (pIndex == 0 ? "int saved = 0; int pc = 0; int pc_instr = 0; " : "")
                     + undeclaredVariables.entrySet().stream()
-                        .map((entry) ->
-                            entry.getValue()
-                                + " "
-                                + entry.getKey()
-                                + "_instr"
-                                + (entry.getKey().charAt(0) == '*'
-                                   ? " = alloca(sizeof("
-                                       + getAllocationForPointer(entry.getValue())
-                                       + "))"
-                                   : ""))
+                        .map(
+                            (entry) ->
+                                entry.getValue()
+                                    + " "
+                                    + entry.getKey()
+                                    + "_instr"
+                                    + (entry.getKey().charAt(0) == '*'
+                                        ? " = alloca(sizeof("
+                                            + getAllocationForPointer(entry.getValue())
+                                            + "))"
+                                        : ""))
                         .collect(Collectors.joining("; "))
                     + (!undeclaredVariables.isEmpty() ? ";" : "")),
             InstrumentationOrder.BEFORE,
