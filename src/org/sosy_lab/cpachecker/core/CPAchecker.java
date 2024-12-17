@@ -298,16 +298,15 @@ public class CPAchecker {
 
       cfa = parse(programDenotation, stats);
       shutdownNotifier.shutdownIfNecessary();
+
+      return run0(cfa, stats);
+
     } catch (InvalidConfigurationException
         | ParserException
         | IOException
         | InterruptedException e) {
       logErrorMessage(e, logger);
       return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, stats);
-    }
-
-    try {
-      return run0(cfa, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
