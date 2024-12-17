@@ -204,10 +204,11 @@ build-docker:test:node:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}, \"https://index.docker.io/v1/\":{\"username\":\"$DOCKER_HUB_USER\",\"password\":\"$DOCKER_HUB_TOKEN\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE:$TAG --destination docker.io/sosylab/cpachecker:$TAG $EXTRA_ARGS
   environment: deploy/docker
-  only:
-    variables:
-      - $DOCKER_HUB_USER
-      - $DOCKER_HUB_TOKEN
+  rules:
+    - if: $DOCKER_HUB_USER == null
+      when: never
+    - if: $DOCKER_HUB_TOKEN == null
+      when: never
 
 build-docker:release:
   stage: images
@@ -216,10 +217,10 @@ build-docker:release:
     DOCKERFILE: build/Dockerfile.release
     TAG: "4.0"
     EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest --destination docker.io/sosylab/cpachecker:latest"
-  only:
-    refs:
-      - schedules
-      - web
+  rules:
+    - !reference [.build-docker-hub, rules]
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
 
 
 javascript-e2e-tests:
@@ -285,9 +286,8 @@ build-tar:
   artifacts:
     paths:
       - "cpachecker.tar.bz2"
-  only:
-    refs:
-      - main
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 deploy-docker:
   stage: deploy
@@ -300,9 +300,9 @@ deploy-docker:
     DOCKERFILE: build/Dockerfile.dev
     TAG: "dev"
     EXTRA_ARGS: "--context dir://."
-  only:
-    refs:
-      - main
+  rules:
+    - !reference [.build-docker-hub, rules]
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 
 # No coverage is computed for CPAchecker
