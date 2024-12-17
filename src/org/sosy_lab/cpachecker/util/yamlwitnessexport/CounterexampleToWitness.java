@@ -13,6 +13,7 @@ import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableListMultimap.Builder;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationPro
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InformationRecord;
@@ -52,6 +54,8 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointAction;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
 public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
@@ -91,10 +95,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         LocationRecord.createLocationRecordAfterLocation(
             edge.getFileLocation(), edge.getPredecessor().getFunctionName(), pAstCfaRelation);
     return new WaypointRecord(
-        WaypointRecord.WaypointType.ASSUMPTION,
-        WaypointRecord.WaypointAction.FOLLOW,
-        informationRecord,
-        location);
+        WaypointType.ASSUMPTION, WaypointAction.FOLLOW, informationRecord, location);
   }
 
   /**
@@ -195,8 +196,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       boolean conditionTruthValue, FileLocation pAstElementLocation, AssumeEdge assumeEdge) {
 
     return new WaypointRecord(
-        WaypointRecord.WaypointType.BRANCHING,
-        WaypointRecord.WaypointAction.FOLLOW,
+        WaypointType.BRANCHING,
+        WaypointAction.FOLLOW,
         new InformationRecord(Boolean.toString(conditionTruthValue), null, null),
         LocationRecord.createLocationRecordAtStart(
             pAstElementLocation,
@@ -241,8 +242,14 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       FileLocation astElementLocation;
       if (optionalIfElement.isPresent()) {
         IfElement ifElement = optionalIfElement.orElseThrow();
-        nodesBetweenConditionAndFirstBranch = ifElement.getNodesBetweenConditionAndThenBranch();
-        nodesBetweenConditionAndSecondBranch = ifElement.getNodesBetweenConditionAndElseBranch();
+        try {
+          nodesBetweenConditionAndFirstBranch = ifElement.getNodesBetweenConditionAndThenBranch();
+          nodesBetweenConditionAndSecondBranch = ifElement.getNodesBetweenConditionAndElseBranch();
+        } catch (BoundaryNodesComputationFailed e) {
+          logger.log(Level.FINEST, "Could not compute the boundary nodes for the if element", e);
+          return ImmutableList.of();
+        }
+
         astElementLocation = ifElement.getCompleteElement().location();
       } else if (optionalIterationElement.isPresent()) {
         IterationElement iterationElement = optionalIterationElement.orElseThrow();
@@ -271,8 +278,14 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
           return ImmutableList.of();
         }
 
-        nodesBetweenConditionAndFirstBranch = iterationElement.getNodesBetweenConditionAndBody();
-        nodesBetweenConditionAndSecondBranch = iterationElement.getNodesBetweenConditionAndExit();
+        try {
+          nodesBetweenConditionAndFirstBranch = iterationElement.getNodesBetweenConditionAndBody();
+          nodesBetweenConditionAndSecondBranch = iterationElement.getNodesBetweenConditionAndExit();
+        } catch (BoundaryNodesComputationFailed e) {
+          logger.logDebugException(
+              e, "Could not compute the boundary nodes for the iteration element");
+          return ImmutableList.of();
+        }
       } else {
         // TODO: Handle conditional expressions. This would need to be added at the parser level
         // and then added to the AstCfaRelation. The problem is that this occurs at the expression
@@ -313,8 +326,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
   private static WaypointRecord defaultTargetWaypoint(CFAEdge pEdge) {
     return new WaypointRecord(
-        WaypointRecord.WaypointType.TARGET,
-        WaypointRecord.WaypointAction.FOLLOW,
+        WaypointType.TARGET,
+        WaypointAction.FOLLOW,
         null,
         LocationRecord.createLocationRecordAtStart(
             pEdge.getFileLocation(), pEdge.getPredecessor().getFunctionName()));
@@ -350,8 +363,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             CFAUtils.getClosestFullExpression((CCfaEdge) pEdge, pAstCfaRelation).orElseThrow();
 
         return new WaypointRecord(
-            WaypointRecord.WaypointType.TARGET,
-            WaypointRecord.WaypointAction.FOLLOW,
+            WaypointType.TARGET,
+            WaypointAction.FOLLOW,
             null,
             LocationRecord.createLocationRecordAtStart(
                 fullExpressionLocation, pEdge.getPredecessor().getFunctionName()));
@@ -375,8 +388,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   private void exportWitnessVersion2(CounterexampleInfo pCex, Path pPath) throws IOException {
     AstCfaRelation astCFARelation = getASTStructure();
 
-    ImmutableListMultimap.Builder<CFAEdge, AExpressionStatement> edgeToAssumptionsBuilder =
-        new ImmutableListMultimap.Builder<>();
+    Builder<CFAEdge, AExpressionStatement> edgeToAssumptionsBuilder = new Builder<>();
     Map<CFAEdge, Integer> edgeToCurrentExpressionIndex = new HashMap<>();
     if (pCex.isPreciseCounterExample()) {
       for (CFAEdgeWithAssumptions edgeWithAssumptions : pCex.getCFAPathWithAssignments()) {
