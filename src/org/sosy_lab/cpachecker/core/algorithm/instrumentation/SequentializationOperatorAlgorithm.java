@@ -172,7 +172,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                 matched = true;
               }
               newEdges.add(
-                  computeLineNumberBasedOnTransition(transition, edge)
+                  computeLineNumberBasedOnTransition(transition, edge, cfa)
                       + "|||"
                       + transition.getOperation().insertVariablesInsideOperation(matchedVariables));
             }
@@ -198,9 +198,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
    * the edge one line before the real operation and similarly for AFTER.
    */
   private String computeLineNumberBasedOnTransition(
-      InstrumentationTransition pTransition, CFAEdge pEdge) {
+      InstrumentationTransition pTransition, CFAEdge pEdge, CFA pCFA) {
     if (pTransition.getSource().isInitialAnnotation()) {
-      return "1";
+      return Integer.toString(pCFA.getMainFunction().getFileLocation().getStartingLineInOrigin());
     }
     try {
       // TODO: The location should be computed differently !
