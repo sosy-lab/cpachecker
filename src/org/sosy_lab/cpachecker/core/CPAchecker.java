@@ -307,7 +307,7 @@ public class CPAchecker {
     }
 
     try {
-      return runWithParsedCfa(cfa, stats);
+      return run0(cfa, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
@@ -320,13 +320,13 @@ public class CPAchecker {
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
-      return runWithParsedCfa(cfa, stats);
+      return run0(cfa, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
   }
 
-  private CPAcheckerResult runWithParsedCfa(CFA cfa, MainCPAStatistics stats) {
+  private CPAcheckerResult run0(CFA cfa, MainCPAStatistics stats) {
 
     Algorithm algorithm = null;
     ReachedSet reached = null;
