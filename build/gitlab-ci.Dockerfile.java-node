@@ -6,13 +6,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# This is a Docker image for running the Javascript end-to-end tests.
+# This is a container image for running the Javascript end-to-end tests.
 # It should be pushed to registry.gitlab.com/sosy-lab/software/cpachecker/test
 # and will be used by CI as declared in .gitlab-ci.yml.
 #
 # Commands for updating the image:
-# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker/test:java-node - < build/gitlab-ci.Dockerfile.java-node
-# docker push registry.gitlab.com/sosy-lab/software/cpachecker/test
+# podman build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker/test:java-node - < build/gitlab-ci.Dockerfile.java-node
+# podman push registry.gitlab.com/sosy-lab/software/cpachecker/test:java-node
 
 # We base it on Ubuntu 20.04 instead of some Node image
 # to make sure that the tests are also executable on a standard Ubuntu easily.

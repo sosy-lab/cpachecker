@@ -49,7 +49,8 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   private enum LoopInvExport {
     ALWAYS,
     IF_NOT_FALSE,
-    IF_TRUE
+    IF_TRUE,
+    IF_UNKNOWN
   }
 
   @Option(secure = true, description = "configure when to export loop invariants")
@@ -72,6 +73,9 @@ public class ValueAnalysisCPAStatistics implements Statistics {
       throws InvalidConfigurationException {
     this.cpa = cpa;
     logger = pLogger;
+
+    config.inject(this, ValueAnalysisCPAStatistics.class);
+
     if (loopInvariantsFile != null) {
       loopInvGenExporter =
           new ValueAnalysisResultToLoopInvariants(
@@ -79,8 +83,6 @@ public class ValueAnalysisCPAStatistics implements Statistics {
     } else {
       loopInvGenExporter = null;
     }
-
-    config.inject(this, ValueAnalysisCPAStatistics.class);
   }
 
   @Override
@@ -129,6 +131,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
       case ALWAYS -> true;
       case IF_NOT_FALSE -> result != Result.FALSE;
       case IF_TRUE -> result == Result.TRUE;
+      case IF_UNKNOWN -> result == Result.UNKNOWN;
     };
   }
 
@@ -157,7 +160,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   }
 
   void incrementDeterministicAssumptions() {
-    assumptions.inc();
+    deterministicAssumptions.inc();
   }
 
   int getCurrentNumberOfIterations() {

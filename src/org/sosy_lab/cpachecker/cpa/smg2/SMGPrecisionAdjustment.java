@@ -10,8 +10,10 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
@@ -47,10 +49,14 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -166,6 +172,18 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         description = "Periodically removes unused constraints from the state.")
     private boolean cleanUpUnusedConstraints = false;
 
+    // TODO: the goal is to set this in a CEGAR loop one day
+    @Option(
+        secure = true,
+        name = "abstractConcreteValuesAboveThreshold",
+        description =
+            "Periodically removes concrete values from the memory model and replaces them with"
+                + " symbolic values. Only the newest concrete values above this threshold are"
+                + " removed. For negative numbers this option is ignored. Note: 0 also removes the"
+                + " null value, reducing impacting null dereference or free soundness. Currently"
+                + " only supported for given value 0.")
+    private int abstractConcreteValuesAboveThreshold = -1;
+
     private final @Nullable ImmutableSet<CFANode> loopHeads;
 
     public PrecAdjustmentOptions(Configuration config, CFA pCfa)
@@ -181,6 +199,14 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
 
     public boolean getCleanUpUnusedConstraints() {
       return cleanUpUnusedConstraints;
+    }
+
+    public int getAbstractConcreteValuesAboveThreshold() {
+      Preconditions.checkState(
+          abstractConcreteValuesAboveThreshold <= 0,
+          "Error: option cpa.smg2.abstraction.abstractConcreteValuesAboveThreshold is currently"
+              + " only supported for argument 0.");
+      return abstractConcreteValuesAboveThreshold;
     }
 
     public int getListAbstractionMinimumLengthThreshold() {
@@ -335,6 +361,12 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         resultState = enforcePathThreshold(resultState, assignments);
       }
       totalEnforcePath.stop();
+    }
+
+    if (options.getAbstractConcreteValuesAboveThreshold() >= 0) {
+      resultState =
+          enforceConcreteValueThreshold(
+              resultState, options.getAbstractConcreteValuesAboveThreshold());
     }
 
     if (options.abstractLinkedLists && checkAbstractListAt(location)) {
@@ -577,6 +609,40 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       if (assignments.exceedsThreshold(memoryLocation)) {
         currentState = currentState.copyAndForget(memoryLocation).getState();
       }
+    }
+    return currentState;
+  }
+
+  @SuppressWarnings("unused")
+  private SMGState enforceConcreteValueThreshold(
+      final SMGState state, int numOfConcreteValuesAllowed) {
+    // TODO: add tracking of concrete value order
+    // TODO: try to remove 0 only for a non pointer type
+    SMGState currentState = state;
+    // Gather all concrete values first and filter out all above the threshold
+    ImmutableBiMap<SMGValue, Wrapper<Value>> mapping =
+        currentState.getMemoryModel().getValueToSMGValueMapping().inverse();
+    // remove all concrete values above the threshold (will be replaced by symbolics by reading)
+    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objAndHVEs :
+        currentState.getMemoryModel().getSmg().getSMGObjectsWithSMGHasValueEdges().entrySet()) {
+      SMGObject object = objAndHVEs.getKey();
+      Set<SMGHasValueEdge> edgesToRemove = new HashSet<>();
+      for (SMGHasValueEdge hve : objAndHVEs.getValue()) {
+        SMGValue smgValue = hve.hasValue();
+        Wrapper<Value> wValue = mapping.get(smgValue);
+        if (wValue == null || wValue.get().isNumericValue()) {
+          edgesToRemove.add(hve);
+        }
+      }
+      currentState =
+          currentState.copyAndReplaceMemoryModel(
+              currentState
+                  .getMemoryModel()
+                  .copyWithNewSMG(
+                      currentState
+                          .getMemoryModel()
+                          .getSmg()
+                          .copyAndRemoveHVEdges(edgesToRemove, object)));
     }
     return currentState;
   }

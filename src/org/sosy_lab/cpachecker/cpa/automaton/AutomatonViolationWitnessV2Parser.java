@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -203,13 +204,24 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     if (optionalIfStructure.isPresent()) {
       IfElement ifElement = optionalIfStructure.orElseThrow();
       nodesCondition = ifElement.getConditionNodes().toSet();
-      nodesThenBranch = ifElement.getNodesBetweenConditionAndThenBranch();
-      nodesElseBranch = ifElement.getNodesBetweenConditionAndElseBranch();
+      try {
+        nodesThenBranch = ifElement.getNodesBetweenConditionAndThenBranch();
+        nodesElseBranch = ifElement.getNodesBetweenConditionAndElseBranch();
+      } catch (BoundaryNodesComputationFailed e) {
+        logger.logDebugException(e, "Could not compute the nodes between the condition and branch");
+        return Optional.empty();
+      }
+
     } else if (optionalIterationStructure.isPresent()) {
       IterationElement iterationElement = optionalIterationStructure.orElseThrow();
       nodesCondition = iterationElement.getControllingExpressionNodes().toSet();
-      nodesThenBranch = iterationElement.getNodesBetweenConditionAndBody();
-      nodesElseBranch = iterationElement.getNodesBetweenConditionAndExit();
+      try {
+        nodesThenBranch = iterationElement.getNodesBetweenConditionAndBody();
+        nodesElseBranch = iterationElement.getNodesBetweenConditionAndExit();
+      } catch (BoundaryNodesComputationFailed e) {
+        logger.logDebugException(e, "Could not compute the nodes between the condition and branch");
+        return Optional.empty();
+      }
     } else {
       throw new AssertionError("This should never happen");
     }

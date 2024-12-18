@@ -33,6 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -83,6 +84,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   @Option(secure = true, description = "enable if loop invariant export should consider context")
   private boolean invariantsContextSensitive = true;
 
+  @Option(secure = true, description = "Enable to export invariants on single variables")
+  private boolean exportUnary = true;
+
   @Option(secure = true, description = "Enable to export invariants that include two variables")
   private boolean exportBinary = true;
 
@@ -110,6 +114,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   @Option(secure = true, description = "Enable invariants that use a bit operator")
   private boolean exportBitops = true;
 
+  @Option(secure = true, description = "Enable invariants that relate (compare) two variables")
+  private boolean exportRelational = true;
+
   @Option(
       secure = true,
       description =
@@ -126,6 +133,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   private boolean removeRedundantInvariants = true;*/
 
   private final @Nullable ImmutableSet<CFANode> loopHeads;
+  private final LogManager logger;
 
   private final PredicateMapWriter predExporter;
   private final Solver solver;
@@ -143,6 +151,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       throws InvalidConfigurationException {
     loopHeads = pLoopHeads;
     pConfig.inject(this);
+    logger = pLogger;
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
     predExporter = new PredicateMapWriter(pConfig, solver.getFormulaManager());
     absMgr = new AbstractionManager(new SymbolicRegionManager(solver), pConfig, pLogger, solver);
@@ -158,6 +167,15 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             new CtoFormulaTypeHandler(pLogger, pCfa.getMachineModel()),
             AnalysisDirection.FORWARD);
     machineModel = pCfa.getMachineModel();
+    if (!anyInvariantsConfiguredForExport()) {
+      logger.log(Level.WARNING, "No invariants configured for export");
+    }
+  }
+
+  private boolean anyInvariantsConfiguredForExport() {
+    return exportUnary
+        || (exportBinary && (exportArithmetic || exportBitops || exportLinear || exportRelational))
+        || (exportTernary && exportLinear);
   }
 
   private ImmutableMap<MemoryLocation, Type> extractVarsWithType(final CFA pCfa) {
@@ -184,6 +202,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
   public void generateAndExportLoopInvariantsAsPredicatePrecision(
       final UnmodifiableReachedSet pReached, final Appendable sb) throws IOException {
+    if (!anyInvariantsConfiguredForExport()) {
+      logger.log(Level.INFO, "No invariants configured for export.");
+      return;
+    }
+
     ImmutableMultimap<Pair<CFANode, Optional<CallstackStateEqualsWrapper>>, ValueAnalysisState>
         contextLocToStates = extractAndMapRelevantValueStates(pReached);
 
@@ -297,10 +320,12 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
     ImmutableCollection.Builder<CandidateInvariant> invBuilder = new ImmutableList.Builder<>();
 
-    // single variable
-    addSingleVariableInvariants(varsWithVals, invBuilder);
+    if (exportUnary) {
+      // single variable
+      addSingleVariableInvariants(varsWithVals, invBuilder);
+    }
 
-    if (exportBinary) {
+    if (exportBinary && (exportArithmetic || exportBitops || exportLinear || exportRelational)) {
       // two variables
       addInvariantsOverTwoVariables(varsWithVals, invBuilder);
     }
@@ -493,12 +518,16 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             bitInv = null;
           }
 
-          relInv =
-              new TwoVariableRelationInvariant(
-                  varWithVals1.getKey(),
-                  val1.get(0).getValue().asNumericValue(),
-                  varWithVals2.getKey(),
-                  val2.get(0).getValue().asNumericValue());
+          if (exportRelational) {
+            relInv =
+                new TwoVariableRelationInvariant(
+                    varWithVals1.getKey(),
+                    val1.get(0).getValue().asNumericValue(),
+                    varWithVals2.getKey(),
+                    val2.get(0).getValue().asNumericValue());
+          } else {
+            relInv = null;
+          }
 
           for (int i = 1;
               (relInv != null

@@ -18,12 +18,18 @@ The CPAchecker Project uses the following mailing lists:
   User discussion, questions, solutions to common problems, and bug reports.  
   Members can post, anyone can join.
 
-- [CPAchecker-Commits@googlegroups.com](https://groups.google.com/forum/#!forum/cpachecker-commits)  
-  Archive of commit messages from the CPAchecker repository.  
-  Read-only, by invitation only, high volume.
+For active developers, there are the following additional lists:
 
 - [CPAchecker-Devel@googlegroups.com](https://groups.google.com/forum/#!forum/cpachecker-devel)  
-  Internal developer discussion about the design and implementation of CPAchecker.  
-  Only for active developers (>0 cpm), members can post, by invitation only.
+  Internal developer discussion about the design, implementation, and development process of CPAchecker.  
+  Members can post.
+
+- [CPAchecker Commits](https://mailman1.ifi.lmu.de/mailman3/lists/cpachecker-commits.sosy.ifi.lmu.de/)  
+  Copies of commit messages and diffs from the CPAchecker repository.  
+  Read-only, high volume.
+
+- [CPAchecker CI](https://mailman1.ifi.lmu.de/mailman3/lists/cpachecker-ci.sosy.ifi.lmu.de/)  
+  Notifications from CI systems ([GitLab](https://gitlab.com/sosy-lab/software/cpachecker/-/pipelines) and [BuildBot](https://buildbot.sosy-lab.org/cpachecker/)).  
+  Read-only, high volume.
 
 Note that for bug reports you can also use our [issue tracker](https://gitlab.com/sosy-lab/software/cpachecker/issues).

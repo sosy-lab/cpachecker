@@ -1,3 +1,9 @@
+cpachecker (4.0-1) focal; urgency=medium
+
+  * New upstream version.
+
+ -- Philipp Wendler <debian@philippwendler.de>  Sat, 23 Nov 2024 10:28:51 +0000
+
 cpachecker (3.0-1) focal; urgency=medium
 
   * New upstream version.

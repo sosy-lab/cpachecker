@@ -1283,11 +1283,9 @@ class ASTConverter {
           && FUNC_EXPECT.equals(((CIdExpression) functionNameExpression).getName())
           && params.size() == 2) {
 
-        // This is the GCC built-in function __builtin_expect(exp, c)
-        // that behaves like (exp == c).
+        // This is the GCC built-in function __builtin_expect(exp, c) that behaves like (exp).
         // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005fexpect-3345
-
-        return buildBinaryExpression(params.get(0), params.get(1), BinaryOperator.EQUALS);
+        return params.get(0);
       }
     }
 

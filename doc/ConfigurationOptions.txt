@@ -1035,6 +1035,10 @@ counterexample.checker = CBMC
 # counterexample check, if available
 counterexample.checker.changeCEXInfo = false
 
+# counterexample check checks MemSafety sub-properties (valid-deref,
+# valid-free, valid-memtrack) additionally to the path.
+counterexample.checker.checkMemorySafetySubproperty = false
+
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = no default value
 
@@ -1429,6 +1433,9 @@ cpa.arg.exportTrueInvariants = false
 
 # export correctness witness in YAML format
 cpa.arg.exportYamlCorrectnessWitness = true
+
+# export witnesses for unknown verdicts
+cpa.arg.exportYamlWitnessesForUnknownVerdict = true
 
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
@@ -3212,6 +3219,13 @@ cpa.smg2.GCCZeroLengthArray = false
 # memory allocation of any kind.
 cpa.smg2.abortOnNonConcreteMemorySize = true
 
+# Periodically removes concrete values from the memory model and replaces
+# them with symbolic values. Only the newest concrete values above this
+# threshold are removed. For negative numbers this option is ignored. Note: 0
+# also removes the null value, reducing impacting null dereference or free
+# soundness. Currently only supported for given value 0.
+cpa.smg2.abstraction.abstractConcreteValuesAboveThreshold = -1
+
 # If heap values are to be abstracted based on CEGAR.
 cpa.smg2.abstraction.abstractHeapValues = false
 
@@ -3293,6 +3307,10 @@ cpa.smg2.cacheSubsets = false
 # Whether to use superset caching
 cpa.smg2.cacheSupersets = false
 
+# If this Option is enabled, C function atexit() will return a succeeding and
+# failing registration for each registration. Otherwise only succeeding.
+cpa.smg2.canAtexitFail = false
+
 # with this option enabled, memory addresses (pointers) are transformed into
 # a numeric assumption upon casting the pointer to a number. This assumption
 # can be returned to a proper pointer by casting it back. This enables
@@ -3304,6 +3322,11 @@ cpa.smg2.castMemoryAddressesToNumeric = false
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
 cpa.smg2.checkForMemLeaksAtEveryFrameDrop = true
+
+# Maximum amount of concrete assignments before the assigning is aborted. The
+# last offset is then once treated as option
+# overapproximateSymbolicOffsetsAsFallback specifies.
+cpa.smg2.concreteValueForSymbolicOffsetsAssignmentMaximum = 300
 
 # Crash on unknown value when creating constraints of any form.
 cpa.smg2.crashOnUnknownInConstraint = false
@@ -3743,7 +3766,7 @@ cpa.value.assignEqualityAssumptions = true
 
 # configure when to export loop invariants
 cpa.value.exportLoopInvariants = IF_TRUE
-  enum:     [ALWAYS, IF_NOT_FALSE, IF_TRUE]
+  enum:     [ALWAYS, IF_NOT_FALSE, IF_TRUE, IF_UNKNOWN]
 
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
@@ -3796,6 +3819,9 @@ cpa.value.invExport.exportBitops = true
 # + by + c = 0, ax + bx + c <= 0, ax + bx + c >= 0, or ax + by + cy + d = 0
 cpa.value.invExport.exportLinear = true
 
+# Enable invariants that relate (compare) two variables
+cpa.value.invExport.exportRelational = true
+
 # Enable invariants that use a shift operator, note that additionally
 # exportBitops must be enabled
 cpa.value.invExport.exportShiftops = true
@@ -3803,6 +3829,9 @@ cpa.value.invExport.exportShiftops = true
 # Enable to export invariants that include three variables, currently only
 # effective if exportLinear is enabled, too
 cpa.value.invExport.exportTernary = true
+
+# Enable to export invariants on single variables
+cpa.value.invExport.exportUnary = true
 
 # enable if loop invariant export should consider context
 cpa.value.invExport.invariantsContextSensitive = true
