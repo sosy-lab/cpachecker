@@ -19,8 +19,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class ThreadVars {
 
-  public final Optional<AtomicInUse> atomicInUse;
-
   /** The map of threads and their {@code {thread}_ACTIVE} variables. */
   public final ImmutableMap<MPORThread, ThreadActive> active;
 
@@ -35,6 +33,8 @@ public class ThreadVars {
 
   /** Each thread joining a thread is mapped to a {@code {thread}_JOINS_{threads}} variable. */
   public final ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>> joins;
+
+  public final Optional<AtomicInUse> atomicInUse;
 
   /**
    * Each thread beginning an atomic section is mapped to a {@code {thread}_BEGINS_ATOMIC} variable.
@@ -82,7 +82,12 @@ public class ThreadVars {
         rIdExpressions.add(var.idExpression);
       }
     }
+    if (atomicInUse.isPresent()) {
+      assert !begins.isEmpty();
+      rIdExpressions.add(atomicInUse.orElseThrow().idExpression);
+    }
     for (ThreadBeginsAtomic var : begins.values()) {
+      assert atomicInUse.isPresent();
       rIdExpressions.add(var.idExpression);
     }
     return rIdExpressions.build();
