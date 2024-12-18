@@ -221,7 +221,7 @@ public class LoopInfoUtils {
       Map<String, String> updatedLiveVariables = new HashMap<>(info.liveVariablesAndTypes());
 
       for (ImmutableMap<String, String> liveVariables :
-          transformedImmutableSetCopy(outerLoops, l->l.liveVariablesAndTypes())) {
+          transformedImmutableSetCopy(outerLoops, l -> l.liveVariablesAndTypes())) {
         updatedLiveVariables.putAll(liveVariables);
       }
       updatedLoopInfo.add(
