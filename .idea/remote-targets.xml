@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="RemoteTargetsManager">
+    <targets>
+      <target name="hajuj@ssh.sosy.ifi.lmu.de:22" type="ssh/sftp" uuid="973dec9c-23bb-468f-b655-734359093b96">
+        <config>
+          <option name="projectRootOnTarget" value="/home/hajuj/cpachecker" />
+          <option name="serverName" value="hajuj@ssh.sosy.ifi.lmu.de:22 key" />
+        </config>
+        <ContributedStateBase type="JavaLanguageRuntime">
+          <config>
+            <option name="homePath" value="/usr/lib/jvm/java-17-openjdk-amd64" />
+          </config>
+        </ContributedStateBase>
+        <ContributedStateBase type="JavaLanguageRuntime">
+          <config />
+        </ContributedStateBase>
+      </target>
+    </targets>
+  </component>
+</project>

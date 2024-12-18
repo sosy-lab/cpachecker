@@ -1,0 +1,8 @@
+# This file is part of DescribErr,
+# a tool for finding error conditions:
+# https://gitlab.com/sosy-lab/software/describerr
+#
+# SPDX-FileCopyrightText: 2024 Dirk Beyer
+#
+# SPDX-License-Identifier: Apache-2.0
+1358: "0 < input && input < 6"

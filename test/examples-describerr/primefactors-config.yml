@@ -1,0 +1,43 @@
+# This file is part of DescribErr,
+# a tool for finding error conditions:
+# https://gitlab.com/sosy-lab/software/describerr
+#
+# SPDX-FileCopyrightText: 2024 Dirk Beyer
+#
+# SPDX-License-Identifier: Apache-2.0
+idefix:
+  debug: True
+  output: "output"
+describerr_cache: "../config/.cache/cache.yml"
+run_cegis:
+  parallel: True
+  stop_after_first_precise: True
+  instantiation:
+    generators:
+      - cex_generator
+      - interval_generator
+      - type: src.error_condition_generation.generic_template_generator.GenericTemplateBasedErrorConditionGenerator
+        params:
+          - name: "verifier"
+            type: "describerr_cache"
+            value: "cpachecker"
+          - name: "smt_solver"
+            type: "describerr_cache"
+            value: "cpachecker_solver_with_cache"
+          - name: "operations"
+            type: tuple
+            value: [ "%" ]
+          - name: "template_relations"
+            type: tuple
+            value: [ "==" ]
+          - name: "parallel"
+            type: bool
+            value: ${run_cegis.parallel}
+    validators:
+      - cpa_cbmc_meta_validator
+    pruners:
+      - id_pruner
+    refiners:
+      - cex_refiner
+      - interval_refiner
+      - template_refiner
