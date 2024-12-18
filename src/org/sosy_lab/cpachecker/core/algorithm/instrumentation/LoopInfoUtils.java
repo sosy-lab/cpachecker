@@ -347,7 +347,7 @@ public class LoopInfoUtils {
           Map<String, String> members = new HashMap<>();
 
           // Every string representation of an AST node for a struct declaration has the same
-          // format, which the following modification is based on.
+          // format, which serves as the basis for the following modification.
           cComplexTypeDeclaration =
               cComplexTypeDeclaration
                   .substring(0, cComplexTypeDeclaration.length() - 4)
