@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -219,9 +221,7 @@ public class LoopInfoUtils {
       Map<String, String> updatedLiveVariables = new HashMap<>(info.liveVariablesAndTypes());
 
       for (ImmutableMap<String, String> liveVariables :
-          outerLoops.stream()
-              .map(l -> l.liveVariablesAndTypes())
-              .collect(ImmutableSet.toImmutableSet())) {
+          transformedImmutableSetCopy(outerLoops, l->l.liveVariablesAndTypes())) {
         updatedLiveVariables.putAll(liveVariables);
       }
       updatedLoopInfo.add(
