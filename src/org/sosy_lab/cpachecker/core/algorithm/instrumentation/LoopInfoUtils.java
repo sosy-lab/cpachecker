@@ -11,9 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,6 +25,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -56,8 +60,10 @@ public class LoopInfoUtils {
   public static ImmutableSet<NormalLoopInfo> getAllNormalLoopInfos(
       CFA pCfa, CProgramScope pCProgramScope) {
     Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>();
-    ImmutableMap<String, ImmutableMap<String, String>> allStructInfos = getAllStructInfos(pCfa);
     ImmutableSet<String> allGlobalVariables = getAllGlobalVariables(pCfa);
+    ImmutableMap<String, ImmutableMap<String, String>> allStructInfos = getAllStructInfos(pCfa);
+    ImmutableMap<String, ImmutableMap<String, String>> allDecomposedStructsWithPlaceHolder =
+        decomposeAllStructs(allStructInfos);
 
     for (Loop loop : pCfa.getLoopStructure().orElseThrow().getAllLoops()) {
       // Determine loop locations. There may be more than one, as some loops have multiple
@@ -75,7 +81,7 @@ public class LoopInfoUtils {
       // Determine the names of all variables used except those declared inside the loop
       Set<String> liveVariables = new HashSet<>();
       Set<String> variablesDeclaredInsideLoop = new HashSet<>();
-      Map<String, String> liveVariablesAndTypes = new HashMap<>();
+      Map<String, String> liveVariablesAndTypes = new LinkedHashMap<>();
       for (CFAEdge cfaEdge : loop.getInnerLoopEdges()) {
         if (cfaEdge.getRawAST().isPresent()) {
           AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
@@ -93,29 +99,11 @@ public class LoopInfoUtils {
                   && Iterables.get(Splitter.on("::").split(e), 1).startsWith("__CPAchecker_TMP_"));
       liveVariables.addAll(allGlobalVariables);
 
-      // Determine type of each variable
+      // Decompose each variable into primitive expressions
       for (String variable : liveVariables) {
-        String type =
-            pCProgramScope
-                .lookupVariable(variable)
-                .getType()
-                .toString()
-                .replace("(", "")
-                .replace(")", "");
-        int countOfAsterisk = type.length() - type.replace("*", "").length();
-        type = type.replace("*", "");
-        variable =
-            "*".repeat(countOfAsterisk)
-                + (variable.contains("::")
-                    ? Iterables.get(Splitter.on("::").split(variable), 1)
-                    : variable);
-
-        if (type.startsWith("struct ")) {
-          liveVariablesAndTypes.putAll(
-              resolveStructIn(variable, allStructInfos.get(type), allStructInfos));
-        } else {
-          liveVariablesAndTypes.put(variable, type);
-        }
+        String type = pCProgramScope.lookupVariable(variable).getType().toString();
+        liveVariablesAndTypes.putAll(
+            decompose(variable, type, allDecomposedStructsWithPlaceHolder));
       }
 
       for (Integer loopLocation : loopLocations) {
@@ -273,63 +261,188 @@ public class LoopInfoUtils {
     return ImmutableSet.copyOf(variables);
   }
 
-  private static ImmutableMap<String, String> resolveStructIn(
+  private static ImmutableMap<String, String> decompose(
       String pVariable,
-      ImmutableMap<String, String> pMembers,
-      ImmutableMap<String, ImmutableMap<String, String>> pAllStructInfos) {
+      String pType,
+      Map<String, ImmutableMap<String, String>> allDecomposedStructs) {
+    final String EXPRESSION_PLACEHOLDER = "$";
 
-    // Add pVariable in front of each name of pMembers
-    Map<String, String> membersWithModifiedNames = new HashMap<>();
-    for (Entry<String, String> entry : pMembers.entrySet()) {
-      StringBuilder modifiedName = new StringBuilder(entry.getKey());
-      int lastIndexOfAsterisk = modifiedName.lastIndexOf("*");
-      if (lastIndexOfAsterisk == -1) {
-        modifiedName.insert(0, pVariable + ".");
-      } else {
-        modifiedName.insert(lastIndexOfAsterisk, pVariable + ".");
-      }
+    Entry<String, String> preprocessedVariableAndType = preprocess(pVariable, pType);
+    String preprocessedVariable = preprocessedVariableAndType.getKey();
+    String preprocessedType = preprocessedVariableAndType.getValue();
 
-      membersWithModifiedNames.put(modifiedName.toString(), pMembers.get(entry.getKey()));
+    Map<String, String> temp = new LinkedHashMap<>();
+    if (!preprocessedType.startsWith("struct ")) {
+      temp.put(preprocessedVariable, preprocessedType);
+    } else {
+      allDecomposedStructs
+          .get(preprocessedType)
+          .entrySet()
+          .forEach(
+              e ->
+                  temp.put(
+                      e.getKey().replace(EXPRESSION_PLACEHOLDER, preprocessedVariable),
+                      e.getValue()));
     }
 
-    return resolveStructInHf(ImmutableMap.copyOf(membersWithModifiedNames), pAllStructInfos);
+    return expandArrays(ImmutableMap.copyOf(temp));
   }
 
-  private static ImmutableMap<String, String> resolveStructInHf(
-      ImmutableMap<String, String> pMembers,
-      ImmutableMap<String, ImmutableMap<String, String>> pAllStructInfos) {
-    Map<String, String> ans = new HashMap<>();
+  private static ImmutableMap<String, String> expandArrays(
+      ImmutableMap<String, String> pExpressionsAndTypes) {
+    Map<String, String> result = new LinkedHashMap<>();
 
-    for (Entry<String, String> member : pMembers.entrySet()) {
-      String name = member.getKey();
-      String type = member.getValue();
-      ans.put(name, type);
+    for (Entry<String, String> expressionAndType : pExpressionsAndTypes.entrySet()) {
+      String expression = expressionAndType.getKey();
+      String type = expressionAndType.getValue();
 
-      if (type.startsWith("struct ")) {
-        ans.remove(name);
+      if (!expression.contains("[")) {
+        result.put(expression, type);
+        continue;
+      } else {
+        List<Integer> ranges = new ArrayList<>();
+        Pattern pattern = Pattern.compile("\\[(\\d+)\\]");
+        Matcher matcher = pattern.matcher(expression);
 
-        ImmutableMap<String, String> originalMembersUnderOneLevel = pAllStructInfos.get(type);
-        Map<String, String> modifiedMembersUnderOneLevel = new HashMap<>();
-
-        for (Entry<String, String> memberUnderOneLevel : originalMembersUnderOneLevel.entrySet()) {
-          String nameUnderOneLevel = memberUnderOneLevel.getKey();
-          String typeUnderOneLevel = memberUnderOneLevel.getValue();
-
-          String nameUnderOneLevelWithoutAsterisk = nameUnderOneLevel.replace("*", "");
-          int countOfAsterisk =
-              nameUnderOneLevel.length() - nameUnderOneLevelWithoutAsterisk.length();
-
-          modifiedMembersUnderOneLevel.put(
-              "*".repeat(countOfAsterisk) + name + "." + nameUnderOneLevelWithoutAsterisk,
-              typeUnderOneLevel);
+        StringBuffer basePartBuffer = new StringBuffer();
+        while (matcher.find()) {
+          ranges.add(Integer.parseInt(matcher.group(1)));
+          matcher.appendReplacement(basePartBuffer, "[%d]");
         }
+        matcher.appendTail(basePartBuffer);
+        String basePart = basePartBuffer.toString();
 
-        ans.putAll(
-            resolveStructInHf(ImmutableMap.copyOf(modifiedMembersUnderOneLevel), pAllStructInfos));
+        ImmutableList<ImmutableList<Integer>> combinations =
+            generateCombinations(ImmutableList.copyOf(ranges));
+        for (ImmutableList<Integer> combination : combinations) {
+          result.put(String.format(basePart, combination.toArray()), type);
+        }
       }
     }
 
-    return ImmutableMap.copyOf(ans);
+    return ImmutableMap.copyOf(result);
+  }
+
+  private static ImmutableList<ImmutableList<Integer>> generateCombinations(
+      ImmutableList<Integer> pRanges) {
+    return generateCombinationsHf(pRanges, ImmutableList.of(), 0);
+  }
+
+  private static ImmutableList<ImmutableList<Integer>> generateCombinationsHf(
+      ImmutableList<Integer> pRanges, ImmutableList<Integer> pCurrent, int pDepth) {
+    List<ImmutableList<Integer>> result = new ArrayList<>();
+    List<Integer> current = new ArrayList<>();
+    pCurrent.forEach(e -> current.add(e));
+
+    if (pDepth == pRanges.size()) {
+      result.add(pCurrent);
+      return ImmutableList.copyOf(result);
+    }
+
+    for (int i = 0; i < pRanges.get(pDepth); i++) {
+      current.add(i);
+      result.addAll(generateCombinationsHf(pRanges, ImmutableList.copyOf(current), pDepth + 1));
+      current.remove(current.size() - 1);
+    }
+
+    return ImmutableList.copyOf(result);
+  }
+
+  private static Entry<String, String> preprocess(String pVariable, String pType) {
+    if (!pType.contains("*") && !pType.contains("]")) {
+      return new SimpleEntry<>(
+          pVariable.contains("::")
+              ? Iterables.get(Splitter.on("::").split(pVariable), 1)
+              : pVariable,
+          pType);
+    }
+
+    StringBuilder reversedVariableSb =
+        new StringBuilder(
+                pVariable.contains("::")
+                    ? Iterables.get(Splitter.on("::").split(pVariable), 1)
+                    : pVariable)
+            .reverse();
+    StringBuilder reversedTypeSb = new StringBuilder(pType).reverse();
+
+    while (reversedTypeSb.charAt(0) == '*' || reversedTypeSb.charAt(0) == ']') {
+
+      if (reversedTypeSb.charAt(0) == '*') {
+        reversedVariableSb.append('*');
+        reversedTypeSb.deleteCharAt(reversedTypeSb.length() - 1);
+        reversedTypeSb.delete(0, 2);
+
+        if (reversedTypeSb.charAt(0) == ']') {
+          reversedVariableSb.insert(0, ')');
+          reversedVariableSb.append('(');
+        }
+      } else {
+        int indexOfFirstLeftBracket = reversedTypeSb.indexOf("[");
+        String reversedSize = reversedTypeSb.substring(1, indexOfFirstLeftBracket);
+
+        reversedVariableSb.insert(0, "[");
+        reversedVariableSb.insert(0, reversedSize);
+        reversedVariableSb.insert(0, "]");
+
+        reversedTypeSb.deleteCharAt(reversedTypeSb.length() - 1);
+        reversedTypeSb.delete(0, indexOfFirstLeftBracket + 2);
+      }
+    }
+
+    return new SimpleEntry<>(
+        reversedVariableSb.reverse().toString(), reversedTypeSb.reverse().toString());
+  }
+
+  private static ImmutableMap<String, ImmutableMap<String, String>> decomposeAllStructs(
+      ImmutableMap<String, ImmutableMap<String, String>> pAllStructInfos) {
+    Map<String, ImmutableMap<String, String>> allDecomposedStructs = new HashMap<>();
+    final String EXPRESSION_PLACEHOLDER = "$";
+
+    for (String struct : pAllStructInfos.keySet()) {
+      Map<String, String> expressionAndType = new HashMap<>();
+      expressionAndType.put(EXPRESSION_PLACEHOLDER, struct);
+      allDecomposedStructs.put(
+          struct,
+          decomposeStructExpressions(ImmutableMap.copyOf(expressionAndType), pAllStructInfos));
+    }
+
+    return ImmutableMap.copyOf(allDecomposedStructs);
+  }
+
+  private static ImmutableMap<String, String> decomposeStructExpressions(
+      ImmutableMap<String, String> pExpressionsAndTypes,
+      ImmutableMap<String, ImmutableMap<String, String>> pAllStructInfos) {
+    Map<String, String> result = new LinkedHashMap<>();
+
+    for (Entry<String, String> expressionAndType : pExpressionsAndTypes.entrySet()) {
+      String expression = expressionAndType.getKey();
+      String type = expressionAndType.getValue();
+
+      if (!type.startsWith("struct ")) {
+        result.put(expression, type);
+      } else {
+        Map<String, String> currentDecomposedParts = new LinkedHashMap<>();
+
+        for (Entry<String, String> structMember : pAllStructInfos.get(type).entrySet()) {
+          StringBuilder decomposedExpression = new StringBuilder(structMember.getKey());
+          String decomposedType = structMember.getValue();
+
+          int insertIndex = 0;
+          while (decomposedExpression.charAt(insertIndex) == '*') {
+            insertIndex++;
+          }
+          decomposedExpression.insert(insertIndex, expression + '.');
+
+          currentDecomposedParts.put(decomposedExpression.toString(), decomposedType);
+        }
+
+        result.putAll(
+            decomposeStructExpressions(
+                ImmutableMap.copyOf(currentDecomposedParts), pAllStructInfos));
+      }
+    }
+
+    return ImmutableMap.copyOf(result);
   }
 
   private static ImmutableMap<String, ImmutableMap<String, String>> getAllStructInfos(CFA pCfa) {
