@@ -453,8 +453,9 @@ public class LoopInfoUtils {
             .filter(e -> !e.toString().startsWith("/"))
             .toList()) { // Exclude the edges from the imported files
       Optional<AAstNode> aAstNodeOp = cfaEdge.getRawAST();
-      if (aAstNodeOp.isPresent() && aAstNodeOp.get() instanceof CComplexTypeDeclaration) {
-        String cComplexTypeDeclaration = ((CComplexTypeDeclaration) aAstNodeOp.get()).toString();
+      if (aAstNodeOp.isPresent() && aAstNodeOp.orElseThrow() instanceof CComplexTypeDeclaration) {
+        String cComplexTypeDeclaration =
+            ((CComplexTypeDeclaration) aAstNodeOp.orElseThrow()).toString();
 
         if (cComplexTypeDeclaration.startsWith(
             "struct ")) { // A C complex type can also be an enum by definition in CPAchecker
