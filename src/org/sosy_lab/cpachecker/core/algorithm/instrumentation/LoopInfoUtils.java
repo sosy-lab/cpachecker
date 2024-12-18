@@ -335,11 +335,13 @@ public class LoopInfoUtils {
   private static ImmutableMap<String, ImmutableMap<String, String>> getAllStructInfos(CFA pCfa) {
     Map<String, ImmutableMap<String, String>> allStructInfos = new HashMap<>();
 
-    for (CFAEdge cfaEdge : pCfa.edges()) {
+    for (CFAEdge cfaEdge :
+        pCfa.edges().stream()
+            .filter(e -> !e.toString().startsWith("/"))
+            .toList()) { // Exclude the edges from the imported files
       Optional<AAstNode> aAstNodeOp = cfaEdge.getRawAST();
-      if (aAstNodeOp.isPresent() && aAstNodeOp.orElseThrow() instanceof CComplexTypeDeclaration) {
-        String cComplexTypeDeclaration =
-            ((CComplexTypeDeclaration) aAstNodeOp.orElseThrow()).toString();
+      if (aAstNodeOp.isPresent() && aAstNodeOp.get() instanceof CComplexTypeDeclaration) {
+        String cComplexTypeDeclaration = ((CComplexTypeDeclaration) aAstNodeOp.get()).toString();
 
         if (cComplexTypeDeclaration.startsWith(
             "struct ")) { // A C complex type can also be an enum by definition in CPAchecker
