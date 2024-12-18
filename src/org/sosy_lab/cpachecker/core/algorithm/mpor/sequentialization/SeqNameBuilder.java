@@ -33,8 +33,8 @@ public class SeqNameBuilder {
   }
 
   /**
-   * Returns a var name of the form {@code __g_{varId}_{pVarDec.getName()}} for global variables and
-   * {@code __t{threadId}_{varId}_{varName}} for thread local variables.
+   * Returns a var name of the form {@code GLOBAL_{varId}_{pVarDec.getName()}} for global variables
+   * and {@code LOCAL_THREAD{threadId}_{varId}_{varName}} for thread local variables.
    */
   public static String createVarName(CVariableDeclaration pVarDec, int pThreadId) {
     String prefix =
@@ -44,32 +44,41 @@ public class SeqNameBuilder {
     return prefix + createVarId() + pVarDec.getName();
   }
 
-  /** Returns a var name of the form {@code __p{pThreadId}_{varId}_{pParamDec.getName()}}. */
+  /**
+   * Returns a var name of the form {@code PARAM_THREAD{pThreadId}_{varId}_{pParamDec.getName()}}.
+   */
   public static String createParamName(CParameterDeclaration pParamDec, int pThreadId) {
-    return buildThreadPrefix(pThreadId) + SeqToken.PARAM + createVarId() + pParamDec.getName();
+    return SeqToken.PARAM
+        + SeqSyntax.UNDERSCORE
+        + SeqToken.THREAD
+        + pThreadId
+        + createVarId()
+        + pParamDec.getName();
   }
 
-  /** Returns a var name of the form {@code __return_pc_t{pThreadId}_{pFuncName}}. */
+  /** Returns a var name of the form {@code __MPOR_SEQ__THREAD{pThreadId}_RETURN_PC_{pFuncName}}. */
   public static String createReturnPcName(int pThreadId, String pFuncName) {
     return buildThreadPrefix(pThreadId) + SeqToken.RETURN_PC + SeqSyntax.UNDERSCORE + pFuncName;
   }
 
-  /** Returns a var name of the form {@code __t{pThreadId}_active} */
+  /** Returns a var name of the form {@code __MPOR_SEQ__THREAD{pThreadId}_ACTIVE} */
   public static String buildThreadActiveName(int pThreadId) {
     return buildThreadPrefix(pThreadId) + SeqToken.ACTIVE;
   }
 
-  /** Returns a var name of the form {@code {pMutexName}_locked} */
+  /** Returns a var name of the form {@code __MPOR_SEQ__{pMutexName}_LOCKED} */
   public static String buildMutexLockedName(String pMutexName) {
     return SeqToken.__MPOR_SEQ__ + pMutexName + SeqSyntax.UNDERSCORE + SeqToken.LOCKED;
   }
 
-  /** Returns a var name of the form {@code __t{pThreadId}_awaits_{pMutexName}} */
-  public static String buildThreadAwaitsMutexName(int pThreadId, String pMutexName) {
-    return buildThreadPrefix(pThreadId) + SeqToken.AWAITS + SeqSyntax.UNDERSCORE + pMutexName;
+  /** Returns a var name of the form {@code __MPOR_SEQ__THREAD{pThreadId}_AWAITS_{pMutexName}} */
+  public static String buildThreadLocksMutexName(int pThreadId, String pMutexName) {
+    return buildThreadPrefix(pThreadId) + SeqToken.LOCKS + SeqSyntax.UNDERSCORE + pMutexName;
   }
 
-  /** Returns a var name of the form {@code __t{pWaitingId}_joins_t{pTargetId}} */
+  /**
+   * Returns a var name of the form {@code __MPOR_SEQ__THREAD{pWaitingId}_JOINS_TARGET{pTargetId}}
+   */
   public static String buildThreadJoinsThreadName(int pWaitingId, int pTargetId) {
     return buildThreadPrefix(pWaitingId)
         + SeqToken.JOINS

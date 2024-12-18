@@ -790,7 +790,7 @@ public class Sequentialization {
           // multiple lock calls within one thread to the same mutex are possible -> only need one
           if (!awaitVars.containsKey(pthreadMutexT)) {
             String varName =
-                SeqNameBuilder.buildThreadAwaitsMutexName(thread.id, pthreadMutexT.getName());
+                SeqNameBuilder.buildThreadLocksMutexName(thread.id, pthreadMutexT.getName());
             CIdExpression awaits = SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0);
             awaitVars.put(pthreadMutexT, new ThreadAwaitsMutex(awaits));
           }

@@ -32,8 +32,6 @@ public class SeqToken {
 
   public static final String __assertion = "__assertion";
 
-  public static final String AWAITS = "AWAITS";
-
   public static final String assume = "assume";
 
   public static final String _break = "break";
@@ -65,6 +63,8 @@ public class SeqToken {
   public static final String LOCAL = "LOCAL";
 
   public static final String LOCKED = "LOCKED";
+
+  public static final String LOCKS = "LOCKS";
 
   public static final String main = "main";
 
