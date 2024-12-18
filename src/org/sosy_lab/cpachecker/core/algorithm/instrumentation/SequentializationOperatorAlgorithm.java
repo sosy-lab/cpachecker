@@ -96,7 +96,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       // We have to track what variables have already been defined
       Map<String, String> alreadyDefinedVariables = new HashMap<>();
       for (NormalLoopInfo info :
-          LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope).stream()
+          LoopInfoUtils.includeAllTheOuterLiveVariablesInNestedLoop(
+                  LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope))
+              .stream()
               .sorted((info1, info2) -> Integer.compare(info1.loopLocation(), info2.loopLocation()))
               .collect(ImmutableSet.toImmutableSet())) {
         try {

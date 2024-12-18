@@ -17,6 +17,7 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -123,7 +124,7 @@ public class LoopInfoUtils {
       }
     }
 
-    return ImmutableSet.copyOf(includeAllTheOuterLiveVariablesInNestedLoop(allNormalLoopInfos));
+    return ImmutableSet.copyOf(allNormalLoopInfos);
   }
 
   public static Map<CFANode, Integer> getMapOfLoopHeadsToLineNumbers(CFA pCfa) {
@@ -210,7 +211,7 @@ public class LoopInfoUtils {
     return null;
   }
 
-  private static Set<NormalLoopInfo> includeAllTheOuterLiveVariablesInNestedLoop(
+  public static ImmutableSet<NormalLoopInfo> includeAllTheOuterLiveVariablesInNestedLoop(
       Set<NormalLoopInfo> pNormalLoopInfo) {
     Set<NormalLoopInfo> updatedLoopInfo = new HashSet<>();
     for (NormalLoopInfo info : pNormalLoopInfo) {
@@ -218,7 +219,7 @@ public class LoopInfoUtils {
           pNormalLoopInfo.stream()
               .filter(l -> l.loop().isOuterLoopOf(info.loop()))
               .collect(ImmutableSet.toImmutableSet());
-      Map<String, String> updatedLiveVariables = new HashMap<>(info.liveVariablesAndTypes());
+      Map<String, String> updatedLiveVariables = new LinkedHashMap<>(info.liveVariablesAndTypes());
 
       for (ImmutableMap<String, String> liveVariables :
           transformedImmutableSetCopy(outerLoops, l -> l.liveVariablesAndTypes())) {
@@ -228,7 +229,7 @@ public class LoopInfoUtils {
           new NormalLoopInfo(
               info.loopLocation(), info.loop(), ImmutableMap.copyOf(updatedLiveVariables)));
     }
-    return updatedLoopInfo;
+    return ImmutableSet.copyOf(updatedLoopInfo);
   }
 
   private static ImmutableSet<String> getVariablesFromAAstNode(AAstNode pAAstNode) {
