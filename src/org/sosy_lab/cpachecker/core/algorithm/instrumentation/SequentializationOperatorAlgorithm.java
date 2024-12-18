@@ -137,7 +137,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
 
       // Handling a trivial case, when the state does not match the node
       assert currentState != null;
-      if (!currentState.stateMatchesCfaNode(currentNode, cfa)) {
+      if (!currentState.stateMatchesCfaNode(currentNode)) {
         // If the current state was dummy, we have to look for an automaton that matches the
         // CFANode
         if (currentState.toString().equals("DUMMY")
@@ -190,7 +190,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  /**
+  /*
    * This method computes line number depending on the pattern. For example, if the pattern is
    * [!cond], then we want to add the edge only after the real statement in the program. Further, is
    * the line number could not be parsed and the source state of the transition is annotated with
@@ -231,7 +231,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     }
   }
 
-  /**
+  /*
    * Checks if the CFAEdge contains a complex expression that can be decomposed into smaller pieces
    * and then creates arbitrary CFANodes in between with edges containing the simpler decomposed
    * expressions.
@@ -317,7 +317,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     return true;
   }
 
-  /** Decomposes a CFAEdge with function call. */
+  /* Decomposes a CFAEdge with function call. */
   private void decomposeFunction(
       CFAEdge pCFAEdge,
       InstrumentationTransition pTransition,
@@ -344,7 +344,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     }
   }
 
-  /**
+  /*
    * Checks if the pair (pCFANode, pState) has already been explored or not. If not, then it adds
    * the state into waitlist.
    */
@@ -372,9 +372,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   private ImmutableMap<String, String> substractDeclaredVariables(
       ImmutableMap<String, String> pLiveVariables, Map<String, String> pAlreadyDefinedVariables) {
     Map<String, String> difference = new HashMap<>();
-    for (String key : pLiveVariables.keySet()) {
-      if (!pAlreadyDefinedVariables.containsKey(key)) {
-        difference.put(key, pLiveVariables.get(key));
+    for (Map.Entry<String, String> entry : pLiveVariables.entrySet()) {
+      if (!pAlreadyDefinedVariables.containsKey(entry.getKey())) {
+        difference.put(entry.getKey(), pLiveVariables.get(entry.getKey()));
       }
     }
     return ImmutableMap.copyOf(difference);

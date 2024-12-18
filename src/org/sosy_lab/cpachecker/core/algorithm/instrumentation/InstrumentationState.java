@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
 import com.google.common.collect.ImmutableMap;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationProperty;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.StateAnnotation;
@@ -45,7 +44,7 @@ public class InstrumentationState {
     return stateAnnotation == StateAnnotation.INIT;
   }
 
-  public boolean stateMatchesCfaNode(CFANode pCFANode, CFA pCFA) {
+  public boolean stateMatchesCfaNode(CFANode pCFANode) {
     return ((stateAnnotation == StateAnnotation.INIT || stateAnnotation == StateAnnotation.TRUE)
             && !name.equals("DUMMY"))
         || (stateAnnotation == StateAnnotation.LOOPHEAD && pCFANode.isLoopStart());

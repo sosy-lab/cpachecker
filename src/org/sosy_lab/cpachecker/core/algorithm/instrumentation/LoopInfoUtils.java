@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -213,15 +212,16 @@ public class LoopInfoUtils {
       Set<NormalLoopInfo> pNormalLoopInfo) {
     Set<NormalLoopInfo> updatedLoopInfo = new HashSet<>();
     for (NormalLoopInfo info : pNormalLoopInfo) {
-      Set<NormalLoopInfo> outerLoops =
+      ImmutableSet<NormalLoopInfo> outerLoops =
           pNormalLoopInfo.stream()
               .filter(l -> l.loop().isOuterLoopOf(info.loop()))
-              .collect(Collectors.toSet());
-      Map<String, String> updatedLiveVariables = new HashMap<>();
-      updatedLiveVariables.putAll(info.liveVariablesAndTypes());
+              .collect(ImmutableSet.toImmutableSet());
+      Map<String, String> updatedLiveVariables = new HashMap<>(info.liveVariablesAndTypes());
 
       for (ImmutableMap<String, String> liveVariables :
-          outerLoops.stream().map(l -> l.liveVariablesAndTypes()).collect(Collectors.toSet())) {
+          outerLoops.stream()
+              .map(l -> l.liveVariablesAndTypes())
+              .collect(ImmutableSet.toImmutableSet())) {
         updatedLiveVariables.putAll(liveVariables);
       }
       updatedLoopInfo.add(
@@ -279,8 +279,8 @@ public class LoopInfoUtils {
 
     // Add pVariable in front of each name of pMembers
     Map<String, String> membersWithModifiedNames = new HashMap<>();
-    for (String name : pMembers.keySet()) {
-      StringBuilder modifiedName = new StringBuilder(name);
+    for (Entry<String, String> entry : pMembers.entrySet()) {
+      StringBuilder modifiedName = new StringBuilder(entry.getKey());
       int lastIndexOfAsterisk = modifiedName.lastIndexOf("*");
       if (lastIndexOfAsterisk == -1) {
         modifiedName.insert(0, pVariable + ".");
@@ -288,7 +288,7 @@ public class LoopInfoUtils {
         modifiedName.insert(lastIndexOfAsterisk, pVariable + ".");
       }
 
-      membersWithModifiedNames.put(modifiedName.toString(), pMembers.get(name));
+      membersWithModifiedNames.put(modifiedName.toString(), pMembers.get(entry.getKey()));
     }
 
     return resolveStructInHf(ImmutableMap.copyOf(membersWithModifiedNames), pAllStructInfos);
