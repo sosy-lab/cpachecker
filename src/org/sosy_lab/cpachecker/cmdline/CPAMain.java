@@ -274,7 +274,7 @@ public class CPAMain {
 
   @VisibleForTesting
   @Options
-  protected static class MainOptions {
+  public static class MainOptions {
     @Option(
         secure = true,
         name = "analysis.programNames",
@@ -633,7 +633,7 @@ public class CPAMain {
   }
 
   @Options
-  private static class WitnessOptions {
+  public static class WitnessOptions {
     @Option(
         secure = true,
         name = "witness.validation.file",
