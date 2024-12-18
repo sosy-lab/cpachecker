@@ -380,14 +380,11 @@ public class LoopInfoUtils {
 
   private static ImmutableSet<String> getAllGlobalVariables(CFA pCfa) {
     Set<String> allGlobalVariables = new HashSet<>();
-    Set<CFAEdge> internalEdges =
-        new HashSet<>(); // Include only edges that occur in the source code,
-    // excluding those from imported files.
-    pCfa.edges().stream()
-        .filter(e -> !e.toString().startsWith("/"))
-        .forEach(e -> internalEdges.add(e));
 
-    for (CFAEdge cfaEdge : internalEdges) {
+    for (CFAEdge cfaEdge :
+        pCfa.edges().stream()
+            .filter(e -> !e.toString().startsWith("/"))
+            .toList()) { // Exclude the edges from the imported files
       if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
         AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
         if (aAstNode instanceof CVariableDeclaration) {
