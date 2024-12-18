@@ -125,19 +125,19 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         // Collect counterexamples
         FluentIterable<CounterexampleInfo> counterExamples = getCounterexamples(reachedSet);
         logger.log(Level.INFO,
-            String.format("Iteration %d:Found %d Counterexamples", currentIteration,
+            String.format("Iteration %d: Found %d Counterexamples", currentIteration,
                 counterExamples.size()));
         // Refinement
         if (!counterExamples.isEmpty()) {
           foundNewCounterexamples = true;
           logger.log(Level.INFO,
-              String.format("Iteration %d:Entering For Loop...", currentIteration));
+              String.format("Iteration %d: Entering For Loop...", currentIteration));
           for (CounterexampleInfo cex : counterExamples) {
             PathFormula cexFormula = manager.makeFormulaForPath(cex.getTargetPath().getFullPath());
             logger.log(Level.INFO,
                 String.format("Iteration %d: Current CEX FORMULA: %s \n", currentIteration,
                     cexFormula.getFormula()));
-            mapNonDetToOriginalNames(cexFormula, solver);
+            mapNonDetToOriginalNames(cexFormula, solver, currentIteration);
             exclusionFormula =
                 updateExclusionFormula(exclusionFormula, cexFormula, ssaBuilder, solver, manager,
                     quantifierSolver, currentIteration);
@@ -173,8 +173,12 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
 
     AlgorithmStatus status = algorithm.run(reachedSet);
     logger.log(Level.INFO, String.format(
-        "Iteration %d:Performed Reachability Analysis: \n status: %s \n reachedSet: %s",
-        currentIteration, status, reachedSet));
+        "Iteration %d: Performed Reachability Analysis: \n status: %s \n",
+        currentIteration, status));
+
+//    logger.log(Level.FINE, String.format(
+//        "Iteration %d: Reached Set: \n : %s",
+//        currentIteration, reachedSet));
 
     //    FluentIterable<CounterexampleInfo> counterExamples = getCounterexamples(reachedSet);
     //    for (CounterexampleInfo cex : counterExamples) {
@@ -216,12 +220,15 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     // formula translation between solvers, e.g. MATHSAT5 and Z3
     BooleanFormula translatedFormula = quantifierSolver.getFormulaManager().translateFrom(
         cexFormula.getFormula(), solver.getFormulaManager());
+    logger.log(Level.INFO,
+        String.format("Iteration %d: Translated Formula:\n%s \n", currentIteration,
+            translatedFormula));
 
     BooleanFormula eliminatedByQuantifier = eliminateVariables(
         translatedFormula,
         // this predicate filters out variables (keys) that include "_nondet" in their names
         entry -> !entry.getKey().contains("_nondet"),
-        // and this predicate keeps the non-det variables
+        // this predicate keeps the non-det variables
         entry -> entry.getKey().contains("_nondet"),
         quantifierSolver, currentIteration);
 
@@ -242,29 +249,36 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         String.format("Iteration %d: Updated Exclusion Formula: %s \n", currentIteration,
             exclusionFormula.getFormula()));
 
-    String visitorOutput = formatErrorCondition(exclusionFormula.getFormula(), solver);
+    String formattedErrorCondition = formatErrorCondition(exclusionFormula.getFormula(), solver);
     logger.log(Level.INFO,
         String.format("Iteration %d: Error Condition in this iteration: %s \n", currentIteration,
-            visitorOutput));
+            formattedErrorCondition));
     return exclusionFormula;
   }
 
-  private void mapNonDetToOriginalNames(PathFormula cexFormula, Solver solver) {
+  private void mapNonDetToOriginalNames(
+      PathFormula cexFormula,
+      Solver solver,
+      Integer currentIteration) {
     List<String> cexVarNames = new ArrayList<>(
         solver.getFormulaManager().extractVariableNames(cexFormula.getFormula()));
 
     // Map SSA variable names to original names (e.g., `__VERIFIER_int!2@` -> `x`)
     for (String cexVarName : cexVarNames) {
-      if (cexVarName.contains("_nondet")) {
+      if (cexVarName.contains("_nondet") && !variableMapping.containsKey(cexVarName)) {
         int index = cexVarNames.indexOf(cexVarName);
         variableMapping.put(cexVarName, cexVarNames.get(index - 1));
       }
     }
-    logger.log(Level.INFO, "CEX ALL VARS: " + cexFormula.getSsa().allVariables());
+    logger.log(Level.INFO, String.format("Iteration %d: CEX ALL VARS: %s", currentIteration,
+        cexFormula.getSsa().allVariables()));
     logger.log(Level.INFO,
-        "CEX EXTRACTED VAR NAMES: " + solver.getFormulaManager().extractVariableNames(
-            cexFormula.getFormula()));
-    logger.log(Level.INFO, "CEX Non-Det Variables Mapping: " + variableMapping);
+        String.format("Iteration %d: CEX EXTRACTED VAR NAMES: %s", currentIteration,
+            solver.getFormulaManager().extractVariableNames(
+                cexFormula.getFormula())));
+    logger.log(Level.INFO,
+        String.format("Iteration %d: CEX Non-Det Variables Mapping: %s", currentIteration,
+            variableMapping));
   }
 
 
@@ -279,9 +293,6 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
 
     logger.log(Level.INFO,
         "******************************** Quantifier Elimination ********************************");
-    logger.log(Level.INFO,
-        String.format("Iteration %d: Translated Formula:\n%s \n", currentIteration,
-            translatedFormula));
 
     Map<String, Formula> formulaNameToFormulaMap =
         quantifierSolver.getFormulaManager().extractVariables(translatedFormula);
@@ -345,7 +356,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         String.format(
             "Iteration %d: Updated initial state with the exclusion formula for next iteration.",
             currentIteration));
-    logger.log(Level.INFO, String.format("Iteration %s: Updated initial state: ", initialState));
+    logger.log(Level.FINE, String.format("Iteration %s: Updated initial state: ", initialState));
     return new ARGState(new CompositeState(initialAbstractStates.build()), null);
   }
 
