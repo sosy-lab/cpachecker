@@ -80,4 +80,9 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   public @NonNull SeqThreadJoinStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqThreadJoinStatement(threadActive, threadJoins, threadId, pTargetPc);
   }
+
+  @Override
+  public boolean alwaysUpdatesPc() {
+    return false;
+  }
 }

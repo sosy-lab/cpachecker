@@ -50,4 +50,9 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   public @NonNull SeqThreadCreationStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqThreadCreationStatement(assign, threadId, pTargetPc);
   }
+
+  @Override
+  public boolean alwaysUpdatesPc() {
+    return true;
+  }
 }

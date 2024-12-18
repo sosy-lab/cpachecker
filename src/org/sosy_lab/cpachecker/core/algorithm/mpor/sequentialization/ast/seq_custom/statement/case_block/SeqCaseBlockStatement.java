@@ -17,4 +17,6 @@ public interface SeqCaseBlockStatement extends SeqStatement {
   Optional<Integer> getTargetPc();
 
   @NonNull SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc);
+
+  boolean alwaysUpdatesPc();
 }

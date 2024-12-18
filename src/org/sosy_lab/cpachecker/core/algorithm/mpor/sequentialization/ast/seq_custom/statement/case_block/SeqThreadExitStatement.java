@@ -52,4 +52,9 @@ public class SeqThreadExitStatement implements SeqCaseBlockStatement {
     throw new UnsupportedOperationException(
         "SeqThreadExitStatement only have targetPc " + SeqUtil.EXIT_PC);
   }
+
+  @Override
+  public boolean alwaysUpdatesPc() {
+    return true;
+  }
 }

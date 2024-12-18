@@ -365,7 +365,7 @@ public class Sequentialization {
     for (var entry : pPrunedCaseClauses.entrySet()) {
       int threadId = entry.getKey().id;
       for (SeqCaseClause caseClause : entry.getValue()) {
-        if (!caseClause.isGlobal) {
+        if (!caseClause.isGlobal && caseClause.alwaysUpdatesPc()) {
           rAssumptions.add(SeqUtil.createPORAssumption(threadId, caseClause.caseLabel.value));
         }
       }

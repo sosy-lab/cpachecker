@@ -67,4 +67,9 @@ public class SeqParameterAssignStatement implements SeqCaseBlockStatement {
     checkArgument(targetPc.isPresent(), "cannot replace empty targetPc");
     return new SeqParameterAssignStatement(assign, threadId, Optional.of(pTargetPc));
   }
+
+  @Override
+  public boolean alwaysUpdatesPc() {
+    return true;
+  }
 }

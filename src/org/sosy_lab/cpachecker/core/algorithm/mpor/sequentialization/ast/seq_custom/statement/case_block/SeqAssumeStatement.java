@@ -50,4 +50,9 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
   public @NonNull SeqAssumeStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAssumeStatement(controlFlowStatement, threadId, pTargetPc);
   }
+
+  @Override
+  public boolean alwaysUpdatesPc() {
+    return true;
+  }
 }

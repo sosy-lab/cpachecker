@@ -103,6 +103,11 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
     return new SeqReturnValueAssignStatements(returnPc, assigns, threadId, pTargetPc);
   }
 
+  @Override
+  public boolean alwaysUpdatesPc() {
+    return true;
+  }
+
   private static class SeqReturnValueAssignCaseBlockStatement implements SeqCaseBlockStatement {
 
     private final CExpressionAssignmentStatement assignment;
@@ -125,6 +130,11 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
     public @NonNull SeqReturnValueAssignCaseBlockStatement cloneWithTargetPc(int pTargetPc) {
       throw new UnsupportedOperationException(
           "SeqReturnValueAssignCaseBlockStatement do not have targetPcs");
+    }
+
+    @Override
+    public boolean alwaysUpdatesPc() {
+      return true;
     }
   }
 }

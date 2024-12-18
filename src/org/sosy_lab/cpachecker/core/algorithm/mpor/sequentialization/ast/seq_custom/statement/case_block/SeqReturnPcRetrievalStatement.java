@@ -40,4 +40,9 @@ public class SeqReturnPcRetrievalStatement implements SeqCaseBlockStatement {
   public @NonNull SeqReturnPcRetrievalStatement cloneWithTargetPc(int pTargetPc) {
     throw new UnsupportedOperationException("SeqReturnPcRetrievalStatement do not have targetPcs");
   }
+
+  @Override
+  public boolean alwaysUpdatesPc() {
+    return true;
+  }
 }

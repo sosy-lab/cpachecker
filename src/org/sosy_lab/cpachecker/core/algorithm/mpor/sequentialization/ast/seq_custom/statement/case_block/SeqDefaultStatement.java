@@ -49,4 +49,9 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
   public @NonNull SeqDefaultStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqDefaultStatement(edge, threadId, pTargetPc);
   }
+
+  @Override
+  public boolean alwaysUpdatesPc() {
+    return true;
+  }
 }

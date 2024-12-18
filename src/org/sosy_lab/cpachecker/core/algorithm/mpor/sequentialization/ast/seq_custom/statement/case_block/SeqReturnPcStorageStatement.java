@@ -52,4 +52,9 @@ public class SeqReturnPcStorageStatement implements SeqCaseBlockStatement {
   public @NonNull SeqReturnPcStorageStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqReturnPcStorageStatement(returnPcVar, pTargetPc);
   }
+
+  @Override
+  public boolean alwaysUpdatesPc() {
+    return true;
+  }
 }

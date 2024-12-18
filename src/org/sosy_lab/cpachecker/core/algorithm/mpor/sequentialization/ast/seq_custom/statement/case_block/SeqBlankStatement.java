@@ -45,4 +45,9 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
   public @NonNull SeqBlankStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqBlankStatement(threadId, pTargetPc);
   }
+
+  @Override
+  public boolean alwaysUpdatesPc() {
+    return true;
+  }
 }

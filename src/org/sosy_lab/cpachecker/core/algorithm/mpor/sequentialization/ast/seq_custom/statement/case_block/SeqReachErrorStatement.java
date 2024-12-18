@@ -34,4 +34,9 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
   public @NonNull SeqReachErrorStatement cloneWithTargetPc(int pTargetPc) {
     throw new UnsupportedOperationException("SeqReachErrorStatements do not have targetPcs");
   }
+
+  @Override
+  public boolean alwaysUpdatesPc() {
+    return true;
+  }
 }

@@ -15,6 +15,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
+// TODO update this so that it is a THREAD_ATOMIC statement with variables etc.
+//  just like mutex lock / unlock for begin / end
 public class SeqVerifierAtomicStatement implements SeqCaseBlockStatement {
 
   private final CFAEdge edge;
@@ -43,5 +45,11 @@ public class SeqVerifierAtomicStatement implements SeqCaseBlockStatement {
   @Override
   public @NonNull SeqVerifierAtomicStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqVerifierAtomicStatement(edge, threadId, pTargetPc);
+  }
+
+  @Override
+  public boolean alwaysUpdatesPc() {
+    // TODO false once updated with THREADi_ATOMIC etc.
+    return true;
   }
 }

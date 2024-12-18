@@ -90,4 +90,9 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
   public @NonNull SeqMutexLockStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqMutexLockStatement(mutexLocked, mutexAwaits, threadId, pTargetPc);
   }
+
+  @Override
+  public boolean alwaysUpdatesPc() {
+    return false;
+  }
 }

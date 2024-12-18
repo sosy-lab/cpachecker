@@ -111,4 +111,9 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
     return new SeqConstCpaCheckerTmpStatement(
         declaration, statementA, statementB, threadId, pTargetPc);
   }
+
+  @Override
+  public boolean alwaysUpdatesPc() {
+    return true;
+  }
 }

@@ -50,4 +50,9 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
   public @NonNull SeqMutexUnlockStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqMutexUnlockStatement(lockedFalse, threadId, pTargetPc);
   }
+
+  @Override
+  public boolean alwaysUpdatesPc() {
+    return true;
+  }
 }

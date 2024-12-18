@@ -95,6 +95,22 @@ public class SeqCaseClause implements SeqStatement {
     return true;
   }
 
+  /**
+   * Returns {@code true} if the {@code pc} of the thread this case clause belongs to is guaranteed
+   * to be updated when this case clause is executed.
+   *
+   * <p>E.g. {@code pthread_mutex_lock} simulation code only updates the pc if the mutex is
+   * unlocked.
+   */
+  public boolean alwaysUpdatesPc() {
+    for (SeqCaseBlockStatement stmt : caseBlock.statements) {
+      if (!stmt.alwaysUpdatesPc()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   @Override
   public String toASTString() {
     return caseLabel.toASTString()
