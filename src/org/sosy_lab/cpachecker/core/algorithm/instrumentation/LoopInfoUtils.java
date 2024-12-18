@@ -344,7 +344,7 @@ public class LoopInfoUtils {
         if (cComplexTypeDeclaration.startsWith(
             "struct ")) { // A C complex type can also be an enum by definition in CPAchecker
           String structName;
-          Map<String, String> members = new HashMap<>();
+          Map<String, String> members = new LinkedHashMap<>();
 
           // Every string representation of an AST node for a struct declaration has the same
           // format, which serves as the basis for the following modification.
