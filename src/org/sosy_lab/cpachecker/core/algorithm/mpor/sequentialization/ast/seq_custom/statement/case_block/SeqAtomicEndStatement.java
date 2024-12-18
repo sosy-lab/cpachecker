@@ -11,22 +11,21 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
-// TODO update this so that it is a THREAD_ATOMIC statement with variables etc.
-//  just like mutex lock / unlock for begin / end
-public class SeqVerifierAtomicStatement implements SeqCaseBlockStatement {
+public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
 
-  private final CFAEdge edge;
+  private final CExpressionAssignmentStatement atomicInUseFalse;
 
   private final int threadId;
 
   private final int targetPc;
 
-  public SeqVerifierAtomicStatement(CFAEdge pEdge, int pThreadId, int pTargetPc) {
-    edge = pEdge;
+  public SeqAtomicEndStatement(
+      CExpressionAssignmentStatement pAtomicInUseFalse, int pThreadId, int pTargetPc) {
+
+    atomicInUseFalse = pAtomicInUseFalse;
     threadId = pThreadId;
     targetPc = pTargetPc;
   }
@@ -34,7 +33,7 @@ public class SeqVerifierAtomicStatement implements SeqCaseBlockStatement {
   @Override
   public String toASTString() {
     CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(threadId, targetPc);
-    return edge.getCode() + SeqSyntax.SPACE + pcUpdate.toASTString();
+    return atomicInUseFalse.toASTString() + SeqSyntax.SPACE + pcUpdate;
   }
 
   @Override
@@ -43,13 +42,12 @@ public class SeqVerifierAtomicStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public @NonNull SeqVerifierAtomicStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqVerifierAtomicStatement(edge, threadId, pTargetPc);
+  public @NonNull SeqMutexUnlockStatement cloneWithTargetPc(int pTargetPc) {
+    return new SeqMutexUnlockStatement(atomicInUseFalse, threadId, pTargetPc);
   }
 
   @Override
   public boolean alwaysUpdatesPc() {
-    // TODO false once updated with THREADi_ATOMIC etc.
     return true;
   }
 }

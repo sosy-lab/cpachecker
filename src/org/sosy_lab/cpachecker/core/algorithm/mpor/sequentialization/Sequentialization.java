@@ -81,8 +81,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.ThreadActive;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.ThreadAwaitsMutex;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.ThreadBeginsAtomic;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.ThreadJoinsThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.ThreadLocksMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.ThreadVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
@@ -126,7 +127,6 @@ public class Sequentialization {
       throws UnrecognizedCodeException {
 
     StringBuilder rProgram = new StringBuilder();
-
     ImmutableSet<MPORThread> threads = pSubstitutions.keySet();
 
     // add all original program declarations that are not substituted
@@ -221,10 +221,10 @@ public class Sequentialization {
 
     ImmutableList.Builder<SeqLogicalAndExpression> rAssertions = ImmutableList.builder();
     // add assertion over awaits: ti_awaits_m && !(ti_active) ==> assert_fail
-    for (var lockedEntry : pThreadVars.awaits.entrySet()) {
+    for (var lockedEntry : pThreadVars.locks.entrySet()) {
       ThreadActive active = pThreadVars.active.get(lockedEntry.getKey());
       assert active != null;
-      for (ThreadAwaitsMutex awaits : lockedEntry.getValue().values()) {
+      for (ThreadLocksMutex awaits : lockedEntry.getValue().values()) {
         rAssertions.add(
             new SeqLogicalAndExpression(
                 new CToSeqExpression(awaits.idExpression),
@@ -255,6 +255,7 @@ public class Sequentialization {
     ImmutableList.Builder<SeqFunctionCallExpression> rAssumptions = ImmutableList.builder();
     ImmutableMap<Integer, CBinaryExpression> nextThreadNotIdExpressions =
         mapNextThreadNotIdExpressions(pThreadVars.active.keySet());
+    // TODO create separate functions for better overview here
     // add assumptions over active vars: assume(ti_active || next_thread != i);
     for (var entry : pThreadVars.active.entrySet()) {
       MPORThread thread = entry.getKey();
@@ -271,11 +272,11 @@ public class Sequentialization {
       CIdExpression pthreadMutexT = lockedEntry.getKey();
       MutexLocked locked = lockedEntry.getValue();
       // search for the awaits variable corresponding to pthreadMutexT
-      for (var awaitsEntry : pThreadVars.awaits.entrySet()) {
+      for (var awaitsEntry : pThreadVars.locks.entrySet()) {
         MPORThread thread = awaitsEntry.getKey();
         for (var awaitsValue : awaitsEntry.getValue().entrySet()) {
           if (pthreadMutexT.equals(awaitsValue.getKey())) {
-            ThreadAwaitsMutex awaits = awaitsValue.getValue();
+            ThreadLocksMutex awaits = awaitsValue.getValue();
             SeqLogicalNotExpression notLockedAndAwaits =
                 new SeqLogicalNotExpression(
                     new SeqLogicalAndExpression(locked.idExpression, awaits.idExpression));
@@ -309,6 +310,23 @@ public class Sequentialization {
             new SeqFunctionCallExpression(SeqIdExpression.ASSUME, ImmutableList.of(assumption));
         rAssumptions.add(assumeCall);
       }
+    }
+    // add atomic assumptions: assume(!(atomic_in_use && ti_begins_atomic) || next_thread != i);
+    for (var entry : pThreadVars.begins.entrySet()) {
+      assert pThreadVars.atomicInUse.isPresent();
+      MPORThread thread = entry.getKey();
+      ThreadBeginsAtomic begins = entry.getValue();
+      SeqLogicalNotExpression notAtomicInUseAndBegins =
+          new SeqLogicalNotExpression(
+              new SeqLogicalAndExpression(
+                  pThreadVars.atomicInUse.orElseThrow().idExpression, begins.idExpression));
+      CToSeqExpression nextThreadNotId =
+          new CToSeqExpression(nextThreadNotIdExpressions.get(thread.id));
+      SeqLogicalOrExpression assumption =
+          new SeqLogicalOrExpression(notAtomicInUseAndBegins, nextThreadNotId);
+      SeqFunctionCallExpression assumeCall =
+          new SeqFunctionCallExpression(SeqIdExpression.ASSUME, ImmutableList.of(assumption));
+      rAssumptions.add(assumeCall);
     }
     return rAssumptions.build();
   }
@@ -773,14 +791,14 @@ public class Sequentialization {
     return rVars.buildOrThrow();
   }
 
-  private static ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadAwaitsMutex>>
+  private static ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>>
       mapThreadAwaitsMutexVars(
           ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
 
-    ImmutableMap.Builder<MPORThread, ImmutableMap<CIdExpression, ThreadAwaitsMutex>> rVars =
+    ImmutableMap.Builder<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>> rVars =
         ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
-      Map<CIdExpression, ThreadAwaitsMutex> awaitVars = new HashMap<>();
+      Map<CIdExpression, ThreadLocksMutex> awaitVars = new HashMap<>();
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         assert pSubEdges.containsKey(threadEdge);
         SubstituteEdge sub = pSubEdges.get(threadEdge);
@@ -792,7 +810,7 @@ public class Sequentialization {
             String varName =
                 SeqNameBuilder.buildThreadLocksMutexName(thread.id, pthreadMutexT.getName());
             CIdExpression awaits = SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0);
-            awaitVars.put(pthreadMutexT, new ThreadAwaitsMutex(awaits));
+            awaitVars.put(pthreadMutexT, new ThreadLocksMutex(awaits));
           }
         }
       }
@@ -823,6 +841,24 @@ public class Sequentialization {
         }
       }
       rVars.put(thread, ImmutableMap.copyOf(targetThreads));
+    }
+    return rVars.buildOrThrow();
+  }
+
+  private static ImmutableMap<MPORThread, ThreadBeginsAtomic> mapThreadBeginsAtomicVars(
+      ImmutableSet<MPORThread> pThreads) {
+
+    ImmutableMap.Builder<MPORThread, ThreadBeginsAtomic> rVars = ImmutableMap.builder();
+    for (MPORThread thread : pThreads) {
+      for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
+        CFAEdge cfaEdge = threadEdge.cfaEdge;
+        if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.__VERIFIER_ATOMIC_BEGIN)) {
+          String varName = SeqNameBuilder.buildThreadBeginsAtomicName(thread.id);
+          CIdExpression begin = SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0);
+          rVars.put(thread, new ThreadBeginsAtomic(begin));
+          break; // only need one call to atomic_begin -> break inner loop
+        }
+      }
     }
     return rVars.buildOrThrow();
   }
@@ -906,7 +942,8 @@ public class Sequentialization {
         mapThreadActiveVars(pThreads),
         mapMutexLockedVars(pThreads, pSubEdges),
         mapThreadAwaitsMutexVars(pThreads, pSubEdges),
-        mapThreadJoinsThreadVars(pThreads));
+        mapThreadJoinsThreadVars(pThreads),
+        mapThreadBeginsAtomicVars(pThreads));
   }
 
   private FunctionVars buildFunctionVars(

@@ -87,6 +87,20 @@ public class SeqNameBuilder {
         + pTargetId;
   }
 
+  public static String buildAtomicInUseName() {
+    return SeqToken.__MPOR_SEQ__
+        + SeqToken.ATOMIC
+        + SeqSyntax.UNDERSCORE
+        + SeqToken.IN
+        + SeqSyntax.UNDERSCORE
+        + SeqToken.USE;
+  }
+
+  /** Returns a var name of the form {@code __MPOR_SEQ__THREAD{pThreadId}_BEGINS_ATOMIC} */
+  public static String buildThreadBeginsAtomicName(int pThreadId) {
+    return buildThreadPrefix(pThreadId) + SeqToken.BEGINS + SeqSyntax.UNDERSCORE + SeqToken.ATOMIC;
+  }
+
   public static String createQualifiedName(String pVarName) {
     // TODO the qualified names are not relevant in the seq, so we just use dummy::
     return SeqToken.dummy + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;

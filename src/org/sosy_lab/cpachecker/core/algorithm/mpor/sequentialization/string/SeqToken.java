@@ -34,6 +34,10 @@ public class SeqToken {
 
   public static final String assume = "assume";
 
+  public static final String ATOMIC = "ATOMIC";
+
+  public static final String BEGINS = "BEGINS";
+
   public static final String _break = "break";
 
   public static final String _case = "case";
@@ -55,6 +59,8 @@ public class SeqToken {
   public static final String __function = "__function";
 
   public static final String GLOBAL = "GLOBAL";
+
+  public static final String IN = "IN";
 
   public static final String JOINS = "JOINS";
 
@@ -90,6 +96,8 @@ public class SeqToken {
   public static final String __SEQUENTIALIZATION_ERROR__ = "__SEQUENTIALIZATION_ERROR__";
 
   public static final String THREAD = "THREAD";
+
+  public static final String USE = "USE";
 
   public static final String __VERIFIER_nondet_int = "__VERIFIER_nondet_int";
 }

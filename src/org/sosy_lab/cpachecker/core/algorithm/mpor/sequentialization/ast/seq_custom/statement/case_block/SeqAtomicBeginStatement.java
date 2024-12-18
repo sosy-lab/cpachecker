@@ -20,61 +20,52 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
-/**
- * Represents a statement that simulates calls to {@code pthread_mutex_lock} of the form:
- *
- * <p>{@code if (__MPOR_SEQ__GLOBAL_14_m_LOCKED) { __MPOR_SEQ__THREAD1_AWAITS_GLOBAL_14_m = 1; }}
- *
- * <p>{@code else { __MPOR_SEQ__THREAD1_AWAITS_GLOBAL_14_m = 0; __MPOR_SEQ__GLOBAL_14_m_LOCKED = 1;
- * pc[...] = ...; }}
- */
-public class SeqMutexLockStatement implements SeqCaseBlockStatement {
+public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
   private static final SeqControlFlowStatement elseNotLocked = new SeqControlFlowStatement();
 
-  private final CIdExpression mutexLocked;
+  private final CIdExpression atomicInUse;
 
-  private final CIdExpression threadLocksMutex;
+  private final CIdExpression threadBeginsAtomic;
 
   private final int threadId;
 
   private final int targetPc;
 
-  public SeqMutexLockStatement(
-      CIdExpression pMutexLocked, CIdExpression pThreadLocksMutex, int pThreadId, int pTargetPc) {
-
-    mutexLocked = pMutexLocked;
-    threadLocksMutex = pThreadLocksMutex;
+  public SeqAtomicBeginStatement(
+      CIdExpression pAtomicInUse, CIdExpression pThreadBeginsAtomic, int pThreadId, int pTargetPc) {
+    atomicInUse = pAtomicInUse;
+    threadBeginsAtomic = pThreadBeginsAtomic;
     threadId = pThreadId;
     targetPc = pTargetPc;
   }
 
   @Override
   public String toASTString() {
-    SeqControlFlowStatement ifLocked =
-        new SeqControlFlowStatement(mutexLocked, SeqControlFlowStatementType.IF);
-    CExpressionAssignmentStatement setLocksTrue =
+    SeqControlFlowStatement ifAtomicInUse =
+        new SeqControlFlowStatement(atomicInUse, SeqControlFlowStatementType.IF);
+    CExpressionAssignmentStatement setBeginsTrue =
         new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, threadLocksMutex, SeqIntegerLiteralExpression.INT_1);
-    CExpressionAssignmentStatement setLockedTrue =
+            FileLocation.DUMMY, threadBeginsAtomic, SeqIntegerLiteralExpression.INT_1);
+    CExpressionAssignmentStatement setAtomicInUseTrue =
         new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, mutexLocked, SeqIntegerLiteralExpression.INT_1);
-    CExpressionAssignmentStatement setLocksFalse =
+            FileLocation.DUMMY, atomicInUse, SeqIntegerLiteralExpression.INT_1);
+    CExpressionAssignmentStatement setBeginsFalse =
         new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, threadLocksMutex, SeqIntegerLiteralExpression.INT_0);
+            FileLocation.DUMMY, threadBeginsAtomic, SeqIntegerLiteralExpression.INT_0);
     CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(threadId, targetPc);
 
     String elseStmts =
         SeqUtil.wrapInCurlyInwards(
-            setLockedTrue.toASTString()
+            setAtomicInUseTrue.toASTString()
                 + SeqSyntax.SPACE
-                + setLocksFalse.toASTString()
+                + setBeginsFalse.toASTString()
                 + SeqSyntax.SPACE
                 + pcUpdate.toASTString());
 
-    return ifLocked.toASTString()
+    return ifAtomicInUse.toASTString()
         + SeqSyntax.SPACE
-        + SeqUtil.wrapInCurlyInwards(setLocksTrue.toASTString())
+        + SeqUtil.wrapInCurlyInwards(setBeginsTrue.toASTString())
         + SeqSyntax.SPACE
         + elseNotLocked.toASTString()
         + SeqSyntax.SPACE
@@ -87,8 +78,8 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public @NonNull SeqMutexLockStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqMutexLockStatement(mutexLocked, threadLocksMutex, threadId, pTargetPc);
+  public @NonNull SeqAtomicBeginStatement cloneWithTargetPc(int pTargetPc) {
+    return new SeqAtomicBeginStatement(atomicInUse, threadBeginsAtomic, threadId, pTargetPc);
   }
 
   @Override

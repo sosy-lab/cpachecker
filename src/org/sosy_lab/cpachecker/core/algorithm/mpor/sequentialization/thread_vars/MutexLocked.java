@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
-/** A simple wrapper for {@link CIdExpression}s of {@code {mutex}_locked} variables. */
+/** A simple wrapper for {@link CIdExpression}s of {@code {mutex}_LOCKED} variables. */
 public class MutexLocked {
 
   public final CIdExpression idExpression;

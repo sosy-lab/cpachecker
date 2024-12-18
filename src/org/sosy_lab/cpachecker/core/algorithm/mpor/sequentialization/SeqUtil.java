@@ -53,6 +53,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAssumeStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAtomicBeginStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAtomicEndStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqConstCpaCheckerTmpStatement;
@@ -67,7 +69,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadExitStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadJoinStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqVerifierAtomicStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcRetrieval;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcStorage;
@@ -255,12 +256,12 @@ public class SeqUtil {
                 assert pThreadVars.locked.containsKey(lockedMutexT);
                 CIdExpression lockedVar =
                     Objects.requireNonNull(pThreadVars.locked.get(lockedMutexT)).idExpression;
-                assert pThreadVars.awaits.containsKey(pThread);
-                assert Objects.requireNonNull(pThreadVars.awaits.get(pThread))
+                assert pThreadVars.locks.containsKey(pThread);
+                assert Objects.requireNonNull(pThreadVars.locks.get(pThread))
                     .containsKey(lockedMutexT);
                 CIdExpression mutexAwaits =
                     Objects.requireNonNull(
-                            Objects.requireNonNull(pThreadVars.awaits.get(pThread))
+                            Objects.requireNonNull(pThreadVars.locks.get(pThread))
                                 .get(lockedMutexT))
                         .idExpression;
                 stmts.add(new SeqMutexLockStatement(lockedVar, mutexAwaits, pThread.id, targetPc));
@@ -293,26 +294,24 @@ public class SeqUtil {
                 break;
 
               case __VERIFIER_ATOMIC_BEGIN:
-                // TODO improve support, atm we assume that between begin and end there is one edge
-                assert pThreadNode.leavingEdges().size() == 1;
-                ThreadNode successorA = threadEdge.getSuccessor();
-                assert successorA.leavingEdges().size() == 1;
-                ThreadEdge edgeA = successorA.leavingEdges().iterator().next();
-                ThreadNode successorB = edgeA.getSuccessor();
-                assert successorB.leavingEdges().size() == 1;
-                ThreadEdge edgeB = successorB.leavingEdges().iterator().next();
-                assert PthreadFuncType.getPthreadFuncType(edgeB.cfaEdge)
-                    .equals(PthreadFuncType.__VERIFIER_ATOMIC_END);
-                // add successors to visited edges / nodes
-                threadEdges.add(edgeA);
-                threadEdges.add(edgeB);
-                pCoveredNodes.add(successorA);
-                pCoveredNodes.add(successorB);
-                // remove begin / end from seq, only intermediate statement is included
-                SubstituteEdge subA = pSubEdges.get(edgeA);
-                assert subA != null;
-                int newTargetPc = edgeB.getSuccessor().pc;
-                stmts.add(new SeqVerifierAtomicStatement(subA.cfaEdge, pThread.id, newTargetPc));
+                assert pThreadVars.atomicInUse.isPresent();
+                CIdExpression atomicInUse =
+                    Objects.requireNonNull(pThreadVars.atomicInUse.orElseThrow().idExpression);
+                assert pThreadVars.begins.containsKey(pThread);
+                CIdExpression beginsVar =
+                    Objects.requireNonNull(pThreadVars.begins.get(pThread)).idExpression;
+                stmts.add(
+                    new SeqAtomicBeginStatement(atomicInUse, beginsVar, pThread.id, targetPc));
+                break;
+
+              case __VERIFIER_ATOMIC_END:
+                assert pThreadVars.atomicInUse.isPresent();
+                // assign 0 to ATOMIC_IN_USE variable
+                CExpressionAssignmentStatement atomicInUseFalse =
+                    SeqStatements.buildExprAssign(
+                        Objects.requireNonNull(pThreadVars.atomicInUse.orElseThrow().idExpression),
+                        SeqIntegerLiteralExpression.INT_0);
+                stmts.add(new SeqAtomicEndStatement(atomicInUseFalse, pThread.id, targetPc));
                 break;
 
               default:

@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
-/** A simple wrapper for {@link CIdExpression}s of {@code __t{thread_id}_active} variables. */
+/** A simple wrapper for {@link CIdExpression}s of {@code THREAD{thread_id}_ACTIVE} variables. */
 public class ThreadActive {
 
   public final CIdExpression idExpression;

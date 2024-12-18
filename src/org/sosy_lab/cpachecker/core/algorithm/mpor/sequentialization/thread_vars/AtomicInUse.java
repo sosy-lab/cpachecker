@@ -13,12 +13,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
-/** A simple wrapper for {@link CIdExpression}s of {@code {thread}_awaits_{mutex}} variables. */
-public class ThreadAwaitsMutex {
+/** A simple wrapper for {@link CIdExpression}s of {@code ATOMIC_IN_USE} variables. */
+public class AtomicInUse {
 
   public final CIdExpression idExpression;
 
-  public ThreadAwaitsMutex(@NonNull CIdExpression pIdExpression) {
+  public AtomicInUse(@NonNull CIdExpression pIdExpression) {
     checkNotNull(pIdExpression);
     idExpression = pIdExpression;
   }
