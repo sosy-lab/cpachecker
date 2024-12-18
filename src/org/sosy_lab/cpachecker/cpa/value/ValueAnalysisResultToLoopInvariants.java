@@ -272,13 +272,15 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
               .transform(bf -> absMgr.makePredicate(bf)));
     }
 
+    AbstractionPredicate falsePredicate = absMgr.makeFalsePredicate();
     ImmutableSetMultimap<CFANode, AbstractionPredicate> locInvariants = locInvBuilder.build();
+
     predExporter.writePredicateMap(
         ImmutableSetMultimap.of(),
         locInvariants,
         ImmutableSetMultimap.of(),
-        ImmutableSet.of(),
-        locInvariants.values(),
+        ImmutableSet.of(falsePredicate),
+        FluentIterable.from(locInvariants.values()).append(falsePredicate).toSet(),
         sb);
   }
 
