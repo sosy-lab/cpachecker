@@ -13,6 +13,8 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -69,7 +71,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   private final ShutdownNotifier shutdownNotifier;
 
   @Option(description = "Maximum iterations for error condition refinement.")
-  private int maxIterations = -1; // Default: No limit
+  private int maxIterations = -1; // Default: no iteration limit
   private final Map<String, String> variableMapping = new HashMap<>();
 
 
@@ -110,8 +112,8 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
       PathFormula exclusionFormula = manager.makeEmptyPathFormula();
       boolean foundNewCounterexamples;
-
       int currentIteration = 0;
+
       logger.log(Level.INFO, "Entering While Loop...");
       do {
         logger.log(Level.INFO, "Iteration: " + currentIteration);
@@ -119,8 +121,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         foundNewCounterexamples = false;
 
         // Run reachability analysis
-        status = performReachabilityAnalysis(reachedSet, initialState, ssaBuilder, exclusionFormula,
-            manager, solver, quantifierSolver, currentIteration);
+        status = performReachabilityAnalysis(reachedSet, initialState, currentIteration);
         // Collect counterexamples
         FluentIterable<CounterexampleInfo> counterExamples = getCounterexamples(reachedSet);
         logger.log(Level.INFO,
@@ -133,6 +134,10 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
               String.format("Iteration %d:Entering For Loop...", currentIteration));
           for (CounterexampleInfo cex : counterExamples) {
             PathFormula cexFormula = manager.makeFormulaForPath(cex.getTargetPath().getFullPath());
+            logger.log(Level.INFO,
+                String.format("Iteration %d: Current CEX FORMULA: %s \n", currentIteration,
+                    cexFormula.getFormula()));
+            mapNonDetToOriginalNames(cexFormula, solver);
             exclusionFormula =
                 updateExclusionFormula(exclusionFormula, cexFormula, ssaBuilder, solver, manager,
                     quantifierSolver, currentIteration);
@@ -152,7 +157,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   }
 
   // 1. get the initial state
-  private AbstractState getInitialState() throws CPAException, InterruptedException {
+  private AbstractState getInitialState() throws InterruptedException {
     return cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
   }
 
@@ -160,11 +165,6 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   private AlgorithmStatus performReachabilityAnalysis(
       ReachedSet reachedSet,
       AbstractState initialState,
-      SSAMapBuilder ssaBuilder,
-      PathFormula exclusionFormula,
-      PathFormulaManager manager,
-      Solver solver,
-      Solver quantifier_solver,
       Integer currentIteration) throws CPAException, InterruptedException, SolverException {
 
     reachedSet.clear();
@@ -176,12 +176,12 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         "Iteration %d:Performed Reachability Analysis: \n status: %s \n reachedSet: %s",
         currentIteration, status, reachedSet));
 
-//    FluentIterable<CounterexampleInfo> counterExamples = getCounterexamples(reachedSet);
-//    for (CounterexampleInfo cex : counterExamples) {
-//      PathFormula fullPath = manager.makeFormulaForPath(cex.getTargetPath().getFullPath());
-//      exclusionFormula =
-//          updateExclusionFormula(exclusionFormula, fullPath, ssaBuilder, solver, manager, quantifier_solver);
-//    }
+    //    FluentIterable<CounterexampleInfo> counterExamples = getCounterexamples(reachedSet);
+    //    for (CounterexampleInfo cex : counterExamples) {
+    //      PathFormula fullPath = manager.makeFormulaForPath(cex.getTargetPath().getFullPath());
+    //      exclusionFormula =
+    //          updateExclusionFormula(exclusionFormula, fullPath, ssaBuilder, solver, manager, quantifier_solver);
+    //    }
 
     return status;
   }
@@ -207,37 +207,30 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       Integer currentIteration) throws SolverException, InterruptedException {
     logger.log(Level.INFO,
         "******************************** Exclusion Formula Update ********************************");
-    logger.log(Level.INFO,
-        String.format("Iteration %d: Current CEX FORMULA: %s \n", currentIteration,
-            cexFormula.getFormula()));
 
     for (String variable : cexFormula.getSsa().allVariables()) {
       if (!ssaBuilder.build().containsVariable(variable)) {
         ssaBuilder.setIndex(variable, cexFormula.getSsa().getType(variable), 1);
       }
-      // Map SSA variable names to original names (e.g., `__VERIFIER_int!2@` -> `x`)
-      if (variable.contains("_nondet")) {
-        String originalName = extractOriginalName(variable);
-        variableMapping.put(variable, originalName);
-      }
     }
-
     // formula translation between solvers, e.g. MATHSAT5 and Z3
     BooleanFormula translatedFormula = quantifierSolver.getFormulaManager().translateFrom(
         cexFormula.getFormula(), solver.getFormulaManager());
 
     BooleanFormula eliminatedByQuantifier = eliminateVariables(
         translatedFormula,
-        entry -> !entry.getKey().contains("_nondet"),
-        entry -> entry.getKey().contains("_nondet"),
         // this predicate filters out variables (keys) that include "_nondet" in their names
+        entry -> !entry.getKey().contains("_nondet"),
+        // and this predicate keeps the non-det variables
+        entry -> entry.getKey().contains("_nondet"),
         quantifierSolver, currentIteration);
 
     // translate back
     eliminatedByQuantifier = solver.getFormulaManager()
         .translateFrom(eliminatedByQuantifier, quantifierSolver.getFormulaManager());
-    logger.log(Level.INFO, String.format("Iteration %d: To Be Eliminated (excluded): %s \n", currentIteration,
-        eliminatedByQuantifier));
+    logger.log(Level.INFO,
+        String.format("Iteration %d: To Be Eliminated (excluded): %s \n", currentIteration,
+            eliminatedByQuantifier));
 
 
     //update exclusion formula with the new quantified variables from this iteration.
@@ -245,18 +238,33 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
             solver.getFormulaManager().getBooleanFormulaManager().not(eliminatedByQuantifier))
         .withContext(ssaBuilder.build(), cexFormula.getPointerTargetSet());
 
-    logger.log(Level.INFO, String.format("Iteration %d: Updated Exclusion Formula: %s \n", currentIteration,
-        exclusionFormula.getFormula()));
+    logger.log(Level.INFO,
+        String.format("Iteration %d: Updated Exclusion Formula: %s \n", currentIteration,
+            exclusionFormula.getFormula()));
 
     String visitorOutput = formatErrorCondition(exclusionFormula.getFormula(), solver);
     logger.log(Level.INFO,
-        String.format("Iteration %d: Error Condition in this iteration: %s \n", currentIteration, visitorOutput));
+        String.format("Iteration %d: Error Condition in this iteration: %s \n", currentIteration,
+            visitorOutput));
     return exclusionFormula;
   }
 
-  private String extractOriginalName(String ssaVariable) {
-    // Replace SSA-specific annotations to extract original variable names
-    return ssaVariable.replaceAll("(_nondet|!\\d+@)", "");
+  private void mapNonDetToOriginalNames(PathFormula cexFormula, Solver solver) {
+    List<String> cexVarNames = new ArrayList<>(
+        solver.getFormulaManager().extractVariableNames(cexFormula.getFormula()));
+
+    // Map SSA variable names to original names (e.g., `__VERIFIER_int!2@` -> `x`)
+    for (String cexVarName : cexVarNames) {
+      if (cexVarName.contains("_nondet")) {
+        int index = cexVarNames.indexOf(cexVarName);
+        variableMapping.put(cexVarName, cexVarNames.get(index - 1));
+      }
+    }
+    logger.log(Level.INFO, "CEX ALL VARS: " + cexFormula.getSsa().allVariables());
+    logger.log(Level.INFO,
+        "CEX EXTRACTED VAR NAMES: " + solver.getFormulaManager().extractVariableNames(
+            cexFormula.getFormula()));
+    logger.log(Level.INFO, "CEX Non-Det Variables Mapping: " + variableMapping);
   }
 
 
@@ -264,7 +272,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   public BooleanFormula eliminateVariables(
       BooleanFormula translatedFormula,
       Predicate<Entry<String, Formula>> deterministicVariablesPredicate,
-      Predicate<Entry<String, Formula>> noneDetVariablesPredicate,
+      Predicate<Entry<String, Formula>> nonDetVariablesPredicate,
       Solver quantifierSolver,
       Integer currentIteration
   ) throws InterruptedException, SolverException {
@@ -272,17 +280,11 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     logger.log(Level.INFO,
         "******************************** Quantifier Elimination ********************************");
     logger.log(Level.INFO,
-        String.format("Iteration %d: Translated Formula: %s \n", currentIteration,
+        String.format("Iteration %d: Translated Formula:\n%s \n", currentIteration,
             translatedFormula));
 
     Map<String, Formula> formulaNameToFormulaMap =
         quantifierSolver.getFormulaManager().extractVariables(translatedFormula);
-    logger.log(Level.INFO,
-        String.format("Iteration %d: formulaNameToFormulaMap keys: %s", currentIteration,
-            formulaNameToFormulaMap.keySet()));
-    logger.log(Level.INFO,
-        String.format("Iteration %d: formulaNameToFormulaMap values: %s", currentIteration,
-            formulaNameToFormulaMap.values()));
     logger.log(Level.INFO,
         String.format("Iteration %d: formulaNameToFormulaMap: %s", currentIteration,
             formulaNameToFormulaMap.entrySet()));
@@ -292,21 +294,24 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         .transform(Entry::getValue)
         .toList();
 
-    ImmutableList<Formula> nonDetVairalbes = FluentIterable.from(formulaNameToFormulaMap.entrySet())
-        .filter(noneDetVariablesPredicate::test)
+    ImmutableList<Formula> nonDetVariables = FluentIterable.from(formulaNameToFormulaMap.entrySet())
+        .filter(nonDetVariablesPredicate::test)
         .transform(Entry::getValue)
         .toList();
 
 
     logger.log(Level.INFO,
-        String.format("Iteration %d: Deterministic variables to eliminate: %s", currentIteration, eliminate));
+        String.format("Iteration %d: Deterministic variables to eliminate: %s", currentIteration,
+            eliminate));
     logger.log(Level.INFO,
-        String.format("Iteration %d: Non-Deterministic variables : %s", currentIteration, nonDetVairalbes));
+        String.format("Iteration %d: Non-Deterministic variables : %s", currentIteration,
+            nonDetVariables));
 
     BooleanFormula quantified = quantifierSolver.getFormulaManager().getQuantifiedFormulaManager()
         .mkQuantifier(Quantifier.EXISTS, eliminate, translatedFormula);
     logger.log(Level.INFO,
-        String.format("Iteration %d: Quantified  variables: \n%s", currentIteration, quantified));
+        String.format("Iteration %d: Quantified deterministic variables: \n%s", currentIteration,
+            quantified));
 
     return quantifierSolver.getFormulaManager().getQuantifiedFormulaManager()
         .eliminateQuantifiers(quantified);
@@ -337,29 +342,27 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       }
     }
     logger.log(Level.INFO,
-        String.format("Iteration %d: Updated initial state with the exclusion formula for next iteration.",
+        String.format(
+            "Iteration %d: Updated initial state with the exclusion formula for next iteration.",
             currentIteration));
     logger.log(Level.INFO, String.format("Iteration %s: Updated initial state: ", initialState));
     return new ARGState(new CompositeState(initialAbstractStates.build()), null);
   }
 
-  private String formatErrorCondition(BooleanFormula formula, Solver solver) {
+  private String formatErrorCondition(BooleanFormula formula, Solver solver)
+      throws InterruptedException {
     FormulaToCVisitor visitor = new FormulaToCVisitor(solver.getFormulaManager(), id -> id);
-    solver.getFormulaManager().visit(formula, visitor);
+    BooleanFormula simplifiedFormula = solver.getFormulaManager().simplify(formula);
+    solver.getFormulaManager().visit(simplifiedFormula, visitor);
 
     String rawFormula = visitor.getString();
 
-    // Replace SSA variables with their original names
+    // Clean up nondet annotations
     for (Map.Entry<String, String> entry : variableMapping.entrySet()) {
       String ssaVariable = entry.getKey();
-      String originalName = entry.getValue();
+      String originalName = entry.getValue().replace("main::", "");
       rawFormula = rawFormula.replace(ssaVariable, originalName);
     }
-
-    rawFormula = rawFormula
-        .replace("bvadd_32", "+") // Replace SSA-specific operators
-        .replace("bvslt_32", "<")
-        .replace("_nondet", ""); // Clean up nondet annotations
 
     return rawFormula;
   }
