@@ -23,13 +23,19 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 
 public class SequentializationTest {
 
-  // TODO need explicit support for __VERIFIER_atomic_begin (put all in one case until end)
-
   // TODO this triggers a substitute not found because the pthread_create call passes
   //  a parameter to the start routine and the thread reads it
   // "ring_2w1r-2",
   // TODO this triggers a pthread_create loop error, even though its outside the loop
   // "divinefifo-bug_1w1r"
+
+  @Test
+  public void testCompileSeq_fib_safe7() throws Exception {
+    // contains __VERIFIER_atomic_begin and __VERIFIER_atomic_end
+    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/fib_safe-7.c");
+    assertThat(Files.exists(path)).isTrue();
+    testCompile(path);
+  }
 
   @Test
   public void testCompileSeq_lazy01() throws Exception {
@@ -53,16 +59,16 @@ public class SequentializationTest {
   }
 
   @Test
-  public void testCompileSeq_stack1() throws Exception {
-    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/stack-1.c");
+  public void testCompileSeqSingletonWithUninitProblems() throws Exception {
+    Path path =
+        Path.of("./test/programs/mpor_seq/seq_compilable/singleton_with-uninit-problems-b.c");
     assertThat(Files.exists(path)).isTrue();
     testCompile(path);
   }
 
   @Test
-  public void testCompileSeqSingletonWithUninitProblems() throws Exception {
-    Path path =
-        Path.of("./test/programs/mpor_seq/seq_compilable/singleton_with-uninit-problems-b.c");
+  public void testCompileSeq_stack1() throws Exception {
+    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/stack-1.c");
     assertThat(Files.exists(path)).isTrue();
     testCompile(path);
   }
