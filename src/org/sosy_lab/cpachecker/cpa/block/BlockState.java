@@ -113,8 +113,7 @@ public class BlockState
 
   @Override
   public BooleanFormula getScopedFormulaApproximation(
-      FormulaManagerView manager,
-      FunctionEntryNode functionScope) {
+      FormulaManagerView manager, FunctionEntryNode functionScope) {
     throw new UnsupportedOperationException();
   }
 
