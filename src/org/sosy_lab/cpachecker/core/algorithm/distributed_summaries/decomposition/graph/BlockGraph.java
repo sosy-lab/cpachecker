@@ -41,6 +41,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockGraph {
 
+  static final String GHOST_EDGE_DESCRIPTION = "<<ghost-edge>>";
+
   public static final String ROOT_ID = "root";
   private final BlockNode root;
   private final ImmutableSet<BlockNode> nodes;
@@ -53,6 +55,10 @@ public class BlockGraph {
         "Root nodes are ambiguous.");
     nodes = pNodes;
     root = pRoot;
+  }
+
+  public static boolean isGhostEdge(CFAEdge pEdge) {
+    return pEdge.getDescription().equals(GHOST_EDGE_DESCRIPTION);
   }
 
   public BlockNode getRoot() {

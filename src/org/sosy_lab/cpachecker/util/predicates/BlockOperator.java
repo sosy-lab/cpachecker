@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.GhostEdge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -130,7 +129,11 @@ public class BlockOperator {
   @Option(secure = true, description = "abstraction always at function exit nodes.")
   private boolean alwaysAtFunctionExit = false;
 
-  @Option(secure = true, description = "abstraction always at nodes with outgoing ghost edges")
+  @Option(
+      secure = true,
+      description =
+          "abstraction always at nodes with outgoing ghost edges. This configuration is specific to"
+              + " distributed summary synthesis.")
   private boolean alwaysAtGhostEdges = false;
 
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
@@ -170,7 +173,10 @@ public class BlockOperator {
       return true;
     }
 
-    if (alwaysAtGhostEdges && !CFAUtils.allLeavingEdges(loc).filter(GhostEdge.class).isEmpty()) {
+    if (alwaysAtGhostEdges
+        && !CFAUtils.allLeavingEdges(loc)
+            .filter(e -> e.getDescription().equals("<<ghost-edge>>"))
+            .isEmpty()) {
       return true;
     }
 

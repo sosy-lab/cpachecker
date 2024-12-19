@@ -37,15 +37,13 @@ public final class FunctionExitNode extends CFANode {
 
   @Override
   public void addLeavingEdge(CFAEdge pLeavingEdge) {
-    checkArgument(pLeavingEdge instanceof FunctionReturnEdge || pLeavingEdge instanceof GhostEdge);
+    checkArgument(pLeavingEdge instanceof FunctionReturnEdge);
     super.addLeavingEdge(pLeavingEdge);
   }
 
   @Override
   public CFAEdge getLeavingEdge(int pIndex) {
-    Preconditions.checkState(
-        super.getLeavingEdge(pIndex) instanceof GhostEdge
-            || super.getLeavingEdge(pIndex) instanceof FunctionReturnEdge);
+    Preconditions.checkState(super.getLeavingEdge(pIndex) instanceof FunctionReturnEdge);
     return super.getLeavingEdge(pIndex);
   }
 

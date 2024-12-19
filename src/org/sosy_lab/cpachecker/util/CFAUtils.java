@@ -112,7 +112,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.GhostEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -442,7 +441,8 @@ public class CFAUtils {
   public static AssumeEdge getComplimentaryAssumeEdge(AssumeEdge edge) {
     return Iterables.getOnlyElement(
         CFAUtils.leavingEdges(edge.getPredecessor())
-            .filter(e -> !e.equals(edge) && !(e instanceof GhostEdge))
+            // FIXME: Can we remove the check for <<ghost-edge>> here?
+            .filter(e -> !e.equals(edge) && !(e.getDescription().equals("<<ghost-edge>>")))
             .filter(AssumeEdge.class));
   }
 

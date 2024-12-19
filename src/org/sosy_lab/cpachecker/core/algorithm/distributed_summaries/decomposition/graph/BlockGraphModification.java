@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph.GHOST_EDGE_DESCRIPTION;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
@@ -29,11 +30,12 @@ import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.GhostEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -189,6 +191,10 @@ public class BlockGraphModification {
     return loopStructure;
   }
 
+  private static CFAEdge insertGhostEdge(CFANode pPredecessor, CFANode pSuccessor) {
+    return new BlankEdge("", FileLocation.DUMMY, pPredecessor, pSuccessor, GHOST_EDGE_DESCRIPTION);
+  }
+
   /**
    * For each CFA node that ends in a block, we add a new node that is the successor of the original
    * node and that has a single ingoing, blank edge. This is required so that predicate abstraction
@@ -243,7 +249,7 @@ public class BlockGraphModification {
           && !(mutableCfaBlockEnd instanceof CFATerminationNode)) {
         CFANode blockEndEdgeSuccessor = new CFANode(mutableCfaBlockEnd.getFunction());
         pMutableCfa.addNode(blockEndEdgeSuccessor);
-        GhostEdge blockEndEdge = new GhostEdge(mutableCfaBlockEnd, blockEndEdgeSuccessor);
+        CFAEdge blockEndEdge = insertGhostEdge(mutableCfaBlockEnd, blockEndEdgeSuccessor);
         mutableCfaBlockEnd.addLeavingEdge(blockEndEdge);
         blockEndEdgeSuccessor.addEnteringEdge(blockEndEdge);
         abstractions.put(originalBlockEnd, blockEndEdge);
@@ -254,7 +260,11 @@ public class BlockGraphModification {
       }
     }
     return new ModificationMetadata(
-        pOriginalCfa, pBlockGraph, blockMapping, unableToAbstract.build(), abstractions.buildOrThrow());
+        pOriginalCfa,
+        pBlockGraph,
+        blockMapping,
+        unableToAbstract.build(),
+        abstractions.buildOrThrow());
   }
 
   private static BlockGraph adaptBlockGraph(

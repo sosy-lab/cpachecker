@@ -111,7 +111,8 @@ public class STBridges {
           }
 
           // Ensure first and last nodes are found
-          checkState(first != null && last != null, "First or last node not found in the connection.");
+          checkState(
+              first != null && last != null, "First or last node not found in the connection.");
 
           edges.add(
               new BlockNodeWithoutGraphInformation(

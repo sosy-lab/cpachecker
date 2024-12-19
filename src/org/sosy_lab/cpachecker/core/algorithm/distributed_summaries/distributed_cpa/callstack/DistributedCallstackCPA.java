@@ -16,7 +16,6 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.GhostEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -112,7 +111,8 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
               AbstractStates.extractStateByType(pPreviousCondition, CallstackState.class));
     }
     for (CFAEdge cfaEdge : Lists.reverse(pARGPath.getFullPath())) {
-      if (cfaEdge instanceof GhostEdge) {
+      // FIXME: Can we remove this?
+      if (cfaEdge.getDescription().equals("<<ghost-edge>>")) {
         continue;
       }
       Collection<? extends AbstractState> abstractSuccessorsForEdge =
