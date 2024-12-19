@@ -2335,7 +2335,8 @@ cpa.predicate.blk.alwaysAtFunctionHeads = false
 # force abstractions at each function calls/returns, regardless of threshold
 cpa.predicate.blk.alwaysAtFunctions = true
 
-# abstraction always at nodes with outgoing ghost edges
+# abstraction always at nodes with outgoing ghost edges. This configuration
+# is specific to distributed summary synthesis.
 cpa.predicate.blk.alwaysAtGhostEdges = false
 
 # force abstractions at each join node, regardless of threshold

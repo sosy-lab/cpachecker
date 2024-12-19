@@ -16,7 +16,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -291,7 +290,7 @@ public class BlockGraphModification {
         createMappingBetweenOriginalAndInstrumentedCFA(pOriginalCfa, pMutableCfa);
     ImmutableSet<CFANode> blockEnds =
         transformedImmutableSetCopy(pBlockGraph.getNodes(), n -> n.getLast());
-    Builder<CFANode> unableToAbstract = ImmutableSet.builder();
+    ImmutableSet.Builder<CFANode> unableToAbstract = ImmutableSet.builder();
     ImmutableMap.Builder<CFANode, CFAEdge> abstractions = ImmutableMap.builder();
     for (CFANode originalBlockEnd : blockEnds) {
       CFANode mutableCfaBlockEnd = blockMapping.originalToInstrumentedNodes().get(originalBlockEnd);
@@ -308,7 +307,8 @@ public class BlockGraphModification {
               n.getNumLeavingEdges() == 1,
               "Violated assumption in block-graph decomposition of DSS: CFA node just before end of"
                   + " block has more than one leaving edges: "
-                  + CFAUtils.leavingEdges(n));
+                  + "%s",
+              CFAUtils.leavingEdges(n));
           CFAEdge e = n.getLeavingEdge(0);
           CFAEdge edgeToNewNode = cloneEdge(e, n, newNodeBeforeBlockEnd);
           n.removeLeavingEdge(e);
@@ -343,9 +343,9 @@ public class BlockGraphModification {
         pMappingInformation.originalToInstrumentedNodes();
     Map<CFAEdge, CFAEdge> originalInstrumentedEdges =
         pMappingInformation.originalToInstrumentedEdges();
-    Builder<BlockNode> instrumentedBlocks = ImmutableSet.builder();
+    ImmutableSet.Builder<BlockNode> instrumentedBlocks = ImmutableSet.builder();
     for (BlockNode block : pBlockGraph.getNodes()) {
-      Builder<CFANode> nodeBuilder = ImmutableSet.builder();
+      ImmutableSet.Builder<CFANode> nodeBuilder = ImmutableSet.builder();
       for (CFANode node : block.getNodes()) {
         // null in case of unreachable node
         CFANode instrumentedNode = originalInstrumentedNodes.get(node);
@@ -353,7 +353,7 @@ public class BlockGraphModification {
           nodeBuilder.add(instrumentedNode);
         }
       }
-      Builder<CFAEdge> edgeBuilder = ImmutableSet.builder();
+      ImmutableSet.Builder<CFAEdge> edgeBuilder = ImmutableSet.builder();
       for (CFAEdge edge : block.getEdges()) {
         CFAEdge instrumentedEdge = originalInstrumentedEdges.get(edge);
         if (instrumentedEdge != null) {
