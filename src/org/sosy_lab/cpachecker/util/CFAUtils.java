@@ -441,8 +441,7 @@ public class CFAUtils {
   public static AssumeEdge getComplimentaryAssumeEdge(AssumeEdge edge) {
     return Iterables.getOnlyElement(
         CFAUtils.leavingEdges(edge.getPredecessor())
-            // FIXME: Can we remove the check for <<ghost-edge>> here?
-            .filter(e -> !e.equals(edge) && !(e.getDescription().equals("<<ghost-edge>>")))
+            .filter(e -> !e.equals(edge))
             .filter(AssumeEdge.class));
   }
 

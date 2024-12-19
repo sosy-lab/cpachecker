@@ -111,10 +111,6 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
               AbstractStates.extractStateByType(pPreviousCondition, CallstackState.class));
     }
     for (CFAEdge cfaEdge : Lists.reverse(pARGPath.getFullPath())) {
-      // FIXME: Can we remove this?
-      if (cfaEdge.getDescription().equals("<<ghost-edge>>")) {
-        continue;
-      }
       Collection<? extends AbstractState> abstractSuccessorsForEdge =
           backwardsTransfer.getAbstractSuccessorsForEdge(
               error,
