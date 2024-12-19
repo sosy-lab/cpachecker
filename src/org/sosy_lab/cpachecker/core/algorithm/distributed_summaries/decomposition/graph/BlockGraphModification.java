@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph.GHOST_EDGE_DESCRIPTION;
 
@@ -15,6 +16,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -36,6 +38,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -195,6 +201,51 @@ public class BlockGraphModification {
     return new BlankEdge("", FileLocation.DUMMY, pPredecessor, pSuccessor, GHOST_EDGE_DESCRIPTION);
   }
 
+  private static CFAEdge cloneEdge(CFAEdge pEdge, CFANode pStart, CFANode pEnd) {
+    final FileLocation loc = pEdge.getFileLocation();
+    final String rawStatement = pEdge.getRawStatement();
+    switch (pEdge.getEdgeType()) {
+      case BlankEdge -> {
+        return new BlankEdge(rawStatement, loc, pStart, pEnd, pEdge.getDescription());
+      }
+      case AssumeEdge -> {
+        if (!(pEdge instanceof CAssumeEdge e)) {
+          throw new AssertionError("Expected C program, but got edge " + pEdge);
+        } else {
+          return new CAssumeEdge(
+              rawStatement,
+              loc,
+              pStart,
+              pEnd,
+              e.getExpression(),
+              e.getTruthAssumption(),
+              e.isSwapped(),
+              e.isArtificialIntermediate());
+        }
+      }
+      case StatementEdge -> {
+        if (pEdge instanceof CFunctionSummaryStatementEdge) {
+          throw new IllegalStateException(
+              "Violated assumption in block-graph decomposition of DSS: trying to change the"
+                  + " structure of function calls, but this should not be necessary. Edge: "
+                  + pEdge);
+        } else if (!(pEdge instanceof CStatementEdge e)) {
+          throw new AssertionError("Expected C program, but got edge " + pEdge);
+        } else {
+          return new CStatementEdge(rawStatement, e.getStatement(), loc, pStart, pEnd);
+        }
+      }
+      case DeclarationEdge -> {
+        if (!(pEdge instanceof CDeclarationEdge e)) {
+          throw new AssertionError("Expected C program, but got edge " + pEdge);
+        } else {
+          return new CDeclarationEdge(rawStatement, loc, pStart, pEnd, e.getDeclaration());
+        }
+      }
+      default -> throw new AssertionError("Unexpected edge: " + pEdge);
+    }
+  }
+
   /**
    * For each CFA node that ends in a block, we add a new node that is the successor of the original
    * node and that has a single ingoing, blank edge. This is required so that predicate abstraction
@@ -224,9 +275,9 @@ public class BlockGraphModification {
    * ...|...... Block 2
    * . (2)    .
    * .  | x++ .
-   * . (3)    .
+   * . (3')    .
    * .  | nop .
-   * . (3')   .
+   * . (3)   .
    * ..........
    * </pre>
    *
@@ -240,18 +291,34 @@ public class BlockGraphModification {
         createMappingBetweenOriginalAndInstrumentedCFA(pOriginalCfa, pMutableCfa);
     ImmutableSet<CFANode> blockEnds =
         transformedImmutableSetCopy(pBlockGraph.getNodes(), n -> n.getLast());
-    ImmutableSet.Builder<CFANode> unableToAbstract = ImmutableSet.builder();
+    Builder<CFANode> unableToAbstract = ImmutableSet.builder();
     ImmutableMap.Builder<CFANode, CFAEdge> abstractions = ImmutableMap.builder();
     for (CFANode originalBlockEnd : blockEnds) {
       CFANode mutableCfaBlockEnd = blockMapping.originalToInstrumentedNodes().get(originalBlockEnd);
       if (mutableCfaBlockEnd.getLeavingSummaryEdge() == null
           && !mutableCfaBlockEnd.equals(pOriginalCfa.getMainFunction())
           && !(mutableCfaBlockEnd instanceof CFATerminationNode)) {
-        CFANode blockEndEdgeSuccessor = new CFANode(mutableCfaBlockEnd.getFunction());
-        pMutableCfa.addNode(blockEndEdgeSuccessor);
-        CFAEdge blockEndEdge = insertGhostEdge(mutableCfaBlockEnd, blockEndEdgeSuccessor);
-        mutableCfaBlockEnd.addLeavingEdge(blockEndEdge);
-        blockEndEdgeSuccessor.addEnteringEdge(blockEndEdge);
+        CFANode newNodeBeforeBlockEnd = new CFANode(mutableCfaBlockEnd.getFunction());
+        pMutableCfa.addNode(newNodeBeforeBlockEnd);
+
+        List<CFANode> originalNodesBeforeBlockEnd =
+            CFAUtils.enteringEdges(mutableCfaBlockEnd).transform(e -> e.getPredecessor()).toList();
+        for (CFANode n : originalNodesBeforeBlockEnd) {
+          checkState(
+              n.getNumLeavingEdges() == 1,
+              "Violated assumption in block-graph decomposition of DSS: CFA node just before end of"
+                  + " block has more than one leaving edges: "
+                  + CFAUtils.leavingEdges(n));
+          CFAEdge e = n.getLeavingEdge(0);
+          CFAEdge edgeToNewNode = cloneEdge(e, n, newNodeBeforeBlockEnd);
+          n.removeLeavingEdge(e);
+          n.addLeavingEdge(edgeToNewNode);
+          newNodeBeforeBlockEnd.addEnteringEdge(edgeToNewNode);
+        }
+
+        CFAEdge blockEndEdge = insertGhostEdge(newNodeBeforeBlockEnd, mutableCfaBlockEnd);
+        newNodeBeforeBlockEnd.addLeavingEdge(blockEndEdge);
+        mutableCfaBlockEnd.addEnteringEdge(blockEndEdge);
         abstractions.put(originalBlockEnd, blockEndEdge);
       } else {
         if (mutableCfaBlockEnd.getLeavingSummaryEdge() != null) {
@@ -276,9 +343,9 @@ public class BlockGraphModification {
         pMappingInformation.originalToInstrumentedNodes();
     Map<CFAEdge, CFAEdge> originalInstrumentedEdges =
         pMappingInformation.originalToInstrumentedEdges();
-    ImmutableSet.Builder<BlockNode> instrumentedBlocks = ImmutableSet.builder();
+    Builder<BlockNode> instrumentedBlocks = ImmutableSet.builder();
     for (BlockNode block : pBlockGraph.getNodes()) {
-      ImmutableSet.Builder<CFANode> nodeBuilder = ImmutableSet.builder();
+      Builder<CFANode> nodeBuilder = ImmutableSet.builder();
       for (CFANode node : block.getNodes()) {
         // null in case of unreachable node
         CFANode instrumentedNode = originalInstrumentedNodes.get(node);
@@ -286,7 +353,7 @@ public class BlockGraphModification {
           nodeBuilder.add(instrumentedNode);
         }
       }
-      ImmutableSet.Builder<CFAEdge> edgeBuilder = ImmutableSet.builder();
+      Builder<CFAEdge> edgeBuilder = ImmutableSet.builder();
       for (CFAEdge edge : block.getEdges()) {
         CFAEdge instrumentedEdge = originalInstrumentedEdges.get(edge);
         if (instrumentedEdge != null) {
@@ -361,9 +428,9 @@ public class BlockGraphModification {
         originalToInstrumentedNodes.buildKeepingLast(), originalToInstrumentedEdges.buildOrThrow());
   }
 
-  private static CFAEdge findCorrespondingEdge(CFAEdge edge, Iterable<CFAEdge> edges) {
+  private static CFAEdge findCorrespondingEdge(CFAEdge pEdge, Iterable<CFAEdge> edges) {
     for (CFAEdge cfaEdge : edges) {
-      if (virtuallyEqual(edge, cfaEdge)) {
+      if (virtuallyEqual(pEdge, cfaEdge)) {
         return cfaEdge;
       }
     }
