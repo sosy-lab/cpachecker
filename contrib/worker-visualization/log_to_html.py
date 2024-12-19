@@ -21,9 +21,6 @@ from airium import Airium
 import networkx as nx
 import pydot
 
-from os import listdir
-from os.path import isfile, join
-
 ENCODING = "UTF-8"
 
 
@@ -235,11 +232,11 @@ def visualize_messages(
     all_messages = []
     hash_code = None
     jsons = sorted(
-        [f for f in listdir(message_dir) if isfile(join(message_dir, f))],
+        [f for f in message_dir.iterdir() if f.is_file()],
         key=lambda text: int(text[1:-5]),
     )
     for message_json in jsons:
-        parsed_file = parse_jsons(join(message_dir, message_json))
+        parsed_file = parse_jsons(message_dir / message_json)
         if hash_code is None:
             hash_code = parsed_file["hashCode"]
         if hash_code == parsed_file["hashCode"]:
