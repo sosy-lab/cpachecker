@@ -62,6 +62,7 @@ public class LoopInfoUtils {
     Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>();
     ImmutableSet<String> allGlobalVariables = getAllGlobalVariables(pCfa);
     ImmutableMap<String, ImmutableMap<String, String>> allStructInfos = getAllStructInfos(pCfa);
+    System.out.println(allStructInfos);
     ImmutableMap<String, ImmutableMap<String, String>> allDecomposedStructsWithPlaceHolder =
         decomposeAllStructs(allStructInfos);
 
@@ -427,12 +428,7 @@ public class LoopInfoUtils {
           StringBuilder decomposedExpression = new StringBuilder(structMember.getKey());
           String decomposedType = structMember.getValue();
 
-          int insertIndex = 0;
-          while (decomposedExpression.charAt(insertIndex) == '*') {
-            insertIndex++;
-          }
-          decomposedExpression.insert(insertIndex, expression + '.');
-
+          decomposedExpression.insert(decomposedExpression.lastIndexOf("*") + 1, expression + '.');
           currentDecomposedParts.put(decomposedExpression.toString(), decomposedType);
         }
 
