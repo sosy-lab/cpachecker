@@ -62,7 +62,6 @@ public class LoopInfoUtils {
     Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>();
     ImmutableSet<String> allGlobalVariables = getAllGlobalVariables(pCfa);
     ImmutableMap<String, ImmutableMap<String, String>> allStructInfos = getAllStructInfos(pCfa);
-    System.out.println(allStructInfos);
     ImmutableMap<String, ImmutableMap<String, String>> allDecomposedStructsWithPlaceHolder =
         decomposeAllStructs(allStructInfos);
 
