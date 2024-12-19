@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.DoNotCall;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -42,9 +41,8 @@ public final class FunctionExitNode extends CFANode {
   }
 
   @Override
-  public CFAEdge getLeavingEdge(int pIndex) {
-    Preconditions.checkState(super.getLeavingEdge(pIndex) instanceof FunctionReturnEdge);
-    return super.getLeavingEdge(pIndex);
+  public FunctionReturnEdge getLeavingEdge(int pIndex) {
+    return (FunctionReturnEdge) super.getLeavingEdge(pIndex);
   }
 
   @Override
