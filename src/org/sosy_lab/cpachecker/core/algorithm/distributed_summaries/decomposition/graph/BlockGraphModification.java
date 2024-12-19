@@ -254,7 +254,7 @@ public class BlockGraphModification {
       }
     }
     return new ModificationMetadata(
-        pOriginalCfa, pBlockGraph, blockMapping, unableToAbstract.build(), abstractions.build());
+        pOriginalCfa, pBlockGraph, blockMapping, unableToAbstract.build(), abstractions.buildOrThrow());
   }
 
   private static BlockGraph adaptBlockGraph(
