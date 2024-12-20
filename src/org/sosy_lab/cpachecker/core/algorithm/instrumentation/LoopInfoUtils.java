@@ -122,9 +122,12 @@ public class LoopInfoUtils {
 
       // Decompose each variable into primitive expressions
       for (String variable : liveVariables) {
-        String type = pCProgramScope.lookupVariable(variable).getType().toString();
+        Entry<String, String> preprocessedVariableAndType =
+            preprocess(variable, pCProgramScope.lookupVariable(variable).getType().toString());
+        String preprocessedVariable = preprocessedVariableAndType.getKey();
+        String preprocessedType = preprocessedVariableAndType.getValue();
         liveVariablesAndTypes.putAll(
-            decompose(variable, type, allDecomposedStructsWithPlaceHolder));
+            decompose(preprocessedVariable, preprocessedType, allDecomposedStructsWithPlaceHolder));
       }
 
       for (Integer loopLocation : loopLocations) {
@@ -282,27 +285,68 @@ public class LoopInfoUtils {
     return ImmutableSet.copyOf(variables);
   }
 
+  private static Entry<String, String> preprocess(String pVariable, String pType) {
+    if (!pType.contains("*") && !pType.contains("]")) {
+      return new SimpleEntry<>(
+          pVariable.contains("::")
+              ? Iterables.get(Splitter.on("::").split(pVariable), 1)
+              : pVariable,
+          pType);
+    }
+
+    StringBuilder reversedVariableSb =
+        new StringBuilder(
+                pVariable.contains("::")
+                    ? Iterables.get(Splitter.on("::").split(pVariable), 1)
+                    : pVariable)
+            .reverse();
+    StringBuilder reversedTypeSb = new StringBuilder(pType).reverse();
+
+    while (reversedTypeSb.charAt(0) == '*' || reversedTypeSb.charAt(0) == ']') {
+
+      if (reversedTypeSb.charAt(0) == '*') {
+        reversedVariableSb.append('*');
+        reversedTypeSb.deleteCharAt(reversedTypeSb.length() - 1);
+        reversedTypeSb.delete(0, 2);
+
+        if (reversedTypeSb.charAt(0) == ']') {
+          reversedVariableSb.insert(0, ')');
+          reversedVariableSb.append('(');
+        }
+      } else {
+        int indexOfFirstLeftBracket = reversedTypeSb.indexOf("[");
+        String reversedSize = reversedTypeSb.substring(1, indexOfFirstLeftBracket);
+
+        reversedVariableSb.insert(0, "[");
+        reversedVariableSb.insert(0, reversedSize);
+        reversedVariableSb.insert(0, "]");
+
+        reversedTypeSb.deleteCharAt(reversedTypeSb.length() - 1);
+        reversedTypeSb.delete(0, indexOfFirstLeftBracket + 2);
+      }
+    }
+
+    return new SimpleEntry<>(
+        reversedVariableSb.reverse().toString(), reversedTypeSb.reverse().toString());
+  }
+
   private static ImmutableMap<String, String> decompose(
-      String pVariable,
-      String pType,
+      String pPreprocessedVariable,
+      String pPreprocessedType,
       Map<String, ImmutableMap<String, String>> allDecomposedStructs) {
     final String EXPRESSION_PLACEHOLDER = "$";
 
-    Entry<String, String> preprocessedVariableAndType = preprocess(pVariable, pType);
-    String preprocessedVariable = preprocessedVariableAndType.getKey();
-    String preprocessedType = preprocessedVariableAndType.getValue();
-
     Map<String, String> temp = new LinkedHashMap<>();
-    if (!preprocessedType.startsWith("struct ")) {
-      temp.put(preprocessedVariable, preprocessedType);
+    if (!pPreprocessedType.startsWith("struct ")) {
+      temp.put(pPreprocessedVariable, pPreprocessedType);
     } else {
       allDecomposedStructs
-          .get(preprocessedType)
+          .get(pPreprocessedType)
           .entrySet()
           .forEach(
               e ->
                   temp.put(
-                      e.getKey().replace(EXPRESSION_PLACEHOLDER, preprocessedVariable),
+                      e.getKey().replace(EXPRESSION_PLACEHOLDER, pPreprocessedVariable),
                       e.getValue()));
     }
 
@@ -367,51 +411,6 @@ public class LoopInfoUtils {
     }
 
     return ImmutableList.copyOf(result);
-  }
-
-  private static Entry<String, String> preprocess(String pVariable, String pType) {
-    if (!pType.contains("*") && !pType.contains("]")) {
-      return new SimpleEntry<>(
-          pVariable.contains("::")
-              ? Iterables.get(Splitter.on("::").split(pVariable), 1)
-              : pVariable,
-          pType);
-    }
-
-    StringBuilder reversedVariableSb =
-        new StringBuilder(
-                pVariable.contains("::")
-                    ? Iterables.get(Splitter.on("::").split(pVariable), 1)
-                    : pVariable)
-            .reverse();
-    StringBuilder reversedTypeSb = new StringBuilder(pType).reverse();
-
-    while (reversedTypeSb.charAt(0) == '*' || reversedTypeSb.charAt(0) == ']') {
-
-      if (reversedTypeSb.charAt(0) == '*') {
-        reversedVariableSb.append('*');
-        reversedTypeSb.deleteCharAt(reversedTypeSb.length() - 1);
-        reversedTypeSb.delete(0, 2);
-
-        if (reversedTypeSb.charAt(0) == ']') {
-          reversedVariableSb.insert(0, ')');
-          reversedVariableSb.append('(');
-        }
-      } else {
-        int indexOfFirstLeftBracket = reversedTypeSb.indexOf("[");
-        String reversedSize = reversedTypeSb.substring(1, indexOfFirstLeftBracket);
-
-        reversedVariableSb.insert(0, "[");
-        reversedVariableSb.insert(0, reversedSize);
-        reversedVariableSb.insert(0, "]");
-
-        reversedTypeSb.deleteCharAt(reversedTypeSb.length() - 1);
-        reversedTypeSb.delete(0, indexOfFirstLeftBracket + 2);
-      }
-    }
-
-    return new SimpleEntry<>(
-        reversedVariableSb.reverse().toString(), reversedTypeSb.reverse().toString());
   }
 
   private static ImmutableMap<String, ImmutableMap<String, String>> decomposeAllStructs(
