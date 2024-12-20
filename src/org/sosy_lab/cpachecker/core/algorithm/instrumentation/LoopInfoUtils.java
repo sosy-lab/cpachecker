@@ -99,11 +99,9 @@ public class LoopInfoUtils {
               e.contains("::")
                   && Iterables.get(Splitter.on("::").split(e), 1).startsWith("__CPAchecker_TMP_"));
 
-      /**
-       * If there are multiple for-loops with multiple declarations of the same loop variable, for
-       * example, i, calling pCProgramScope.lookupVariable(i) throws an exception. therefore,
-       * retrieving the type of the loop variable i must be handled seperately.
-       */
+      // If there are multiple for-loops with multiple declarations of the same loop variable,
+      // for example, i, calling pCProgramScope.lookupVariable(i) throws an exception.
+      // Therefore, retrieving the type of the loop variable i must be handled seperately.
       boolean isForLoop =
           loop.getIncomingEdges().stream().findAny().orElseThrow().getRawAST().isPresent();
       if (isForLoop) {
