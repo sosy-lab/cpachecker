@@ -79,7 +79,7 @@ public class LoopInfoUtils {
       }
 
       // Determine the names of all variables used except those declared inside the loop
-      Set<String> liveVariables = new HashSet<>();
+      Set<String> liveVariables = new HashSet<>(allGlobalVariables);
       Set<String> variablesDeclaredInsideLoop = new HashSet<>();
       Map<String, String> liveVariablesAndTypes = new LinkedHashMap<>();
       for (CFAEdge cfaEdge : loop.getInnerLoopEdges()) {
@@ -97,7 +97,25 @@ public class LoopInfoUtils {
           e ->
               e.contains("::")
                   && Iterables.get(Splitter.on("::").split(e), 1).startsWith("__CPAchecker_TMP_"));
-      liveVariables.addAll(allGlobalVariables);
+
+      /**
+       * If there are multiple for-loops with multiple declarations of the same loop variable, for
+       * example, i, calling pCProgramScope.lookupVariable(i) throws an exception. therefore,
+       * retrieving the type of the loop variable i must be handled seperately.
+       */
+      boolean isForLoop =
+          loop.getIncomingEdges().stream().findAny().orElseThrow().getRawAST().isPresent();
+      if (isForLoop) {
+        CFAEdge loopHeadEdge = loop.getIncomingEdges().stream().findAny().orElseThrow();
+        CSimpleDeclaration loopVariableDeclaration =
+            (CSimpleDeclaration) loopHeadEdge.getRawAST().orElseThrow();
+        String originalLoopVariable = loopVariableDeclaration.getOrigName();
+        String qualifiedLoopVariable = loopVariableDeclaration.getQualifiedName();
+        String type = loopVariableDeclaration.getType().toString();
+
+        liveVariables.remove(qualifiedLoopVariable);
+        liveVariablesAndTypes.put(originalLoopVariable, type);
+      }
 
       // Decompose each variable into primitive expressions
       for (String variable : liveVariables) {
