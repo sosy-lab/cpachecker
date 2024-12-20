@@ -382,7 +382,6 @@ public class CFABuilder {
         CFALabelNode label = (CFALabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
 
         addEdge(new BlankEdge("(goto)", FileLocation.DUMMY, brNode, label, "(goto)"));
-        continue;
       } else if (terminatorInst.isBranchInst()) {
         // get the operands and add branching edges
         CExpression conditionForElse = getBranchConditionForElse(terminatorInst, pFileName);
