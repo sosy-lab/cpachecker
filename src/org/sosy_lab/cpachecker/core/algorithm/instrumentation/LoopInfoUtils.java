@@ -64,8 +64,7 @@ public class LoopInfoUtils {
     Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>();
     ImmutableSet<String> allGlobalVariables = getAllGlobalVariables(pCfa);
     ImmutableMap<String, ImmutableMap<String, String>> allStructInfos = getAllStructInfos(pCfa);
-    ImmutableMap<String, ImmutableMap<String, String>> allDecomposedStructsWithPlaceHolder =
-        decomposeAllStructs(allStructInfos);
+    Map<String, ImmutableMap<String, String>> decomposedStructs = new HashMap<>();
 
     for (Loop loop : pCfa.getLoopStructure().orElseThrow().getAllLoops()) {
       // Determine loop locations. There may be more than one, as some loops have multiple
@@ -128,8 +127,16 @@ public class LoopInfoUtils {
             preprocess(variable, pCProgramScope.lookupVariable(variable).getType().toString());
         String preprocessedVariable = preprocessedVariableAndType.getKey();
         String preprocessedType = preprocessedVariableAndType.getValue();
+
+        if (preprocessedType.startsWith("struct ")
+            && !decomposedStructs.containsKey(preprocessedType)) {
+          decomposedStructs.put(
+              preprocessedType, decomposeStruct(preprocessedType, allStructInfos));
+        }
+
         liveVariablesAndTypes.putAll(
-            decompose(preprocessedVariable, preprocessedType, allDecomposedStructsWithPlaceHolder));
+            decompose(
+                preprocessedVariable, preprocessedType, ImmutableMap.copyOf(decomposedStructs)));
       }
 
       for (Integer loopLocation : loopLocations) {
@@ -335,12 +342,12 @@ public class LoopInfoUtils {
   private static ImmutableMap<String, String> decompose(
       String pPreprocessedVariable,
       String pPreprocessedType,
-      Map<String, ImmutableMap<String, String>> allDecomposedStructs) {
+      ImmutableMap<String, ImmutableMap<String, String>> decomposedStructs) {
     Map<String, String> temp = new LinkedHashMap<>();
     if (!pPreprocessedType.startsWith("struct ")) {
       temp.put(pPreprocessedVariable, pPreprocessedType);
     } else {
-      allDecomposedStructs
+      decomposedStructs
           .get(pPreprocessedType)
           .entrySet()
           .forEach(
@@ -413,22 +420,12 @@ public class LoopInfoUtils {
     return ImmutableList.copyOf(result);
   }
 
-  private static ImmutableMap<String, ImmutableMap<String, String>> decomposeAllStructs(
-      ImmutableMap<String, ImmutableMap<String, String>> pAllStructInfos) {
-    Map<String, ImmutableMap<String, String>> allDecomposedStructs = new HashMap<>();
-
-    for (String struct : pAllStructInfos.keySet()) {
-      Map<String, String> expressionAndType = new HashMap<>();
-      expressionAndType.put(EXPRESSION_PLACEHOLDER, struct);
-      allDecomposedStructs.put(
-          struct,
-          decomposeStructExpressions(ImmutableMap.copyOf(expressionAndType), pAllStructInfos));
-    }
-
-    return ImmutableMap.copyOf(allDecomposedStructs);
+  private static ImmutableMap<String, String> decomposeStruct(
+      String struct, ImmutableMap<String, ImmutableMap<String, String>> pAllStructInfos) {
+    return decomposeStructHf(ImmutableMap.of(EXPRESSION_PLACEHOLDER, struct), pAllStructInfos);
   }
 
-  private static ImmutableMap<String, String> decomposeStructExpressions(
+  private static ImmutableMap<String, String> decomposeStructHf(
       ImmutableMap<String, String> pExpressionsAndTypes,
       ImmutableMap<String, ImmutableMap<String, String>> pAllStructInfos) {
     Map<String, String> result = new LinkedHashMap<>();
@@ -451,8 +448,7 @@ public class LoopInfoUtils {
         }
 
         result.putAll(
-            decomposeStructExpressions(
-                ImmutableMap.copyOf(currentDecomposedParts), pAllStructInfos));
+            decomposeStructHf(ImmutableMap.copyOf(currentDecomposedParts), pAllStructInfos));
       }
     }
 
