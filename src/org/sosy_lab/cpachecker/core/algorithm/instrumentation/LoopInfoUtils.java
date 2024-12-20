@@ -57,8 +57,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class LoopInfoUtils {
 
-  private static final String EXPRESSION_PLACEHOLDER = "$";
-
   public static ImmutableSet<NormalLoopInfo> getAllNormalLoopInfos(
       CFA pCfa, CProgramScope pCProgramScope) {
     Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>();
@@ -341,6 +339,8 @@ public class LoopInfoUtils {
       String pPreprocessedVariable,
       String pPreprocessedType,
       ImmutableMap<String, ImmutableMap<String, String>> decomposedStructs) {
+    final String EXPRESSION_PLACEHOLDER = "$";
+
     Map<String, String> temp = new LinkedHashMap<>();
     if (!pPreprocessedType.startsWith("struct ")) {
       temp.put(pPreprocessedVariable, pPreprocessedType);
@@ -420,6 +420,7 @@ public class LoopInfoUtils {
 
   private static ImmutableMap<String, String> decomposeStruct(
       String struct, ImmutableMap<String, ImmutableMap<String, String>> pAllStructInfos) {
+    final String EXPRESSION_PLACEHOLDER = "$";
     return decomposeStructHf(ImmutableMap.of(EXPRESSION_PLACEHOLDER, struct), pAllStructInfos);
   }
 
