@@ -848,10 +848,8 @@ public class ARGUtils {
     Deque<String> sortedFunctionOccurrence = new ArrayDeque<>();
     for (ARGState s : sortedStates) {
       CFANode node = extractLocation(s);
-      if (!sortedFunctionOccurrence.isEmpty()
-          && sortedFunctionOccurrence.getLast().equals(node.getFunctionName())) {
-        continue;
-      } else {
+      if (sortedFunctionOccurrence.isEmpty()
+          || !sortedFunctionOccurrence.getLast().equals(node.getFunctionName())) {
         sortedFunctionOccurrence.add(node.getFunctionName());
       }
     }
