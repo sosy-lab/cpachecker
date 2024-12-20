@@ -106,15 +106,18 @@ public class LoopInfoUtils {
       boolean isForLoop =
           loop.getIncomingEdges().stream().findAny().orElseThrow().getRawAST().isPresent();
       if (isForLoop) {
-        CFAEdge loopHeadEdge = loop.getIncomingEdges().stream().findAny().orElseThrow();
-        CSimpleDeclaration loopVariableDeclaration =
-            (CSimpleDeclaration) loopHeadEdge.getRawAST().orElseThrow();
-        String originalLoopVariable = loopVariableDeclaration.getOrigName();
-        String qualifiedLoopVariable = loopVariableDeclaration.getQualifiedName();
-        String type = loopVariableDeclaration.getType().toString();
+        AAstNode initializationExpression =
+            loop.getIncomingEdges().stream().findAny().orElseThrow().getRawAST().orElseThrow();
+        if (initializationExpression instanceof CSimpleDeclaration) {
+          CSimpleDeclaration loopVariableDeclaration =
+              (CSimpleDeclaration) initializationExpression;
+          String originalLoopVariable = loopVariableDeclaration.getOrigName();
+          String qualifiedLoopVariable = loopVariableDeclaration.getQualifiedName();
+          String type = loopVariableDeclaration.getType().toString();
 
-        liveVariables.remove(qualifiedLoopVariable);
-        liveVariablesAndTypes.put(originalLoopVariable, type);
+          liveVariables.remove(qualifiedLoopVariable);
+          liveVariablesAndTypes.put(originalLoopVariable, type);
+        }
       }
 
       // Decompose each variable into primitive expressions
