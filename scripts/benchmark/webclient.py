@@ -1077,10 +1077,10 @@ class WebInterface:
             for run_collection_id in self._run_collection_ids:
                 try:
                     logging.info("Deleting run collection %s", run_collection_id)
-                    server_reply, _ = self._request(
+                    server_reply, status_code = self._request(
                         "DELETE", "runs/collection/" + run_collection_id
-                    )[0].decode("utf-8")
-                    logging.info(server_reply)
+                    )
+                    logging.info(server_reply.decode("utf-8"))
                 except HTTPError as e:
                     logging.info(
                         "Stopping of run collection %s failed: %s", run_collection_id, e
