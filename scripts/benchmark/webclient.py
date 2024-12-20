@@ -1099,7 +1099,7 @@ class WebInterface:
                         )
                     )
                 self._unfinished_runs.clear()
-                self._run_collection_ids = []
+                self._run_collection_ids.clear()
 
             for task in stop_tasks:
                 task.result()
