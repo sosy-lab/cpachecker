@@ -432,7 +432,7 @@ class WebInterface:
         self._read_hash_code_cache()
         self._revision = self._request_tool_revision(revision)
         self._tool_name = self._request_tool_name()
-        self._run_collection_ids = None
+        self._run_collection_ids = []
 
         if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
             logging.warning(
