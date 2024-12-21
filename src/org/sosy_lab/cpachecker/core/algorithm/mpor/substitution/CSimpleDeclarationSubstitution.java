@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -120,6 +121,12 @@ public class CSimpleDeclarationSubstitution implements Substitution {
           unaryExpr.getExpressionType(),
           substitute(unaryExpr.getOperand()),
           unaryExpr.getOperator());
+
+    } else if (pExpression instanceof CPointerExpression pointerExpr) {
+      return new CPointerExpression(
+          pointerExpr.getFileLocation(),
+          pointerExpr.getExpressionType(),
+          substitute(pointerExpr.getOperand()));
     }
 
     return pExpression;
