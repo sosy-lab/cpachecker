@@ -184,6 +184,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula makeAndFormulaWithSsaIndex(PathFormula pPathFormula, BooleanFormula pOtherFormula) {
+    return delegate.makeAndFormulaWithSsaIndex(pPathFormula, pOtherFormula);
+  }
+
+  @Override
   public PathFormula makeAnd(PathFormula pPathFormula, CExpression pAssumption)
       throws CPATransferException, InterruptedException {
     return delegate.makeAnd(pPathFormula, pAssumption);

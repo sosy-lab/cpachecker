@@ -387,6 +387,21 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return new PathFormula(resultFormula, ssa, pts, pPathFormula.getLength());
   }
 
+  /**
+   * This skips instantiate step since the pOtherFormula should already have ssa index
+   * @param pPathFormula
+   * @param pOtherFormula
+   * @return
+   */
+  @Override
+  public PathFormula makeAndFormulaWithSsaIndex(PathFormula pPathFormula, BooleanFormula pOtherFormula) {
+    SSAMap ssa = pPathFormula.getSsa();
+//    BooleanFormula otherFormula = fmgr.instantiate(pOtherFormula, ssa);
+    BooleanFormula resultFormula = bfmgr.and(pPathFormula.getFormula(), pOtherFormula);
+    final PointerTargetSet pts = pPathFormula.getPointerTargetSet();
+    return new PathFormula(resultFormula, ssa, pts, pPathFormula.getLength());
+  }
+
   @Override
   public PathFormula makeFormulaForPath(List<CFAEdge> pPath)
       throws CPATransferException, InterruptedException {

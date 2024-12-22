@@ -1135,7 +1135,7 @@ public class FormulaManagerView {
         "Instantiating already instantiated variable %s with index %s",
         name,
         idx);
-    checkArgument(idx >= 0, "Invalid index %s for variable %s", idx, name);
+//    checkArgument(idx >= 0, "Invalid index %s for variable %s", idx, name);
     return name + INDEX_SEPARATOR + idx;
   }
 

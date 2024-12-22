@@ -12,10 +12,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -42,13 +39,8 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
-import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
-import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
-import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 
 public class TPAPrecisionAdjustment implements PrecisionAdjustment {
   private final LogManager logger;
@@ -235,27 +227,26 @@ public class TPAPrecisionAdjustment implements PrecisionAdjustment {
     SSAMap ssaMap = pPathFormula.getSsa();
 
     for (AbstractionPredicate predicate : pPredicates) {
-      BooleanFormula symbAtom = predicate.getSymbolicAtom();
-      for (String varName : fmgr.extractVariableNames(symbAtom)) {
-        if (varName.contains("_prime")) { // This predicate has prime variable
+      BooleanFormula predicateSymbolicAtom = predicate.getSymbolicAtom();
+
+      for (String varNameInPrecisionPredicate : fmgr.extractVariableNames(predicateSymbolicAtom)) {
+        if (varNameInPrecisionPredicate.contains("_prime")) { // This predicate from precision has prime variable
 
           // Check if path formula contain the constrained variable
-          String varNameWithOutPrimeSuffix = varName.replace("_prime", "");
-          if (ssaMap.allVariables().contains(varNameWithOutPrimeSuffix)) { // Path formula has the variable with prime value
-            BooleanFormula predicateSymbolicAtom = predicate.getSymbolicAtom();
-            int ssaIndex = ssaMap.getIndex(varNameWithOutPrimeSuffix);
+          String varName = varNameInPrecisionPredicate.replace("_prime", "");
+          if (ssaMap.allVariables().contains(varName)) { // Path formula has the variable with prime value
+            int ssaIndex = ssaMap.getIndex(varName);
 
             // Extract corresponding variable from path formula
-            Formula varPrime =  fmgr.extractVariables(pPathFormula.getFormula()).get(varNameWithOutPrimeSuffix + "@" + ssaIndex);
-            Formula var = fmgr.extractVariables(pPathFormula.getFormula()).get(varNameWithOutPrimeSuffix + "@" + (ssaIndex - 1));
-            // variable with ssa index - 1 may not be in path formula (not created) beforehand
-            if (var == null) {
-              // TODO: Make new variable when path formula doesn't have that variable with correct ssa index
-              // TODO: Bug, can't make variable if it's created even when it's not in path formula
-//              var = fmgr.makeVariable(FormulaType.BooleanType, varNameWithOutPrimeSuffix, ssaIndex - 1);
-              break;
-            } else if (varPrime == null) {
-              break;
+            Formula var =  fmgr.extractVariables(pPathFormula.getFormula()).get(varName + "@" + ssaIndex);
+            Set<String> allVarNameInPathFormula = fmgr.extractVariableNames(pPathFormula.getFormula());
+            Formula varPrime;
+            if (allVarNameInPathFormula.contains(varName + "@-1")) { // Pathformula has the prime variable
+              // TODO: Check Pathformula has the same predicate which is adding into
+              varPrime = fmgr.extractVariables(pPathFormula.getFormula()).get(varName + "@-1");
+            } else { // TODO: maybe create a set of prime variables to keep tracking without creating new one multiple time
+              // TODO: handle the exception thrown when index <0 in make name
+              varPrime = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(32), varName, -1);
             }
 
             // TODO: Find which variable comes first in the formula, prime or non-prime variable?
@@ -292,16 +283,18 @@ public class TPAPrecisionAdjustment implements PrecisionAdjustment {
                 default -> null;
               };
             }
-
+            System.out.println("Var prime: " + varPrime.toString());
             if (newConstraint != null) {
-//              pathFormulaWithPrimeConstraints = pathFormulaManager.makeAnd(pathFormulaWithPrimeConstraints, newConstraint);
+              System.out.println("New predicate to path formula: " + newConstraint);
+              pathFormulaWithPrimeConstraints = pathFormulaManager.makeAndFormulaWithSsaIndex(pathFormulaWithPrimeConstraints, newConstraint);
             }
           }
           break;
         }
       }
     }
+    System.out.println("Old path formula" + pPathFormula);
     System.out.println("Result of adding prime to path" + pathFormulaWithPrimeConstraints);
-    return pathFormulaWithPrimeConstraints;
+    return pPathFormula;
   }
 }

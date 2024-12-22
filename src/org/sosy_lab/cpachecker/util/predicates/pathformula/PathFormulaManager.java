@@ -69,6 +69,7 @@ public interface PathFormulaManager {
   PathFormula makeOr(PathFormula pF1, PathFormula pF2) throws InterruptedException;
 
   PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula);
+  PathFormula makeAndFormulaWithSsaIndex(PathFormula pPathFormula, BooleanFormula pOtherFormula);
 
   PathFormula makeAnd(PathFormula pPathFormula, CExpression pAssumption)
       throws CPATransferException, InterruptedException;
