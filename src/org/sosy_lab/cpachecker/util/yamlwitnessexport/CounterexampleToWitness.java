@@ -66,7 +66,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   /**
    * Create an Assumption Waypoint at the position of the current edge with the given assumptions
    *
-   * @param assumptions the assumptions at this position
+   * @param assumption the assumptions at this position
    * @param edge the edge which is the location at which the assumptions are valid
    * @param pAstCfaRelation the mapping between the
    * @return a waypoint constraining the execution to the given assumptions at the location of the
