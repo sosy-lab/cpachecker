@@ -774,6 +774,9 @@ bmc.invariantGeneratorHeadStartStrategy = NONE
 # Export auxiliary invariants used for induction.
 bmc.invariantsExport = no default value
 
+# get candidate invariants from a witness 2.0 invariant file
+bmc.kInductionInvariantWitnessFile = no default value
+
 # get candidate invariants from a predicate precision file
 bmc.kinduction.predicatePrecisionFile = no default value
 

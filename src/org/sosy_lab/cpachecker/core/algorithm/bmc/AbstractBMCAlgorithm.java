@@ -131,6 +131,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
+
+
   protected static boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
@@ -149,6 +151,13 @@ abstract class AbstractBMCAlgorithm
       name = "kinduction.predicatePrecisionFile")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
+
+  @Option(
+    secure = true,
+    description = "get candidate invariants from a witness 2.0 invariant file",
+    name = "kInductionInvariantWitnessFile")
+  @FileOption(value = Type.OPTIONAL_INPUT_FILE)
+  private @Nullable Path initialInvariantWitnessFile = null;
 
   @Option(
       secure = true,
@@ -376,6 +385,10 @@ abstract class AbstractBMCAlgorithm
               initialPredicatePrecisionFile, solver, predCpa.getAbstractionManager());
     } else {
       predicatePrecisionCandidates = ImmutableSet.of();
+    }
+
+    if (initialInvariantWitnessFile != null) {
+      logger.log(Level.INFO, initialInvariantWitnessFile);
     }
   }
 
