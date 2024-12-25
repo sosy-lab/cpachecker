@@ -6,4 +6,4 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejections;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;

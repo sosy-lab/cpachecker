@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejections.InputRejections;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -240,7 +240,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     includeLoopInvariants = pIncludeLoopInvariants;
 
     MPORStatics.setInstanceType(InstanceType.PRODUCTION);
-    InputRejections.handleInitialRejections(logger, inputCfa);
+    InputRejection.handleInitialRejections(logger, inputCfa);
 
     gac = new GlobalAccessChecker();
     PredicateCPA predicateCpa =
@@ -281,7 +281,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     if (!MPORStatics.isInstanceTypeSet()) {
       MPORStatics.setInstanceType(InstanceType.TEST);
     }
-    InputRejections.handleInitialRejections(logger, inputCfa);
+    InputRejection.handleInitialRejections(logger, inputCfa);
 
     gac = new GlobalAccessChecker();
     ptr = null;
@@ -367,7 +367,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     // add the main thread
     FunctionEntryNode mainEntryNode = pCfa.getMainFunction();
-    FunctionExitNode mainExitNode = InputRejections.getFunctionExitNode(mainEntryNode);
+    FunctionExitNode mainExitNode = InputRejection.getFunctionExitNode(mainEntryNode);
     assert threadBuilder != null;
     rThreads.add(threadBuilder.createThread(Optional.empty(), mainEntryNode, mainExitNode));
 
@@ -380,7 +380,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         CFunctionType startRoutine = PthreadUtil.extractStartRoutine(cfaEdge);
         FunctionEntryNode entryNode =
             CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, startRoutine);
-        FunctionExitNode exitNode = InputRejections.getFunctionExitNode(entryNode);
+        FunctionExitNode exitNode = InputRejection.getFunctionExitNode(entryNode);
         rThreads.add(
             threadBuilder.createThread(Optional.ofNullable(pthreadT), entryNode, exitNode));
       }

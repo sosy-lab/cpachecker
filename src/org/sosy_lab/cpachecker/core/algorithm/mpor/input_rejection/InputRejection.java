@@ -6,13 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejections;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 
-import com.google.errorprone.annotations.FormatMethod;
-import com.google.errorprone.annotations.FormatString;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.logging.Level;
+import org.checkerframework.dataflow.qual.TerminatesExecution;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -24,47 +23,50 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORStatics;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class InputRejections {
+public class InputRejection {
+
+  public enum InputRejectionMessage {
+    LANGUAGE_NOT_C("MPOR only supports language C", false),
+    // TODO this can probably be removed entirely since CPAchecker handles this
+    MULTIPLE_INPUT_FILES("MPOR only supports exactly one input file", false),
+    NOT_CONCURRENT(
+        "MPOR expects concurrent C program with at least one pthread_create call", false),
+    PTHREAD_CREATE_LOOP(
+        "MPOR does not support pthread_create calls in loops (or recursive functions)", false),
+    NO_PTHREAD_OBJECT_ARRAYS("MPOR does not support arrays of pthread objects in line ", true),
+    UNSUPPORTED_FUNCTION("MPOR does not support the function in line ", true),
+    PTHREAD_RETURN_VALUE(
+        "MPOR does not support pthread method return value assignments in line ", true),
+    RECURSIVE_FUNCTION("MPOR does not support the (in)direct recursive function in line ", true),
+    // TODO test if this can be removed entirely
+    NO_FUNC_EXIT_NODE(
+        "MPOR expects the main function and all start routines to contain a FunctionExitNode",
+        false);
+
+    public final String message;
+
+    private final boolean containsLineAndCode;
+
+    InputRejectionMessage(String pMessage, boolean pContainsLineAndCode) {
+      message = pMessage;
+      containsLineAndCode = pContainsLineAndCode;
+    }
+
+    public String formatMessage() {
+      if (containsLineAndCode) {
+        return message + "%s: %s";
+      } else {
+        return message;
+      }
+    }
+  }
 
   private static LogManager logger;
-
-  public static final String LANGUAGE_NOT_C = "MPOR only supports language C";
-
-  public static final String MULTIPLE_INPUT_FILES = "MPOR only supports exactly one input file";
-
-  public static final String NOT_PARALLEL =
-      "MPOR expects parallel C program with at least one pthread_create call";
-
-  public static final String PTHREAD_CREATE_LOOP =
-      "MPOR does not support pthread_create calls in loops (or recursive functions)";
-
-  public static final String NO_PTHREAD_OBJECT_ARRAYS =
-      "MPOR does not support arrays of pthread objects in line ";
-
-  private static final String NO_PTHREAD_OBJECT_ARRAYS_FORMAT = NO_PTHREAD_OBJECT_ARRAYS + "%s: %s";
-
-  public static final String UNSUPPORTED_FUNCTION = "MPOR does not support the function in line ";
-
-  private static final String UNSUPPORTED_FUNCTION_FORMAT = UNSUPPORTED_FUNCTION + "%s: %s";
-
-  public static final String PTHREAD_RETURN_VALUE =
-      "MPOR does not support pthread method return value assignments in line ";
-
-  private static final String PTHREAD_RETURN_VALUE_FORMAT = PTHREAD_RETURN_VALUE + "%s: %s";
-
-  public static final String RECURSIVE_FUNCTION =
-      "MPOR does not support the (in)direct recursive function in line ";
-
-  private static final String RECURSIVE_FUNCTION_FORMAT = RECURSIVE_FUNCTION + "%s: %s";
-
-  public static final String NO_FUNC_EXIT_NODE =
-      "MPOR expects the main function and all start routines to contain a FunctionExitNode";
 
   /**
    * Handles initial (i.e. more may come at later stages of the MPOR transformation) input program
@@ -94,32 +96,24 @@ public class InputRejections {
     checkRecursiveFunctions(pInputCfa);
   }
 
-  @FormatMethod
-  private static void handleRejection(@FormatString final String pMessage, Object... args) {
-    // using AssertionError instead of Output.fatalError -> CPAchecker stops instantly
-    switch (MPORStatics.instanceType()) {
-      case PRODUCTION:
-        logger.log(Level.SEVERE, String.format(pMessage, args));
-        throw new AssertionError();
-      case TEST:
-        // when testing, use catch-able exceptions to match error messages to input programs
-        throw new RuntimeException(String.format(pMessage, args));
-      default:
-        logger.log(Level.SEVERE, "Invalid InstanceType: %s", MPORStatics.instanceType());
-        throw new AssertionError();
-    }
+  @TerminatesExecution
+  private static void handleRejection(InputRejectionMessage pMessage, Object... args) {
+    String formatted = String.format(pMessage.formatMessage(), args);
+    // using RuntimeException because checkArgument throws IllegalArgumentExceptions
+    logger.logUserException(Level.SEVERE, new RuntimeException(), formatted);
+    throw new RuntimeException(formatted);
   }
 
   private static void checkLanguageC(CFA pInputCfa) {
     Language language = pInputCfa.getMetadata().getInputLanguage();
     if (!language.equals(Language.C)) {
-      handleRejection(LANGUAGE_NOT_C);
+      handleRejection(InputRejectionMessage.LANGUAGE_NOT_C);
     }
   }
 
   private static void checkOneInputFile(CFA pInputCfa) {
     if (pInputCfa.getFileNames().size() != 1) {
-      handleRejection(MULTIPLE_INPUT_FILES);
+      handleRejection(InputRejectionMessage.MULTIPLE_INPUT_FILES);
     }
   }
 
@@ -132,7 +126,7 @@ public class InputRejections {
       }
     }
     if (!isParallel) {
-      handleRejection(NOT_PARALLEL);
+      handleRejection(InputRejectionMessage.NOT_CONCURRENT);
     }
   }
 
@@ -146,7 +140,7 @@ public class InputRejections {
               if (typedefName.equals(PthreadObjectType.PTHREAD_T.name)
                   || typedefName.equals(PthreadObjectType.PTHREAD_MUTEX_T.name)) {
                 handleRejection(
-                    NO_PTHREAD_OBJECT_ARRAYS_FORMAT,
+                    InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS,
                     Integer.toString(edge.getLineNumber()),
                     edge.getCode());
               }
@@ -162,7 +156,8 @@ public class InputRejections {
       for (PthreadFuncType funcType : PthreadFuncType.values()) {
         if (!funcType.isSupported) {
           if (PthreadFuncType.callsPthreadFunc(edge, funcType)) {
-            handleRejection(UNSUPPORTED_FUNCTION_FORMAT, edge.getLineNumber(), edge.getCode());
+            handleRejection(
+                InputRejectionMessage.UNSUPPORTED_FUNCTION, edge.getLineNumber(), edge.getCode());
           }
         }
       }
@@ -173,7 +168,8 @@ public class InputRejections {
     for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadFuncType.callsAnyPthreadFunc(edge)) {
         if (edge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
-          handleRejection(PTHREAD_RETURN_VALUE_FORMAT, edge.getLineNumber(), edge.getCode());
+          handleRejection(
+              InputRejectionMessage.PTHREAD_RETURN_VALUE, edge.getLineNumber(), edge.getCode());
         }
       }
     }
@@ -187,7 +183,7 @@ public class InputRejections {
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
         if (MPORUtil.isSelfReachable(cfaEdge, Optional.empty(), new ArrayList<>(), cfaEdge)) {
-          handleRejection(PTHREAD_CREATE_LOOP);
+          handleRejection(InputRejectionMessage.PTHREAD_CREATE_LOOP);
         }
       }
     }
@@ -199,7 +195,7 @@ public class InputRejections {
       // "upcasting" exit from FunctionExitNode to CFANode is necessary here...
       if (MPORUtil.isSelfReachable(entry, exit.map(node -> node), new ArrayList<>(), entry)) {
         handleRejection(
-            RECURSIVE_FUNCTION_FORMAT,
+            InputRejectionMessage.RECURSIVE_FUNCTION,
             entry.getFunction().getFileLocation().getStartingLineNumber(),
             entry.getFunctionName());
       }
@@ -214,7 +210,7 @@ public class InputRejections {
    */
   public static FunctionExitNode getFunctionExitNode(FunctionEntryNode pFunctionEntryNode) {
     if (pFunctionEntryNode.getExitNode().isEmpty()) {
-      handleRejection(NO_FUNC_EXIT_NODE);
+      handleRejection(InputRejectionMessage.NO_FUNC_EXIT_NODE);
     }
     return pFunctionEntryNode.getExitNode().orElseThrow();
   }

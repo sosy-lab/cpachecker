@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejections;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
@@ -22,16 +22,18 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection.InputRejectionMessage;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
-public class InputRejectionsTest {
+public class InputRejectionTest {
 
   /**
    * Tests for pInputFilePath if it throws an {@link RuntimeException} with the message
    * pErrorMessage in it.
    */
   private <T extends Throwable> void testExpectedRejection(
-      Path pInputFilePath, Class<T> pExpectedThrowable, String pExpectedMessage) throws Exception {
+      Path pInputFilePath, Class<T> pExpectedThrowable, InputRejectionMessage pExpected)
+      throws Exception {
 
     // create cfa for test program pFileName
     LogManager logger = LogManager.createTestLogManager();
@@ -48,7 +50,7 @@ public class InputRejectionsTest {
         assertThrows(
             pExpectedThrowable, () -> MPORAlgorithm.testInstance(logger, inputCfa, true, true));
     assertThat(pExpectedThrowable.isInstance(throwable)).isTrue();
-    assertThat(throwable.getMessage().contains(pExpectedMessage)).isTrue();
+    assertThat(throwable.getMessage().contains(pExpected.message)).isTrue();
   }
 
   @Test
@@ -67,7 +69,8 @@ public class InputRejectionsTest {
   @Test
   public void testRejectNotParallel() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/relax-1.c");
-    testExpectedRejection(inputFilePath, RuntimeException.class, InputRejections.NOT_PARALLEL);
+    testExpectedRejection(
+        inputFilePath, RuntimeException.class, InputRejectionMessage.NOT_CONCURRENT);
   }
 
   @Test
@@ -75,7 +78,7 @@ public class InputRejectionsTest {
     // this program uses pthread_cond_wait and pthread_cond_signal
     Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/sync01.c");
     testExpectedRejection(
-        inputFilePath, RuntimeException.class, InputRejections.UNSUPPORTED_FUNCTION);
+        inputFilePath, RuntimeException.class, InputRejectionMessage.UNSUPPORTED_FUNCTION);
   }
 
   @Test
@@ -83,7 +86,7 @@ public class InputRejectionsTest {
     Path inputFilePath =
         Path.of("./test/programs/mpor_seq/input_rejections/indexer-no-pthread-exit.c");
     testExpectedRejection(
-        inputFilePath, RuntimeException.class, InputRejections.NO_PTHREAD_OBJECT_ARRAYS);
+        inputFilePath, RuntimeException.class, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
   }
 
   // TODO also create a test for pthread_create(...) != 0
@@ -94,7 +97,7 @@ public class InputRejectionsTest {
   public void testRejectPthreadReturnValue() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/twostage_3.c");
     testExpectedRejection(
-        inputFilePath, RuntimeException.class, InputRejections.PTHREAD_RETURN_VALUE);
+        inputFilePath, RuntimeException.class, InputRejectionMessage.PTHREAD_RETURN_VALUE);
   }
 
   @Test
@@ -102,7 +105,7 @@ public class InputRejectionsTest {
     Path inputFilePath =
         Path.of("./test/programs/mpor_seq/input_rejections/queue_longest-pthread-create-loop.c");
     testExpectedRejection(
-        inputFilePath, RuntimeException.class, InputRejections.PTHREAD_CREATE_LOOP);
+        inputFilePath, RuntimeException.class, InputRejectionMessage.PTHREAD_CREATE_LOOP);
   }
 
   @Test
@@ -110,7 +113,7 @@ public class InputRejectionsTest {
     Path inputFilePath =
         Path.of("./test/programs/mpor_seq/input_rejections/queue_longest-direct-recursion.c");
     testExpectedRejection(
-        inputFilePath, RuntimeException.class, InputRejections.RECURSIVE_FUNCTION);
+        inputFilePath, RuntimeException.class, InputRejectionMessage.RECURSIVE_FUNCTION);
   }
 
   @Test
@@ -118,6 +121,6 @@ public class InputRejectionsTest {
     Path inputFilePath =
         Path.of("./test/programs/mpor_seq/input_rejections/queue_longest-indirect-recursion.c");
     testExpectedRejection(
-        inputFilePath, RuntimeException.class, InputRejections.RECURSIVE_FUNCTION);
+        inputFilePath, RuntimeException.class, InputRejectionMessage.RECURSIVE_FUNCTION);
   }
 }
