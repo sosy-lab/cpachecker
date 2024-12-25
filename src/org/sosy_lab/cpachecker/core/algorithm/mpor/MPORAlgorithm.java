@@ -77,14 +77,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // TODO (not sure if important for our algorithm) PredicateAbstractState.abstractLocations
   //  contains all CFANodes visited so far
 
-  /**
-   * Used e.g. to throw {@link RuntimeException}s instead of {@link AssertionError} for unit tests.
-   */
-  public enum InstanceType {
-    PRODUCTION,
-    TEST
-  }
-
   private static final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
   private static final String licenseHeader =
@@ -239,7 +231,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     includePOR = pIncludePOR;
     includeLoopInvariants = pIncludeLoopInvariants;
 
-    MPORStatics.setInstanceType(InstanceType.PRODUCTION);
     InputRejection.handleInitialRejections(logger, inputCfa);
 
     gac = new GlobalAccessChecker();
@@ -278,9 +269,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     includePOR = pIncludePOR;
     includeLoopInvariants = pIncludeLoopInvariants;
 
-    if (!MPORStatics.isInstanceTypeSet()) {
-      MPORStatics.setInstanceType(InstanceType.TEST);
-    }
     InputRejection.handleInitialRejections(logger, inputCfa);
 
     gac = new GlobalAccessChecker();

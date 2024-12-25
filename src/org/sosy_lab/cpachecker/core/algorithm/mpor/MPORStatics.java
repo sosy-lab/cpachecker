@@ -12,29 +12,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm.InstanceType;
 
-/** A place to initialize, store and get static values. */
+/** A place to initialize, store and get static values used in the mpor package. */
 public class MPORStatics {
-
-  // Algorithm Instance Type =======================================================================
-
-  private static InstanceType instanceType = null;
-
-  public static boolean isInstanceTypeSet() {
-    return instanceType != null;
-  }
-
-  public static InstanceType instanceType() {
-    checkArgument(instanceType != null, "instanceType was not initialized yet");
-    return instanceType;
-  }
-
-  public static void setInstanceType(InstanceType pInstanceType) {
-    checkNotNull(pInstanceType);
-    checkArgument(instanceType == null, "instanceType was initialized already");
-    instanceType = pInstanceType;
-  }
 
   // Binary Expression Builder =====================================================================
 
