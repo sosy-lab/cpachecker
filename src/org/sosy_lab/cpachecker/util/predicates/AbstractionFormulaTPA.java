@@ -71,13 +71,6 @@ public class AbstractionFormulaTPA extends AbstractionFormula implements Seriali
     BooleanFormula formulaWithPrimeVariable = null;
     final SSAMap ssa = pBlockFormula.getSsa();
     final String pathFormulaString = pBlockFormula.toString();
-
-    System.out.println("region: " + pRegion.toString());
-    System.out.println("ssa: " + ssa.toString());
-    System.out.println("path formula: " + pathFormulaString);
-    System.out.println("abstract formula: " + this.formula.toString());
-    System.out.println("instantiated formula: " + this.instantiatedFormula.toString());
-    System.out.println("---------------------------------------------------------------------------------");
     return null;
   }
 
@@ -92,5 +85,4 @@ public class AbstractionFormulaTPA extends AbstractionFormula implements Seriali
     return new AbstractionFormulaTPA(
         fMgr, region, formula, instantiatedFormula, blockFormula, idsOfStoredAbstractionReused);
   }
-
 }

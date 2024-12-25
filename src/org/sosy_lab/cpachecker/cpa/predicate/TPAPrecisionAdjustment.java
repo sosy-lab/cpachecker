@@ -238,18 +238,28 @@ public class TPAPrecisionAdjustment implements PrecisionAdjustment {
             int ssaIndex = ssaMap.getIndex(varName);
 
             // Extract corresponding variable from path formula
-            Formula var =  fmgr.extractVariables(pPathFormula.getFormula()).get(varName + "@" + ssaIndex);
+            Formula varNonPrime =  fmgr.extractVariables(pPathFormula.getFormula()).get(varName + "@" + ssaIndex);
             Set<String> allVarNameInPathFormula = fmgr.extractVariableNames(pPathFormula.getFormula());
             Formula varPrime;
             if (allVarNameInPathFormula.contains(varName + "@-1")) { // Pathformula has the prime variable
-              // TODO: Check Pathformula has the same predicate which is adding into
               varPrime = fmgr.extractVariables(pPathFormula.getFormula()).get(varName + "@-1");
             } else { // TODO: maybe create a set of prime variables to keep tracking without creating new one multiple time
-              // TODO: handle the exception thrown when index <0 in make name
+              // checkArgument(index >= 0) in makeName() is commented out for this to pass
               varPrime = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(32), varName, -1);
             }
 
             // TODO: Find which variable comes first in the formula, prime or non-prime variable?
+            List<String> variableStringList = new ArrayList<>();
+            variableStringList = fmgr.extractVariableOrderToList(predicateSymbolicAtom, variableStringList);
+            System.out.println("Precision variable order: " + variableStringList);
+            List<Formula> variableOrderList = new ArrayList<>();
+            if (variableStringList.get(0).equals(varPrime.toString())) {
+              variableOrderList.add(varPrime);
+              variableOrderList.add(varNonPrime);
+            } else {
+              variableOrderList.add(varNonPrime);
+              variableOrderList.add(varPrime);
+            }
 
             // TODO: Signed and Unsigned?
             BooleanFormula newConstraint;
@@ -257,33 +267,33 @@ public class TPAPrecisionAdjustment implements PrecisionAdjustment {
               BooleanFormula negatedAtom = fmgr.stripNegation2(predicateSymbolicAtom);
               FunctionDeclarationKind funcKind = fmgr.extractFunctionDeclarationKind(negatedAtom);
               newConstraint = switch (funcKind) {
-                case BV_SLT -> fmgr.makeGreaterOrEqual(varPrime, var, true);
-                case BV_ULT -> fmgr.makeGreaterOrEqual(varPrime, var, false);
-                case BV_SGT -> fmgr.makeLessOrEqual(varPrime, var, true);
-                case BV_UGT -> fmgr.makeLessOrEqual(varPrime, var, false);
-                case BV_SLE -> fmgr.makeGreaterThan(varPrime, var, false);
-                case BV_ULE -> fmgr.makeGreaterThan(varPrime, var, true);
-                case BV_SGE -> fmgr.makeLessThan(varPrime, var, false);
-                case BV_UGE -> fmgr.makeLessThan(varPrime, var, true);
-                case BV_EQ -> fmgr.makeEqual(varPrime, var);
+                case BV_SLT -> fmgr.makeGreaterOrEqual(variableOrderList.get(0), variableOrderList.get(1), true);
+                case BV_ULT -> fmgr.makeGreaterOrEqual(variableOrderList.get(0), variableOrderList.get(1), false);
+                case BV_SGT -> fmgr.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), true);
+                case BV_UGT -> fmgr.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), false);
+                case BV_SLE -> fmgr.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), false);
+                case BV_ULE -> fmgr.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), true);
+                case BV_SGE -> fmgr.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), false);
+                case BV_UGE -> fmgr.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), true);
+                case BV_EQ -> fmgr.makeEqual(variableOrderList.get(0), variableOrderList.get(1));
                 default -> null;
               };
             } else {
               FunctionDeclarationKind funcKind = fmgr.extractFunctionDeclarationKind(predicateSymbolicAtom);
               newConstraint = switch (funcKind) {
-                case BV_SLT -> fmgr.makeLessThan(varPrime, var, false);
-                case BV_ULT -> fmgr.makeLessThan(varPrime, var, true);
-                case BV_SGT -> fmgr.makeGreaterThan(varPrime, var, false);
-                case BV_UGT -> fmgr.makeGreaterThan(varPrime, var, true);
-                case BV_SLE -> fmgr.makeLessOrEqual(varPrime, var, true);
-                case BV_ULE -> fmgr.makeLessOrEqual(varPrime, var, false);
-                case BV_SGE -> fmgr.makeGreaterOrEqual(varPrime, var, true);
-                case BV_UGE -> fmgr.makeGreaterOrEqual(varPrime, var, false);
-                case BV_EQ -> fmgr.makeEqual(varPrime, var);
+                case BV_SLT -> fmgr.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), false);
+                case BV_ULT -> fmgr.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), true);
+                case BV_SGT -> fmgr.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), false);
+                case BV_UGT -> fmgr.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), true);
+                case BV_SLE -> fmgr.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), true);
+                case BV_ULE -> fmgr.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), false);
+                case BV_SGE -> fmgr.makeGreaterOrEqual(variableOrderList.get(0), variableOrderList.get(1), true);
+                case BV_UGE -> fmgr.makeGreaterOrEqual(variableOrderList.get(0), variableOrderList.get(1), false);
+                case BV_EQ -> fmgr.makeEqual(variableOrderList.get(0), variableOrderList.get(1));
                 default -> null;
               };
             }
-            System.out.println("Var prime: " + varPrime.toString());
+            System.out.println("Precision: " + predicateSymbolicAtom);
             if (newConstraint != null) {
               System.out.println("New predicate to path formula: " + newConstraint);
               pathFormulaWithPrimeConstraints = pathFormulaManager.makeAndFormulaWithSsaIndex(pathFormulaWithPrimeConstraints, newConstraint);
@@ -295,6 +305,7 @@ public class TPAPrecisionAdjustment implements PrecisionAdjustment {
     }
     System.out.println("Old path formula" + pPathFormula);
     System.out.println("Result of adding prime to path" + pathFormulaWithPrimeConstraints);
-    return pPathFormula;
+    System.out.println("=========================================================================");
+    return pathFormulaWithPrimeConstraints;
   }
 }

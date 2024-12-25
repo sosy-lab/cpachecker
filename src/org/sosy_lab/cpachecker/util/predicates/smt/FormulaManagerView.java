@@ -1135,6 +1135,7 @@ public class FormulaManagerView {
         "Instantiating already instantiated variable %s with index %s",
         name,
         idx);
+    // This is commented out for TPA precision adjustment can add prime variables  with ssa index -1 to the path formula
 //    checkArgument(idx >= 0, "Invalid index %s for variable %s", idx, name);
     return name + INDEX_SEPARATOR + idx;
   }
@@ -1486,8 +1487,36 @@ public class FormulaManagerView {
           }
 
           @Override
-          public  String visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
+          public String visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
             return decl.getName();
+          }
+        });
+  }
+
+  public List<String> extractVariableOrderToList(BooleanFormula f, List<String> variableStringList) {
+    return booleanFormulaManager.visit(
+        f,
+        new DefaultBooleanFormulaVisitor<>() {
+          @Override
+          protected List<String> visitDefault() {
+            return null;
+          }
+
+          @Override
+          public List<String> visitNot(BooleanFormula negated) {
+            return extractVariableOrderToList(negated, variableStringList);
+          }
+
+          @Override
+          public List<String> visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
+            String removedBracket = pAtom.toString().replaceAll("[()]", "");
+            String[] splited = removedBracket.split("\\s+");
+            for (String s : splited) {
+              if (!s.equals(decl.getName())) {
+                variableStringList.add(s);
+              }
+            }
+            return variableStringList;
           }
         });
   }
@@ -1507,7 +1536,12 @@ public class FormulaManagerView {
           }
 
           @Override
-          public  FunctionDeclarationKind visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
+          public FunctionDeclarationKind visitNot(BooleanFormula negated) {
+            return extractFunctionDeclarationKind(negated);
+          }
+
+          @Override
+          public FunctionDeclarationKind visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
             return decl.getKind();
           }
         });
