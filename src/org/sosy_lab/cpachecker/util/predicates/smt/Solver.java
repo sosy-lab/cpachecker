@@ -97,6 +97,9 @@ public final class Solver implements AutoCloseable {
   private final SolverContext solvingContext;
   private final SolverContext interpolatingContext;
 
+  private final FormulaManagerView solvingFmgr;
+  private final FormulaManagerView interpolatingFmgr;
+
   private final Map<BooleanFormula, Boolean> unsatCache = new HashMap<>();
 
   /**
@@ -144,12 +147,16 @@ public final class Solver implements AutoCloseable {
     }
 
     solvingContext = solverFactory.generateContext(solver);
+    solvingFmgr = new FormulaManagerView(solvingContext.getFormulaManager(), config, logger);
 
     // Instantiate another SMT solver for interpolation if requested.
     if (interpolationSolver != null) {
       interpolatingContext = solverFactory.generateContext(interpolationSolver);
+      interpolatingFmgr =
+          new FormulaManagerView(interpolatingContext.getFormulaManager(), config, logger);
     } else {
       interpolatingContext = solvingContext;
+      interpolatingFmgr = solvingFmgr;
     }
 
     fmgr = new FormulaManagerView(solvingContext.getFormulaManager(), config, pLogger);
@@ -188,12 +195,16 @@ public final class Solver implements AutoCloseable {
 
     checkArgument(solver.equals(pSolver), "mismatching configuration");
     solvingContext = pContext;
+    solvingFmgr = new FormulaManagerView(solvingContext.getFormulaManager(), pConfig, pLogger);
 
     // Instantiate another SMT solver for interpolation if requested.
     if (interpolationSolver != null) {
       interpolatingContext = pSolverFactory.generateContext(interpolationSolver);
+      interpolatingFmgr =
+          new FormulaManagerView(interpolatingContext.getFormulaManager(), pConfig, pLogger);
     } else {
       interpolatingContext = solvingContext;
+      interpolatingFmgr = solvingFmgr;
     }
 
     fmgr = new FormulaManagerView(pContext.getFormulaManager(), pConfig, pLogger);
@@ -351,9 +362,7 @@ public final class Solver implements AutoCloseable {
       // we use SeparateInterpolatingProverEnvironment
       // which copies formula back and forth using strings.
       // We don't need this if the solvers are the same anyway.
-      ipe =
-          new SeparateInterpolatingProverEnvironment<>(
-              solvingContext.getFormulaManager(), interpolatingContext.getFormulaManager(), ipe);
+      ipe = new SeparateInterpolatingProverEnvironment<>(solvingFmgr, interpolatingFmgr, ipe);
     }
 
     if (checkUFs) {
