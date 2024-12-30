@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
+// ignore duplicates because of ConcolicAlgorithm
 @SuppressWarnings("Duplicates")
 @Options(prefix = "concolic")
 public class ConcolicAlgorithmRandom implements Algorithm {
@@ -74,46 +75,25 @@ public class ConcolicAlgorithmRandom implements Algorithm {
 
   private CoverageCriterion coverageCriterionEnum;
 
-  //  private ConcolicAlgorithm.CoverageCriterion coverageCriterionEnum;
-
-  //  private static boolean isInitialized = false;
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
   private final Configuration config;
   private final LogManager logger;
   private final ConstraintsSolver constraintsSolver;
-  //  public static MachineModel machineModel;
   private final CFA cfa;
-  // visited blocks
-  //   AssumeEdges for branch coverage
-  //   blocks after the AssumeEdge for block coverage
   private final Set<AbstractCFAEdge> visitedEdges;
   private final Set<List<Constraint>> checkedConstraints;
   private final Set<List<CFAEdge>> visitedPaths;
   private int testsWritten = 0;
   private final int maxTestCases = 99000;
 
-  // TODO remove public -> Singleton in NondeterministicValueProvider?
   public static final NondeterministicValueProvider nonDetValueProvider =
       new NondeterministicValueProvider();
-  public static int tmpcounter = 0;
 
   private final ConstraintsCPA constraintsCPA;
   TestCaseExporter exporter;
-  //  CPAAlgorithm concreteAlgorithmCE; // for the concrete execution
-  //  private final ConfigurableProgramAnalysis argCpaCE;
   private Random rnd;
   private SearchAlgorithm searchAlgorithm;
-
-  // deterministic comparator
-  //  public class DeterministicConcolicInputComparator implements Comparator<ConcolicInput> {
-  //    @Override
-  //    public int compare(ConcolicInput ci0, ConcolicInput ci1) {
-  //      int result = ci0.score - ci1.score;
-  //      if (result == 0) return ci0.hashCode() - ci1.hashCode();
-  //      return result;
-  //    }
-  //  }
 
   public ConcolicAlgorithmRandom(
       Algorithm pAlgorithm,
@@ -122,7 +102,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
-      //      String concolicCoverageCriterion,
       String pSearchAlgorithm)
       throws Exception {
     pConfig.inject(this, ConcolicAlgorithmRandom.class);
@@ -133,8 +112,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     } else {
       throw new Error("SearchAlgorithm not known");
     }
-    //    this.searchAlgorithm = pSearchAlgorithm;
-    //    isInitialized = true;
     setIsInitialized(AlgorithmType.RANDOM_OR_DFS, pLogger);
     this.visitedEdges = new HashSet<>();
     this.checkedConstraints = new HashSet<>();
@@ -152,7 +129,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     this.config = pConfig;
     this.logger = pLogger;
     this.cfa = pCfa;
-    //    machineModel = cfa.getMachineModel();
     this.constraintsCPA =
         CPAs.retrieveCPAOrFail(cpa, ConstraintsCPA.class, ConcolicAlgorithmRandom.class);
     this.constraintsSolver = constraintsCPA.getSolver();
@@ -211,53 +187,14 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       // Get the element with the highest score and remove it
       ConcolicInput highestScoreSeed =
           workList.stream().max(Comparator.comparing(ci -> ci.score())).get();
-      // check the path again
-      //      if (highestScoreSeed.argPath().isPresent()
-      //          && visitedPaths.contains(highestScoreSeed.argPath().orElseThrow().getFullPath()))
-      // {
-      //        workList.remove(highestScoreSeed);
-      //        continue;
-      //      }
       workList.remove(highestScoreSeed);
       // run concolic execution
       List<ConcolicInput> childInputs = expandExecution(highestScoreSeed, reachedSet);
-      // own optimization: filter out inputs with score 0
-      // if (!Objects.equals(coverageCriterion, "error"))
-      //            childInputs.removeIf(ci -> ci.score == 0);
-      //      childInputs.removeIf(ci -> !ci.isNewPath);
-      //      List<ConcolicInput> tmp =
-      //          childInputs.stream().filter(ci -> !ci.isNewPath && ci.score() == 0).toList();
       workList.addAll(childInputs);
-      // TODO
-      //      if (visitedPaths.size() > 1000) {
-      //        // if (visitedPaths.size() > 100) -> remove inputs that will probably not lead to a
-      // new path
-      //        // to prevent endless loop
-      //
-      //    logger.log(Level.FINE,"ConcolicAlgorithm: visitedPaths.size() > 1000");
-      //        workList.removeIf(ci -> ci.score == 0);
-      //      }
     }
     // clear Waitlist for nice end result in the console
     reachedSet.clearWaitlist();
     return AlgorithmStatus.SOUND_AND_PRECISE;
-  }
-
-  private void fillVisitedBlocksBlockCoverage(ARGPath pARGPath) {
-    List<CFAEdge> edges = pARGPath.getInnerEdges();
-    try {
-      for (int i = 0; i < edges.size() - 1; i++) {
-        CFAEdge ce = edges.get(i);
-        CFAEdge ceChild = edges.get(i + 1);
-        if (ce instanceof AssumeEdge && !(ceChild instanceof AssumeEdge)) {
-          // TODO letzte Assume Edge wird vielleicht ignoriert, auch bei calculateScore -> prüfen
-          // if so, check if visitedBlocks contains the edge -> if not, add 1 to the score
-          visitedEdges.add((AssumeEdge) ce);
-        }
-      }
-    } catch (NoSuchElementException e) {
-      throw new Error(e);
-    }
   }
 
   private void fillVisitedBlocksErrorCoverage(ARGPath pARGPath) {
@@ -318,20 +255,13 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       // TODO get function of all constraints not possible? -> calling function gemeint?
       if (optModel.isEmpty()) {
         SolverResult result =
-            constraintsSolver.checkUnsat(state, "foofunction"); // TODO function name
+            constraintsSolver.checkUnsat(state, "FUNCTION_NAME_CONCOLIC");
         model = result.model().orElseThrow();
       } else {
         model = optModel.orElseThrow();
       }
       List<Object> valueHistory = nonDetValueProvider.getReturnedValueHistory();
-      //      if (coverageCriterionEnum == CoverageCriterion.ERROR) {
-      //        // for error, just write the test case that led to the error
-      //        if (score > 0 || isInitial) {
-      //          writeTestCaseFromValues(valueHistory);
-      //        }
-      //      } else {
       writeTestCaseFromValues(valueHistory);
-      //      }
       return new ConcolicInput(
           getValues(values, model, argPath),
           Optional.of(model),
@@ -360,7 +290,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
         && checkedConstraints.contains(concolicInput.csState.orElseThrow().constraints)) {
       state = concolicInput.csState.orElseThrow();
       argPath = concolicInput.argPath.orElseThrow();
-      //      reachedSetFirstState = concolicInput.reachedSet.orElseThrow();
     } else {
       initialReachedSet.stream()
           .forEach(as -> ((ARGState) as).deleteChildren()); // contains only one state
@@ -372,8 +301,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       visitedPaths.add(argPath.getFullPath());
       if (coverageCriterionEnum == CoverageCriterion.BRANCH)
         fillVisitedBlocksBranchCoverage(argPath);
-      //      else if (Objects.equals(coverageCriterion, "block"))
-      // fillVisitedBlocksBlockCoverage(argPath);
       else if (coverageCriterionEnum == CoverageCriterion.ERROR)
         fillVisitedBlocksErrorCoverage(argPath);
       else throw new Error("coverageCriterion unknown");
@@ -407,7 +334,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       }
     }
 
-    //    int lastCheckedConstraint = -1;
     // use while loop for the case that the result is unsat
     while (true) {
       if (state.constraints.isEmpty()) {
@@ -446,7 +372,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
         logger.log(Level.FINE, "i == -1");
         return childInputs;
       }
-      //    for (int i = concolicInput.bound; i < state.constraints.size(); i++) {
 
       try {
         // list with the constraints up to the current one minus one
@@ -463,7 +388,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
 
         ConstraintsState stateWithFlipped = state.cloneWithNewConstraints(constraintsWithFlipped);
         SolverResult result =
-            constraintsSolver.checkUnsat(stateWithFlipped, "foofunction"); // TODO function name
+            constraintsSolver.checkUnsat(stateWithFlipped, "FUNCTION_NAME_CONCOLIC");
         // don't add unsat results to childInputs
         if (result.isUNSAT()) {
           if (searchAlgorithm == SearchAlgorithm.DFS) {
@@ -495,8 +420,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
         int score;
         if (coverageCriterionEnum == CoverageCriterion.BRANCH)
           score = calculateScoreBranchCoverage(argPath);
-        //        else if (Objects.equals(coverageCriterion, "block"))
-        //          score = calculateScoreBlockCoverage(argPath);
         else if (coverageCriterionEnum == CoverageCriterion.ERROR)
           score = calculateScoreErrorCoverage(argPath);
         else throw new Error("coverageCriterion unknown");
@@ -505,7 +428,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
                 state,
                 argPath,
                 reachedSetFirstState,
-                i, // TODO i+1
+                i,
                 values,
                 score,
                 false,
@@ -550,7 +473,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     Map<NondetLocation, List<Value>> values = new HashMap<>();
 
     // Iterate over each ValueAssignment and extract the Value
-    // TODO effizienter, wenn man über den ARGPath iteriert und dann immer das model checked?
     for (ValueAssignment assignment : model) {
       Object valueObject = assignment.getValue();
       String valueFormula = assignment.getValueAsFormula().toString();
@@ -570,7 +492,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
             Level.WARNING, "No result for convertToFileLocation, variable: " + assignment.getKey());
         // sometimes, new SymbolicIdentifiers are intruduced (when a function is called with a
         // parameter), so there is no nondet call and location for the SymbolicIdentifier
-        // TODO -> ignore for now -> actually works without changes, test again
         continue;
       }
       NondetLocation location =
@@ -645,25 +566,6 @@ public class ConcolicAlgorithmRandom implements Algorithm {
     return Optional.empty();
   }
 
-  public int calculateScoreBlockCoverage(ARGPath pARGPath) {
-    List<CFAEdge> edges = pARGPath.getInnerEdges();
-    int score = 0;
-    for (int i = 0; i < edges.size() - 1; i++) {
-      CFAEdge ce = edges.get(i);
-      CFAEdge ceChild = edges.get(i + 1);
-      // check if the current edge is an AssumeEdge,
-      // and the next edge isn't to check if there is a block of code
-      // ceChild can also be null here
-      if (ce instanceof AssumeEdge && !(ceChild instanceof AssumeEdge)) {
-        // if so, check if visitedBlocks contains the edge -> if not, add 1 to the score
-        if (!visitedEdges.contains((AssumeEdge) ce)) {
-          score++;
-        }
-      }
-    }
-    return score;
-  }
-
   public int calculateScoreBranchCoverage(ARGPath pARGPath) {
     List<CFAEdge> edges = pARGPath.getInnerEdges();
     List<CFAEdge> scoreEdges = new ArrayList<>();
@@ -729,7 +631,7 @@ public class ConcolicAlgorithmRandom implements Algorithm {
       }
     }
     ARGPath ap;
-    if (!isInterrupted) ap = new ARGPath(argStateSet, true); // true
+    if (!isInterrupted) ap = new ARGPath(argStateSet, true);
     else ap = new ARGPath(argStateSet);
     return ap;
   }

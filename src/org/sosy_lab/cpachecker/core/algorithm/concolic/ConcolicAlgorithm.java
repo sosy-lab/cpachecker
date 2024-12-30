@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
+// ignore duplicates because of ConcolicAlgorithmRandom
 @SuppressWarnings("Duplicates")
 @Options(prefix = "concolic")
 public class ConcolicAlgorithm implements Algorithm {
@@ -82,25 +83,18 @@ public class ConcolicAlgorithm implements Algorithm {
 
   private CoverageCriterion coverageCriterionEnum;
 
-  //  private static boolean isInitialized = false;
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final ConstraintsSolver constraintsSolver;
-  //  public static MachineModel machineModel;
   private final CFA cfa;
-  // visited blocks
-  //   AssumeEdges for branches coverage
   private final Set<AbstractCFAEdge> visitedEdges;
-//  private final Set<AbstractCFAEdge> allVisitedEdges;
   private final Set<List<CFAEdge>> visitedPaths;
 
-  // TODO remove public -> Singleton in NondeterministicValueProvider?
   public static final NondeterministicValueProvider nonDetValueProvider =
       new NondeterministicValueProvider();
-  public static int tmpcounter = 0;
 
   private final ConstraintsCPA constraintsCPA;
   TestCaseExporter exporter;
@@ -121,7 +115,6 @@ public class ConcolicAlgorithm implements Algorithm {
     pConfig.inject(this, ConcolicAlgorithm.class);
     setIsInitialized(AlgorithmType.GENERATIONAL, pLogger);
     this.visitedEdges = new HashSet<>();
-//    this.allVisitedEdges = new HashSet<>();
     this.visitedPaths = new HashSet<>();
     if (Objects.equals(coverageCriterion, "branch")) {
       this.coverageCriterionEnum = CoverageCriterion.BRANCH;
@@ -228,8 +221,6 @@ public class ConcolicAlgorithm implements Algorithm {
             true,
             true));
 
-//    int numAllAssumeEdges =
-//        cfa.edges().stream().filter(e -> e instanceof CAssumeEdge).toList().size();
 
     while (!workList.isEmpty()) {
 
@@ -264,7 +255,6 @@ public class ConcolicAlgorithm implements Algorithm {
         workList.addAll(inputsToAdd);
       }
       if (workList.stream().noneMatch(ci -> ci.score() > 0)) {
-        // we are probably finished
         logger.log(Level.INFO, "ConcolicAlgorithm: no input with score > 0 in the worklist");
       }
 
@@ -283,58 +273,14 @@ public class ConcolicAlgorithm implements Algorithm {
       }
       // run concolic execution
       List<ConcolicInput> childInputs = expandExecution(highestScoreSeed, reachedSet);
-      // own optimization: filter out inputs with score 0
-      // if (!Objects.equals(coverageCriterion, "error"))
-      //            childInputs.removeIf(ci -> ci.score == 0);
       childInputs.removeIf(ci -> !ci.isNewPath);
-      //      List<ConcolicInput> tmp =
-      //          childInputs.stream().filter(ci -> !ci.isNewPath && ci.score() == 0).toList();
       workList.addAll(childInputs);
-      // TODO
-      //      if (visitedPaths.size() > 1000) {
-      // if (visitedPaths.size() > 100) -> remove inputs that will probably not lead to a new path
-      // to prevent endless loop
-      //        logger.log(Level.WARNING, "ConcolicAlgorithm: visitedPaths.size() > 1000");
-      //        workList.removeIf(ci -> ci.score == 0);
-      //      }
-
-      // print statistics
-//      if (coverageCriterionEnum == CoverageCriterion.BRANCH) {
-//        logger.log(Level.FINE, "Size CFA Edges: " + numAllAssumeEdges);
-//        logger.log(Level.FINE, "Size All Visited Edges: " + allVisitedEdges.size());
-//        //        logger.log(
-//        //            Level.FINE,
-//        //            "Size Missing Edges: "
-//        //                + cfa.edges().stream()
-//        //                    .filter(e -> e instanceof CAssumeEdge && !allVisitedEdges.contains(e))
-//        //                    .toList()
-//        //                    .size());
-//        logger.log(
-//            Level.FINE,
-//            "Estimated Coverage: " + (float) allVisitedEdges.size() / numAllAssumeEdges);
-//      }
     }
     // clear Waitlist for nice end result in the console
     reachedSet.clearWaitlist();
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
-  private void fillVisitedBlocksBlockCoverage(ARGPath pARGPath) {
-    List<CFAEdge> edges = pARGPath.getInnerEdges();
-    try {
-      for (int i = 0; i < edges.size() - 1; i++) {
-        CFAEdge ce = edges.get(i);
-        CFAEdge ceChild = edges.get(i + 1);
-        if (ce instanceof AssumeEdge && !(ceChild instanceof AssumeEdge)) {
-          // TODO letzte Assume Edge wird vielleicht ignoriert, auch bei calculateScore -> prüfen
-          // if so, check if visitedBlocks contains the edge -> if not, add 1 to the score
-          visitedEdges.add((AssumeEdge) ce);
-        }
-      }
-    } catch (NoSuchElementException e) {
-      throw new Error(e);
-    }
-  }
 
   private void fillVisitedBlocksErrorCoverage(ARGPath pARGPath) {
     List<CFAEdge> edges = pARGPath.getInnerEdges();
@@ -361,19 +307,6 @@ public class ConcolicAlgorithm implements Algorithm {
       throw new Error(e);
     }
   }
-
-//  private void fillAllVisitedBlocksBranchCoverage(ARGPath pARGPath) {
-//    List<CFAEdge> edges = pARGPath.getInnerEdges();
-//    try {
-//      for (CFAEdge ce : edges) {
-//        if (ce instanceof AssumeEdge) {
-//          allVisitedEdges.add((AssumeEdge) ce);
-//        }
-//      }
-//    } catch (NoSuchElementException e) {
-//      throw new Error(e);
-//    }
-//  }
 
   private void writeTestCaseFromValues(List<Object> model) {
     testsWritten++;
@@ -404,23 +337,15 @@ public class ConcolicAlgorithm implements Algorithm {
       Optional<List<ValueAssignment>> optModel) {
     try {
       List<ValueAssignment> model;
-      // TODO get function of all constraints not possible? -> calling function gemeint?
       if (optModel.isEmpty()) {
         SolverResult result =
-            constraintsSolver.checkUnsat(state, "foofunction"); // TODO function name
+            constraintsSolver.checkUnsat(state, "FUNCTION_NAME_CONCOLIC");
         model = result.model().orElseThrow();
       } else {
         model = optModel.orElseThrow();
       }
       List<Object> valueHistory = nonDetValueProvider.getReturnedValueHistory();
-      //      if (coverageCriterionEnum == CoverageCriterion.ERROR) {
-      //        // for error, just write the test case that led to the error
-      //        if (score > 0 || isInitial) {
-      //          writeTestCaseFromValues(valueHistory);
-      //        }
-      //      } else {
       writeTestCaseFromValues(valueHistory);
-      //      }
       return new ConcolicInput(
           getValues(values, model, argPath),
           Optional.of(model),
@@ -437,7 +362,7 @@ public class ConcolicAlgorithm implements Algorithm {
 
   private List<ConcolicInput> expandExecution(
       ConcolicInput pConcolicInput, ReachedSet initialReachedSet)
-      throws CPAException, InterruptedException {
+      throws CPAException {
     ConcolicInput concolicInput = pConcolicInput;
     List<ConcolicInput> childInputs = new ArrayList<>();
     initialReachedSet.stream()
@@ -449,15 +374,9 @@ public class ConcolicAlgorithm implements Algorithm {
     ARGPath argPath = getARGPath(reachedSetConcolic, concolicInput.values, false);
     visitedPaths.add(argPath.getFullPath());
     if (coverageCriterionEnum == CoverageCriterion.BRANCH) fillVisitedBlocksBranchCoverage(argPath);
-    //    else if (Objects.equals(coverageCriterion, "block"))
-    // fillVisitedBlocksBlockCoverage(argPath);
     else if (coverageCriterionEnum == CoverageCriterion.ERROR)
       fillVisitedBlocksErrorCoverage(argPath);
     else throw new Error("coverageCriterion unknown");
-
-    // also fill allVisitedBlocks for branch coverage
-//    if (coverageCriterionEnum == CoverageCriterion.BRANCH)
-//      fillAllVisitedBlocksBranchCoverage(argPath);
 
     ConstraintsState state =
         (ConstraintsState)
@@ -495,7 +414,7 @@ public class ConcolicAlgorithm implements Algorithm {
 
         ConstraintsState stateWithFlipped = state.cloneWithNewConstraints(constraintsWithFlipped);
         SolverResult result =
-            constraintsSolver.checkUnsat(stateWithFlipped, "foofunction"); // TODO function name
+            constraintsSolver.checkUnsat(stateWithFlipped, "FUNCTION_NAME_CONCOLIC");
         if (result.isUNSAT()) {
           // don't add unsat results to childInputs
           continue;
@@ -525,15 +444,9 @@ public class ConcolicAlgorithm implements Algorithm {
 
         ARGPath argPathConcrete = getARGPath(reachedSetConcrete, values, true);
 
-        // also fill allVisitedBlocks for branch coverage
-//        if (coverageCriterionEnum == CoverageCriterion.BRANCH)
-//          fillAllVisitedBlocksBranchCoverage(argPathConcrete);
-
         int score;
         if (coverageCriterionEnum == CoverageCriterion.BRANCH)
           score = calculateScoreBranchCoverage(argPathConcrete);
-        //        else if (Objects.equals(coverageCriterion, "block"))
-        //          score = calculateScoreBlockCoverage(argPathConcrete);
         else if (coverageCriterionEnum == CoverageCriterion.ERROR)
           score = calculateScoreErrorCoverage(argPathConcrete);
         else throw new Error("coverageCriterion unknown");
@@ -542,7 +455,7 @@ public class ConcolicAlgorithm implements Algorithm {
                 state,
                 argPathConcrete,
                 reachedSetConcolic,
-                i, // TODO i+1
+                i,
                 values,
                 score,
                 false,
@@ -581,7 +494,6 @@ public class ConcolicAlgorithm implements Algorithm {
             Level.WARNING, "No result for convertToFileLocation, variable: " + assignment.getKey());
         // sometimes, new SymbolicIdentifiers are intruduced (when a function is called with a
         // parameter), so there is no nondet call and location for the SymbolicIdentifier
-        // TODO -> ignore for now -> actually works without changes, test again
         continue;
       }
       NondetLocation location =
@@ -656,25 +568,6 @@ public class ConcolicAlgorithm implements Algorithm {
     return Optional.empty();
   }
 
-  public int calculateScoreBlockCoverage(ARGPath pARGPath) {
-    List<CFAEdge> edges = pARGPath.getInnerEdges();
-    int score = 0;
-    for (int i = 0; i < edges.size() - 1; i++) {
-      CFAEdge ce = edges.get(i);
-      CFAEdge ceChild = edges.get(i + 1);
-      // check if the current edge is an AssumeEdge,
-      // and the next edge isn't to check if there is a block of code
-      // ceChild can also be null here
-      if (ce instanceof AssumeEdge && !(ceChild instanceof AssumeEdge)) {
-        // if so, check if visitedBlocks contains the edge -> if not, add 1 to the score
-        if (!visitedEdges.contains((AssumeEdge) ce)) {
-          score++;
-        }
-      }
-    }
-    return score;
-  }
-
   public int calculateScoreBranchCoverage(ARGPath pARGPath) {
     List<CFAEdge> edges = pARGPath.getInnerEdges();
     List<CFAEdge> scoreEdges = new ArrayList<>();
@@ -720,16 +613,6 @@ public class ConcolicAlgorithm implements Algorithm {
     boolean isInterrupted = false;
     boolean isStopped = false;
     try {
-      //    boolean isStopped = runAlgorithmWithTimeout(pReachedSet, isConcrete); // !! TODO
-
-      //      ResourceLimitChecker limits = null;
-      //      WalltimeLimit l = WalltimeLimit.fromNowOn(TimeSpan.of(10, TimeUnit.MILLISECONDS));
-      //      ShutdownManager loopGenerationShutdown =
-      // ShutdownManager.createWithParent(shutdownNotifier);
-      //      limits = new ResourceLimitChecker(loopGenerationShutdown,
-      // Collections.singletonList(l));
-      //      limits.start();
-      //
       if (isConcrete) {
 
         long start = System.currentTimeMillis();
@@ -748,8 +631,6 @@ public class ConcolicAlgorithm implements Algorithm {
       if (algorithmStatus == AlgorithmStatus.NO_PROPERTY_CHECKED) {
         isStopped = true;
       }
-      //
-      //      limits.cancel();
 
     } catch (InterruptedException e) {
       if (e.toString().contains("The CPU-time limit")) {

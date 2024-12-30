@@ -82,24 +82,9 @@ public class ARGPath extends AbstractAppender {
     assert states.size() - 1 == edges.size();
   }
 
-  // TODO should be unused
   // finds longest path in pStates and uses this one for the ARGPath
-  public ARGPath(List<ARGState> pStates, boolean foo) {
+  public ARGPath(List<ARGState> pStates, boolean _unused) {
     ImmutableList<ARGState> tmpStates = null;
-    //    checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
-    //    states = ImmutableList.copyOf(pStates);
-    //
-    //    List<CFAEdge> edgesBuilder = new ArrayList<>(states.size() - 1);
-    //    for (int i = 0; i < states.size() - 1; i++) {
-    //      ARGState parent = states.get(i);
-    //      ARGState child = states.get(i + 1);
-    //      edgesBuilder.add(parent.getEdgeToChild(child)); // may return null
-    //    }
-    //
-    //    edges = Collections.unmodifiableList(edgesBuilder);
-    //    assert states.size() - 1 == edges.size();
-
-    // ---------------------
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
     tmpAllStates = pStates;
     ARGState firstState = pStates.get(0);
@@ -131,31 +116,6 @@ public class ARGPath extends AbstractAppender {
         ConcolicAlgorithmIsInitialized.getLogger().log(Level.WARNING, "ARGPath: Size Mismatch");
       }
     }
-
-    // ---------------
-
-    //        List<CFAEdge> edgesBuilder = new ArrayList<>(states.size() - 1);
-    //        // TODO if concolic
-    //        ARGState parent = states.get(0);
-    //        while (true) {
-    //          ARGState child = null;
-    //          try {
-    //            child =
-    //                parent.getChildren().iterator().next(); // TODO check if there is more than
-    // one
-    ////     child
-    //          } catch (Exception e)
-    //            break;
-    //          }
-    //          CFAEdge edge = parent.getEdgeToChild(child);
-    //          if (edge == null) {
-    //          }
-    //          edgesBuilder.add(edge); // may return null
-    //          parent = child;
-    //        }
-    //
-    //        edges = Collections.unmodifiableList(edgesBuilder);
-    //        assert states.size() - 1 == edges.size();
   }
 
   private Pair<List<ARGState>, Integer> getLongestPath(List<ARGState> pARGStates) {
@@ -172,16 +132,7 @@ public class ARGPath extends AbstractAppender {
       }
       List<ARGState> newList = new ArrayList<>(pARGStates);
       newList.add(child);
-//      try {
         newList = getLongestPath(newList).getFirstNotNull();
-//      } catch (StackOverflowError e) {
-//        if (ConcolicAlgorithmIsInitialized.getIsInitialized()) {
-//          ConcolicAlgorithmIsInitialized.getLogger()
-//              .log(Level.WARNING, "StackOverflowError in ARGPath, getLongestPath, Location 2");
-//        }
-//        // the path is too long to analyze, skip
-//        continue;
-//      }
       if (newList.size() > maxLength) {
         maxLength = newList.size();
         longestList = newList;

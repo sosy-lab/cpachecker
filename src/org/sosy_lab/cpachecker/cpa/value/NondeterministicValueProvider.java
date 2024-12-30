@@ -55,7 +55,6 @@ public class NondeterministicValueProvider {
   }
 
   public void setValueToReturnedValueHistory(Value pReturnedValue, NondetLocation pLocation) {
-    //    Object objectToInsert = null;
     if (!returnedValueHistoryWithLocation.containsKey(pLocation)) {
       returnedValueHistoryWithLocation.put(pLocation, new ArrayList<>());
     }
@@ -109,7 +108,6 @@ public class NondeterministicValueProvider {
       return Optional.absent();
     }
 
-    //    NondetLocation key = new NondetLocation(filename, lineNumber, columnNumber);
     Value value = findMatchingValue(pNondetLocation);
     if (value != null) {
       if (!isAssignable(value, pType)) {
@@ -159,60 +157,16 @@ public class NondeterministicValueProvider {
     return false;
   }
 
-  //  private void createSimpleType(
-  //      MemoryLocation pMemLocation, Type pType, ValueAnalysisState pState) {
-  //
-  //    CBasicType basicType = ((CSimpleType) pType).getType();
-  //    Value value;
-  //
-  //    if (basicType.isIntegerType()) {
-  //      value = generateInteger((CSimpleType) pType);
-  //    } else {
-  //      switch (basicType) {
-  //        case UNSPECIFIED:
-  //          // If value is inspecified, forget it.
-  //          pState.forget(pMemLocation);
-  //          return;
-  //        case BOOL:
-  //          value = BooleanValue.valueOf(this.rnd.nextBoolean());
-  //          break;
-  //        case FLOAT:
-  //          value = new NumericValue(this.rnd.nextFloat());
-  //          break;
-  //        case DOUBLE:
-  //          value = new NumericValue(this.rnd.nextDouble());
-  //          break;
-  //
-  //        default:
-  //          throw new IllegalArgumentException("Unknown values of c type " + basicType.name());
-  //      }
-  //    }
-  //    pState.setNonDeterministicMark();
-  //    logger.log(Level.ALL, "Assigning simple value: ", value);
-  //    pState.assignConstant(pMemLocation, value, pType);
-  //  }
-
-  // function taken from Legion
   /** Return a random integer in the correct range for this type. */
-  private NumericValue generateInteger(CSimpleType pType) {
-    //    long min = ConcolicAlgorithm.machineModel.getMinimalIntegerValue(pType).longValue();
-    //    long max = ConcolicAlgorithm.machineModel.getMaximalIntegerValue(pType).longValue();
-    // todo
+  private NumericValue generateInteger() {
     // test values between -128 and 127
     // -> sometimes used as a loop counter -> should be small
     long random = this.rnd.nextLong(-128, 127);
-    //    long random = this.rnd.nextLong(min, max);
     return new NumericValue(random);
   }
 
-  private Value generateChar(CSimpleType pType) {
-    //    long min = ConcolicAlgorithm.machineModel.getMinimalIntegerValue(pType).longValue();
-    //    long max = ConcolicAlgorithm.machineModel.getMaximalIntegerValue(pType).longValue();
-    // todo
-    // test values between -128 and 127
-    // -> sometimes used as a loop counter -> should be small
+  private Value generateChar() {
     long random = this.rnd.nextLong(0, 65535);
-    //    long random = this.rnd.nextLong(min, max);
     char randomChar = (char) random;
     return Value.of(randomChar);
   }
@@ -225,11 +179,11 @@ public class NondeterministicValueProvider {
         return BooleanValue.valueOf(this.rnd.nextBoolean());
       }
       if (type == CBasicType.CHAR) {
-        return generateChar((CSimpleType) expressionType);
+        return generateChar();
       }
       if (type == CBasicType.INT) {
 
-        return generateInteger((CSimpleType) expressionType);
+        return generateInteger();
       }
       if (type == CBasicType.FLOAT) {
         return new NumericValue(this.rnd.nextFloat());
@@ -247,59 +201,4 @@ public class NondeterministicValueProvider {
     throw new Error("Non-CSimpleType types are not supported");
   }
 
-  public Value getRandomValue_old(CType expressionType) {
-    if (expressionType instanceof CSimpleType) {
-      CBasicType type = ((CSimpleType) expressionType).getType();
-
-      if (type == CBasicType.BOOL) {
-        return Value.of(true);
-      }
-      if (type == CBasicType.CHAR) {
-        //        char c = 'a';
-        return Value.of('a');
-      }
-      if (type == CBasicType.INT) {
-        return Value.of(1);
-      }
-      if (type == CBasicType.FLOAT) {
-        return Value.of((float) 0.1);
-      }
-      if (type == CBasicType.DOUBLE) {
-        return Value.of((double) 0);
-      }
-    }
-    // 128 bit ints and floats are not natively supported in Java, leave out for now
-    // Ignore complex types for now
-    if (!(expressionType instanceof CSimpleType)) {
-      throw new Error("Non-CSimpleType types are not supported");
-    }
-
-    throw new Error("Non-CSimpleType types are not supported");
-  }
-
-  public Object getRandomValueForVERIFIERnondet(String expressionType) {
-
-    if (expressionType.contains("__VERIFIER_nondet_bool()")) {
-      return true;
-    }
-    if (expressionType.contains("__VERIFIER_nondet_char()")) {
-      //        char c = 'a';
-      return 'a';
-    }
-    if (expressionType.contains("__VERIFIER_nondet_int()")) {
-      return 1;
-    }
-    if (expressionType.contains("__VERIFIER_nondet_float()")) {
-      return (float) 0.1;
-    }
-    if (expressionType.contains("__VERIFIER_nondet_double()")) {
-      return (double) 0;
-    }
-    if (expressionType.contains("__VERIFIER_nondet_long()")) {
-      return (long) 0;
-    }
-
-    // Ignore other types for now
-    throw new AssertionError("Non-CSimpleType types are not supported");
-  }
 }
