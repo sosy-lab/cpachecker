@@ -15,6 +15,11 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
@@ -24,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Path;
@@ -119,6 +125,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -130,8 +138,6 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "bmc")
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
-
-
 
   protected static boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
@@ -153,11 +159,11 @@ abstract class AbstractBMCAlgorithm
   private Path initialPredicatePrecisionFile = null;
 
   @Option(
-    secure = true,
-    description = "get candidate invariants from a witness 2.0 invariant file",
-    name = "kInductionInvariantWitnessFile")
+      secure = true,
+      description = "get candidate invariants from a witness 2.0 invariant file",
+      name = "kInductionInvariantWitnessFile")
   @FileOption(value = Type.OPTIONAL_INPUT_FILE)
-  private @Nullable Path initialInvariantWitnessFile = null;
+  private @Nullable Path initialWitnessInvariantsFile = null;
 
   @Option(
       secure = true,
@@ -387,9 +393,34 @@ abstract class AbstractBMCAlgorithm
       predicatePrecisionCandidates = ImmutableSet.of();
     }
 
-    if (initialInvariantWitnessFile != null) {
-      logger.log(Level.INFO, initialInvariantWitnessFile);
+    ImmutableSet<CandidateInvariant> initialWitnessInvariants = null;
+    if (initialWitnessInvariantsFile != null) {
+      logger.log(Level.INFO, initialWitnessInvariantsFile, initialWitnessInvariants);
+      try {
+        initialWitnessInvariants = WitnessParser(initialWitnessInvariantsFile);
+
+      } catch (IOException e) {
+        logger.logUserException(Level.INFO, e, "Could not parse witness file");
+      }
     }
+  }
+
+  private ImmutableSet<CandidateInvariant> WitnessParser(Path filename)
+      throws JsonParseException, JsonMappingException, IOException {
+    File yamlWitness = filename.toFile();
+    ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    JavaType entryType =
+        mapper.getTypeFactory().constructCollectionType(List.class, InvariantSetEntry.class);
+    List<InvariantSetEntry> entries = mapper.readValue(yamlWitness, entryType);
+    ImmutableSet.Builder<CandidateInvariant> invariants = ImmutableSet.builder();
+    for (InvariantSetEntry e : entries) {
+      while (!e.content.isEmpty()) {
+        InvariantEntry i = (InvariantEntry) e.content.remove(0);
+        logger.log(Level.INFO, i.getLocation(), i.getValue());
+      }
+    }
+
+    return invariants.build();
   }
 
   static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
