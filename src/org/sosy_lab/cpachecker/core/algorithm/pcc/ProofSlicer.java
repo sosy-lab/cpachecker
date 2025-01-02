@@ -120,7 +120,7 @@ public class ProofSlicer {
 
         for (ARGState p : succ.getParents()) {
           if (p.getEdgeToChild(succ) == null) {
-            if (computeTransferTo(p, succ, varMap.get(succ), varMap)) {
+            if (computeTransferTo(p, succ, varMap)) {
               waitlist.push(p);
             }
           } else {
@@ -154,12 +154,11 @@ public class ProofSlicer {
   private boolean computeTransferTo(
       final ARGState pred,
       final ARGState succ,
-      final Set<String> succVars,
       final Map<ARGState, Set<String>> varMap) {
     assert varMap.containsKey(pred);
     Set<String> updatedVars = new HashSet<>(varMap.get(pred));
 
-    Set<String> sSet = new HashSet<>(succVars);
+    Set<String> sSet = new HashSet<>(varMap.get(succ));
     Set<String> pSet = new HashSet<>();
 
     List<CFAEdge> edges = pred.getEdgesToChild(succ);
