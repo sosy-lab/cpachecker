@@ -19,7 +19,6 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -131,7 +130,7 @@ public class QuantiferEliminationRefiner implements Refiner {
     return rawFormula;
   }
 
-  public void setupSSAMap(PathFormula cexFormula) {
+  private void setupSSAMap(PathFormula cexFormula) {
     for (String variable : cexFormula.getSsa().allVariables()) {
       if (!ssaBuilder.build().containsVariable(variable)) {
         ssaBuilder.setIndex(variable, cexFormula.getSsa().getType(variable), 1);
@@ -153,7 +152,7 @@ public class QuantiferEliminationRefiner implements Refiner {
   }
 
   // eliminate variables matching a predicate (Quantifier Elimination)
-  public BooleanFormula eliminateVariables(
+  private BooleanFormula eliminateVariables(
       BooleanFormula translatedFormula,
       Predicate<Entry<String, Formula>> deterministicVariablesPredicate,
       Predicate<Entry<String, Formula>> nonDetVariablesPredicate

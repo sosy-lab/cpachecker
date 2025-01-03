@@ -13,7 +13,6 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.collect.FluentIterable;
 import java.util.logging.Level;
 import org.sosy_lab.common.Optionals;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;

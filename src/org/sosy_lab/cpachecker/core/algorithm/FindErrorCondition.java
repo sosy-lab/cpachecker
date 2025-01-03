@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.QuantiferEliminationRefiner;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.ReachabilityAnalyzer;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -100,7 +100,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
 
-    AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
+    AlgorithmStatus status;
     logger.log(Level.INFO, "Finding error condition...");
     totalTime.start();
     try {
@@ -139,7 +139,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
             exclusionFormula = quantifierRefiner.refine(cex);
             quantifierRefiner.increaseRefinementIteration();
           }
-          // update initial state
+          // update initial state with the exclusion formula
           initialState = updateInitialStateWithExclusions(initialState, exclusionFormula);
         }
 
