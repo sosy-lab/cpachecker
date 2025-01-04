@@ -114,8 +114,14 @@ public enum PthreadFuncType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty()),
-  // TODO pthread_mutex_destroy (can be handled same as pthread_mutex_init)
-  //  see e.g. pthread-atomic/time_var_mutex
+  PTHREAD_MUTEX_DESTROY(
+      "pthread_mutex_destroy",
+      true,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.of(0),
+      Optional.empty()),
   PTHREAD_MUTEX_INIT(
       "pthread_mutex_init",
       true,
@@ -205,7 +211,7 @@ public enum PthreadFuncType {
       Optional.empty(),
       Optional.empty());
 
-  // TODO unsure about yield, mutex_destroy
+  // TODO unsure about pthread_yield
   //  pthread_mutex_t amutex = PTHREAD_MUTEX_INITIALIZER; // also used instead of mutex init
   //  pthread_barrier stuff
   //  etc. probably a lot more things
