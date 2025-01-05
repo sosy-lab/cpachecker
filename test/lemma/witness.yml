@@ -13,9 +13,9 @@
       name: "Handcrafted"
   content:
     - invariant:
-        type: location_invariant
+        type: loop_invariant
         location:
-          file_name: "example.c"
+          file_name: maxArray.c
           line: 10
           column: 3
           function: max
