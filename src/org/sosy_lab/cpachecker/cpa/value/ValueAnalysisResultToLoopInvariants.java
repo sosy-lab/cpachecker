@@ -234,8 +234,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             "Number of generated variable bit computation invariants",
             numBitRelationalInvariants)
         .putIf(
-            numLinearInvariants >= 0, "Number of generated linear invariants", numLinearInvariants)
-        .endLevel();
+            numLinearInvariants >= 0, "Number of generated linear invariants", numLinearInvariants);
   }
 
   public void generateAndExportLoopInvariantsAsPredicatePrecision(
