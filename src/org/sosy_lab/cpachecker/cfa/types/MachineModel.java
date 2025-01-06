@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
 import java.nio.ByteOrder;
 import java.util.Map;
@@ -64,12 +63,17 @@ public enum MachineModel {
       8, // malloc
       true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-      ),
+      ) {
+    @Override
+    public String getMachineModelForYAMLWitnessSpecification() {
+      return "ILP32";
+    }
+  },
 
   /** Machine model representing a 64bit Linux machine with alignment: */
   LINUX64(
       // numeric types
-      2, // short
+      2, // short int
       4, // int
       8, // long int
       8, // long long int
@@ -83,7 +87,7 @@ public enum MachineModel {
       8, // pointer
 
       //  alignof numeric types
-      2, // short
+      2, // short int
       4, // int
       8, // long int
       8, // long long int
@@ -98,12 +102,17 @@ public enum MachineModel {
       16, // malloc
       true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-      ),
+      ) {
+    @Override
+    public String getMachineModelForYAMLWitnessSpecification() {
+      return "LP64";
+    }
+  },
 
   /** Machine model representing an ARM machine with alignment: */
   ARM(
       // numeric types
-      2, // short
+      2, // short int
       4, // int
       4, // long int
       8, // long long int
@@ -117,7 +126,7 @@ public enum MachineModel {
       4, // pointer
 
       //  alignof numeric types
-      2, // short
+      2, // short int
       4, // int
       4, // long int
       8, // long long int
@@ -132,12 +141,18 @@ public enum MachineModel {
       8, // malloc
       false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-      ),
+      ) {
+    @Override
+    public String getMachineModelForYAMLWitnessSpecification() {
+      throw new AssertionError(
+          "ARM machine model is not yet defined in the YAML witness specification");
+    }
+  },
 
   /** Machine model representing an ARM64 machine with alignment: */
   ARM64(
       // numeric types
-      2, // short
+      2, // short int
       4, // int
       8, // long int
       8, // long long int
@@ -151,7 +166,7 @@ public enum MachineModel {
       8, // pointer
 
       //  alignof numeric types
-      2, // short
+      2, // short int
       4, // int
       8, // long int
       8, // long long int
@@ -166,10 +181,16 @@ public enum MachineModel {
       16, // malloc
       false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-      );
+      ) {
+    @Override
+    public String getMachineModelForYAMLWitnessSpecification() {
+      throw new AssertionError(
+          "ARM64 machine model is not yet defined in the YAML witness specification");
+    }
+  };
 
   // numeric types
-  private final int sizeofShort;
+  private final int sizeofShortInt;
   private final int sizeofInt;
   private final int sizeofLongInt;
   private final int sizeofLongLongInt;
@@ -182,10 +203,10 @@ public enum MachineModel {
   private final int sizeofBool;
   private final int sizeofPtr;
 
-  private final transient ByteOrder endianness;
+  private final ByteOrder endianness;
 
   // alignof numeric types
-  private final int alignofShort;
+  private final int alignofShortInt;
   private final int alignofInt;
   private final int alignofLongInt;
   private final int alignofLongLongInt;
@@ -200,12 +221,12 @@ public enum MachineModel {
   private final int alignofMalloc;
 
   // according to ANSI C, sizeof(char) is always 1
-  private final int mSizeofChar = 1;
-  private final int mAlignofChar = 1;
+  private static final int mSizeofChar = 1;
+  private static final int mAlignofChar = 1;
   private final boolean defaultCharSigned;
 
   // a char is always a byte, but a byte doesn't have to be 8 bits
-  private final int mSizeofCharInBits = 8;
+  private static final int mSizeofCharInBits = 8;
   private final CSimpleType intptr_t;
   private final CSimpleType uintptr_t;
 
@@ -233,7 +254,7 @@ public enum MachineModel {
       int pAlignofMalloc,
       boolean pDefaultCharSigned,
       ByteOrder pEndianness) {
-    sizeofShort = pSizeofShort;
+    sizeofShortInt = pSizeofShort;
     sizeofInt = pSizeofInt;
     sizeofLongInt = pSizeofLongInt;
     sizeofLongLongInt = pSizeofLongLongInt;
@@ -244,7 +265,7 @@ public enum MachineModel {
     sizeofBool = pSizeofBool;
     sizeofPtr = pSizeOfPtr;
 
-    alignofShort = pAlignofShort;
+    alignofShortInt = pAlignofShort;
     alignofInt = pAlignofInt;
     alignofLongInt = pAlignofLongInt;
     alignofLongLongInt = pAlignofLongLongInt;
@@ -267,7 +288,7 @@ public enum MachineModel {
     } else if (sizeofPtr == sizeofLongLongInt) {
       intptr_t = CNumericTypes.LONG_LONG_INT;
       uintptr_t = CNumericTypes.UNSIGNED_LONG_LONG_INT;
-    } else if (sizeofPtr == sizeofShort) {
+    } else if (sizeofPtr == sizeofShortInt) {
       intptr_t = CNumericTypes.SHORT_INT;
       uintptr_t = CNumericTypes.UNSIGNED_SHORT_INT;
     } else {
@@ -384,28 +405,23 @@ public enum MachineModel {
       return false;
     }
 
-    switch (t.getType()) {
-      case CHAR:
-        return isDefaultCharSigned();
-      case FLOAT:
-      case DOUBLE:
-        return true;
-      case INT:
-        throw new AssertionError("Canonical type of INT should always have sign modifier");
-      case UNSPECIFIED:
-        throw new AssertionError("Canonical type should never be UNSPECIFIED");
-      default:
-        // bool, void
-        return false;
-    }
+    return switch (t.getType()) {
+      case CHAR -> isDefaultCharSigned();
+      case FLOAT, DOUBLE -> true;
+      case INT ->
+          throw new AssertionError("Canonical type of INT should always have sign modifier");
+      case UNSPECIFIED -> throw new AssertionError("Canonical type should never be UNSPECIFIED");
+      default -> // bool, void
+          false;
+    };
   }
 
   public int getSizeofCharInBits() {
     return mSizeofCharInBits;
   }
 
-  public int getSizeofShort() {
-    return sizeofShort;
+  public int getSizeofShortInt() {
+    return sizeofShortInt;
   }
 
   public int getSizeofInt() {
@@ -471,7 +487,7 @@ public enum MachineModel {
         } else if (type.hasLongSpecifier()) {
           return getSizeofLongInt();
         } else if (type.hasShortSpecifier()) {
-          return getSizeofShort();
+          return getSizeofShortInt();
         } else {
           return getSizeofInt();
         }
@@ -498,8 +514,8 @@ public enum MachineModel {
     return getSizeof(type) * getSizeofCharInBits();
   }
 
-  public int getAlignofShort() {
-    return alignofShort;
+  public int getAlignofShortInt() {
+    return alignofShortInt;
   }
 
   public int getAlignofInt() {
@@ -614,7 +630,6 @@ public enum MachineModel {
     return result;
   }
 
-  @SuppressFBWarnings("SE_BAD_FIELD")
   @SuppressWarnings("ImmutableEnumChecker")
   private final BaseSizeofVisitor<NoException> sizeofVisitor = new BaseSizeofVisitor<>(this);
 
@@ -650,7 +665,6 @@ public enum MachineModel {
     }
   }
 
-  @SuppressFBWarnings("SE_BAD_FIELD_STORE")
   @SuppressWarnings("ImmutableEnumChecker")
   private final CTypeVisitor<Integer, IllegalArgumentException> alignofVisitor =
       new BaseAlignofVisitor(this);
@@ -757,4 +771,12 @@ public enum MachineModel {
     }
     return BigInteger.ZERO;
   }
+
+  /**
+   * This method returns a description of the machine model as defined by the YAML witness
+   * specification.
+   *
+   * @return a description of the machine model as defined by the YAML witness specification
+   */
+  public abstract String getMachineModelForYAMLWitnessSpecification();
 }

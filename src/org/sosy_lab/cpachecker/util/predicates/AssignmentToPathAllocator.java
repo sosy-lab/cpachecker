@@ -213,9 +213,9 @@ public class AssignmentToPathAllocator {
 
         switch (binExp.getOperator()) {
           case MULTIPLY:
-            // $FALL-THROUGH$
+          // $FALL-THROUGH$
           case MODULO:
-            // $FALL-THROUGH$
+          // $FALL-THROUGH$
           case DIVIDE:
             opString = "_" + opString;
             break;
@@ -242,17 +242,11 @@ public class AssignmentToPathAllocator {
 
       if (pExpressionType instanceof CSimpleType simpleType) {
 
-        switch (simpleType.getType()) {
-          case INT:
-          case CHAR:
-          case BOOL:
-            return "Integer";
-          case FLOAT:
-          case DOUBLE:
-            return "Rational";
-          default:
-            return "";
-        }
+        return switch (simpleType.getType()) {
+          case INT, CHAR, BOOL -> "Integer";
+          case FLOAT, DOUBLE -> "Rational";
+          default -> "";
+        };
       }
 
       return "";

@@ -21,16 +21,21 @@ SPDX-License-Identifier: Apache-2.0
       <include>../programs/ldv-benchmarks/*/*.c</include>
       <include>../programs/ldv-benchmarks/*/*/*.c</include>
       <include>../programs/ldv-benchmarks/*/*/*/*.c</include>
-      <includesfile>../programs/benchmarks/*.set</includesfile>
+      <includesfile>../programs/benchmarks/[A-HJ-Za-z]*.set</includesfile>
     </tasks>
     <tasks name="original">
       <include>../programs/simple/*.c</include>
       <include>../programs/simple/*/*.c</include>
-      <option name="-preprocess"/>
+      <option name="--preprocess"/>
+    </tasks>
+    <tasks name="multipleCFiles">
+      <include>../programs/simple/multipleCFiles/*.yml</include>
+      <include>../programs/simple/multipleCFiles/*/*.yml</include>
+      <option name="--preprocess"/> <!-- workaround for #1291 -->
     </tasks>
 
-    <option name="-heap">2500m</option>
-    <option name="-noout"/>
-    <option name="-generateCFA"/>
+    <option name="--heap">2500m</option>
+    <option name="--no-output-files"/>
+    <option name="--generateCFA"/>
   </rundefinition>
 </benchmark>

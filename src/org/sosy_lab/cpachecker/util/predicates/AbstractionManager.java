@@ -11,8 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Verify.verifyNotNull;
 
-import com.google.common.base.Joiner;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -21,7 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.AbstractMBean;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -83,12 +81,7 @@ public final class AbstractionManager {
 
   private final Map<Region, BooleanFormula> toConcreteCache;
 
-  @SuppressFBWarnings(
-      value = "VO_VOLATILE_INCREMENT",
-      justification =
-          "Class is not thread-safe, but concurrent read access to this variable is needed for the"
-              + " MBean")
-  private volatile int numberOfPredicates = 0;
+  private final UniqueIdGenerator numberOfPredicates = new UniqueIdGenerator();
 
   @Option(
       secure = true,
@@ -112,17 +105,13 @@ public final class AbstractionManager {
     } else {
       toConcreteCache = null;
     }
-
-    // don't store it, we wouldn't know when to unregister anyway
-    new AbstractionPredicatesMBean().register();
   }
 
   public int getNumberOfPredicates() {
-    return numberOfPredicates;
+    return symbVarToPredicate.size();
   }
 
   /** creates a Predicate from the Boolean symbolic variable (var) and the atom that defines it */
-  @SuppressWarnings("NonAtomicVolatileUpdate") // no thread-safe anyway
   public AbstractionPredicate makePredicate(BooleanFormula atom) {
     AbstractionPredicate result = atomToPredicate.get(atom);
 
@@ -133,7 +122,8 @@ public final class AbstractionManager {
               + "but attempting to create predicate for instantiated formula %s",
           atom);
 
-      BooleanFormula symbVar = fmgr.createPredicateVariable("PRED" + numberOfPredicates);
+      BooleanFormula symbVar =
+          fmgr.createPredicateVariable("PRED" + numberOfPredicates.getFreshId());
       Region absVar =
           (rmgr instanceof SymbolicRegionManager)
               ? ((SymbolicRegionManager) rmgr).createPredicate(atom)
@@ -146,8 +136,6 @@ public final class AbstractionManager {
       symbVarToPredicate.put(symbVar, result);
       absVarToPredicate.put(absVar, result);
       atomToPredicate.put(atom, result);
-
-      numberOfPredicates++;
     }
 
     return result;
@@ -366,31 +354,5 @@ public final class AbstractionManager {
 
   public RegionManager getRegionCreator() {
     return rmgr;
-  }
-
-  public interface AbstractionPredicatesMXBean {
-
-    int getNumberOfPredicates();
-
-    String getPredicates();
-  }
-
-  private class AbstractionPredicatesMBean extends AbstractMBean
-      implements AbstractionPredicatesMXBean {
-
-    public AbstractionPredicatesMBean() {
-      super("org.sosy_lab.cpachecker:type=predicate,name=AbstractionPredicates", logger);
-    }
-
-    @Override
-    public int getNumberOfPredicates() {
-      return numberOfPredicates;
-    }
-
-    @Override
-    public String getPredicates() {
-      // TODO this may run into a ConcurrentModificationException
-      return Joiner.on('\n').join(absVarToPredicate.values());
-    }
   }
 }

@@ -17,11 +17,13 @@ import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.graph.Traverser;
 import com.google.errorprone.annotations.DoNotCall;
@@ -34,6 +36,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
@@ -78,11 +81,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -109,10 +115,16 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.ast.ASTElement;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.IfElement;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 
 public class CFAUtils {
 
@@ -153,6 +165,17 @@ public class CFAUtils {
         };
       }
     };
+  }
+
+  /**
+   * Return an {@link Iterable} that contains the predecessor and successor of a given {@link
+   * CFAEdge}
+   *
+   * @param pEdge the edge for which the predecessor and successor should be returned
+   * @return an {@link Iterable} containing the predecessor and successor of the given edge
+   */
+  public static ImmutableList<CFANode> nodes(CFAEdge pEdge) {
+    return ImmutableList.of(pEdge.getPredecessor(), pEdge.getSuccessor());
   }
 
   /**
@@ -219,6 +242,23 @@ public class CFAUtils {
         };
       }
     };
+  }
+
+  /**
+   * Returns all edges which are reachable in the forward direction without any branchings from the
+   * current edge.
+   *
+   * @param edge The edge where to start the reachability analysis from
+   * @return All the edges which can be reached from the current edge in the forward direction
+   */
+  public static Set<CFAEdge> forwardLinearReach(CFAEdge edge) {
+    CFAEdge current = edge;
+    ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
+    while (CFAUtils.leavingEdges(current.getSuccessor()).size() == 1) {
+      current = CFAUtils.leavingEdges(current.getSuccessor()).first().get();
+      builder.add(current);
+    }
+    return builder.build();
   }
 
   /**
@@ -474,6 +514,114 @@ public class CFAUtils {
   }
 
   /**
+   * This method returns true if the set of nodes is connected, i.e., there is a path between every
+   * pair of nodes in the set.
+   *
+   * <p>Currently this is quite inefficient, so use with caution and only for small sets of nodes.
+   *
+   * @param pCfaNodes the set of nodes
+   * @return true if the set of nodes is connected i.e. there is a path between every pair of nodes
+   *     in the set
+   */
+  public static boolean isConnected(Set<CFANode> pCfaNodes) {
+    if (pCfaNodes.isEmpty()) {
+      return true;
+    }
+
+    Multimap<Integer, CFANode> idsToNode = HashMultimap.create();
+    Integer currentId = 0;
+    for (CFANode node : pCfaNodes) {
+      Multimap<Integer, CFANode> newIdsToNode = HashMultimap.create(idsToNode);
+      newIdsToNode.put(currentId, node);
+      for (CFANode connectedNode :
+          FluentIterable.concat(CFAUtils.allPredecessorsOf(node), CFAUtils.allSuccessorsOf(node))) {
+        for (Integer id : idsToNode.keySet()) {
+          if (newIdsToNode.get(id).contains(connectedNode)) {
+            newIdsToNode.putAll(currentId, newIdsToNode.removeAll(id));
+          }
+        }
+      }
+      idsToNode = newIdsToNode;
+      currentId++;
+    }
+
+    return idsToNode.keySet().size() == 1;
+  }
+
+  /**
+   * This method returns the location in the "original program (i.e., before simplifications done by
+   * CPAchecker) of the closest full expression as defined in section (§6.8 (4) of the C11 standard)
+   * encompassing the expression in the given edge. This is only well-defined for edges in C
+   * programs. The closest full expression is defined as one of the following:
+   *
+   * <ul>
+   *   <li>1. when the edge represents a statement, it is the full expression contained in the
+   *       statement, of which only one exists.
+   *   <li>2. when the edge contains an expression, we look for the full expression that contains
+   *       the expression inside the edge in the original source code. This is where the
+   *       pCfaAstRelation comes into play. For example for example if `x > 0` is the expression of
+   *       the edge and is part of the condition in `while (y != 0 && x > 0)` and therefore not a
+   *       full expression we search for the full expression `y != 0 && x > 0` which contains it.
+   * </ul>
+   *
+   * In summary, we either search for the full expression contained in the edge or for the full
+   * expression containing the expression of the edge.
+   *
+   * <p>There are many limitations for this functions, so please check inside the test {@link
+   * CFAUtilsTest#testFullExpression} for more details on what is supported and what is not.
+   *
+   * @param pEdge The edge for which the closest full expression should be found
+   * @param pAstCfaRelation The relation between the AST and the CFA
+   * @return The location of the closest full expression either encompassing the expression or
+   *     contained in the statement represented by the given edge
+   */
+  public static Optional<FileLocation> getClosestFullExpression(
+      CCfaEdge pEdge, AstCfaRelation pAstCfaRelation) {
+
+    if (pEdge instanceof AssumeEdge assumeEdge) {
+      // Find out the full expression encompassing the expression
+      Optional<IfElement> optionalIfElement =
+          pAstCfaRelation.getIfStructureForConditionEdge(assumeEdge);
+      Optional<IterationElement> optionalIterationElement =
+          pAstCfaRelation.getTightestIterationStructureForNode(assumeEdge.getPredecessor());
+      if (optionalIfElement.isPresent()) {
+        return Optional.of(optionalIfElement.orElseThrow().getConditionElement().location());
+      } else if (optionalIterationElement.isPresent()) {
+        Optional<ASTElement> optionalControlExpression =
+            optionalIterationElement.orElseThrow().getControllingExpression();
+        Optional<ASTElement> optionalInitClause =
+            optionalIterationElement.orElseThrow().getInitClause();
+        Optional<ASTElement> optionalIterationExpression =
+            optionalIterationElement.orElseThrow().getIterationExpression();
+        FileLocation location;
+        if (optionalControlExpression.isPresent()
+            && optionalControlExpression.orElseThrow().edges().contains(pEdge)) {
+          location = optionalControlExpression.orElseThrow().location();
+        } else if (optionalInitClause.isPresent()
+            && optionalInitClause.orElseThrow().edges().contains(pEdge)) {
+          location = optionalInitClause.orElseThrow().location();
+        } else if (optionalIterationExpression.isPresent()
+            && optionalIterationExpression.orElseThrow().edges().contains(pEdge)) {
+          location = optionalIterationExpression.orElseThrow().location();
+        } else {
+          return Optional.empty();
+        }
+        // This fixes the column end of the location
+        return pAstCfaRelation.getNextExpressionLocationBasedOnOffset(location);
+      } else {
+        // In this case the assume edge stems from another type of statement, like ternary
+        // operators. In this case we can take the location of the next possible expression which is
+        // contained in or equal to the statement from which the edge was created
+        return pAstCfaRelation.getNextExpressionLocationBasedOnOffset(pEdge.getFileLocation());
+      }
+    }
+    // This works, since the edge contains the location of the statement from which the edge was
+    // generated. This means that when we take a look at the next possible expression we get the
+    // closest full expression to it
+    return pAstCfaRelation.getNextExpressionLocationBasedOnOffset(pEdge.getFileLocation());
+  }
+
+  /**
    * This Visitor searches for backwards edges in the CFA, if some backwards edges were found can be
    * obtained by calling the method hasBackwardsEdges()
    */
@@ -714,6 +862,26 @@ public class CFAUtils {
   public static FluentIterable<CExpression> traverseRecursively(CExpression root) {
     return (FluentIterable<CExpression>)
         (FluentIterable<?>) FluentIterable.from(AST_TRAVERSER.depthFirstPreOrder(root));
+  }
+
+  /** Checks whether the given edge has the form VAR = __VERIFIER_nondet_TYPE() */
+  public static boolean assignsNondetFunctionCall(CFAEdge pEdge) {
+    if (pEdge instanceof CStatementEdge statementEdge) {
+      if (statementEdge.getStatement() instanceof CFunctionCallAssignmentStatement statement) {
+        CLeftHandSide leftHandSide = statement.getLeftHandSide();
+        // We do not want the cases where the variable is assigned to a TMP variable
+        if (leftHandSide.toString().contains("__CPAchecker_TMP")) {
+          return false;
+        }
+        CFunctionCallExpression expression = statement.getRightHandSide();
+        if (expression.getFunctionNameExpression() instanceof CIdExpression functionName) {
+          if (functionName.getName().startsWith("__VERIFIER_nondet_")) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /**

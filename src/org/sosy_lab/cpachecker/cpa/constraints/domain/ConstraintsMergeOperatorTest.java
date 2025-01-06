@@ -41,25 +41,19 @@ public class ConstraintsMergeOperatorTest {
       (Constraint) factory.notEqual(idExp1, numExp1, defType, defType);
 
   @Test
-  public void testMerge_mergePossible() throws Exception {
+  public void testMerge_mergePossible() {
     Set<Constraint> constraints = getConstraints();
 
-    ConstraintsState state1 = new ConstraintsState(constraints);
-    state1.add(posConst);
-
-    constraints = getConstraints();
-
-    ConstraintsState state2 = new ConstraintsState(constraints);
-    state2.add(negConst);
+    ConstraintsState baseState = new ConstraintsState(constraints);
+    ConstraintsState state1 = baseState.copyWithNew(posConst);
+    ConstraintsState state2 = baseState.copyWithNew(negConst);
 
     ConstraintsState mergeResult =
         (ConstraintsState) op.merge(state1, state2, SingletonPrecision.getInstance());
 
     assertThat(mergeResult).hasSize(state2.size() - 1);
     assertThat(mergeResult).doesNotContain(negConst);
-
-    state2.remove(negConst);
-    assertThat(mergeResult).isEqualTo(state2);
+    assertThat(mergeResult).isEqualTo(baseState);
   }
 
   private Set<Constraint> getConstraints() {

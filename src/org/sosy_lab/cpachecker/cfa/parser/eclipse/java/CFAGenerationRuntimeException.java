@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Strings;
+import java.io.Serial;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
@@ -18,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 /** Handles problems during CFA generation for Java program inputs */
 class CFAGenerationRuntimeException extends RuntimeException {
 
-  private static final long serialVersionUID = 6850281425209171013L;
+  @Serial private static final long serialVersionUID = 6850281425209171013L;
 
   private static final CharMatcher SEMICOLON = CharMatcher.is(';');
 

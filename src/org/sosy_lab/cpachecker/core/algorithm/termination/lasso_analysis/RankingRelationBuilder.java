@@ -34,6 +34,7 @@ import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.I
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
+import java.io.Serial;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -366,32 +367,29 @@ public class RankingRelationBuilder {
       CIdExpression variable = new CIdExpression(DUMMY, variableDecl.orElseThrow());
       return Pair.of(primedVariable, variable);
 
+    } else if (pRankVar.getTerm() instanceof ApplicationTerm uf
+        && !uf.getFunction().isInterpreted()
+        && uf.getFunction().getParameterSorts().length == 1
+        && uf.getFunction().getName().startsWith("*")) { // dereference
+
+      Term innerVariableTerm = uf.getParameters()[0];
+      String innerVariableName = CharMatcher.is('|').trimFrom(innerVariableTerm.toStringDirect());
+      RankVar innerDummyRankVar =
+          new RankVar(innerVariableName, pRankVar.isGlobal(), innerVariableTerm);
+      Pair<CIdExpression, CExpression> innerVariables =
+          getVariable(innerDummyRankVar, pRelevantVariables);
+
+      CSimpleDeclaration innerPrimedVariable = innerVariables.getFirstNotNull().getDeclaration();
+      CExpression innerVariable = innerVariables.getSecondNotNull();
+      CVariableDeclaration primedVariableDecl = createDereferencedVariable(innerPrimedVariable);
+      CExpression variable =
+          new CPointerExpression(DUMMY, primedVariableDecl.getType(), innerVariable);
+      CIdExpression primedVariable = new CIdExpression(DUMMY, primedVariableDecl);
+      return Pair.of(primedVariable, variable);
+
     } else {
-      Term term = pRankVar.getTerm();
-      if (term instanceof ApplicationTerm uf
-          && !((ApplicationTerm) term).getFunction().isInterpreted()) {
-        assert uf.getFunction().getParameterSorts().length == 1 : uf;
-        assert uf.getFunction().getName().startsWith("*"); // dereference
-
-        Term innerVariableTerm = uf.getParameters()[0];
-        String innerVariableName = CharMatcher.is('|').trimFrom(innerVariableTerm.toStringDirect());
-        RankVar innerDummyRankVar =
-            new RankVar(innerVariableName, pRankVar.isGlobal(), innerVariableTerm);
-        Pair<CIdExpression, CExpression> innerVariables =
-            getVariable(innerDummyRankVar, pRelevantVariables);
-
-        CSimpleDeclaration innerPrimedVariable = innerVariables.getFirstNotNull().getDeclaration();
-        CExpression innerVariable = innerVariables.getSecondNotNull();
-        CVariableDeclaration primedVariableDecl = createDereferencedVariable(innerPrimedVariable);
-        CExpression variable =
-            new CPointerExpression(DUMMY, primedVariableDecl.getType(), innerVariable);
-        CIdExpression primedVariable = new CIdExpression(DUMMY, primedVariableDecl);
-        return Pair.of(primedVariable, variable);
-
-      } else {
-        // e.g. array are not supported
-        throw new RankingRelationException("Cannot create CExpression from " + variableName);
-      }
+      // e.g. array, binary operators, etc. are not supported
+      throw new RankingRelationException("Cannot handle term " + pRankVar);
     }
   }
 
@@ -472,7 +470,7 @@ public class RankingRelationBuilder {
 
   public static class RankingRelationException extends Exception {
 
-    private static final long serialVersionUID = 1L;
+    @Serial private static final long serialVersionUID = 1L;
 
     public RankingRelationException(String message) {
       super(message);

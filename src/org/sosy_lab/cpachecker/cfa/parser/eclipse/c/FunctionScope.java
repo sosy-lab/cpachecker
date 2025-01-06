@@ -14,7 +14,9 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -24,8 +26,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -39,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
 /**
@@ -59,6 +65,12 @@ class FunctionScope extends AbstractScope {
   private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsListWithNewNames = new ArrayDeque<>();
 
+  // Cache for all local variables in the current scope.
+  private ImmutableSet<AParameterDeclaration> parameterDeclarations = ImmutableSet.of();
+  private final Deque<PersistentSet<AVariableDeclaration>> localVarsStackWitNewNames =
+      new ArrayDeque<>();
+  private boolean modifiedParameters = true;
+
   private CFunctionDeclaration currentFunction = null;
   private Optional<CVariableDeclaration> returnVariable = null;
 
@@ -67,9 +79,9 @@ class FunctionScope extends AbstractScope {
       ImmutableMap<String, CComplexTypeDeclaration> pTypes,
       ImmutableMap<String, CTypeDefDeclaration> pTypedefs,
       ImmutableMap<String, CSimpleDeclaration> pGlobalVars,
-      String currentFile,
+      String pCurrentFile,
       Scope pArtificialScope) {
-    super(currentFile);
+    super(pCurrentFile);
 
     globalFunctions = pFunctions;
     typedefs = pTypedefs;
@@ -81,6 +93,7 @@ class FunctionScope extends AbstractScope {
     varsListWithNewNames.push(pGlobalVars);
 
     artificialScope = pArtificialScope;
+    localVarsStackWitNewNames.add(PersistentSet.of());
 
     enterBlock();
   }
@@ -139,6 +152,8 @@ class FunctionScope extends AbstractScope {
     varsStackWitNewNames.addLast(new HashMap<>());
     varsList.addLast(varsStack.getLast());
     varsListWithNewNames.addLast(varsStackWitNewNames.getLast());
+    // Optimizations to keep track of all variables which are in scope
+    localVarsStackWitNewNames.addLast(localVarsStackWitNewNames.peekLast());
   }
 
   public void leaveBlock() {
@@ -148,6 +163,8 @@ class FunctionScope extends AbstractScope {
     typesStack.removeLast();
     labelsStack.removeLast();
     labelsNodeStack.removeLast();
+    // Optimizations to keep track of all variables which are in scope
+    localVarsStackWitNewNames.removeLast();
   }
 
   /** returns only the most local scope, i.e., the scope between the nearest curly brackets. */
@@ -177,6 +194,23 @@ class FunctionScope extends AbstractScope {
       }
     }
     return artificialScope.variableNameInUse(name);
+  }
+
+  /** returns all variables in the current scopes and caches them for further reuse. */
+  public Set<AVariableDeclaration> getVariablesInScope() {
+    return localVarsStackWitNewNames.peekLast();
+  }
+
+  /** returns all parameters in the current scopes and caches them for further reuse. */
+  public ImmutableSet<AParameterDeclaration> getParameters() {
+    if (modifiedParameters) {
+      parameterDeclarations =
+          ImmutableSet.copyOf(
+              FluentIterable.concat(getVariablesOfMostLocalScopes())
+                  .filter(CParameterDeclaration.class));
+      modifiedParameters = false;
+    }
+    return parameterDeclarations;
   }
 
   @Override
@@ -283,6 +317,14 @@ class FunctionScope extends AbstractScope {
 
     vars.put(name, declaration);
     varsWithNewNames.put(declaration.getName(), declaration);
+
+    // Optimizations to keep track of all variables which are in scope
+    if (declaration instanceof AVariableDeclaration pAVariableDeclaration) {
+      localVarsStackWitNewNames.addLast(
+          localVarsStackWitNewNames.removeLast().addAndCopy(pAVariableDeclaration));
+    } else if (declaration instanceof AParameterDeclaration) {
+      modifiedParameters = true;
+    }
   }
 
   @Override

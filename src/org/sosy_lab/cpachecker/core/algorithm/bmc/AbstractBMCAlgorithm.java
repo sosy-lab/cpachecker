@@ -108,7 +108,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TestTargetLocationProvider;
-import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessGenerator;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -1146,27 +1145,6 @@ abstract class AbstractBMCAlgorithm
           TargetLocationProvider pTargetLocationProvider) {
         return new DoNothingInvariantGenerator();
       }
-    },
-
-    INVARIANT_STORE {
-      @Override
-      InvariantGenerator createInvariantGenerator(
-          Configuration pConfig,
-          LogManager pLogger,
-          ReachedSetFactory pReachedSetFactory,
-          ShutdownManager pShutdownManager,
-          CFA pCFA,
-          Specification pSpecification,
-          AggregatedReachedSets pAggregatedReachedSets,
-          TargetLocationProvider pTargetLocationProvider)
-          throws InvalidConfigurationException, CPAException, InterruptedException {
-        try {
-          return InvariantWitnessGenerator.getNewFromDiskInvariantGenerator(
-              pConfig, pCFA, pLogger, pShutdownManager.getNotifier());
-        } catch (IOException e) {
-          throw new CPAException("Could not create from disk generator", e);
-        }
-      }
     };
 
     abstract InvariantGenerator createInvariantGenerator(
@@ -1289,7 +1267,7 @@ abstract class AbstractBMCAlgorithm
         current = current.causingObligation;
         ++depth;
       }
-      assert (depth == 0 && causingObligation == null) || (depth > 0 && causingObligation != null);
+      assert causingObligation == null ? depth == 0 : depth > 0;
       return depth;
     }
 

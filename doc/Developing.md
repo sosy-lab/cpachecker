@@ -3,7 +3,7 @@ This file is part of CPAchecker,
 a tool for configurable software verification:
 https://cpachecker.sosy-lab.org
 
-SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2024 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
@@ -13,54 +13,17 @@ CPAchecker Developing Instructions
 
 More details can be found in the other files in this directory.
 
-Please read and follow at least [`StyleGuide.md`](StyleGuide.md),
-[`Logging.md`](Logging.md), [`Test.md`](Test.md), and [`VersionControl.md`](VersionControl.md).
+Please read and follow at least our [contribution guidelines](../CONTRIBUTING.md),
+the [style guide](StyleGuide.md),
+[`Logging.md`](Logging.md), and [`Test.md`](Test.md).
 
 For JavaScript code read [`ReportTemplateStyleGuide.md`](ReportTemplateStyleGuide.md),
 and for Python code read [`PythonStyleGuide.md`](PythonStyleGuide.md).
 
-
-Getting the code
-----------------
-
-There are four possibilities to retrieve the source code:
-
-- The main [SVN repository](https://svn.sosy-lab.org/software/cpachecker)
-
-- Our [Git mirror](https://svn.sosy-lab.org/software/cpachecker.git)
-
-- A Git mirror at [GitLab](https://gitlab.com/sosy-lab/software/cpachecker/)
-
-- A Git mirror at [GitHub](https://github.com/sosy-lab/cpachecker)
-
-Only our `SVN` repository allows committing,
-all mirrors are read-only.
-We recommend to use our own repository hosting,
-because it avoids the risk that the synchronization to a third party
-fails or causes problems.
-
-For browsing through the code online,
-there are these possibilities:
-
-- https://gitlab.com/sosy-lab/software/cpachecker/tree/trunk/
-- https://github.com/sosy-lab/cpachecker/tree/trunk/
+How to checkout and build the source code on the command line is described in
+[the installation instructions](../INSTALL.md#install-cpachecker----source).
 
 For bug tracking, we use [GitLab](https://gitlab.com/sosy-lab/software/cpachecker/issues).
-
-For building the code on the command line, c.f. [`../INSTALL.md`](../INSTALL.md).
-
-If you like to use Git, use the following commands
-to create a working copy that allows you to transparently
-commit to the SVN repository (with `git svn dcommit`)
-while still using Git to fetch the commits:
-
-```
-git clone -o mirror https://svn.sosy-lab.org/software/cpachecker.git/
-cd cpachecker
-git svn init --prefix=mirror/ -s https://svn.sosy-lab.org/software/cpachecker
-```
-
-This also works with GitHub.
 
 
 Develop CPAchecker from within Eclipse
@@ -75,7 +38,7 @@ Develop CPAchecker from within Eclipse
 2. Install the Eclipse plugin for [google-java-format](https://github.com/google/google-java-format/):
    Download the `google-java-format-eclipse-plugin-*.jar`
    from the most recent [google-java-format release](https://github.com/google/google-java-format/releases)
-   and put it into the `dropins` folder of your Eclipse installation
+   and put it into the `dropins` directory of your Eclipse installation
    (where you extracted the Eclipse archive, not the workspace).
    Open the `eclipse.ini` file in your Eclipse installation and append the following lines:
 
@@ -89,26 +52,22 @@ Develop CPAchecker from within Eclipse
 --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED
 ```
 
-3. Install an SVN plugin for Eclipse, e.g. [SubClipse](http://subclipse.tigris.org).
-   Create new project from [SVN repository](https://svn.sosy-lab.org/software/cpachecker/trunk)
-   (or use GIT as described above).
-
-4. Create a copy of the file `.factorypath.template` and name it `.factorypath`,
+3. Create a copy of the file `.factorypath.template` and name it `.factorypath`,
    and (if necessary) adjust the path to the CPAchecker directory within it.
 
-5. If Eclipse complains about a missing JDK
+4. If Eclipse complains about a missing JDK
    (`Unbound classpath container: 'JRE System Library [JavaSE-17]'`),
    go to Window -> Preferences -> Java -> Installed JREs,
    click the "Search" button and select the path where your Java 17 installation
    can be found (on Ubuntu `/usr/lib/jvm` will do).
 
-6. In order to run CPAchecker, use one of the supplied launch configurations
+5. In order to run CPAchecker, use one of the supplied launch configurations
    or create your own.
    To select the configuration, specification, and program files use the
    text box "program arguments" in the launch configuration editor.
    The text box "VM arguments" should contain "-ea" to enable assertion checking.
 
-7. Recommended:
+6. Recommended:
    If you want the sources of the libraries (like Guava or CDT),
    run `ant install-contrib` once in the CPAchecker directory.
 
@@ -156,7 +115,7 @@ please fix them as soon as possible (ideally before committing).
 
 Additionally, our [BuildBot](https://buildbot.sosy-lab.org/cpachecker/)
 executes integration tests with thousands of CPAchecker runs
-in various configurations on every commit to `trunk` and checks for regression.
+in various configurations on every commit to the main branch and checks for regressions.
 All major projects and configurations within CPAchecker should be part of this test suite.
 Please refer to [`Test.md`](Test.md) for more information.
 
@@ -189,7 +148,7 @@ Debugging
 ---------
 
 For attaching a debugger to a CPAchecker process started on the command line (even remotely),
-just run `scripts/cpa.sh -debug ...` and point your debugger to TCP port 5005
+just run `bin/cpachecker --jvm-debug ...` and point your debugger to TCP port 5005
 of the respective machine.
 
 
@@ -229,64 +188,80 @@ Releasing a New Version
    configuration etc.),
    and ensure that [`Authors.md`](../Authors.md) are up-to-date.
 
-2. Define a new version by setting `version.base` in [`build.xml`](../build.xml) to the new value.
-   The version tag is constructed as outlined below in Sect. "Release Tagging".
+1. Make sure to work in a fresh checkout with no uncommitted files and modifications.
 
-3. Build binary versions with `ant clean dist` and test them to ensure
-   that all necessary files are contained in them.
-   Make sure that you do not have any local changes
-   or unversioned files in your checkout.
+1. Define a new version by setting `version.base` in [`build.xml`](../build.xml) to the new value.
+   The version number is constructed as outlined below in Sect. "Version Numbering".
 
-4. Update homepage:
-   - Add release archives to `/html` in the repository.
-   - Put changelog of newest into `/html/NEWS-<version>.txt`.
-   - Publish new CPAchecker version on Zenodo under https://doi.org/10.5281/zenodo.3816620:
-     - Assign new DOI and upload archive.
-     - Update description with entries for new version in [`NEWS.md`](../NEWS.md).
-     - Update version field and publication date.
-     - Update list of contributors according to [`Authors.md`](../Authors.md).
-   - Add links to `/html/download.php`.
-   - Move the old download links to `/html/download-oldversions.php`.
-   - Update section News on `/html/index.php`.
+1. Update the heading in [`NEWS.md`](../NEWS.md) and
+   update the version number in all places in the following files:
+   - [`.gitlab-ci.yml`](../.gitlab-ci.yml)
+   - [`build/Dockerfile.release`](../build/Dockerfile.release)
+   - [`build/debian/rules`](../build/debian/rules)
 
-5. Add a tag in the repository with name `cpachecker-<version>`,
-   where `<version>` is constructed as outlined below in Sect. "Release Tagging".
+1. Build binary archives with `ant clean dist`.
 
-6. Update version number in build/Dockerfile.release and .gitlab-ci.yml
-   and either build and push the Docker image manually
-   or trigger the scheduled GitLab CI job after pushing
+1. Build `.deb` package with
+  `build/deb-package.sh <version> CPAchecker-<version>-unix.zip dist-<version>/`.
+
+1. Test binary archives and the `.deb` package.
+
+1. Commit the changes with commit message `Release <version>`.
+
+1. Add a tag in the repository with name `cpachecker-<version>`.
+
+1. Prepare for next development cycle by adding the suffix `-git`
+   to `version.base` in [`build.xml`](../build.xml).
+
+1. Publish the `.deb` package created in `dist-<version>/`
+   in our [APT repository](https://apt.sosy-lab.org)
+   using the [instructions](https://svn.sosy-lab.org/software/apt/README.md) there.
+
+1. Publish new CPAchecker archive on [Zenodo](https://doi.org/10.5281/zenodo.3816620):
+   - Assign new DOI and upload `CPAchecker-<version>-unix.zip` archive.
+   - Update title to `CPAchecker Release <version> (image)`.
+   - Set publication date.
+   - Update description with entries for new version in [`NEWS.md`](../NEWS.md).
+   - Update list of contributors according to [`Authors.md`](../Authors.md).
+   - Set version field to `<version> (unix)`.
+
+1. Update homepage, which is hosted in [this repository](https://gitlab.com/sosy-lab/research/web/cpachecker):
+   - Add release ZIP archives.
+   - Put changelog of newest version into `NEWS-<version>.txt`.
+   - Add links to `download.php`.
+   - Move the old download links to `download-oldversions.php`.
+   - Update section News on `index.php`.
+
+1. Publish the Docker image by either building and pushing the image manually
+   as described in [`build/Dockerfile.release`](../build/Dockerfile.release)
+   or triggering the scheduled GitLab CI job
    (https://gitlab.com/sosy-lab/software/cpachecker/pipeline_schedules).
+   This needs to be done after updating the homepage.
 
-7. Send a mail with the release announcement to cpachecker-announce and
+1. Publish new CPAchecker image on [Zenodo](https://doi.org/10.5281/zenodo.3816620):
+   - Store image in file with `podman save cpachecker:<version> | gzip -9 > cpachecker-<version>-image.tar.gz`.
+   - Add new version of the Zenodo record as described above with this TAR.
+   - All metadata are the same as for the archive,
+     except that title and version end in `(image)`.
+
+1. Send a mail with the release announcement to cpachecker-announce and
    cpachecker-users mailing lists.
-
-8. Prepare for next development cycle by setting `version.base` in [`build.xml`](../build.xml)
-   to a new development version, which is the next possible version number
-   with the suffix `-svn`.
-   For example, if `1.9` was just released, the next possible feature release
-   is `1.9.1` and the new development version should be `1.9.1-svn`.
 
 
 Version Numbering and Release Tagging
 -------------------------------------
 
 We use the following schema to construct version numbers for CPAchecker releases
-(from version 1.8 onwards):
+(from version 3.0 onwards):
 
-- `X.Y` is the *yearly release* in year `20XY`.
-  There is exactly one such CPAchecker release every year.
-- `X.Y.Z` is a *feature release*, where
-  - `X.Y` is the last yearly release that already exists and that the new release builds on, and
-  - `Z` is `n+1` if a release `X.Y.n` already exists, and `1` otherwise.
-- `X.Y[.z]-<component-version>` is a *component release*, where
-   `X.Y[.z]` is defined as above and `<component-version>` is a label that
-    should give a hint on a special purpose for the release.
-    Ideally, the component version ends with a date stamp.
-- Examples:
-  - `1.9` is the yearly release for 2019.
-  - `1.8-coveritest-sttt-20190729` is a component release after yearly release `1.8`,
-    which points to a commit that was made on 2019-07-29
-    for the purpose of tagging the component version used for the STTT paper on CoVeriTest.
+- `X.Y` is a release that should be done at least *yearly*,
+  where an increase of `X` to version `X.0` indicates a major change
+  and an increase of `Y` indicates a minor change (e.g., added functionality).
+- `X.Y.Z` indicates a bug-fix release,
+  where `Z` is increased (starting from `0`).
+- Development versions have versions as produced by `git describe`,
+  i.e. `4.0-2-gabcdef` for commit `abcdef` if it is the second commit after version 4.0.
+  Note that this differs from semantic versioning and for CPAchecker versions before 4.0,
+  where development version `X.Y-svn-suffix` was ordered before `X.Y`.
 
-The tags in our repository are named `cpachecker-VERSION`,
-e.g. `cpachecker-1.9` and `cpachecker-1.8-coveritest-sttt-20190729`.
+The tags in our repository are named `cpachecker-VERSION`, e.g., `cpachecker-3.0`.

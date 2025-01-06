@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -123,6 +124,12 @@ public class ReportGenerator {
       description = "File name for analysis report in case a counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate counterExampleFiles = PathTemplate.ofFormatString("Counterexample.%d.html");
+
+  @Option(
+      secure = true,
+      name = "report.addWitness",
+      description = "Add visualization of correctness witnesses to the report (can be costly)")
+  private boolean addWitness = false;
 
   private final @Nullable Path logFile;
   private final ImmutableList<String> sourceFiles;
@@ -229,7 +236,7 @@ public class ReportGenerator {
   }
 
   private void extractWitness(Result pResult, CFA pCfa, UnmodifiableReachedSet pReached) {
-    if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
+    if (addWitness && EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
       ImmutableSet<ARGState> rootStates = ARGUtils.getRootStates(pReached);
       if (rootStates.size() != 1) {
         logger.log(Level.FINER, "Could not determine ARG root for witness view");
@@ -385,7 +392,8 @@ public class ReportGenerator {
     TraceFormula traceFormula = ((FaultLocalizationInfoWithTraceFormula) fInfo).getTraceFormula();
     PreCondition preCondition = traceFormula.getPrecondition();
     FormulaContext context = traceFormula.getContext();
-    FormulaToCVisitor visitor = new FormulaToCVisitor(context.getSolver().getFormulaManager());
+    FormulaToCVisitor visitor =
+        new FormulaToCVisitor(context.getSolver().getFormulaManager(), Function.identity());
     context.getSolver().getFormulaManager().visit(preCondition.getPrecondition(), visitor);
     return visitor.getString();
   }

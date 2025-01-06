@@ -525,9 +525,7 @@ class AssignmentQuantifierHandler {
 
     // the unrolled index should be of pointerAsUnsignedIntType
     final FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(pointerAsUnsignedIntType);
-
-    // limit the unrolling size to a reasonable number by default
-    long unrollingSize = options.defaultArrayLength();
+    final long unrollingSize;
     final Optional<Formula> sliceSizeFormula;
 
     // if the expression is a literal, we can get the exact slice size
@@ -553,6 +551,7 @@ class AssignmentQuantifierHandler {
     } else {
       // non-literal slice size expression, always potentially unsound
       // warn just once for all non-literal unrollings to avoid polluting the output
+      unrollingSize = options.defaultArrayLength();
       conv.logger.logfOnce(
           Level.WARNING,
           "Limiting unrolling of non-literal-length slice assignment to %s, soundness may be lost",

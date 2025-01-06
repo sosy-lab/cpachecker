@@ -72,6 +72,10 @@ public enum IICOperatorFactory {
         BitVectorInfo info = pFirstOperand.getTypeInfo();
         CompoundBitVectorInterval result = CompoundBitVectorInterval.bottom(info);
 
+        if (pFirstOperand.containsZero()) {
+          result = result.unionWith(BitVectorInterval.singleton(info, BigInteger.ZERO));
+        }
+
         if (pFirstOperand.containsNegative()) {
           BigInteger negUB = pFirstOperand.closestNegativeToZero();
           BitVectorInterval asPositive =

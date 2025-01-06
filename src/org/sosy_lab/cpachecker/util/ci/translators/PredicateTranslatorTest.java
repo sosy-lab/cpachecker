@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.ci.translators;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -68,6 +69,14 @@ public class PredicateTranslatorTest extends SolverViewBasedTest0 {
 
   @Before
   public void init() throws Exception {
+    assume()
+        .withMessage(
+            "Solver %s does not completely support the tested features, like dumping and parsing"
+                + " formulas",
+            solverToUse())
+        .that(solverToUse())
+        .isNotEqualTo(Solvers.BITWUZLA);
+
     FormulaManagerView fmv = mgrv;
     PathFormulaManager pfmgr =
         new PathFormulaManagerImpl(

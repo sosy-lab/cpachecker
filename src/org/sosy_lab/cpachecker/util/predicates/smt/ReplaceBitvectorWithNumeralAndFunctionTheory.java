@@ -16,6 +16,7 @@ import static org.sosy_lab.java_smt.api.FormulaType.getBitvectorTypeWithSize;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.DoNotCall;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -34,7 +35,6 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
-import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
@@ -210,16 +210,32 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
         getC99ReplacementForSMTlib2Division(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
+  @DoNotCall
+  @SuppressWarnings({"deprecation", "removal"})
   @Override
-  public BitvectorFormula modulo(
+  public final BitvectorFormula modulo(
       BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
-    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    if (numericFormulaManager instanceof IntegerFormulaManager) {
+    throw new UnsupportedOperationException(
+        "This operation has been deprecated and replaced by smodulo() and remainder().");
+  }
+
+  @Override
+  public BitvectorFormula smodulo(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
+    // Note: signed bv modulo behaves differently compared to int modulo or bv remainder!
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  }
+
+  @Override
+  public BitvectorFormula remainder(
+      BitvectorFormula numerator, BitvectorFormula denominator, boolean signed) {
+    assert getLength(numerator) == getLength(denominator)
+        : "Expect operators to have the same size";
+    if (numericFormulaManager instanceof IntegerFormulaManagerView imgr) {
       return wrap(
-          getFormulaType(pNumber1),
-          getC99ReplacementForSMTlib2Modulo(unwrap(pNumber1), unwrap(pNumber2)));
+          getFormulaType(numerator),
+          imgr.remainder((IntegerFormula) unwrap(numerator), (IntegerFormula) unwrap(denominator)));
     } else {
-      return makeUf(getFormulaType(pNumber1), moduloUfDecl, pNumber1, pNumber2);
+      return makeUf(getFormulaType(numerator), moduloUfDecl, numerator, denominator);
     }
   }
 
@@ -246,34 +262,6 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
             numericFormulaManager.equal(numericFormulaManager.multiply(div, f2), f1)),
         div,
         numericFormulaManager.add(div, additionalUnit));
-  }
-
-  /**
-   * @see BitvectorFormulaManagerView#modulo(BitvectorFormula, BitvectorFormula, boolean)
-   */
-  @SuppressWarnings("unchecked")
-  private Formula getC99ReplacementForSMTlib2Modulo(final T f1, final T f2) {
-    final T zero = numericFormulaManager.makeNumber(0);
-    final T additionalUnit =
-        booleanFormulaManager.ifThenElse(
-            numericFormulaManager.greaterOrEquals(f2, zero), numericFormulaManager.negate(f2), f2);
-
-    final T mod;
-    mod =
-        (T)
-            ((IntegerFormulaManager) numericFormulaManager)
-                .modulo((IntegerFormula) f1, (IntegerFormula) f2);
-
-    // IF   first operand is positive or mod-result is zero
-    // THEN return plain modulo --> here C99 is equal to SMTlib2
-    // ELSE modulo and add an additional unit towards the nearest infinity.
-
-    return booleanFormulaManager.ifThenElse(
-        booleanFormulaManager.or(
-            numericFormulaManager.greaterOrEquals(f1, zero),
-            numericFormulaManager.equal(mod, zero)),
-        mod,
-        numericFormulaManager.add(mod, additionalUnit));
   }
 
   @Override
@@ -333,6 +321,26 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   public BitvectorFormula shiftLeft(BitvectorFormula pNumber, BitvectorFormula pToShift) {
     assert getLength(pNumber) == getLength(pToShift) : "Expect operators to have the same size";
     return makeUf(getFormulaType(pNumber), leftShiftUfDecl, pNumber, pToShift);
+  }
+
+  @Override
+  public BitvectorFormula rotateLeft(BitvectorFormula number, int toRotate) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  }
+
+  @Override
+  public BitvectorFormula rotateLeft(BitvectorFormula number, BitvectorFormula toRotate) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  }
+
+  @Override
+  public BitvectorFormula rotateRight(BitvectorFormula number, int toRotate) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  }
+
+  @Override
+  public BitvectorFormula rotateRight(BitvectorFormula number, BitvectorFormula toRotate) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
   }
 
   @Override

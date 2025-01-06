@@ -146,7 +146,14 @@ class CExpressionVisitorWithPointerAliasing
 
     delegate =
         new ExpressionToFormulaVisitor(
-            cToFormulaConverter, cToFormulaConverter.fmgr, cfaEdge, function, ssa, constraints) {
+            cToFormulaConverter,
+            cToFormulaConverter.fmgr,
+            cfaEdge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions) {
           @Override
           protected Formula toFormula(CExpression e) throws UnrecognizedCodeException {
             // recursive application of pointer-aliasing.
@@ -580,7 +587,7 @@ class CExpressionVisitorWithPointerAliasing
         }
         break;
       case MINUS:
-        // TODO addEqualBaseAddressConstraints here, too?
+      // TODO addEqualBaseAddressConstraints here, too?
       default:
         // Does not occur for pointers
         break;

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -25,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
  */
 public final class CVariableDeclaration extends AVariableDeclaration implements CDeclaration {
 
-  private static final long serialVersionUID = 8303959164064236061L;
+  @Serial private static final long serialVersionUID = 8303959164064236061L;
   private final CStorageClass cStorageClass;
 
   public CVariableDeclaration(
@@ -88,19 +89,20 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder lASTString = new StringBuilder();
 
     lASTString.append(cStorageClass.toASTString());
-    if (pQualified) {
-      lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));
-    } else {
-      lASTString.append(getType().toASTString(getName()));
-    }
+    lASTString.append(
+        switch (pAAstNodeRepresentation) {
+          case DEFAULT -> getType().toASTString(getName());
+          case QUALIFIED -> getType().toASTString(getQualifiedName().replace("::", "__"));
+          case ORIGINAL_NAMES -> getType().toASTString(getOrigName());
+        });
 
     if (getInitializer() != null) {
       lASTString.append(" = ");
-      lASTString.append(getInitializer().toASTString(pQualified));
+      lASTString.append(getInitializer().toASTString(pAAstNodeRepresentation));
     }
 
     lASTString.append(";");

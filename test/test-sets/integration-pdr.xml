@@ -13,14 +13,14 @@ SPDX-License-Identifier: Apache-2.0
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="1">
 
-  <option name="-noout"/>
-  <option name="-heap">2000M</option>
+  <option name="--no-output-files"/>
+  <option name="--heap">2000M</option>
 
   <rundefinition>
-    <option name="-config">config/unmaintained/components/kInduction/pdr.properties</option>
-    <option name="-setprop">pdr.abstractionStrategy=ALLSAT_BASED_PREDICATE_ABSTRACTION</option>
-    <option name="-setprop">pdr.liftingStrategy=ABSTRACTION_BASED_LIFTING</option>
-    <option name="-setprop">pdr.invariantRefinementStrategy=UNSAT_CORE_BASED_STRENGTHENING</option>
+    <option name="--config">config/unmaintained/components/kInduction/pdr.properties</option>
+    <option name="--option">pdr.abstractionStrategy=ALLSAT_BASED_PREDICATE_ABSTRACTION</option>
+    <option name="--option">pdr.liftingStrategy=ABSTRACTION_BASED_LIFTING</option>
+    <option name="--option">pdr.invariantRefinementStrategy=UNSAT_CORE_BASED_STRENGTHENING</option>
   </rundefinition>
 
   <tasks>
@@ -39,7 +39,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
     <exclude>../programs/benchmarks/openssl/*</exclude>
@@ -51,11 +51,12 @@ SPDX-License-Identifier: Apache-2.0
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
 
     <!-- Timeout even after 90s -->
     <exclude>../programs/benchmarks/list-properties/*</exclude>
@@ -63,11 +64,12 @@ SPDX-License-Identifier: Apache-2.0
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
     <exclude>../programs/benchmarks/loops/sum0*</exclude>
@@ -85,11 +87,11 @@ SPDX-License-Identifier: Apache-2.0
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
@@ -102,8 +104,8 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--usb*</exclude>
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <option name="-skipRecursion"/>
+    <option name="--skip-recursion"/>
     <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 </benchmark>

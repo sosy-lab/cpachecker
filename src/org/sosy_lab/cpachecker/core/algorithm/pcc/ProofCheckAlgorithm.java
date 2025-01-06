@@ -144,8 +144,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     logger.log(Level.INFO, "Proof check algorithm started.");
     stats.totalTimer.start();
 
-    boolean result;
-    result = checkingStrategy.checkCertificate(reachedSet);
+    boolean result = checkingStrategy.checkCertificate(reachedSet);
 
     stats.totalTimer.stop();
     logger.log(Level.INFO, "Proof check algorithm finished.");

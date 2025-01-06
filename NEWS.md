@@ -8,11 +8,110 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-Changes since CPAchecker 2.2
-----------------------------
-* Java 17 required  
-  Since revision r42803 CPAchecker requires Java 17 or newer
-  in order to be built or executed.
+Changes from CPAchecker 3.0 to CPAchecker 4.0
+---------------------------------------------
+* Improved default configuration of CPAchecker.  
+  The default configuration of CPAchecker is now more advanced and effective.
+  For standard reachability properties it now uses strategy selection on
+  program features such as the whether loops exist to choose a particular analysis.
+  In most cases, a parallel portfolio of a diverse range of analyses such as
+  k-induction, IMC, predicate abstraction, and value analysis is used.
+  Parallel portfolios of different analyses are also used for verification of
+  memory-safety and termination properties.
+* Initial support for handling `atexit`.
+* The generated HTML report does no longer contain the witness tab by default.  
+  In some cases, it can take a long time to generated.
+  Set the option `report.addWitness=true` to re-enable it.
+* On 2024-10-18 the CPAchecker repository was migrated from Subversion to git  
+  Please see our [post on the migration](https://groups.google.com/g/cpachecker-users/c/1s6YbhvKq6Y/m/ElnLV4CkAAAJ)
+  for information on how to adjust your local repository if necessary.
+
+
+Changes from CPAchecker 2.4 to CPAchecker 3.0
+---------------------------------------------
+* Default analysis no longer needs to be explicitly requested.  
+  If neither a configuration file nor the argument `--cpas` is given,
+  CPAchecker will automatically use its default configuration,
+  i.e., `--default` no longer needs to be used.
+
+
+Changes from CPAchecker 2.3.1 to CPAchecker 2.4
+-----------------------------------------------
+* Debian/Ubuntu package and APT repository  
+  CPAchecker is now available as an easy-to-install `.deb` package for Debian/Ubuntu
+  via the [SoSy-Lab APT repository](https://apt.sosy-lab.org).
+  Follow the link for usage instructions.
+* Container images on Docker Hub  
+  The official container images of CPAchecker are now also available
+  as [`sosylab/cpachecker` on Docker Hub](https://hub.docker.com/r/sosylab/cpachecker).
+* Executables of CPAchecker renamed  
+  Instead of `scripts/cpa.sh` and `scripts/cpa.bat` we now provide
+  `bin/cpachecker` and `bin/cpachecker.bat` as the main executables of CPAchecker.
+  The new executables are drop-in replacements.
+  The old executables are deprecated but will continue to exist
+  at least until the next major version of CPAchecker.
+  Similarly, we now provide `bin/cpa-witness2test` for CPA-witness2test.
+* Command-line arguments of CPAchecker renamed  
+  All arguments of CPAchecker now follow standard conventions
+  and start with two dashes ("--") for long arguments, e.g., `--default`.
+  Some arguments have also been renamed slightly,
+  or have been removed due to them being rarely used.
+  As before, [`doc/Configuration.md`](https://gitlab.com/sosy-lab/software/cpachecker/-/blob/trunk/doc/Configuration.md)
+  documents the supported arguments.
+  Previous command-line arguments with a single dash are deprecated,
+  but continue to work, and CPAchecker will print warning messages
+  that inform about their recommended replacements.
+
+
+Changes from CPAchecker 2.3 to CPAchecker 2.3.1
+-----------------------------------------------
+* Dual Approximated Reachability (DAR)  
+  A new reachability-safety analysis (config `-bmc-interpolationDualSequence`),
+  which adopts a hardware model-checking algorithm
+  proposed by Yakir Vizel, Orna Grumberg, and Sharon Shoham
+  (cf. ["Intertwined Forward-Backward Reachability Analysis Using Interpolants", Proc. TACAS, 2013](https://doi.org/10.1007/978-3-642-36742-7_22))
+  for software verification, has been added to CPAchecker.
+* Export of test harnesses enabled by default for found property violations  
+  The test harness can reproduce the found violation through execution
+  of the input program linked against the test harness.
+  See [doc/tutorials/test-harness.md](doc/tutorials/test-harness.md) for an example use.
+* Improved export for witnesses version 2.0  
+  The export of witnesses version 2.0 is now faster,
+  no longer depends on exporting witnesses version 1.0,
+  and shares its configuration options with the export of witnesses version 1.0.
+* Improved analysis for memory safety based on symbolic memory graphs (SMG)  
+  The SMG analysis (configuration `-smg`) was replaced with a reimplementation
+  that brings several improvements such as increased soundness,
+  a better list abstraction, and better performance.
+  The previous analysis is temporarily available as `-smg-old`,
+  but it will be removed in the next release
+  together with the previous implementation
+  and all other configurations based on it.
+
+
+Changes from CPAchecker 2.2 to CPAchecker 2.3
+---------------------------------------------
+* Java 17 or later is required now.
+* More precise heap encoding in predicate analysis.  
+  The predicate analysis now optionally supports sound modeling
+  of aliasing with char pointers as well as functions like memset/memcmp.
+  So far this is not turned on by default yet, but can be enabled
+  with `cpa.predicate.enableMemoryAssignmentFunctions = true`
+  and `cpa.predicate.useByteArrayForHeap = true`.
+* New analysis for memory safety based on memory graphs.  
+  Because the existing analysis for this has some hard-to-fix problems,
+  a new analysis has been added that can be used with `-smg2`.
+* New termination analysis.  
+  In addition to the existing LassoRanker-based analysis
+  CPAchecker now has an analysis for termination that is based on transforming
+  the property to a safety property.
+  This analysis can be used with `-terminationToSafety`.
+- New Yaml-based witness format.  
+  CPAchecker now supports [version 2.0 of the witness format](https://gitlab.com/sosy-lab/benchmarking/sv-witnesses/-/blob/main/doc/README-YAML.md)
+  (both as output and input).
+- More functions from standard library supported.  
+  We have continued to extend our support for extern standard functions
+  and now for example have support for standard `fscanf` uses.
 
 
 Changes from CPAchecker 2.1.1 to CPAchecker 2.2

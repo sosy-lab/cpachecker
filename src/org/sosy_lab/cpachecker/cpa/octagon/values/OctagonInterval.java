@@ -10,8 +10,9 @@ package org.sosy_lab.cpachecker.cpa.octagon.values;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.Arrays;
+import com.google.common.collect.ImmutableList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 public class OctagonInterval {
@@ -402,15 +403,14 @@ public class OctagonInterval {
    *     OctIntervals
    */
   public OctagonInterval times(OctagonInterval other) {
-    OctagonNumericValue<?>[] values = {
-      scalarTimes(low, other.low),
-      scalarTimes(low, other.high),
-      scalarTimes(high, other.low),
-      scalarTimes(high, other.high),
-    };
+    List<OctagonNumericValue<?>> values =
+        ImmutableList.of(
+            scalarTimes(low, other.low),
+            scalarTimes(low, other.high),
+            scalarTimes(high, other.low),
+            scalarTimes(high, other.high));
 
-    return new OctagonInterval(
-        Collections.min(Arrays.asList(values)), Collections.max(Arrays.asList(values)));
+    return new OctagonInterval(Collections.min(values), Collections.max(values));
   }
 
   /**
@@ -425,12 +425,11 @@ public class OctagonInterval {
     if (other.contains(FALSE)) {
       return createUnboundOctInterval();
     } else {
-      OctagonNumericValue<?>[] values = {
-        low.div(other.low), low.div(other.high), high.div(other.low), high.div(other.high),
-      };
+      List<OctagonNumericValue<?>> values =
+          ImmutableList.of(
+              low.div(other.low), low.div(other.high), high.div(other.low), high.div(other.high));
 
-      return new OctagonInterval(
-          Collections.min(Arrays.asList(values)), Collections.max(Arrays.asList(values)));
+      return new OctagonInterval(Collections.min(values), Collections.max(values));
     }
   }
 

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import org.sosy_lab.common.configuration.Configuration;
@@ -18,9 +19,27 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGRuntimeCheck;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 
 @Options(prefix = "cpa.smg2")
 public class SMGOptions {
+
+  private int actualConcreteValueForSymbolicOffsetsAssignmentMaximum = 0;
+
+  @Option(
+      secure = true,
+      description =
+          "aborts the analysis for a non-concrete (this includes symbolic values) memory allocation"
+              + " of any kind.")
+  private boolean abortOnNonConcreteMemorySize = true;
+
+  @Option(
+      secure = true,
+      description =
+          "with this option enabled, we try to gather information on memory reads from values that"
+              + " are overlapping but not exactly fitting to the read parameters. Example: int"
+              + " value = 1111; char a = (char)((char[])&value)[1];")
+  private boolean preciseSMGRead = true;
 
   @Option(
       secure = true,
@@ -65,6 +84,94 @@ public class SMGOptions {
           "Which unknown function are always considered as safe functions, "
               + "i.e., free of memory-related side-effects?")
   private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("abort");
+
+  @Option(
+      secure = true,
+      name = "overapproximateSymbolicOffsets",
+      description =
+          "If this Option is enabled, all values of a memory region that is written or read with a"
+              + " symbolic offset are overapproximated. I.e. when writing to a memory region, all"
+              + " previous values are deleted and the memory region is overapproximated so that"
+              + " only unknown values are in the memory region after the write. When reading, all"
+              + " possible reads are evaluated. Can not be used at the same time as option"
+              + " findConcreteValuesForSymbolicOffsets.")
+  private boolean overapproximateSymbolicOffsets = false;
+
+  @Option(
+      secure = true,
+      name = "findConcreteValuesForSymbolicOffsets",
+      description =
+          "If this Option is enabled, all symbolic offsets used when writing to memory are"
+              + " evaluated into all possible concrete values by an SMT solver. This might be very"
+              + " expensive, as all possible combinations of values for the symbolic offsets are"
+              + " concretely evaluated. May not be used together with option"
+              + " overapproximateForSymbolicWrite.")
+  private boolean findConcreteValuesForSymbolicOffsets = false;
+
+  @Option(
+      secure = true,
+      name = "concreteValueForSymbolicOffsetsAssignmentMaximum",
+      description =
+          "Maximum amount of concrete assignments before the assigning is aborted. The last offset"
+              + " is then once treated as option overapproximateSymbolicOffsetsAsFallback"
+              + " specifies.")
+  private int concreteValueForSymbolicOffsetsAssignmentMaximum = 300;
+
+  /* TODO:
+    @Option(
+        secure = true,
+        name = "overapproximateSymbolicOffsetsAsFallback",
+        description =
+            "If this Option is enabled, and concreteValueForSymbolicOffsetsAssignmentMaximum reaches"
+                + " its maximum, the one last not assigned offset of a memory region that is written"
+                + " or read with a symbolic offset is overapproximated as specified in"
+                + " findConcreteValuesForSymbolicOffsets. Otherwise, the analysis is aborted.")
+    private boolean overapproximateSymbolicOffsetsAsFallback = false;
+  */
+
+  @Option(
+      secure = true,
+      name = "overapproximateValuesForSymbolicSize",
+      description =
+          "If this Option is enabled, all values of a memory region that is written to with a"
+              + " symbolic and non-unique offset in symbolically sized memory are deleted and the"
+              + " value itself is overapproximated to unknown in the memory region.")
+  private boolean overapproximateValuesForSymbolicSize = false;
+
+  public boolean isOverapproximateValuesForSymbolicSize() {
+    return overapproximateValuesForSymbolicSize;
+  }
+
+  public boolean isOverapproximateSymbolicOffsets() {
+    Preconditions.checkArgument(
+        !overapproximateSymbolicOffsets || !findConcreteValuesForSymbolicOffsets);
+    return overapproximateSymbolicOffsets;
+  }
+
+  public boolean isFindConcreteValuesForSymbolicOffsets() {
+    Preconditions.checkArgument(
+        !findConcreteValuesForSymbolicOffsets || !overapproximateSymbolicOffsets);
+    return findConcreteValuesForSymbolicOffsets;
+  }
+
+  public int getConcreteValueForSymbolicOffsetsAssignmentMaximum() {
+    return concreteValueForSymbolicOffsetsAssignmentMaximum;
+  }
+
+  public void incConcreteValueForSymbolicOffsetsAssignmentMaximum() throws SMGException {
+    if (actualConcreteValueForSymbolicOffsetsAssignmentMaximum
+        > concreteValueForSymbolicOffsetsAssignmentMaximum) {
+      throw new SMGException(
+          "Exceeded maximum number of concrete symbolic assignments"
+              + " concreteValueForSymbolicOffsetsAssignmentMaximum = "
+              + concreteValueForSymbolicOffsetsAssignmentMaximum);
+    }
+    actualConcreteValueForSymbolicOffsetsAssignmentMaximum++;
+  }
+
+  public void decConcreteValueForSymbolicOffsetsAssignmentMaximum() {
+    actualConcreteValueForSymbolicOffsetsAssignmentMaximum--;
+  }
 
   public enum UnknownFunctionHandling {
     STRICT,
@@ -196,9 +303,9 @@ public class SMGOptions {
 
   @Option(
       secure = true,
-      name = "crashOnUnknown",
-      description = "Crash on unknown array dereferences")
-  private boolean crashOnUnknown = false;
+      name = "crashOnUnknownInConstraint",
+      description = "Crash on unknown value when creating constraints of any form.")
+  private boolean crashOnUnknownInConstraint = false;
 
   @Option(
       secure = true,
@@ -263,12 +370,13 @@ public class SMGOptions {
       description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
   private boolean assignEqualityAssumptions = true;
 
-  // assignSymbolicValues is needed to get the same options as the valueAnalysis as SMGs always save
+  // treatSymbolicValuesAsUnknown is needed to get the same options as the valueAnalysis as SMGs
+  // always save
   // symbolics. We could however simply retranslate every symbolic to an unknown after reads.
   @Option(
       secure = true,
       description = "Treat symbolic values as unknowns and assign new concrete values to them.")
-  private boolean assignSymbolicValues = true;
+  private boolean treatSymbolicValuesAsUnknown = false;
 
   @Option(
       secure = true,
@@ -289,7 +397,7 @@ public class SMGOptions {
           "If this option is enabled, a memory allocation (e.g. malloc or array declaration) for "
               + "unknown memory sizes does not abort, but also does not create any memory.")
   private UnknownMemoryAllocationHandling handleUnknownMemoryAllocation =
-      UnknownMemoryAllocationHandling.IGNORE;
+      UnknownMemoryAllocationHandling.STOP_ANALYSIS;
 
   /*
    * Ignore: ignore allocation call and overapproximate.
@@ -311,6 +419,14 @@ public class SMGOptions {
               + " that may not be accessed but freed is returned.")
   private boolean mallocZeroReturnsZero = false;
 
+  @Option(
+      secure = true,
+      name = "canAtexitFail",
+      description =
+          "If this Option is enabled, C function atexit() will return a succeeding and failing"
+              + " registration for each registration. Otherwise only succeeding.")
+  private boolean canAtexitFail = false;
+
   public enum SMGExportLevel {
     NEVER,
     LEAF,
@@ -320,6 +436,10 @@ public class SMGOptions {
 
   public SMGOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
+  }
+
+  public boolean canAtexitFail() {
+    return canAtexitFail;
   }
 
   private UnknownMemoryAllocationHandling getIgnoreUnknownMemoryAllocationSetting() {
@@ -368,6 +488,10 @@ public class SMGOptions {
     return castMemoryAddressesToNumeric;
   }
 
+  public boolean isPreciseSMGRead() {
+    return preciseSMGRead;
+  }
+
   public UnknownFunctionHandling getHandleUnknownFunctions() {
     return handleUnknownFunctions;
   }
@@ -406,6 +530,10 @@ public class SMGOptions {
 
   public int getMemoryArrayAllocationFunctionsElemSizeParameter() {
     return memoryArrayAllocationFunctionsElemSizeParameter;
+  }
+
+  public boolean isAbortOnNonConcreteMemorySize() {
+    return abortOnNonConcreteMemorySize;
   }
 
   public ImmutableSet<String> getZeroingMemoryAllocation() {
@@ -472,16 +600,16 @@ public class SMGOptions {
     return joinOnBlockEnd;
   }
 
-  public boolean crashOnUnknown() {
-    return crashOnUnknown;
+  public boolean crashOnUnknownInConstraint() {
+    return crashOnUnknownInConstraint;
   }
 
   boolean isAssignEqualityAssumptions() {
     return assignEqualityAssumptions;
   }
 
-  boolean isAssignSymbolicValues() {
-    return assignSymbolicValues;
+  boolean isTreatSymbolicValuesAsUnknown() {
+    return treatSymbolicValuesAsUnknown;
   }
 
   public boolean isSatCheckStrategyAtAssume() {

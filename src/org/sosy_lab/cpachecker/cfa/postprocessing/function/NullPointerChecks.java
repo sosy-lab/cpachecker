@@ -241,43 +241,42 @@ public class NullPointerChecks {
 
   private static CFAEdge createOldEdgeWithNewNodes(
       CFANode predecessor, CFANode successor, CFAEdge edge) {
-    switch (edge.getEdgeType()) {
-      case AssumeEdge:
-        return new CAssumeEdge(
-            edge.getRawStatement(),
-            edge.getFileLocation(),
-            predecessor,
-            successor,
-            ((CAssumeEdge) edge).getExpression(),
-            ((CAssumeEdge) edge).getTruthAssumption(),
-            ((CAssumeEdge) edge).isSwapped(),
-            ((CAssumeEdge) edge).isArtificialIntermediate());
-      case ReturnStatementEdge:
-        return new CReturnStatementEdge(
-            edge.getRawStatement(),
-            ((CReturnStatementEdge) edge).getReturnStatement(),
-            edge.getFileLocation(),
-            predecessor,
-            ((CReturnStatementEdge) edge).getSuccessor());
-      case StatementEdge:
-        return new CStatementEdge(
-            edge.getRawStatement(),
-            ((CStatementEdge) edge).getStatement(),
-            edge.getFileLocation(),
-            predecessor,
-            successor);
-      case DeclarationEdge:
-        return new CDeclarationEdge(
-            edge.getRawStatement(),
-            edge.getFileLocation(),
-            predecessor,
-            successor,
-            ((CDeclarationEdge) edge).getDeclaration());
-      case CallToReturnEdge:
-        throw new AssertionError();
-      default:
-        throw new AssertionError("more edge types valid than expected, more work to do here");
-    }
+    return switch (edge.getEdgeType()) {
+      case AssumeEdge ->
+          new CAssumeEdge(
+              edge.getRawStatement(),
+              edge.getFileLocation(),
+              predecessor,
+              successor,
+              ((CAssumeEdge) edge).getExpression(),
+              ((CAssumeEdge) edge).getTruthAssumption(),
+              ((CAssumeEdge) edge).isSwapped(),
+              ((CAssumeEdge) edge).isArtificialIntermediate());
+      case ReturnStatementEdge ->
+          new CReturnStatementEdge(
+              edge.getRawStatement(),
+              ((CReturnStatementEdge) edge).getReturnStatement(),
+              edge.getFileLocation(),
+              predecessor,
+              ((CReturnStatementEdge) edge).getSuccessor());
+      case StatementEdge ->
+          new CStatementEdge(
+              edge.getRawStatement(),
+              ((CStatementEdge) edge).getStatement(),
+              edge.getFileLocation(),
+              predecessor,
+              successor);
+      case DeclarationEdge ->
+          new CDeclarationEdge(
+              edge.getRawStatement(),
+              edge.getFileLocation(),
+              predecessor,
+              successor,
+              ((CDeclarationEdge) edge).getDeclaration());
+      case CallToReturnEdge -> throw new AssertionError();
+      default ->
+          throw new AssertionError("more edge types valid than expected, more work to do here");
+    };
   }
 
   /** This visitor returns all Expressions where a Pointer is included */
