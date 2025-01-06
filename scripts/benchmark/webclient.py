@@ -1083,7 +1083,7 @@ class WebInterface:
             for run_collection_id in self._run_collection_ids:
                 try:
                     logging.info("Deleting run collection %s", run_collection_id)
-                    server_reply, status_code = self._request(
+                    server_reply, _ = self._request(
                         "DELETE", "runs/collection/" + run_collection_id
                     )
                     logging.info(server_reply.decode("utf-8"))
