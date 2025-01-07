@@ -1457,21 +1457,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     FileLocation loc = astCreator.getLocation(condition);
-    if (fileLocation.getStartingLineNumber() < loc.getStartingLineNumber()) {
-      loc =
-          new FileLocation(
-              loc.getFileName(),
-              loc.getNiceFileName(),
-              fileLocation.getNodeOffset(),
-              loc.getNodeLength() + loc.getNodeOffset() - fileLocation.getNodeOffset(),
-              fileLocation.getStartingLineNumber(),
-              loc.getEndingLineNumber(),
-              loc.getStartColumnInLine(),
-              loc.getEndColumnInLine(),
-              fileLocation.getStartingLineInOrigin(),
-              loc.getEndingLineInOrigin(),
-              fileLocation.isOffsetRelatedToOrigin() && loc.isOffsetRelatedToOrigin());
-    }
 
     CExpression expression = exp;
 
