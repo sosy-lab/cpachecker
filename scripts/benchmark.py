@@ -161,15 +161,10 @@ class Benchmark(VcloudBenchmarkBase):
             logging.warning(
                 "Benchmarking as root user is not advisable! Please execute this script as normal user!"
             )
+
         if not self.config.revision:
-            logging.debug("--revision was not passed. Validating local Git checkout...")
             latest_commit = self.validate_local_checkout()
             self.config.revision = latest_commit
-            logging.debug(
-                f"Default revision set to the latest commit: {self.config.revision}")
-        else:
-            logging.debug(
-                f"--revision was explicitly passed: {self.config.revision}")
 
         if self.config.cloud:
             if self.config.cloudMaster and "http" in self.config.cloudMaster:
