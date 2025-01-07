@@ -106,7 +106,10 @@ class Benchmark(VcloudBenchmarkBase):
         """
         try:
             result = subprocess.run(
-                ["git", "status", "--porcelain", "--untracked-files=no"], cwd=_ROOT_DIR, text=True, capture_output=True
+                ["git", "status", "--porcelain", "--untracked-files=no"],
+                cwd=_ROOT_DIR,
+                text=True,
+                capture_output=True
             )
             if result.returncode != 0:
                 sys.exit("Error: Failed to check the Git status of the repository.")
@@ -116,7 +119,9 @@ class Benchmark(VcloudBenchmarkBase):
                 )
 
             branch_result = subprocess.run(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=_ROOT_DIR, text=True,
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                cwd=_ROOT_DIR,
+                text=True,
                 capture_output=True
             )
             if branch_result.returncode != 0:
@@ -160,9 +165,11 @@ class Benchmark(VcloudBenchmarkBase):
             logging.debug("--revision was not passed. Validating local Git checkout...")
             latest_commit = self.validate_local_checkout()
             self.config.revision = latest_commit
-            logging.debug(f"Default revision set to the latest commit: {self.config.revision}")
+            logging.debug(
+                f"Default revision set to the latest commit: {self.config.revision}")
         else:
-            logging.debug(f"--revision was explicitly passed: {self.config.revision}")
+            logging.debug(
+                f"--revision was explicitly passed: {self.config.revision}")
 
         if self.config.cloud:
             if self.config.cloudMaster and "http" in self.config.cloudMaster:
