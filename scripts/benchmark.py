@@ -74,7 +74,6 @@ class Benchmark(VcloudBenchmarkBase):
             "--revision",
             dest="revision",
             metavar="(tags/<tag name>|branch_name)[:(HEAD|head|<revision number>)]",
-            default="trunk:HEAD",
             help="The svn revision of CPAchecker to use (if using the web interface of the VerifierCloud).",
         )
 
@@ -100,12 +99,75 @@ class Benchmark(VcloudBenchmarkBase):
     def get_param_name(self, pname):
         return "--" + pname
 
+    def validate_local_checkout(self):
+        """
+        Validates the local Git checkout to ensure it's clean and has no unpushed changes.
+        If valid, retrieves the latest commit hash.
+        """
+        try:
+            # Check for uncommitted changes
+            result = subprocess.run(
+                ["git", "status", "--porcelain"], cwd=_ROOT_DIR, text=True, capture_output=True
+            )
+            if result.returncode != 0:
+                sys.exit("Error: Failed to check the Git status of the repository.")
+            if result.stdout.strip():
+                sys.exit(
+                    "Error: Local checkout has uncommitted changes. Please commit or stash them before proceeding."
+                )
+
+            # Ensure no unpushed commits exist
+            branch_result = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=_ROOT_DIR, text=True,
+                capture_output=True
+            )
+            if branch_result.returncode != 0:
+                sys.exit("Error: Failed to determine the current Git branch.")
+            current_branch = branch_result.stdout.strip()
+
+            unpushed_result = subprocess.run(
+                ["git", "rev-list", f"{current_branch}@{{u}}...{current_branch}"],
+                cwd=_ROOT_DIR,
+                text=True,
+                capture_output=True,
+            )
+            if unpushed_result.returncode != 0:
+                sys.exit("Error: Failed to check for unpushed commits.")
+            if unpushed_result.stdout.strip():
+                sys.exit(
+                    "Error: Local checkout has unpushed commits. Please push them before proceeding."
+                )
+
+            # Get the latest commit hash of the current branch
+            revision_result = subprocess.run(
+                ["git", "rev-parse", "HEAD"], cwd=_ROOT_DIR, text=True, capture_output=True
+            )
+            if revision_result.returncode != 0 or not revision_result.stdout.strip():
+                sys.exit(
+                    "Error: Could not determine the latest Git revision. "
+                    "Please explicitly pass --revision to specify the revision you want to benchmark."
+                )
+
+            # Return the latest commit hash
+            return revision_result.stdout.strip()
+
+        except FileNotFoundError:
+            sys.exit("Error: Git is not installed or unavailable on this system.")
+
     def load_executor(self):
         webclient = False
         if getpass.getuser() == "root":
             logging.warning(
                 "Benchmarking as root user is not advisable! Please execute this script as normal user!"
             )
+        if not self.config.revision:
+            logging.debug("--revision was not passed. Validating local Git checkout...")
+            latest_commit = self.validate_local_checkout()
+            self.config.revision = latest_commit  # Dynamically set to the latest commit
+            logging.debug(f"Default revision set to the latest commit: {self.config.revision}")
+        else:
+            logging.debug(f"--revision was explicitly passed: {self.config.revision}")
+
         if self.config.cloud:
             if self.config.cloudMaster and "http" in self.config.cloudMaster:
                 webclient = True
