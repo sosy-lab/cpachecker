@@ -107,7 +107,7 @@ class Benchmark(VcloudBenchmarkBase):
         try:
             # Check for uncommitted changes
             result = subprocess.run(
-                ["git", "status", "--porcelain"], cwd=_ROOT_DIR, text=True, capture_output=True
+                ["git", "status", "--porcelain", "--untracked-files=no"], cwd=_ROOT_DIR, text=True, capture_output=True
             )
             if result.returncode != 0:
                 sys.exit("Error: Failed to check the Git status of the repository.")
