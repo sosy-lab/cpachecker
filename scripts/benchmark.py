@@ -105,7 +105,6 @@ class Benchmark(VcloudBenchmarkBase):
         If valid, retrieves the latest commit hash.
         """
         try:
-            # Check for uncommitted changes
             result = subprocess.run(
                 ["git", "status", "--porcelain", "--untracked-files=no"], cwd=_ROOT_DIR, text=True, capture_output=True
             )
@@ -116,7 +115,6 @@ class Benchmark(VcloudBenchmarkBase):
                     "Error: Local checkout has uncommitted changes. Please commit or stash them before proceeding."
                 )
 
-            # Ensure no unpushed commits exist
             branch_result = subprocess.run(
                 ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=_ROOT_DIR, text=True,
                 capture_output=True
@@ -138,7 +136,6 @@ class Benchmark(VcloudBenchmarkBase):
                     "Error: Local checkout has unpushed commits. Please push them before proceeding."
                 )
 
-            # Get the latest commit hash of the current branch
             revision_result = subprocess.run(
                 ["git", "rev-parse", "HEAD"], cwd=_ROOT_DIR, text=True, capture_output=True
             )
@@ -148,7 +145,6 @@ class Benchmark(VcloudBenchmarkBase):
                     "Please explicitly pass --revision to specify the revision you want to benchmark."
                 )
 
-            # Return the latest commit hash
             return revision_result.stdout.strip()
 
         except FileNotFoundError:
@@ -163,7 +159,7 @@ class Benchmark(VcloudBenchmarkBase):
         if not self.config.revision:
             logging.debug("--revision was not passed. Validating local Git checkout...")
             latest_commit = self.validate_local_checkout()
-            self.config.revision = latest_commit  # Dynamically set to the latest commit
+            self.config.revision = latest_commit
             logging.debug(f"Default revision set to the latest commit: {self.config.revision}")
         else:
             logging.debug(f"--revision was explicitly passed: {self.config.revision}")
