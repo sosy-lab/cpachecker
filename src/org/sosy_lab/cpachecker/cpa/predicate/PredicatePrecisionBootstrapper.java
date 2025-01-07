@@ -12,8 +12,11 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
+import com.google.common.io.MoreFiles;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,6 +51,7 @@ import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessExc
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
@@ -58,6 +62,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.KeyValueStatistics;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "cpa.predicate")
@@ -91,6 +98,13 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
             "Apply location- and function-specific predicates globally (to all locations in the"
                 + " program)")
     private boolean applyGlobally = false;
+
+    @Option(
+        secure = true,
+        description =
+            "when reading invariants from YML witness ignore the location context and only consider"
+                + " function context program)")
+    private boolean ignoreLocationInfoInYMLWitness = false;
 
     @Option(
         secure = true,
@@ -194,8 +208,18 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
                   Level.WARNING, "For witnesses V2 invariants only exist in correctness witnesses");
               continue;
             }
-            result =
-                result.mergeWith(parseInvariantsFromCorrectnessWitnessAsPredicates(predicatesFile));
+            if (options.ignoreLocationInfoInYMLWitness) {
+              if (!(options.applyFunctionWide || options.applyGlobally)) {
+                logger.log(Level.WARNING, "Invariants of witness will be applied function wide.");
+              }
+              result =
+                  result.mergeWith(
+                      parseInvariantFromYMLCorrectnessWitnessNonLocally(predicatesFile));
+            } else {
+              result =
+                  result.mergeWith(
+                      parseInvariantsFromCorrectnessWitnessAsPredicates(predicatesFile));
+            }
           } else {
             result = result.mergeWith(parser.parsePredicates(predicatesFile));
           }
@@ -209,6 +233,72 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       }
     }
 
+    return result;
+  }
+
+  private PredicatePrecision parseInvariantFromYMLCorrectnessWitnessNonLocally(
+      final Path pWitnessFile) throws IOException, InterruptedException {
+    PredicatePrecision result = PredicatePrecision.empty();
+    try (InputStream witness = MoreFiles.asByteSource(pWitnessFile).openStream()) {
+      List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(witness);
+
+      InvariantExchangeFormatTransformer transformer =
+          new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
+
+      Set<AbstractionPredicate> globalPredicates = new HashSet<>();
+      Multimap<String, AbstractionPredicate> functionPredicates =
+          MultimapBuilder.treeKeys().arrayListValues().build();
+      BooleanFormula atomFormula;
+      String function;
+      for (Invariant invariant : transformer.generateInvariantsFromEntries(entries)) {
+        function = invariant.getFunction();
+
+        if (!ExpressionTrees.isConstant(invariant.getFormula())) {
+          Collection<ExpressionTree<AExpression>> atoms;
+          if (options.splitIntoAtoms) {
+            atoms = split(invariant.getFormula());
+
+          } else {
+            atoms = ImmutableList.of(invariant.getFormula());
+          }
+          for (ExpressionTree<AExpression> atom : atoms) {
+            atomFormula = toFormula(atom);
+            // only continue if formula is not true
+            if (options.applyGlobally() || function.isBlank()) {
+              if (options.splitIntoAtoms) {
+                globalPredicates.addAll(
+                    predicateAbstractionManager.getPredicatesForAtomsOf(atomFormula));
+              } else {
+                globalPredicates.add(abstractionManager.makePredicate(atomFormula));
+              }
+            } else {
+
+              if (options.splitIntoAtoms) {
+                functionPredicates.putAll(
+                    function, predicateAbstractionManager.getPredicatesForAtomsOf(atomFormula));
+              } else {
+                functionPredicates.put(function, abstractionManager.makePredicate(atomFormula));
+              }
+            }
+          }
+        } else {
+          if (ExpressionTrees.getFalse().equals(invariant.getFormula())) {
+            if (options.applyGlobally() || function.isBlank()) {
+              globalPredicates.add(abstractionManager.makeFalsePredicate());
+            } else {
+              functionPredicates.put(function, abstractionManager.makeFalsePredicate());
+            }
+          }
+        }
+      }
+      result = result.addGlobalPredicates(globalPredicates);
+      result = result.addFunctionPredicates(functionPredicates.entries());
+    } catch (InvalidConfigurationException | CPATransferException e) {
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "Predicate precision from correctness witness invariants could not be (fully) computed");
+    }
     return result;
   }
 
