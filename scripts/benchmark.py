@@ -109,7 +109,7 @@ class Benchmark(VcloudBenchmarkBase):
                 ["git", "status", "--porcelain", "--untracked-files=no"],
                 cwd=_ROOT_DIR,
                 text=True,
-                capture_output=True
+                capture_output=True,
             )
             if result.returncode != 0:
                 sys.exit("Error: Failed to check the Git status of the repository.")
@@ -122,7 +122,7 @@ class Benchmark(VcloudBenchmarkBase):
                 ["git", "rev-parse", "--abbrev-ref", "HEAD"],
                 cwd=_ROOT_DIR,
                 text=True,
-                capture_output=True
+                capture_output=True,
             )
             if branch_result.returncode != 0:
                 sys.exit("Error: Failed to determine the current Git branch.")
@@ -142,7 +142,10 @@ class Benchmark(VcloudBenchmarkBase):
                 )
 
             revision_result = subprocess.run(
-                ["git", "rev-parse", "HEAD"], cwd=_ROOT_DIR, text=True, capture_output=True
+                ["git", "rev-parse", "HEAD"],
+                cwd=_ROOT_DIR,
+                text=True,
+                capture_output=True,
             )
             if revision_result.returncode != 0 or not revision_result.stdout.strip():
                 sys.exit(
