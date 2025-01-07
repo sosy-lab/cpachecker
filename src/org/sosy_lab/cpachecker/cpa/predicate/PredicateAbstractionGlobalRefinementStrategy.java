@@ -78,9 +78,9 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
   private final BooleanFormulaManagerView bfmgr;
   private final PredicateAbstractionManager predAbsMgr;
 
-  private StatTimer predicateCreation = new StatTimer(StatKind.SUM, "Predicate creation");
-  private StatTimer precisionUpdate = new StatTimer(StatKind.SUM, "Precision update");
-  private StatTimer argUpdate = new StatTimer(StatKind.SUM, "ARG update");
+  private final StatTimer predicateCreation = new StatTimer(StatKind.SUM, "Predicate creation");
+  private final StatTimer precisionUpdate = new StatTimer(StatKind.SUM, "Precision update");
+  private final StatTimer argUpdate = new StatTimer(StatKind.SUM, "ARG update");
 
   private ListMultimap<CFANode, AbstractionPredicate> newPredicates;
   private ARGReachedSet reached;

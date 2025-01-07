@@ -1025,7 +1025,7 @@ public class PredicateAbstractionManager {
 
     private final RegionBuilder builder;
 
-    private TimerWrapper regionTime = abstractionBddConstructionTimer;
+    private final TimerWrapper regionTime = abstractionBddConstructionTimer;
 
     private int count = 0;
 

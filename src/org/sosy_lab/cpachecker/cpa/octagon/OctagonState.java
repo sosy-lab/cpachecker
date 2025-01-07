@@ -80,8 +80,8 @@ public class OctagonState implements AbstractState {
   }
 
   // the octagon representation
-  private Octagon octagon;
-  private OctagonManager octagonManager;
+  private final Octagon octagon;
+  private final OctagonManager octagonManager;
 
   // the OADL compiled with floats is only able to handle smaller / greater equals constraints,
   // thus we create a delta value in order to simulate a smaller / greater equal by adding /
@@ -90,11 +90,11 @@ public class OctagonState implements AbstractState {
   private final OctagonDoubleValue ASSUMPTION_DELTA = new OctagonDoubleValue(0.000000000000001);
 
   // mapping from variable name to its identifier
-  private BiMap<MemoryLocation, Integer> variableToIndexMap;
-  private Map<MemoryLocation, Type> variableToTypeMap;
+  private final BiMap<MemoryLocation, Integer> variableToIndexMap;
+  private final Map<MemoryLocation, Type> variableToTypeMap;
   private final boolean isLoopHead;
 
-  private LogManager logger;
+  private final LogManager logger;
 
   // also top element
   public OctagonState(LogManager log, OctagonManager manager) {

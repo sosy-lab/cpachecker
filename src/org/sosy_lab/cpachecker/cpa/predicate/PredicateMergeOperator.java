@@ -34,7 +34,7 @@ public class PredicateMergeOperator implements MergeOperator {
   private final PredicateStatistics statistics;
   private final TimerWrapper totalMergeTimer;
 
-  private boolean mergeAbstractionStates;
+  private final boolean mergeAbstractionStates;
   private final PredicateAbstractionManager predAbsManager;
 
   public PredicateMergeOperator(

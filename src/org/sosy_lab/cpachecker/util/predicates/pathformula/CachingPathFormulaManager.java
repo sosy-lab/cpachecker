@@ -45,7 +45,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public final ThreadSafeTimerContainer pathFormulaComputationTimer =
       new ThreadSafeTimerContainer(null);
 
-  public LongAdder pathFormulaCacheHits = new LongAdder();
+  public final LongAdder pathFormulaCacheHits = new LongAdder();
 
   public final PathFormulaManager delegate;
 

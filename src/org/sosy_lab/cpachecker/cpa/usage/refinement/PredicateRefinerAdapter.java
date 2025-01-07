@@ -48,8 +48,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
-  ARGBasedRefiner refiner;
-  LogManager logger;
+  private final ARGBasedRefiner refiner;
+  private final LogManager logger;
 
   private final UsageStatisticsRefinementStrategy strategy;
   private ARGReachedSet ARGReached;
@@ -62,10 +62,10 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
   private final Set<ImmutableSet<CFAEdge>> potentialLoopTraces = new HashSet<>();
   // Statistics
-  private StatCounter solverFailures = new StatCounter("Solver failures");
-  private StatCounter numberOfrepeatedPaths = new StatCounter("Number of repeated paths");
-  private StatCounter numberOfrefinedPaths = new StatCounter("Number of refined paths");
-  private StatCounter numberOfBAMupdates = new StatCounter("Number of BAM updates");
+  private final StatCounter solverFailures = new StatCounter("Solver failures");
+  private final StatCounter numberOfrepeatedPaths = new StatCounter("Number of repeated paths");
+  private final StatCounter numberOfrefinedPaths = new StatCounter("Number of refined paths");
+  private final StatCounter numberOfBAMupdates = new StatCounter("Number of BAM updates");
 
   public PredicateRefinerAdapter(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> wrapper,
