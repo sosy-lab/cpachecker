@@ -2505,7 +2505,6 @@ public class SMGCPAValueVisitor
                 evaluator.getMachineModel().getPointerSizedIntType());
 
         returnBuilder.add(ValueAndSMGState.of(distance, currentState));
-        continue;
       }
       return returnBuilder.build();
     }
