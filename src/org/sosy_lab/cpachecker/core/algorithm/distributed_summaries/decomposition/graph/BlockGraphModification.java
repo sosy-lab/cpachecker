@@ -185,7 +185,7 @@ public class BlockGraphModification {
               }
               nodes.add(originalInstrumentedMapping.get(loopNode));
             }
-            loops.put(functionName, new Loop(heads.build(), nodes.build()));
+            loops.put(functionName, Loop.fromLoopHeadsAndNodes(heads.build(), nodes.build()));
           }
         }
         loopStructure = Optional.of(LoopStructure.of(loops.build()));
