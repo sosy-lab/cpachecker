@@ -36,11 +36,11 @@ public class AllSatRefiner implements Refiner {
   public PathFormula refine(CounterexampleInfo cex)
       throws SolverException, InterruptedException, CPATransferException {
     BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
-    BooleanFormula formula =
-        context.getManager().makeFormulaForPath(cex.getTargetPath().getFullPath()).getFormula();
     context.setProverOptions(ProverOptions.GENERATE_ALL_SAT);
 
     try (ProverEnvironment prover = context.getProver()) {
+      BooleanFormula formula =
+          context.getManager().makeFormulaForPath(cex.getTargetPath().getFullPath()).getFormula();
       prover.push(formula);
 
       AllSatCallback callback = new AllSatCallback();

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -22,18 +23,19 @@ import java.util.logging.Level;
 public class GenerateModelRefiner implements Refiner {
 
   private final FormulaContext context;
-  private PathFormula exclusionFormula;
+  private PathFormula exclusionModelFormula;
 
   public GenerateModelRefiner(FormulaContext pContext) {
     context = pContext;
-    exclusionFormula = context.getManager().makeEmptyPathFormula();
+    exclusionModelFormula = context.getManager().makeEmptyPathFormula();
   }
 
   @Override
   public PathFormula refine(CounterexampleInfo cex)
       throws SolverException, InterruptedException, CPATransferException {
     BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
-    BooleanFormula precond = bmgr.makeTrue();
+    BooleanFormula nondetModel = bmgr.makeTrue();
+    ImmutableSet.Builder<String> nondetVariables = ImmutableSet.builder();
 
     try (ProverEnvironment prover = context.getProver()) {
       BooleanFormula formula =
@@ -42,21 +44,22 @@ public class GenerateModelRefiner implements Refiner {
 
       if (prover.isUnsat()) {
         context.getLogger().log(Level.WARNING, "Counterexample is infeasible.");
-        return exclusionFormula;
+        return exclusionModelFormula; // empty
       }
 
       for (ValueAssignment assignment : prover.getModelAssignments()) {
-        if (assignment.getName().startsWith("__VERIFIER_nondet_")) {
-          precond = bmgr.and(precond, assignment.getAssignmentAsFormula());
+        if (assignment.getName().contains("_nondet")) {
+          nondetModel = bmgr.and(nondetModel, assignment.getAssignmentAsFormula());
+          nondetVariables.add(assignment.getName());
         }
       }
 
       // Update exclusion formula
-      exclusionFormula = context.getManager().makeAnd(exclusionFormula, bmgr.not(precond));
+      exclusionModelFormula = context.getManager().makeAnd(exclusionModelFormula, bmgr.not(nondetModel));
       context.getLogger().log(Level.INFO,
-          "Updated exclusion formula with precondition: " + exclusionFormula.getFormula());
+          "Updated exclusion formula with precondition: " + exclusionModelFormula.getFormula());
     }
 
-    return exclusionFormula;
+    return exclusionModelFormula;
   }
 }

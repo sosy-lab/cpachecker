@@ -26,7 +26,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.AllSatRefiner;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.GenerateModelRefiner;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.QuantiferEliminationRefiner;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.ReachabilityAnalyzer;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -50,6 +52,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "findErrorCondition")
@@ -112,7 +115,9 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
           new ReachabilityAnalyzer(cpa, context, currentIteration);
       AbstractState initialState = analyzer.getInitialState();
       QuantiferEliminationRefiner quantifierRefiner =
-          new QuantiferEliminationRefiner(context, ssaBuilder);
+          new QuantiferEliminationRefiner(context, Solvers.Z3, ssaBuilder);
+      GenerateModelRefiner generateModelRefiner = new GenerateModelRefiner(context);
+      AllSatRefiner allSatRefiner = new AllSatRefiner(context);
 
       do {
         logger.log(Level.INFO, "Iteration: " + currentIteration);
@@ -128,6 +133,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         logger.log(Level.INFO,
             String.format("Iteration %d: Found %d Counterexamples", currentIteration,
                 counterExamples.size()));
+
         if (!counterExamples.isEmpty()) {
           foundNewCounterexamples = true;
           logger.log(Level.INFO,
@@ -137,7 +143,6 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
           for (CounterexampleInfo cex : counterExamples) {
             // Refinement
             exclusionFormula = quantifierRefiner.refine(cex);
-            quantifierRefiner.increaseRefinementIteration();
           }
           // update initial state with the exclusion formula
           initialState = updateInitialStateWithExclusions(initialState, exclusionFormula);

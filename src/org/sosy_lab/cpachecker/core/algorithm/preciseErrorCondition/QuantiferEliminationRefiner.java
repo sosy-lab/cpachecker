@@ -39,13 +39,13 @@ public class QuantiferEliminationRefiner implements Refiner {
   private final SSAMapBuilder ssaBuilder;
 
   public QuantiferEliminationRefiner(
-      FormulaContext pContext, SSAMapBuilder pSsaBuilder)
+      FormulaContext pContext, Solvers pQuantifierSolver, SSAMapBuilder pSsaBuilder)
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     context = pContext;
     exclusionFormula = context.getManager().makeEmptyPathFormula();
     quantifierSolver = Solver.create(
         Configuration.builder().copyFrom(context.getConfiguration())
-            .setOption("solver.solver", Solvers.Z3.name())
+            .setOption("solver.solver", pQuantifierSolver.name())
             .build()
         ,
         context.getLogger(), context.getShutdownNotifier());
@@ -76,18 +76,19 @@ public class QuantiferEliminationRefiner implements Refiner {
 
     // TODO handle modulo operations through string manipulation
 
-    BooleanFormula eliminatedByQuantifier = eliminateVariables(
+    // Quantifier Elimination
+    BooleanFormula quantifierEliminationResult = eliminateVariables(
         translatedFormula,
-        // this predicate filters out variables (keys) that include "_nondet" in their names
+        // this predicate filters out irrelevant variables
         entry -> !entry.getKey().contains("_nondet"),
         // this predicate keeps the non-det variables
         entry -> entry.getKey().contains("_nondet"));
 
     // translate back to MATHSAT
-    eliminatedByQuantifier =
-        translateFormula(eliminatedByQuantifier, quantifierSolver, context.getSolver());
+    quantifierEliminationResult =
+        translateFormula(quantifierEliminationResult, quantifierSolver, context.getSolver());
 
-    updateExclusionFormula(eliminatedByQuantifier, cexFormula);
+    updateExclusionFormula(quantifierEliminationResult, cexFormula);
 
     String formattedErrorCondition =
         formatErrorCondition(exclusionFormula.getFormula(), context.getSolver());
@@ -95,16 +96,17 @@ public class QuantiferEliminationRefiner implements Refiner {
         String.format("Iteration %d: Error Condition in this iteration: %s \n",
             currentRefinementIteration,
             formattedErrorCondition));
+    currentRefinementIteration++;
     return exclusionFormula;
   }
 
   private void updateExclusionFormula(
-      BooleanFormula eliminatedByQuantifier,
+      BooleanFormula quantifierEliminationResult,
       PathFormula cexFormula) {
     //update exclusion formula with the new quantified variables from this iteration.
     exclusionFormula = context.getManager().makeAnd(exclusionFormula,
             context.getSolver().getFormulaManager().getBooleanFormulaManager().not(
-                eliminatedByQuantifier))
+                quantifierEliminationResult))
         .withContext(ssaBuilder.build(), cexFormula.getPointerTargetSet());
 
     context.getLogger().log(Level.INFO,
@@ -167,34 +169,47 @@ public class QuantiferEliminationRefiner implements Refiner {
         String.format("Iteration %d: formulaNameToFormulaMap: %s", currentRefinementIteration,
             formulaNameToFormulaMap.entrySet()));
 
-    ImmutableList<Formula> eliminate = FluentIterable.from(formulaNameToFormulaMap.entrySet())
-        .filter(deterministicVariablesPredicate::test)
-        .transform(Entry::getValue)
-        .toList();
+    ImmutableList<Formula> irrelevantVariables =
+        FluentIterable.from(formulaNameToFormulaMap.entrySet())
+            .filter(deterministicVariablesPredicate::test)
+            .transform(Entry::getValue)
+            .toList();
 
-    ImmutableList<Formula> nonDetVariables = FluentIterable.from(formulaNameToFormulaMap.entrySet())
+    ImmutableList<Formula> nondetVariables = FluentIterable.from(formulaNameToFormulaMap.entrySet())
         .filter(nonDetVariablesPredicate::test)
         .transform(Entry::getValue)
         .toList();
 
 
     context.getLogger().log(Level.INFO,
-        String.format("Iteration %d: Deterministic variables to eliminate: %s",
+        String.format("Iteration %d: Deterministic variables: %s",
             currentRefinementIteration,
-            eliminate));
+            irrelevantVariables));
     context.getLogger().log(Level.INFO,
         String.format("Iteration %d: Non-Deterministic variables : %s", currentRefinementIteration,
-            nonDetVariables));
+            nondetVariables));
 
-    BooleanFormula quantified = quantifierSolver.getFormulaManager().getQuantifiedFormulaManager()
-        .mkQuantifier(Quantifier.EXISTS, eliminate, translatedFormula);
+    BooleanFormula quantifiedFormula = quantifierSolver
+        .getFormulaManager()
+        .getQuantifiedFormulaManager()
+        .mkQuantifier(Quantifier.EXISTS, irrelevantVariables, translatedFormula);
+
     context.getLogger().log(Level.INFO,
         String.format("Iteration %d: Quantified non-deterministic variables: \n%s",
             currentRefinementIteration,
-            quantified));
+            quantifiedFormula));
 
-    return quantifierSolver.getFormulaManager().getQuantifiedFormulaManager()
-        .eliminateQuantifiers(quantified);
+    BooleanFormula eliminationResult = quantifierSolver
+        .getFormulaManager()
+        .getQuantifiedFormulaManager()
+        .eliminateQuantifiers(quantifiedFormula);
+
+    context.getLogger().log(Level.INFO,
+        String.format("Iteration %d: Quantifier Elimination Result: \n%s",
+            currentRefinementIteration,
+            eliminationResult));
+
+    return eliminationResult;
   }
 
 
@@ -233,7 +248,4 @@ public class QuantiferEliminationRefiner implements Refiner {
     return exclusionFormula;
   }
 
-  public void increaseRefinementIteration() {
-    currentRefinementIteration++;
-  }
 }
