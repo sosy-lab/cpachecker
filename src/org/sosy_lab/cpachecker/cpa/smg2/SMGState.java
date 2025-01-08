@@ -5307,8 +5307,6 @@ public class SMGState
               eqCache);
     }
 
-    // TODO: check that the other values are not pointers, if they are we want to merge the pointers
-    //  and set them to ALL.
     // There might be more legit LAST pointers to this!
     Map<SMGObject, Integer> ptrsTowardsNextObj =
         memoryModel.getSmg().getAllSourcesForPointersPointingTowardsWithNumOfOccurrences(nextObj);
@@ -5343,6 +5341,8 @@ public class SMGState
                 root, newDLL, SMGTargetSpecifier.IS_FIRST_POINTER));
 
     // There might be self-pointers with the wrong specifier now (First or Last), that need an ALL.
+    // TODO: check if this is correct in all cases, e.g. a list with a self-pointer to the
+    //   first/last/all elements.
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.replaceAllSelfPointersWithNewSpecifier(
@@ -5404,8 +5404,11 @@ public class SMGState
       }
     }
 
-    // Update nesting level of nested values and objects
-    currentState = currentState.incrementNestingLevelOfSubSMG(newDLL, ImmutableSet.of(nfo, pfo));
+    // Increment nesting level of nested values and objects based on equality-cache
+    // (nested objects are copied and pointers from them back to the S/DLL have the ALL specifier,
+    //  while addresses pointing to the same object for all list-elements are not nested)
+    // and set ALL spec for back pointers.
+    currentState = currentState.incrementNestingLevelAndSetSpecifierOfSubSMG(newDLL);
 
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
     assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(root) == 0);
@@ -5546,7 +5549,7 @@ public class SMGState
             currentState.memoryModel.replaceAllPointersTowardsWithAndSetSpecifier(
                 root, newSLL, SMGTargetSpecifier.IS_FIRST_POINTER));
 
-    // Remove the 2 old objects and continue.
+    // Remove the 2 old objects
     // For this to work without issues, we rewrite the next pointers to 0 in them
     currentState =
         currentState.writeValueWithoutChecks(
@@ -5572,8 +5575,10 @@ public class SMGState
         currentState.copyAndReplaceMemoryModel(
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(nextObj).getSPC());
 
-    // Update nesting level of nested values and objects
-    currentState = currentState.incrementNestingLevelOfSubSMG(newSLL, ImmutableSet.of(nfo));
+    // Update nesting level of nested values and objects based on equality-cache
+    // (nested objects are copied and pointers from them back to the S/DLL have the ALL specifier,
+    //  while addresses pointing to the same object for all list-elements are not nested)
+    currentState = currentState.incrementNestingLevelAndSetSpecifierOfSubSMG(newSLL);
 
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
     assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(root) == 0);
@@ -5589,25 +5594,152 @@ public class SMGState
         listPointerType);
   }
 
-  private SMGState incrementNestingLevelOfSubSMG(
-      SMGSinglyLinkedListSegment newSLL, Set<BigInteger> restrictedOffsets) {
+  /**
+   * Goes through all addresses in the given linked-list segment and increments the nesting level
+   * (e.g. parent S/DLL nesting level + 1 if there is no other abstracted object) of the sub-SMG IFF
+   * the addresses are truly nested. Nesting is determined by the EqualityCache in the linked-list
+   * segment, i.e. if there is no entry for an address from S/DLL, the target is the same object for
+   * all list elements, if it is not nested. Entries in the EqualityCache are nested
+   * objects/sub-SMGs that are copied when materialized. The next and prev (i.e. nfo/pfo)
+   * offsets/addresses in the S/DLL given are ignored/not traversed. If an address (PTE) pointing
+   * back at the S/DLL is found, and the source object is nested, the address pointing back is
+   * labeled with the ALL specifier.
+   *
+   * @param newLinkedList either a {@link SMGSinglyLinkedListSegment} or a {@link
+   *     SMGDoublyLinkedListSegment} who's sub-SMG is supposed to get a nesting update because of
+   *     recent abstraction and creation of this segment.
+   * @return a new {@link SMGState} with the sub-SMG updated according to the description above.
+   */
+  private SMGState incrementNestingLevelAndSetSpecifierOfSubSMG(
+      SMGSinglyLinkedListSegment newLinkedList) {
     SMGState currentState = this;
+    EqualityCache<Value> eqCache = newLinkedList.getRelevantEqualities();
+    ImmutableSet<BigInteger> restrictedOffsets =
+        newLinkedList instanceof SMGDoublyLinkedListSegment dll
+            ? ImmutableSet.of(dll.getNextOffset(), dll.getPrevOffset())
+            : ImmutableSet.of(newLinkedList.getNextOffset());
+
+    Set<SMGObject> alreadyIncremented = new HashSet<>();
+    alreadyIncremented.add(newLinkedList);
+    alreadyIncremented.add(SMGObject.nullInstance());
+
     for (SMGHasValueEdge hve :
         getMemoryModel()
             .getSmg()
-            .getHasValueEdgesByPredicate(newSLL, h -> !restrictedOffsets.contains(h.getOffset()))) {
-      // TODO: currently we don't discern between singular nested and ALL nested. If value were an
-      // ALL pointer, it creates a new copy of the nested obj each materialization. This obj would
-      // have a changed nesting level. A region pointer would not have a changed nesting level and
-      // even after materialization all pointers point to the exact same obj. We currently do this
-      // by equalityCache.
-      SMGValue value = hve.hasValue();
-      // Each object nested should have a nesting level that is at least 1 greater than the current
-      if (currentState.getMemoryModel().getSmg().isPointer(value)) {
-        SMGObject nestedObj =
-            currentState.getMemoryModel().getSmg().getPTEdge(value).orElseThrow().pointsTo();
-        // copyAndReplaceObjectAndRemoveOld();
+            .getHasValueEdgesByPredicate(
+                newLinkedList, h -> !restrictedOffsets.contains(h.getOffset()))) {
+
+      SMGValue smgValue = hve.hasValue();
+      Value value = getMemoryModel().getValueFromSMGValue(smgValue).orElseThrow();
+      // Each object nested should have a nesting level that is 1 greater than the current
+      //  (there can only be 1 parent S/DLL)
+      if (currentState.getMemoryModel().getSmg().isPointer(smgValue)) {
+        if (eqCache.knownKey(value)) {
+          // Known equality of objects, i.e. the object is truly nested.
+          SMGObject nestedObj =
+              currentState.getMemoryModel().getSmg().getPTEdge(smgValue).orElseThrow().pointsTo();
+
+          // This also sets the ALL spec for back ptrs
+          currentState =
+              currentState.incrementNestingLevelAndSetSpecifierOfSubSMG(
+                  nestedObj, newLinkedList, alreadyIncremented, false);
+
+          Preconditions.checkState(
+              currentState
+                          .getMemoryModel()
+                          .getSmg()
+                          .getPTEdge(smgValue)
+                          .orElseThrow()
+                          .pointsTo()
+                          .getNestingLevel()
+                      + 1
+                  == newLinkedList.getNestingLevel());
+
+        } else {
+          // Non-nested region, i.e. when materializing all list elements point to the same obj.
+          Preconditions.checkState(
+              currentState
+                  .getMemoryModel()
+                  .getTargetSpecifier(value)
+                  .equals(SMGTargetSpecifier.IS_REGION));
+        }
       }
+    }
+    return currentState;
+  }
+
+  /**
+   * This method traverses all memory connected with PTEs in currentMemory and increments the
+   * nesting level by 1 and also sets all found PTEs pointing to parentLinkedList to ALL.
+   *
+   * @param currentObject object who's nesting level is to be incremented by 1.
+   * @param parentLinkedList always the one parent of the nesting.
+   * @param alreadyIncremented all already incremented or processed objects of the sub-SMG. It is
+   *     expected to contain parentLinkedList and the NULL obj at all times.
+   * @return a new {@link SMGState} with all reachable objects incremented.
+   */
+  private SMGState incrementNestingLevelAndSetSpecifierOfSubSMG(
+      SMGObject currentObject,
+      SMGSinglyLinkedListSegment parentLinkedList,
+      Set<SMGObject> alreadyIncremented,
+      boolean foundOtherAbstractedObj) {
+    if (alreadyIncremented.contains(currentObject)) {
+      return this;
+    } else {
+      alreadyIncremented.add(currentObject);
+    }
+    int levelOfParent = parentLinkedList.getNestingLevel();
+
+    // Create a new object with nesting level +1, add it equally to the old object (validity etc.)
+    // switch all pointers from old object to new, copy all HVEs from old to new, remove old obj
+    SMGObject newObject =
+        currentObject.copyWithNewNestingLevel(currentObject.getNestingLevel() + 1);
+    Preconditions.checkState(
+        foundOtherAbstractedObj || levelOfParent + 1 == newObject.getNestingLevel());
+    Preconditions.checkState(
+        !foundOtherAbstractedObj || levelOfParent + 1 >= newObject.getNestingLevel());
+    SymbolicProgramConfiguration spc =
+        getMemoryModel().copyAndReplaceObjectAndRemoveOld(currentObject, newObject);
+    SMGState currentState = this.copyAndReplaceMemoryModel(spc);
+    alreadyIncremented.add(newObject);
+
+    SMG smg = spc.getSmg();
+
+    // Get all pointers/target-objects from this obj and traverse subSMG.
+    FluentIterable<SMGHasValueEdge> pointers =
+        smg.getHasValueEdgesByPredicate(newObject, h -> smg.isPointer(h.hasValue()));
+    for (SMGHasValueEdge hve : pointers) {
+      SMGValue ptrValue = hve.hasValue();
+      SMGPointsToEdge pte = smg.getPTEdge(ptrValue).orElseThrow();
+      SMGTargetSpecifier specifier = pte.targetSpecifier();
+      SMGObject target = pte.pointsTo();
+
+      // Target (and value) nesting level should be exactly at the same level for nested objects
+      // that have not yet been incremented
+      int targetNestingLvl = target.getNestingLevel();
+      int valueNestingLvl = smg.getNestingLevel(ptrValue);
+
+      if (target.isZero()) {
+        assert specifier.equals(SMGTargetSpecifier.IS_REGION);
+        assert targetNestingLvl == 0;
+        assert valueNestingLvl == 0;
+        continue;
+      } else if (target.equals(parentLinkedList)
+          && !specifier.equals(SMGTargetSpecifier.IS_ALL_POINTER)) {
+        // Set ALL spec, as the current obj is nested
+        currentState =
+            currentState.copyAndReplaceMemoryModel(
+                currentState
+                    .getMemoryModel()
+                    .copyAndSetTargetSpecifierForPointer(
+                        ptrValue, SMGTargetSpecifier.IS_ALL_POINTER));
+      }
+      currentState =
+          currentState.incrementNestingLevelAndSetSpecifierOfSubSMG(
+              target,
+              parentLinkedList,
+              alreadyIncremented,
+              foundOtherAbstractedObj || currentObject instanceof SMGSinglyLinkedListSegment);
     }
     return currentState;
   }
