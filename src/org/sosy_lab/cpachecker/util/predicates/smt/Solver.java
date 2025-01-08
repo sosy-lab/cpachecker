@@ -91,9 +91,6 @@ public final class Solver implements AutoCloseable {
 
   private final @Nullable UFCheckingProverOptions ufCheckingProverOptions;
 
-  private final FormulaManagerView fmgr;
-  private final BooleanFormulaManagerView bfmgr;
-
   private final SolverContext solvingContext;
   private final SolverContext interpolatingContext;
 
@@ -119,6 +116,8 @@ public final class Solver implements AutoCloseable {
    * interpolatingContext.getFormulaManager()</code> here
    */
   private final FormulaManagerView interpolatingFmgr;
+
+  private final BooleanFormulaManagerView bfmgr;
 
   private final Map<BooleanFormula, Boolean> unsatCache = new HashMap<>();
 
@@ -179,8 +178,7 @@ public final class Solver implements AutoCloseable {
       interpolatingFmgr = solvingFmgr;
     }
 
-    fmgr = new FormulaManagerView(solvingContext.getFormulaManager(), config, pLogger);
-    bfmgr = fmgr.getBooleanFormulaManager();
+    bfmgr = solvingFmgr.getBooleanFormulaManager();
 
     if (checkUFs) {
       ufCheckingProverOptions = new UFCheckingProverOptions(config);
@@ -227,8 +225,7 @@ public final class Solver implements AutoCloseable {
       interpolatingFmgr = solvingFmgr;
     }
 
-    fmgr = new FormulaManagerView(pContext.getFormulaManager(), pConfig, pLogger);
-    bfmgr = fmgr.getBooleanFormulaManager();
+    bfmgr = solvingFmgr.getBooleanFormulaManager();
     logger = pLogger;
 
     if (checkUFs) {
@@ -292,7 +289,7 @@ public final class Solver implements AutoCloseable {
    * formulas.
    */
   public FormulaManagerView getFormulaManager() {
-    return fmgr;
+    return solvingFmgr;
   }
 
   /**
@@ -358,10 +355,10 @@ public final class Solver implements AutoCloseable {
     ProverEnvironment pe = solvingContext.newProverEnvironment(options);
 
     if (checkUFs) {
-      pe = new UFCheckingProverEnvironment(logger, pe, fmgr, ufCheckingProverOptions);
+      pe = new UFCheckingProverEnvironment(logger, pe, solvingFmgr, ufCheckingProverOptions);
     }
 
-    pe = new ProverEnvironmentView(pe, fmgr.getFormulaWrappingHandler());
+    pe = new ProverEnvironmentView(pe, solvingFmgr.getFormulaWrappingHandler());
 
     return pe;
   }
@@ -388,10 +385,10 @@ public final class Solver implements AutoCloseable {
     if (checkUFs) {
       ipe =
           new UFCheckingInterpolatingProverEnvironment<>(
-              logger, ipe, fmgr, ufCheckingProverOptions);
+              logger, ipe, solvingFmgr, ufCheckingProverOptions);
     }
 
-    ipe = new InterpolatingProverEnvironmentView<>(ipe, fmgr.getFormulaWrappingHandler());
+    ipe = new InterpolatingProverEnvironmentView<>(ipe, solvingFmgr.getFormulaWrappingHandler());
 
     return ipe;
   }
@@ -405,7 +402,7 @@ public final class Solver implements AutoCloseable {
   public OptimizationProverEnvironment newOptEnvironment() {
     OptimizationProverEnvironment environment =
         solvingContext.newOptimizationProverEnvironment(ProverOptions.GENERATE_MODELS);
-    environment = new OptimizationProverEnvironmentView(environment, fmgr);
+    environment = new OptimizationProverEnvironmentView(environment, solvingFmgr);
     return environment;
   }
 
