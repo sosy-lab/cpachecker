@@ -94,6 +94,10 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       }
     }
 
+    /* if a block in DSS starts and ends in the same location,
+      we should not cover it to avoid
+     losing information about the block's content.
+    */
     boolean onlyBlockTargetStates = false;
     if (argElement.isTarget()) {
       if (!argElement.getTargetInformation().isEmpty()) {
