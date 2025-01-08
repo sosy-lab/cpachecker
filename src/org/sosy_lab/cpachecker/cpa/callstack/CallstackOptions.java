@@ -59,10 +59,13 @@ class CallstackOptions {
   @Option(description = "analyse the CFA backwards", secure = true)
   private boolean traverseBackwards = false;
 
-  @Option(description = "Decided whether to compute the callstack for the forward analysis. "
-      + "This is useful for analyses like Distributed Summary Synthesis "
-      + "that require the CallstackCPA to be available "
-      + "but do not require it to be executed at times.", secure = true)
+  @Option(
+      description =
+          "Decided whether to compute the callstack for the forward analysis. "
+              + "This is useful for analyses like Distributed Summary Synthesis "
+              + "that require the CallstackCPA to be available "
+              + "but do not require it to be executed at times.",
+      secure = true)
   private boolean ignoreForwardCallstackTransfers = false;
 
   @Option(
