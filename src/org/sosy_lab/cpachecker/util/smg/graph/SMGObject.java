@@ -183,6 +183,9 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
   public SMGObject copyWithNewNestingLevel(int pNewLevel) {
     Preconditions.checkArgument(pNewLevel >= 0);
+    if (nestingLevel == pNewLevel) {
+      return this;
+    }
     return of(pNewLevel, size, offset);
   }
 

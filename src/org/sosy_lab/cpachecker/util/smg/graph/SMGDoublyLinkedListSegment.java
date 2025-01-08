@@ -87,6 +87,9 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
   @Override
   public SMGObject copyWithNewNestingLevel(int newLevel) {
     Preconditions.checkArgument(newLevel >= 0);
+    if (getNestingLevel() == newLevel) {
+      return this;
+    }
     return new SMGDoublyLinkedListSegment(
         newLevel,
         getSize(),

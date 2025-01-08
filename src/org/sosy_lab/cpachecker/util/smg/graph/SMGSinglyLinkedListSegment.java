@@ -109,6 +109,9 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
   @Override
   public SMGObject copyWithNewNestingLevel(int newLevel) {
     Preconditions.checkArgument(newLevel >= 0);
+    if (getNestingLevel() == newLevel) {
+      return this;
+    }
     return new SMGSinglyLinkedListSegment(
         newLevel,
         getSize(),
