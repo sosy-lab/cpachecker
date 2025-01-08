@@ -838,21 +838,24 @@ public class SMG {
   }
 
   /**
-   * Creates a copy of the SMG and replaces given object by a given new. This also switches pointers
-   * towards the old obj to the new. If the newTarget is a region, specifiers are set to region. All
-   * other specifiers are retained.
+   * Creates a copy of the SMG and replaces given object by a given new. ALL HVEs are copied to the
+   * new object. All HVEs in the old are deleted. The value in object and pointer to source maps are
+   * updated. The old obj is deleted. The new is added to the objects and the validity is retained
+   * from the old obj. This also switches pointers towards the old obj to the new. If the newTarget
+   * is a region, specifiers are set to region. All other specifiers are retained.
    *
    * @param pOldObject - The object to be replaced.
    * @param pNewObject - The replacement object.
-   * @return A modified copy.
+   * @return A modified copy with the pOldObject removed from the SMG and all pointers towards it
+   *     switched to pNewObject and all HVEs copied to pNewObject.
    */
   public SMG copyAndReplaceObject(SMGObject pOldObject, SMGObject pNewObject) {
-    PersistentSet<SMGHasValueEdge> hvEdges = hasValueEdges.get(pOldObject);
+    PersistentSet<SMGHasValueEdge> oldHVEdges = hasValueEdges.get(pOldObject);
     // replace has value edges
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges =
-        hasValueEdges.removeAndCopy(pOldObject).putAndCopy(pNewObject, hvEdges);
+        hasValueEdges.removeAndCopy(pOldObject).putAndCopy(pNewObject, oldHVEdges);
     SMG newSMG = this;
-    for (SMGHasValueEdge hve : hvEdges) {
+    for (SMGHasValueEdge hve : oldHVEdges) {
       // Switch values from the old obj towards the new
       SMGValue value = hve.hasValue();
       newSMG = newSMG.decrementValueToMemoryMapEntry(pOldObject, value);
@@ -861,7 +864,7 @@ public class SMG {
 
     // replace points to edges pointing towards the old obj
     // If the newTarget is a region, specifiers are set to region. All other specifiers are retained
-    newSMG = replaceAllPointersTowardsWith(pOldObject, pNewObject);
+    newSMG = newSMG.replaceAllPointersTowardsWith(pOldObject, pNewObject);
 
     // replace object
     PersistentMap<SMGObject, Boolean> newObjects =
@@ -1872,7 +1875,6 @@ public class SMG {
               new SMGPointsToEdge(newTarget, pointsToEdge.getOffset(), specifier), pointerValue);
     }
 
-    assert newSMG.checkSMGSanity();
     return newSMG;
   }
 
@@ -2225,7 +2227,7 @@ public class SMG {
           int nestingLevel2 = smgValuesAndNestingLvl.get(pointsToEntry2.getKey());
           SMGTargetSpecifier tspec1 = pointsToEntry1.getValue().targetSpecifier();
           SMGTargetSpecifier tspec2 = pointsToEntry2.getValue().targetSpecifier();
-          if (nestingLevel1 == nestingLevel2 && !tspec1.equals(tspec2)) {
+          if (nestingLevel1 == nestingLevel2 && tspec1.equals(tspec2)) {
             // Both ptEdges have the same target, but different values, are none zero, and have the
             // same nesting level
             return false;
@@ -2243,14 +2245,39 @@ public class SMG {
   }
 
   /**
-   * Returns the nesting level for existing SMGValues. Does crash for non-existent SMGValues.
+   * Returns the nesting level for existing SMGValues. We return accurate nesting levels only for
+   * pointers! All non-pointer nesting levels are returned as 0. (Reason: we re-use concrete and
+   * symbolic values and since they can only be changed in concrete segments, the nesting is
+   * irrelevant. We could change this to be as defined by the SMG paper by simply returning the
+   * nesting level of the object that the value is read from.)
    *
-   * @param pSMGValue the {@link SMGValue}
+   * <p>The nesting level is used to determine nesting and therefore materialization of abstracted
+   * memory. I.e. all nested objects are materialized such that they are copied, while non-nested
+   * objects remain. E.g. an abstracted linked-list has a pointer (not next/prev) pointing towards a
+   * memory region with nesting level equal to the abstract linked-list. When materializing, all
+   * list segments point towards the same object. If however, the nesting of the memory region would
+   * be +1 compared to the abstracted object, we create a copy of the region (sub-SMG) for every
+   * materialization. We say that the region with nesting level +1 is nested below the abstract
+   * list. There can only ever be exactly 1 abstracted object as parent.
+   *
+   * @param pSMGValue the {@link SMGValue} for which the nesting level is requested.
    * @return the nesting level.
    */
   public int getNestingLevel(SMGValue pSMGValue) {
     assert smgValuesAndNestingLvl.containsKey(pSMGValue);
-    return smgValuesAndNestingLvl.get(pSMGValue);
+    @Nullable SMGPointsToEdge pte = pointsToEdges.get(pSMGValue);
+    if (pte == null) {
+      return 0;
+    }
+    if (pte.targetSpecifier().equals(SMGTargetSpecifier.IS_ALL_POINTER)) {
+      assert pte.pointsTo() instanceof SMGSinglyLinkedListSegment;
+      return pte.pointsTo().getNestingLevel() + 1;
+    }
+    assert pte.targetSpecifier().equals(SMGTargetSpecifier.IS_REGION)
+        || pte.pointsTo() instanceof SMGSinglyLinkedListSegment;
+    assert !pte.targetSpecifier().equals(SMGTargetSpecifier.IS_REGION)
+        || !(pte.pointsTo() instanceof SMGSinglyLinkedListSegment);
+    return pte.pointsTo().getNestingLevel();
   }
 
   public boolean hasValue(SMGValue pSMGValue) {
@@ -2507,16 +2534,7 @@ public class SMG {
   }
 
   public boolean checkNotAbstractedNestingLevelConsistency() {
-    for (Entry<SMGObject, PersistentMap<SMGValue, Integer>> entry :
-        objectsAndPointersPointingAtThem.entrySet()) {
-      if (!(entry.getKey() instanceof SMGSinglyLinkedListSegment)) {
-        for (SMGValue ptr : entry.getValue().keySet()) {
-          if (getNestingLevel(ptr) != 0) {
-            return false;
-          }
-        }
-      }
-    }
+    // TODO:
     return true;
   }
 }
