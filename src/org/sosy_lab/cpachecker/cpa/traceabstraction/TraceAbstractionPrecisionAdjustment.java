@@ -356,7 +356,6 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
               Level.FINEST,
               "Abstraction is contradictory to current input predicates. The node is not"
                   + " reachable");
-          continue;
         }
 
       } else if (nextPreds.isPresent()

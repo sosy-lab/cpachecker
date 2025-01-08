@@ -949,7 +949,6 @@ public class SMGCPAValueVisitor
         // if the variable is an array, create/search new pointer to the array and return that
         finalStatesBuilder.add(
             evaluator.createAddressForLocalOrGlobalVariable(variableName, currentState));
-        continue;
 
       } else if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)) {
         // Struct/Unions on the stack/global; return the memory location in a
@@ -961,7 +960,6 @@ public class SMGCPAValueVisitor
                 SymbolicValueFactory.getInstance()
                     .newIdentifier(MemoryLocation.forIdentifier(variableName).withOffset(0)),
                 currentState));
-        continue;
 
       } else if (returnType instanceof CPointerType || returnType instanceof CFunctionType) {
         // Pointer/Array/Function types should return a Value that internally can be translated into
@@ -1000,7 +998,6 @@ public class SMGCPAValueVisitor
 
           finalStatesBuilder.add(ValueAndSMGState.of(addressValue, newState));
         }
-        continue;
 
       } else {
         // Everything else should be readable and returnable directly; just return the Value
@@ -1013,7 +1010,6 @@ public class SMGCPAValueVisitor
                 new NumericValue(BigInteger.ZERO),
                 sizeInBits,
                 SMGCPAExpressionEvaluator.getCanonicalType(e)));
-        continue;
       }
     }
     return finalStatesBuilder.build();
