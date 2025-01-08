@@ -55,7 +55,8 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation) {
+      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      throws TranslationToExpressionTreeFailedException {
     return toExpressionTree();
   }
 
@@ -78,8 +79,13 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
-      FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-      throws InterruptedException, ReportingMethodNotImplementedException {
+      FunctionEntryNode pFunctionScope,
+      CFANode pLocation,
+      AstCfaRelation pAstCfaRelation,
+      boolean useOldKeywordForVariables)
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
     throw new ReportingMethodNotImplementedException(
         "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for"
             + " 'ACSLState'");
@@ -88,7 +94,9 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-      throws InterruptedException, ReportingMethodNotImplementedException {
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
     throw new ReportingMethodNotImplementedException(
         "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented for"
             + " 'ACSLState'");

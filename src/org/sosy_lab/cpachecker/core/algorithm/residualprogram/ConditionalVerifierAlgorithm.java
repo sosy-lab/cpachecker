@@ -145,8 +145,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
             new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
 
         logger.log(Level.FINE, "Build configurable program analysis");
-        ConfigurableProgramAnalysis cpa;
-        cpa = coreComponents.createCPA(cfa, spec);
+        ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, spec);
         shutdown.shutdownIfNecessary();
 
         logger.log(Level.FINE, "Instantiate residual program construction algorithm");
@@ -229,8 +228,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
             new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
 
         logger.log(Level.FINE, "Build configurable program analysis");
-        ConfigurableProgramAnalysis cpa;
-        cpa = coreComponents.createCPA(cfaResidProg, spec);
+        ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfaResidProg, spec);
         collectStatistics(cpa);
         shutdown.shutdownIfNecessary();
 

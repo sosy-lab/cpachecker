@@ -208,6 +208,9 @@ public final class StackFrame {
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
+    if (stackFunction != null) {
+      builder.append(stackFunction + ": ");
+    }
     for (Entry<String, SMGObject> entry : stackVariables.entrySet()) {
       builder.append(entry.getKey() + " -> " + entry.getValue() + "  ");
     }

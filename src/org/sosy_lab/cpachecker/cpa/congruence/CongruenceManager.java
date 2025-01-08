@@ -9,15 +9,17 @@
 
 package org.sosy_lab.cpachecker.cpa.congruence;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -241,26 +243,87 @@ public class CongruenceManager implements ABEManager<CongruenceState, TemplatePr
       FormulaManagerView pFormulaManager,
       CongruenceState state,
       PathFormula ref) {
+    return pFormulaManager
+        .getBooleanFormulaManager()
+        .and(
+            collectConstraintsConditionally(
+                pPathFormulaManager, pFormulaManager, state, ref, Predicates.alwaysTrue()));
+  }
+
+  private Collection<BooleanFormula> collectConstraintsConditionally(
+      final PathFormulaManager pPathFormulaManager,
+      final FormulaManagerView pFormulaManager,
+      final CongruenceState state,
+      final PathFormula ref,
+      final Predicate<Template> considerEntry) {
     Map<Template, Congruence> abstraction = state.getAbstraction();
 
-    List<BooleanFormula> constraints = new ArrayList<>(abstraction.size());
+    Collection<BooleanFormula> constraints = new ArrayList<>(abstraction.size());
 
     for (Entry<Template, Congruence> entry : abstraction.entrySet()) {
       Template template = entry.getKey();
       Congruence congruence = entry.getValue();
 
-      Formula formula =
-          templateToFormulaConversionManager.toFormula(
-              pPathFormulaManager, pFormulaManager, template, ref);
-      Formula remainder =
-          switch (congruence) {
-            case ODD -> makeBv(pFormulaManager.getBitvectorFormulaManager(), formula, 1);
-            case EVEN -> makeBv(pFormulaManager.getBitvectorFormulaManager(), formula, 0);
-          };
-      constraints.add(
-          pFormulaManager.makeModularCongruence(formula, remainder, 2, !template.isUnsigned()));
+      if (considerEntry.test(template)) {
+
+        Formula formula =
+            templateToFormulaConversionManager.toFormula(
+                pPathFormulaManager, pFormulaManager, template, ref);
+        Formula remainder =
+            switch (congruence) {
+              case ODD -> makeBv(pFormulaManager.getBitvectorFormulaManager(), formula, 1);
+              case EVEN -> makeBv(pFormulaManager.getBitvectorFormulaManager(), formula, 0);
+            };
+        constraints.add(
+            pFormulaManager.makeModularCongruence(formula, remainder, 2, !template.isUnsigned()));
+      }
     }
-    return pFormulaManager.getBooleanFormulaManager().and(constraints);
+    return constraints;
+  }
+
+  public BooleanFormula toScopedFormulaApproximationUninstantiated(
+      final FormulaManagerView pFormulaManager,
+      final CongruenceState state,
+      final String pFunctionScope) {
+    PathFormulaManager pfmgrv;
+    try {
+      pfmgrv =
+          new PathFormulaManagerImpl(
+              pFormulaManager,
+              configuration,
+              logManager,
+              shutdownNotifier,
+              cfa,
+              AnalysisDirection.FORWARD);
+    } catch (InvalidConfigurationException e) {
+      throw new UnsupportedOperationException("Could not construct path formula manager", e);
+    }
+
+    Collection<BooleanFormula> constraints =
+        collectConstraintsConditionally(
+            pfmgrv,
+            pFormulaManager,
+            state,
+            pfmgrv.makeEmptyPathFormulaWithContext(state.getSSAMap(), state.getPointerTargetSet()),
+            constraint ->
+                constraint.getUsedVars().stream()
+                    .allMatch(
+                        name -> !name.contains("::") || name.startsWith(pFunctionScope + "::")));
+
+    if (constraints.isEmpty()) {
+      return pFormulaManager.getBooleanFormulaManager().makeTrue();
+    }
+
+    return pFormulaManager.renameFreeVariablesAndUFs(
+        pFormulaManager.uninstantiate(pFormulaManager.getBooleanFormulaManager().and(constraints)),
+        name -> {
+          int separatorIndex = name.indexOf("::");
+          if (separatorIndex >= 0) {
+            return name.substring(separatorIndex + 2);
+          } else {
+            return name;
+          }
+        });
   }
 
   private boolean shouldUseTemplate(Template template) {

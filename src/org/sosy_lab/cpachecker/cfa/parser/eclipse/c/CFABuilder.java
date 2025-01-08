@@ -146,6 +146,7 @@ class CFABuilder extends ASTVisitor {
             new HashMap<>(),
             new HashMap<>(),
             new HashMap<>(),
+            parseContext,
             programDeclarations,
             staticVariablePrefix,
             artificialScope);

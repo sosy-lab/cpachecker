@@ -3362,8 +3362,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         // Abstraction is checked in the test for this abstraction
 
         // deref ptr, get prev obj to the one before (the ptr with the last specifier)
-        Value currentPtr;
-        currentPtr = topListPtrs[topListPtrs.length - 1];
+        Value currentPtr = topListPtrs[topListPtrs.length - 1];
 
         SMGPointsToEdge ptrPTE =
             currentState
@@ -3983,8 +3982,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         // Abstraction is checked in the test for this abstraction
 
         // deref ptr, get prev obj to the one before (the ptr with the last specifier)
-        Value currentPtr;
-        currentPtr = topListPtrs[listLength - 1];
+        Value currentPtr = topListPtrs[listLength - 1];
 
         SMGPointsToEdge ptrPTE =
             currentState
@@ -5302,7 +5300,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             false);
 
     SMGState stateBeforeStackObj = currentState;
-    for (int i = 0; i < topListPtrs.size(); i++) {
+    for (Value topListPtr : topListPtrs) {
       SMGObjectAndSMGState stackObjAndState =
           stateBeforeStackObj.copyAndAddStackObject(numericPointerSizeInBits);
       currentState = stackObjAndState.getState();
@@ -5312,7 +5310,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               dummyStackObject,
               new NumericValue(BigInteger.ZERO),
               numericPointerSizeInBits,
-              topListPtrs.get(i),
+              topListPtr,
               null,
               dummyCDAEdge);
 

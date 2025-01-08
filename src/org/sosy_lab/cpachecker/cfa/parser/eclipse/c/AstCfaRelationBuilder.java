@@ -47,7 +47,8 @@ class AstCfaRelationBuilder {
         getStatementStructures(pEdges, classifier),
         pCfaNodeToAstLocalVariablesInScope,
         pCfaNodeToAstParametersVariablesInScope,
-        pGlobalVariables);
+        pGlobalVariables,
+        classifier.getExpressionLocations());
   }
 
   private static ImmutableSet<IfElement> getIfStructures(
