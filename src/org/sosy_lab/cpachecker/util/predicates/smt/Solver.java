@@ -97,7 +97,27 @@ public final class Solver implements AutoCloseable {
   private final SolverContext solvingContext;
   private final SolverContext interpolatingContext;
 
+  /**
+   * The <code>FormulaManager<b>View</b></code> for {@link #solvingContext}
+   *
+   * <p>This is stored separately to make sure that we have access to the actual {@link
+   * FormulaManagerView}. Using <code>solvingContext.getContext()</code> we only get a {@link
+   * FormulaManager}, but not a <code>FormulaManager<b>View</b></code>.
+   *
+   * <p>We need the <code>FormulaManager<b>View</b></code> in {@link
+   * SeparateInterpolatingProverEnvironment} as the class uses {@link
+   * FormulaManagerView#dumpArbitraryFormula(Formula) dumpArbitraryFormula} and {@link
+   * FormulaManagerView#parseArbitraryFormula(String) parseArbitraryFormula} from {@link
+   * FormulaManagerView} to translate formulas for its model.
+   */
   private final FormulaManagerView solvingFmgr;
+
+  /**
+   * The <code>FormulaManager<b>View</b></code> for {@link #interpolatingContext}</code>
+   *
+   * <p>See {@link #solvingFmgr} for why we can't use just <code>
+   * interpolatingContext.getFormulaManager()</code> here
+   */
   private final FormulaManagerView interpolatingFmgr;
 
   private final Map<BooleanFormula, Boolean> unsatCache = new HashMap<>();
