@@ -291,6 +291,8 @@ public class LoopInfoUtils {
   }
 
   private static Entry<String, String> preprocess(String pVariable, String pType) {
+    pType = pType.replace("const ", "");
+
     if (!pType.contains("*") && !pType.contains("]")) {
       return new SimpleEntry<>(
           pVariable.contains("::")
