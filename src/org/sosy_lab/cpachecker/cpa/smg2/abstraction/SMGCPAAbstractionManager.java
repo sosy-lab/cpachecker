@@ -110,6 +110,7 @@ public class SMGCPAAbstractionManager {
     statistics.startTotalListSearchTime();
 
     // Sort in DLL and SLL candidates and also order by nesting
+    // TODO: refactor and split getListCandidates()
     List<Set<SMGCandidate>> orderedListCandidatesByNesting = getListCandidates();
 
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
@@ -235,6 +236,7 @@ public class SMGCPAAbstractionManager {
     return true;
   }
 
+  // TODO: refactor and split
   List<Set<SMGCandidate>> getListCandidates() throws SMGException {
     equalityCache = EqualityCache.of();
     objectCache = EqualityCache.of();
