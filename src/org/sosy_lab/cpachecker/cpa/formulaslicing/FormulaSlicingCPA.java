@@ -68,17 +68,15 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
       throws InvalidConfigurationException {
     solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
-    PathFormulaManager origPathFormulaManager =
-        new PathFormulaManagerImpl(
-            formulaManager,
-            pConfiguration,
-            pLogger,
-            pShutdownNotifier,
-            cfa,
-            AnalysisDirection.FORWARD);
-
-    CachingPathFormulaManager pathFormulaManager =
-        new CachingPathFormulaManager(origPathFormulaManager);
+    PathFormulaManager pathFormulaManager =
+        new CachingPathFormulaManager(
+            new PathFormulaManagerImpl(
+                formulaManager,
+                pConfiguration,
+                pLogger,
+                pShutdownNotifier,
+                cfa,
+                AnalysisDirection.FORWARD));
 
     inductiveWeakeningManager =
         new InductiveWeakeningManager(

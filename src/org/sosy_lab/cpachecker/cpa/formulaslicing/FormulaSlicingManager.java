@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -80,7 +79,7 @@ public class FormulaSlicingManager implements StatisticsProvider {
 
   FormulaSlicingManager(
       Configuration config,
-      CachingPathFormulaManager pPathFormulaManager,
+      PathFormulaManager pPathFormulaManager,
       FormulaManagerView pFormulaManager,
       CFA pCfa,
       InductiveWeakeningManager pInductiveWeakeningManager,
@@ -96,7 +95,7 @@ public class FormulaSlicingManager implements StatisticsProvider {
     solver = pSolver;
     bfmgr = pFormulaManager.getBooleanFormulaManager();
     rcnfManager = pRcnfManager;
-    statistics = new FormulaSlicingStatistics(pPathFormulaManager, pSolver);
+    statistics = new FormulaSlicingStatistics(pSolver);
     Preconditions.checkState(
         pCfa.getLiveVariables().isPresent() && pCfa.getLoopStructure().isPresent());
     liveVariables = pCfa.getLiveVariables().orElseThrow();
