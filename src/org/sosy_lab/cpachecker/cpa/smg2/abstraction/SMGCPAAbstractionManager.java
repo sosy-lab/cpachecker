@@ -303,12 +303,10 @@ public class SMGCPAAbstractionManager {
               foundChains.add(candidate);
             }
             alreadySeen.addAll(candidate.suspectedElements);
-            continue;
           }
         }
         // Incorrect or not usable next element, maybe a prev exists though,
         //   don't put current in seen list, and it will be found via the prev object
-        continue;
 
       } else {
         List<SMGHasValueEdge> valuesInHeapObj =
