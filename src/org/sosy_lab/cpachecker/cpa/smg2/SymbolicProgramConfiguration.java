@@ -660,11 +660,33 @@ public class SymbolicProgramConfiguration {
         // If there is a mapping for v1 or v2 already present, return bottom.
         return Optional.empty();
       }
-      if (!maybeV1Type.equals(maybeV2Type)) {
-        // Types not matching.
-        // TODO: This is not necessarily a bad thing!
-        return Optional.empty();
+
+      if (v1v.isNumericValue() || v2v.isNumericValue()) {
+        if (v1v.isNumericValue()
+            && v2v.isNumericValue()
+            && v1v.asNumericValue()
+                    .bigIntegerValue()
+                    .compareTo(v2v.asNumericValue().bigIntegerValue())
+                != 0) {
+          // TODO: use a symbolic value with a constraint?
+          return Optional.empty();
+        } else {
+          // Symbolic and concrete
+          // TODO: try to include the concrete in the symbolic?
+          return Optional.empty();
+        }
+      } else {
+        // 2 symbolic values, check that constraints match
+        if (!maybeV1Type.equals(maybeV2Type)) {
+          // Types not matching.
+          // TODO: This is not necessarily a bad thing!
+          return Optional.empty();
+        }
+        // TODO: constraints equality is currently handled in SMGState merge() (we reject all
+        // possible states with non-equal constraints)
+
       }
+
       // Create a new value v such that level(v) = max(level(v1), level(v2))
       Value valueToWrite = pNewSpc.getNewSymbolicValueForType(maybeV1Type);
       SMGValue v = SMGValue.of();
@@ -679,6 +701,13 @@ public class SymbolicProgramConfiguration {
       mapping2 =
           ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping2).put(v2, v).buildOrThrow();
       assert pNewSpc.smg.hasValue(v);
+
+      // Note on the nesting level here: we use 0 for all non-ptr values, so this will never fail.
+      // Reason being that we don't want to have copies of concrete values that are irrelevant in
+      // the nesting, and we don't want to add additional complexity to the SMT solving
+      // (constraints of values with copies based on nesting level etc.)
+      // Since values can only be changed when merging or on concrete elements, this is no issue.
+
       // If level(v1) - level(v2) < nestingLevel, update join status with ⊏
       if (level1 - level2 < nestingDiff) {
         status = status.updateWith(SMGMergeStatus.LEFT_ENTAIL);
@@ -1346,23 +1375,46 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * @param pOldObject object to be removed.
-   * @param pNewObject object that replaces pOldObject, i.e. all pointers pointing to pOldObject are
-   *     switched to point at this and all values of pOldObject are copied to be in this obj. This
-   *     obj retains the validity of pOldObject.
+   * Adds pNewObject to heap objects (or external objects) including the SMG, copies all values from
+   * pOldObject to the new object, copies the validity of the old to the new object, switches all
+   * pointers from the old to the new object and then removes the old obj from the SMG and the SPC.
+   *
+   * @param pOldObject object to be replaced, copied and removed.
+   * @param pNewObject new object that replaces pOldObject, i.e. all pointers pointing to pOldObject
+   *     are switched to point at this and all values of pOldObject are copied to be in this obj.
+   *     This obj retains the validity of pOldObject. This obj is expected to not be in the SPC/SMG
+   *     yet.
    * @return new SPC with the changes.
    */
   public SymbolicProgramConfiguration copyAndReplaceObjectAndRemoveOld(
       SMGObject pOldObject, SMGObject pNewObject) {
+    if (pOldObject == pNewObject) {
+      return this;
+    }
+
+    PersistentMap<SMGObject, Boolean> newExternalObjectAllocation = externalObjectAllocation;
+    if (newExternalObjectAllocation.containsKey(pOldObject)) {
+      newExternalObjectAllocation =
+          newExternalObjectAllocation
+              .putAndCopy(pNewObject, newExternalObjectAllocation.get(pOldObject))
+              .removeAndCopy(newExternalObjectAllocation);
+    }
+
+    Preconditions.checkState(isHeapObject(pOldObject));
+
     SymbolicProgramConfiguration newSPC =
         copyAndAddHeapObject(pNewObject)
             .copyWithNewSMG(smg.copyAndReplaceObject(pOldObject, pNewObject));
+
+    Preconditions.checkState(
+        newSPC.smg.getAllSourcesForPointersPointingTowards(pOldObject).isEmpty());
+
     return new SymbolicProgramConfiguration(
         newSPC.smg,
         newSPC.globalVariableMapping,
         newSPC.stackVariableMapping,
         newSPC.heapObjects.removeAndCopy(pOldObject),
-        newSPC.externalObjectAllocation,
+        newExternalObjectAllocation,
         newSPC.valueMapping,
         newSPC.variableToTypeMap,
         newSPC.memoryAddressAssumptionsMap.removeAndCopy(pOldObject),
