@@ -7697,9 +7697,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       }
       SMGCandidate firstObj = candidates.iterator().next();
       assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
-      state =
-          state.abstractIntoSLL(
-              firstObj.getObject(), nfo, BigInteger.ZERO, ImmutableSet.of(), 0, LIST_POINTER_TYPE);
+      state = state.abstractIntoSLL(firstObj.getObject(), nfo, BigInteger.ZERO, ImmutableSet.of());
 
       Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
       // All should be invalid except our SLL here
@@ -7746,9 +7744,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       }
       SMGCandidate firstObj = candidates.iterator().next();
       assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
-      state =
-          state.abstractIntoSLL(
-              firstObj.getObject(), nfo, BigInteger.ZERO, ImmutableSet.of(), 0, LIST_POINTER_TYPE);
+      state = state.abstractIntoSLL(firstObj.getObject(), nfo, BigInteger.ZERO, ImmutableSet.of());
 
       Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
       // All should be invalid except our SLL here
@@ -7793,14 +7789,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
       state =
           state.abstractIntoDLL(
-              firstObj.getObject(),
-              nfo,
-              BigInteger.ZERO,
-              pfo,
-              BigInteger.ZERO,
-              ImmutableSet.of(),
-              0,
-              LIST_POINTER_TYPE);
+              firstObj.getObject(), nfo, BigInteger.ZERO, pfo, BigInteger.ZERO, ImmutableSet.of());
 
       Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
       // All should be invalid except our SLL here
@@ -7859,9 +7848,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                 BigInteger.ZERO,
                 pfo,
                 BigInteger.ZERO,
-                ImmutableSet.of(),
-                0,
-                LIST_POINTER_TYPE);
+                ImmutableSet.of());
 
         Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
         // All should be invalid except our SLL here

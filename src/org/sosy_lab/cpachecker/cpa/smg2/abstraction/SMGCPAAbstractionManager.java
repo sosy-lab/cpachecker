@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2.abstraction;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -19,6 +20,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -26,10 +28,10 @@ import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
+import org.sosy_lab.cpachecker.cpa.smg2.StackFrame;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
@@ -125,12 +127,15 @@ public class SMGCPAAbstractionManager {
         if (!currentState.getMemoryModel().isObjectValid(candidate.getObject())) {
           continue;
         }
-        Set<SMGValue> ptrsToListCandidate =
-            currentState.getMemoryModel().getSmg().getPointerValuesForTarget(candidate.getObject());
-        Preconditions.checkArgument(!ptrsToListCandidate.isEmpty());
-        CType listPointerType =
-            currentState.getMemoryModel().getTypeForValue(ptrsToListCandidate.iterator().next());
-        int nestingLvl = getNewNestingLvl(candidate, currentState);
+
+        // Check that there are pointers towards the candidate
+        Preconditions.checkArgument(
+            !currentState
+                .getMemoryModel()
+                .getSmg()
+                .getPointerValuesForTarget(candidate.getObject())
+                .isEmpty());
+
         if (candidate.isDLL()) {
           currentState =
               currentState.abstractIntoDLL(
@@ -139,9 +144,7 @@ public class SMGCPAAbstractionManager {
                   candidate.getSuspectedNfoTargetOffset(),
                   candidate.getSuspectedPfo().orElseThrow(),
                   candidate.getSuspectedPfoTargetPointerOffset().orElseThrow(),
-                  ImmutableSet.of(),
-                  nestingLvl,
-                  listPointerType);
+                  ImmutableSet.of());
 
         } else {
           currentState =
@@ -149,53 +152,18 @@ public class SMGCPAAbstractionManager {
                   candidate.getObject(),
                   candidate.getSuspectedNfo(),
                   candidate.getSuspectedNfoTargetOffset(),
-                  ImmutableSet.of(),
-                  nestingLvl,
-                  listPointerType);
+                  ImmutableSet.of());
         }
       }
     }
+
     currentState = currentState.removeUnusedValues();
     statistics.stopTotalAbstractionTime();
+
     assert candidatesHaveBeenAbstracted(orderedListCandidatesByNesting, currentState);
+    assert currentState.getMemoryModel().getSmg().checkSMGSanity();
     assert checkNestingLevel(currentState);
     return currentState;
-  }
-
-  private static int getNewNestingLvl(SMGCandidate candidate, SMGState currentState) {
-    int nestingLvl = 0;
-    SMGObject root = candidate.getObject();
-    SMG curSMG = currentState.getMemoryModel().getSmg();
-    Set<SMGValue> ptrsTowards =
-        currentState.getMemoryModel().getSmg().getPointerValuesForTarget(root);
-    ImmutableSet.Builder<SMGObject> objsPointingTowards = ImmutableSet.builder();
-    for (SMGValue ptrTowards : ptrsTowards) {
-      objsPointingTowards.addAll(
-          currentState.getMemoryModel().getSmg().getAllObjectsWithValueInThem(ptrTowards));
-    }
-
-    for (SMGObject objPointingTowards : objsPointingTowards.build()) {
-      if (objPointingTowards != root
-          && objPointingTowards instanceof SMGSinglyLinkedListSegment sll) {
-        if (!curSMG
-            .getHasValueEdgesByPredicate(
-                objPointingTowards,
-                h ->
-                    !sll.getNextOffset().equals(h.getOffset())
-                        && (!(sll instanceof SMGDoublyLinkedListSegment dll)
-                            || !dll.getPrevOffset().equals(h.getOffset()))
-                        && curSMG.isPointer(h.hasValue())
-                        && curSMG.getPTEdge(h.hasValue()).orElseThrow().pointsTo().equals(root))
-            .isEmpty()) {
-          Preconditions.checkArgument(nestingLvl == 0); // Found two abstr. lists
-          nestingLvl = sll.getNestingLevel() + 1;
-        }
-      } else {
-        // Found two ptrs from abstr. and not abstr. elements
-        Preconditions.checkArgument(nestingLvl == 0);
-      }
-    }
-    return nestingLvl;
   }
 
   private boolean candidatesHaveBeenAbstracted(
@@ -1540,39 +1508,139 @@ public class SMGCPAAbstractionManager {
     return res.build();
   }
 
+  /**
+   * Checks the nesting level of abstracted lists. Base level is 0. Only abstracted objects can be
+   * parents and there can only be exactly one parent. Each nested object has level one greater the
+   * abstracted object that is its parent. Addresses with FIRST, LAST and REGION specifier always
+   * have the same level as the targets, while ALL addresses go up one level.
+   */
   private boolean checkNestingLevel(SMGState pCurrentState) {
-    for (SMGSinglyLinkedListSegment nestedSll :
-        pCurrentState.getMemoryModel().getSmg().getAllValidAbstractedObjects()) {
-      Set<SMGValue> ptrsTowards =
-          pCurrentState.getMemoryModel().getSmg().getPointerValuesForTarget(nestedSll);
-      for (SMGValue ptrTowards : ptrsTowards) {
-        for (SMGObject objPointingToWards :
-            pCurrentState.getMemoryModel().getSmg().getAllObjectsWithValueInThem(ptrTowards)) {
-          // If an object that is NOT in the same list points towards a nested abstr. list, the
-          // nesting level must be different
-          if (objPointingToWards != nestedSll
-              && objPointingToWards instanceof SMGSinglyLinkedListSegment sll2) {
-            // Get location of the ptr in sll2 and check that it's not a next or prev of both
-            BigInteger ptrOffset = null;
-            for (SMGHasValueEdge hveSll2 :
-                pCurrentState.getMemoryModel().getSmg().getEdges(objPointingToWards)) {
-              if (hveSll2.hasValue().equals(ptrTowards)) {
-                ptrOffset = hveSll2.getOffset();
-                break;
-              }
+    Set<SMGObject> alreadyChecked = new HashSet<>();
+    SymbolicProgramConfiguration spc = pCurrentState.getMemoryModel();
+    SMG smg = spc.getSmg();
+    Iterator<StackFrame> stackFrames = spc.getStackFrames().iterator();
+    while (stackFrames.hasNext()) {
+      StackFrame stackFrame = stackFrames.next();
+      for (SMGObject stackObj : stackFrame.getAllObjects()) {
+        if (alreadyChecked.contains(stackObj)) {
+          continue;
+        } else {
+          alreadyChecked.add(stackObj);
+        }
+
+        assert stackObj.getNestingLevel() == 0;
+
+        int currentMinLevel = 0;
+        // Get all pointers/target objects from this obj and traverse subSMG.
+        FluentIterable<SMGHasValueEdge> pointers =
+            smg.getHasValueEdgesByPredicate(stackObj, h -> smg.isPointer(h.hasValue()));
+        for (SMGHasValueEdge hve : pointers) {
+          SMGValue value = hve.hasValue();
+          SMGPointsToEdge pte = smg.getPTEdge(value).orElseThrow();
+          SMGTargetSpecifier specifier = pte.targetSpecifier();
+          SMGObject target = pte.pointsTo();
+          int targetNestingLvl = target.getNestingLevel();
+
+          if (target.isZero()) {
+            assert specifier.equals(SMGTargetSpecifier.IS_REGION);
+            assert targetNestingLvl == 0;
+            assert smg.getNestingLevel(value) == 0;
+            alreadyChecked.add(target);
+            continue;
+          } else if (specifier.equals(SMGTargetSpecifier.IS_ALL_POINTER)) {
+            // Level is 1 larger than target
+            assert smg.getNestingLevel(value) + 1 == targetNestingLvl;
+            assert currentMinLevel <= targetNestingLvl;
+            assert target instanceof SMGSinglyLinkedListSegment;
+            checkNestingLevel(pCurrentState, target, currentMinLevel, alreadyChecked);
+
+          } else {
+            // Level is equal to target
+            assert smg.getNestingLevel(value) == targetNestingLvl;
+            assert currentMinLevel <= targetNestingLvl;
+
+            if (target instanceof SMGSinglyLinkedListSegment) {
+              assert specifier.equals(SMGTargetSpecifier.IS_FIRST_POINTER)
+                  || specifier.equals(SMGTargetSpecifier.IS_LAST_POINTER);
+            } else {
+              assert specifier.equals(SMGTargetSpecifier.IS_REGION);
             }
-            if (!sll2.getNextOffset().equals(ptrOffset)
-                && (!(sll2 instanceof SMGDoublyLinkedListSegment dll2)
-                    || !dll2.getPrevOffset().equals(ptrOffset))) {
-              if (sll2.getNestingLevel() + 1 != nestedSll.getNestingLevel()) {
-                return false;
-              }
-            }
+            checkNestingLevel(pCurrentState, target, currentMinLevel, alreadyChecked);
           }
         }
       }
     }
     return true;
+  }
+
+  private void checkNestingLevel(
+      SMGState currentState,
+      SMGObject currentObject,
+      int initialMinLevel,
+      Set<SMGObject> alreadyChecked) {
+    if (alreadyChecked.contains(currentObject)) {
+      return;
+    } else {
+      alreadyChecked.add(currentObject);
+    }
+
+    SymbolicProgramConfiguration spc = currentState.getMemoryModel();
+    SMG smg = spc.getSmg();
+
+    // Get all pointers/target objects from this obj and traverse subSMG.
+    FluentIterable<SMGHasValueEdge> pointers =
+        smg.getHasValueEdgesByPredicate(currentObject, h -> smg.isPointer(h.hasValue()));
+    for (SMGHasValueEdge hve : pointers) {
+      SMGValue value = hve.hasValue();
+      BigInteger offset = hve.getOffset();
+      SMGPointsToEdge pte = smg.getPTEdge(value).orElseThrow();
+      SMGTargetSpecifier specifier = pte.targetSpecifier();
+      SMGObject target = pte.pointsTo();
+      int targetNestingLvl = target.getNestingLevel();
+      int valueNestingLvl = smg.getNestingLevel(value);
+
+      int currentMinLevel = initialMinLevel;
+      if (currentObject instanceof SMGDoublyLinkedListSegment dll
+          && !offset.equals(dll.getNextOffset())
+          && !offset.equals(dll.getPrevOffset())) {
+        currentMinLevel++;
+      } else if (currentObject instanceof SMGSinglyLinkedListSegment sll
+          && !offset.equals(sll.getNextOffset())
+          && !(currentObject instanceof SMGDoublyLinkedListSegment)) {
+        currentMinLevel++;
+      }
+
+      if (target.isZero()) {
+        assert specifier.equals(SMGTargetSpecifier.IS_REGION);
+        assert targetNestingLvl == 0;
+        assert valueNestingLvl == 0;
+        continue;
+      } else if (specifier.equals(SMGTargetSpecifier.IS_ALL_POINTER)) {
+        // Level of pointer is 1 larger than target
+        assert valueNestingLvl + 1 == targetNestingLvl;
+        currentMinLevel--;
+        assert currentMinLevel <= targetNestingLvl;
+        assert target instanceof SMGSinglyLinkedListSegment;
+        checkNestingLevel(currentState, target, currentMinLevel, alreadyChecked);
+
+      } else {
+        // Level is equal to target
+        assert valueNestingLvl == targetNestingLvl;
+        assert currentMinLevel <= targetNestingLvl;
+
+        if (target instanceof SMGSinglyLinkedListSegment) {
+          assert specifier.equals(SMGTargetSpecifier.IS_FIRST_POINTER)
+              || specifier.equals(SMGTargetSpecifier.IS_LAST_POINTER);
+          if (currentObject instanceof SMGSinglyLinkedListSegment) {
+            // There is at most 1 parent
+            assert currentObject.getNestingLevel() + 1 == targetNestingLvl;
+          }
+        } else {
+          assert specifier.equals(SMGTargetSpecifier.IS_REGION);
+        }
+        checkNestingLevel(currentState, target, currentMinLevel, alreadyChecked);
+      }
+    }
   }
 
   protected static class SMGCandidateOrRejectedObject {

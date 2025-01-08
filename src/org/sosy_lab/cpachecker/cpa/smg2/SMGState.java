@@ -5191,9 +5191,7 @@ public class SMGState
       BigInteger nextPointerTargetOffset,
       BigInteger pfo,
       BigInteger prevPointerTargetOffset,
-      Set<SMGObject> alreadyVisited,
-      int nestingLevel,
-      CType listPointerType)
+      Set<SMGObject> alreadyVisited)
       throws SMGException {
     statistics.incrementListAbstractions();
     // Check that the next object exists, is valid, has the same size and the same value in head
@@ -5273,11 +5271,7 @@ public class SMGState
         newMinLength = oldDLLLeft.getMinLength() + oldDllRight.getMinLength();
       }
       newDLL =
-          (SMGDoublyLinkedListSegment)
-              oldDLLLeft
-                  .copyWithNewMinimumLength(newMinLength)
-                  .copyWithNewRelevantEqualities(eqCache)
-                  .copyWithNewNestingLevel(nestingLevel);
+          oldDLLLeft.copyWithNewMinimumLength(newMinLength).copyWithNewRelevantEqualities(eqCache);
 
     } else {
       // Calculate head offset
@@ -5295,7 +5289,7 @@ public class SMGState
 
       newDLL =
           new SMGDoublyLinkedListSegment(
-              nestingLevel,
+              root.getNestingLevel(),
               root.getSize(),
               root.getOffset(),
               headOffset,
@@ -5421,9 +5415,7 @@ public class SMGState
         nextPointerTargetOffset,
         pfo,
         prevPointerTargetOffset,
-        ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newDLL).build(),
-        nestingLevel,
-        listPointerType);
+        ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newDLL).build());
   }
 
   /*
@@ -5436,9 +5428,7 @@ public class SMGState
       SMGObject root,
       BigInteger nfo,
       BigInteger nextPointerTargetOffset,
-      Set<SMGObject> alreadyVisited,
-      int nestingLevel,
-      CType listPointerType)
+      Set<SMGObject> alreadyVisited)
       throws SMGException {
     statistics.incrementListAbstractions();
     // Check that the next object exists, is valid, has the same size and the same value in head
@@ -5524,7 +5514,7 @@ public class SMGState
               : BigInteger.ZERO;
       newSLL =
           new SMGSinglyLinkedListSegment(
-              nestingLevel,
+              root.getNestingLevel(),
               root.getSize(),
               root.getOffset(),
               headOffset,
@@ -5589,9 +5579,7 @@ public class SMGState
         newSLL,
         nfo,
         nextPointerTargetOffset,
-        ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build(),
-        nestingLevel,
-        listPointerType);
+        ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
   }
 
   /**
