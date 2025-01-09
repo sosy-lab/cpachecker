@@ -52,7 +52,7 @@ import org.sosy_lab.java_smt.api.Tactic;
 public class InductiveWeakeningManager implements StatisticsProvider {
 
   /** Possible weakening strategies. */
-  public enum WEAKENING_STRATEGY {
+  public enum WeakingingStrategy {
 
     /** Remove all atoms containing the literals mentioned in the transition relation. */
     SYNTACTIC,
@@ -65,7 +65,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   }
 
   @Option(description = "Inductive weakening strategy", secure = true)
-  private WEAKENING_STRATEGY weakeningStrategy = WEAKENING_STRATEGY.CEX;
+  private WeakingingStrategy weakeningStrategy = WeakingingStrategy.CEX;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;

@@ -115,7 +115,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter.CONDITION;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter.Condition;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -1420,7 +1420,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     rootNode = handleAllSideEffects(rootNode, fileLocation, rawSignature, true);
     exp.accept(checkBinding);
 
-    final CONDITION kind = astCreator.getConditionKind(exp);
+    final Condition kind = astCreator.getConditionKind(exp);
     switch (kind) {
       case ALWAYS_FALSE:
         // no edge connecting rootNode with thenNode,
@@ -2037,18 +2037,18 @@ class CFAFunctionBuilder extends ASTVisitor {
         buildBinaryExpression(switchExpr, bigEnd, CBinaryExpression.BinaryOperator.LESS_EQUAL);
 
     final CExpression firstExp = astCreator.simplifyExpressionOneStep(firstPart);
-    final CONDITION firstKind = astCreator.getConditionKind(firstExp);
+    final Condition firstKind = astCreator.getConditionKind(firstExp);
     final CExpression secondExp = astCreator.simplifyExpressionOneStep(secondPart);
-    final CONDITION secondKind = astCreator.getConditionKind(secondExp);
+    final Condition secondKind = astCreator.getConditionKind(secondExp);
 
     final CFANode nextCaseStartsAtNode;
-    if (firstKind == CONDITION.ALWAYS_FALSE || secondKind == CONDITION.ALWAYS_FALSE) {
+    if (firstKind == Condition.ALWAYS_FALSE || secondKind == Condition.ALWAYS_FALSE) {
       // no edge connecting rootNode with caseNode,
       // so the "case" branch won't be connected to the rest of the CFA.
       // also ignore the edge from rootNode to notCaseNode, it is not needed
       nextCaseStartsAtNode = rootNode;
 
-    } else if (firstKind == CONDITION.ALWAYS_TRUE && secondKind == CONDITION.ALWAYS_TRUE) {
+    } else if (firstKind == Condition.ALWAYS_TRUE && secondKind == Condition.ALWAYS_TRUE) {
       final BlankEdge trueEdge =
           new BlankEdge(
               "",
@@ -2060,7 +2060,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       nextCaseStartsAtNode = notCaseNode;
 
     } else { // build small condition-tree
-      assert firstKind == CONDITION.NORMAL && secondKind == CONDITION.NORMAL
+      assert firstKind == Condition.NORMAL && secondKind == Condition.NORMAL
           : "either both conditions can be evaluated or not, but mixed is not allowed";
 
       final CFANode intermediateNode = newCFANode();

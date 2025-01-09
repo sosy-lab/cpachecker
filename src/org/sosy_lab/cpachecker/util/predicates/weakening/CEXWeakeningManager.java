@@ -39,7 +39,7 @@ import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 public class CEXWeakeningManager {
 
   /** Selection strategy for CEX-based weakening. */
-  private enum SELECTION_STRATEGY {
+  private enum SelectionStrategy {
     /** Abstract all matching children. */
     ALL,
 
@@ -54,7 +54,7 @@ public class CEXWeakeningManager {
   }
 
   @Option(description = "Strategy for abstracting children during CEX weakening", secure = true)
-  private SELECTION_STRATEGY removalSelectionStrategy = SELECTION_STRATEGY.ALL;
+  private SelectionStrategy removalSelectionStrategy = SelectionStrategy.ALL;
 
   @Option(description = "Depth limit for the 'LEAST_REMOVALS' strategy.")
   private int leastRemovalsDepthLimit = 2;
