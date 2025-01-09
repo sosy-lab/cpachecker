@@ -73,7 +73,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
-import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -229,7 +228,6 @@ public final class PredicateAbstractionManager {
       AbstractionManager pAmgr,
       PathFormulaManager pPfmgr,
       Solver pSolver,
-      WeakeningOptions weakeningOptions,
       Configuration config,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
@@ -254,8 +252,7 @@ public final class PredicateAbstractionManager {
       warnedOfCartesianAbstraction = true; // warning is not necessary
     }
     if (abstractionType == AbstractionType.CARTESIAN_BY_WEAKENING) {
-      weakeningManager =
-          new InductiveWeakeningManager(weakeningOptions, pSolver, pLogger, pShutdownNotifier);
+      weakeningManager = new InductiveWeakeningManager(config, pSolver, pLogger, pShutdownNotifier);
     } else {
       weakeningManager = null;
     }

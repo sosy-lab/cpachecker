@@ -101,7 +101,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.java_smt.SolverContextFactory;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -246,7 +245,6 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
               abstractionManager,
               pathFormulaManager,
               solver,
-              new WeakeningOptions(pConfig),
               pConfig,
               pLogger,
               pNotifier,

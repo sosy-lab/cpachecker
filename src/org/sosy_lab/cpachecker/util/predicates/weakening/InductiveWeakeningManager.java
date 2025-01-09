@@ -25,6 +25,10 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -44,6 +48,7 @@ import org.sosy_lab.java_smt.api.Tactic;
  * Finds inductive weakening of formulas (originally: formula slicing). This class operates on
  * formulas, and should be orthogonal to CFA- and CPA-specific concepts.
  */
+@Options(prefix = "cpa.slicing")
 public class InductiveWeakeningManager implements StatisticsProvider {
 
   /** Possible weakening strategies. */
@@ -59,7 +64,9 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     CEX
   }
 
-  private final WeakeningOptions options;
+  @Option(description = "Inductive weakening strategy", secure = true)
+  private WEAKENING_STRATEGY weakeningStrategy = WEAKENING_STRATEGY.CEX;
+
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
 
@@ -75,22 +82,20 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   private static final String SELECTOR_VAR_TEMPLATE = "_FS_SEL_VAR_";
 
   public InductiveWeakeningManager(
-      WeakeningOptions pOptions,
-      Solver pSolver,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) {
+      Configuration config, Solver pSolver, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+    config.inject(this);
 
-    options = pOptions;
     statistics = new InductiveWeakeningStatistics();
     fmgr = pSolver.getFormulaManager();
     logger = pLogger;
     bfmgr = fmgr.getBooleanFormulaManager();
     syntacticWeakeningManager = new SyntacticWeakeningManager(fmgr);
     destructiveWeakeningManager =
-        new DestructiveWeakeningManager(pSolver, fmgr, options, statistics);
+        new DestructiveWeakeningManager(pSolver, fmgr, config, statistics);
     solver = pSolver;
     cexWeakeningManager =
-        new CEXWeakeningManager(fmgr, pSolver, statistics, options, pShutdownNotifier);
+        new CEXWeakeningManager(fmgr, pSolver, statistics, config, pShutdownNotifier);
   }
 
   /**
@@ -218,7 +223,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       SSAMap fromSSA,
       Set<BooleanFormula> pFromStateLemmas)
       throws SolverException, InterruptedException {
-    return switch (options.getWeakeningStrategy()) {
+    return switch (weakeningStrategy) {
       case SYNTACTIC ->
           syntacticWeakeningManager.performWeakening(
               fromSSA, selectionVarsInfo, transition.getSsa(), pFromStateLemmas);

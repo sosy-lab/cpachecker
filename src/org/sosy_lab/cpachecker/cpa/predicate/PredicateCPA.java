@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** CPA that defines symbolic predicate abstraction. */
@@ -134,7 +133,6 @@ public class PredicateCPA
   private final PredicateAbstractionManager predAbsManager;
   private final PredicateCPAInvariantsManager invariantsManager;
   private final BlockOperator blk;
-  private final WeakeningOptions weakeningOptions;
 
   // path formulas for PCC
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulaePcc = new HashMap<>();
@@ -192,14 +190,11 @@ public class PredicateCPA
         new PredicateCPAInvariantsManager(
             config, logger, pShutdownNotifier, pCfa, specification, pAggregatedReachedSets);
 
-    weakeningOptions = new WeakeningOptions(config);
-
     predAbsManager =
         new PredicateAbstractionManager(
             abstractionManager,
             pathFormulaManager,
             solver,
-            weakeningOptions,
             config,
             logger,
             shutdownNotifier,
