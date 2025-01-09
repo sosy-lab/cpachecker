@@ -94,30 +94,10 @@ public final class Solver implements AutoCloseable {
   private final SolverContext solvingContext;
   private final SolverContext interpolatingContext;
 
-  /**
-   * The <code>FormulaManager<b>View</b></code> for {@link #solvingContext}
-   *
-   * <p>This is stored separately to make sure that we have access to the actual {@link
-   * FormulaManagerView}. Using <code>solvingContext.getContext()</code> we only get a {@link
-   * FormulaManager}, but not a <code>FormulaManager<b>View</b></code>.
-   *
-   * <p>We need the <code>FormulaManager<b>View</b></code> in {@link
-   * SeparateInterpolatingProverEnvironment} as the class uses {@link
-   * FormulaManagerView#dumpArbitraryFormula(Formula) dumpArbitraryFormula} and {@link
-   * FormulaManagerView#parseArbitraryFormula(String) parseArbitraryFormula} from {@link
-   * FormulaManagerView} to translate formulas for its model.
-   */
   private final FormulaManagerView solvingFmgr;
-
-  /**
-   * The <code>FormulaManager<b>View</b></code> for {@link #interpolatingContext}</code>
-   *
-   * <p>See {@link #solvingFmgr} for why we can't use just <code>
-   * interpolatingContext.getFormulaManager()</code> here
-   */
   private final FormulaManagerView interpolatingFmgr;
 
-  private final BooleanFormulaManagerView bfmgr;
+  private final BooleanFormulaManagerView solvingBfmgr;
 
   private final Map<BooleanFormula, Boolean> unsatCache = new HashMap<>();
 
@@ -178,7 +158,7 @@ public final class Solver implements AutoCloseable {
       interpolatingFmgr = solvingFmgr;
     }
 
-    bfmgr = solvingFmgr.getBooleanFormulaManager();
+    solvingBfmgr = solvingFmgr.getBooleanFormulaManager();
 
     if (checkUFs) {
       ufCheckingProverOptions = new UFCheckingProverOptions(config);
@@ -225,7 +205,7 @@ public final class Solver implements AutoCloseable {
       interpolatingFmgr = solvingFmgr;
     }
 
-    bfmgr = solvingFmgr.getBooleanFormulaManager();
+    solvingBfmgr = solvingFmgr.getBooleanFormulaManager();
     logger = pLogger;
 
     if (checkUFs) {
@@ -410,11 +390,11 @@ public final class Solver implements AutoCloseable {
   public boolean isUnsat(BooleanFormula f) throws SolverException, InterruptedException {
     satChecks++;
 
-    if (bfmgr.isTrue(f)) {
+    if (solvingBfmgr.isTrue(f)) {
       trivialSatChecks++;
       return false;
     }
-    if (bfmgr.isFalse(f)) {
+    if (solvingBfmgr.isFalse(f)) {
       trivialSatChecks++;
       return true;
     }
@@ -520,7 +500,7 @@ public final class Solver implements AutoCloseable {
   public List<BooleanFormula> unsatCore(BooleanFormula constraints)
       throws SolverException, InterruptedException {
 
-    return unsatCore(bfmgr.toConjunctionArgs(constraints, true));
+    return unsatCore(solvingBfmgr.toConjunctionArgs(constraints, true));
   }
 
   public List<BooleanFormula> unsatCore(Set<BooleanFormula> constraints)
@@ -545,7 +525,7 @@ public final class Solver implements AutoCloseable {
   /** Checks whether a => b. The result is cached. */
   public boolean implies(BooleanFormula a, BooleanFormula b)
       throws SolverException, InterruptedException {
-    if (bfmgr.isFalse(a) || bfmgr.isTrue(b)) {
+    if (solvingBfmgr.isFalse(a) || solvingBfmgr.isTrue(b)) {
       satChecks++;
       trivialSatChecks++;
       return true;
@@ -556,7 +536,7 @@ public final class Solver implements AutoCloseable {
       return true;
     }
 
-    BooleanFormula f = bfmgr.not(bfmgr.implication(a, b));
+    BooleanFormula f = solvingBfmgr.not(solvingBfmgr.implication(a, b));
 
     return isUnsat(f);
   }
