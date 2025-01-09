@@ -127,6 +127,7 @@ public class PredicateCPA
   protected final ShutdownNotifier shutdownNotifier;
 
   private final MergeOperator merge;
+  private final PredicatePrecisionAdjustment prec;
 
   private final PredicatePrecision initialPrecision;
   private final PathFormulaManager pathFormulaManager;
@@ -139,7 +140,6 @@ public class PredicateCPA
   private final PredicateCPAInvariantsManager invariantsManager;
   private final BlockOperator blk;
   private final PredicateStatistics statistics;
-  private final PredicateProvider predicateProvider;
   private final FormulaManagerView formulaManager;
   private final PredicateCpaOptions options;
   private final WeakeningOptions weakeningOptions;
@@ -230,7 +230,8 @@ public class PredicateCPA
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
-    predicateProvider = new PredicateProvider(config, pCfa, logger, formulaManager, predAbsManager);
+    PredicateProvider predicateProvider =
+        new PredicateProvider(config, pCfa, logger, formulaManager, predAbsManager);
 
     merge =
         switch (mergeType) {
@@ -239,6 +240,15 @@ public class PredicateCPA
               new PredicateMergeOperator(config, logger, pathFormulaManager, predAbsManager);
           default -> throw new AssertionError("Update list of allowed merge operators");
         };
+    prec =
+        new PredicatePrecisionAdjustment(
+            logger,
+            formulaManager,
+            pathFormulaManager,
+            blk,
+            predAbsManager,
+            invariantsManager,
+            predicateProvider);
 
     stats =
         new PredicateCPAStatistics(
@@ -246,6 +256,7 @@ public class PredicateCPA
             logger,
             pCfa,
             merge instanceof PredicateMergeOperator ? (PredicateMergeOperator) merge : null,
+            prec,
             solver,
             pathFormulaManager,
             blk,
@@ -333,15 +344,7 @@ public class PredicateCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new PredicatePrecisionAdjustment(
-        logger,
-        formulaManager,
-        pathFormulaManager,
-        blk,
-        predAbsManager,
-        invariantsManager,
-        predicateProvider,
-        statistics);
+    return prec;
   }
 
   @Override

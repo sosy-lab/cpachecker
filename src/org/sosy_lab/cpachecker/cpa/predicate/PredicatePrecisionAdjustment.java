@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -48,9 +50,14 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
   private final PredicateCPAInvariantsManager invariants;
   private final PredicateProvider predicateProvider;
-  private final PredicateStatistics statistics;
-  private final StatTimer totalPrecTime;
-  private final Timer computingAbstractionTime;
+
+  // Statistics
+  final StatTimer totalPrecTime = new StatTimer("Time for prec operator");
+  final Timer computingAbstractionTime = new Timer();
+  int numAbstractions = 0;
+  int numTargetAbstractions = 0;
+  int numAbstractionsFalse = 0;
+  final StatInt blockSize = new StatInt(StatKind.AVG, "Avg ABE block size");
 
   PredicatePrecisionAdjustment(
       LogManager pLogger,
@@ -59,8 +66,7 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       BlockOperator pBlk,
       PredicateAbstractionManager pPredAbsManager,
       PredicateCPAInvariantsManager pInvariantSupplier,
-      PredicateProvider pPredicateProvider,
-      PredicateStatistics pPredicateStatistics) {
+      PredicateProvider pPredicateProvider) {
     logger = pLogger;
     fmgr = pFmgr;
     pathFormulaManager = pPfmgr;
@@ -69,9 +75,6 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     invariants = pInvariantSupplier;
     predicateProvider = pPredicateProvider;
-    statistics = pPredicateStatistics;
-    totalPrecTime = statistics.totalPrecTime;
-    computingAbstractionTime = statistics.computingAbstractionTime;
   }
 
   @Override
@@ -118,7 +121,7 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       return true;
     }
     if (AbstractStates.isTargetState(fullState)) {
-      statistics.numTargetAbstractions.inc();
+      numTargetAbstractions++;
       return true;
     }
     return false;
@@ -138,10 +141,10 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     Optional<CallstackStateEqualsWrapper> callstackWrapper =
         AbstractStates.extractOptionalCallstackWraper(fullState);
 
-    statistics.numAbstractions.inc();
+    numAbstractions++;
     logger.log(Level.FINEST, "Computing abstraction at node", pLocations, "in path.");
 
-    statistics.blockSize.setNextValue(pathFormula.getLength());
+    blockSize.setNextValue(pathFormula.getLength());
 
     // update/get invariants and add them, the need to be instantiated
     // (we do only update global invariants (computed by a parallelalgorithm) here
@@ -191,7 +194,7 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     // if the abstraction is false, return bottom (represented by empty set)
     if (newAbstractionFormula.isFalse()) {
-      statistics.numAbstractionsFalse.inc();
+      numAbstractionsFalse++;
       logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
       return Optional.empty();
     }

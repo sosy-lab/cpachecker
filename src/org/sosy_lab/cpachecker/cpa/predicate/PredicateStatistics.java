@@ -8,23 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 /** This class contains all statistics from PredicateCPA. */
 public final class PredicateStatistics {
-
-  // precision adjustment
-  final StatTimer totalPrecTime = new StatTimer("Time for prec operator");
-  final Timer computingAbstractionTime = new Timer();
-  final StatCounter numAbstractions = new StatCounter("Number of abstractions");
-  final StatCounter numTargetAbstractions =
-      new StatCounter("Times abstraction because of target state");
-  final StatCounter numAbstractionsFalse = new StatCounter("Times abstraction was 'false'");
-  final StatInt blockSize = new StatInt(StatKind.AVG, "Avg ABE block size");
 
   // domain
   final StatTimer coverageCheckTimer = new StatTimer("Time for coverage checks");

@@ -113,6 +113,7 @@ final class PredicateCPAStatistics implements Statistics {
   private final LogManager logger;
 
   private final @Nullable PredicateMergeOperator merge;
+  private final PredicatePrecisionAdjustment prec;
 
   private final Solver solver;
   private final PathFormulaManager pfmgr;
@@ -131,6 +132,7 @@ final class PredicateCPAStatistics implements Statistics {
       LogManager pLogger,
       CFA pCfa,
       @Nullable PredicateMergeOperator pMerge,
+      PredicatePrecisionAdjustment pPrec,
       Solver pSolver,
       PathFormulaManager pPfmgr,
       BlockOperator pBlk,
@@ -143,6 +145,7 @@ final class PredicateCPAStatistics implements Statistics {
 
     logger = pLogger;
     merge = pMerge;
+    prec = pPrec;
     solver = pSolver;
     pfmgr = pPfmgr;
     blk = pBlk;
@@ -265,7 +268,7 @@ final class PredicateCPAStatistics implements Statistics {
 
     PredicateAbstractionManager.Stats as = predAbsMgr.stats;
 
-    int numAbstractions = statistics.numAbstractions.getUpdateCount();
+    final int numAbstractions = prec.numAbstractions;
     out.println(
         "Number of abstractions:            "
             + numAbstractions
@@ -288,8 +291,7 @@ final class PredicateCPAStatistics implements Statistics {
               + valueWithPercentage(blk.numBlkThreshold.getValue(), numAbstractions));
       out.println(
           "  Because of target state:         "
-              + valueWithPercentage(
-                  statistics.numTargetAbstractions.getUpdateCount(), numAbstractions));
+              + valueWithPercentage(prec.numTargetAbstractions, numAbstractions));
       out.println(
           "  Times precision was empty:       "
               + valueWithPercentage(as.numSymbolicAbstractions, as.numCallsAbstraction));
@@ -309,8 +311,7 @@ final class PredicateCPAStatistics implements Statistics {
                   as.booleanAbstractionTime.getNumberOfIntervals(), as.numCallsAbstraction));
       out.println(
           "  Times result was 'false':        "
-              + valueWithPercentage(
-                  statistics.numAbstractionsFalse.getUpdateCount(), numAbstractions));
+              + valueWithPercentage(prec.numAbstractionsFalse, numAbstractions));
       if (as.inductivePredicatesTime.getNumberOfIntervals() > 0) {
         out.println(
             "  Times inductive cache was used:  "
@@ -358,8 +359,8 @@ final class PredicateCPAStatistics implements Statistics {
     out.println("  trivial:                         " + solver.trivialSatChecks);
     out.println("  cached:                          " + solver.cachedSatChecks);
     out.println();
-    out.println("Max ABE block size:                       " + statistics.blockSize.getMaxValue());
-    put(out, 0, statistics.blockSize);
+    out.println("Max ABE block size:                       " + prec.blockSize.getMaxValue());
+    put(out, 0, prec.blockSize);
     out.println("Number of predicates discovered:          " + allDistinctPreds);
     if (precisionStatistics && allDistinctPreds > 0) {
       out.println("Number of abstraction locations:          " + allLocs);
@@ -419,15 +420,15 @@ final class PredicateCPAStatistics implements Statistics {
     if (statistics.strengthenCheckTimer.getNumberOfIntervals() > 0) {
       put(out, 1, statistics.strengthenCheckTimer);
     }
-    put(out, 0, statistics.totalPrecTime);
+    put(out, 0, prec.totalPrecTime);
     if (numAbstractions > 0) {
       out.println(
           "  Time for abstraction:              "
-              + statistics.computingAbstractionTime
+              + prec.computingAbstractionTime
               + " (Max: "
-              + statistics.computingAbstractionTime.getMaxTime().formatAs(SECONDS)
+              + prec.computingAbstractionTime.getMaxTime().formatAs(SECONDS)
               + ", Count: "
-              + statistics.computingAbstractionTime.getNumberOfIntervals()
+              + prec.computingAbstractionTime.getNumberOfIntervals()
               + ")");
       if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
         out.println("    Relevant predicate analysis:     " + as.trivialPredicatesTime);
