@@ -14,11 +14,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 /** This class contains all statistics from PredicateCPA. */
 public final class PredicateStatistics {
 
-  // domain
-  final StatTimer coverageCheckTimer = new StatTimer("Time for coverage checks");
-  final StatTimer bddCoverageCheckTimer = new StatTimer("Time for BDD entailment checks");
-  final StatTimer symbolicCoverageCheckTimer = new StatTimer("Time for symbolic coverage check");
-
   // transfer relation
   final StatTimer postTimer = new StatTimer("Time for post operator");
   final StatTimer satCheckTimer = new StatTimer("Time for satisfiability checks");

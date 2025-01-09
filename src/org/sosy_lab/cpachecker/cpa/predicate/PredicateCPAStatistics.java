@@ -112,6 +112,7 @@ final class PredicateCPAStatistics implements Statistics {
 
   private final LogManager logger;
 
+  private final PredicateAbstractDomain domain;
   private final @Nullable PredicateMergeOperator merge;
   private final PredicatePrecisionAdjustment prec;
 
@@ -131,6 +132,7 @@ final class PredicateCPAStatistics implements Statistics {
       Configuration pConfig,
       LogManager pLogger,
       CFA pCfa,
+      PredicateAbstractDomain pDomain,
       @Nullable PredicateMergeOperator pMerge,
       PredicatePrecisionAdjustment pPrec,
       Solver pSolver,
@@ -144,6 +146,7 @@ final class PredicateCPAStatistics implements Statistics {
     pConfig.inject(this, PredicateCPAStatistics.class);
 
     logger = pLogger;
+    domain = pDomain;
     merge = pMerge;
     prec = pPrec;
     solver = pSolver;
@@ -345,15 +348,14 @@ final class PredicateCPAStatistics implements Statistics {
               + ")");
     }
     out.println(
-        "Number of coverage checks:         "
-            + statistics.coverageCheckTimer.getNumberOfIntervals());
+        "Number of coverage checks:         " + domain.coverageCheckTimer.getNumberOfIntervals());
     out.println(
         "  BDD entailment checks:           "
-            + statistics.bddCoverageCheckTimer.getNumberOfIntervals());
-    if (statistics.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
+            + domain.bddCoverageCheckTimer.getNumberOfIntervals());
+    if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
       out.println(
           "  Symbolic coverage check:         "
-              + statistics.symbolicCoverageCheckTimer.getNumberOfIntervals());
+              + domain.symbolicCoverageCheckTimer.getNumberOfIntervals());
     }
     out.println("Number of SMT sat checks:          " + solver.satChecks);
     out.println("  trivial:                         " + solver.trivialSatChecks);
@@ -467,12 +469,12 @@ final class PredicateCPAStatistics implements Statistics {
       put(out, 0, merge.totalMergeTime);
     }
 
-    put(out, 0, statistics.coverageCheckTimer);
-    if (statistics.bddCoverageCheckTimer.getNumberOfIntervals() > 0) {
-      put(out, 1, statistics.bddCoverageCheckTimer);
+    put(out, 0, domain.coverageCheckTimer);
+    if (domain.bddCoverageCheckTimer.getNumberOfIntervals() > 0) {
+      put(out, 1, domain.bddCoverageCheckTimer);
     }
-    if (statistics.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
-      put(out, 1, statistics.symbolicCoverageCheckTimer);
+    if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
+      put(out, 1, domain.symbolicCoverageCheckTimer);
     }
     out.println(
         "Total time for SMT solver (w/o itp): "

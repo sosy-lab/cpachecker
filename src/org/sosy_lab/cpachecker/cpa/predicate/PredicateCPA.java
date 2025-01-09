@@ -111,13 +111,6 @@ public class PredicateCPA
 
   @Option(
       secure = true,
-      description =
-          "whether to include the symbolic path formula in the "
-              + "coverage checks or do only the fast abstract checks")
-  private boolean symbolicCoverageCheck = false;
-
-  @Option(
-      secure = true,
       name = "enableSharedInformation",
       description = "Enable to share the information via serialization storage.")
   private boolean enableSharedInformation = false;
@@ -126,6 +119,7 @@ public class PredicateCPA
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
 
+  private final PredicateAbstractDomain domain;
   private final MergeOperator merge;
   private final PredicatePrecisionAdjustment prec;
 
@@ -233,6 +227,7 @@ public class PredicateCPA
     PredicateProvider predicateProvider =
         new PredicateProvider(config, pCfa, logger, formulaManager, predAbsManager);
 
+    domain = new PredicateAbstractDomain(config, predAbsManager);
     merge =
         switch (mergeType) {
           case "SEP" -> MergeSepOperator.getInstance();
@@ -255,6 +250,7 @@ public class PredicateCPA
             config,
             logger,
             pCfa,
+            domain,
             merge instanceof PredicateMergeOperator ? (PredicateMergeOperator) merge : null,
             prec,
             solver,
@@ -274,7 +270,7 @@ public class PredicateCPA
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return new PredicateAbstractDomain(predAbsManager, symbolicCoverageCheck, statistics);
+    return domain;
   }
 
   @Override
