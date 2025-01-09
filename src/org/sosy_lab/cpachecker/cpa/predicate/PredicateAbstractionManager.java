@@ -73,7 +73,7 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class PredicateAbstractionManager {
+public final class PredicateAbstractionManager {
 
   private final PredicateAbstractionStatistics stats;
   private final PredicateAbstractionManagerOptions options;

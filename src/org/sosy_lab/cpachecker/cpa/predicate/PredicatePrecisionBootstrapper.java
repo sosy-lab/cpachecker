@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "cpa.predicate")
-public class PredicatePrecisionBootstrapper implements StatisticsProvider {
+public final class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
   @Option(
       secure = true,
@@ -85,7 +85,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private boolean checkBlockFeasibility = false;
 
   @Options(prefix = "cpa.predicate.abstraction.initialPredicates")
-  public static class InitialPredicatesOptions {
+  public static final class InitialPredicatesOptions {
 
     @Option(
         secure = true,

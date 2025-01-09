@@ -31,7 +31,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  */
 public class BlockFormulaStrategy {
 
-  public static class BlockFormulas {
+  public static final class BlockFormulas {
     private final ImmutableList<BooleanFormula> formulas;
     private final ImmutableMap<Pair<ARGState, CFAEdge>, PathFormula> branchingFormulas;
 

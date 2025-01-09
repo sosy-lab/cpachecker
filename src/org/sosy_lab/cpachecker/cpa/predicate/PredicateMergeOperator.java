@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
  * abstraction location we don't merge, otherwise we merge two elements and update the {@link
  * PredicateAbstractState}'s pathFormula.
  */
-public class PredicateMergeOperator implements MergeOperator {
+final class PredicateMergeOperator implements MergeOperator {
 
   private final LogManager logger;
   private final PathFormulaManager formulaManager;
@@ -37,7 +37,7 @@ public class PredicateMergeOperator implements MergeOperator {
   private final boolean mergeAbstractionStates;
   private final PredicateAbstractionManager predAbsManager;
 
-  public PredicateMergeOperator(
+  PredicateMergeOperator(
       LogManager pLogger,
       PathFormulaManager pPfmgr,
       PredicateStatistics pStatistics,

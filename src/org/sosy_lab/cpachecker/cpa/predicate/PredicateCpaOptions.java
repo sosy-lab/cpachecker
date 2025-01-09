@@ -14,7 +14,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
 @Options(prefix = "cpa.predicate")
-class PredicateCpaOptions {
+final class PredicateCpaOptions {
 
   @Option(
       secure = true,

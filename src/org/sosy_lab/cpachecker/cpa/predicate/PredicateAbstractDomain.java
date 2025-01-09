@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class PredicateAbstractDomain implements AbstractDomain {
+final class PredicateAbstractDomain implements AbstractDomain {
 
   private final PredicateAbstractionManager mgr;
   private final boolean symbolicCoverageCheck;
@@ -24,7 +24,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
   private final TimerWrapper bddCoverageCheckTimer;
   private final TimerWrapper symbolicCoverageCheckTimer;
 
-  public PredicateAbstractDomain(
+  PredicateAbstractDomain(
       PredicateAbstractionManager pPredAbsManager,
       boolean pSymbolicCoverageCheck,
       PredicateStatistics pStatistics) {

@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
+final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
   private final LogManager logger;
   private final BlockOperator blk;
@@ -51,7 +51,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final TimerWrapper totalPrecTime;
   private final TimerWrapper computingAbstractionTime;
 
-  public PredicatePrecisionAdjustment(
+  PredicatePrecisionAdjustment(
       LogManager pLogger,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,

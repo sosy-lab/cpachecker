@@ -226,7 +226,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     }
   }
 
-  public PredicateAbstractionRefinementStrategy(
+  protected PredicateAbstractionRefinementStrategy(
       final Configuration config,
       final LogManager pLogger,
       final PredicateAbstractionManager pPredAbsMgr,

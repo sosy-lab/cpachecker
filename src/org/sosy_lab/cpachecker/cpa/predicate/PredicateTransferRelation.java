@@ -68,7 +68,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   private final TimerWrapper strengthenCheckTimer;
   private final TimerWrapper abstractionCheckTimer;
 
-  public PredicateTransferRelation(
+  PredicateTransferRelation(
       LogManager pLogger,
       AnalysisDirection pDirection,
       FormulaManagerView pFmgr,

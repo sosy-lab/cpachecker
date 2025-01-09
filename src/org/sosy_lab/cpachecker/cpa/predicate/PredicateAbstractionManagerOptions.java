@@ -17,7 +17,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager.AbstractionType;
 
 @Options(prefix = "cpa.predicate")
-public class PredicateAbstractionManagerOptions {
+public final class PredicateAbstractionManagerOptions {
 
   @Deprecated
   @Option(

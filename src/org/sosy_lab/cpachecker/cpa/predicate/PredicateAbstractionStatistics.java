@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
 @SuppressWarnings("deprecation") // remove ThreadSafeTimerContainer
-public class PredicateAbstractionStatistics {
+public final class PredicateAbstractionStatistics {
 
   final AtomicInteger numCallsAbstraction = new AtomicInteger(0); // total calls
   final AtomicInteger numAbstractionReuses = new AtomicInteger(0); // total reuses
@@ -64,6 +64,4 @@ public class PredicateAbstractionStatistics {
 
   long allSatCount = 0;
   int maxAllSatCount = 0;
-
-  public PredicateAbstractionStatistics() {}
 }

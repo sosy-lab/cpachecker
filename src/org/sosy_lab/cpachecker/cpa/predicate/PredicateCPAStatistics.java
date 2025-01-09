@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 @Options(prefix = "cpa.predicate")
-class PredicateCPAStatistics implements Statistics {
+final class PredicateCPAStatistics implements Statistics {
 
   @Option(secure = true, description = "generate statistics about precisions (may be slow)")
   private boolean precisionStatistics = true;
@@ -123,7 +123,7 @@ class PredicateCPAStatistics implements Statistics {
   private final LoopInvariantsWriter loopInvariantsWriter;
   private final PredicateAbstractionsWriter abstractionsWriter;
 
-  public PredicateCPAStatistics(
+  PredicateCPAStatistics(
       Configuration pConfig,
       LogManager pLogger,
       CFA pCfa,

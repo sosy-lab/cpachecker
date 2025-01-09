@@ -55,7 +55,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * have only one error path in the reached set but multiple, and they all need to be refined.
  */
 @Options(prefix = "cpa.predicate")
-class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrategy {
+final class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrategy {
 
   @Option(
       secure = true,
@@ -73,7 +73,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
 
   private boolean atomicPredicates = false;
 
-  protected final LogManager logger;
+  private final LogManager logger;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PredicateAbstractionManager predAbsMgr;
@@ -86,7 +86,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
   private ARGReachedSet reached;
   private ARGState refinementRoot;
 
-  protected PredicateAbstractionGlobalRefinementStrategy(
+  PredicateAbstractionGlobalRefinementStrategy(
       final Configuration config,
       final LogManager pLogger,
       final PredicateAbstractionManager pPredAbsMgr,
@@ -157,7 +157,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     newPredicates = null;
   }
 
-  protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot)
+  private void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot)
       throws InterruptedException {
 
     argUpdate.start();

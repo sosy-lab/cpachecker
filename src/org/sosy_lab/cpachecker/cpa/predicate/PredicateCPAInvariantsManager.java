@@ -112,7 +112,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.predicate.invariants", deprecatedPrefix = "cpa.predicate")
-class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupplier {
+final class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupplier {
 
   private enum InvariantGenerationStrategy {
     /**
@@ -234,7 +234,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   private final FormulaInvariantsSupplier globalInvariants;
   private final Specification specification;
 
-  public PredicateCPAInvariantsManager(
+  PredicateCPAInvariantsManager(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,

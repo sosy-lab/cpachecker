@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
-import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.LINE_JOINER;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class PredicateAbstractionsWriter {
+public final class PredicateAbstractionsWriter {
 
   private final LogManager logger;
   private final FormulaManagerView fmgr;
@@ -137,7 +137,7 @@ public class PredicateAbstractionsWriter {
 
       // Write it to the file
       // -- first the definitions
-      LINE_JOINER.appendTo(writer, definitions);
+      Joiner.on('\n').appendTo(writer, definitions);
       writer.append("\n\n");
 
       // -- then the assertions
