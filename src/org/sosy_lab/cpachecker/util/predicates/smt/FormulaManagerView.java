@@ -1547,6 +1547,49 @@ public class FormulaManagerView {
         });
   }
 
+  /**
+   * Replace 2 variables in a formula with variables in input list while keeping the function of the formula.
+   * Example: A > B can transform to x > y
+   * @param f Formula that provide function kind, including: bv_slt, bv_ult, bv_sgt, bv_ugt, bv_sle, bv_ule, bv_ult, bv_sge, bv_uge, bv_eq
+   * @param variableOrderList The list with the order of variable will replace in formula, [x, y] will transform A > B to x > y
+   * @return A BooleanFormula object with replaced variables
+   */
+  public BooleanFormula replaceVariableInFormula(BooleanFormula f, List<Formula> variableOrderList) {
+    BooleanFormula newFormula = null;
+    if (this.isNotFormula(f)) { // If is not formula then reverse make operation between 2 variable
+      BooleanFormula nonNegatedAtom = this.stripNegation2(f);
+      FunctionDeclarationKind funcKind = this.extractFunctionDeclarationKind(nonNegatedAtom);
+      newFormula = switch (funcKind) {
+        case BV_SLT -> this.makeGreaterOrEqual(variableOrderList.get(0), variableOrderList.get(1), true);
+        case BV_ULT -> this.makeGreaterOrEqual(variableOrderList.get(0), variableOrderList.get(1), false);
+        case BV_SGT -> this.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), true);
+        case BV_UGT -> this.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), false);
+        case BV_SLE -> this.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), false);
+        case BV_ULE -> this.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), true);
+        case BV_SGE -> this.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), false);
+        case BV_UGE -> this.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), true);
+        case BV_EQ -> this.makeEqual(variableOrderList.get(0), variableOrderList.get(1));
+        default -> null;
+      };
+    } else {
+      FunctionDeclarationKind funcKind = this.extractFunctionDeclarationKind(f);
+      newFormula = switch (funcKind) {
+        case BV_SLT -> this.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), false);
+        case BV_ULT -> this.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), true);
+        case BV_SGT -> this.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), false);
+        case BV_UGT -> this.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), true);
+        case BV_SLE -> this.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), true);
+        case BV_ULE -> this.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), false);
+        case BV_SGE -> this.makeGreaterOrEqual(variableOrderList.get(0), variableOrderList.get(1), true);
+        case BV_UGE -> this.makeGreaterOrEqual(variableOrderList.get(0), variableOrderList.get(1), false);
+        case BV_EQ -> this.makeEqual(variableOrderList.get(0), variableOrderList.get(1));
+        default -> null;
+      };
+    }
+
+    return newFormula;
+  }
+
 
   /**
    * For an equality {@code x = y} where {@code x} and {@code y} are not boolean, return a list

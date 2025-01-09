@@ -248,7 +248,7 @@ public class TPAPrecisionAdjustment implements PrecisionAdjustment {
               varPrime = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(32), varName, -1);
             }
 
-            // TODO: Find which variable comes first in the formula, prime or non-prime variable?
+            // Find which variable comes first in the formula, prime or non-prime variable?
             List<String> variableStringList = new ArrayList<>();
             variableStringList = fmgr.extractVariableOrderToList(predicateSymbolicAtom, variableStringList);
             System.out.println("Precision variable order: " + variableStringList);
@@ -262,37 +262,8 @@ public class TPAPrecisionAdjustment implements PrecisionAdjustment {
             }
 
             // TODO: Signed and Unsigned?
-            BooleanFormula newConstraint;
-            if (fmgr.isNotFormula(predicateSymbolicAtom)) { // If is not formula then reverse make operation between 2 variable
-              BooleanFormula negatedAtom = fmgr.stripNegation2(predicateSymbolicAtom);
-              FunctionDeclarationKind funcKind = fmgr.extractFunctionDeclarationKind(negatedAtom);
-              newConstraint = switch (funcKind) {
-                case BV_SLT -> fmgr.makeGreaterOrEqual(variableOrderList.get(0), variableOrderList.get(1), true);
-                case BV_ULT -> fmgr.makeGreaterOrEqual(variableOrderList.get(0), variableOrderList.get(1), false);
-                case BV_SGT -> fmgr.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), true);
-                case BV_UGT -> fmgr.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), false);
-                case BV_SLE -> fmgr.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), false);
-                case BV_ULE -> fmgr.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), true);
-                case BV_SGE -> fmgr.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), false);
-                case BV_UGE -> fmgr.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), true);
-                case BV_EQ -> fmgr.makeEqual(variableOrderList.get(0), variableOrderList.get(1));
-                default -> null;
-              };
-            } else {
-              FunctionDeclarationKind funcKind = fmgr.extractFunctionDeclarationKind(predicateSymbolicAtom);
-              newConstraint = switch (funcKind) {
-                case BV_SLT -> fmgr.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), false);
-                case BV_ULT -> fmgr.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), true);
-                case BV_SGT -> fmgr.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), false);
-                case BV_UGT -> fmgr.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), true);
-                case BV_SLE -> fmgr.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), true);
-                case BV_ULE -> fmgr.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), false);
-                case BV_SGE -> fmgr.makeGreaterOrEqual(variableOrderList.get(0), variableOrderList.get(1), true);
-                case BV_UGE -> fmgr.makeGreaterOrEqual(variableOrderList.get(0), variableOrderList.get(1), false);
-                case BV_EQ -> fmgr.makeEqual(variableOrderList.get(0), variableOrderList.get(1));
-                default -> null;
-              };
-            }
+            BooleanFormula newConstraint = fmgr.replaceVariableInFormula(predicateSymbolicAtom, variableOrderList);
+
             System.out.println("Precision: " + predicateSymbolicAtom);
             if (newConstraint != null) {
               System.out.println("New predicate to path formula: " + newConstraint);
