@@ -133,8 +133,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
     // if the path is infeasible, try to refine the precision, this time
     // only with apron states, this is more precise than only using the value analysis
     // refinement
-    OctagonAnalysisFeasibilityChecker apronChecker;
-    apronChecker = createApronFeasibilityChecker(pErrorPath);
+    OctagonAnalysisFeasibilityChecker apronChecker = createApronFeasibilityChecker(pErrorPath);
     if (!apronChecker.isFeasible()) {
       if (performApronAnalysisRefinement(reached, apronChecker)) {
         existsExplicitApronRefinement = true;

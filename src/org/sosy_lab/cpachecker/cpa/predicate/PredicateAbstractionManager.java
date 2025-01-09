@@ -527,16 +527,10 @@ public class PredicateAbstractionManager {
           Preconditions.checkNotNull(an);
           tryReuseBasedOnPredecessors.add(Pair.of(an.getId(), tryLevel + 1));
 
-          if (bfmgr.isTrue(an.getFormula())) {
+          if (bfmgr.isTrue(an.getFormula())
+              || (an.getLocationId().isPresent()
+                  && location.getNodeNumber() != an.getLocationId().orElseThrow())) {
             candidateIterator.remove();
-            continue;
-          }
-
-          if (an.getLocationId().isPresent()) {
-            if (location.getNodeNumber() != an.getLocationId().orElseThrow()) {
-              candidateIterator.remove();
-              continue;
-            }
           }
         }
 

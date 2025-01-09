@@ -134,7 +134,7 @@ import org.sosy_lab.cpachecker.util.Pair;
  *   <li>Inlined assembler code is ignored
  * </ul>
  */
-@SuppressWarnings({"InvalidBlockTag", "MissingSummary"}) // for @category
+@SuppressWarnings({"InvalidBlockTag", "MissingSummary", "dangling-doc-comments"}) // for comments
 class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structure for maintaining our scope stack in a function
@@ -1457,21 +1457,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     FileLocation loc = astCreator.getLocation(condition);
-    if (fileLocation.getStartingLineNumber() < loc.getStartingLineNumber()) {
-      loc =
-          new FileLocation(
-              loc.getFileName(),
-              loc.getNiceFileName(),
-              fileLocation.getNodeOffset(),
-              loc.getNodeLength() + loc.getNodeOffset() - fileLocation.getNodeOffset(),
-              fileLocation.getStartingLineNumber(),
-              loc.getEndingLineNumber(),
-              loc.getStartColumnInLine(),
-              loc.getEndColumnInLine(),
-              fileLocation.getStartingLineInOrigin(),
-              loc.getEndingLineInOrigin(),
-              fileLocation.isOffsetRelatedToOrigin() && loc.isOffsetRelatedToOrigin());
-    }
 
     CExpression expression = exp;
 

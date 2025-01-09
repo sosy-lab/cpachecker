@@ -36,6 +36,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Developing with CPAchecker
 
+- [Contribution guidelines](../CONTRIBUTING.md)
 - [Developing](Developing.md)
 - [Logging](Logging.md)
 - [Profiling](Profile.md)
@@ -46,5 +47,4 @@ SPDX-License-Identifier: Apache-2.0
 - Testing
   - [Javascript Testing](JavascriptTesting.md)
   - [Testing](Test.md)
-- [Version Control](VersionControl.md)
 

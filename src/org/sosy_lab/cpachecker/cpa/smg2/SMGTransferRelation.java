@@ -252,17 +252,18 @@ public class SMGTransferRelation
    * @param pSuccessors {@link SMGState}s to process.
    * @return a Collection of SMGStates that are processed. May include memory leak error states.
    */
-  private Set<SMGState> handleReturnEntryFunction(Collection<SMGState> pSuccessors, CFAEdge edge) {
-    return pSuccessors.stream()
-        .map(
-            pState -> {
-              if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
-                pState = pState.dropStackFrame();
-              }
-              // Pruning checks for memory leaks and updates the error state if one is found!
-              return pState.copyAndPruneUnreachable(edge);
-            })
-        .collect(ImmutableSet.toImmutableSet());
+  private Set<SMGState> handleReturnEntryFunction(Collection<SMGState> pSuccessors, CFAEdge edge)
+      throws SMGException {
+    ImmutableSet.Builder<SMGState> newSuccessors = ImmutableSet.builder();
+    for (SMGState s : pSuccessors) {
+      SMGState successor = s;
+      if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
+        successor = successor.dropStackFrame();
+      }
+      // Pruning checks for memory leaks and updates the error state if one is found!
+      newSuccessors.add(successor.copyAndPruneUnreachable(edge));
+    }
+    return newSuccessors.build();
   }
 
   private boolean isEntryFunction(CFAEdge pCfaEdge) {
@@ -339,7 +340,7 @@ public class SMGTransferRelation
                   offsetSource,
                   returnMemory,
                   BigInteger.ZERO,
-                  SMGCPAExpressionEvaluator.subtractValues(returnMemory.getSize(), offsetSource)));
+                  evaluator.subtractBitOffsetValues(returnMemory.getSize(), offsetSource)));
 
         } else {
           ValueAndSMGState valueAndStateToWrite =
@@ -755,8 +756,7 @@ public class SMGTransferRelation
         }
         offsetSource = offsetForObject.asNumericValue().bigIntegerValue();
         memorySource = derefedPointerOffsetAndState.get(0).getSMGObject();
-        sizeOfNewVariable =
-            SMGCPAExpressionEvaluator.subtractValues(memorySource.getSize(), offsetSource);
+        sizeOfNewVariable = evaluator.subtractBitOffsetValues(memorySource.getSize(), offsetSource);
 
       } else if (paramValue instanceof SymbolicIdentifier symbParamValue) {
         // Local struct to local struct copy
@@ -777,8 +777,7 @@ public class SMGTransferRelation
 
         offsetSource = BigInteger.valueOf(locationInPrevStackFrame.getOffset());
         memorySource = maybeKnownMemory.orElseThrow();
-        sizeOfNewVariable =
-            SMGCPAExpressionEvaluator.subtractValues(memorySource.getSize(), offsetSource);
+        sizeOfNewVariable = evaluator.subtractBitOffsetValues(memorySource.getSize(), offsetSource);
       } else {
         throw new SMGException(
             "Unexpected argument evaluation for struct argument in function call: " + callEdge);
@@ -788,13 +787,12 @@ public class SMGTransferRelation
       SMGObject newMemory =
           currentState.getMemoryModel().getObjectForVisibleVariable(varName).orElseThrow();
 
-      // We don't expect symbolic values for offsets/sizes etc. for now
       return currentState.copySMGObjectContentToSMGObject(
           memorySource,
           offsetSource,
           newMemory,
           BigInteger.ZERO,
-          SMGCPAExpressionEvaluator.subtractValues(newMemory.getSize(), offsetSource));
+          evaluator.subtractBitOffsetValues(newMemory.getSize(), offsetSource));
     } else {
 
       return evaluator.writeValueToNewVariableBasedOnTypes(
@@ -905,7 +903,7 @@ public class SMGTransferRelation
             // Infeasible
             return null;
           }
-          return transformedImmutableListCopy(maybeFeasiblePaths, vAS -> vAS.getState());
+          return transformedImmutableListCopy(maybeFeasiblePaths, ValueAndSMGState::getState);
         } catch (SMGSolverException e) {
           if (e.isSolverException()) {
             throw e.getSolverException();
@@ -1232,7 +1230,6 @@ public class SMGTransferRelation
                   addressToAssign,
                   leftHandSideType,
                   cfaEdge));
-          continue;
         }
         continue;
       }
@@ -1243,13 +1240,15 @@ public class SMGTransferRelation
       SMGCPAValueVisitor vv =
           new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger, options);
       for (ValueAndSMGState valueAndState : vv.evaluate(rValue, leftHandSideType)) {
-        returnStateBuilder.add(
+        returnStateBuilder.addAll(
             handleAssignmentOfValueTo(
                 valueAndState.getValue(),
                 leftHandSideType,
+                lValue,
                 addressToWriteTo,
                 offsetToWriteTo,
                 rightHandSideType,
+                rValue,
                 valueAndState.getState(),
                 cfaEdge));
       }
@@ -1261,12 +1260,14 @@ public class SMGTransferRelation
   /*
    * Handles the concrete assignment of the value to its destination based on the types given.
    */
-  private SMGState handleAssignmentOfValueTo(
+  private List<SMGState> handleAssignmentOfValueTo(
       Value valueToWrite,
       CType leftHandSideType,
+      CExpression lValueExpr,
       SMGObject addressToWriteTo,
-      Value offsetToWriteTo,
+      Value offsetToWriteToInBits,
       CType rightHandSideType,
+      CRightHandSide rValueExpr,
       SMGState pCurrentState,
       CFAEdge edge)
       throws CPATransferException {
@@ -1281,8 +1282,13 @@ public class SMGTransferRelation
       Preconditions.checkArgument(SMGCPAExpressionEvaluator.isStructOrUnionType(rightHandSideType));
       // A SymbolicIdentifier with location is used to copy entire variable structures (i.e.
       // arrays/structs etc.)
-      return evaluator.copyStructOrArrayFromValueTo(
-          valueToWrite, leftHandSideType, addressToWriteTo, offsetToWriteTo, currentState);
+      return ImmutableList.of(
+          evaluator.copyStructOrArrayFromValueTo(
+              valueToWrite,
+              leftHandSideType,
+              addressToWriteTo,
+              offsetToWriteToInBits,
+              currentState));
 
     } else if (valueToWrite instanceof AddressExpression) {
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(rightHandSideType)) {
@@ -1294,13 +1300,14 @@ public class SMGTransferRelation
         Value pointerOffset = addressInValue.getOffset();
         if (!pointerOffset.isNumericValue()) {
           // Write unknown to left
-          return currentState.writeValueWithChecks(
-              addressToWriteTo,
-              offsetToWriteTo,
-              sizeInBits,
-              UnknownValue.getInstance(),
-              leftHandSideType,
-              edge);
+          return ImmutableList.of(
+              currentState.writeValueWithChecks(
+                  addressToWriteTo,
+                  offsetToWriteToInBits,
+                  sizeInBits,
+                  UnknownValue.getInstance(),
+                  leftHandSideType,
+                  edge));
         }
         BigInteger baseOffsetFromPointer = pointerOffset.asNumericValue().bigIntegerValue();
 
@@ -1326,19 +1333,20 @@ public class SMGTransferRelation
             currentState.getPointsToTarget(properPointer);
 
         if (maybeRightHandSideMemoryAndOffset.isEmpty()) {
-          return currentState;
+          return ImmutableList.of(currentState);
         }
         SMGObjectAndOffsetMaybeNestingLvl rightHandSideMemoryAndOffset =
             maybeRightHandSideMemoryAndOffset.orElseThrow();
         // copySMGObjectContentToSMGObject checks for sizes etc.
 
-        return currentState.copySMGObjectContentToSMGObject(
-            rightHandSideMemoryAndOffset.getSMGObject(),
-            rightHandSideMemoryAndOffset.getOffsetForObject(),
-            addressToWriteTo,
-            offsetToWriteTo,
-            SMGCPAExpressionEvaluator.subtractOffsetValues(
-                addressToWriteTo.getSize(), offsetToWriteTo));
+        return ImmutableList.of(
+            currentState.copySMGObjectContentToSMGObject(
+                rightHandSideMemoryAndOffset.getSMGObject(),
+                rightHandSideMemoryAndOffset.getOffsetForObject(),
+                addressToWriteTo,
+                offsetToWriteToInBits,
+                evaluator.subtractBitOffsetValues(
+                    addressToWriteTo.getSize(), offsetToWriteToInBits)));
 
       } else {
         // Genuine pointer that needs to be written
@@ -1371,15 +1379,28 @@ public class SMGTransferRelation
                         .compareTo(evaluator.getBitSizeof(currentState, leftHandSideType))
                     == 0);
 
-        return currentState.writeValueWithChecks(
-            addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType, edge);
+        return ImmutableList.of(
+            currentState.writeValueWithChecks(
+                addressToWriteTo,
+                offsetToWriteToInBits,
+                sizeInBits,
+                valueToWrite,
+                leftHandSideType,
+                edge));
       }
 
     } else {
       // All other cases should return such that the value can be written directly to the left
       // hand side!
       return currentState.writeValueWithChecks(
-          addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType, edge);
+          addressToWriteTo,
+          offsetToWriteToInBits,
+          sizeInBits,
+          lValueExpr,
+          valueToWrite,
+          leftHandSideType,
+          rValueExpr,
+          edge);
     }
   }
 }

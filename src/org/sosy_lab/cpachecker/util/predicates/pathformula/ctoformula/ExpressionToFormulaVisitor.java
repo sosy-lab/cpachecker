@@ -249,7 +249,8 @@ public class ExpressionToFormulaVisitor
         ret = mgr.makeDivide(f1, f2, signed);
         break;
       case MODULO:
-        ret = mgr.makeModulo(f1, f2, signed);
+        // Modulo in C is remainder in SMTLIB2
+        ret = mgr.makeRemainder(f1, f2, signed);
 
         addModuloConstraints(exp, f1, f2, signed, ret);
 
@@ -336,8 +337,8 @@ public class ExpressionToFormulaVisitor
   }
 
   /**
-   * Some solvers (Mathsat, Princess) do not support MODULO and replace it with an UF. Thus, we
-   * limit the result of the UF with additional constraints.
+   * Some solvers (Mathsat, Princess) do not support MODULO/REMAINDER and replace it with an UF.
+   * Thus, we limit the result of the UF with additional constraints.
    */
   private void addModuloConstraints(
       final CBinaryExpression exp,
@@ -468,7 +469,7 @@ public class ExpressionToFormulaVisitor
   public Formula visit(CStringLiteralExpression lexp) throws UnrecognizedCodeException {
     // we create a string constant representing the given
     // string literal
-    return conv.makeStringLiteral(lexp.getContentWithNullTerminator());
+    return conv.makeStringLiteral(lexp.getContentWithNullTerminator(), constraints);
   }
 
   @Override
@@ -1260,6 +1261,14 @@ public class ExpressionToFormulaVisitor
         if (result != null) {
           return result;
         }
+      } else if (functionName.equals("__CPACHECKER_atexit_next")) {
+        // __CPACHECKER_atexit_next is not a constant function, but returns a different function
+        // pointer from the atexit stack every time it is being called. We model this by returning a
+        // fresh variable that may point to any function in the program. The function pointer CPA,
+        // which will be run in parallel, tracks the actual target of the pointer and makes sure
+        // that the right function is always called.
+        return conv.makeNondet(functionName, returnType, ssa, constraints);
+
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
         if (parameters.isEmpty()) {
           // function of arity 0

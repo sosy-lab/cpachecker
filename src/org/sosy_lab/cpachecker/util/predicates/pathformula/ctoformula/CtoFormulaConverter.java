@@ -568,7 +568,7 @@ public class CtoFormulaConverter {
     return newVariable;
   }
 
-  Formula makeStringLiteral(String literal) {
+  Formula makeStringLiteral(String literal, Constraints constraints) {
     Formula result = stringLitToFormula.get(literal);
 
     if (result == null) {
@@ -576,6 +576,13 @@ public class CtoFormulaConverter {
       int n = nextStringLitIndex++;
       result = ffmgr.callUF(stringUfDecl, fmgr.getIntegerFormulaManager().makeNumber(n));
       stringLitToFormula.put(literal, result);
+
+      // In principle we could add constraints that the addresses of all these string literals
+      // are unique and do not overlap, like we do with regular allocations in the pointeraliasing
+      // package. But this is likely rarely useful in practice.
+      // But we have seen code that relies on the address being non-null, so encode that.
+      constraints.addConstraint(
+          fmgr.makeNot(fmgr.makeEqual(result, fmgr.makeNumber(typeHandler.getPointerType(), 0))));
     }
 
     return result;

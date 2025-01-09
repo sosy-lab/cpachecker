@@ -127,15 +127,49 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
+    public BooleanFormula getScopedFormulaApproximation(
+        final FormulaManagerView pManager, final FunctionEntryNode pFunctionScope) {
+      try {
+        return pManager.renameFreeVariablesAndUFs(
+            pManager.filterLiterals(
+                super.abstractionFormula.asFormulaFromOtherSolver(pManager),
+                literal -> {
+                  for (String name : pManager.extractVariableNames(literal)) {
+                    if (name.contains("::") && !name.startsWith(pFunctionScope.getFunctionName())) {
+                      return false;
+                    }
+                  }
+                  return true;
+                }),
+            name -> {
+              int separatorIndex = name.indexOf("::");
+              if (separatorIndex >= 0) {
+                return name.substring(separatorIndex + 2);
+              } else {
+                return name;
+              }
+            });
+      } catch (InterruptedException e) {
+        return pManager.getBooleanFormulaManager().makeTrue();
+      }
+    }
+
+    @Override
     public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-        FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException {
+        FunctionEntryNode pFunctionScope, CFANode pLocation)
+        throws InterruptedException, TranslationToExpressionTreeFailedException {
       return super.abstractionFormula.asExpressionTree(pLocation);
     }
 
     @Override
     public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
-        FunctionEntryNode pFunctionScope, CFANode pLocation, AstCfaRelation pAstCfaRelation)
-        throws InterruptedException, ReportingMethodNotImplementedException {
+        FunctionEntryNode pFunctionScope,
+        CFANode pLocation,
+        AstCfaRelation pAstCfaRelation,
+        boolean useOldKeywordForVariables)
+        throws InterruptedException,
+            ReportingMethodNotImplementedException,
+            TranslationToExpressionTreeFailedException {
       return super.abstractionFormula.asExpressionTree(
           name ->
               (!name.contains(FUNCTION_DELIMITER)
@@ -149,22 +183,25 @@ public abstract sealed class PredicateAbstractState
                                       .equals(name)
                                   // For global variables
                                   || var.getName().equals(name))
-                  && !name.contains("__CPAchecker_"));
+                  && !name.contains("__CPAchecker_"),
+          name -> useOldKeywordForVariables ? "\\old(" + name + ")" : name);
     }
 
     @Override
     public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
         FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-        throws InterruptedException {
+        throws InterruptedException, TranslationToExpressionTreeFailedException {
       Verify.verify(pFunctionScope.getExitNode().isPresent());
       FunctionExitNode functionExitNode = pFunctionScope.getExitNode().orElseThrow();
+      String smtNameReturnVariable = "__retval__";
       return super.abstractionFormula.asExpressionTree(
           name ->
               name.startsWith(functionExitNode.getFunctionName() + FUNCTION_DELIMITER)
                   && Splitter.on(FUNCTION_DELIMITER)
                       .splitToList(name)
                       .get(1)
-                      .equals(pFunctionReturnVariable.getName()));
+                      .equals(smtNameReturnVariable),
+          name -> name.equals(smtNameReturnVariable) ? pFunctionReturnVariable.getName() : name);
     }
 
     @Override
