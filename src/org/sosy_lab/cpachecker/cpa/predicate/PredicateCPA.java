@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
@@ -141,17 +140,14 @@ public class PredicateCPA
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final CFA cfa;
   private final AbstractionManager abstractionManager;
+  private final PredicateAbstractionManager predAbsManager;
   private final PredicateCPAInvariantsManager invariantsManager;
   private final BlockOperator blk;
   private final PredicateStatistics statistics;
   private final PredicateProvider predicateProvider;
   private final FormulaManagerView formulaManager;
   private final PredicateCpaOptions options;
-  private final PredicateAbstractionManagerOptions abstractionOptions;
   private final WeakeningOptions weakeningOptions;
-  private final PredicateAbstractionsStorage abstractionStorage;
-  private final PredicateAbstractionStatistics abstractionStats =
-      new PredicateAbstractionStatistics();
 
   // path formulas for PCC
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulaePcc = new HashMap<>();
@@ -209,14 +205,20 @@ public class PredicateCPA
         new PredicateCPAInvariantsManager(
             config, logger, pShutdownNotifier, pCfa, specification, pAggregatedReachedSets);
 
-    abstractionOptions = new PredicateAbstractionManagerOptions(config);
-    abstractionStorage =
-        new PredicateAbstractionsStorage(
-            abstractionOptions.getReuseAbstractionsFrom(),
-            logger,
-            solver.getFormulaManager(),
-            null);
     weakeningOptions = new WeakeningOptions(config);
+
+    predAbsManager =
+        new PredicateAbstractionManager(
+            abstractionManager,
+            pathFormulaManager,
+            solver,
+            weakeningOptions,
+            config,
+            logger,
+            shutdownNotifier,
+            invariantsManager.appendToAbstractionFormula()
+                ? invariantsManager
+                : TrivialInvariantSupplier.INSTANCE);
 
     statistics = new PredicateStatistics();
     options = new PredicateCpaOptions(config);
@@ -229,12 +231,11 @@ public class PredicateCPA
             formulaManager,
             shutdownNotifier,
             pathFormulaManager,
-            getPredicateManager());
+            predAbsManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
-    predicateProvider =
-        new PredicateProvider(config, pCfa, logger, formulaManager, getPredicateManager());
+    predicateProvider = new PredicateProvider(config, pCfa, logger, formulaManager, predAbsManager);
 
     stats =
         new PredicateCPAStatistics(
@@ -246,7 +247,7 @@ public class PredicateCPA
             blk,
             regionManager,
             abstractionManager,
-            abstractionStats,
+            predAbsManager,
             statistics);
 
     // TODO: Only a temporal hack on how to get information about fmgr to TerminationCPA, needs to
@@ -258,7 +259,7 @@ public class PredicateCPA
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return new PredicateAbstractDomain(getPredicateManager(), symbolicCoverageCheck, statistics);
+    return new PredicateAbstractDomain(predAbsManager, symbolicCoverageCheck, statistics);
   }
 
   @Override
@@ -269,7 +270,7 @@ public class PredicateCPA
         formulaManager,
         pathFormulaManager,
         blk,
-        getPredicateManager(),
+        predAbsManager,
         statistics,
         options);
   }
@@ -280,11 +281,7 @@ public class PredicateCPA
       case "SEP" -> MergeSepOperator.getInstance();
       case "ABE" ->
           new PredicateMergeOperator(
-              logger,
-              pathFormulaManager,
-              statistics,
-              mergeAbstractionStates,
-              getPredicateManager());
+              logger, pathFormulaManager, statistics, mergeAbstractionStates, predAbsManager);
       default -> throw new AssertionError("Update list of allowed merge operators");
     };
   }
@@ -293,27 +290,14 @@ public class PredicateCPA
   public StopOperator getStopOperator() {
     return switch (stopType) {
       case "SEP" -> new PredicateStopOperator(getAbstractDomain());
-      case "SEPPCC" ->
-          new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager(), solver);
+      case "SEPPCC" -> new PredicatePCCStopOperator(pathFormulaManager, predAbsManager, solver);
       case "SEPNAA" -> new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
       default -> throw new AssertionError("Update list of allowed stop operators");
     };
   }
 
   public PredicateAbstractionManager getPredicateManager() {
-    return new PredicateAbstractionManager(
-        abstractionManager,
-        pathFormulaManager,
-        solver,
-        abstractionOptions,
-        weakeningOptions,
-        abstractionStorage,
-        logger,
-        shutdownNotifier,
-        abstractionStats,
-        invariantsManager.appendToAbstractionFormula()
-            ? invariantsManager
-            : TrivialInvariantSupplier.INSTANCE);
+    return predAbsManager;
   }
 
   public PathFormulaManager getPathFormulaManager() {
@@ -340,7 +324,7 @@ public class PredicateCPA
   public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
     return PredicateAbstractState.mkAbstractionState(
         pathFormulaManager.makeEmptyPathFormula(),
-        getPredicateManager().makeTrueAbstractionFormula(null),
+        predAbsManager.makeTrueAbstractionFormula(null),
         PathCopyingPersistentTreeMap.of());
   }
 
@@ -356,7 +340,7 @@ public class PredicateCPA
         formulaManager,
         pathFormulaManager,
         blk,
-        getPredicateManager(),
+        predAbsManager,
         invariantsManager,
         predicateProvider,
         statistics);
@@ -397,11 +381,10 @@ public class PredicateCPA
 
     if (e1.isAbstractionState() && e2.isAbstractionState()) {
       try {
-        return getPredicateManager()
-            .checkCoverage(
-                e1.getAbstractionFormula(),
-                pathFormulaManager.makeEmptyPathFormulaWithContextFrom(e1.getPathFormula()),
-                e2.getAbstractionFormula());
+        return predAbsManager.checkCoverage(
+            e1.getAbstractionFormula(),
+            pathFormulaManager.makeEmptyPathFormulaWithContextFrom(e1.getPathFormula()),
+            e2.getAbstractionFormula());
       } catch (SolverException e) {
         throw new CPAException("Solver Failure", e);
       }

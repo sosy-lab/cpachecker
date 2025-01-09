@@ -116,7 +116,7 @@ final class PredicateCPAStatistics implements Statistics {
   private final BlockOperator blk;
   private final RegionManager rmgr;
   private final AbstractionManager absmgr;
-  private final PredicateAbstractionStatistics abstractionStats;
+  private final PredicateAbstractionManager predAbsMgr;
 
   private final PredicateStatistics statistics;
   private final PredicateMapWriter precisionWriter;
@@ -132,7 +132,7 @@ final class PredicateCPAStatistics implements Statistics {
       BlockOperator pBlk,
       RegionManager pRmgr,
       AbstractionManager pAbsmgr,
-      PredicateAbstractionStatistics pAbstractionStats,
+      PredicateAbstractionManager pPredAbsMgr,
       PredicateStatistics pStatistics)
       throws InvalidConfigurationException {
     pConfig.inject(this, PredicateCPAStatistics.class);
@@ -143,7 +143,7 @@ final class PredicateCPAStatistics implements Statistics {
     blk = pBlk;
     rmgr = pRmgr;
     absmgr = pAbsmgr;
-    abstractionStats = pAbstractionStats;
+    predAbsMgr = pPredAbsMgr;
     statistics = pStatistics;
 
     FormulaManagerView fmgr = pSolver.getFormulaManager();
@@ -258,7 +258,7 @@ final class PredicateCPAStatistics implements Statistics {
       loopInvariantsWriter.exportLoopInvariantsAsPrecision(invariantPrecisionsFile, reached);
     }
 
-    PredicateAbstractionStatistics as = abstractionStats;
+    PredicateAbstractionManager.Stats as = predAbsMgr.stats;
 
     int numAbstractions = statistics.numAbstractions.getUpdateCount();
     out.println(
