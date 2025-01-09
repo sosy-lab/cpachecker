@@ -101,7 +101,7 @@ class Benchmark(VcloudBenchmarkBase):
         return "--" + pname
 
     def load_executor(self):
-        # if user didn't specify the password then ask for it
+        # ask for password if user not specify it
         if self.config.cloudUser:
             user = self.config.cloudUser
             if ":" not in user:
