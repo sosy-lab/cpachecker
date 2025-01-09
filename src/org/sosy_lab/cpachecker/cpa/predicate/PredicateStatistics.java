@@ -17,9 +17,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 /** This class contains all statistics from PredicateCPA. */
 public final class PredicateStatistics {
 
-  // merge operator
-  final StatTimer totalMergeTime = new StatTimer("Time for merge operator");
-
   // precision adjustment
   final StatTimer totalPrecTime = new StatTimer("Time for prec operator");
   final Timer computingAbstractionTime = new Timer();

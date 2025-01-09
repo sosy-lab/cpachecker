@@ -27,6 +27,7 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -111,6 +112,8 @@ final class PredicateCPAStatistics implements Statistics {
 
   private final LogManager logger;
 
+  private final @Nullable PredicateMergeOperator merge;
+
   private final Solver solver;
   private final PathFormulaManager pfmgr;
   private final BlockOperator blk;
@@ -127,6 +130,7 @@ final class PredicateCPAStatistics implements Statistics {
       Configuration pConfig,
       LogManager pLogger,
       CFA pCfa,
+      @Nullable PredicateMergeOperator pMerge,
       Solver pSolver,
       PathFormulaManager pPfmgr,
       BlockOperator pBlk,
@@ -138,6 +142,7 @@ final class PredicateCPAStatistics implements Statistics {
     pConfig.inject(this, PredicateCPAStatistics.class);
 
     logger = pLogger;
+    merge = pMerge;
     solver = pSolver;
     pfmgr = pPfmgr;
     blk = pBlk;
@@ -457,8 +462,8 @@ final class PredicateCPAStatistics implements Statistics {
               + ")");
     }
 
-    if (statistics.totalMergeTime.getNumberOfIntervals() != 0) { // at least used once
-      put(out, 0, statistics.totalMergeTime);
+    if (merge != null) {
+      put(out, 0, merge.totalMergeTime);
     }
 
     put(out, 0, statistics.coverageCheckTimer);

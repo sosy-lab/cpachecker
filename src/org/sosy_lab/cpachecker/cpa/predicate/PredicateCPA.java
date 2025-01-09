@@ -96,13 +96,6 @@ public class PredicateCPA
 
   @Option(
       secure = true,
-      name = "merge.mergeAbstractionStatesWithSamePredecessor",
-      description =
-          "merge two abstraction states if their preceeding abstraction states are the same")
-  private boolean mergeAbstractionStates = false;
-
-  @Option(
-      secure = true,
       name = "stop",
       values = {"SEP", "SEPPCC", "SEPNAA"},
       toUppercase = true,
@@ -132,6 +125,8 @@ public class PredicateCPA
   protected final Configuration config;
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
+
+  private final MergeOperator merge;
 
   private final PredicatePrecision initialPrecision;
   private final PathFormulaManager pathFormulaManager;
@@ -237,11 +232,20 @@ public class PredicateCPA
 
     predicateProvider = new PredicateProvider(config, pCfa, logger, formulaManager, predAbsManager);
 
+    merge =
+        switch (mergeType) {
+          case "SEP" -> MergeSepOperator.getInstance();
+          case "ABE" ->
+              new PredicateMergeOperator(config, logger, pathFormulaManager, predAbsManager);
+          default -> throw new AssertionError("Update list of allowed merge operators");
+        };
+
     stats =
         new PredicateCPAStatistics(
             config,
             logger,
             pCfa,
+            merge instanceof PredicateMergeOperator ? (PredicateMergeOperator) merge : null,
             solver,
             pathFormulaManager,
             blk,
@@ -277,13 +281,7 @@ public class PredicateCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    return switch (mergeType) {
-      case "SEP" -> MergeSepOperator.getInstance();
-      case "ABE" ->
-          new PredicateMergeOperator(
-              logger, pathFormulaManager, statistics, mergeAbstractionStates, predAbsManager);
-      default -> throw new AssertionError("Update list of allowed merge operators");
-    };
+    return merge;
   }
 
   @Override
