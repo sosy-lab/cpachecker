@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.api.SolverException;
 
 final class PredicateAbstractDomain implements AbstractDomain {
@@ -20,9 +20,9 @@ final class PredicateAbstractDomain implements AbstractDomain {
   private final boolean symbolicCoverageCheck;
   private final PredicateStatistics statistics;
 
-  private final TimerWrapper coverageCheckTimer;
-  private final TimerWrapper bddCoverageCheckTimer;
-  private final TimerWrapper symbolicCoverageCheckTimer;
+  private final StatTimer coverageCheckTimer;
+  private final StatTimer bddCoverageCheckTimer;
+  private final StatTimer symbolicCoverageCheckTimer;
 
   PredicateAbstractDomain(
       PredicateAbstractionManager pPredAbsManager,
@@ -32,9 +32,9 @@ final class PredicateAbstractDomain implements AbstractDomain {
     symbolicCoverageCheck = pSymbolicCoverageCheck;
     statistics = pStatistics;
 
-    coverageCheckTimer = statistics.coverageCheckTimer.getNewTimer();
-    bddCoverageCheckTimer = statistics.bddCoverageCheckTimer.getNewTimer();
-    symbolicCoverageCheckTimer = statistics.symbolicCoverageCheckTimer.getNewTimer();
+    coverageCheckTimer = statistics.coverageCheckTimer;
+    bddCoverageCheckTimer = statistics.bddCoverageCheckTimer;
+    symbolicCoverageCheckTimer = statistics.symbolicCoverageCheckTimer;
   }
 
   @Override

@@ -44,6 +44,7 @@ import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
@@ -66,7 +67,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
-import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -115,15 +115,15 @@ public final class PredicateAbstractionManager {
   private final Map<Pair<BooleanFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
 
   // Statistics
-  private final TimerWrapper trivialPredicatesTimer;
-  private final TimerWrapper quantifierEliminationTimer;
-  private final TimerWrapper abstractionReuseTimer;
-  private final TimerWrapper abstractionReuseImplicationTimer;
-  private final TimerWrapper abstractionSolveTimer;
-  private final TimerWrapper cartesianAbstractionTimer;
-  private final TimerWrapper booleanAbstractionTimer;
-  private final TimerWrapper abstractionModelEnumTimer;
-  private final TimerWrapper abstractionBddConstructionTimer;
+  private final Timer trivialPredicatesTimer;
+  private final Timer quantifierEliminationTimer;
+  private final Timer abstractionReuseTimer;
+  private final Timer abstractionReuseImplicationTimer;
+  private final Timer abstractionSolveTimer;
+  private final Timer cartesianAbstractionTimer;
+  private final Timer booleanAbstractionTimer;
+  private final Timer abstractionModelEnumTimer;
+  private final Timer abstractionBddConstructionTimer;
 
   public PredicateAbstractionManager(
       AbstractionManager pAmgr,
@@ -178,15 +178,15 @@ public final class PredicateAbstractionManager {
 
     abstractionStorage = pAbstractionStorage;
 
-    trivialPredicatesTimer = stats.trivialPredicatesTime.getNewTimer();
-    quantifierEliminationTimer = stats.quantifierEliminationTime.getNewTimer();
-    abstractionReuseTimer = stats.abstractionReuseTime.getNewTimer();
-    abstractionReuseImplicationTimer = stats.abstractionReuseImplicationTime.getNewTimer();
-    abstractionSolveTimer = stats.abstractionSolveTime.getNewTimer();
-    cartesianAbstractionTimer = stats.cartesianAbstractionTime.getNewTimer();
-    booleanAbstractionTimer = stats.booleanAbstractionTime.getNewTimer();
-    abstractionModelEnumTimer = stats.abstractionModelEnumTime.getNewTimer();
-    abstractionBddConstructionTimer = stats.abstractionBddConstructionTime.getNewTimer();
+    trivialPredicatesTimer = stats.trivialPredicatesTime;
+    quantifierEliminationTimer = stats.quantifierEliminationTime;
+    abstractionReuseTimer = stats.abstractionReuseTime;
+    abstractionReuseImplicationTimer = stats.abstractionReuseImplicationTime;
+    abstractionSolveTimer = stats.abstractionSolveTime;
+    cartesianAbstractionTimer = stats.cartesianAbstractionTime;
+    booleanAbstractionTimer = stats.booleanAbstractionTime;
+    abstractionModelEnumTimer = stats.abstractionModelEnumTime;
+    abstractionBddConstructionTimer = stats.abstractionBddConstructionTime;
   }
 
   /**
@@ -1025,7 +1025,7 @@ public final class PredicateAbstractionManager {
 
     private final RegionBuilder builder;
 
-    private final TimerWrapper regionTime = abstractionBddConstructionTimer;
+    private final Timer regionTime = abstractionBddConstructionTimer;
 
     private int count = 0;
 

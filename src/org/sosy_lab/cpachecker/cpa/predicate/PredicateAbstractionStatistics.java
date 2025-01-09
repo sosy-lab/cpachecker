@@ -9,9 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
+import org.sosy_lab.common.time.Timer;
 
-@SuppressWarnings("deprecation") // remove ThreadSafeTimerContainer
 public final class PredicateAbstractionStatistics {
 
   final AtomicInteger numCallsAbstraction = new AtomicInteger(0); // total calls
@@ -38,29 +37,19 @@ public final class PredicateAbstractionStatistics {
   final AtomicInteger numCartesianAbsPredicatesCached = new AtomicInteger(0);
   final AtomicInteger numBooleanAbsPredicates = new AtomicInteger(0);
 
-  final ThreadSafeTimerContainer abstractionReuseTime =
-      new ThreadSafeTimerContainer("Abstraction reuse");
-  final ThreadSafeTimerContainer abstractionReuseImplicationTime =
-      new ThreadSafeTimerContainer("Time for checking reusability of abstractions");
-  final ThreadSafeTimerContainer trivialPredicatesTime =
-      new ThreadSafeTimerContainer("Time for relevant predicate analysis");
-  final ThreadSafeTimerContainer inductivePredicatesTime =
-      new ThreadSafeTimerContainer("Time for inductive predicate analysis");
-  final ThreadSafeTimerContainer cartesianAbstractionTime =
-      new ThreadSafeTimerContainer("Time for cartesian abstraction");
-  final ThreadSafeTimerContainer quantifierEliminationTime =
-      new ThreadSafeTimerContainer("Time for eliminating quantifiers");
-  final ThreadSafeTimerContainer booleanAbstractionTime =
-      new ThreadSafeTimerContainer("Time for boolean abstraction");
+  final Timer abstractionReuseTime = new Timer();
+  final Timer abstractionReuseImplicationTime = new Timer();
+  final Timer trivialPredicatesTime = new Timer();
+  final Timer inductivePredicatesTime = new Timer();
+  final Timer cartesianAbstractionTime = new Timer();
+  final Timer quantifierEliminationTime = new Timer();
+  final Timer booleanAbstractionTime = new Timer();
 
-  final ThreadSafeTimerContainer abstractionModelEnumTime =
-      new ThreadSafeTimerContainer("Time for model enumeration");
-  final ThreadSafeTimerContainer abstractionBddConstructionTime =
-      new ThreadSafeTimerContainer("Time for BDD construction");
+  final Timer abstractionModelEnumTime = new Timer();
+  final Timer abstractionBddConstructionTime = new Timer();
 
   // only the time for solving, not for model enumeration
-  final ThreadSafeTimerContainer abstractionSolveTime =
-      new ThreadSafeTimerContainer("Time for abstraction solving");
+  final Timer abstractionSolveTime = new Timer();
 
   long allSatCount = 0;
   int maxAllSatCount = 0;

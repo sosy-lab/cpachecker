@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -33,7 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -48,8 +49,8 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final PredicateCPAInvariantsManager invariants;
   private final PredicateProvider predicateProvider;
   private final PredicateStatistics statistics;
-  private final TimerWrapper totalPrecTime;
-  private final TimerWrapper computingAbstractionTime;
+  private final StatTimer totalPrecTime;
+  private final Timer computingAbstractionTime;
 
   PredicatePrecisionAdjustment(
       LogManager pLogger,
@@ -69,8 +70,8 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     invariants = pInvariantSupplier;
     predicateProvider = pPredicateProvider;
     statistics = pPredicateStatistics;
-    totalPrecTime = statistics.totalPrecTime.getNewTimer();
-    computingAbstractionTime = statistics.computingAbstractionTime.getNewTimer();
+    totalPrecTime = statistics.totalPrecTime;
+    computingAbstractionTime = statistics.computingAbstractionTime;
   }
 
   @Override

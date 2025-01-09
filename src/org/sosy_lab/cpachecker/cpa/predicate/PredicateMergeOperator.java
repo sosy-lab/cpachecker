@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 /**
  * Merge operator for symbolic predicate abstraction. This is not a trivial merge operator in the
@@ -32,7 +32,7 @@ final class PredicateMergeOperator implements MergeOperator {
   private final LogManager logger;
   private final PathFormulaManager formulaManager;
   private final PredicateStatistics statistics;
-  private final TimerWrapper totalMergeTimer;
+  private final StatTimer totalMergeTimer;
 
   private final boolean mergeAbstractionStates;
   private final PredicateAbstractionManager predAbsManager;
@@ -46,7 +46,7 @@ final class PredicateMergeOperator implements MergeOperator {
     logger = pLogger;
     formulaManager = pPfmgr;
     statistics = pStatistics;
-    totalMergeTimer = statistics.totalMergeTime.getNewTimer();
+    totalMergeTimer = statistics.totalMergeTime;
 
     mergeAbstractionStates = pMergeAbstractionStates;
     predAbsManager = pPredAbsManager;

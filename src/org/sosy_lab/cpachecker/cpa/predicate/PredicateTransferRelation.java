@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -61,12 +61,12 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   private final PredicateStatistics statistics;
   private final PredicateCpaOptions options;
 
-  private final TimerWrapper postTimer;
-  private final TimerWrapper satCheckTimer;
-  private final TimerWrapper pathFormulaTimer;
-  private final TimerWrapper strengthenTimer;
-  private final TimerWrapper strengthenCheckTimer;
-  private final TimerWrapper abstractionCheckTimer;
+  private final StatTimer postTimer;
+  private final StatTimer satCheckTimer;
+  private final StatTimer pathFormulaTimer;
+  private final StatTimer strengthenTimer;
+  private final StatTimer strengthenCheckTimer;
+  private final StatTimer abstractionCheckTimer;
 
   PredicateTransferRelation(
       LogManager pLogger,
@@ -86,12 +86,12 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     statistics = pStatistics;
     options = pOptions;
 
-    postTimer = statistics.postTimer.getNewTimer();
-    satCheckTimer = statistics.satCheckTimer.getNewTimer();
-    pathFormulaTimer = statistics.pathFormulaTimer.getNewTimer();
-    strengthenTimer = statistics.strengthenTimer.getNewTimer();
-    strengthenCheckTimer = statistics.strengthenCheckTimer.getNewTimer();
-    abstractionCheckTimer = statistics.abstractionCheckTimer.getNewTimer();
+    postTimer = statistics.postTimer;
+    satCheckTimer = statistics.satCheckTimer;
+    pathFormulaTimer = statistics.pathFormulaTimer;
+    strengthenTimer = statistics.strengthenTimer;
+    strengthenCheckTimer = statistics.strengthenCheckTimer;
+    abstractionCheckTimer = statistics.abstractionCheckTimer;
   }
 
   @Override
