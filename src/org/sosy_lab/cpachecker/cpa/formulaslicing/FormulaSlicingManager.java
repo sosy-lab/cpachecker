@@ -74,7 +74,6 @@ public class FormulaSlicingManager implements StatisticsProvider {
   private final LiveVariables liveVariables;
   private final LoopStructure loopStructure;
 
-  @SuppressWarnings({"FieldCanBeLocal", "unused"})
   private final LogManager logger;
 
   FormulaSlicingManager(

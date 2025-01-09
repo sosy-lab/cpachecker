@@ -29,7 +29,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -70,9 +69,6 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
 
-  @SuppressWarnings({"FieldCanBeLocal", "unused"})
-  private final LogManager logger;
-
   private final InductiveWeakeningStatistics statistics;
   private final SyntacticWeakeningManager syntacticWeakeningManager;
   private final DestructiveWeakeningManager destructiveWeakeningManager;
@@ -82,13 +78,12 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   private static final String SELECTOR_VAR_TEMPLATE = "_FS_SEL_VAR_";
 
   public InductiveWeakeningManager(
-      Configuration config, Solver pSolver, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+      Configuration config, Solver pSolver, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     config.inject(this);
 
     statistics = new InductiveWeakeningStatistics();
     fmgr = pSolver.getFormulaManager();
-    logger = pLogger;
     bfmgr = fmgr.getBooleanFormulaManager();
     syntacticWeakeningManager = new SyntacticWeakeningManager(fmgr);
     destructiveWeakeningManager =

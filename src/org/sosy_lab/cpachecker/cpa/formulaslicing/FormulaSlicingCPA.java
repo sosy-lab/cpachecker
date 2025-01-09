@@ -78,7 +78,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
                 AnalysisDirection.FORWARD));
 
     inductiveWeakeningManager =
-        new InductiveWeakeningManager(pConfiguration, solver, pLogger, pShutdownNotifier);
+        new InductiveWeakeningManager(pConfiguration, solver, pShutdownNotifier);
     rcnfManager = new RCNFManager(pConfiguration);
     manager =
         new FormulaSlicingManager(

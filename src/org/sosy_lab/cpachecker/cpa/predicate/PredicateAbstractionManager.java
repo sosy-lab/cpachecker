@@ -252,7 +252,7 @@ public final class PredicateAbstractionManager {
       warnedOfCartesianAbstraction = true; // warning is not necessary
     }
     if (abstractionType == AbstractionType.CARTESIAN_BY_WEAKENING) {
-      weakeningManager = new InductiveWeakeningManager(config, pSolver, pLogger, pShutdownNotifier);
+      weakeningManager = new InductiveWeakeningManager(config, pSolver, pShutdownNotifier);
     } else {
       weakeningManager = null;
     }

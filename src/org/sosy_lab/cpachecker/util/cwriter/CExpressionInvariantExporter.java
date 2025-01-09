@@ -111,7 +111,7 @@ public class CExpressionInvariantExporter {
     bfmgr = fmgr.getBooleanFormulaManager();
     formulaToCExpressionConverter = new FormulaToCExpressionConverter(fmgr);
     inductiveWeakeningManager =
-        new InductiveWeakeningManager(pConfiguration, solver, pLogManager, pShutdownNotifier);
+        new InductiveWeakeningManager(pConfiguration, solver, pShutdownNotifier);
   }
 
   /**

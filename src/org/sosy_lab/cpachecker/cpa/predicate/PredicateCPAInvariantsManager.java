@@ -574,7 +574,7 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
               semiCNFConverter.toLemmasInstantiated(pBlockFormula, fmgr), fmgr::uninstantiate);
 
       Set<BooleanFormula> inductiveLemmas =
-          new InductiveWeakeningManager(config, solver, logger, shutdownNotifier)
+          new InductiveWeakeningManager(config, solver, shutdownNotifier)
               .findInductiveWeakeningForRCNF(ssa, loopFormula, lemmas);
 
       if (lemmas.isEmpty()) {
