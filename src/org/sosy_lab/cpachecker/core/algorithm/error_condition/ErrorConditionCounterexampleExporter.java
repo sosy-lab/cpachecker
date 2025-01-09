@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.JSON;
@@ -280,7 +281,7 @@ public class ErrorConditionCounterexampleExporter implements Algorithm {
     }
     ImmutableMap.Builder<Integer, String> errorConditionBuilder = ImmutableMap.builder();
     for (Entry<Integer, BooleanFormula> lineToFormula : conditions.entrySet()) {
-      FormulaToCVisitor visitor = new FormulaToCVisitor(fmgr);
+      FormulaToCVisitor visitor = new FormulaToCVisitor(fmgr, Function.identity());
       fmgr.visit(lineToFormula.getValue(), visitor);
       String condition = visitor.getString();
       if (!condition.contains("||")) {
