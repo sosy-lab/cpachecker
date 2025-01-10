@@ -123,6 +123,7 @@ public class PredicateCPA
   private final MergeOperator merge;
   private final PredicatePrecisionAdjustment prec;
   private final StopOperator stop;
+  private final PredicateTransferRelation transfer;
 
   private final PredicatePrecision initialPrecision;
   private final PathFormulaManager pathFormulaManager;
@@ -134,9 +135,6 @@ public class PredicateCPA
   private final PredicateAbstractionManager predAbsManager;
   private final PredicateCPAInvariantsManager invariantsManager;
   private final BlockOperator blk;
-  private final PredicateStatistics statistics;
-  private final FormulaManagerView formulaManager;
-  private final PredicateCpaOptions options;
   private final WeakeningOptions weakeningOptions;
 
   // path formulas for PCC
@@ -167,7 +165,7 @@ public class PredicateCPA
     blk.setCFA(cfa);
 
     solver = Solver.create(config, logger, pShutdownNotifier);
-    formulaManager = solver.getFormulaManager();
+    FormulaManagerView formulaManager = solver.getFormulaManager();
     String libraries = solver.getVersion();
 
     PathFormulaManager pfMgr =
@@ -210,8 +208,6 @@ public class PredicateCPA
                 ? invariantsManager
                 : TrivialInvariantSupplier.INSTANCE);
 
-    statistics = new PredicateStatistics();
-    options = new PredicateCpaOptions(config);
     precisionBootstraper =
         new PredicatePrecisionBootstrapper(
             config,
@@ -252,6 +248,9 @@ public class PredicateCPA
           case "SEPNAA" -> new PredicateNeverAtAbstractionStopOperator(domain);
           default -> throw new AssertionError("Update list of allowed stop operators");
         };
+    transfer =
+        new PredicateTransferRelation(
+            config, logger, direction, formulaManager, pathFormulaManager, blk, predAbsManager);
 
     stats =
         new PredicateCPAStatistics(
@@ -261,13 +260,13 @@ public class PredicateCPA
             domain,
             merge instanceof PredicateMergeOperator ? (PredicateMergeOperator) merge : null,
             prec,
+            transfer,
             solver,
             pathFormulaManager,
             blk,
             regionManager,
             abstractionManager,
-            predAbsManager,
-            statistics);
+            predAbsManager);
 
     // TODO: Only a temporal hack on how to get information about fmgr to TerminationCPA, needs to
     // be fixed !
@@ -283,15 +282,7 @@ public class PredicateCPA
 
   @Override
   public PredicateTransferRelation getTransferRelation() {
-    return new PredicateTransferRelation(
-        logger,
-        direction,
-        formulaManager,
-        pathFormulaManager,
-        blk,
-        predAbsManager,
-        statistics,
-        options);
+    return transfer;
   }
 
   @Override
@@ -363,8 +354,8 @@ public class PredicateCPA
       AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
       throws CPATransferException, InterruptedException {
     try {
-      return getTransferRelation()
-          .areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, computedPathFormulaePcc);
+      return transfer.areAbstractSuccessors(
+          pElement, pCfaEdge, pSuccessors, computedPathFormulaePcc);
     } catch (SolverException e) {
       throw new CPATransferException("Solver failed during abstract-successor check", e);
     }
