@@ -123,6 +123,7 @@ final class PredicateCPAStatistics implements Statistics {
   private final RegionManager rmgr;
   private final AbstractionManager absmgr;
   private final PredicateAbstractionManager predAbsMgr;
+  private final PredicatePrecision initialPrecision;
 
   private final PredicateMapWriter precisionWriter;
   private final LoopInvariantsWriter loopInvariantsWriter;
@@ -141,7 +142,8 @@ final class PredicateCPAStatistics implements Statistics {
       BlockOperator pBlk,
       RegionManager pRmgr,
       AbstractionManager pAbsmgr,
-      PredicateAbstractionManager pPredAbsMgr)
+      PredicateAbstractionManager pPredAbsMgr,
+      PredicatePrecision pInitialPrecision)
       throws InvalidConfigurationException {
     pConfig.inject(this, PredicateCPAStatistics.class);
 
@@ -156,6 +158,7 @@ final class PredicateCPAStatistics implements Statistics {
     rmgr = pRmgr;
     absmgr = pAbsmgr;
     predAbsMgr = pPredAbsMgr;
+    initialPrecision = pInitialPrecision;
 
     FormulaManagerView fmgr = pSolver.getFormulaManager();
     loopInvariantsWriter = new LoopInvariantsWriter(pCfa, pLogger, pAbsmgr, fmgr, pRmgr);
@@ -361,6 +364,17 @@ final class PredicateCPAStatistics implements Statistics {
     out.println();
     out.println("Max ABE block size:                       " + prec.blockSize.getMaxValue());
     put(out, 0, prec.blockSize);
+    if (!initialPrecision.isEmpty()) {
+      out.println(
+          "Number of initial global predicates:      "
+              + initialPrecision.getGlobalPredicates().size());
+      out.println(
+          "Number of initial function predicates:    "
+              + initialPrecision.getFunctionPredicates().size());
+      out.println(
+          "Number of initial local predicates:       "
+              + initialPrecision.getLocalPredicates().size());
+    }
     out.println("Number of predicates discovered:          " + allDistinctPreds);
     if (precisionStatistics && allDistinctPreds > 0) {
       out.println("Number of abstraction locations:          " + allLocs);

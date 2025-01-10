@@ -129,7 +129,6 @@ public class PredicateCPA
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
   private final PredicateCPAStatistics stats;
-  private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final CFA cfa;
   private final AbstractionManager abstractionManager;
   private final PredicateAbstractionManager predAbsManager;
@@ -208,7 +207,7 @@ public class PredicateCPA
                 ? invariantsManager
                 : TrivialInvariantSupplier.INSTANCE);
 
-    precisionBootstraper =
+    PredicatePrecisionBootstrapper precisionBootstraper =
         new PredicatePrecisionBootstrapper(
             config,
             logger,
@@ -266,7 +265,8 @@ public class PredicateCPA
             blk,
             regionManager,
             abstractionManager,
-            predAbsManager);
+            predAbsManager,
+            initialPrecision);
 
     // TODO: Only a temporal hack on how to get information about fmgr to TerminationCPA, needs to
     // be fixed !
@@ -340,7 +340,6 @@ public class PredicateCPA
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
-    precisionBootstraper.collectStatistics(pStatsCollection);
     invariantsManager.collectStatistics(pStatsCollection);
   }
 

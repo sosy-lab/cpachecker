@@ -38,8 +38,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
@@ -61,14 +59,13 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.statistics.KeyValueStatistics;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "cpa.predicate")
-public final class PredicatePrecisionBootstrapper implements StatisticsProvider {
+public final class PredicatePrecisionBootstrapper {
 
   @Option(
       secure = true,
@@ -140,8 +137,6 @@ public final class PredicatePrecisionBootstrapper implements StatisticsProvider 
   private final PathFormulaManager pathFormulaManager;
   private final PredicateAbstractionManager predicateAbstractionManager;
 
-  private final KeyValueStatistics statistics = new KeyValueStatistics();
-
   private final InitialPredicatesOptions options;
 
   public PredicatePrecisionBootstrapper(
@@ -171,7 +166,7 @@ public final class PredicatePrecisionBootstrapper implements StatisticsProvider 
     config.inject(options);
   }
 
-  private PredicatePrecision internalPrepareInitialPredicates()
+  public PredicatePrecision prepareInitialPredicates()
       throws InvalidConfigurationException, InterruptedException {
 
     PredicatePrecision result = PredicatePrecision.empty();
@@ -432,24 +427,5 @@ public final class PredicatePrecisionBootstrapper implements StatisticsProvider 
     } else {
       throw new AssertionError("Unhandled expression type: " + pExpr.getClass());
     }
-  }
-
-  /** Read the (initial) precision (predicates to track) from a file. */
-  public PredicatePrecision prepareInitialPredicates()
-      throws InvalidConfigurationException, InterruptedException {
-    PredicatePrecision result = internalPrepareInitialPredicates();
-
-    statistics.addKeyValueStatistic("Init. global predicates", result.getGlobalPredicates().size());
-    statistics.addKeyValueStatistic(
-        "Init. location predicates", result.getLocalPredicates().size());
-    statistics.addKeyValueStatistic(
-        "Init. function predicates", result.getFunctionPredicates().size());
-
-    return result;
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(statistics);
   }
 }
