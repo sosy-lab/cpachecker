@@ -122,6 +122,7 @@ public class PredicateCPA
   private final PredicateAbstractDomain domain;
   private final MergeOperator merge;
   private final PredicatePrecisionAdjustment prec;
+  private final StopOperator stop;
 
   private final PredicatePrecision initialPrecision;
   private final PathFormulaManager pathFormulaManager;
@@ -244,6 +245,13 @@ public class PredicateCPA
             predAbsManager,
             invariantsManager,
             predicateProvider);
+    stop =
+        switch (stopType) {
+          case "SEP" -> new PredicateStopOperator(domain);
+          case "SEPPCC" -> new PredicatePCCStopOperator(pathFormulaManager, predAbsManager, solver);
+          case "SEPNAA" -> new PredicateNeverAtAbstractionStopOperator(domain);
+          default -> throw new AssertionError("Update list of allowed stop operators");
+        };
 
     stats =
         new PredicateCPAStatistics(
@@ -293,12 +301,7 @@ public class PredicateCPA
 
   @Override
   public StopOperator getStopOperator() {
-    return switch (stopType) {
-      case "SEP" -> new PredicateStopOperator(getAbstractDomain());
-      case "SEPPCC" -> new PredicatePCCStopOperator(pathFormulaManager, predAbsManager, solver);
-      case "SEPNAA" -> new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
-      default -> throw new AssertionError("Update list of allowed stop operators");
-    };
+    return stop;
   }
 
   public PredicateAbstractionManager getPredicateManager() {
