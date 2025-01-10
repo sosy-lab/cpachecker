@@ -715,8 +715,6 @@ public class CFABuilder {
       throw new LLVMException(
           "Program contains PHI nodes, but they are not supported by CPAchecker, yet."
               + "Please remove them with `opt -reg2mem $PROG`");
-    } else if (pItem.isInvokeInst()) {
-      throw new UnsupportedOperationException();
     } else {
       throw new UnsupportedOperationException();
     }
