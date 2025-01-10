@@ -409,6 +409,7 @@ final class PredicateCPAStatistics implements Statistics {
                 + div(as.allSatCount, as.booleanAbstractionTime.getNumberOfIntervals()));
       }
     }
+    pfmgr.printStatistics(out);
     out.println();
 
     put(out, 0, transfer.postTimer);
@@ -491,8 +492,6 @@ final class PredicateCPAStatistics implements Statistics {
               + transfer.satCheckTimer.getNumberOfIntervals()
               + ")");
     }
-    out.println();
-    pfmgr.printStatistics(out);
     out.println();
     rmgr.printStatistics(out);
     solver.printStatistics(out);

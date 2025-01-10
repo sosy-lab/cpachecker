@@ -16,7 +16,6 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -39,7 +38,7 @@ import org.sosy_lab.java_smt.api.Model;
  */
 public class CachingPathFormulaManager implements PathFormulaManager {
 
-  private final Timer pathFormulaComputationTimer = new Timer();
+  private int pathFormulaCacheMisses = 0;
   private int pathFormulaCacheHits = 0;
 
   public final PathFormulaManager delegate;
@@ -77,12 +76,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
         createFormulaCacheKey(pOldFormula, pEdge);
     Pair<PathFormula, ErrorConditions> result = andFormulaWithConditionsCache.get(formulaCacheKey);
     if (result == null) {
-      pathFormulaComputationTimer.start();
       // compute new pathFormula with the operation on the edge
       result = delegate.makeAndWithErrorConditions(pOldFormula, pEdge);
-      pathFormulaComputationTimer.stop();
       andFormulaWithConditionsCache.put(formulaCacheKey, result);
 
+      pathFormulaCacheMisses++;
     } else {
       pathFormulaCacheHits++;
     }
@@ -97,14 +95,10 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     PathFormula result = andFormulaCache.get(formulaCacheKey);
     if (result == null) {
       // compute new pathFormula with the operation on the edge
-      try {
-        pathFormulaComputationTimer.start();
-        result = delegate.makeAnd(pOldFormula, pEdge);
-        andFormulaCache.put(formulaCacheKey, result);
-      } finally {
-        pathFormulaComputationTimer.stop();
-      }
+      result = delegate.makeAnd(pOldFormula, pEdge);
+      andFormulaCache.put(formulaCacheKey, result);
 
+      pathFormulaCacheMisses++;
     } else {
       pathFormulaCacheHits++;
     }
@@ -124,6 +118,8 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     if (result == null) {
       result = delegate.makeOr(pF1, pF2);
       orFormulaCache.put(formulaCacheKey, result);
+
+      pathFormulaCacheMisses++;
     } else {
       pathFormulaCacheHits++;
     }
@@ -146,8 +142,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     if (result == null) {
       result = delegate.makeEmptyPathFormulaWithContextFrom(pOldFormula);
       emptyFormulaCache.put(pOldFormula, result);
-    } else {
-      pathFormulaCacheHits++;
     }
     return result;
   }
@@ -222,21 +216,12 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public void printStatistics(PrintStream out) {
-    int totalPathFormulaComputations =
-        pathFormulaComputationTimer.getNumberOfIntervals() + pathFormulaCacheHits;
     out.println(
-        "Number of path formula cache hits:   "
+        "Number of path formula cache hits:        "
             + pathFormulaCacheHits
             + " ("
-            + toPercent(pathFormulaCacheHits, totalPathFormulaComputations)
+            + toPercent(pathFormulaCacheHits, pathFormulaCacheMisses + pathFormulaCacheHits)
             + ")");
-    out.println();
-
-    out.println("Inside post operator:                  ");
-    out.println("  Inside path formula creation:        ");
-    out.println("    Time for path formula computation: " + pathFormulaComputationTimer);
-    out.println();
-
     delegate.printStatistics(out);
   }
 

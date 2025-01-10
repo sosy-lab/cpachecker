@@ -52,6 +52,5 @@ abstract class AbstractMemoryRegionManager implements MemoryRegionManager {
             "  Number of created targets for UF " + entry.getElement() + ": " + entry.getCount());
       }
     }
-    out.println();
   }
 }
