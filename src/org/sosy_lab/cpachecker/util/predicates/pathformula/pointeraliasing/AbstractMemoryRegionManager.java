@@ -10,16 +10,14 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.Map;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.Pair;
 
 abstract class AbstractMemoryRegionManager implements MemoryRegionManager {
-  private final Map<Pair<CFAEdge, String>, Integer> targetStats = new HashMap<>();
+  private final Multiset<String> targetStats = HashMultiset.create();
 
   private final TypeHandlerWithPointerAliasing typeHandler;
 
@@ -41,34 +39,18 @@ abstract class AbstractMemoryRegionManager implements MemoryRegionManager {
   }
 
   @Override
-  public void addTargetToStats(CFAEdge pEdge, String pUfName, PointerTarget pTarget) {
-    Pair<CFAEdge, String> key = Pair.of(pEdge, pUfName);
-    Integer v = targetStats.get(key);
-    if (v != null) {
-      targetStats.put(key, v + 1);
-    } else {
-      targetStats.put(key, 1);
-    }
+  public void addTargetToStats(String pUfName) {
+    targetStats.add(pUfName);
   }
 
   @Override
   public void printStatistics(PrintStream out) {
-    int totalTargets = 0;
-    Map<String, Integer> perUf = new HashMap<>();
-    for (Map.Entry<Pair<CFAEdge, String>, Integer> entry : targetStats.entrySet()) {
-      String key = entry.getKey().getSecond();
-      Integer v = entry.getValue();
-      if (v != null) {
-        perUf.put(key, v + 1);
-        totalTargets += v;
-      } else {
-        perUf.put(key, 1);
+    if (!targetStats.isEmpty()) {
+      out.println("Number of created pointer-UF targets:     " + targetStats.size());
+      for (Multiset.Entry<String> entry : targetStats.entrySet()) {
+        out.println(
+            "  Number of created targets for UF " + entry.getElement() + ": " + entry.getCount());
       }
-    }
-    out.println("Total number of created targets for pointer analysis: " + totalTargets);
-    for (Map.Entry<String, Integer> entry : perUf.entrySet()) {
-      out.println(
-          "   Number of created targets for uf: " + entry.getKey() + " is " + entry.getValue());
     }
     out.println();
   }

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import java.io.PrintStream;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -52,12 +51,9 @@ public interface MemoryRegionManager {
 
   /**
    * Adds target to statistics. For calculating how many targets were used to construct formulas.
-   *
-   * @param pEdge - edge for which the formula is constructed
    * @param pUfName - name of the region (uninterpreted function)
-   * @param pTarget - pointer target belonging to the region
    */
-  void addTargetToStats(CFAEdge pEdge, String pUfName, PointerTarget pTarget);
+  void addTargetToStats(String pUfName);
 
   /**
    * Prints statistics to the specified output
