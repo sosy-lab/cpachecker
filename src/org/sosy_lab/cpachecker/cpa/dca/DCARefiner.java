@@ -80,12 +80,9 @@ import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManagerOptions;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionStatistics;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.AbstractionPosition;
-import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -133,7 +130,6 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
   private final FormulaManagerView formulaManagerView;
   private final InterpolationManager interpolationManager;
   private final InterpolationAutomatonBuilder itpAutomatonBuilder;
-  private final PredicateAbstractionManager predicateAbstractionManager;
   private final PathChecker pathChecker;
 
   private int curRefinementIteration = 0;
@@ -243,31 +239,21 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
     SymbolicRegionManager regionManager = new SymbolicRegionManager(solver);
     AbstractionManager abstractionManager =
         new AbstractionManager(regionManager, pConfig, pLogger, solver);
-    PredicateAbstractionManagerOptions abstractionOptions =
-        new PredicateAbstractionManagerOptions(pConfig);
-    PredicateAbstractionsStorage abstractionStorage;
+    PredicateAbstractionManager predicateAbstractionManager;
     try {
-      abstractionStorage =
-          new PredicateAbstractionsStorage(
-              abstractionOptions.getReuseAbstractionsFrom(),
-              logger,
-              solver.getFormulaManager(),
-              null);
+      predicateAbstractionManager =
+          new PredicateAbstractionManager(
+              abstractionManager,
+              pathFormulaManager,
+              solver,
+              new WeakeningOptions(pConfig),
+              pConfig,
+              pLogger,
+              pNotifier,
+              TrivialInvariantSupplier.INSTANCE);
     } catch (PredicateParsingFailedException e) {
       throw new InvalidConfigurationException(e.getMessage(), e);
     }
-    predicateAbstractionManager =
-        new PredicateAbstractionManager(
-            abstractionManager,
-            pathFormulaManager,
-            solver,
-            abstractionOptions,
-            new WeakeningOptions(pConfig),
-            abstractionStorage,
-            pLogger,
-            pNotifier,
-            new PredicateAbstractionStatistics(),
-            TrivialInvariantSupplier.INSTANCE);
 
     itpAutomatonBuilder =
         new InterpolationAutomatonBuilder(
