@@ -1,0 +1,32 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
+
+public class GhostInstrumentationEntry extends AbstractEntry {
+
+  private static final String GHOST_INSTRUMENTATION_ENTRY_IDENTIFIER = "ghost_instrumentation";
+
+  @JsonProperty("metadata")
+  public final MetadataRecord metadata;
+
+  @JsonProperty("content")
+  public final GhostInstrumentationContentEntry content;
+
+  public GhostInstrumentationEntry(
+      @JsonProperty("metadata") MetadataRecord pMetadata,
+      @JsonProperty("content") GhostInstrumentationContentEntry pContent) {
+    super(GHOST_INSTRUMENTATION_ENTRY_IDENTIFIER);
+    metadata = pMetadata;
+    content = pContent;
+  }
+}

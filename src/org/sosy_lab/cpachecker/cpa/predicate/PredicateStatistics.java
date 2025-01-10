@@ -14,9 +14,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
-/**
- * This class contains all statistics from PredicateCPA.
- */
+/** This class contains all statistics from PredicateCPA. */
 public final class PredicateStatistics {
 
   // merge operator

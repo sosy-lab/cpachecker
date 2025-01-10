@@ -51,6 +51,7 @@ public interface MemoryRegionManager {
 
   /**
    * Adds target to statistics. For calculating how many targets were used to construct formulas.
+   *
    * @param pUfName - name of the region (uninterpreted function)
    */
   void addTargetToStats(String pUfName);
