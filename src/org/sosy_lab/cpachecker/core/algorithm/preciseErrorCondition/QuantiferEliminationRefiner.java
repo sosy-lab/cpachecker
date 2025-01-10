@@ -22,6 +22,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -39,18 +40,15 @@ public class QuantiferEliminationRefiner implements Refiner {
   private final SSAMapBuilder ssaBuilder;
 
   public QuantiferEliminationRefiner(
-      FormulaContext pContext, Solvers pQuantifierSolver, SSAMapBuilder pSsaBuilder)
+      FormulaContext pContext, Solvers pQuantifierSolver)
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     context = pContext;
     exclusionFormula = context.getManager().makeEmptyPathFormula();
     quantifierSolver = Solver.create(
         Configuration.builder().copyFrom(context.getConfiguration())
             .setOption("solver.solver", pQuantifierSolver.name())
-            .build()
-        ,
-        context.getLogger(), context.getShutdownNotifier());
-    ssaBuilder = pSsaBuilder;
-
+            .build(), context.getLogger(), context.getShutdownNotifier());
+    ssaBuilder = SSAMap.emptySSAMap().builder();
   }
 
   @Override
@@ -74,7 +72,6 @@ public class QuantiferEliminationRefiner implements Refiner {
     BooleanFormula translatedFormula =
         translateFormula(cexFormula.getFormula(), context.getSolver(), quantifierSolver);
 
-    // TODO handle modulo operations through string manipulation
 
     // Quantifier Elimination
     BooleanFormula quantifierEliminationResult = eliminateVariables(
@@ -83,6 +80,15 @@ public class QuantiferEliminationRefiner implements Refiner {
         entry -> !entry.getKey().contains("_nondet"),
         // this predicate keeps the non-det variables
         entry -> entry.getKey().contains("_nondet"));
+
+    // TODO handle modulo operations through string manipulation
+    String translatedResultAsString =
+        context.getSolver().getFormulaManager().dumpArbitraryFormula(quantifierEliminationResult);
+    // modulo replacement
+    translatedResultAsString = translatedResultAsString.replace("bvsrem_i", "bvsrem");
+    quantifierEliminationResult =
+        context.getSolver().getFormulaManager().parse(translatedResultAsString);
+
 
     // translate back to MATHSAT
     quantifierEliminationResult =
@@ -180,7 +186,6 @@ public class QuantiferEliminationRefiner implements Refiner {
         .transform(Entry::getValue)
         .toList();
 
-
     context.getLogger().log(Level.INFO,
         String.format("Iteration %d: Deterministic variables: %s",
             currentRefinementIteration,
@@ -242,10 +247,6 @@ public class QuantiferEliminationRefiner implements Refiner {
 
   public Map<String, String> getVariableMapping() {
     return variableMapping;
-  }
-
-  public PathFormula getExclusionFormula() {
-    return exclusionFormula;
   }
 
 }

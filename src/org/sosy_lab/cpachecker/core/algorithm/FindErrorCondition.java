@@ -26,10 +26,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.AllSatRefiner;
+import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.CompositeRefiner;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.FormulaContext;
-import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.GenerateModelRefiner;
-import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.QuantiferEliminationRefiner;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.ReachabilityAnalyzer;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -47,8 +45,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -65,7 +61,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       new StatTimer("Total time for finding precise error condition");
 
   @Option(description = "Maximum iterations for error condition refinement.")
-  private int maxIterations = -1; // Default: no iteration limit
+  private int maxIterations = -1; // default: no iteration limit
   private int currentIteration = 0;
   private final FormulaContext context;
 
@@ -97,9 +93,6 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
 
   }
 
-  // TODO create a refiner abstract that takes cex, then quantifier elimination,
-  //  all sat prover and generate models prover can implement it
-
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
 
@@ -110,14 +103,9 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
 
       // Initialize variables
       boolean foundNewCounterexamples;
-      SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
-      ReachabilityAnalyzer analyzer =
-          new ReachabilityAnalyzer(cpa, context, currentIteration);
+      ReachabilityAnalyzer analyzer = new ReachabilityAnalyzer(cpa, context, currentIteration);
       AbstractState initialState = analyzer.getInitialState();
-      QuantiferEliminationRefiner quantifierRefiner =
-          new QuantiferEliminationRefiner(context, Solvers.Z3, ssaBuilder);
-      GenerateModelRefiner generateModelRefiner = new GenerateModelRefiner(context);
-      AllSatRefiner allSatRefiner = new AllSatRefiner(context);
+      CompositeRefiner refiner = new CompositeRefiner(context, Solvers.Z3);
 
       do {
         logger.log(Level.INFO, "Iteration: " + currentIteration);
@@ -139,10 +127,11 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
           logger.log(Level.INFO,
               String.format("Iteration %d: Entering For Loop...", currentIteration));
           // initial exclusion formula is empty
-          PathFormula exclusionFormula = quantifierRefiner.getExclusionFormula();
+          PathFormula exclusionFormula = refiner.getExclusionFormula();
           for (CounterexampleInfo cex : counterExamples) {
             // Refinement
-            exclusionFormula = quantifierRefiner.refine(cex);
+            exclusionFormula = refiner.refine(cex);
+            refiner.shutdown();
           }
           // update initial state with the exclusion formula
           initialState = updateInitialStateWithExclusions(initialState, exclusionFormula);
@@ -192,10 +181,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   }
 
 
-//  private void minimizeErrorCondition(BooleanFormula formula, Solver solver)
-//      throws SolverException, InterruptedException {
-//    // TODO minimize Error condition remove redundant expressions
-//  }
+  // TODO minimize Error condition remove redundant expressions
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {

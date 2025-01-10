@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -25,11 +26,11 @@ import java.util.logging.Level;
 public class AllSatRefiner implements Refiner {
 
   private final FormulaContext context;
-  private PathFormula exclusionFormula;
+  private PathFormula exclusionModelFormula;
 
   public AllSatRefiner(FormulaContext pContext) {
     context = pContext;
-    exclusionFormula = context.getManager().makeEmptyPathFormula();
+    exclusionModelFormula = context.getManager().makeEmptyPathFormula();
   }
 
   @Override
@@ -43,30 +44,36 @@ public class AllSatRefiner implements Refiner {
           context.getManager().makeFormulaForPath(cex.getTargetPath().getFullPath()).getFormula();
       prover.push(formula);
 
-      AllSatCallback callback = new AllSatCallback();
-      // extract relevant variables
-      List<BooleanFormula> importantPredicates = List.copyOf(
-          (java.util.Collection<? extends BooleanFormula>)
-              context
-                  .getSolver()
-                  .getFormulaManager()
-                  .extractVariables(formula)
-                  .values());
-      // invoke AllSAT
-      prover.allSat(callback, importantPredicates);
 
+      if (!prover.isUnsat()) { // feasible cex
+        AllSatCallback callback = new AllSatCallback();
 
-      // retrieve satisfying assignments
-      List<BooleanFormula> satisfyingAssignments = callback.getResult();
-      // refine exclusion formula
-      for (BooleanFormula assignment : satisfyingAssignments) {
-        exclusionFormula = context.getManager().makeAnd(exclusionFormula, bmgr.not(assignment));
-        context.getLogger()
-            .log(Level.INFO, "Added satisfying assignment to exclusion formula: " + assignment);
+        // extract relevant variables
+        List<BooleanFormula> importantPredicates = context.getSolver()
+            .getFormulaManager()
+            .extractVariables(formula)
+            .values()
+            .stream()
+            .filter(BooleanFormula.class::isInstance) // Filter to Boolean formulas
+            .map(BooleanFormula.class::cast)
+            .collect(Collectors.toList());
+
+        // invoke AllSAT
+        List<BooleanFormula> assignments = prover.allSat(callback, importantPredicates);
+
+        for (BooleanFormula assignment : assignments) {
+          exclusionModelFormula =
+              context.getManager().makeAnd(exclusionModelFormula, bmgr.not(assignment));
+          context.getLogger()
+              .log(Level.INFO, "Added satisfying assignment to exclusion formula: " + assignment);
+        }
+      } else {
+        context.getLogger().log(Level.WARNING, "Counterexample is infeasible.");
+        return exclusionModelFormula; // empty
       }
     }
 
-    return exclusionFormula;
+    return exclusionModelFormula;
   }
 }
 

@@ -46,7 +46,7 @@ public class FormulaContext {
       ShutdownNotifier pShutdownNotifier) {
     solver = pSolver;
     manager = pManager;
-    prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+    prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS); // default prover
     cfa = pMutableCFA;
     logger = pLogManager;
     configuration = pConfiguration;

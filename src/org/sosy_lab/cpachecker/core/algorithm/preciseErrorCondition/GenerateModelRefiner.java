@@ -55,7 +55,8 @@ public class GenerateModelRefiner implements Refiner {
       }
 
       // Update exclusion formula
-      exclusionModelFormula = context.getManager().makeAnd(exclusionModelFormula, bmgr.not(nondetModel));
+      exclusionModelFormula =
+          context.getManager().makeAnd(exclusionModelFormula, bmgr.not(nondetModel));
       context.getLogger().log(Level.INFO,
           "Updated exclusion formula with precondition: " + exclusionModelFormula.getFormula());
     }
