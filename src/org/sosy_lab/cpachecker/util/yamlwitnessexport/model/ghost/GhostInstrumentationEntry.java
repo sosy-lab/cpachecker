@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
 
+@JsonPropertyOrder({"entry_type", "metadata", "content"})
 public class GhostInstrumentationEntry extends AbstractEntry {
 
   private static final String GHOST_INSTRUMENTATION_ENTRY_IDENTIFIER = "ghost_instrumentation";
@@ -20,11 +22,11 @@ public class GhostInstrumentationEntry extends AbstractEntry {
   public final MetadataRecord metadata;
 
   @JsonProperty("content")
-  public final GhostInstrumentationContentEntry content;
+  public final GhostInstrumentationContentRecord content;
 
   public GhostInstrumentationEntry(
       @JsonProperty("metadata") MetadataRecord pMetadata,
-      @JsonProperty("content") GhostInstrumentationContentEntry pContent) {
+      @JsonProperty("content") GhostInstrumentationContentRecord pContent) {
     super(GHOST_INSTRUMENTATION_ENTRY_IDENTIFIER);
     metadata = pMetadata;
     content = pContent;

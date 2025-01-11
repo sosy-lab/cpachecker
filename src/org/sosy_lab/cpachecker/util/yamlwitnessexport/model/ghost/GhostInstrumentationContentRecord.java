@@ -9,27 +9,28 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 
-public abstract class GhostInstrumentationContentEntry {
+public class GhostInstrumentationContentRecord {
 
   @JsonProperty("ghost_variables")
-  private final GhostVariablesEntry variables;
+  private final List<GhostVariableRecord> variables;
 
   @JsonProperty("ghost_updates")
-  private final GhostUpdatesEntry updates;
+  private final List<GhostUpdateRecord> updates;
 
-  public GhostInstrumentationContentEntry(
-      @JsonProperty("ghost_variables") GhostVariablesEntry pVariables,
-      @JsonProperty("ghost_updates") GhostUpdatesEntry pUpdates) {
+  public GhostInstrumentationContentRecord(
+      @JsonProperty("ghost_variables") List<GhostVariableRecord> pVariables,
+      @JsonProperty("ghost_updates") List<GhostUpdateRecord> pUpdates) {
     variables = pVariables;
     updates = pUpdates;
   }
 
-  public GhostVariablesEntry getVariables() {
+  public List<GhostVariableRecord> getVariables() {
     return variables;
   }
 
-  public GhostUpdatesEntry getUpdates() {
+  public List<GhostUpdateRecord> getUpdates() {
     return updates;
   }
 }

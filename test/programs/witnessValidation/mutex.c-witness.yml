@@ -19,7 +19,6 @@
       type: location_invariant
       location:
         file_name: 'mutex.c'
-        file_hash: '3534bad51bd38f95bbce0f538e7af27c16bdf2ecf1ae9ce6fcbef6ec3939b2dd'
         line: 117
         column: 3
         function: 'main'
@@ -53,7 +52,6 @@
     ghost_updates:
       - location:
           file_name: 'mutex.c'
-          file_hash: '3534bad51bd38f95bbce0f538e7af27c16bdf2ecf1ae9ce6fcbef6ec3939b2dd'
           line: 101
           column: 5
           function: 'producer'
@@ -63,7 +61,6 @@
             format: 'c_expression'
       - location:
           file_name: 'mutex.c'
-          file_hash: '3534bad51bd38f95bbce0f538e7af27c16bdf2ecf1ae9ce6fcbef6ec3939b2dd'
           line: 104
           column: 5
           function: 'producer'
@@ -73,7 +70,6 @@
             format: 'c_expression'
       - location:
           file_name: 'mutex.c'
-          file_hash: '3534bad51bd38f95bbce0f538e7af27c16bdf2ecf1ae9ce6fcbef6ec3939b2dd'
           line: 117
           column: 3
           function: 'main'
@@ -83,7 +79,6 @@
             format: 'c_expression'
       - location:
           file_name: 'mutex.c'
-          file_hash: '3534bad51bd38f95bbce0f538e7af27c16bdf2ecf1ae9ce6fcbef6ec3939b2dd'
           line: 119
           column: 3
           function: 'main'

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 public class GhostUpdateRecord {
@@ -16,21 +17,21 @@ public class GhostUpdateRecord {
   @JsonProperty("location")
   private final LocationRecord location;
 
-  @JsonProperty("update")
-  private final UpdateRecord update;
+  @JsonProperty("updates")
+  private final List<UpdatesRecord> updates;
 
   public GhostUpdateRecord(
       @JsonProperty("location") LocationRecord pLocation,
-      @JsonProperty("update") UpdateRecord pUpdate) {
+      @JsonProperty("updates") List<UpdatesRecord> pUpdates) {
     location = pLocation;
-    update = pUpdate;
+    updates = pUpdates;
   }
 
   public LocationRecord getLocation() {
     return location;
   }
 
-  public UpdateRecord getUpdate() {
-    return update;
+  public List<UpdatesRecord> getUpdates() {
+    return updates;
   }
 }

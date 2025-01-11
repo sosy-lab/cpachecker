@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 
-public class UpdateRecord {
+public class UpdatesRecord {
 
   @JsonProperty("variable")
   private final String variable;
@@ -24,7 +24,7 @@ public class UpdateRecord {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   private final YAMLWitnessExpressionType format;
 
-  public UpdateRecord(
+  public UpdatesRecord(
       @JsonProperty("variable") String pVariable,
       @JsonProperty("value") int pValue,
       @JsonProperty("format") YAMLWitnessExpressionType pFormat) {
