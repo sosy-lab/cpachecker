@@ -12,12 +12,14 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.LemmaUtils;
 
 public class LemmaEntryTest {
   public static final String TEST_DIR_PATH = "test/lemma";
@@ -33,6 +35,16 @@ public class LemmaEntryTest {
         assertThat(lemmaEntries.get(0).getFormat().toString()).isEqualTo("c_expression");
       }
     }
+  }
+
+  @Test
+  public void testParseLemmas() throws IOException {
+    Path lemmaFile = Path.of(TEST_DIR_PATH, "witness.yml");
+    List<Path> lemmaFiles = List.of(lemmaFile);
+    ImmutableSet<LemmaEntry> lemmaSet = LemmaUtils.parseLemmas(lemmaFiles, null);
+    assertThat(lemmaSet).hasSize(2);
+    assertThat(lemmaSet.asList().get(0).getValue()).isEqualTo("MaxArray(A,0) = A[0]");
+    assertThat(lemmaSet.asList().get(0).getFormat().toString()).isEqualTo("c_expression");
   }
 
   private List<LemmaSetEntry> testLemmaFile(String filename) throws IOException {

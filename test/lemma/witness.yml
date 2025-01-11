@@ -15,11 +15,11 @@
     - invariant:
         type: loop_invariant
         location:
-          file_name: maxArray.c
-          line: 10
+          # file_name: maxArray.c
+          line: 25
           column: 3
-          function: max
-        value: "m == m"
+          function: maxArray
+        value: "m == maxArray(a,i)"
         format: c_expression
 - entry_type: lemma_set
   content:

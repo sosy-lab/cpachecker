@@ -8,14 +8,18 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -59,7 +63,8 @@ import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaSetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.LemmaUtils;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaEntry;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** CPA that defines symbolic predicate abstraction. */
@@ -70,6 +75,15 @@ public class PredicateCPA
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
   }
+
+  @Option(
+      secure = true,
+      name = "abstraction.initialPredicates",
+      description =
+          "get an initial map of predicates from a list of files (see source"
+              + " doc/examples/predmap.txt for an example)")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private List<Path> predicatesFiles = ImmutableList.of();
 
   @Option(
       secure = true,
@@ -136,8 +150,6 @@ public class PredicateCPA
   protected final ShutdownNotifier shutdownNotifier;
 
   private final PredicatePrecision initialPrecision;
-  // ?? LemmaSet ??
-  private final ImmutableSet<LemmaSetEntry> lemmaSet;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
   private final PredicateCPAStatistics stats;
@@ -174,7 +186,7 @@ public class PredicateCPA
     this.logger = logger;
     shutdownNotifier = pShutdownNotifier;
 
-    lemmaSet = ImmutableSet.of();
+    // lemmaSet = ImmutableSet.of();
 
     cfa = pCfa;
     blk = pBlk;
@@ -235,8 +247,9 @@ public class PredicateCPA
             shutdownNotifier,
             pathFormulaManager,
             getPredicateManager());
-    initialPrecision = precisionBootstraper.prepareInitialPredicates();
-    // ?? Load Lemmas here ??
+    initialPrecision = precisionBootstraper.prepareInitialPredicates(predicatesFiles);
+    ImmutableSet<LemmaEntry> lemmaSet = LemmaUtils.parseLemmas(predicatesFiles, logger);
+    logger.log(Level.INFO, "DEBUG Nr. of lemmas loaded: ", lemmaSet.size());
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
     predicateProvider =

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder;
@@ -25,7 +24,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -62,15 +60,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "cpa.predicate")
 public class PredicatePrecisionBootstrapper implements StatisticsProvider {
-
-  @Option(
-      secure = true,
-      name = "abstraction.initialPredicates",
-      description =
-          "get an initial map of predicates from a list of files (see source"
-              + " doc/examples/predmap.txt for an example)")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private List<Path> predicatesFiles = ImmutableList.of();
 
   @Option(
       secure = true,
@@ -157,7 +146,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     config.inject(options);
   }
 
-  private PredicatePrecision internalPrepareInitialPredicates()
+  private PredicatePrecision internalPrepareInitialPredicates(List<Path> predicatesFiles)
       throws InvalidConfigurationException, InterruptedException {
 
     PredicatePrecision result = PredicatePrecision.empty();
@@ -345,9 +334,9 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   }
 
   /** Read the (initial) precision (predicates to track) from a file. */
-  public PredicatePrecision prepareInitialPredicates()
+  public PredicatePrecision prepareInitialPredicates(List<Path> predicateFiles)
       throws InvalidConfigurationException, InterruptedException {
-    PredicatePrecision result = internalPrepareInitialPredicates();
+    PredicatePrecision result = internalPrepareInitialPredicates(predicateFiles);
 
     statistics.addKeyValueStatistic("Init. global predicates", result.getGlobalPredicates().size());
     statistics.addKeyValueStatistic(
