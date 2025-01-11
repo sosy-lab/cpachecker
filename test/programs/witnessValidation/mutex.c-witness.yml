@@ -1,0 +1,93 @@
+- entry_type: invariant_set
+  metadata:
+    format_version: '2.1'
+    uuid: '164a4e38-3a5e-4028-9407-df7247d23c3e'
+    creation_time: '2023-07-12T17:17:17.000Z'
+    producer:
+      name: 'Ultimate GemCutter'
+      version: '0.2.3-dev'
+    task:
+      input_files:
+        - 'mutex.c'
+      input_file_hashes:
+        mutex.c: '3534bad51bd38f95bbce0f538e7af27c16bdf2ecf1ae9ce6fcbef6ec3939b2dd'
+      specification: 'CHECK( init(main()), LTL(G ! call(reach_error())) )'
+      data_model: 'ILP32'
+      language: 'C'
+  content:
+  - invariant:
+      type: location_invariant
+      location:
+        file_name: 'mutex.c'
+        file_hash: '3534bad51bd38f95bbce0f538e7af27c16bdf2ecf1ae9ce6fcbef6ec3939b2dd'
+        line: 117
+        column: 3
+        function: 'main'
+      value: 'g == 1 || used == 0'
+      format: c_expression
+
+- entry_type: 'ghost_instrumentation'
+  metadata:
+    format_version: '2.1'
+    uuid: '9fe70c07-d457-44f7-b247-ae6ace017f87'
+    creation_time: '2023-07-12T17:17:17.000Z'
+    producer:
+      name: 'Ultimate GemCutter'
+      version: '0.2.3-dev'
+    task:
+      input_files:
+        - 'mutex.c'
+      input_file_hashes:
+        mutex.c: '3534bad51bd38f95bbce0f538e7af27c16bdf2ecf1ae9ce6fcbef6ec3939b2dd'
+      specification: 'CHECK( init(main()), LTL(G ! call(reach_error())) )'
+      data_model: 'ILP32'
+      language: 'C'
+  content:
+    ghost_variables:
+      - name: 'g'
+        scope: 'global'
+        type: 'int'
+        initial:
+          value: '0'
+          format: 'c_expression'
+    ghost_updates:
+      - location:
+          file_name: 'mutex.c'
+          file_hash: '3534bad51bd38f95bbce0f538e7af27c16bdf2ecf1ae9ce6fcbef6ec3939b2dd'
+          line: 101
+          column: 5
+          function: 'producer'
+        updates:
+          - variable: 'g'
+            value: '1'
+            format: 'c_expression'
+      - location:
+          file_name: 'mutex.c'
+          file_hash: '3534bad51bd38f95bbce0f538e7af27c16bdf2ecf1ae9ce6fcbef6ec3939b2dd'
+          line: 104
+          column: 5
+          function: 'producer'
+        updates:
+          - variable: 'g'
+            value: '0'
+            format: 'c_expression'
+      - location:
+          file_name: 'mutex.c'
+          file_hash: '3534bad51bd38f95bbce0f538e7af27c16bdf2ecf1ae9ce6fcbef6ec3939b2dd'
+          line: 117
+          column: 3
+          function: 'main'
+        updates:
+          - variable: 'g'
+            value: '1'
+            format: 'c_expression'
+      - location:
+          file_name: 'mutex.c'
+          file_hash: '3534bad51bd38f95bbce0f538e7af27c16bdf2ecf1ae9ce6fcbef6ec3939b2dd'
+          line: 119
+          column: 3
+          function: 'main'
+        updates:
+          - variable: 'g'
+            value: '0'
+            format: 'c_expression'
