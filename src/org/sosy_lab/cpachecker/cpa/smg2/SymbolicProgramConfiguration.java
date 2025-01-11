@@ -250,7 +250,8 @@ public class SymbolicProgramConfiguration {
     return Optional.of(
         new SymbolicProgramConfiguration(
             mergedSMGWithMergedStackAndValues.smg,
-            mergedSMGWithMergedStackAndValues.globalVariableMapping, mergedSMGWithMergedStackAndValues.atExitStack,
+            mergedSMGWithMergedStackAndValues.globalVariableMapping,
+            mergedSMGWithMergedStackAndValues.atExitStack,
             mergedSMGWithMergedStackAndValues.stackVariableMapping,
             mergedSMGWithMergedStackAndValues.heapObjects,
             mergedSMGWithMergedStackAndValues.externalObjectAllocation,
@@ -1422,7 +1423,8 @@ public class SymbolicProgramConfiguration {
 
     return new SymbolicProgramConfiguration(
         newSPC.smg,
-        newSPC.globalVariableMapping,newSPC.atExitStack,
+        newSPC.globalVariableMapping,
+        newSPC.atExitStack,
         newSPC.stackVariableMapping,
         newSPC.heapObjects.removeAndCopy(pOldObject),
         newExternalObjectAllocation,
@@ -3211,7 +3213,7 @@ public class SymbolicProgramConfiguration {
           }
           newSPC = newSPC.withNewValueMappings(newValueMapping.buildOrThrow());
 
-          return newSPC.copyAndPutValue(newValue, oldSMGValue, 0,getTypeForValue(correctOldValue));
+          return newSPC.copyAndPutValue(newValue, oldSMGValue, 0, getTypeForValue(correctOldValue));
         }
       }
       SMGValue newSMGValue = newSPC.getSMGValueFromValue(newValue).orElseThrow();
