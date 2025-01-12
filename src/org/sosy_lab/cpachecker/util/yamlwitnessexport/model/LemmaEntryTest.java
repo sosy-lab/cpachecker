@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.IOException;
@@ -38,9 +39,9 @@ public class LemmaEntryTest {
   }
 
   @Test
-  public void testParseLemmas() throws IOException {
+  public void testParseLemmas() {
     Path lemmaFile = Path.of(TEST_DIR_PATH, "witness.yml");
-    List<Path> lemmaFiles = List.of(lemmaFile);
+    ImmutableList<Path> lemmaFiles = ImmutableList.of(lemmaFile);
     ImmutableSet<LemmaEntry> lemmaSet = LemmaUtils.parseLemmas(lemmaFiles, null);
     assertThat(lemmaSet).hasSize(2);
     assertThat(lemmaSet.asList().get(0).getValue()).isEqualTo("MaxArray(A,0) = A[0]");
