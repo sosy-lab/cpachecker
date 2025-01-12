@@ -237,7 +237,7 @@ public final class MPORUtil {
         // self reach found
       } else if (successor.equals(pOrigin)) {
         return true;
-        // visit nodes only once, otherwise we might a stack overflow
+        // visit nodes only once, otherwise we trigger a stack overflow
       } else if (!pVisited.contains(successor)) {
         foundPath = isSelfReachable(pOrigin, pStop, pVisited, cfaEdge.getSuccessor());
         if (foundPath) {

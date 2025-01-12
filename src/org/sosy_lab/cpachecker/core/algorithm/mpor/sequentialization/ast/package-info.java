@@ -6,5 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Contains ASTNodes vor variables, expressions, declarations, initializers, statements, etc. */
+/** Contains ASTNodes for variables, expressions, declarations, initializers, statements, etc. */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast;

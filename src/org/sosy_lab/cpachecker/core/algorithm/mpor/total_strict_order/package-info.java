@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Algorithms and data structures for the (positional) total strict orders in the parallel C
+ * Algorithms and data structures for the (positional) total strict orders in the concurrent C
  * program, i.e. if one (or more) CFAEdges a in A must be executed before CFAEdge b from another
  * thread. E.g. if one thread calls pthread_join(other_thread) = b, then other_thread needs to
  * execute all CFAEdges a in A until it stops.

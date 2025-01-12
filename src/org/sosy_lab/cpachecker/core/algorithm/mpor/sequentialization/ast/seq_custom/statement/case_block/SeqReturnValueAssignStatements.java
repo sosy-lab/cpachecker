@@ -18,8 +18,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause.CaseBlockTerminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
@@ -67,8 +68,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
           new SeqCaseClause(
               anyGlobalAssign(assigns),
               caseLabelValue,
-              ImmutableList.of(assignmentStatement),
-              CaseBlockTerminator.BREAK));
+              new SeqCaseBlock(ImmutableList.of(assignmentStatement), Terminator.BREAK)));
     }
     // TODO remove hardcoded int values?
     SeqSwitchStatement switchStatement = new SeqSwitchStatement(returnPc, caseClauses.build(), 5);

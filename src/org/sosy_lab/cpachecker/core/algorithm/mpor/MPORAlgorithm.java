@@ -62,11 +62,10 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
- * This is an implementation of a Partial Order Reduction (POR) algorithm, presented in the 2022
- * paper "Sound Sequentialization for Concurrent Program Verification". This algorithm aims at
- * producing a reduced sequentialization of a parallel C program. The reduced sequentialization can
- * be given to an existing verifier capable of verifying sequential C programs. The POR and the
- * verifier serve as modules, hence Modular POR (MPOR).
+ * The Modular Partial Order Reduction (MPOR) algorithm produces a sequentialization of a concurrent
+ * C program. The sequentialization contains reductions in the state space via assumptions over
+ * allowed transitions between thread simulations. Sequentializations can be given to any verifier
+ * capable of verifying sequential C programs, hence modular.
  */
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
@@ -91,7 +90,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           + "// SPDX-License-Identifier: Apache-2.0\n\n";
 
   private static final String seqHeader =
-      "// This sequentialization (transformation of a parallel program into an equivalent \n"
+      "// This sequentialization (transformation of a concurrent program into an equivalent \n"
           + "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker. \n"
           + "// \n"
           + "// Assertion fails from the function "

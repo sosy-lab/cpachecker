@@ -8,26 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement;
 
-import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
-/** Represents a case clause, i.e. a case label and its case block. */
+/**
+ * A case clause features a {@link SeqCaseLabel}, a {@link SeqCaseBlock} and a {@link
+ * SeqCaseBlock.Terminator}.
+ *
+ * <p>Example: {@code case 42: fib(42); break;}
+ */
 public class SeqCaseClause implements SeqStatement {
-
-  /** The suffix of the case block, either {@code break;} or {@code continue;} */
-  public enum CaseBlockTerminator {
-    BREAK(SeqToken._break),
-    CONTINUE(SeqToken._continue);
-
-    private final String asString;
-
-    CaseBlockTerminator(String pAsString) {
-      asString = pAsString;
-    }
-  }
 
   private static long currentId = 0;
 
@@ -39,43 +30,31 @@ public class SeqCaseClause implements SeqStatement {
 
   public final SeqCaseBlock caseBlock;
 
-  public final CaseBlockTerminator caseBlockTerminator;
-
-  public SeqCaseClause(
-      boolean pIsGlobal,
-      int pCaseLabelValue,
-      ImmutableList<SeqCaseBlockStatement> pCaseBlockStatements,
-      CaseBlockTerminator pCaseBlockTerminator) {
+  public SeqCaseClause(boolean pIsGlobal, int pCaseLabelValue, SeqCaseBlock pCaseBlock) {
 
     id = createNewId();
     isGlobal = pIsGlobal;
     caseLabel = new SeqCaseLabel(pCaseLabelValue);
-    caseBlock = new SeqCaseBlock(pCaseBlockStatements);
-    caseBlockTerminator = pCaseBlockTerminator;
+    caseBlock = pCaseBlock;
   }
 
   /** Private constructor, only used during cloning process to keep the same id. */
   private SeqCaseClause(
-      long pId,
-      boolean pIsGlobal,
-      SeqCaseLabel pCaseLabel,
-      SeqCaseBlock pCaseBlock,
-      CaseBlockTerminator pCaseBlockTerminator) {
+      long pId, boolean pIsGlobal, SeqCaseLabel pCaseLabel, SeqCaseBlock pCaseBlock) {
 
     id = pId;
     isGlobal = pIsGlobal;
     caseLabel = pCaseLabel;
     caseBlock = pCaseBlock;
-    caseBlockTerminator = pCaseBlockTerminator;
   }
 
   public SeqCaseClause cloneWithCaseLabel(SeqCaseLabel pCaseLabel) {
-    return new SeqCaseClause(id, isGlobal, pCaseLabel, caseBlock, caseBlockTerminator);
+    return new SeqCaseClause(id, isGlobal, pCaseLabel, caseBlock);
   }
 
   public SeqCaseClause cloneWithCaseBlock(SeqCaseBlock pCaseBlock) {
     // id is not imported at this stage of pruning case clauses
-    return new SeqCaseClause(isGlobal, caseLabel.value, pCaseBlock.statements, caseBlockTerminator);
+    return new SeqCaseClause(isGlobal, caseLabel.value, pCaseBlock);
   }
 
   private static long createNewId() {
@@ -113,11 +92,6 @@ public class SeqCaseClause implements SeqStatement {
 
   @Override
   public String toASTString() {
-    return caseLabel.toASTString()
-        + SeqSyntax.SPACE
-        + caseBlock.toASTString()
-        + caseBlockTerminator.asString
-        + SeqSyntax.SEMICOLON
-        + SeqSyntax.NEWLINE;
+    return caseLabel.toASTString() + SeqSyntax.SPACE + caseBlock.toASTString() + SeqSyntax.NEWLINE;
   }
 }

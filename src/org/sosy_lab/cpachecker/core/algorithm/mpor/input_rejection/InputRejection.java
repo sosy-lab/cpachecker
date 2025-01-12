@@ -75,7 +75,7 @@ public class InputRejection {
    * <ul>
    *   <li>is not in C
    *   <li>contains multiple files
-   *   <li>has no call to {@code pthread_create} i.e. is not parallel
+   *   <li>has no call to {@code pthread_create} i.e. is not concurrent
    *   <li>uses arrays for {@code pthread_t} or {@code pthread_mutex_t} identifiers
    *   <li>stores the return value of any pthread method call
    *   <li>contains any unsupported {@code pthread} function, see {@link PthreadFuncType}

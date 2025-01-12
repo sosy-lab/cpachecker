@@ -11,21 +11,40 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
+/**
+ * A case block follows a {@link SeqCaseClause} and has a list of {@link SeqCaseBlockStatement}s.
+ */
 public class SeqCaseBlock implements SeqStatement {
+
+  /** The suffix that ends the case block. */
+  public enum Terminator {
+    BREAK(SeqToken._break),
+    CONTINUE(SeqToken._continue);
+
+    private final String asString;
+
+    Terminator(String pAsString) {
+      asString = pAsString;
+    }
+  }
 
   public final ImmutableList<SeqCaseBlockStatement> statements;
 
-  public SeqCaseBlock(ImmutableList<SeqCaseBlockStatement> pStatements) {
+  private final Terminator terminator;
+
+  public SeqCaseBlock(ImmutableList<SeqCaseBlockStatement> pStatements, Terminator pTerminator) {
     statements = pStatements;
+    terminator = pTerminator;
   }
 
   @Override
   public String toASTString() {
-    StringBuilder statement = new StringBuilder();
-    for (SeqCaseBlockStatement stmt : statements) {
-      statement.append(stmt.toASTString()).append(SeqSyntax.SPACE);
+    StringBuilder stmts = new StringBuilder();
+    for (SeqCaseBlockStatement stmt : this.statements) {
+      stmts.append(stmt.toASTString()).append(SeqSyntax.SPACE);
     }
-    return statement.toString();
+    return stmts + terminator.asString + SeqSyntax.SEMICOLON;
   }
 }

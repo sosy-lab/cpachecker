@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseLabel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
@@ -503,7 +504,8 @@ public class Sequentialization {
             newStmts.add(stmt);
           }
         }
-        prune2.add(caseClause.cloneWithCaseBlock(new SeqCaseBlock(newStmts.build())));
+        prune2.add(
+            caseClause.cloneWithCaseBlock(new SeqCaseBlock(newStmts.build(), Terminator.CONTINUE)));
       }
       pruned.put(entry.getKey(), prune2.build());
     }

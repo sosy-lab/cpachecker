@@ -6,5 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Algorithms and data structures for the sequentialization of a parallel C program. */
+/** Algorithms and data structures for the sequentialization of a concurrent C program. */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;

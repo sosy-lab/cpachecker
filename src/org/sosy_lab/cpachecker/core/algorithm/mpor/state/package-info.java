@@ -8,6 +8,6 @@
 
 /**
  * Algorithms and data structures that help represent the global state (i.e. all threads) of a
- * parallel C program.
+ * concurrent C program.
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.state;
