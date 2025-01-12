@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -119,11 +120,12 @@ public class Sequentialization {
     threadCount = pThreadCount;
   }
 
+  // TODO pass Configuration directly instead of boolean values here
   /** Generates and returns the sequentialized program. */
   public String generateProgram(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
-      boolean pIncludePOR,
-      boolean pIncludeLoopInvariants,
+      boolean pAddPOR,
+      boolean pAddLoopInvariants,
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
@@ -198,10 +200,10 @@ public class Sequentialization {
     assert validCaseClauses(prunedCaseClauses, pLogger);
     // optional: include POR assumptions
     Optional<ImmutableList<SeqFunctionCallExpression>> porAssumptions =
-        pIncludePOR ? Optional.of(createPORAssumptions(prunedCaseClauses)) : Optional.empty();
+        pAddPOR ? Optional.of(createPORAssumptions(prunedCaseClauses)) : Optional.empty();
     // optional: include loop invariant assertions over thread variables
     Optional<ImmutableList<SeqLogicalAndExpression>> loopInvariants =
-        pIncludeLoopInvariants ? Optional.of(createLoopInvariants(threadVars)) : Optional.empty();
+        pAddLoopInvariants ? Optional.of(createLoopInvariants(threadVars)) : Optional.empty();
     SeqMainFunction mainMethod =
         new SeqMainFunction(
             threadCount,

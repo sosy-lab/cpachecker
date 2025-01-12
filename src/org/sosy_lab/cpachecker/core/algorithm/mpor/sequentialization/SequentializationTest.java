@@ -20,6 +20,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
 public class SequentializationTest {
 
@@ -36,61 +37,75 @@ public class SequentializationTest {
     // contains __VERIFIER_atomic_begin and __VERIFIER_atomic_end
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/fib_safe-7.c");
     assertThat(Files.exists(path)).isTrue();
-    testCompile(path);
+    testCompile(path, false);
   }
 
   @Test
   public void testCompileSeq_lazy01() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/lazy01.c");
     assertThat(Files.exists(path)).isTrue();
-    testCompile(path);
+    testCompile(path, false);
   }
 
   @Test
   public void testCompileSeq_queue_longest() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/queue_longest.c");
     assertThat(Files.exists(path)).isTrue();
-    testCompile(path);
+    testCompile(path, false);
   }
 
   @Test
   public void testCompileSeq_simple_two() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/simple_two.c");
     assertThat(Files.exists(path)).isTrue();
-    testCompile(path);
+    testCompile(path, false);
   }
 
   @Test
-  public void testCompileSeqSingletonWithUninitProblems() throws Exception {
+  public void testCompileSeq_singleton_with_uninit_problems_b() throws Exception {
     Path path =
         Path.of("./test/programs/mpor_seq/seq_compilable/singleton_with-uninit-problems-b.c");
     assertThat(Files.exists(path)).isTrue();
-    testCompile(path);
+    testCompile(path, false);
   }
 
   @Test
   public void testCompileSeq_stack1() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/stack-1.c");
     assertThat(Files.exists(path)).isTrue();
-    testCompile(path);
+    testCompile(path, false);
   }
 
-  private void testCompile(Path pInputFilePath) throws Exception {
+  @Test
+  public void testCompileSeq_stack1_scalarPc() throws Exception {
+    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/stack-1.c");
+    assertThat(Files.exists(path)).isTrue();
+    testCompile(path, true);
+  }
+
+  private void testCompile(Path pInputFilePath, boolean scalarPc) throws Exception {
     // create cfa for test program pFileName
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     CFACreator creatorWithPreProcessor =
         new CFACreator(
-            Configuration.builder().setOption("parser.usePreprocessor", "true").build(),
+            Configuration.builder()
+                .setOption("parser.usePreprocessor", "true")
+                .setOption("algorithm.MPOR.addPOR", "true")
+                .setOption("algorithm.MPOR.addLoopInvariants", "true")
+                .setOption("algorithm.MPOR.scalarPc", String.valueOf(scalarPc))
+                .build(),
             logger,
             ShutdownNotifier.createDummy());
     CFA inputCfa =
         creatorWithPreProcessor.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
 
     // create seq with mpor algorithm
-    MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa, true, true);
+    MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa);
     String initSeq = algorithm.buildInitSeq();
-    String finalSeq = algorithm.buildFinalSeq("test.i", "__mpor_seq__test.i", initSeq);
+    String testProgram = "test.i";
+    String finalSeq =
+        algorithm.buildFinalSeq(testProgram, SeqToken.__MPOR_SEQ__ + testProgram, initSeq);
 
     // test that seq can be parsed and cfa created -> code compiles
     CFACreator creator = new CFACreator(Configuration.builder().build(), logger, shutdownNotifier);

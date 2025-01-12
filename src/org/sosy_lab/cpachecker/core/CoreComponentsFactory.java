@@ -356,22 +356,6 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.MPOR.includePOR",
-      description =
-          "whether to include partial order reduction assumptions in sequentialization"
-              + " to reduce the state space")
-  private boolean mporIncludePOR = false;
-
-  @Option(
-      secure = true,
-      name = "algorithm.MPOR.includeLoopInvariants",
-      description =
-          "whether to include assertions over thread simulation variables at the loop head. slows"
-              + " down verification but provides more sequentialization correctness guarantees")
-  private boolean mporIncludeLoopInvariants = false;
-
-  @Option(
-      secure = true,
       name = "algorithm.MPV",
       description = "use MPV algorithm for checking multiple properties")
   private boolean useMPV = false;
@@ -722,15 +706,7 @@ public class CoreComponentsFactory {
       }
 
       if (useMPOR) {
-        algorithm =
-            new MPORAlgorithm(
-                cpa,
-                config,
-                logger,
-                shutdownNotifier,
-                cfa,
-                mporIncludePOR,
-                mporIncludeLoopInvariants);
+        algorithm = new MPORAlgorithm(cpa, config, logger, shutdownNotifier, cfa);
       }
 
       if (useMPV) {

@@ -22,6 +22,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -68,6 +70,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
  * capable of verifying sequential C programs, hence modular.
  */
 @SuppressWarnings("unused")
+@Options(prefix = "analysis.algorithm.MPOR")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
@@ -75,6 +78,28 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   // TODO (not sure if important for our algorithm) PredicateAbstractState.abstractLocations
   //  contains all CFANodes visited so far
+
+  @Option(
+      secure = true,
+      description =
+          "whether to add assertions over thread simulation variables at the loop head. slows"
+              + " down verification but improves sequentialization correctness guarantees")
+  private boolean addLoopInvariants = false;
+
+  @Option(
+      secure = true,
+      description =
+          "whether to add partial order reduction assumptions in the sequentialization"
+              + " to reduce the state space")
+  private boolean addPOR = false;
+
+  // TODO implement
+  @Option(
+      secure = true,
+      description =
+          "whether to use separate int values (scalars) for tracking thread pcs instead of"
+              + " int arrays. may slow down or improve verification depending on the verifier")
+  private boolean scalarPc = false;
 
   private static final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
@@ -113,7 +138,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /** Returns the initial sequentialization, i.e. we adjust it in later stages */
   public String buildInitSeq() throws UnrecognizedCodeException {
-    return seq.generateProgram(substitutions, includePOR, includeLoopInvariants, logger);
+    return seq.generateProgram(substitutions, addPOR, addLoopInvariants, logger);
   }
 
   /**
@@ -127,6 +152,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     int currentLine = countLines(header);
     StringBuilder rFinal = new StringBuilder();
     rFinal.append(header);
+    // replace dummy line numbers (-1) with actual line numbers in the seq
     for (String line : Splitter.onPattern("\\r?\\n").split(pInitProgram)) {
       if (line.contains(Sequentialization.inputReachErrorDummy)) {
         CFunctionCallExpression reachErrorCall =
@@ -180,10 +206,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final CFA inputCfa;
 
-  private final boolean includePOR;
-
-  private final boolean includeLoopInvariants;
-
   private final GlobalAccessChecker gac;
 
   private final PredicateTransferRelation ptr;
@@ -217,18 +239,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       Configuration pConfiguration,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      CFA pInputCfa,
-      boolean pIncludePOR,
-      boolean pIncludeLoopInvariants)
+      CFA pInputCfa)
       throws InvalidConfigurationException {
+
+    pConfiguration.inject(this);
 
     cpa = pCpa;
     config = pConfiguration;
     logger = pLogManager;
     shutdownNotifier = pShutdownNotifier;
     inputCfa = pInputCfa;
-    includePOR = pIncludePOR;
-    includeLoopInvariants = pIncludeLoopInvariants;
 
     InputRejection.handleInitialRejections(logger, inputCfa);
 
@@ -251,22 +271,17 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     seq = new Sequentialization(threads.size());
   }
 
-  public static MPORAlgorithm testInstance(
-      LogManager pLogManager, CFA pInputCfa, boolean pIncludePOR, boolean pIncludeSeqErrors) {
-
-    return new MPORAlgorithm(pLogManager, pInputCfa, pIncludePOR, pIncludeSeqErrors);
+  public static MPORAlgorithm testInstance(LogManager pLogManager, CFA pInputCfa) {
+    return new MPORAlgorithm(pLogManager, pInputCfa);
   }
 
   /** Use this constructor only for test purposes. */
-  private MPORAlgorithm(
-      LogManager pLogManager, CFA pInputCfa, boolean pIncludePOR, boolean pIncludeLoopInvariants) {
+  private MPORAlgorithm(LogManager pLogManager, CFA pInputCfa) {
     cpa = null;
     config = null;
     logger = pLogManager;
     shutdownNotifier = null;
     inputCfa = pInputCfa;
-    includePOR = pIncludePOR;
-    includeLoopInvariants = pIncludeLoopInvariants;
 
     InputRejection.handleInitialRejections(logger, inputCfa);
 
