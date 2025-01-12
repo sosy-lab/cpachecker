@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Frank Schüssele
+#
+# SPDX-License-Identifier: Apache-2.0
+
 - entry_type: invariant_set
   metadata:
     format_version: '2.1'
@@ -19,7 +23,7 @@
       type: location_invariant
       location:
         file_name: 'mutex.c'
-        line: 117
+        line: 121
         column: 3
         function: 'main'
       value: 'g == 1 || used == 0'
@@ -52,7 +56,7 @@
     ghost_updates:
       - location:
           file_name: 'mutex.c'
-          line: 101
+          line: 105
           column: 5
           function: 'producer'
         updates:
@@ -61,7 +65,7 @@
             format: 'c_expression'
       - location:
           file_name: 'mutex.c'
-          line: 104
+          line: 108
           column: 5
           function: 'producer'
         updates:
@@ -70,7 +74,7 @@
             format: 'c_expression'
       - location:
           file_name: 'mutex.c'
-          line: 117
+          line: 121
           column: 3
           function: 'main'
         updates:
@@ -79,7 +83,7 @@
             format: 'c_expression'
       - location:
           file_name: 'mutex.c'
-          line: 119
+          line: 123
           column: 3
           function: 'main'
         updates:

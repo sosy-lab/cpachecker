@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Frank Schüssele
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /*-----------------------------------------------------------------------------
  * mutex.c - Concurrent program using locking to access a shared variable
  *-----------------------------------------------------------------------------

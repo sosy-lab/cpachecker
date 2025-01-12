@@ -19,8 +19,8 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostInstrumen
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "entry_type", visible = true)
 @JsonSubTypes({
   @JsonSubTypes.Type(value = InvariantSetEntry.class, name = "invariant_set"),
+  @JsonSubTypes.Type(value = GhostInstrumentationEntry.class, name = "ghost_instrumentation"),
   @JsonSubTypes.Type(value = ViolationSequenceEntry.class, name = "violation_sequence"),
-  @JsonSubTypes.Type(value = GhostInstrumentationEntry.class, name = "ghost_instrumentation")
 })
 public abstract class AbstractEntry {
 

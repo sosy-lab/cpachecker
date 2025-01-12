@@ -15,11 +15,12 @@ public class GhostVariableRecord {
   @JsonProperty("name")
   private final String name;
 
+  // variable type, not to be confused with invariant type
   @JsonProperty("type")
-  private final String type; // variable type
+  private final String type;
 
   @JsonProperty("scope")
-  private final String scope = "global"; // the scope of a ghost variable is always global
+  private final String scope;
 
   @JsonProperty("initial")
   private final InitialRecord initial;
@@ -30,6 +31,8 @@ public class GhostVariableRecord {
       @JsonProperty("initial") InitialRecord pInitial) {
     name = pName;
     type = pType;
+    // the scope of a ghost variable is always global
+    scope = "global";
     initial = pInitial;
   }
 
