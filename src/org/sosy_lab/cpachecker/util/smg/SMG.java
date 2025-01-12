@@ -2021,23 +2021,6 @@ public class SMG {
     return newSMG;
   }
 
-  /**
-   * Search for all pointers towards the object old and replaces them with pointers pointing towards
-   * the new object only if their specifier is equal to the given. Then switches the nesting level
-   * of the switched pointers to 0.
-   *
-   * @param oldObj old object.
-   * @param newTarget new target object.
-   * @param specifierToSwitch specifier that will be switched. All others remain to point towards
-   *     oldObj.
-   * @return a new SMG with the replacement.
-   */
-  public SMG replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
-      SMGObject oldObj, SMGObject newTarget, Set<SMGTargetSpecifier> specifierToSwitch) {
-    return replaceSpecificPointersTowardsWithAndSetNestingLevel(
-        oldObj, newTarget, 0, specifierToSwitch);
-  }
-
   public SMG replaceValueWithAndCopy(Value oldValue, SMGValue oldSMGValue, SMGValue newSMGValue)
       throws SMGException {
     Preconditions.checkArgument(smgValuesAndNestingLvl.containsKey(newSMGValue));
@@ -2085,16 +2068,12 @@ public class SMG {
    *
    * @param oldObj old object.
    * @param newTarget new target object.
-   * @param newLevel new nesting level
    * @param specifierToSwitch specifier that will be switched. All others remain to point towards
    *     oldObj.
    * @return a new SMG with the replacement.
    */
-  public SMG replaceSpecificPointersTowardsWithAndSetNestingLevel(
-      SMGObject oldObj,
-      SMGObject newTarget,
-      int newLevel,
-      Set<SMGTargetSpecifier> specifierToSwitch) {
+  public SMG replaceSpecificPointersTowardsWith(
+      SMGObject oldObj, SMGObject newTarget, Set<SMGTargetSpecifier> specifierToSwitch) {
 
     SMG newSMG = this;
     if (newTarget.isZero() || oldObj.isZero()) {
@@ -2118,11 +2097,6 @@ public class SMG {
             new SMGPointsToEdge(newTarget, pointsToEdge.getOffset(), targetSpec);
         // Update the points-to-edges to new targets, this also includes the reverse map
         newSMG = newSMG.copyAndSetPTEdges(newPTEdge, pointerValue);
-
-        // Update nesting level
-        newSMG =
-            newSMG.copyWithNewValuesAndNestingLvl(
-                newSMG.smgValuesAndNestingLvl.putAndCopy(pointerValue, newLevel));
       }
     }
 

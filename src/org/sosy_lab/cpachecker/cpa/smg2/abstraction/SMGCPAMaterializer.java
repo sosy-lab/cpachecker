@@ -322,8 +322,8 @@ public class SMGCPAMaterializer {
         initialPTE.getOffset().asNumericValue().bigIntegerValue();
     BigInteger pointerSize = state.getMemoryModel().getSizeOfPointer();
 
-    // Add new concrete memory region, copy all values from the abstracted and switch pointers (LAST
-    // or FIRST)
+    // Add new concrete memory region, copy all values from the abstracted and switch pointers
+    // (LAST or FIRST only)
     SMGObjectAndSMGState newConcreteRegionAndState =
         createNewConcreteRegionAndSubSMGForMaterialization(
             pListSeg, state, ImmutableSet.of(SMGTargetSpecifier.IS_LAST_POINTER));
@@ -586,20 +586,19 @@ public class SMGCPAMaterializer {
       Set<SMGTargetSpecifier> specifierToSwitch)
       throws SMGException {
     // Add new concrete memory region
-    SMGObjectAndSMGState newConcreteRegionAndState =
-        pState.copyAndAddNewHeapObject(pListSeg.getSize());
+    SMGObjectAndSMGState newConcreteRegionAndState = pState.copyAndAddNewHeapRegion(pListSeg);
     SMGState currentState = newConcreteRegionAndState.getState();
     SMGObject newConcreteRegion = newConcreteRegionAndState.getSMGObject();
 
-    // Careful when copying memory. Some memory needs a copy and some needs replication!
-    // (copy == the same memory/values, replication == new, but equal memory/values)
+    // Careful when copying memory. Only nested memory needs a copy, while other memory needs a copy
+    // (Copy == new, but equal memory/values. Nested == nesting level higher than the current)
     currentState = copySubSMGRootedAt(pListSeg, newConcreteRegion, currentState);
 
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState
                 .getMemoryModel()
-                .replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
+                .replaceSpecificPointersTowardsWith(
                     pListSeg, newConcreteRegion, specifierToSwitch));
     return SMGObjectAndSMGState.of(newConcreteRegion, currentState);
   }

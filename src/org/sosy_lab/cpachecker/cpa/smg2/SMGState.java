@@ -909,6 +909,22 @@ public class SMGState
   }
 
   /**
+   * Copy SMGState with a newly created {@link SMGObject} that is a region from the given object and
+   * returns the new state + the new {@link SMGObject}. Make sure that you reuse the {@link
+   * SMGObject} right away to create a points-to-edge and not just use SMGObjects in the code.
+   *
+   * @param objectToCopy Any {@link SMGObject} that is copied as a region.
+   * @return Newly created object + state with it.
+   */
+  public SMGObjectAndSMGState copyAndAddNewHeapRegion(SMGObject objectToCopy) {
+    SMGObject newObject =
+        SMGObject.of(
+            objectToCopy.getNestingLevel(), objectToCopy.getSize(), objectToCopy.getOffset());
+    return SMGObjectAndSMGState.of(
+        newObject, copyAndReplaceMemoryModel(memoryModel.copyAndAddHeapObject(newObject)));
+  }
+
+  /**
    * Copy SMGState with a newly created {@link SMGObject} and returns the new state + the new {@link
    * SMGObject} with the size and type of the given. Make sure that you reuse the {@link SMGObject}
    * right away to create a points-to-edge and not just use SMGObjects in the code.

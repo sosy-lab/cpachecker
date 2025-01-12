@@ -4294,11 +4294,10 @@ public class SymbolicProgramConfiguration {
    *     others remain on old obj.
    * @return a new SMG with the replacement.
    */
-  public SymbolicProgramConfiguration replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
+  public SymbolicProgramConfiguration replaceSpecificPointersTowardsWith(
       SMGObject oldObj, SMGObject newObject, Set<SMGTargetSpecifier> specifierToSwitch) {
     return new SymbolicProgramConfiguration(
-        smg.replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
-            oldObj, newObject, specifierToSwitch),
+        smg.replaceSpecificPointersTowardsWith(oldObj, newObject, specifierToSwitch),
         globalVariableMapping,
         atExitStack,
         stackVariableMapping,
