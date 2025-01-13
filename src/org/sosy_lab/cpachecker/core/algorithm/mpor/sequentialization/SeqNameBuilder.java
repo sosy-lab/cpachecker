@@ -59,11 +59,6 @@ public class SeqNameBuilder {
     return buildThreadPrefix(pThreadId) + SeqToken.RETURN_PC + SeqSyntax.UNDERSCORE + pFuncName;
   }
 
-  /** Returns a var name of the form {@code __MPOR_SEQ__THREAD{pThreadId}_ACTIVE} */
-  public static String buildThreadActiveName(int pThreadId) {
-    return buildThreadPrefix(pThreadId) + SeqToken.ACTIVE;
-  }
-
   /** Returns a var name of the form {@code __MPOR_SEQ__{pMutexName}_LOCKED} */
   public static String buildMutexLockedName(String pMutexName) {
     return SeqToken.__MPOR_SEQ__ + pMutexName + SeqSyntax.UNDERSCORE + SeqToken.LOCKED;

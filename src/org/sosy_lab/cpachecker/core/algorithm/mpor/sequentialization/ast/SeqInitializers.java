@@ -25,8 +25,6 @@ public class SeqInitializers {
 
     public static final CInitializer INT_0 = buildIntInitializer(SeqIntegerLiteralExpression.INT_0);
 
-    public static final CInitializer INT_1 = buildIntInitializer(SeqIntegerLiteralExpression.INT_1);
-
     public static CInitializer buildIntInitializer(CIntegerLiteralExpression pExpression) {
       return new CInitializerExpression(FileLocation.DUMMY, pExpression);
     }
@@ -36,15 +34,5 @@ public class SeqInitializers {
 
     public static final CInitializerList EMPTY_LIST =
         new CInitializerList(FileLocation.DUMMY, ImmutableList.of());
-
-    public static CInitializerList buildIntInitializerList(
-        CIntegerLiteralExpression pExpression, int pAmount) {
-
-      ImmutableList.Builder<CInitializer> initializers = ImmutableList.builder();
-      for (int i = 0; i < pAmount; i++) {
-        initializers.add(SeqInitializer.buildIntInitializer(pExpression));
-      }
-      return new CInitializerList(FileLocation.DUMMY, initializers.build());
-    }
   }
 }

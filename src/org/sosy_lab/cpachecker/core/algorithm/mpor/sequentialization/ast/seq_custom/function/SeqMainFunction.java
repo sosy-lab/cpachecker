@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -35,7 +36,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializerList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
@@ -135,27 +135,28 @@ public class SeqMainFunction implements SeqFunction {
   private ImmutableList<CVariableDeclaration> createPcDeclarations(
       int pNumThreads, boolean pScalarPc) {
 
-    // TODO once ACTIVE vars are removed, make sure to only init the main thread pc with 0,
-    //  all other with -1
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
     if (pScalarPc) {
-      // declare scalar int for each thread: pc0 = 0; pc1 = 0; ...
+      // declare scalar int for each thread: pc0 = 0; pc1 = -1; ...
       for (int i = 0; i < pNumThreads; i++) {
         rDeclarations.add(
             SeqVariableDeclaration.buildVarDec(
                 false,
                 SeqSimpleType.INT,
                 SeqExpressions.getPcExpression(i).toASTString(),
-                SeqInitializer.INT_0));
+                i == 0 ? SeqInitializer.INT_0 : SeqInitializer.INT_MINUS_1));
       }
     } else {
-      // declare int array declaration: pc[] = { 0, 0, ... };
-      CInitializerList pcInitializerList =
-          SeqInitializerList.buildIntInitializerList(
-              SeqIntegerLiteralExpression.INT_0, pNumThreads);
+      // declare int array: pc[] = { 0, -1, ... };
+      ImmutableList.Builder<CInitializer> initializers = ImmutableList.builder();
+      for (int i = 0; i < pNumThreads; i++) {
+        initializers.add(i == 0 ? SeqInitializer.INT_0 : SeqInitializer.INT_MINUS_1);
+      }
+      CInitializerList initializerList =
+          new CInitializerList(FileLocation.DUMMY, initializers.build());
       rDeclarations.add(
           SeqVariableDeclaration.buildVarDec(
-              false, SeqArrayType.INT_ARRAY, SeqToken.pc, pcInitializerList));
+              false, SeqArrayType.INT_ARRAY, SeqToken.pc, initializerList));
     }
     return rDeclarations.build();
   }

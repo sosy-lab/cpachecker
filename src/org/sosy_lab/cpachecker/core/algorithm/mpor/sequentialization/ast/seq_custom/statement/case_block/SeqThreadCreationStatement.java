@@ -11,34 +11,35 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 /**
  * Represents a statement that simulates calls to {@code pthread_create} of the form:
  *
- * <p>{@code __MPOR_SEQ__THREAD1_ACTIVE = 1; }
+ * <p>{@code pc[i] = 0; }
  */
 public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
-  private final CExpressionAssignmentStatement assign;
+  private final int createdThreadId;
 
   private final int threadId;
 
   private final int targetPc;
 
-  public SeqThreadCreationStatement(
-      CExpressionAssignmentStatement pAssign, int pThreadId, int pTargetPc) {
-
-    assign = pAssign;
+  public SeqThreadCreationStatement(int pCreatedThreadId, int pThreadId, int pTargetPc) {
+    createdThreadId = pCreatedThreadId;
     threadId = pThreadId;
     targetPc = pTargetPc;
   }
 
   @Override
   public String toASTString() {
+    CExpressionAssignmentStatement createdPcUpdate =
+        SeqStatements.buildPcUpdate(createdThreadId, SeqUtil.INIT_PC);
     CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(threadId, targetPc);
-    return assign.toASTString() + SeqSyntax.SPACE + pcUpdate.toASTString();
+    return createdPcUpdate.toASTString() + SeqSyntax.SPACE + pcUpdate.toASTString();
   }
 
   @Override
@@ -49,7 +50,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   @NonNull
   @Override
   public SeqThreadCreationStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqThreadCreationStatement(assign, threadId, pTargetPc);
+    return new SeqThreadCreationStatement(createdThreadId, threadId, pTargetPc);
   }
 
   @Override

@@ -26,8 +26,6 @@ public class SeqToken {
 
   public static final String abort = "abort";
 
-  public static final String ACTIVE = "ACTIVE";
-
   public static final String __assert_fail = "__assert_fail";
 
   public static final String __assertion = "__assertion";

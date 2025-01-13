@@ -11,27 +11,35 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Represents a statement that simulates calls to {@code pthread_join} of the form:
  *
- * <p>{@code if (__MPOR_SEQ__THREAD1_ACTIVE) { __MPOR_SEQ__THREAD0_JOINS_THREAD1 = 1; }}
+ * <p>{@code if (pc[1] != -1) { __MPOR_SEQ__THREAD0_JOINS_THREAD1 = 1; }}
  *
- * <p>{@code else { __MPOR_SEQ__THREAD0_JOINS_THREAD1 = 0; pc[...] = ...; }}
+ * <p>{@code else { __MPOR_SEQ__THREAD0_JOINS_THREAD1 = 0; pc[0] = ...; }}
  */
 public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
-  private static final SeqControlFlowStatement elseNotActive = new SeqControlFlowStatement();
+  private static final SeqControlFlowStatement elseJoinedThreadNotActive =
+      new SeqControlFlowStatement();
 
-  private final CIdExpression threadActive;
+  private final int joinedThreadId;
+
+  private final CBinaryExpression pcNotExitPc;
 
   private final CIdExpression threadJoins;
 
@@ -40,18 +48,27 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   private final int targetPc;
 
   public SeqThreadJoinStatement(
-      CIdExpression pThreadActive, CIdExpression pThreadJoins, int pThreadId, int pTargetPc) {
+      int pJoinedThreadId, CIdExpression pThreadJoins, int pThreadId, int pTargetPc)
+      throws UnrecognizedCodeException {
 
-    threadActive = pThreadActive;
+    joinedThreadId = pJoinedThreadId;
+    pcNotExitPc = buildPcNotExitPc(joinedThreadId);
     threadJoins = pThreadJoins;
     threadId = pThreadId;
     targetPc = pTargetPc;
   }
 
+  private CBinaryExpression buildPcNotExitPc(int pJoinedThreadId) throws UnrecognizedCodeException {
+    return SeqBinaryExpression.buildBinaryExpression(
+        SeqExpressions.getPcExpression(pJoinedThreadId),
+        SeqIntegerLiteralExpression.INT_EXIT_PC,
+        BinaryOperator.NOT_EQUALS);
+  }
+
   @Override
   public String toASTString() {
-    SeqControlFlowStatement ifActive =
-        new SeqControlFlowStatement(threadActive, SeqControlFlowStatementType.IF);
+    SeqControlFlowStatement ifJoinedThreadActive =
+        new SeqControlFlowStatement(pcNotExitPc, SeqControlFlowStatementType.IF);
     CExpressionAssignmentStatement joinsTrue =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, threadJoins, SeqIntegerLiteralExpression.INT_1);
@@ -62,11 +79,11 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
     String elseStmts =
         SeqUtil.wrapInCurlyInwards(
             joinsFalse.toASTString() + SeqSyntax.SPACE + pcUpdate.toASTString());
-    return ifActive.toASTString()
+    return ifJoinedThreadActive.toASTString()
         + SeqSyntax.SPACE
         + SeqUtil.wrapInCurlyInwards(joinsTrue.toASTString())
         + SeqSyntax.SPACE
-        + elseNotActive.toASTString()
+        + elseJoinedThreadNotActive.toASTString()
         + SeqSyntax.SPACE
         + elseStmts;
   }
@@ -78,8 +95,8 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   @NonNull
   @Override
-  public SeqThreadJoinStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqThreadJoinStatement(threadActive, threadJoins, threadId, pTargetPc);
+  public SeqThreadJoinStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException {
+    return new SeqThreadJoinStatement(joinedThreadId, threadJoins, threadId, pTargetPc);
   }
 
   @Override

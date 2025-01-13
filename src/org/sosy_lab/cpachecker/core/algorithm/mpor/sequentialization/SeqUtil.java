@@ -16,7 +16,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -104,7 +103,8 @@ public class SeqUtil {
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
       FunctionVars pFuncVars,
-      ThreadVars pThreadVars) {
+      ThreadVars pThreadVars)
+      throws UnrecognizedCodeException {
 
     pCoveredNodes.add(pThreadNode);
 
@@ -138,13 +138,8 @@ public class SeqUtil {
 
         if (successor instanceof FunctionExitNode
             && successor.getFunction().getType().equals(pThread.startRoutine)) {
-          // exiting thread -> assign 0 to thread_active var if possible and set exit pc
-          CExpressionAssignmentStatement activeAssign =
-              new CExpressionAssignmentStatement(
-                  FileLocation.DUMMY,
-                  Objects.requireNonNull(pThreadVars.active.get(pThread)).idExpression,
-                  SeqIntegerLiteralExpression.INT_0);
-          stmts.add(new SeqThreadExitStatement(activeAssign, pThread.id));
+          // exiting thread -> set pc of thread to -1
+          stmts.add(new SeqThreadExitStatement(pThread.id));
 
         } else if (emptyCaseCode(sub)) {
           assert pThreadNode.leavingEdges().size() == 1;
@@ -243,13 +238,9 @@ public class SeqUtil {
             switch (funcType) {
               case PTHREAD_CREATE:
                 CExpression pthreadT = PthreadUtil.extractPthreadT(edge);
-                MPORThread thread =
+                MPORThread createdThread =
                     PthreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
-                CExpressionAssignmentStatement activeAssign =
-                    SeqStatements.buildExprAssign(
-                        Objects.requireNonNull(pThreadVars.active.get(thread)).idExpression,
-                        SeqIntegerLiteralExpression.INT_1);
-                stmts.add(new SeqThreadCreationStatement(activeAssign, pThread.id, targetPc));
+                stmts.add(new SeqThreadCreationStatement(createdThread.id, pThread.id, targetPc));
                 break;
 
               case PTHREAD_MUTEX_LOCK:
@@ -282,16 +273,13 @@ public class SeqUtil {
               case PTHREAD_JOIN:
                 MPORThread targetThread =
                     PthreadUtil.extractThread(pThreadVars.joins.keySet(), edge);
-                CIdExpression targetThreadActive =
-                    Objects.requireNonNull(pThreadVars.active.get(targetThread)).idExpression;
                 CIdExpression threadJoins =
                     Objects.requireNonNull(
                             Objects.requireNonNull(pThreadVars.joins.get(pThread))
                                 .get(targetThread))
                         .idExpression;
                 stmts.add(
-                    new SeqThreadJoinStatement(
-                        targetThreadActive, threadJoins, pThread.id, targetPc));
+                    new SeqThreadJoinStatement(targetThread.id, threadJoins, pThread.id, targetPc));
                 break;
 
               case __VERIFIER_ATOMIC_BEGIN:

@@ -165,9 +165,7 @@ public class SeqExpressions {
       checkArgument(scalarPc == null, "scalarPc was initialized already");
       ImmutableList.Builder<CIdExpression> rExpr = ImmutableList.builder();
       for (int i = 0; i < pNumThreads; i++) {
-        // TODO use 0 for main thread and -1 for all other if ACTIVE vars are removed
-        // CInitializer initializer = i == 0 ? SeqInitializer.INT_0 : SeqInitializer.INT_0;
-        CInitializer initializer = SeqInitializer.INT_0;
+        CInitializer initializer = i == 0 ? SeqInitializer.INT_0 : SeqInitializer.INT_MINUS_1;
         rExpr.add(
             new CIdExpression(
                 FileLocation.DUMMY,

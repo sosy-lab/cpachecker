@@ -14,24 +14,20 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 /**
  * Represents a statement that simulates the termination of a thread of the form:
  *
- * <p>{@code __MPOR_SEQ__THREAD1_ACTIVE = 0; }
+ * <p>{@code pc[i] = -1; }
  *
  * <p>This statement is injected when encountering the {@link FunctionExitNode} of the respective
  * threads start routine / main function.
  */
 public class SeqThreadExitStatement implements SeqCaseBlockStatement {
 
-  private final CExpressionAssignmentStatement assign;
-
   private final int threadId;
 
-  public SeqThreadExitStatement(CExpressionAssignmentStatement pAssign, int pThreadId) {
-    assign = pAssign;
+  public SeqThreadExitStatement(int pThreadId) {
     threadId = pThreadId;
   }
 
@@ -39,7 +35,7 @@ public class SeqThreadExitStatement implements SeqCaseBlockStatement {
   public String toASTString() {
     CExpressionAssignmentStatement pcUpdate =
         SeqStatements.buildPcUpdate(threadId, SeqUtil.EXIT_PC);
-    return assign.toASTString() + SeqSyntax.SPACE + pcUpdate.toASTString();
+    return pcUpdate.toASTString();
   }
 
   @Override

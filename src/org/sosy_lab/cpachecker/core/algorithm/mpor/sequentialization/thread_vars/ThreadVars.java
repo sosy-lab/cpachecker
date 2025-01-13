@@ -19,9 +19,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class ThreadVars {
 
-  /** The map of threads and their {@code {thread}_ACTIVE} variables. */
-  public final ImmutableMap<MPORThread, ThreadActive> active;
-
   /** The map of {@code pthread_mutex_t} objects to their {@code {mutex}_LOCKED} variables. */
   public final ImmutableMap<CIdExpression, MutexLocked> locked;
 
@@ -42,13 +39,11 @@ public class ThreadVars {
   public final ImmutableMap<MPORThread, ThreadBeginsAtomic> begins;
 
   public ThreadVars(
-      ImmutableMap<MPORThread, ThreadActive> pActive,
       ImmutableMap<CIdExpression, MutexLocked> pLocked,
       ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>> pLocks,
       ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>> pJoins,
       ImmutableMap<MPORThread, ThreadBeginsAtomic> pBegins) {
 
-    active = pActive;
     locked = pLocked;
     locks = pLocks;
     joins = pJoins;
@@ -63,12 +58,9 @@ public class ThreadVars {
     }
   }
 
-  /** Returns all CIdExpressions of the vars in the order active - locked - locks - joins. */
+  /** Returns all CIdExpressions of the vars in the order locked - locks - joins. */
   public ImmutableList<CIdExpression> getIdExpressions() {
     ImmutableList.Builder<CIdExpression> rIdExpressions = ImmutableList.builder();
-    for (ThreadActive var : active.values()) {
-      rIdExpressions.add(var.idExpression);
-    }
     for (MutexLocked var : locked.values()) {
       rIdExpressions.add(var.idExpression);
     }

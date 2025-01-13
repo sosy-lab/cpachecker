@@ -11,12 +11,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public interface SeqCaseBlockStatement extends SeqStatement {
 
   Optional<Integer> getTargetPc();
 
-  @NonNull SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc);
+  @NonNull SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException;
 
   boolean alwaysUpdatesPc();
 }
