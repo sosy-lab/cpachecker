@@ -10,11 +10,11 @@ package org.sosy_lab.cpachecker.cpa.smg2.abstraction;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGNode;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
@@ -628,7 +629,7 @@ public class SMGCPAMaterializer {
       excludedOffsets = ImmutableSet.of(dllListSeg.getNextOffset(), dllListSeg.getPrevOffset());
     }
     return copyMemoryOfTo(
-        root, newMemory, pState, excludedOffsets, root.getRelevantEqualities(), ImmutableMap.of());
+        root, newMemory, pState, excludedOffsets, root.getRelevantEqualities(), new HashMap<>());
   }
 
   /**
@@ -647,8 +648,8 @@ public class SMGCPAMaterializer {
    * @param excludedOffsets offsets excluded from being copied, for example nfo, pfo.
    * @param replicationCache values that are present in this cache need replication. All others need
    *     to be copied.
-   * @param copiedMemory a map from old memory to be copied to the new copy. Needed because of e.g.
-   *     DLLs, or looping memory, so that we connect the memory correctly.
+   * @param copiedMemoryCache a map from old memory to be copied to the new copy. Needed because of
+   *     e.g. DLLs, or looping memory, so that we connect the memory correctly.
    * @return a new {@link SMGState} with all values copied from sourceObj to newMemory and all
    *     pointers and havoc generators copied into new memory/values.
    */
@@ -658,16 +659,12 @@ public class SMGCPAMaterializer {
       SMGState pState,
       Set<BigInteger> excludedOffsets,
       EqualityCache<Value> replicationCache,
-      Map<SMGObject, SMGObject> copiedMemory)
+      Map<SMGNode, SMGNode> copiedMemoryCache)
       throws SMGException {
-    // Initial copy to the newly created concrete list element
+    // Initial copy to the newly created memory
     SMGState currentState = pState.copyAllValuesFromObjToObj(sourceObj, newMemory);
     // Remember what was already processed
-    copiedMemory =
-        ImmutableMap.<SMGObject, SMGObject>builder()
-            .putAll(copiedMemory)
-            .put(sourceObj, newMemory)
-            .buildOrThrow();
+    copiedMemoryCache.put(sourceObj, newMemory);
     // All HVEs except for unwanted (next/prev)
     Set<SMGHasValueEdge> valuesWONextAndPrev =
         currentState
@@ -697,7 +694,7 @@ public class SMGCPAMaterializer {
             replicatePointerWithSubSMG(
                 newMemory,
                 replicationCache,
-                copiedMemory,
+                copiedMemoryCache,
                 currentState,
                 smgValue,
                 offset,
@@ -709,7 +706,14 @@ public class SMGCPAMaterializer {
           && constExpr.getValue() instanceof SymbolicIdentifier) {
 
         currentState =
-            replicateNestedNonPointerValue(newMemory, maybeValue, currentState, offset, sizeInBits);
+            replicateNestedNonPointerValue(
+                newMemory,
+                smgValue,
+                maybeValue.orElseThrow(),
+                currentState,
+                offset,
+                sizeInBits,
+                copiedMemoryCache);
       }
     }
     return currentState;
@@ -718,7 +722,7 @@ public class SMGCPAMaterializer {
   private SMGState replicatePointerWithSubSMG(
       SMGObject currentMemory,
       EqualityCache<Value> replicationCache,
-      Map<SMGObject, SMGObject> alreadyCopiedMemory,
+      Map<SMGNode, SMGNode> alreadyCopiedMemory,
       SMGState currentState,
       SMGValue smgValue,
       BigInteger offsetOfSMGValueInCurrentMemory,
@@ -737,13 +741,14 @@ public class SMGCPAMaterializer {
     } else {
       SMGObject newTarget;
       if (alreadyCopiedMemory.containsKey(oldTargetMemory)) {
-        newTarget = alreadyCopiedMemory.get(oldTargetMemory);
+        newTarget = (SMGObject) alreadyCopiedMemory.get(oldTargetMemory);
       } else {
         SMGObjectAndSMGState copiedTargetMemoryAndState =
             currentState.copyAndAddNewHeapObject(oldTargetMemory);
         newTarget = copiedTargetMemoryAndState.getSMGObject();
         currentState = copiedTargetMemoryAndState.getState();
         // Now copy all values and copy all memory for pointers again recursively
+        // (copyMemoryOfTo adds the new memory to the cache)
         currentState =
             copyMemoryOfTo(
                 oldTargetMemory,
@@ -784,25 +789,38 @@ public class SMGCPAMaterializer {
 
   private SMGState replicateNestedNonPointerValue(
       SMGObject newMemory,
-      Optional<Value> maybeValue,
+      SMGValue oldSMGValue,
+      Value oldValue,
       SMGState currentState,
       BigInteger offset,
-      BigInteger sizeInBits)
+      BigInteger sizeInBits,
+      Map<SMGNode, SMGNode> copiedMemoryCache)
       throws SMGException {
-    Value value = maybeValue.orElseThrow();
-    CType valueType = currentState.getMemoryModel().getTypeForValue(value);
+    CType valueType = currentState.getMemoryModel().getTypeForValue(oldValue);
 
     // TODO: replace with getting the constraints and copying them for a new sym expr
-    if (currentState.valueContainedInConstraints(value)) {
+    if (currentState.valueContainedInConstraints(oldValue)) {
       throw new SMGException(
           "Could not copy constraints on symbolic value when materializing a list.");
     }
 
-    // Create symbolic value with the same type as the one above and save in the SMG
-    Value newSymbolicValue = currentState.getNewSymbolicValue(value);
-    SMGValueAndSMGState valueAndState = currentState.copyAndAddValue(newSymbolicValue, valueType);
-    SMGValue smgValueOfNewSym = valueAndState.getSMGValue();
-    currentState = valueAndState.getSMGState();
+    SMGValue smgValueOfNewSym;
+    if (copiedMemoryCache.containsKey(oldSMGValue)) {
+      smgValueOfNewSym = (SMGValue) copiedMemoryCache.get(oldSMGValue);
+    } else {
+      // Create symbolic value with the same type as the one above and save in the SMG
+      int currentMemoryNestingLevel = newMemory.getNestingLevel();
+      int oldValueNestingLevel = currentState.getMemoryModel().getNestingLevel(oldValue);
+      Value newSymbolicValue = currentState.getNewSymbolicValue(oldValue);
+      SMGValueAndSMGState valueAndState =
+          currentState.copyAndAddValue(
+              newSymbolicValue,
+              valueType,
+              Integer.max(currentMemoryNestingLevel, oldValueNestingLevel - 1));
+      smgValueOfNewSym = valueAndState.getSMGValue();
+      currentState = valueAndState.getSMGState();
+      copiedMemoryCache.put(oldSMGValue, smgValueOfNewSym);
+    }
     return currentState.writeValueWithoutChecks(newMemory, offset, sizeInBits, smgValueOfNewSym);
   }
 
