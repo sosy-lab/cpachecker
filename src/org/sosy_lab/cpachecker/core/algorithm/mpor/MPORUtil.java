@@ -21,8 +21,6 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
@@ -175,16 +173,16 @@ public final class MPORUtil {
     boolean foundPath = false;
     for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrent.getSuccessor())) {
       // ignore edges that lead to pStop
-      if (pStop.isPresent() && cfaEdge.equals(pStop.orElseThrow())) {
-        continue;
-        // self reach found
-      } else if (cfaEdge.equals(pOrigin)) {
-        return true;
-        // visit nodes only once, otherwise we trigger a stack overflow
-      } else if (!pVisited.contains(cfaEdge)) {
-        foundPath = isSelfReachable(pOrigin, pStop, pVisited, cfaEdge);
-        if (foundPath) {
-          break;
+      if (!(pStop.isPresent() && cfaEdge.equals(pStop.orElseThrow()))) {
+        if (cfaEdge.equals(pOrigin)) {
+          // self reach found
+          return true;
+        } else if (!pVisited.contains(cfaEdge)) {
+          // visit edges only once, otherwise we trigger a stack overflow
+          foundPath = isSelfReachable(pOrigin, pStop, pVisited, cfaEdge);
+          if (foundPath) {
+            break;
+          }
         }
       }
     }
@@ -207,16 +205,16 @@ public final class MPORUtil {
     for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrent)) {
       CFANode successor = cfaEdge.getSuccessor();
       // ignore edges that lead to pStop
-      if (pStop.isPresent() && successor.equals(pStop.orElseThrow())) {
-        continue;
-        // self reach found
-      } else if (successor.equals(pOrigin)) {
-        return true;
-        // visit nodes only once, otherwise we trigger a stack overflow
-      } else if (!pVisited.contains(successor)) {
-        foundPath = isSelfReachable(pOrigin, pStop, pVisited, cfaEdge.getSuccessor());
-        if (foundPath) {
-          break;
+      if (!(pStop.isPresent() && successor.equals(pStop.orElseThrow()))) {
+        if (cfaEdge.equals(pOrigin)) {
+          // self reach found
+          return true;
+        } else if (!pVisited.contains(successor)) {
+          // visit edges only once, otherwise we trigger a stack overflow
+          foundPath = isSelfReachable(pOrigin, pStop, pVisited, cfaEdge.getSuccessor());
+          if (foundPath) {
+            break;
+          }
         }
       }
     }
