@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
+import org.sosy_lab.cpachecker.core.interfaces.InvertableCPA;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -56,13 +57,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.automaton.instruments.InvertingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 
 /** This class implements an AutomatonAnalysis as described in the related Documentation. */
 @Options(prefix = "cpa.automaton")
 public class ControlAutomatonCPA
-    implements StatisticsProvider, ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA {
+    implements StatisticsProvider, ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA, InvertableCPA<ControlAutomatonCPA> {
 
   @Option(secure = true, name = "dotExport", description = "export automaton to file")
   private boolean export = false;
@@ -144,7 +146,8 @@ public class ControlAutomatonCPA
       Configuration pConfig,
       LogManager pLogger,
       CFA pCFA,
-      ShutdownNotifier pShutdownNotifier)
+      ShutdownNotifier pShutdownNotifier,
+      InvertingTransferRelation pInvertingTransferRelation)
       throws InvalidConfigurationException {
 
     pConfig.inject(this, ControlAutomatonCPA.class);
@@ -338,5 +341,10 @@ public class ControlAutomatonCPA
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
     return new AutomatonPrecision(automaton);
+  }
+
+  @Override
+  public ControlAutomatonCPA invert() throws CPATransferException, InvalidConfigurationException, InterruptedException{
+    return new ControlAutomatonCPA(automaton, null, logger, cfa, shutdownNotifier, new InvertingTransferRelation(this.getTransferRelation()));
   }
 }
