@@ -9,10 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 
@@ -24,10 +22,8 @@ public class SeqStatements {
   }
 
   public static CExpressionAssignmentStatement buildPcUpdate(int pThreadId, int pTargetPc) {
-    CIntegerLiteralExpression index = SeqIntegerLiteralExpression.buildIntLiteralExpr(pThreadId);
-    CArraySubscriptExpression pcExpr = SeqExpressions.buildPcSubscriptExpr(index);
-    CIntegerLiteralExpression targetInt =
-        SeqIntegerLiteralExpression.buildIntLiteralExpr(pTargetPc);
-    return SeqExpressions.buildExprAssignStmt(pcExpr, targetInt);
+    return SeqExpressions.buildExprAssignStmt(
+        SeqExpressions.getPcExpression(pThreadId),
+        SeqIntegerLiteralExpression.buildIntLiteralExpr(pTargetPc));
   }
 }

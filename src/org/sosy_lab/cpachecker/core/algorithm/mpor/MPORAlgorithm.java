@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejectio
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqArraySubscriptExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
@@ -69,8 +71,8 @@ import org.sosy_lab.cpachecker.util.CPAs;
  * allowed transitions between thread simulations. Sequentializations can be given to any verifier
  * capable of verifying sequential C programs, hence modular.
  */
-@SuppressWarnings("unused")
 @Options(prefix = "analysis.algorithm.MPOR")
+@SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
@@ -93,7 +95,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " to reduce the state space")
   private boolean addPOR = false;
 
-  // TODO implement
   @Option(
       secure = true,
       description =
@@ -103,16 +104,21 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private static final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
+  /** Matches both Windows (\r\n) and Unix-like (\n) newline conventions. */
+  private static final Splitter newlineSplitter = Splitter.onPattern("\\r?\\n");
+
   private static final String licenseHeader =
       "// This file is part of CPAchecker,\n"
           + "// a tool for configurable software verification:\n"
           + "// https://cpachecker.sosy-lab.org\n"
           + "//\n"
-          + "// SPDX-FileCopyrightText: "
+          + "// SPDX-"
+          + "FileCopyrightText: "
           + Year.now(ZoneId.systemDefault()).getValue()
           + " Dirk Beyer <https://www.sosy-lab.org>\n"
           + "//\n"
-          + "// SPDX-License-Identifier: Apache-2.0\n\n";
+          + "// SPDX-License-Identifier:"
+          + "Apache-2.0\n\n";
 
   private static final String seqHeader =
       "// This sequentialization (transformation of a concurrent program into an equivalent \n"
@@ -138,7 +144,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /** Returns the initial sequentialization, i.e. we adjust it in later stages */
   public String buildInitSeq() throws UnrecognizedCodeException {
-    return seq.generateProgram(substitutions, addPOR, addLoopInvariants, logger);
+    return seq.generateProgram(substitutions, addLoopInvariants, addPOR, scalarPc, logger);
   }
 
   /**
@@ -153,7 +159,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     StringBuilder rFinal = new StringBuilder();
     rFinal.append(header);
     // replace dummy line numbers (-1) with actual line numbers in the seq
-    for (String line : Splitter.onPattern("\\r?\\n").split(pInitProgram)) {
+    for (String line : newlineSplitter.split(pInitProgram)) {
       if (line.contains(Sequentialization.inputReachErrorDummy)) {
         CFunctionCallExpression reachErrorCall =
             Sequentialization.buildReachErrorCall(
@@ -184,7 +190,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     if (isNullOrEmpty(pString)) {
       return 0;
     }
-    return Splitter.on('\n').splitToList(pString).size();
+    return newlineSplitter.splitToList(pString).size();
   }
 
   private String createSeqName(Path pInputFilePath) {
@@ -264,8 +270,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     threads = getThreads(inputCfa, funcCallMap);
 
+    initStaticVariables(inputCfa, logger, scalarPc, threads.size());
+
     ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
-    MPORStatics.setBinExprBuilder(new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger));
     substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads);
 
     seq = new Sequentialization(threads.size());
@@ -295,12 +302,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     threads = getThreads(inputCfa, funcCallMap);
 
+    initStaticVariables(inputCfa, logger, scalarPc, threads.size());
+
     ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
-    // in tests, we may use the same CPAchecker instance -> builder is init already
-    if (!MPORStatics.isBinExprBuilderSet()) {
-      MPORStatics.setBinExprBuilder(
-          new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger));
-    }
     substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads);
 
     seq = new Sequentialization(threads.size());
@@ -388,6 +392,26 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     return rThreads.build();
+  }
+
+  private void initStaticVariables(
+      CFA pInputCfa, LogManager pLogger, boolean pScalarPc, int pNumThreads) {
+    // in tests, we may use the same CPAchecker instance -> builder may be init already
+    if (!MPORStatics.isBinExprBuilderSet()) {
+      MPORStatics.setBinExprBuilder(
+          new CBinaryExpressionBuilder(pInputCfa.getMachineModel(), pLogger));
+    }
+    // TODO test if it is fine to reuse the same list for different programs (i.e. different
+    //  thread amounts) -> probably not
+    if (pScalarPc) {
+      if (!SeqIdExpression.areScalarPcSet()) {
+        SeqIdExpression.initScalarPcExpr(pNumThreads);
+      }
+    } else {
+      if (!SeqArraySubscriptExpression.areArrayPcSet()) {
+        SeqArraySubscriptExpression.initArrayPcExpr(pNumThreads);
+      }
+    }
   }
 
   // (Public) Helpers ===========================================================================

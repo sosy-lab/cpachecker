@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -27,12 +30,43 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqParameterDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqExpressions {
+
+  public static class SeqArraySubscriptExpression {
+
+    public static CArraySubscriptExpression buildPcSubscriptExpr(CExpression pSubscriptExpr) {
+      return new CArraySubscriptExpression(
+          FileLocation.DUMMY, SeqArrayType.INT_ARRAY, SeqIdExpression.DUMMY_PC, pSubscriptExpr);
+    }
+
+    // array pc int expressions ===================================================================
+
+    private static ImmutableList<CArraySubscriptExpression> arrayPc = null;
+
+    public static boolean areArrayPcSet() {
+      return arrayPc != null;
+    }
+
+    public static ImmutableList<CArraySubscriptExpression> arrayPc() {
+      checkArgument(arrayPc != null, "arrayPc not initialized yet");
+      return arrayPc;
+    }
+
+    public static void initArrayPcExpr(int pNumThreads) {
+      checkArgument(arrayPc == null, "arrayPc was initialized already");
+      ImmutableList.Builder<CArraySubscriptExpression> rExpr = ImmutableList.builder();
+      for (int i = 0; i < pNumThreads; i++) {
+        rExpr.add(buildPcSubscriptExpr(SeqIntegerLiteralExpression.buildIntLiteralExpr(i)));
+      }
+      arrayPc = rExpr.build();
+    }
+  }
 
   public static class SeqBinaryExpression {
 
@@ -103,6 +137,35 @@ public class SeqExpressions {
     public static CIdExpression buildIdExpr(CSimpleDeclaration pDec) {
       return new CIdExpression(FileLocation.DUMMY, pDec);
     }
+
+    // scalar pc int expressions ===================================================================
+
+    private static ImmutableList<CIdExpression> scalarPc = null;
+
+    public static boolean areScalarPcSet() {
+      return scalarPc != null;
+    }
+
+    public static ImmutableList<CIdExpression> scalarPc() {
+      checkArgument(scalarPc != null, "scalarPc not initialized yet");
+      return scalarPc;
+    }
+
+    public static void initScalarPcExpr(int pNumThreads) {
+      checkArgument(scalarPc == null, "scalarPc was initialized already");
+      ImmutableList.Builder<CIdExpression> rExpr = ImmutableList.builder();
+      for (int i = 0; i < pNumThreads; i++) {
+        // TODO use 0 for main thread and -1 for all other if ACTIVE vars are removed
+        // CInitializer initializer = i == 0 ? SeqInitializer.INT_0 : SeqInitializer.INT_0;
+        CInitializer initializer = SeqInitializer.INT_0;
+        rExpr.add(
+            new CIdExpression(
+                FileLocation.DUMMY,
+                SeqVariableDeclaration.buildVarDec(
+                    false, SeqSimpleType.INT, SeqToken.pc + i, initializer)));
+      }
+      scalarPc = rExpr.build();
+    }
   }
 
   public static class SeqStringLiteralExpression {
@@ -122,13 +185,19 @@ public class SeqExpressions {
 
   // Helper Functions ============================================================================
 
+  // TODO move to SeqStatements
   public static CExpressionAssignmentStatement buildExprAssignStmt(
       CLeftHandSide pLhs, CExpression pRhs) {
     return new CExpressionAssignmentStatement(FileLocation.DUMMY, pLhs, pRhs);
   }
 
-  public static CArraySubscriptExpression buildPcSubscriptExpr(CExpression pSubscriptExpr) {
-    return new CArraySubscriptExpression(
-        FileLocation.DUMMY, SeqArrayType.INT_ARRAY, SeqIdExpression.DUMMY_PC, pSubscriptExpr);
+  public static CLeftHandSide getPcExpression(int pThreadId) {
+    if (SeqArraySubscriptExpression.areArrayPcSet()) {
+      assert !SeqIdExpression.areScalarPcSet();
+      return SeqArraySubscriptExpression.arrayPc().get(pThreadId);
+    } else {
+      assert SeqIdExpression.areScalarPcSet();
+      return SeqIdExpression.scalarPc().get(pThreadId);
+    }
   }
 }

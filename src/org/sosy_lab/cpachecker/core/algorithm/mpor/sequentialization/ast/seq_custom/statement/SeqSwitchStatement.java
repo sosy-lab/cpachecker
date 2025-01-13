@@ -16,6 +16,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
+/**
+ * Represents the entirety of a switch statement.
+ *
+ * <p>Example: {@code switch(a) { case b: ...; break; case c: ...; break; } }
+ *
+ * <p>with the default sequentialization error {@code default: reach_error(...); }
+ */
 public class SeqSwitchStatement implements SeqStatement {
 
   private final SeqControlFlowStatement switchExpression;

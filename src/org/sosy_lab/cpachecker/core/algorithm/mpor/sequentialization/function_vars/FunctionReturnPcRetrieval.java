@@ -8,11 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 
 public class FunctionReturnPcRetrieval {
 
@@ -25,9 +24,7 @@ public class FunctionReturnPcRetrieval {
   public FunctionReturnPcRetrieval(int pThreadId, CIdExpression pReturnPc) {
     threadId = pThreadId;
     returnPc = pReturnPc;
-    CArraySubscriptExpression pcArray =
-        SeqExpressions.buildPcSubscriptExpr(
-            SeqIntegerLiteralExpression.buildIntLiteralExpr(threadId));
-    assignmentStatement = SeqExpressions.buildExprAssignStmt(pcArray, returnPc);
+    CLeftHandSide pc = SeqExpressions.getPcExpression(threadId);
+    assignmentStatement = SeqExpressions.buildExprAssignStmt(pc, returnPc);
   }
 }

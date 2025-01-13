@@ -364,7 +364,7 @@ public class SeqUtil {
     return pString + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 
-  /** Returns pString with the specified amount of tabs as prefix and adds a new line \n. */
+  /** Returns pString with the specified amount of tabs as prefix and a new line \n as suffix. */
   public static String prependTabsWithNewline(int pTabs, String pString) {
     return prependTabsWithoutNewline(pTabs, pString) + SeqSyntax.NEWLINE;
   }
@@ -465,7 +465,7 @@ public class SeqUtil {
             SeqIdExpression.PREV_THREAD, threadId, BinaryOperator.EQUALS);
     CBinaryExpression pcEquals =
         SeqBinaryExpression.buildBinaryExpression(
-            SeqExpressions.buildPcSubscriptExpr(threadId),
+            SeqExpressions.getPcExpression(pThreadId),
             SeqIntegerLiteralExpression.buildIntLiteralExpr(pPc),
             BinaryOperator.EQUALS);
     CToSeqExpression nextThread =
