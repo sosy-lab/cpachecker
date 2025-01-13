@@ -54,8 +54,13 @@ public class SeqExpressions {
     }
 
     public static ImmutableList<CArraySubscriptExpression> arrayPc() {
-      checkArgument(arrayPc != null, "arrayPc not initialized yet");
+      checkArgument(arrayPc != null, "arrayPc not initialized");
       return arrayPc;
+    }
+
+    public static void resetArrayPc() {
+      checkArgument(arrayPc != null, "arrayPc not initialized, cannot reset");
+      arrayPc = null;
     }
 
     public static void initArrayPcExpr(int pNumThreads) {
@@ -142,16 +147,21 @@ public class SeqExpressions {
 
     private static ImmutableList<CIdExpression> scalarPc = null;
 
+    public static ImmutableList<CIdExpression> scalarPc() {
+      checkArgument(scalarPc != null, "scalarPc not initialized");
+      return scalarPc;
+    }
+
     public static boolean areScalarPcSet() {
       return scalarPc != null;
     }
 
-    public static ImmutableList<CIdExpression> scalarPc() {
-      checkArgument(scalarPc != null, "scalarPc not initialized yet");
-      return scalarPc;
+    public static void resetScalarPc() {
+      checkArgument(scalarPc != null, "scalarPc not initialized, cannot reset");
+      scalarPc = null;
     }
 
-    public static void initScalarPcExpr(int pNumThreads) {
+    public static void initScalarPc(int pNumThreads) {
       checkArgument(scalarPc == null, "scalarPc was initialized already");
       ImmutableList.Builder<CIdExpression> rExpr = ImmutableList.builder();
       for (int i = 0; i < pNumThreads; i++) {
@@ -190,7 +200,6 @@ public class SeqExpressions {
       assert !SeqIdExpression.areScalarPcSet();
       return SeqArraySubscriptExpression.arrayPc().get(pThreadId);
     } else {
-      assert SeqIdExpression.areScalarPcSet();
       return SeqIdExpression.scalarPc().get(pThreadId);
     }
   }

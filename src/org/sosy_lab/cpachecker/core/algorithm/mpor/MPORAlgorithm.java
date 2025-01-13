@@ -408,16 +408,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       MPORStatics.setBinExprBuilder(
           new CBinaryExpressionBuilder(pInputCfa.getMachineModel(), pLogger));
     }
-    // TODO test if it is fine to reuse the same list for different programs (i.e. different
-    //  thread amounts) -> probably not
     if (pScalarPc) {
-      if (!SeqIdExpression.areScalarPcSet()) {
-        SeqIdExpression.initScalarPcExpr(pNumThreads);
+      if (SeqIdExpression.areScalarPcSet()) {
+        SeqIdExpression.resetScalarPc();
       }
+      SeqIdExpression.initScalarPc(pNumThreads);
     } else {
-      if (!SeqArraySubscriptExpression.areArrayPcSet()) {
-        SeqArraySubscriptExpression.initArrayPcExpr(pNumThreads);
+      if (SeqArraySubscriptExpression.areArrayPcSet()) {
+        SeqArraySubscriptExpression.resetArrayPc();
       }
+      SeqArraySubscriptExpression.initArrayPcExpr(pNumThreads);
     }
   }
 
