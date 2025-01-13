@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
-import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.LINE_JOINER;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
@@ -25,10 +25,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -40,7 +42,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class PredicateAbstractionsWriter {
+public final class PredicateAbstractionsWriter {
 
   private final LogManager logger;
   private final FormulaManagerView fmgr;
@@ -109,9 +111,17 @@ public class PredicateAbstractionsWriter {
         PredicateAbstractState predicateState = PredicateAbstractState.getPredicateState(state);
         BooleanFormula formula = predicateState.getAbstractionFormula().asFormula();
         if (asExpression) {
-          ExpressionTree<Object> tree =
-              ExpressionTrees.fromFormula(formula, fmgr, AbstractStates.extractLocation(state));
-          stateToAssert.put(state, tree.toString());
+          ExpressionTree<Object> expressionTree;
+          try {
+            expressionTree =
+                ExpressionTrees.fromFormula(
+                    formula, fmgr, AbstractStates.extractLocation(state), Function.identity());
+          } catch (TranslationToExpressionTreeFailedException e) {
+            // Keep consistency with the previous implementation
+            logger.logDebugException(e, "Translation to expression tree failed");
+            expressionTree = ExpressionTrees.getTrue();
+          }
+          stateToAssert.put(state, expressionTree.toString());
           done.add(state);
           continue;
         }
@@ -127,7 +137,7 @@ public class PredicateAbstractionsWriter {
 
       // Write it to the file
       // -- first the definitions
-      LINE_JOINER.appendTo(writer, definitions);
+      Joiner.on('\n').appendTo(writer, definitions);
       writer.append("\n\n");
 
       // -- then the assertions

@@ -656,7 +656,7 @@ class CFAMethodBuilder extends ASTVisitor {
     CFANode unsuccessfulNode = new CFANode(methodName);
     cfaNodes.add(unsuccessfulNode);
 
-    CONDITION kind = getConditionKind(condition);
+    Condition kind = getConditionKind(condition);
 
     createConditionEdges(condition, fileloc, prevNode, successfulNode, unsuccessfulNode);
 
@@ -1253,8 +1253,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
   private void handleTernaryStatementTail(
       JAstNode exp, FileLocation fileLocation, CFANode branchNode, CFANode lastNode) {
-    CFANode nextNode;
-    nextNode = new CFANode(cfa.getFunction());
+    CFANode nextNode = new CFANode(cfa.getFunction());
     cfaNodes.add(nextNode);
 
     ConditionalExpression condExp = astCreator.getConditionalExpression();
@@ -1341,7 +1340,7 @@ class CFAMethodBuilder extends ASTVisitor {
     }
   }
 
-  private enum CONDITION {
+  private enum Condition {
     NORMAL,
     ALWAYS_FALSE,
     ALWAYS_TRUE
@@ -1366,7 +1365,7 @@ class CFAMethodBuilder extends ASTVisitor {
       final CFANode elseNode) {
 
     assert condition != null;
-    final CONDITION kind = getConditionKind(condition);
+    final Condition kind = getConditionKind(condition);
     String rawSignature = condition.toString();
 
     switch (kind) {
@@ -1633,18 +1632,18 @@ class CFAMethodBuilder extends ASTVisitor {
         furtherElseComputation);
   }
 
-  private CONDITION getConditionKind(JExpression condition) {
+  private Condition getConditionKind(JExpression condition) {
     if (condition instanceof JBooleanLiteralExpression) {
       if (((JBooleanLiteralExpression) condition).getBoolean()) {
-        return CONDITION.ALWAYS_TRUE;
+        return Condition.ALWAYS_TRUE;
       } else {
-        return CONDITION.ALWAYS_FALSE;
+        return Condition.ALWAYS_FALSE;
       }
     }
-    return CONDITION.NORMAL;
+    return Condition.NORMAL;
   }
 
-  private CONDITION getConditionKind(Expression cond) {
+  private Condition getConditionKind(Expression cond) {
 
     while (cond.getNodeType() == ASTNode.PARENTHESIZED_EXPRESSION) {
       cond = ((ParenthesizedExpression) cond).getExpression();
@@ -1652,12 +1651,12 @@ class CFAMethodBuilder extends ASTVisitor {
 
     if (cond.getNodeType() == ASTNode.BOOLEAN_LITERAL) {
       if (((BooleanLiteral) cond).booleanValue()) {
-        return CONDITION.ALWAYS_TRUE;
+        return Condition.ALWAYS_TRUE;
       } else {
-        return CONDITION.ALWAYS_FALSE;
+        return Condition.ALWAYS_FALSE;
       }
     }
-    return CONDITION.NORMAL;
+    return Condition.NORMAL;
   }
 
   @Override

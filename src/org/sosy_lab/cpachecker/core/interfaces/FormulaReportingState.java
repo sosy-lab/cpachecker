@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -19,4 +20,11 @@ public interface FormulaReportingState extends AbstractState {
 
   /** Returns a non-instantiated formula over-approximating the state. */
   BooleanFormula getFormulaApproximation(FormulaManagerView manager);
+
+  /**
+   * Returns a non-instantiated formula over-approximating the state that only uses global variables
+   * and variables in given function scope. The formula should not use qualified names.
+   */
+  BooleanFormula getScopedFormulaApproximation(
+      FormulaManagerView manager, FunctionEntryNode functionScope);
 }

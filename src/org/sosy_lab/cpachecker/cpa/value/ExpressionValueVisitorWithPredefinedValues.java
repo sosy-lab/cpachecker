@@ -27,7 +27,7 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
 
   public static final String PATERN_FOR_RANDOM = "__VERIFIER_nondet_";
   private AtomicInteger numReturnedValues;
-  private LogManagerWithoutDuplicates logger;
+  private final LogManagerWithoutDuplicates logger;
   private Map<Integer, String> valuesFromFile = new HashMap<>();
   private boolean lastRequestSuccessful = true;
 

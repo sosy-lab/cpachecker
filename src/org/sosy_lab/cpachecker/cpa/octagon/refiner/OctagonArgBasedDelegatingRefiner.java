@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -56,7 +55,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}, and if this
- * fails, optionally delegates also to {@link PredicateCPARefiner}.
+ * fails, optionally delegates also to another refiner.
  */
 @Options(prefix = "cpa.octagon.refiner")
 class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, StatisticsProvider {

@@ -109,8 +109,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       AbstractState lCurrentElement = componentElements.get(i);
       Precision lCurrentPrecision = pCompositePrecision.get(i);
 
-      Collection<? extends AbstractState> componentSuccessors;
-      componentSuccessors =
+      Collection<? extends AbstractState> componentSuccessors =
           lCurrentTransfer.getAbstractSuccessors(lCurrentElement, lCurrentPrecision);
       resultCount *= componentSuccessors.size();
 
@@ -292,8 +291,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       AbstractState lCurrentElement = componentElements.get(i);
       Precision lCurrentPrecision = compositePrecision.get(i);
 
-      Collection<? extends AbstractState> componentSuccessors;
-      componentSuccessors =
+      Collection<? extends AbstractState> componentSuccessors =
           lCurrentTransfer.getAbstractSuccessorsForEdge(
               lCurrentElement, lCurrentPrecision, cfaEdge);
       resultCount *= componentSuccessors.size();

@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -52,6 +53,8 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.RemovingStructuresVisitor;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 
 class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
@@ -68,6 +71,47 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
    * and those which exit it
    */
   protected record FunctionEntryExitPair(ARGState entry, ARGState exit) {}
+
+  /**
+   * A class to keep track of the result of the witness export, in particular to inform the caller
+   * about some internals of the translation and export.
+   *
+   * @param translationAlwaysSuccessful if the translation from internal ARG states to strings was
+   *     always successful
+   */
+  public record WitnessExportResult(boolean translationAlwaysSuccessful) {}
+
+  /**
+   * A class to keep track of the result of the creation of an invariant, in particular to inform
+   * the caller about some internals of the translation and export.
+   *
+   * @param invariantEntry the invariant entry which was created
+   * @param translationSuccessful if the translation from internal ARG states to strings was
+   *     successful
+   */
+  record InvariantCreationResult(InvariantEntry invariantEntry, boolean translationSuccessful) {}
+
+  /**
+   * A class to keep track of the result of the creation of a function contract, in particular to
+   * inform the caller about some internals of the translation and export.
+   *
+   * @param functionContractEntry the function contract entry which was created
+   * @param translationSuccessful if the translation from internal ARG states to strings was
+   *     successful
+   */
+  record FunctionContractCreationResult(
+      FunctionContractEntry functionContractEntry, boolean translationSuccessful) {}
+
+  /**
+   * A class to keep track of the result of the creation of an expression tree, in particular to
+   * keep track if this expression tree was successfully generated or not.
+   *
+   * @param expressionTree the expression tree which was created
+   * @param backTranslationSuccessful if the back translation from the abstract state to an
+   *     ExpressionTree was successful or if a fallback is being used
+   */
+  record ExpressionTreeResult(
+      ExpressionTree<Object> expressionTree, boolean backTranslationSuccessful) {}
 
   /** A data structure for collecting the relevant information for a witness from an ARG */
   protected static class CollectedARGStates {
@@ -176,27 +220,30 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
    */
   @FunctionalInterface
   public interface NotImplementedThrowingFunction<T, R> {
-    R apply(T t) throws InterruptedException, ReportingMethodNotImplementedException;
+    R apply(T t)
+        throws InterruptedException,
+            ReportingMethodNotImplementedException,
+            TranslationToExpressionTreeFailedException;
   }
 
-  protected ExpressionTree<Object> getOverapproximationOfStatesIgnoringReturnVariables(
-      Collection<ARGState> argStates, CFANode node)
+  protected ExpressionTreeResult getOverapproximationOfStatesIgnoringReturnVariables(
+      Collection<ARGState> argStates, CFANode node, boolean useOldKeywordForVariables)
       throws InterruptedException, ReportingMethodNotImplementedException {
     FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
     return getOverapproximationOfStates(
         argStates,
         (ExpressionTreeReportingState x) ->
             x.getFormulaApproximationInputProgramInScopeVariables(
-                entryNode, node, cfa.getAstCfaRelation()));
+                entryNode, node, cfa.getAstCfaRelation(), useOldKeywordForVariables));
   }
 
-  protected ExpressionTree<Object> getOverapproximationOfStatesWithOnlyReturnVariables(
+  protected ExpressionTreeResult getOverapproximationOfStatesWithOnlyReturnVariables(
       Collection<ARGState> argStates, CFANode node)
       throws InterruptedException, ReportingMethodNotImplementedException {
     AIdExpression returnVariable;
     if (node.getFunction().getType().getReturnType() instanceof CType cType) {
       if (cType instanceof CVoidType) {
-        return ExpressionTrees.getTrue();
+        return new ExpressionTreeResult(ExpressionTrees.getTrue(), true);
       }
       returnVariable =
           new CIdExpression(
@@ -206,9 +253,9 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
                   false,
                   CStorageClass.AUTO,
                   cType,
-                  "\result",
-                  "\result",
-                  node.getFunctionName() + "::\result",
+                  "\\result",
+                  "\\result",
+                  node.getFunctionName() + "::\\result",
                   null));
     } else {
       // Currently we do not export witnesses for other programming languages than C, therefore
@@ -231,7 +278,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
    * @return an over approximation of the abstraction at the state
    * @throws InterruptedException if the call to this function is interrupted
    */
-  private ExpressionTree<Object> getOverapproximationOfStates(
+  private ExpressionTreeResult getOverapproximationOfStates(
       Collection<ARGState> pArgStates,
       NotImplementedThrowingFunction<ExpressionTreeReportingState, ExpressionTree<Object>>
           pStateToAbstraction)
@@ -240,20 +287,39 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
         FluentIterable.from(pArgStates)
             .transformAndConcat(AbstractStates::asIterable)
             .filter(ExpressionTreeReportingState.class);
-    List<List<ExpressionTree<Object>>> expressionsPerClass = new ArrayList<>();
+    List<List<ExpressionTreeResult>> expressionsPerClass = new ArrayList<>();
 
     for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {
-      List<ExpressionTree<Object>> expressionsMatchingClass = new ArrayList<>();
+      List<ExpressionTreeResult> expressionsMatchingClass = new ArrayList<>();
       for (ExpressionTreeReportingState state : reportingStates) {
         if (stateClass.isAssignableFrom(state.getClass())) {
-          expressionsMatchingClass.add(pStateToAbstraction.apply(state));
+          ExpressionTreeResult expressionTreeResult;
+          try {
+            expressionTreeResult = new ExpressionTreeResult(pStateToAbstraction.apply(state), true);
+          } catch (TranslationToExpressionTreeFailedException e) {
+            logger.logDebugException(e, "Could not translate state to expression tree");
+            expressionTreeResult = new ExpressionTreeResult(ExpressionTrees.getTrue(), false);
+          }
+          expressionsMatchingClass.add(expressionTreeResult);
         }
       }
       expressionsPerClass.add(expressionsMatchingClass);
     }
 
     ExpressionTree<Object> overapproximationOfState =
-        And.of(FluentIterable.from(expressionsPerClass).transform(Or::of));
+        And.of(
+            FluentIterable.from(expressionsPerClass)
+                .transform(
+                    elementsForClass ->
+                        FluentIterable.from(elementsForClass)
+                            .transform(ExpressionTreeResult::expressionTree))
+                .transform(Or::of));
+    boolean backTranslationSuccessful =
+        expressionsPerClass.stream()
+            .allMatch(
+                elementsForClass ->
+                    elementsForClass.stream()
+                        .allMatch(ExpressionTreeResult::backTranslationSuccessful));
 
     // Filter out CPAchecker internal variables from the over-approximation of the states
     // This transformation is NOT correct for all possible cases, since if multiple internal
@@ -269,6 +335,6 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
       logger.log(Level.FINE, "Could not remove CPAchecker internal variables from invariant");
     }
 
-    return overapproximationOfState;
+    return new ExpressionTreeResult(overapproximationOfState, backTranslationSuccessful);
   }
 }

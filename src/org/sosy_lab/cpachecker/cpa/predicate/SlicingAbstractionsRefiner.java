@@ -34,12 +34,12 @@ import org.sosy_lab.cpachecker.util.CPAs;
  * This is Refiner for Slicing Abstractions like in the papers: "Slicing Abstractions"
  * (doi:10.1007/978-3-540-75698-9_2) "Splitting via Interpolants" (doi:10.1007/978-3-642-27940-9_13)
  */
-public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
+public final class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
 
   private final ARGBasedRefiner refiner;
   private final ARGCPA argCpa;
 
-  public SlicingAbstractionsRefiner(ARGBasedRefiner pRefiner, ARGCPA pCpa) {
+  private SlicingAbstractionsRefiner(ARGBasedRefiner pRefiner, ARGCPA pCpa) {
     refiner = pRefiner;
     argCpa = pCpa;
   }

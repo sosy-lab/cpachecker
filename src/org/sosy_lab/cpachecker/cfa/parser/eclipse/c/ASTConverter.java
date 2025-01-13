@@ -513,29 +513,29 @@ class ASTConverter {
         && ((IASTUnaryExpression) e.getParent()).getOperator() == IASTUnaryExpression.op_amper;
   }
 
-  enum CONDITION {
+  enum Condition {
     NORMAL,
     ALWAYS_FALSE,
     ALWAYS_TRUE
   }
 
-  CONDITION getConditionKind(final CExpression condition) {
+  Condition getConditionKind(final CExpression condition) {
 
     if (condition instanceof CIntegerLiteralExpression
         || condition instanceof CCharLiteralExpression) {
       // constant int value
       if (isZero(condition)) {
-        return CONDITION.ALWAYS_FALSE;
+        return Condition.ALWAYS_FALSE;
       } else {
-        return CONDITION.ALWAYS_TRUE;
+        return Condition.ALWAYS_TRUE;
       }
     }
-    return CONDITION.NORMAL;
+    return Condition.NORMAL;
   }
 
   private CAstNode convert(IASTConditionalExpression e) {
     // check condition kind so we can eventually skip creating an unnecessary branch
-    CONDITION conditionKind = getConditionKind(e.getLogicalConditionExpression());
+    Condition conditionKind = getConditionKind(e.getLogicalConditionExpression());
 
     switch (conditionKind) {
       case ALWAYS_TRUE:
@@ -567,24 +567,24 @@ class ASTConverter {
    * Computes the condition kind of an IASTExpression, logical ors and logical ands are resolved the
    * rest works as with the condition kind method for CExpressions
    */
-  private CONDITION getConditionKind(IASTExpression exp) {
+  private Condition getConditionKind(IASTExpression exp) {
     if (exp instanceof IASTBinaryExpression binExp
         && (((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalAnd
             || ((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalOr)) {
       switch (binExp.getOperator()) {
         case IASTBinaryExpression.op_logicalAnd:
           {
-            CONDITION left = getConditionKind(binExp.getOperand1());
+            Condition left = getConditionKind(binExp.getOperand1());
             switch (left) {
               case ALWAYS_TRUE:
                 return getConditionKind(binExp.getOperand2());
               case ALWAYS_FALSE:
                 return left;
               case NORMAL:
-                if (getConditionKind(binExp.getOperand2()) == CONDITION.ALWAYS_FALSE) {
-                  return CONDITION.ALWAYS_FALSE;
+                if (getConditionKind(binExp.getOperand2()) == Condition.ALWAYS_FALSE) {
+                  return Condition.ALWAYS_FALSE;
                 } else {
-                  return CONDITION.NORMAL;
+                  return Condition.NORMAL;
                 }
               default:
                 throw new AssertionError("unhandled case statement");
@@ -593,16 +593,16 @@ class ASTConverter {
 
         case IASTBinaryExpression.op_logicalOr:
           {
-            CONDITION left = getConditionKind(binExp.getOperand1());
+            Condition left = getConditionKind(binExp.getOperand1());
             switch (left) {
               case ALWAYS_TRUE:
-                return CONDITION.ALWAYS_TRUE;
+                return Condition.ALWAYS_TRUE;
               case ALWAYS_FALSE:
                 return getConditionKind(binExp.getOperand2());
               case NORMAL:
-                CONDITION right = getConditionKind(binExp.getOperand2());
-                if (right == CONDITION.ALWAYS_FALSE) {
-                  return CONDITION.NORMAL;
+                Condition right = getConditionKind(binExp.getOperand2());
+                if (right == Condition.ALWAYS_FALSE) {
+                  return Condition.NORMAL;
                 } else {
                   return right;
                 }
@@ -832,18 +832,18 @@ class ASTConverter {
 
     int eop = e.getOperator();
     if (eop == IASTBinaryExpression.op_logicalOr || eop == IASTBinaryExpression.op_logicalAnd) {
-      CONDITION o1 = getConditionKind(e.getOperand1());
-      CONDITION o2 = getConditionKind(e.getOperand2());
+      Condition o1 = getConditionKind(e.getOperand1());
+      Condition o2 = getConditionKind(e.getOperand2());
 
-      if (o1 == CONDITION.NORMAL || o2 == CONDITION.NORMAL) {
+      if (o1 == Condition.NORMAL || o2 == Condition.NORMAL) {
         CIdExpression tmp = createTemporaryVariableWithTypeOf(e);
         sideAssignmentStack.addConditionalExpression(e, tmp);
         return tmp;
       }
 
       if ((eop == IASTBinaryExpression.op_logicalAnd
-              && (o1 == CONDITION.ALWAYS_FALSE || o2 == CONDITION.ALWAYS_FALSE))
-          || (o1 == CONDITION.ALWAYS_FALSE && o2 == CONDITION.ALWAYS_FALSE)) {
+              && (o1 == Condition.ALWAYS_FALSE || o2 == Condition.ALWAYS_FALSE))
+          || (o1 == Condition.ALWAYS_FALSE && o2 == Condition.ALWAYS_FALSE)) {
         return CIntegerLiteralExpression.ZERO;
       }
       return CIntegerLiteralExpression.ONE;
@@ -1283,11 +1283,9 @@ class ASTConverter {
           && FUNC_EXPECT.equals(((CIdExpression) functionNameExpression).getName())
           && params.size() == 2) {
 
-        // This is the GCC built-in function __builtin_expect(exp, c)
-        // that behaves like (exp == c).
+        // This is the GCC built-in function __builtin_expect(exp, c) that behaves like (exp).
         // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005fexpect-3345
-
-        return buildBinaryExpression(params.get(0), params.get(1), BinaryOperator.EQUALS);
+        return params.get(0);
       }
     }
 
@@ -1582,8 +1580,7 @@ class ASTConverter {
       case IASTUnaryExpression.op_prefixDecr:
         // instead of ++x, create "x = x+1"
 
-        BinaryOperator preOp;
-        preOp =
+        BinaryOperator preOp =
             switch (e.getOperator()) {
               case IASTUnaryExpression.op_prefixIncr -> BinaryOperator.PLUS;
               case IASTUnaryExpression.op_prefixDecr -> BinaryOperator.MINUS;
@@ -1600,8 +1597,7 @@ class ASTConverter {
       case IASTUnaryExpression.op_postFixDecr:
         // instead of x++ create "x = x + 1"
 
-        BinaryOperator postOp;
-        postOp =
+        BinaryOperator postOp =
             switch (e.getOperator()) {
               case IASTUnaryExpression.op_postFixIncr -> BinaryOperator.PLUS;
               case IASTUnaryExpression.op_postFixDecr -> BinaryOperator.MINUS;

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -63,6 +64,8 @@ public class ToCodeFormulaVisitor
 
   private final MachineModel machineModel;
 
+  private final Function<String, String> variableNameConverter;
+
   /**
    * Creates a new visitor for converting compound state invariants formulae to bit vector formulae
    * by using the given formula manager, and evaluation visitor.
@@ -72,9 +75,12 @@ public class ToCodeFormulaVisitor
    * @param pMachineModel the machine model used to find the cast types.
    */
   public ToCodeFormulaVisitor(
-      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, MachineModel pMachineModel) {
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
+      MachineModel pMachineModel,
+      Function<String, String> pVariableNameConverter) {
     evaluationVisitor = pEvaluationVisitor;
     machineModel = pMachineModel;
+    variableNameConverter = pVariableNameConverter;
   }
 
   private CSimpleType determineType(TypeInfo pTypeInfo) {
@@ -320,7 +326,7 @@ public class ToCodeFormulaVisitor
   public String visit(
       Variable<CompoundInterval> pVariable,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return pVariable.getMemoryLocation().getIdentifier();
+    return variableNameConverter.apply(pVariable.getMemoryLocation().getIdentifier());
   }
 
   @Override

@@ -88,7 +88,7 @@ public class ListDebugger {
    */
   public ListDebugger withNestedList(
       int offsetTowardsNested, int pSize, int pNfo, int pNextPtrTargetOffset) {
-    this.nestedOffset = Optional.of(offsetTowardsNested);
+    nestedOffset = Optional.of(offsetTowardsNested);
     if (nestedListShape.isEmpty()) {
       nestedListShape = Optional.of(new ListDebugger(pSize, pNfo, pNextPtrTargetOffset, logger));
     } else {
@@ -109,7 +109,7 @@ public class ListDebugger {
       int pNextPtrTargetOffset,
       int pPfo,
       int pPrevPtrTargetOffset) {
-    this.nestedOffset = Optional.of(offsetTowardsNested);
+    nestedOffset = Optional.of(offsetTowardsNested);
     if (nestedListShape.isEmpty()) {
       nestedListShape =
           Optional.of(
@@ -135,7 +135,7 @@ public class ListDebugger {
   }
 
   private String printList(List<ListElement> list) {
-    String listString = "\n";
+    StringBuilder listString = new StringBuilder("\n");
     String[][] doubleNestedListStrings = new String[list.size()][];
     int largestNested = 0;
 
@@ -143,8 +143,8 @@ public class ListDebugger {
     for (int i = 0; i < list.size(); i++) {
       ListElement elem = list.get(i);
       doubleNestedListStrings[i] = new String[1];
-      if (!elem.listItems.isEmpty() && this.nestedOffset.isPresent()) {
-        List<ListElement> maybeNested = elem.memorylistItems.get(this.nestedOffset.orElseThrow());
+      if (!elem.listItems.isEmpty() && nestedOffset.isPresent()) {
+        List<ListElement> maybeNested = elem.memorylistItems.get(nestedOffset.orElseThrow());
         if (maybeNested != null) {
           ImmutableList<ListElement> nestedList = (ImmutableList<ListElement>) maybeNested;
           doubleNestedListStrings[i] = new String[nestedList.size() + 1];
@@ -168,16 +168,16 @@ public class ListDebugger {
       for (int i = 0; i < doubleNestedListStrings.length; i++) {
         if (doubleNestedListStrings[i].length > nested
             && doubleNestedListStrings[i][nested] != null) {
-          listString += doubleNestedListStrings[i][nested];
+          listString.append(doubleNestedListStrings[i][nested]);
         } else {
-          listString += "       ";
+          listString.append("       ");
         }
         if (i + 1 == doubleNestedListStrings.length) {
-          listString += "\n";
+          listString.append("\n");
         }
       }
     }
-    return listString + "\n";
+    return listString.append("\n").toString();
   }
 
   public List<ListElement> buildListFromObjectWithPtrToList(

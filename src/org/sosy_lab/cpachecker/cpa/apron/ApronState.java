@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.util.ApronManager;
@@ -743,13 +744,18 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     }
 
     return bFmgr.and(
-        Lists.transform(Arrays.asList(constraints), cons -> createFormula(bFmgr, bitFmgr, cons)));
+        Lists.transform(
+            Arrays.asList(constraints), cons -> createFormula(bFmgr, bitFmgr, cons, true)));
   }
 
   private BooleanFormula createFormula(
-      BooleanFormulaManager bFmgr, final BitvectorFormulaManager bitFmgr, final Tcons0 constraint) {
+      BooleanFormulaManager bFmgr,
+      final BitvectorFormulaManager bitFmgr,
+      final Tcons0 constraint,
+      final boolean useQualifiedVarNames) {
     Texpr0Node tree = constraint.toTexpr0Node();
-    BitvectorFormula formula = new Texpr0ToFormulaVisitor(bitFmgr).visit(tree);
+    BitvectorFormula formula =
+        new Texpr0ToFormulaVisitor(bitFmgr, useQualifiedVarNames).visit(tree);
 
     // TODO fix size, machinemodel needed?
     BitvectorFormula rightHandside = bitFmgr.makeBitvector(32, 0);
@@ -760,6 +766,28 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       case Tcons0.SUPEQ -> bitFmgr.greaterOrEquals(formula, rightHandside, true);
       default -> throw new AssertionError("unhandled constraint kind");
     };
+  }
+
+  @Override
+  public BooleanFormula getScopedFormulaApproximation(
+      final FormulaManagerView pManager, final FunctionEntryNode pFunctionScope) {
+    BitvectorFormulaManager bitFmgr = pManager.getBitvectorFormulaManager();
+    BooleanFormulaManager bFmgr = pManager.getBooleanFormulaManager();
+    Tcons0[] constraints;
+    try {
+      constraints = apronState.toTcons(apronManager.getManager());
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
+
+    Texpr0ScopeCheckVisitor scopeChecker =
+        new Texpr0ScopeCheckVisitor(pFunctionScope.getFunctionName());
+    return bFmgr.and(
+        Lists.transform(
+            Arrays.asList(constraints).stream()
+                .filter(constraint -> scopeChecker.visit(constraint.toTexpr0Node()))
+                .toList(),
+            cons -> createFormula(bFmgr, bitFmgr, cons, false)));
   }
 
   abstract static class Texpr0NodeTraversal<T> {
@@ -790,9 +818,11 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
   class Texpr0ToFormulaVisitor extends Texpr0NodeTraversal<BitvectorFormula> {
 
     BitvectorFormulaManager bitFmgr;
+    final boolean useQualifiedNames;
 
-    public Texpr0ToFormulaVisitor(BitvectorFormulaManager pBitFmgr) {
+    public Texpr0ToFormulaVisitor(BitvectorFormulaManager pBitFmgr, boolean pUseQualifiedVarNames) {
       bitFmgr = pBitFmgr;
+      useQualifiedNames = pUseQualifiedVarNames;
     }
 
     @Override
@@ -802,7 +832,7 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       return switch (pNode.getOperation()) {
         case Texpr0BinNode.OP_ADD -> bitFmgr.add(left, right);
         case Texpr0BinNode.OP_DIV -> bitFmgr.divide(left, right, true);
-        case Texpr0BinNode.OP_MOD -> bitFmgr.modulo(left, right, true);
+        case Texpr0BinNode.OP_MOD -> bitFmgr.remainder(left, right, true);
         case Texpr0BinNode.OP_SUB -> bitFmgr.subtract(left, right);
         case Texpr0BinNode.OP_MUL -> bitFmgr.multiply(left, right);
         case Texpr0BinNode.OP_POW ->
@@ -845,11 +875,18 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       // TODO fix size, machinemodel needed?
       if (isInt(pNode.dim)) {
         return bitFmgr.makeVariable(
-            32, integerToIndexMap.get(pNode.dim).getExtendedQualifiedName());
+            32,
+            useQualifiedNames
+                ? integerToIndexMap.get(pNode.dim).getExtendedQualifiedName()
+                : integerToIndexMap.get(pNode.dim).getIdentifier());
       } else {
         return bitFmgr.makeVariable(
             32,
-            realToIndexMap.get(pNode.dim - integerToIndexMap.size()).getExtendedQualifiedName());
+            useQualifiedNames
+                ? realToIndexMap
+                    .get(pNode.dim - integerToIndexMap.size())
+                    .getExtendedQualifiedName()
+                : realToIndexMap.get(pNode.dim - integerToIndexMap.size()).getIdentifier());
       }
     }
 
@@ -865,6 +902,44 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
           // nothing to do here, we ignore casts
       }
       return operand;
+    }
+  }
+
+  class Texpr0ScopeCheckVisitor extends Texpr0NodeTraversal<Boolean> {
+
+    private String funScope;
+
+    public Texpr0ScopeCheckVisitor(final String pFunScope) {
+      funScope = pFunScope;
+    }
+
+    private boolean isInScope(final MemoryLocation memLoc) {
+      return !memLoc.isReference()
+          && (!memLoc.isOnFunctionStack() || memLoc.isOnFunctionStack(funScope));
+    }
+
+    @Override
+    Boolean visit(Texpr0BinNode pNode) {
+      return visit(pNode.getLeftArgument()) && visit(pNode.getRightArgument());
+    }
+
+    @Override
+    Boolean visit(Texpr0CstNode pNode) {
+      return Boolean.TRUE;
+    }
+
+    @Override
+    Boolean visit(Texpr0DimNode pNode) {
+      if (isInt(pNode.dim)) {
+        return isInScope(integerToIndexMap.get(pNode.dim));
+      } else {
+        return isInScope(realToIndexMap.get(pNode.dim - integerToIndexMap.size()));
+      }
+    }
+
+    @Override
+    Boolean visit(Texpr0UnNode pNode) {
+      return visit(pNode.getArgument());
     }
   }
 }

@@ -32,8 +32,8 @@ public class WitnessJoinerTransferRelation extends AbstractSingleWrapperTransfer
 
     AbstractState wrappedState = pred.getWrappedState();
 
-    Collection<? extends AbstractState> successors;
-    successors = transferRelation.getAbstractSuccessors(wrappedState, pPrecision);
+    Collection<? extends AbstractState> successors =
+        transferRelation.getAbstractSuccessors(wrappedState, pPrecision);
 
     if (successors.isEmpty()) {
       return ImmutableSet.of();
@@ -55,8 +55,8 @@ public class WitnessJoinerTransferRelation extends AbstractSingleWrapperTransfer
 
     AbstractState wrappedState = pred.getWrappedState();
 
-    Collection<? extends AbstractState> successors;
-    successors = transferRelation.getAbstractSuccessorsForEdge(wrappedState, pPrecision, pCfaEdge);
+    Collection<? extends AbstractState> successors =
+        transferRelation.getAbstractSuccessorsForEdge(wrappedState, pPrecision, pCfaEdge);
 
     if (successors.isEmpty()) {
       return ImmutableSet.of();

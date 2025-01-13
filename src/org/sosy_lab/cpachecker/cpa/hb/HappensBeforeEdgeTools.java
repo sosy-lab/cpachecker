@@ -78,7 +78,7 @@ final class HappensBeforeEdgeTools {
       final CFAEdge pCFAEdge, final int idx, final Map<String, Integer> cssaCounters) {
     return cache
         .computeIfAbsent(
-            Pair.of(idx, cssaCounters), (pair) -> new HappensBeforeEdgeTools(idx, cssaCounters))
+            Pair.of(idx, cssaCounters), pair -> new HappensBeforeEdgeTools(idx, cssaCounters))
         .cloneEdge(pCFAEdge);
   }
 
@@ -86,7 +86,7 @@ final class HappensBeforeEdgeTools {
       final CFAEdge pCFAEdge, final int idx, final Map<String, Integer> cssaCounters) {
     final var astIdQualifier =
         cache.computeIfAbsent(
-            Pair.of(idx, cssaCounters), (pair) -> new HappensBeforeEdgeTools(idx, cssaCounters));
+            Pair.of(idx, cssaCounters), pair -> new HappensBeforeEdgeTools(idx, cssaCounters));
     astIdQualifier.cloneEdge(pCFAEdge);
     return astIdQualifier.mutableCssaCounters;
   }
@@ -95,7 +95,7 @@ final class HappensBeforeEdgeTools {
       final CFAEdge pCFAEdge, final int idx, final Map<String, Integer> cssaCounters) {
     final var astIdQualifier =
         cache.computeIfAbsent(
-            Pair.of(idx, cssaCounters), (pair) -> new HappensBeforeEdgeTools(idx, cssaCounters));
+            Pair.of(idx, cssaCounters), pair -> new HappensBeforeEdgeTools(idx, cssaCounters));
     astIdQualifier.cloneEdge(pCFAEdge);
     return Pair.of(astIdQualifier.writeAccesses, astIdQualifier.readAccesses);
   }
@@ -138,7 +138,7 @@ final class HappensBeforeEdgeTools {
   private boolean isLhs = false;
 
   private HappensBeforeEdgeTools(final int idx, final Map<String, Integer> cssaCounters) {
-    this.thredId = idx;
+    thredId = idx;
     mutableCssaCounters = new LinkedHashMap<>(cssaCounters);
     expCloner = new CExpressionCloner();
   }
@@ -455,7 +455,7 @@ final class HappensBeforeEdgeTools {
 
   private String changeQualifiedName(CSimpleDeclaration decl, boolean isGlobal) {
     if (isGlobal) {
-      final var nextId = mutableCssaCounters.computeIfAbsent(decl.getQualifiedName(), (s) -> 0) + 1;
+      final var nextId = mutableCssaCounters.computeIfAbsent(decl.getQualifiedName(), s -> 0) + 1;
       mutableCssaCounters.put(decl.getQualifiedName(), nextId);
       return "%s_%d".formatted(decl.getQualifiedName(), nextId);
     }

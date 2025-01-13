@@ -77,6 +77,34 @@ public class RankingRelation {
     return formulaManagerView.getBooleanFormulaManager().or(rankingRelationFormulas);
   }
 
+  public BooleanFormula asApproximatedScopedFormula(
+      final String pFunctionScope, final FormulaManagerView pFormulaManagerView) {
+    Collection<BooleanFormula> filteredRankingRelationFormulae =
+        rankingRelationFormulas.stream()
+            .filter(
+                rankF ->
+                    formulaManagerView.extractVariableNames(rankF).stream()
+                        .allMatch(
+                            name -> !name.contains("::") || name.startsWith(pFunctionScope + "::")))
+            .toList();
+    if (filteredRankingRelationFormulae.isEmpty()) {
+      return pFormulaManagerView.getBooleanFormulaManager().makeTrue();
+    }
+
+    return pFormulaManagerView.translateFrom(
+        formulaManagerView.renameFreeVariablesAndUFs(
+            formulaManagerView.getBooleanFormulaManager().or(filteredRankingRelationFormulae),
+            name -> {
+              int separatorIndex = name.indexOf("::");
+              if (separatorIndex >= 0) {
+                return name.substring(separatorIndex + 2);
+              } else {
+                return name;
+              }
+            }),
+        formulaManagerView);
+  }
+
   public BooleanFormula asFormulaFromOtherSolver(FormulaManagerView pFormulaManagerView) {
     return pFormulaManagerView.translateFrom(asFormula(), formulaManagerView);
   }
