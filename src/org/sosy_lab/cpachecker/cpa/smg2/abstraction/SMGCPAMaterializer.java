@@ -779,22 +779,27 @@ public class SMGCPAMaterializer {
       SMGPointsToEdge oldPTE =
           currentState.getMemoryModel().getSmg().getPTEdge(smgValue).orElseThrow();
       Value oldOffset = oldPTE.getOffset();
-      Preconditions.checkArgument(
-          targetMemoryAndState
-              .getOffsetForObject()
-              .asNumericValue()
-              .bigIntegerValue()
-              .equals(oldOffset.asNumericValue().bigIntegerValue()));
-      int oldPtrNestingLvl = currentState.getMemoryModel().getNestingLevel(value);
-      SMGTargetSpecifier oldPtrTargetSpec = oldPTE.targetSpecifier();
-      if (!(newTarget instanceof SMGSinglyLinkedListSegment)) {
-        // The pointer is still in all mode, reset it to region
-        oldPtrNestingLvl = 0;
-        oldPtrTargetSpec = SMGTargetSpecifier.IS_REGION;
+      // Nesting level of pointers always refers to the nesting level of the target, except for ALL
+      // pointers, which are +1
+      int nestingLevel = newTarget.getNestingLevel();
+      SMGTargetSpecifier specifier = oldPTE.targetSpecifier();
+
+      if (specifier == SMGTargetSpecifier.IS_ALL_POINTER) {
+        Preconditions.checkState(oldPTE.pointsTo() instanceof SMGSinglyLinkedListSegment);
+        if (newTarget.equals(parentMaterialized)) {
+          Preconditions.checkState(!(parentMaterialized instanceof SMGSinglyLinkedListSegment));
+          // The pointer is still in all mode, reset it to region
+          specifier = SMGTargetSpecifier.IS_REGION;
+        } else {
+          Preconditions.checkState(newTarget instanceof SMGSinglyLinkedListSegment);
+          nestingLevel++;
+        }
       }
+
       ValueAndSMGState newPtrAndState =
           currentState.searchOrCreateAddress(
-              newTarget, ptrType, oldOffset, oldPtrNestingLvl, oldPtrTargetSpec);
+              newTarget, ptrType, oldOffset, nestingLevel, specifier);
+
       currentState = newPtrAndState.getState();
       Value newPtr = newPtrAndState.getValue();
       newSMGValueToWrite = currentState.getMemoryModel().getSMGValueFromValue(newPtr).orElseThrow();
