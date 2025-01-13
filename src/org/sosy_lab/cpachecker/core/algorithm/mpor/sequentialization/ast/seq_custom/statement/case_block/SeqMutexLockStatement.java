@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import java.util.Optional;
+import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -86,6 +87,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
     return Optional.of(targetPc);
   }
 
+  @Nonnull
   @Override
   public @NonNull SeqMutexLockStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqMutexLockStatement(mutexLocked, threadLocksMutex, threadId, pTargetPc);

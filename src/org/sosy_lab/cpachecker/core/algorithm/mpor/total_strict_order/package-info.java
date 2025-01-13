@@ -8,8 +8,8 @@
 
 /**
  * Algorithms and data structures for the (positional) total strict orders in the concurrent C
- * program, i.e. if one (or more) CFAEdges a in A must be executed before CFAEdge b from another
- * thread. E.g. if one thread calls pthread_join(other_thread) = b, then other_thread needs to
- * execute all CFAEdges a in A until it stops.
+ * program, i.e. if one (or more) CFAEdges in the set A must be executed before CFAEdge b from
+ * another thread. E.g. if one thread calls pthread_join(other_thread) = b, then other_thread needs
+ * to execute all CFAEdges in the set A until it stops.
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order;

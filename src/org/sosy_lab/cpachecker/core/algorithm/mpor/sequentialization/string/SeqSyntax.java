@@ -34,8 +34,6 @@ public class SeqSyntax {
 
   public static final String NEWLINE = "\n";
 
-  public static final String POINTER = "*";
-
   public static final String QUOTATION_MARK = "\"";
 
   public static final String SEMICOLON = ";";

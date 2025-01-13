@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -50,7 +49,7 @@ public class SeqAssumeFunction implements SeqFunction {
 
   @Override
   public String toASTString() {
-    return getDeclarationWithParameterNames()
+    return getSignature()
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.NEWLINE
@@ -75,10 +74,5 @@ public class SeqAssumeFunction implements SeqFunction {
     ImmutableList.Builder<CParameterDeclaration> rParameters = ImmutableList.builder();
     rParameters.add(SeqParameterDeclaration.COND);
     return rParameters.build();
-  }
-
-  @Override
-  public CFunctionDeclaration getDeclaration() {
-    return SeqFunctionDeclaration.ASSUME;
   }
 }

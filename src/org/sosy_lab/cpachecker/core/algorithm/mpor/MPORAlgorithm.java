@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.time.Year;
 import java.time.ZoneId;
 import java.util.Optional;
+import java.util.logging.Level;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -130,7 +131,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           + "// All other assertion fails are induced by faulty input programs.\n\n";
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException {
     Path inputFilePath = inputCfa.getFileNames().get(0);
     String seqName = createSeqName(inputFilePath);
     SequentializationWriter writer = new SequentializationWriter(logger, seqName, inputFilePath);
@@ -259,9 +260,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     InputRejection.handleInitialRejections(logger, inputCfa);
 
     gac = new GlobalAccessChecker();
-    PredicateCPA predicateCpa =
-        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, PredicateRefiner.class);
-    ptr = predicateCpa.getTransferRelation();
+
+    try {
+      PredicateCPA predicateCpa =
+          CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, PredicateRefiner.class);
+      ptr = predicateCpa.getTransferRelation();
+    } catch (Exception e) {
+      logger.logException(Level.SEVERE, e, e.getMessage());
+      throw new AssertionError();
+    }
 
     funcCallMap = getFunctionCallMap(inputCfa);
 

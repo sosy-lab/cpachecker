@@ -16,8 +16,8 @@ public class FunctionReturnPcStorage {
 
   public final int value;
 
-  public FunctionReturnPcStorage(CIdExpression pReturnPc, int pValue) {
-    returnPcVar = pReturnPc;
+  public FunctionReturnPcStorage(CIdExpression pReturnPcVar, int pValue) {
+    returnPcVar = pReturnPcVar;
     value = pValue;
   }
 }

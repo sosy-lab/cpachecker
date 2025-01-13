@@ -8,23 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
 
 public class FunctionReturnPcRetrieval {
 
-  private final int threadId;
+  public final int threadId;
 
-  private final CIdExpression returnPc;
+  public final CIdExpression returnPcVar;
 
-  public final CExpressionAssignmentStatement assignmentStatement;
-
-  public FunctionReturnPcRetrieval(int pThreadId, CIdExpression pReturnPc) {
+  public FunctionReturnPcRetrieval(int pThreadId, CIdExpression pReturnPcVar) {
     threadId = pThreadId;
-    returnPc = pReturnPc;
-    CLeftHandSide pc = SeqExpressions.getPcExpression(threadId);
-    assignmentStatement = SeqExpressions.buildExprAssignStmt(pc, returnPc);
+    returnPcVar = pReturnPcVar;
   }
 }

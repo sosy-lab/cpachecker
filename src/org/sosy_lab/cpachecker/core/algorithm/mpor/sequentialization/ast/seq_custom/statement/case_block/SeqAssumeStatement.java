@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import java.util.Optional;
+import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
@@ -46,6 +47,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
     return Optional.of(targetPc);
   }
 
+  @Nonnull
   @Override
   public @NonNull SeqAssumeStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAssumeStatement(controlFlowStatement, threadId, pTargetPc);

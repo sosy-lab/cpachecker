@@ -122,7 +122,7 @@ public class SeqUtil {
       assert pFuncVars.returnPcRetrievals.containsKey(pThreadNode);
       FunctionReturnPcRetrieval retrieval = pFuncVars.returnPcRetrievals.get(pThreadNode);
       assert retrieval != null;
-      stmts.add(new SeqReturnPcRetrievalStatement(retrieval.assignmentStatement));
+      stmts.add(new SeqReturnPcRetrievalStatement(retrieval.threadId, retrieval.returnPcVar));
 
     } else {
       // TODO create separate methods here to handle the different cases for better overview

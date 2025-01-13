@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import java.util.Optional;
+import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 
 public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
@@ -29,6 +30,7 @@ public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
     throw new UnsupportedOperationException("SeqScalarPcAssumeStatement do not have a target pc");
   }
 
+  @Nonnull
   @Override
   public SeqScalarPcAssumeStatement cloneWithTargetPc(int pTargetPc) {
     throw new UnsupportedOperationException("SeqScalarPcAssumeStatement cannot be cloned");

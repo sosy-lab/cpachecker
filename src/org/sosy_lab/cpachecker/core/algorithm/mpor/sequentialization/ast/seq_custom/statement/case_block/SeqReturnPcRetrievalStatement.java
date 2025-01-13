@@ -9,8 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import java.util.Optional;
+import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
 
 /**
  * Represents a {@code return_pc} retrieval, i.e. assigning the {@code return_pc} to the current
@@ -20,15 +24,20 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
  */
 public class SeqReturnPcRetrievalStatement implements SeqCaseBlockStatement {
 
-  private final CExpressionAssignmentStatement assign;
+  public final int threadId;
 
-  public SeqReturnPcRetrievalStatement(CExpressionAssignmentStatement pAssign) {
-    assign = pAssign;
+  public final CIdExpression returnPcVar;
+
+  public SeqReturnPcRetrievalStatement(int pThreadId, CIdExpression pReturnPcVar) {
+    threadId = pThreadId;
+    returnPcVar = pReturnPcVar;
   }
 
   @Override
   public String toASTString() {
-    return assign.toASTString();
+    CLeftHandSide pc = SeqExpressions.getPcExpression(threadId);
+    CExpressionAssignmentStatement assignment = SeqExpressions.buildExprAssignStmt(pc, returnPcVar);
+    return assignment.toASTString();
   }
 
   @Override
@@ -36,6 +45,7 @@ public class SeqReturnPcRetrievalStatement implements SeqCaseBlockStatement {
     return Optional.empty();
   }
 
+  @Nonnull
   @Override
   public @NonNull SeqReturnPcRetrievalStatement cloneWithTargetPc(int pTargetPc) {
     throw new UnsupportedOperationException("SeqReturnPcRetrievalStatement do not have targetPcs");

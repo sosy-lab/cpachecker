@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -167,7 +166,7 @@ public class SeqMainFunction implements SeqFunction {
     String assertions = buildLoopInvariantsString(loopInvariants);
     String assumptions = buildAssumptionsString(threadAssumptions, porAssumptions);
     String switches = buildSwitchStatementsString(caseClauses);
-    return getDeclarationWithParameterNames()
+    return getSignature()
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.NEWLINE
@@ -211,11 +210,6 @@ public class SeqMainFunction implements SeqFunction {
   @Override
   public ImmutableList<CParameterDeclaration> getParameters() {
     return ImmutableList.of();
-  }
-
-  @Override
-  public CFunctionDeclaration getDeclaration() {
-    return SeqFunctionDeclaration.MAIN;
   }
 
   private String buildDeclarationsString(

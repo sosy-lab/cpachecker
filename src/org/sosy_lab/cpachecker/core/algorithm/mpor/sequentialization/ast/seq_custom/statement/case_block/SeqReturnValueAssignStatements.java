@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -98,6 +99,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
     return Optional.of(targetPc);
   }
 
+  @Nonnull
   @Override
   public @NonNull SeqReturnValueAssignStatements cloneWithTargetPc(int pTargetPc) {
     return new SeqReturnValueAssignStatements(returnPc, assigns, threadId, pTargetPc);
@@ -126,6 +128,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
       return Optional.empty();
     }
 
+    @Nonnull
     @Override
     public @NonNull SeqReturnValueAssignCaseBlockStatement cloneWithTargetPc(int pTargetPc) {
       throw new UnsupportedOperationException(

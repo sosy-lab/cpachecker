@@ -206,7 +206,7 @@ public final class MPORUtil {
       CFANode successor = cfaEdge.getSuccessor();
       // ignore edges that lead to pStop
       if (!(pStop.isPresent() && successor.equals(pStop.orElseThrow()))) {
-        if (cfaEdge.equals(pOrigin)) {
+        if (successor.equals(pOrigin)) {
           // self reach found
           return true;
         } else if (!pVisited.contains(successor)) {

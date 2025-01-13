@@ -24,13 +24,11 @@ public interface SeqFunction extends SeqASTNode {
 
   ImmutableList<CParameterDeclaration> getParameters();
 
-  CFunctionDeclaration getDeclaration();
-
   /**
    * Basically {@link CFunctionDeclaration#toASTString()} with parameter names but without the
    * suffix {@code ;}.
    */
-  default String getDeclarationWithParameterNames() {
+  default String getSignature() {
     StringBuilder parameters = new StringBuilder();
     for (int i = 0; i < getParameters().size(); i++) {
       CParameterDeclaration param = getParameters().get(i);
