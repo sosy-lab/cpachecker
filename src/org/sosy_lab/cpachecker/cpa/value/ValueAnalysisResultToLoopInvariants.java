@@ -1080,13 +1080,13 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         try {
 
           if (isFloatingNumber(numVal)) {
-            pFmgrV
+            return pFmgrV
                 .getFloatingPointFormulaManager()
                 .makeNumber(numVal.doubleValue(), (FormulaType.FloatingPointType) pFormulaType);
           }
 
           if (numVal instanceof BigDecimal) {
-            pFmgrV
+            return pFmgrV
                 .getFloatingPointFormulaManager()
                 .makeNumber((BigDecimal) numVal, (FormulaType.FloatingPointType) pFormulaType);
           }
