@@ -19,13 +19,8 @@ public class FunctionReturnPcStorage {
 
   public final int value;
 
-  public final CExpressionAssignmentStatement assignmentStatement;
-
   public FunctionReturnPcStorage(CIdExpression pReturnPc, int pValue) {
     returnPcVar = pReturnPc;
     value = pValue;
-    assignmentStatement =
-        SeqExpressions.buildExprAssignStmt(
-            returnPcVar, SeqIntegerLiteralExpression.buildIntLiteralExpr(value));
   }
 }

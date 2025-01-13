@@ -59,13 +59,6 @@ public final class MPORUtil {
     }
   }
 
-  public static CFunctionType getCFuncTypeFromCfaNode(CFANode pNode) {
-    if (pNode.getFunction().getType() instanceof CFunctionType cFuncType) {
-      return cFuncType;
-    }
-    throw new IllegalArgumentException("unable to extract CFunctionType from pNode");
-  }
-
   /**
    * Background: a FunctionExitNode may have several leaving Edges, one for each time the function
    * is called. With this function, if pCurrentNode is a FunctionExitNode, we extract only the
@@ -86,24 +79,6 @@ public final class MPORUtil {
               .filter(cfaEdge -> cfaEdge.getSuccessor().equals(pFuncReturnNode.orElseThrow())));
     } else {
       rReturnEdges.addAll(CFAUtils.leavingEdges(pCurrentNode));
-    }
-    return rReturnEdges.build();
-  }
-
-  /**
-   * Equivalent to {@link MPORUtil#returnLeavingEdges(CFANode, Optional)} except that it includes
-   * {@link CFunctionSummaryEdge}s.
-   */
-  public static ImmutableSet<CFAEdge> allReturnLeavingEdges(
-      CFANode pCurrentNode, Optional<CFANode> pFuncReturnNode) {
-
-    ImmutableSet.Builder<CFAEdge> rReturnEdges = ImmutableSet.builder();
-    if (pCurrentNode instanceof FunctionExitNode && pFuncReturnNode.isPresent()) {
-      rReturnEdges.addAll(
-          CFAUtils.allLeavingEdges(pCurrentNode)
-              .filter(cfaEdge -> cfaEdge.getSuccessor().equals(pFuncReturnNode.orElseThrow())));
-    } else {
-      rReturnEdges.addAll(CFAUtils.allLeavingEdges(pCurrentNode));
     }
     return rReturnEdges.build();
   }

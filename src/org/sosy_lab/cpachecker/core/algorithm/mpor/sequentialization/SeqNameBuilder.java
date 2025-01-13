@@ -105,20 +105,4 @@ public class SeqNameBuilder {
     // TODO the qualified names are not relevant in the seq, so we just use dummy::
     return SeqToken.dummy + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
   }
-
-  // TODO unused
-  /**
-   * Returns the name of {@code pVarDec} with the amount of pointers in the declaration. E.g. {@code
-   * int *i;} -> return {@code *i}.
-   */
-  public static String createParamPointerName(CVariableDeclaration pVarDec) {
-    StringBuilder rName = new StringBuilder();
-    CType type = pVarDec.getType();
-    while (type instanceof CPointerType pointerType) {
-      type = pointerType.getType();
-      rName.append(SeqSyntax.POINTER);
-    }
-    rName.append(pVarDec.getName());
-    return rName.toString();
-  }
 }

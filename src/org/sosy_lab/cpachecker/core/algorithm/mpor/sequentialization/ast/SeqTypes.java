@@ -49,10 +49,6 @@ public class SeqTypes {
     /** A constant pointer to a constant int value (const int * const). */
     public static final CPointerType POINTER_CONST_CHAR =
         new CPointerType(false, false, SeqSimpleType.CONST_CHAR);
-
-    /** A constant pointer to a constant int value (const int * const). */
-    public static final CPointerType CONST_POINTER_CONST_INT =
-        new CPointerType(true, false, SeqSimpleType.CONST_INT);
   }
 
   public static class SeqVoidType {

@@ -172,12 +172,6 @@ public class SeqExpressions {
 
     public static final CStringLiteralExpression STRING_0 = buildStringLiteralExpr(SeqToken._0);
 
-    public static final CStringLiteralExpression SEQUENTIALIZATION_ERROR =
-        buildStringLiteralExpr(SeqToken.__SEQUENTIALIZATION_ERROR__);
-
-    public static final CStringLiteralExpression PRETTY_FUNCTION =
-        buildStringLiteralExpr(SeqToken.__PRETTY_FUNCTION__);
-
     public static CStringLiteralExpression buildStringLiteralExpr(String pValue) {
       return new CStringLiteralExpression(FileLocation.DUMMY, pValue);
     }

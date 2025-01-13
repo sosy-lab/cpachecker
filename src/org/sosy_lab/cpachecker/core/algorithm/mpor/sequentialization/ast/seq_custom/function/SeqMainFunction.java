@@ -362,17 +362,4 @@ public class SeqMainFunction implements SeqFunction {
                           BinaryOperator.NOT_EQUALS)))));
     }
   }
-
-  /** Returns the expression {@code pc[next_thread] != -1} */
-  private ImmutableList<SeqExpression> assumeNextThreadActiveParams()
-      throws UnrecognizedCodeException {
-    ImmutableList.Builder<SeqExpression> rParams = ImmutableList.builder();
-    rParams.add(
-        new CToSeqExpression(
-            SeqBinaryExpression.buildBinaryExpression(
-                SeqArraySubscriptExpression.buildPcSubscriptExpr(SeqIdExpression.NEXT_THREAD),
-                SeqIntegerLiteralExpression.INT_EXIT_PC,
-                BinaryOperator.NOT_EQUALS)));
-    return rParams.build();
-  }
 }

@@ -380,15 +380,6 @@ public class SeqUtil {
 
   // Helpers =====================================================================================
 
-  public static boolean isConstCPAcheckerTMPDeclaration(CFAEdge pEdge) {
-    if (pEdge instanceof CDeclarationEdge decEdge) {
-      if (decEdge.getDeclaration() instanceof CVariableDeclaration varDec) {
-        return isConstCPAcheckerTMP(varDec);
-      }
-    }
-    return false;
-  }
-
   public static boolean isConstCPAcheckerTMP(CVariableDeclaration pVarDec) {
     return pVarDec.getType().isConst()
         && !pVarDec.isGlobal()
