@@ -2,7 +2,7 @@ package org.sosy_lab.cpachecker.cpa.automaton.instruments;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
+
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.InvertableState;
@@ -17,6 +17,6 @@ public class InvertingTransferRelation {
     public List<AbstractState> getAbstractSuccessorsForEdge(TransferRelation p) throws CPATransferException, InterruptedException {
      Collection<? extends AbstractState> result = p.getAbstractSuccessorsForEdge(null, null, null);
      assert result.stream().allMatch(a -> a instanceof InvertableState);
-     return result.stream().map(InvertableState.class::cast).map(InvertableState::flip).collect(Collectors.toList());
+     return result.stream().map(InvertableState.class::cast).map(InvertableState::flip).toList();
   }
 }
