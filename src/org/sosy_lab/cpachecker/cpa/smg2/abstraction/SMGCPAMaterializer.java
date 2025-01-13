@@ -605,13 +605,14 @@ public class SMGCPAMaterializer {
 
   /**
    * Copies all values from sourceObj to newMemory. Memory of pointers copied is then also copied,
-   * except for the pointers at the offsets given in excludedOffsets. If a havok generating value is
-   * copied, a new symbolic value with the correct constraints in the state is added instead.
+   * depending on the nesting, except for the pointers at the next/prev offsets of root. If a havok
+   * generating nested value is copied, a new symbolic value with the correct constraints in the
+   * state is added instead.
    *
    * <p>This method does NOT handle pointers towards the memory copied or the original memory of the
-   * copy currently!!!!
+   * copy!!!!
    *
-   * @param root source of the values/memory copied. At least an SLL.
+   * @param root source of the values/memory copied. SLL or DLL.
    * @param newMemory target of the values/memory copied.
    * @param pState current {@link SMGState}
    * @return a new {@link SMGState} with all values copied from sourceObj to newMemory and all
@@ -634,6 +635,8 @@ public class SMGCPAMaterializer {
    * Copies all values from sourceObj to newMemory. Memory of pointers copied is then also copied,
    * except for the pointers at the offsets given in excludedOffsets. If a havok generating value is
    * copied, a new symbolic value with the correct constraints in the state is added instead.
+   * (Copied pointers point to the same memory as before and are not nested, while replicated
+   * pointers are nested and are new pointers to new memory that is itself a copy/replication etc.)
    *
    * <p>This method does NOT handle pointers towards the memory copied or the original memory of the
    * copy currently!!!!
@@ -657,119 +660,150 @@ public class SMGCPAMaterializer {
       EqualityCache<Value> replicationCache,
       Map<SMGObject, SMGObject> copiedMemory)
       throws SMGException {
+    // Initial copy to the newly created concrete list element
     SMGState currentState = pState.copyAllValuesFromObjToObj(sourceObj, newMemory);
+    // Remember what was already processed
     copiedMemory =
         ImmutableMap.<SMGObject, SMGObject>builder()
             .putAll(copiedMemory)
             .put(sourceObj, newMemory)
             .buildOrThrow();
-    // All HVEs copied
-    PersistentSet<SMGHasValueEdge> setOfValues =
+    // All HVEs except for unwanted (next/prev)
+    Set<SMGHasValueEdge> valuesWONextAndPrev =
         currentState
             .getMemoryModel()
             .getSmg()
             .getSMGObjectsWithSMGHasValueEdges()
-            .getOrDefault(sourceObj, PersistentSet.of());
-    // Filter out offsets that are unwanted, for example nfo or pfo
-    Set<SMGHasValueEdge> valuesWONextAndPrev =
-        setOfValues.stream()
+            .getOrDefault(sourceObj, PersistentSet.of())
+            .stream()
             .filter(hve -> !excludedOffsets.contains(hve.getOffset()))
             .collect(ImmutableSet.toImmutableSet());
 
-    // Now we have all values whose memory we might need to copy
+    // Now we have all values whose memory we might need to replicate
     for (SMGHasValueEdge hve : valuesWONextAndPrev) {
       BigInteger offset = hve.getOffset();
       BigInteger sizeInBits = hve.getSizeInBits();
       SMGValue smgValue = hve.hasValue();
       Optional<Value> maybeValue = currentState.getMemoryModel().getValueFromSMGValue(smgValue);
+
       if (maybeValue.isPresent() && isCopyValue(maybeValue.orElseThrow(), replicationCache)) {
         // Copy case; we already copied the value, do nothing.
         continue;
       }
 
-      // Replication cases
+      // Replication cases (Nested memory or values. Need nesting level decrement.)
       if (currentState.getMemoryModel().getSmg().isPointer(smgValue)) {
-        Value value = currentState.getMemoryModel().getValueFromSMGValue(smgValue).orElseThrow();
-        // Copy memory and insert new pointer
-        SMGStateAndOptionalSMGObjectAndOffset targetMemoryAndState =
-            currentState.dereferencePointerWithoutMaterilization(value).orElseThrow();
-        currentState = targetMemoryAndState.getSMGState();
-        SMGObject oldTargetMemory = targetMemoryAndState.getSMGObject();
-        // Copy targetMemory
-        SMGValue newSMGValueToWrite;
-        if (oldTargetMemory.isZero()) {
-          newSMGValueToWrite = SMGValue.zeroValue();
-        } else {
-          SMGObject newTarget;
-          if (copiedMemory.containsKey(oldTargetMemory)) {
-            newTarget = copiedMemory.get(oldTargetMemory);
-          } else {
-            SMGObjectAndSMGState copiedTargetMemoryAndState =
-                currentState.copyAndAddNewHeapObject(oldTargetMemory);
-            newTarget = copiedTargetMemoryAndState.getSMGObject();
-            currentState = copiedTargetMemoryAndState.getState();
-            // Now copy all values and copy all memory for pointers again recursively
-            currentState =
-                copyMemoryOfTo(
-                    oldTargetMemory,
-                    newTarget,
-                    currentState,
-                    ImmutableSet.of(),
-                    replicationCache,
-                    copiedMemory);
-          }
-          // Create a new pointer to the new memory that is equal to the old and save in newConcrete
-          CType ptrType = currentState.getMemoryModel().getTypeForValue(smgValue);
-          SMGPointsToEdge oldPTE =
-              currentState.getMemoryModel().getSmg().getPTEdge(smgValue).orElseThrow();
-          Value oldOffset = oldPTE.getOffset();
-          Preconditions.checkArgument(
-              targetMemoryAndState
-                  .getOffsetForObject()
-                  .asNumericValue()
-                  .bigIntegerValue()
-                  .equals(oldOffset.asNumericValue().bigIntegerValue()));
-          int oldPtrNestingLvl = currentState.getMemoryModel().getNestingLevel(value);
-          SMGTargetSpecifier oldPtrTargetSpec = oldPTE.targetSpecifier();
-          if (!(newTarget instanceof SMGSinglyLinkedListSegment)) {
-            // The pointer is still in all mode, reset it to region
-            oldPtrNestingLvl = 0;
-            oldPtrTargetSpec = SMGTargetSpecifier.IS_REGION;
-          }
-          ValueAndSMGState newPtrAndState =
-              currentState.searchOrCreateAddress(
-                  newTarget, ptrType, oldOffset, oldPtrNestingLvl, oldPtrTargetSpec);
-          currentState = newPtrAndState.getState();
-          Value newPtr = newPtrAndState.getValue();
-          newSMGValueToWrite =
-              currentState.getMemoryModel().getSMGValueFromValue(newPtr).orElseThrow();
-        }
         currentState =
-            currentState.writeValueWithoutChecks(newMemory, offset, sizeInBits, newSMGValueToWrite);
+            replicatePointerWithSubSMG(
+                newMemory,
+                replicationCache,
+                copiedMemory,
+                currentState,
+                smgValue,
+                offset,
+                sizeInBits);
 
       } else if (maybeValue.isPresent()
           && maybeValue.orElseThrow() instanceof SymbolicExpression
           && maybeValue.orElseThrow() instanceof ConstantSymbolicExpression constExpr
           && constExpr.getValue() instanceof SymbolicIdentifier) {
-        Value value = maybeValue.orElseThrow();
-        CType ptrType = currentState.getMemoryModel().getTypeForValue(value);
-        boolean valueHasConstraints = currentState.valueContainedInConstraints(value);
-        // TODO: replace with getting the constraints and copying them for a new sym expr
-        if (valueHasConstraints) {
-          throw new SMGException(
-              "Could not copy constraints on symbolic value when materializing a list.");
-        }
 
-        // Create symbolic value with the same type as the one above and save in the SMG
-        Value newSymbolicValue = currentState.getNewSymbolicValue(value);
-        SMGValueAndSMGState valueAndState = currentState.copyAndAddValue(newSymbolicValue, ptrType);
-        SMGValue smgValueOfNewSym = valueAndState.getSMGValue();
-        currentState = valueAndState.getSMGState();
         currentState =
-            currentState.writeValueWithoutChecks(newMemory, offset, sizeInBits, smgValueOfNewSym);
+            replicateNestedNonPointerValue(newMemory, maybeValue, currentState, offset, sizeInBits);
       }
     }
     return currentState;
+  }
+
+  private SMGState replicatePointerWithSubSMG(
+      SMGObject currentMemory,
+      EqualityCache<Value> replicationCache,
+      Map<SMGObject, SMGObject> alreadyCopiedMemory,
+      SMGState currentState,
+      SMGValue smgValue,
+      BigInteger offsetOfSMGValueInCurrentMemory,
+      BigInteger sizeOfSMGValueInBits)
+      throws SMGException {
+    Value value = currentState.getMemoryModel().getValueFromSMGValue(smgValue).orElseThrow();
+    // Copy memory and insert new pointer
+    SMGStateAndOptionalSMGObjectAndOffset targetMemoryAndState =
+        currentState.dereferencePointerWithoutMaterilization(value).orElseThrow();
+    currentState = targetMemoryAndState.getSMGState();
+    SMGObject oldTargetMemory = targetMemoryAndState.getSMGObject();
+    // Copy targetMemory
+    SMGValue newSMGValueToWrite;
+    if (oldTargetMemory.isZero()) {
+      newSMGValueToWrite = SMGValue.zeroValue();
+    } else {
+      SMGObject newTarget;
+      if (alreadyCopiedMemory.containsKey(oldTargetMemory)) {
+        newTarget = alreadyCopiedMemory.get(oldTargetMemory);
+      } else {
+        SMGObjectAndSMGState copiedTargetMemoryAndState =
+            currentState.copyAndAddNewHeapObject(oldTargetMemory);
+        newTarget = copiedTargetMemoryAndState.getSMGObject();
+        currentState = copiedTargetMemoryAndState.getState();
+        // Now copy all values and copy all memory for pointers again recursively
+        currentState =
+            copyMemoryOfTo(
+                oldTargetMemory,
+                newTarget,
+                currentState,
+                ImmutableSet.of(),
+                replicationCache,
+                alreadyCopiedMemory);
+      }
+      // Create a new pointer to the new memory that is equal to the old and save in newConcrete
+      CType ptrType = currentState.getMemoryModel().getTypeForValue(smgValue);
+      SMGPointsToEdge oldPTE =
+          currentState.getMemoryModel().getSmg().getPTEdge(smgValue).orElseThrow();
+      Value oldOffset = oldPTE.getOffset();
+      Preconditions.checkArgument(
+          targetMemoryAndState
+              .getOffsetForObject()
+              .asNumericValue()
+              .bigIntegerValue()
+              .equals(oldOffset.asNumericValue().bigIntegerValue()));
+      int oldPtrNestingLvl = currentState.getMemoryModel().getNestingLevel(value);
+      SMGTargetSpecifier oldPtrTargetSpec = oldPTE.targetSpecifier();
+      if (!(newTarget instanceof SMGSinglyLinkedListSegment)) {
+        // The pointer is still in all mode, reset it to region
+        oldPtrNestingLvl = 0;
+        oldPtrTargetSpec = SMGTargetSpecifier.IS_REGION;
+      }
+      ValueAndSMGState newPtrAndState =
+          currentState.searchOrCreateAddress(
+              newTarget, ptrType, oldOffset, oldPtrNestingLvl, oldPtrTargetSpec);
+      currentState = newPtrAndState.getState();
+      Value newPtr = newPtrAndState.getValue();
+      newSMGValueToWrite = currentState.getMemoryModel().getSMGValueFromValue(newPtr).orElseThrow();
+    }
+    return currentState.writeValueWithoutChecks(
+        currentMemory, offsetOfSMGValueInCurrentMemory, sizeOfSMGValueInBits, newSMGValueToWrite);
+  }
+
+  private SMGState replicateNestedNonPointerValue(
+      SMGObject newMemory,
+      Optional<Value> maybeValue,
+      SMGState currentState,
+      BigInteger offset,
+      BigInteger sizeInBits)
+      throws SMGException {
+    Value value = maybeValue.orElseThrow();
+    CType valueType = currentState.getMemoryModel().getTypeForValue(value);
+
+    // TODO: replace with getting the constraints and copying them for a new sym expr
+    if (currentState.valueContainedInConstraints(value)) {
+      throw new SMGException(
+          "Could not copy constraints on symbolic value when materializing a list.");
+    }
+
+    // Create symbolic value with the same type as the one above and save in the SMG
+    Value newSymbolicValue = currentState.getNewSymbolicValue(value);
+    SMGValueAndSMGState valueAndState = currentState.copyAndAddValue(newSymbolicValue, valueType);
+    SMGValue smgValueOfNewSym = valueAndState.getSMGValue();
+    currentState = valueAndState.getSMGState();
+    return currentState.writeValueWithoutChecks(newMemory, offset, sizeInBits, smgValueOfNewSym);
   }
 
   /**
