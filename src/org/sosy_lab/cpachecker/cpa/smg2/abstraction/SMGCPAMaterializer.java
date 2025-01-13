@@ -621,6 +621,7 @@ public class SMGCPAMaterializer {
    */
   private SMGState copySubSMGRootedAt(
       SMGSinglyLinkedListSegment root, SMGObject newMemory, SMGState pState) throws SMGException {
+    Preconditions.checkState(newMemory.getNestingLevel() >= 0);
     // Add all values. next/prev pointer is wrong here, depending on left/right sided
     // materialization! We write this later in the materialization.
     // If one of those is a pointer, we copy the pointer and memory structure
@@ -629,7 +630,13 @@ public class SMGCPAMaterializer {
       excludedOffsets = ImmutableSet.of(dllListSeg.getNextOffset(), dllListSeg.getPrevOffset());
     }
     return copyMemoryOfTo(
-        root, newMemory, pState, excludedOffsets, root.getRelevantEqualities(), new HashMap<>());
+        root,
+        newMemory,
+        pState,
+        excludedOffsets,
+        root.getRelevantEqualities(),
+        new HashMap<>(),
+        newMemory);
   }
 
   /**
@@ -659,7 +666,8 @@ public class SMGCPAMaterializer {
       SMGState pState,
       Set<BigInteger> excludedOffsets,
       EqualityCache<Value> replicationCache,
-      Map<SMGNode, SMGNode> copiedMemoryCache)
+      Map<SMGNode, SMGNode> copiedMemoryCache,
+      SMGObject parentMaterialized)
       throws SMGException {
     // Initial copy to the newly created memory
     SMGState currentState = pState.copyAllValuesFromObjToObj(sourceObj, newMemory);
@@ -698,7 +706,8 @@ public class SMGCPAMaterializer {
                 currentState,
                 smgValue,
                 offset,
-                sizeInBits);
+                sizeInBits,
+                parentMaterialized);
 
       } else if (maybeValue.isPresent()
           && maybeValue.orElseThrow() instanceof SymbolicExpression
@@ -713,7 +722,8 @@ public class SMGCPAMaterializer {
                 currentState,
                 offset,
                 sizeInBits,
-                copiedMemoryCache);
+                copiedMemoryCache,
+                parentMaterialized);
       }
     }
     return currentState;
@@ -726,7 +736,8 @@ public class SMGCPAMaterializer {
       SMGState currentState,
       SMGValue smgValue,
       BigInteger offsetOfSMGValueInCurrentMemory,
-      BigInteger sizeOfSMGValueInBits)
+      BigInteger sizeOfSMGValueInBits,
+      SMGObject parentMaterialized)
       throws SMGException {
     Value value = currentState.getMemoryModel().getValueFromSMGValue(smgValue).orElseThrow();
     // Copy memory and insert new pointer
@@ -743,8 +754,12 @@ public class SMGCPAMaterializer {
       if (alreadyCopiedMemory.containsKey(oldTargetMemory)) {
         newTarget = (SMGObject) alreadyCopiedMemory.get(oldTargetMemory);
       } else {
+        int oldTargetMemNestingLvl = oldTargetMemory.getNestingLevel();
+        int parentNestingLevel = parentMaterialized.getNestingLevel();
+        Preconditions.checkState(parentNestingLevel < oldTargetMemNestingLvl);
+
         SMGObjectAndSMGState copiedTargetMemoryAndState =
-            currentState.copyAndAddNewHeapObject(oldTargetMemory);
+            currentState.copyAndAddNewHeapObject(oldTargetMemory, oldTargetMemNestingLvl - 1);
         newTarget = copiedTargetMemoryAndState.getSMGObject();
         currentState = copiedTargetMemoryAndState.getState();
         // Now copy all values and copy all memory for pointers again recursively
@@ -756,7 +771,8 @@ public class SMGCPAMaterializer {
                 currentState,
                 ImmutableSet.of(),
                 replicationCache,
-                alreadyCopiedMemory);
+                alreadyCopiedMemory,
+                parentMaterialized);
       }
       // Create a new pointer to the new memory that is equal to the old and save in newConcrete
       CType ptrType = currentState.getMemoryModel().getTypeForValue(smgValue);
@@ -794,7 +810,8 @@ public class SMGCPAMaterializer {
       SMGState currentState,
       BigInteger offset,
       BigInteger sizeInBits,
-      Map<SMGNode, SMGNode> copiedMemoryCache)
+      Map<SMGNode, SMGNode> copiedMemoryCache,
+      SMGObject parentMaterialized)
       throws SMGException {
     CType valueType = currentState.getMemoryModel().getTypeForValue(oldValue);
 
@@ -809,14 +826,11 @@ public class SMGCPAMaterializer {
       smgValueOfNewSym = (SMGValue) copiedMemoryCache.get(oldSMGValue);
     } else {
       // Create symbolic value with the same type as the one above and save in the SMG
-      int currentMemoryNestingLevel = newMemory.getNestingLevel();
       int oldValueNestingLevel = currentState.getMemoryModel().getNestingLevel(oldValue);
+      Preconditions.checkState(parentMaterialized.getNestingLevel() < oldValueNestingLevel);
       Value newSymbolicValue = currentState.getNewSymbolicValue(oldValue);
       SMGValueAndSMGState valueAndState =
-          currentState.copyAndAddValue(
-              newSymbolicValue,
-              valueType,
-              Integer.max(currentMemoryNestingLevel, oldValueNestingLevel - 1));
+          currentState.copyAndAddValue(newSymbolicValue, valueType, oldValueNestingLevel - 1);
       smgValueOfNewSym = valueAndState.getSMGValue();
       currentState = valueAndState.getSMGState();
       copiedMemoryCache.put(oldSMGValue, smgValueOfNewSym);

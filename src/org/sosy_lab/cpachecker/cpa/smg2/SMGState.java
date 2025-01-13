@@ -932,28 +932,14 @@ public class SMGState
    * @param objectToCopy The object copied. Size, type, nfo, pfo etc. are all copied.
    * @return Newly created object + state with it.
    */
-  public SMGObjectAndSMGState copyAndAddNewHeapObject(SMGObject objectToCopy) {
-    SMGObject newObject;
-    if (objectToCopy instanceof SMGSinglyLinkedListSegment sllToCopy) {
-      if (objectToCopy instanceof SMGDoublyLinkedListSegment dllToCopy) {
-        // DLL
-        newObject = SMGDoublyLinkedListSegment.of(dllToCopy);
-      } else {
-        // SLL
-        Preconditions.checkArgument(sllToCopy.isSLL());
-        newObject = SMGSinglyLinkedListSegment.of(sllToCopy);
-      }
-    } else {
-      Preconditions.checkArgument(!(objectToCopy instanceof SMGSinglyLinkedListSegment));
-      newObject =
-          SMGObject.of(
-              objectToCopy.getNestingLevel(), objectToCopy.getSize(), objectToCopy.getOffset());
-      if (!memoryModel.isObjectValid(objectToCopy)) {
-        return SMGObjectAndSMGState.of(
-            newObject,
-            copyAndReplaceMemoryModel(
-                memoryModel.copyAndAddHeapObject(newObject).invalidateSMGObject(newObject, false)));
-      }
+  public SMGObjectAndSMGState copyAndAddNewHeapObject(SMGObject objectToCopy, int newNestingLevel) {
+    SMGObject newObject = objectToCopy.freshCopy().copyWithNewNestingLevel(newNestingLevel);
+    Preconditions.checkState(newObject.getClass() == objectToCopy.getClass());
+    if (!memoryModel.isObjectValid(objectToCopy)) {
+      return SMGObjectAndSMGState.of(
+          newObject,
+          copyAndReplaceMemoryModel(
+              memoryModel.copyAndAddHeapObject(newObject).invalidateSMGObject(newObject, false)));
     }
     return SMGObjectAndSMGState.of(
         newObject, copyAndReplaceMemoryModel(memoryModel.copyAndAddHeapObject(newObject)));
