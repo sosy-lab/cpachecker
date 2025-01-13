@@ -74,8 +74,10 @@ public class SMG {
   // The bool is the validity of the SMGObject, not being in the map -> not valid (false)
   private final PersistentMap<SMGObject, Boolean> smgObjects;
 
-  // TODO: we use the nesting level only for pointers at the moment
-  //  (as we don't merge) -> move to points-to-edges
+  // Nesting level is used to determine how memory is materialized out of abstracted memory.
+  // E.g. a value/object with a level higher than its parent is materialized into a fresh copy. A
+  // value/object with the same nesting level as the parent is simply copied, i.e. a pointer points
+  // to the same memory as before.
   private final PersistentMap<SMGValue, Integer> smgValuesAndNestingLvl;
   private final PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> hasValueEdges;
   private final PersistentMap<SMGValue, PersistentMap<SMGObject, Integer>>
@@ -126,18 +128,6 @@ public class SMG {
     pointsToEdges = pPointsToEdges;
     sizeOfPointer = pSizeOfPointer;
     objectsAndPointersPointingAtThem = pObjectsAndPointersPointingAtThem;
-  }
-
-  private SMG copyWithNewValuesAndNestingLvl(
-      PersistentMap<SMGValue, Integer> pSMGValuesAndNestingLvl) {
-    return new SMG(
-        smgObjects,
-        pSMGValuesAndNestingLvl,
-        hasValueEdges,
-        valuesToRegionsTheyAreSavedIn,
-        pointsToEdges,
-        objectsAndPointersPointingAtThem,
-        sizeOfPointer);
   }
 
   private SMG of(ImmutableMap<SMGValue, SMGPointsToEdge> pPointsToEdges) {

@@ -690,19 +690,26 @@ public class SMGCPAMaterializer {
       BigInteger sizeInBits = hve.getSizeInBits();
       SMGValue smgValue = hve.hasValue();
       Optional<Value> maybeValue = currentState.getMemoryModel().getValueFromSMGValue(smgValue);
+      Preconditions.checkState(maybeValue.isPresent());
 
-      if (maybeValue.isPresent() && isCopyValue(maybeValue.orElseThrow(), replicationCache)) {
+      if (currentState.getMemoryModel().getNestingLevel(smgValue)
+          == parentMaterialized.getNestingLevel()) {
+        // TODO: isCopyValue() is legacy, remove once safely refactored using only the nesting lvl!
+        assert isCopyValue(maybeValue.orElseThrow(), replicationCache);
         // Copy case; we already copied the value, do nothing.
         continue;
       }
+      Preconditions.checkState(
+          currentState.getMemoryModel().getNestingLevel(smgValue)
+              > parentMaterialized.getNestingLevel());
 
       // Replication cases (Nested memory or values. Need nesting level decrement.)
       if (currentState.getMemoryModel().getSmg().isPointer(smgValue)) {
         currentState =
             replicatePointerWithSubSMG(
                 newMemory,
-                replicationCache,
                 copiedMemoryCache,
+                replicationCache,
                 currentState,
                 smgValue,
                 offset,
@@ -731,8 +738,8 @@ public class SMGCPAMaterializer {
 
   private SMGState replicatePointerWithSubSMG(
       SMGObject currentMemory,
-      EqualityCache<Value> replicationCache,
       Map<SMGNode, SMGNode> alreadyCopiedMemory,
+      EqualityCache<Value> replicationCache,
       SMGState currentState,
       SMGValue smgValue,
       BigInteger offsetOfSMGValueInCurrentMemory,
