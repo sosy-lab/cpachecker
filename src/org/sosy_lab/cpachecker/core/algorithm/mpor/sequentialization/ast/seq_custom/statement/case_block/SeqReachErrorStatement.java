@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import java.util.Optional;
-import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
@@ -31,9 +30,9 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
     return Optional.empty();
   }
 
-  @Nonnull
+  @NonNull
   @Override
-  public @NonNull SeqReachErrorStatement cloneWithTargetPc(int pTargetPc) {
+  public SeqReachErrorStatement cloneWithTargetPc(int pTargetPc) {
     throw new UnsupportedOperationException("SeqReachErrorStatements do not have targetPcs");
   }
 

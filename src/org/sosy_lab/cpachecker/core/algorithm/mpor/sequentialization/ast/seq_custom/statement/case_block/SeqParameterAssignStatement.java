@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Optional;
-import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
@@ -63,9 +62,9 @@ public class SeqParameterAssignStatement implements SeqCaseBlockStatement {
     return targetPc;
   }
 
-  @Nonnull
+  @NonNull
   @Override
-  public @NonNull SeqParameterAssignStatement cloneWithTargetPc(int pTargetPc) {
+  public SeqParameterAssignStatement cloneWithTargetPc(int pTargetPc) {
     checkArgument(targetPc.isPresent(), "cannot replace empty targetPc");
     return new SeqParameterAssignStatement(assign, threadId, Optional.of(pTargetPc));
   }

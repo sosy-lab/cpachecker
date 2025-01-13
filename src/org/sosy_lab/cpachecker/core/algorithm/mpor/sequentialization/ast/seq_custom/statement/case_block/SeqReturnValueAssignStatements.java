@@ -99,9 +99,9 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
     return Optional.of(targetPc);
   }
 
-  @Nonnull
+  @NonNull
   @Override
-  public @NonNull SeqReturnValueAssignStatements cloneWithTargetPc(int pTargetPc) {
+  public SeqReturnValueAssignStatements cloneWithTargetPc(int pTargetPc) {
     return new SeqReturnValueAssignStatements(returnPc, assigns, threadId, pTargetPc);
   }
 
