@@ -2093,7 +2093,6 @@ public class SMG {
     return newSMG;
   }
 
-  // Needed for tests only
   public SMG replaceSMGValueNestingLevel(SMGValue value, int newNestingLevel) {
     Preconditions.checkArgument(newNestingLevel >= 0);
     // We only change the nesting level, all values are the same

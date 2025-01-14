@@ -3048,7 +3048,6 @@ public class SymbolicProgramConfiguration {
         unreachableObjects);
   }
 
-  // For tests only
   public SymbolicProgramConfiguration replaceSMGValueNestingLevel(SMGValue value, int newLevel) {
     return copyAndReplaceSMG(smg.replaceSMGValueNestingLevel(value, newLevel));
   }
