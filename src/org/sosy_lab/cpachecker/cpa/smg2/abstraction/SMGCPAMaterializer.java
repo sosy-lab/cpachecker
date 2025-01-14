@@ -692,7 +692,9 @@ public class SMGCPAMaterializer {
       Optional<Value> maybeValue = currentState.getMemoryModel().getValueFromSMGValue(smgValue);
       Preconditions.checkState(maybeValue.isPresent());
 
-      if (currentState.getMemoryModel().getNestingLevel(smgValue)
+      if (maybeValue.orElseThrow().isNumericValue()) {
+        continue;
+      } else if (currentState.getMemoryModel().getNestingLevel(smgValue)
           == parentMaterialized.getNestingLevel()) {
         // TODO: isCopyValue() is legacy, remove once safely refactored using only the nesting lvl!
         assert isCopyValue(maybeValue.orElseThrow(), replicationCache);
