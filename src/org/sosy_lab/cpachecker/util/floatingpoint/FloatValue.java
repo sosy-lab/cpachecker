@@ -104,7 +104,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  *     Floating-Point Arithmetic (12.1.1 The Table Maker’s Dilemma, 12.4.1 Lindemann’s theorem,
  *     11.6.3 Rounding test)</a>
  */
-public class FloatValue extends Number implements Comparable<FloatValue> {
+public final class FloatValue extends Number implements Comparable<FloatValue> {
   @Serial private static final long serialVersionUID = 293351032085106407L;
 
   /**
