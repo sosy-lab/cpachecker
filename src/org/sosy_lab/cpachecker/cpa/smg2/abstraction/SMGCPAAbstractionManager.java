@@ -145,7 +145,8 @@ public class SMGCPAAbstractionManager {
                   candidate.getSuspectedNfoTargetOffset(),
                   candidate.getSuspectedPfo().orElseThrow(),
                   candidate.getSuspectedPfoTargetPointerOffset().orElseThrow(),
-                  ImmutableSet.of());
+                  ImmutableSet.of(),
+                  new HashSet<>());
 
         } else {
           currentState =
@@ -153,7 +154,8 @@ public class SMGCPAAbstractionManager {
                   candidate.getObject(),
                   candidate.getSuspectedNfo(),
                   candidate.getSuspectedNfoTargetOffset(),
-                  ImmutableSet.of());
+                  ImmutableSet.of(),
+                  new HashSet<>());
         }
       }
     }
@@ -1611,11 +1613,11 @@ public class SMGCPAAbstractionManager {
       if (currentObject instanceof SMGDoublyLinkedListSegment dll
           && !offset.equals(dll.getNextOffset())
           && !offset.equals(dll.getPrevOffset())) {
-        currentMinLevel++;
+        currentMinLevel = dll.getNestingLevel();
       } else if (currentObject instanceof SMGSinglyLinkedListSegment sll
           && !offset.equals(sll.getNextOffset())
           && !(currentObject instanceof SMGDoublyLinkedListSegment)) {
-        currentMinLevel++;
+        currentMinLevel = sll.getNestingLevel();
       }
 
       if (target.isZero()) {
