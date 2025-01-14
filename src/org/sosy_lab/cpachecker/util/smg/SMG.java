@@ -2273,20 +2273,16 @@ public class SMG {
   }
 
   /**
-   * Returns the nesting level for existing SMGValues. We return accurate nesting levels only for
-   * pointers! All non-pointer nesting levels are returned as 0. (Reason: we re-use concrete and
-   * symbolic values and since they can only be changed in concrete segments, the nesting is
-   * irrelevant. We could change this to be as defined by the SMG paper by simply returning the
-   * nesting level of the object that the value is read from.)
+   * Returns the nesting level for existing SMGValues.
    *
    * <p>The nesting level is used to determine nesting and therefore materialization of abstracted
-   * memory. I.e. all nested objects are materialized such that they are copied, while non-nested
-   * objects remain. E.g. an abstracted linked-list has a pointer (not next/prev) pointing towards a
-   * memory region with nesting level equal to the abstract linked-list. When materializing, all
-   * list segments point towards the same object. If however, the nesting of the memory region would
-   * be +1 compared to the abstracted object, we create a copy of the region (sub-SMG) for every
-   * materialization. We say that the region with nesting level +1 is nested below the abstract
-   * list. There can only ever be exactly 1 abstracted object as parent.
+   * memory. I.e. all nested objects are materialized such that a fresh copy is used, while
+   * non-nested objects remain. E.g. an abstracted linked-list has a pointer (not next/prev)
+   * pointing towards a memory region with nesting level equal to the abstract linked-list. When
+   * materializing, all list segments point towards the same object. If however, the nesting of the
+   * memory region would be +1 compared to the abstracted object, we create a copy of the region
+   * (sub-SMG) for every materialization. We say that the region with nesting level +1 is nested
+   * below the abstract list. There can only ever be exactly 1 abstracted object as parent.
    *
    * @param pSMGValue the {@link SMGValue} for which the nesting level is requested.
    * @return the nesting level.
@@ -2295,7 +2291,7 @@ public class SMG {
     assert smgValuesAndNestingLvl.containsKey(pSMGValue);
     @Nullable SMGPointsToEdge pte = pointsToEdges.get(pSMGValue);
     if (pte == null) {
-      return 0;
+      return smgValuesAndNestingLvl.getOrDefault(pSMGValue, 0);
     }
     if (pte.targetSpecifier().equals(SMGTargetSpecifier.IS_ALL_POINTER)) {
       assert pte.pointsTo() instanceof SMGSinglyLinkedListSegment;
