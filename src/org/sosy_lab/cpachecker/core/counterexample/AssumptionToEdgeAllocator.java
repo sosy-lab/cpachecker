@@ -106,6 +106,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
 
 /**
  * Creates assumption along an error path based on a given {@link CFAEdge} edge and a given {@link
@@ -1460,6 +1461,16 @@ public class AssumptionToEdgeAllocator {
       return new ValueLiterals();
     }
 
+    private static boolean isSinglePrecision(FloatingPointNumber pFloatingPointNumber) {
+      return pFloatingPointNumber.getExponentSize() == 8
+          && pFloatingPointNumber.getMantissaSize() == 23;
+    }
+
+    private static boolean isDoublePrecision(FloatingPointNumber pFloatingPointNumber) {
+      return pFloatingPointNumber.getExponentSize() == 11
+          && pFloatingPointNumber.getMantissaSize() == 52;
+    }
+
     private ValueLiteral handleFloatingPointNumbers(Object pValue, CSimpleType pType) {
       if (pValue instanceof Rational rationalValue) {
         FloatValue.Format format = FloatValue.Format.fromCType(machineModel, pType);
@@ -1473,6 +1484,13 @@ public class AssumptionToEdgeAllocator {
         return ExplicitValueLiteral.valueOf(FloatValue.fromFloat(floatValue), machineModel, pType);
       } else if (pValue instanceof FloatValue floatValue) {
         return ExplicitValueLiteral.valueOf(floatValue, machineModel, pType);
+      } else if (pValue instanceof FloatingPointNumber floatingPointNumber) {
+        if (!isDoublePrecision(floatingPointNumber) && !isSinglePrecision(floatingPointNumber)) {
+          // FIXME Convert arbitrary size FloatingPointNumbers to FloatValue
+          throw new UnsupportedOperationException();
+        }
+        return ExplicitValueLiteral.valueOf(
+            FloatValue.fromDouble(floatingPointNumber.doubleValue()), machineModel, pType);
       }
       throw new UnsupportedOperationException();
     }

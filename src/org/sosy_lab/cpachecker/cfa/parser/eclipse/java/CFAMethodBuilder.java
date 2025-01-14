@@ -1253,8 +1253,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
   private void handleTernaryStatementTail(
       JAstNode exp, FileLocation fileLocation, CFANode branchNode, CFANode lastNode) {
-    CFANode nextNode;
-    nextNode = new CFANode(cfa.getFunction());
+    CFANode nextNode = new CFANode(cfa.getFunction());
     cfaNodes.add(nextNode);
 
     ConditionalExpression condExp = astCreator.getConditionalExpression();

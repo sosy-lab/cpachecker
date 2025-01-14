@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -239,6 +240,12 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
+  public FloatingPointFormula remainder(
+      FloatingPointFormula dividend, FloatingPointFormula divisor) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  }
+
+  @Override
   public BooleanFormula assignment(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     return numericFormulaManager.equal(unwrap(pNumber1), unwrap(pNumber2));
   }
@@ -345,6 +352,12 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   public FloatingPointFormula makeNumber(
       Rational n, FloatingPointType type, FloatingPointRoundingMode pFloatingPointRoundingMode) {
     return wrap(type, numericFormulaManager.makeNumber(n));
+  }
+
+  @Override
+  public FloatingPointFormula makeNumber(
+      BigInteger exponent, BigInteger mantissa, boolean signBit, FloatingPointType type) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
   }
 
   @Override

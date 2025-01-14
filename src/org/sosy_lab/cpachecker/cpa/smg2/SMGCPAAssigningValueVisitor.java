@@ -541,13 +541,15 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
   }
 
   private boolean isEqualityAssumption(BinaryOperator binaryOperator) {
-    return (binaryOperator == BinaryOperator.EQUALS && truthValue)
-        || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue);
+    return truthValue
+        ? binaryOperator == BinaryOperator.EQUALS
+        : binaryOperator == BinaryOperator.NOT_EQUALS;
   }
 
   private boolean isNonEqualityAssumption(BinaryOperator binaryOperator) {
-    return (binaryOperator == BinaryOperator.EQUALS && !truthValue)
-        || (binaryOperator == BinaryOperator.NOT_EQUALS && truthValue);
+    return truthValue
+        ? binaryOperator == BinaryOperator.NOT_EQUALS
+        : binaryOperator == BinaryOperator.EQUALS;
   }
 
   /**

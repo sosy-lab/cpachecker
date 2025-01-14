@@ -435,7 +435,9 @@ public class ConfigurationFileChecks {
           assertThat(spec).contains("specification/memorysafety.spc");
         }
       }
-    } else if (cpas.contains("cpa.smg2.SMGCPA")) {
+    } else if (cpas.contains("cpa.smg2.SMGCPA")
+        || Ascii.toLowerCase(basePath.toString()).contains("memorysafety")
+        || Ascii.toLowerCase(basePath.toString()).contains("memorycleanup")) {
       if (isSvcompConfig) {
         assertThat(spec).matches(".*specification/sv-comp-memory(cleanup|safety).spc$");
       } else {

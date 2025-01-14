@@ -165,13 +165,15 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
   }
 
   private boolean isEqualityAssumption(BinaryOperator binaryOperator) {
-    return (binaryOperator == BinaryOperator.EQUALS && truthValue)
-        || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue);
+    return truthValue
+        ? binaryOperator == BinaryOperator.EQUALS
+        : binaryOperator == BinaryOperator.NOT_EQUALS;
   }
 
   private boolean isNonEqualityAssumption(BinaryOperator binaryOperator) {
-    return (binaryOperator == BinaryOperator.EQUALS && !truthValue)
-        || (binaryOperator == BinaryOperator.NOT_EQUALS && truthValue);
+    return truthValue
+        ? binaryOperator == BinaryOperator.NOT_EQUALS
+        : binaryOperator == BinaryOperator.EQUALS;
   }
 
   @Override
@@ -187,8 +189,9 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     Value leftValueV = lVarInBinaryExp.accept(nonAssigningValueVisitor);
     Value rightValueV = rVarInBinaryExp.accept(nonAssigningValueVisitor);
 
-    if ((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue)
-        || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
+    if (truthValue
+        ? binaryOperator == JBinaryExpression.BinaryOperator.EQUALS
+        : binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS) {
 
       if (leftValueV.isUnknown()
           && rightValueV.isExplicitlyKnown()
@@ -205,8 +208,9 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     if (options.isInitAssumptionVars()) {
       // x is unknown, a binaryOperation (x!=0), true-branch: set x=1L
       // x is unknown, a binaryOperation (x==0), false-branch: set x=1L
-      if ((binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && truthValue)
-          || (binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && !truthValue)) {
+      if (truthValue
+          ? binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS
+          : binaryOperator == JBinaryExpression.BinaryOperator.EQUALS) {
 
         if (leftValueV.isUnknown()
             && rightValueV.isExplicitlyKnown()

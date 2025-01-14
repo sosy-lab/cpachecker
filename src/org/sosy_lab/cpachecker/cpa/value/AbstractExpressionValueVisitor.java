@@ -1678,13 +1678,13 @@ public abstract class AbstractExpressionValueVisitor
 
     return switch (operator) {
       case CONDITIONAL_AND,
-              LOGICAL_AND -> // we do not care about sideeffects through evaluation of the
+          LOGICAL_AND -> // we do not care about sideeffects through evaluation of the
           // righthandside at this point -
           // this must be handled
           // earlier
           BooleanValue.valueOf(lVal && rVal);
       case CONDITIONAL_OR,
-              LOGICAL_OR -> // we do not care about sideeffects through evaluation of the
+          LOGICAL_OR -> // we do not care about sideeffects through evaluation of the
           // righthandside at this point
           BooleanValue.valueOf(lVal || rVal);
       case LOGICAL_XOR -> BooleanValue.valueOf(lVal ^ rVal);

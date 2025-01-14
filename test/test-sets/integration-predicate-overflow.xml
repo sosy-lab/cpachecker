@@ -17,20 +17,36 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">2000M</option>
 
   <rundefinition>
-    <option name="--default--overflow"/>
   </rundefinition>
 
   <tasks name="Systems_BusyBox_Overflows">
     <!-- all tasks in ../programs/benchmarks assume malloc always succeeds-->
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox-NoOverflows.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     <exclude>../programs/benchmarks/busybox-1.22.0/realpath-1.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
   <tasks name="Overflows-Main">
     <!-- all tasks in ../programs/benchmarks assume malloc always succeeds-->
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <includesfile>../programs/benchmarks/NoOverflows-Main.set</includesfile>
+    <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+    <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+    <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+    <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <includesfile>../programs/benchmarks/Floats.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+    <includesfile>../programs/benchmarks/XCSP.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     <exclude>../programs/benchmarks/array-lopstr16/partial_lesser_bound.yml</exclude> <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/ldv-commit-tester/m0_sound-oss-opl3-ko--111_1a--42f9f8d-1.yml</exclude> <!-- flapping timeout -->

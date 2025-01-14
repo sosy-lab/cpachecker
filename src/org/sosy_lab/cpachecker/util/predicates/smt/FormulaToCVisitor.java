@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.function.Function;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -42,6 +43,8 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
   private boolean bvSigned = false;
 
+  private Function<String, String> variableNameConverter;
+
   private static final ImmutableSet<FunctionDeclarationKind> UNARY_OPS =
       Sets.immutableEnumSet(
           FunctionDeclarationKind.UMINUS,
@@ -63,8 +66,10 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
           FunctionDeclarationKind.BV_MUL,
           FunctionDeclarationKind.FP_MUL);
 
-  public FormulaToCVisitor(FormulaManagerView fmgr) {
+  public FormulaToCVisitor(
+      FormulaManagerView fmgr, Function<String, String> pVariableNameConverter) {
     this.fmgr = fmgr;
+    variableNameConverter = pVariableNameConverter;
   }
 
   @Override
@@ -74,7 +79,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     if (index != -1) {
       pName = pName.substring(index + 1);
     }
-    builder.append(pName);
+    builder.append(variableNameConverter.apply(pName));
     return Boolean.TRUE;
   }
 

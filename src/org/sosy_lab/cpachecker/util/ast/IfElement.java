@@ -8,18 +8,19 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+import static org.sosy_lab.cpachecker.util.ast.AstUtils.computeNodesConditionBoundaryNodes;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 
 public final class IfElement extends StatementElement {
   private final ASTElement conditionElement;
@@ -77,71 +78,17 @@ public final class IfElement extends StatementElement {
     return elseEdges;
   }
 
-  /**
-   * This method computes the nodes which are at the boundary between the condition of an if
-   * statement and the nodes inside each of the branches. This information can be used to determine
-   * which branch is being taken based only a {@link CFANode}.
-   *
-   * <p>To do this, first every node in the boundary of the condition is computed. These are all
-   * nodes which are successors of edges in the condition but not predecessors, we call these
-   * boundary condition nodes. If the then branch contains at least one node, the
-   * intersection/difference of nodes which are a predecessor of an edge in the then branch with the
-   * boundary condition nodes is taken to get the nodes between the condition and the then/else
-   * branch. If the then branch is empty, the intersection/difference of the boundary condition
-   * nodes with the nodes which are a predecessor of an edge in the else branch is taken to get the
-   * nodes between the condition and the else/then branch.
-   *
-   * <p>For example, consider the following graph for an if condition, where node 6 and 5 are the
-   * first nodes in the 'if' and 'else' branches respectively. Then the nodes at the boundary are 3
-   * and 4, where 3 is at the boundary for the 'if' branch and 4 is at the boundary to the 'else'
-   * branch.
-   *
-   * <pre>
-   *    1
-   *   / \
-   *  2---3
-   *  |   |
-   *  4   5
-   *  |
-   *  6
-   *  </pre>
-   */
-  private void computeNodesBetweenConditionAndBranches() {
-    final Set<CFANode> nodesBoundaryCondition =
-        Sets.difference(
-            transformedImmutableSetCopy(conditionElement.edges(), CFAEdge::getSuccessor),
-            transformedImmutableSetCopy(conditionElement.edges(), CFAEdge::getPredecessor));
-    final Set<CFANode> collectorNodesBetweenConditionAndElseBranch;
-    final Set<CFANode> collectorNodesBetweenConditionAndThenBranch;
+  private void computeNodesBetweenConditionAndBranches() throws BoundaryNodesComputationFailed {
+    Pair<ImmutableSet<CFANode>, ImmutableSet<CFANode>> borderElements =
+        computeNodesConditionBoundaryNodes(
+            conditionElement.edges(),
+            thenElement.edges().isEmpty() ? Optional.empty() : Optional.of(thenElement.edges()),
+            maybeElseElement.isPresent()
+                ? Optional.of(maybeElseElement.orElseThrow().edges())
+                : Optional.empty());
 
-    // TODO: Currently we over-approximate by taking both branches when there are no edges
-    //  in both branches
-    final Set<CFANode> nodesThenBranch =
-        transformedImmutableSetCopy(thenElement.edges(), CFAEdge::getPredecessor);
-
-    if (nodesThenBranch.isEmpty()) {
-      if (maybeElseElement.isPresent()) {
-        final Set<CFANode> nodesElseBranch =
-            transformedImmutableSetCopy(
-                maybeElseElement.orElseThrow().edges(), CFAEdge::getPredecessor);
-        collectorNodesBetweenConditionAndThenBranch =
-            Sets.difference(nodesBoundaryCondition, nodesElseBranch);
-        collectorNodesBetweenConditionAndElseBranch =
-            Sets.intersection(nodesBoundaryCondition, nodesElseBranch);
-      } else {
-        collectorNodesBetweenConditionAndThenBranch = nodesBoundaryCondition;
-        collectorNodesBetweenConditionAndElseBranch = nodesBoundaryCondition;
-      }
-    } else {
-      collectorNodesBetweenConditionAndThenBranch =
-          Sets.intersection(nodesBoundaryCondition, nodesThenBranch);
-      collectorNodesBetweenConditionAndElseBranch =
-          Sets.difference(nodesBoundaryCondition, nodesThenBranch);
-    }
-    nodesBetweenConditionAndElseBranch =
-        ImmutableSet.copyOf(collectorNodesBetweenConditionAndElseBranch);
-    nodesBetweenConditionAndThenBranch =
-        ImmutableSet.copyOf(collectorNodesBetweenConditionAndThenBranch);
+    nodesBetweenConditionAndThenBranch = borderElements.getFirst();
+    nodesBetweenConditionAndElseBranch = borderElements.getSecond();
   }
 
   /**
@@ -149,7 +96,8 @@ public final class IfElement extends StatementElement {
    *
    * @return the nodes between the condition and the then branch
    */
-  public ImmutableSet<CFANode> getNodesBetweenConditionAndThenBranch() {
+  public ImmutableSet<CFANode> getNodesBetweenConditionAndThenBranch()
+      throws BoundaryNodesComputationFailed {
     if (nodesBetweenConditionAndThenBranch == null) {
       computeNodesBetweenConditionAndBranches();
     }
@@ -161,11 +109,16 @@ public final class IfElement extends StatementElement {
    *
    * @return the nodes between the condition and the else branch
    */
-  public ImmutableSet<CFANode> getNodesBetweenConditionAndElseBranch() {
+  public ImmutableSet<CFANode> getNodesBetweenConditionAndElseBranch()
+      throws BoundaryNodesComputationFailed {
     if (nodesBetweenConditionAndElseBranch == null) {
       computeNodesBetweenConditionAndBranches();
     }
     return nodesBetweenConditionAndElseBranch;
+  }
+
+  public FluentIterable<CFANode> getConditionNodes() {
+    return FluentIterable.from(conditionElement.edges()).transformAndConcat(CFAUtils::nodes);
   }
 
   private ImmutableSet<CFAEdge> findThenEdges() {

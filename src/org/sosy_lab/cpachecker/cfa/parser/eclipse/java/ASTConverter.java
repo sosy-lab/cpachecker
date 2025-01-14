@@ -1427,9 +1427,7 @@ class ASTConverter {
         fullName);
     Set<ImportDeclaration> importDeclarations = getImportDeclarations(pCIC);
 
-    Optional<Constructor<?>> constructorOptional;
-
-    constructorOptional =
+    Optional<Constructor<?>> constructorOptional =
         matchConstructor(pCIC.getType().toString(), pCIC.arguments(), importDeclarations);
 
     if (constructorOptional.isPresent()) {

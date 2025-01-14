@@ -121,7 +121,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--predicateAnalysis-bam"/>
     <option name="--option">analysis.checkCounterexamples=true</option>
     <option name="--option">counterexample.checker=CBMC</option>
-    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
     <exclude reason="timeout">../programs/benchmarks/openssl/s3_srvr.blast.1*</exclude>
     <exclude reason="partial set only">../programs/benchmarks/ntdrivers/*</exclude>
     <exclude reason="partial set only">../programs/benchmarks/openssl/*</exclude>
@@ -132,7 +132,8 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
   <tasks>
     <option name="--predicateAnalysis-bam"/>
-    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
     <!-- exclude tasks from Forester set -->
     <exclude>../programs/benchmarks/forester-heap/*</exclude>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
@@ -141,7 +142,8 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--predicateAnalysis-bam"/>
     <option name="--option">analysis.checkCounterexamples=true</option>
     <option name="--option">counterexample.checker=CBMC</option>
-    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
     <exclude>../programs/benchmarks/loop-invgen/*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/loop-lit/*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/loop-new/*</exclude> <!-- mostly timeout -->
@@ -152,7 +154,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
   <tasks>
     <option name="--predicateAnalysis-bam"/>
-    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/*lcr-var*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced//pals_floodmax.4.4.ufo.UNBOUNDED.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
@@ -174,7 +176,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--skip-recursion"/>
     <option name="--option">analysis.checkCounterexamples=true</option>
     <option name="--option">counterexample.checker=CBMC</option>
-    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <!-- exclude some files that are nearly identical in complexity and runtime, some of them are timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-*</exclude>

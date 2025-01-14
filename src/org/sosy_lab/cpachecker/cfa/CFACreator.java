@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.AtExitTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
@@ -314,7 +315,8 @@ public class CFACreator {
       Please note that a method has to be given in the following notation:
       <ClassName>_<MethodName>_<ParameterTypes>.
       Example: pack1.Car_drive_int_Car
-      for the method drive(int speed, Car car) in the class Car.""";
+      for the method drive(int speed, Car car) in the class Car.
+      """;
 
   private static class CFACreatorStatistics implements Statistics {
 
@@ -688,9 +690,7 @@ public class CFACreator {
    */
   private ParseResult parseToCFAs(final String program)
       throws ParserException, InterruptedException {
-    final ParseResult parseResult;
-
-    parseResult = parser.parseString(Path.of("test"), program);
+    final ParseResult parseResult = parser.parseString(Path.of("test"), program);
     if (parseResult.isEmpty()) {
       switch (language) {
         case JAVA:
@@ -765,6 +765,12 @@ public class CFACreator {
       ExpandFunctionPointerArrayAssignments transformer =
           new ExpandFunctionPointerArrayAssignments(logger);
       transformer.replaceFunctionPointerArrayAssignments(cfa);
+    }
+
+    // add atexit handlers
+    if (language == Language.C) {
+      AtExitTransformer atExitTransformer = new AtExitTransformer(cfa, logger, config);
+      atExitTransformer.transformIfNeeded();
     }
 
     // add function pointer edges

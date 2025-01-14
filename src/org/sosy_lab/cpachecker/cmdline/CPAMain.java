@@ -176,7 +176,8 @@ public class CPAMain {
     }
 
     // We want to print the statistics completely now that we have come so far,
-    // so we disable all the limits, shutdown hooks, etc.
+    // so we disable all the limits, shutdown requests on Ctrl+C, etc.
+    // The shutdownHook still runs and blocks JVM exit until we finish.
     shutdownHook.disableShutdownRequests();
     shutdownNotifier.unregister(forcedExitOnShutdown);
     ForceTerminationOnShutdown.cancelPendingTermination();
@@ -192,6 +193,20 @@ public class CPAMain {
     System.out.flush();
     System.err.flush();
     logManager.flush();
+
+    // Now the shutdownHook should not prevent JVM exit anymore.
+    shutdownHook.disableAndStop();
+
+    String otherThreads = ForceTerminationOnShutdown.buildLiveThreadInfo();
+    if (!otherThreads.isEmpty()) {
+      logManager.log(
+          Level.WARNING,
+          "\nCPAchecker has finished but some threads are still running:\n",
+          otherThreads);
+    }
+
+    // If other threads are running, simply ending the main thread will not work, but exit does.
+    System.exit(0);
   }
 
   // Default values for options from external libraries
@@ -259,7 +274,7 @@ public class CPAMain {
 
   @VisibleForTesting
   @Options
-  protected static class MainOptions {
+  public static class MainOptions {
     @Option(
         secure = true,
         name = "analysis.programNames",
@@ -618,7 +633,7 @@ public class CPAMain {
   }
 
   @Options
-  private static class WitnessOptions {
+  public static class WitnessOptions {
     @Option(
         secure = true,
         name = "witness.validation.file",
@@ -657,9 +672,21 @@ public class CPAMain {
     private boolean useACSLAnnotatedProgram = false;
   }
 
-  private static Configuration handleWitnessOptions(
+  /**
+   * Read witness file if present, switch to appropriate config and adjust cmdline options.
+   *
+   * @param config the CPAchecker configuration
+   * @param overrideOptions additional options to override the ones possibly in config
+   * @param configFileName the name of the file which was the source of the config
+   * @return a new configuration where the witness options have been processed
+   * @throws InvalidConfigurationException if the witness cannot be parsed or is unsupported
+   */
+  public static Configuration handleWitnessOptions(
       Configuration config, Map<String, String> overrideOptions, Optional<String> configFileName)
-      throws InvalidConfigurationException, IOException, InterruptedException {
+      throws InvalidConfigurationException,
+          IOException,
+          InterruptedException,
+          InvalidCmdlineArgumentException {
     WitnessOptions options = new WitnessOptions();
     config.inject(options);
     if (options.witness == null) {
@@ -669,6 +696,12 @@ public class CPAMain {
     final Path validationConfigFile;
     if (options.useACSLAnnotatedProgram) {
       validationConfigFile = options.correctnessWitnessValidationConfig;
+      if (validationConfigFile == null) {
+        throw new InvalidConfigurationException(
+            "Validating an ACSL annotated program is not supported if option"
+                + " witness.validation.correctness.config is not specified.");
+      }
+
       appendWitnessToSpecificationOption(options, overrideOptions);
     } else {
       WitnessType witnessType;
@@ -700,10 +733,47 @@ public class CPAMain {
       switch (witnessType) {
         case VIOLATION_WITNESS:
           validationConfigFile = options.violationWitnessValidationConfig;
+
+          if (validationConfigFile == null) {
+            throw new InvalidConfigurationException(
+                "Validating violation witnesses is not supported if option"
+                    + " witness.validation.violation.config is not specified.");
+          }
+
           appendWitnessToSpecificationOption(options, overrideOptions);
           break;
         case CORRECTNESS_WITNESS:
           validationConfigFile = options.correctnessWitnessValidationConfig;
+          if (validationConfigFile == null) {
+            throw new InvalidConfigurationException(
+                "Validating correctness witnesses is not supported if option"
+                    + " witness.validation.correctness.config is not specified.");
+          }
+
+          // Some options relevant to the further processing, in particular
+          // `validateInvariantsSpecificationAutomaton` are only present in the sub-config for the
+          // relevant specification. For `validateInvariantsSpecificationAutomaton` this is
+          // the configuration for the no-overflow specification.
+          //
+          // To fix this, we first need to read the configuration file for validation.
+          // Then use it to create the configuration for the correct specification.
+          // Finally, we inject the options from the correct specification into the main options.
+          // This way, the correct options are available for the rest of the program.
+          //
+          // This is not the best solution, but I'm unsure how to do this without a major
+          // refactoring of the options handling.
+          Configuration validationConfig =
+              Configuration.builder().loadFromFile(validationConfigFile).build();
+
+          BootstrapOptions bootstrapOptions = new BootstrapOptions();
+          validationConfig.inject(bootstrapOptions);
+          Configuration correctnessWitnessConfig =
+              handlePropertyOptions(
+                  validationConfig,
+                  bootstrapOptions,
+                  overrideOptions,
+                  handlePropertyFile(overrideOptions));
+          correctnessWitnessConfig.inject(options);
           if (options.validateInvariantsSpecificationAutomaton) {
             appendWitnessToSpecificationOption(options, overrideOptions);
           } else {
@@ -722,11 +792,6 @@ public class CPAMain {
       }
     }
 
-    if (validationConfigFile == null) {
-      throw new InvalidConfigurationException(
-          "Validating (violation|correctness) witnesses is not supported if option"
-              + " witness.validation.(violation|correctness).config is not specified.");
-    }
     ConfigurationBuilder configBuilder =
         Configuration.builder()
             .loadFromFile(validationConfigFile)
