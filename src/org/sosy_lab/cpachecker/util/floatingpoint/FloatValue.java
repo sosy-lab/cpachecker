@@ -1649,16 +1649,12 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     // Initial value (0.5 will always converge)
     FloatValue x = oneHalf;
 
-    boolean done = false;
     List<FloatValue> partial = new ArrayList<>();
-    while (!done) {
+    do {
       partial.add(x);
       // x_n+1 = x_n * (3/2 - 1/2 * f * x_n^2)
       x = x.multiply(threeHalves.subtract(oneHalf.multiply(f).multiply(x.squared())));
-
-      // Abort once we have enough precision
-      done = partial.contains(x);
-    }
+    } while (!partial.contains(x));
 
     // Multiply the inverse square root with f again to get the square root itself.
     x = x.multiply(f);
