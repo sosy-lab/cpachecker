@@ -1009,6 +1009,24 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
 
       // Abstracted complete list
       Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength, false);
+
+      stackObjAndState = currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+      currentState = stackObjAndState.getState();
+      stackObj = stackObjAndState.getSMGObject();
+      currentState = currentState.copyAndAddDummyStackFrame();
+      currentState =
+          currentState.copyAndAddLocalVariable(
+              stackObjAndState.getSMGObject(), "var2", CPointerType.POINTER_TO_VOID);
+      currentState =
+          currentState.writeValueWithoutChecks(
+              stackObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(pointersAbstractedList[0])
+                  .orElseThrow());
+
       addSubListsToList(listLength, pointersAbstractedList, false, false);
       absFinder = new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
@@ -1020,6 +1038,24 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
 
       // Concrete complete list
       Value[] pointersOtherList = buildConcreteList(false, sllSize, listLength, false);
+
+      stackObjAndState = currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+      currentState = stackObjAndState.getState();
+      stackObj = stackObjAndState.getSMGObject();
+      currentState = currentState.copyAndAddDummyStackFrame();
+      currentState =
+          currentState.copyAndAddLocalVariable(
+              stackObjAndState.getSMGObject(), "var3", CPointerType.POINTER_TO_VOID);
+      currentState =
+          currentState.writeValueWithoutChecks(
+              stackObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(pointersOtherList[0])
+                  .orElseThrow());
+
       addSubListsToList(listLength, pointersOtherList, false, false);
       absFinder = new SMGCPAAbstractionManager(currentState, listLength, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
@@ -1117,8 +1153,25 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       assertThat(notAbstractedListDifferentObj instanceof SMGSinglyLinkedListSegment).isFalse();
 
       // Abstracted complete list
-      Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength);
-      addSubListsToList(listLength, pointersAbstractedList, false);
+      Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength, false);
+
+      stackObjAndState = currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+      currentState = stackObjAndState.getState();
+      currentState =
+          currentState.copyAndAddLocalVariable(
+              stackObjAndState.getSMGObject(), "var2", CPointerType.POINTER_TO_VOID);
+      stackObj = currentState.getMemoryModel().getObjectForVisibleVariable("var2").orElseThrow();
+      currentState =
+          currentState.writeValueWithoutChecks(
+              stackObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(pointersAbstractedList[0])
+                  .orElseThrow());
+
+      addSubListsToList(listLength, pointersAbstractedList, false, false);
       absFinder =
           new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
@@ -1129,8 +1182,25 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
               .getSMGObject();
 
       // Concrete complete list
-      Value[] pointersConcreteList = buildConcreteList(false, sllSize, listLength);
-      addSubListsToList(listLength, pointersConcreteList, false);
+      Value[] pointersConcreteList = buildConcreteList(false, sllSize, listLength, false);
+
+      stackObjAndState = currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+      currentState = stackObjAndState.getState();
+      currentState =
+          currentState.copyAndAddLocalVariable(
+              stackObjAndState.getSMGObject(), "var3", CPointerType.POINTER_TO_VOID);
+      stackObj = currentState.getMemoryModel().getObjectForVisibleVariable("var3").orElseThrow();
+      currentState =
+          currentState.writeValueWithoutChecks(
+              stackObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(pointersConcreteList[0])
+                  .orElseThrow());
+
+      addSubListsToList(listLength, pointersConcreteList, false, false);
       absFinder =
           new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
       currentState = absFinder.findAndAbstractLists();
