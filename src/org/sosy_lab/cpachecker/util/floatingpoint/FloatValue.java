@@ -2802,13 +2802,13 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   public static FloatValue fromString(Format pFormat, String pInput) {
     Preconditions.checkArgument(!pInput.isEmpty());
 
-    if ("inf".equals(pInput)) {
+    if (pInput.equals("inf")) {
       return infinity(pFormat);
-    } else if ("-inf".equals(pInput)) {
+    } else if (pInput.equals("-inf")) {
       return negativeInfinity(pFormat);
-    } else if ("nan".equals(pInput)) {
+    } else if (pInput.equals("nan")) {
       return nan(pFormat);
-    } else if ("-nan".equals(pInput)) {
+    } else if (pInput.equals("-nan")) {
       return nan(pFormat).negate();
     }
     pInput = Ascii.toLowerCase(pInput);
