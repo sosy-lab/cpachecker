@@ -406,15 +406,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       MPORStatics.setBinExprBuilder(
           new CBinaryExpressionBuilder(pInputCfa.getMachineModel(), pLogger));
     }
+    // reset if necessary (should only occur in unit tests)
+    if (SeqIdExpression.areScalarPcSet()) {
+      SeqIdExpression.resetScalarPc();
+    }
+    if (SeqArraySubscriptExpression.areArrayPcSet()) {
+      SeqArraySubscriptExpression.resetArrayPc();
+    }
     if (pOptions.scalarPc) {
-      if (SeqIdExpression.areScalarPcSet()) {
-        SeqIdExpression.resetScalarPc();
-      }
       SeqIdExpression.initScalarPc(pNumThreads);
     } else {
-      if (SeqArraySubscriptExpression.areArrayPcSet()) {
-        SeqArraySubscriptExpression.resetArrayPc();
-      }
       SeqArraySubscriptExpression.initArrayPcExpr(pNumThreads);
     }
   }

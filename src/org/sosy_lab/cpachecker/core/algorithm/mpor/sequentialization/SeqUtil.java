@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcStorageStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadCreationStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadExitStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadJoinStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcRetrieval;
@@ -112,7 +111,7 @@ public class SeqUtil {
     ImmutableList.Builder<SeqCaseBlockStatement> stmts = ImmutableList.builder();
     ImmutableList.Builder<ThreadEdge> threadEdges = ImmutableList.builder();
 
-    // no edges -> exit node reached (assert fail or main / start routine exit node)
+    // no edges -> exit node of thread reached -> no case because no edges with code
     if (pThreadNode.leavingEdges().isEmpty()) {
       assert pThreadNode.pc == EXIT_PC;
       return null;
@@ -136,13 +135,7 @@ public class SeqUtil {
         int targetPc = threadEdge.getSuccessor().pc;
         CFANode successor = threadEdge.getSuccessor().cfaNode;
 
-        // TODO use SeqBlankStatement here instead, its just pc[i] = -1; here -> can be pruned
-        if (successor instanceof FunctionExitNode
-            && successor.getFunction().getType().equals(pThread.startRoutine)) {
-          // exiting thread -> set pc of thread to -1
-          stmts.add(new SeqThreadExitStatement(pThread.id));
-
-        } else if (emptyCaseCode(sub)) {
+        if (blankCaseBlock(sub, successor, pThread)) {
           assert pThreadNode.leavingEdges().size() == 1;
           stmts.add(new SeqBlankStatement(pThread.id, targetPc));
 
@@ -404,9 +397,15 @@ public class SeqUtil {
    * Returns true if pSub results in a case block with only pc adjustments, i.e. no code changing
    * the input program state.
    */
-  private static boolean emptyCaseCode(SubstituteEdge pSub) {
-
-    if (pSub.cfaEdge instanceof BlankEdge) {
+  private static boolean blankCaseBlock(
+      SubstituteEdge pSub, CFANode pSuccessor, MPORThread pThread) {
+    // exiting start routine of thread -> blank, just set pc[i] = -1;
+    if (pSuccessor instanceof FunctionExitNode
+        && pSuccessor.getFunction().getType().equals(pThread.startRoutine)) {
+      // TODO this needs to be refactored once we support start routine return values
+      //  that can be used with pthread_join -> block may not be blank but sets the return value
+      return true;
+    } else if (pSub.cfaEdge instanceof BlankEdge) {
       assert pSub.cfaEdge.getCode().isEmpty();
       return true;
     } else if (pSub.cfaEdge instanceof CDeclarationEdge decEdge) {

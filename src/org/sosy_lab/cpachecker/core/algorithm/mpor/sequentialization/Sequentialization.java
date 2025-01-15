@@ -21,7 +21,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -118,7 +117,6 @@ public class Sequentialization {
     threadCount = pThreadCount;
   }
 
-  // TODO pass Configuration directly instead of boolean values here
   /** Generates and returns the sequentialized program. */
   public String generateProgram(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
@@ -188,7 +186,7 @@ public class Sequentialization {
     rProgram.append(reachError.toASTString()).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
     rProgram.append(assume.toASTString()).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
 
-    // create pruned (i.e. only non-empty) cases statements in main method
+    // create pruned (i.e. only non-blank) cases statements in main method
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
         mapCaseClauses(pSubstitutions, subEdges, returnPcVars, threadVars);
     assert validCaseClauses(caseClauses, pLogger);
@@ -347,7 +345,7 @@ public class Sequentialization {
   }
 
   /** Maps origin pcs n in {@code case n} to the set of target pcs m {@code pc[t_id] = m}. */
-  private static @NonNull ImmutableMap<Integer, ImmutableSet<Integer>> getPcMap(
+  private @NonNull ImmutableMap<Integer, ImmutableSet<Integer>> getPcMap(
       ImmutableList<SeqCaseClause> pCaseClauses) {
 
     ImmutableMap.Builder<Integer, ImmutableSet<Integer>> pcMapBuilder = ImmutableMap.builder();
@@ -452,7 +450,7 @@ public class Sequentialization {
    * Extracts {@link SeqCaseClause}s that are not {@link SeqBlankStatement}s from pCaseClauses and
    * updates the {@code pc} accordingly.
    */
-  private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pruneCaseClauses(
+  private ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pruneCaseClauses(
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses)
       throws UnrecognizedCodeException {
 
@@ -461,31 +459,38 @@ public class Sequentialization {
       ImmutableList<SeqCaseClause> caseClauses = entry.getValue();
       ImmutableMap<Integer, SeqCaseClause> caseLabelValueMap =
           mapCaseLabelValueToCaseClauses(caseClauses);
-      // map from pcs where an empty path started to where they ended i.e. the first non-empty case
+      // map from case label pruned pcs to their new pcs after step 1 pruning
       Map<Integer, Integer> prunePcs = new HashMap<>();
       ImmutableList.Builder<SeqCaseClause> prune1 = ImmutableList.builder();
 
       Set<SeqCaseClause> prunable = new HashSet<>();
       Set<Long> newIds = new HashSet<>();
 
-      // step 1: recursively prune by executing chains of empty cases until a non-empty is found
+      // step 1: recursively prune by executing chains of blank cases until a non-blank is found
       for (SeqCaseClause caseClause : caseClauses) {
         if (!prunable.contains(caseClause)) {
           if (caseClause.isPrunable()) {
-            SeqCaseClause nonEmpty =
-                findNonEmptyCaseClause(caseLabelValueMap, caseClause, prunable, caseClause);
-            if (nonEmpty != null) {
-              int pc = caseClause.caseLabel.value;
-              int nonEmptyPc = nonEmpty.caseLabel.value;
-              if (prunePcs.containsKey(nonEmptyPc)) {
-                // a nonEmpty may be reachable through multiple empty paths
+            int pc = caseClause.caseLabel.value;
+            Optional<SeqCaseClause> optNonBlank =
+                findNonBlankCaseClause(caseLabelValueMap, caseClause, prunable, caseClause);
+            if (optNonBlank.isPresent()) {
+              SeqCaseClause nonBlank = optNonBlank.orElseThrow();
+              int nonBlankPc = nonBlank.caseLabel.value;
+              if (prunePcs.containsKey(nonBlankPc)) {
+                // a nonBlank may be reachable through multiple blank paths
                 // -> reference the first clone to prevent duplication of cases
-                prunePcs.put(pc, prunePcs.get(nonEmptyPc));
+                prunePcs.put(pc, prunePcs.get(nonBlankPc));
               } else {
-                prune1.add(nonEmpty.cloneWithCaseLabel(caseClause.caseLabel));
-                newIds.add(nonEmpty.id);
-                prunePcs.put(nonEmptyPc, pc);
+                prune1.add(nonBlank.cloneWithCaseLabel(caseClause.caseLabel));
+                newIds.add(nonBlank.id);
+                prunePcs.put(nonBlankPc, pc);
               }
+            } else {
+              // no non-blank found: path leads to thread exit node -> entire path is blank
+              assert caseClause.caseBlock.statements.size() == 1;
+              int targetPc = caseClause.caseBlock.statements.get(0).getTargetPc().orElseThrow();
+              assert targetPc == SeqUtil.EXIT_PC;
+              prunePcs.put(pc, targetPc);
             }
           } else if (!newIds.contains(caseClause.id)) {
             prune1.add(caseClause);
@@ -499,7 +504,7 @@ public class Sequentialization {
         ImmutableList.Builder<SeqCaseBlockStatement> newStmts = ImmutableList.builder();
         for (SeqCaseBlockStatement stmt : caseClause.caseBlock.statements) {
           Optional<Integer> targetPc = stmt.getTargetPc();
-          // if the statement targets a pruned pc, clone it with the new pc
+          // if the statement targets a pruned pc, clone it with the new target pc
           if (targetPc.isPresent() && prunePcs.containsKey(targetPc.orElseThrow())) {
             int newTargetPc = prunePcs.get(targetPc.orElseThrow());
             newStmts.add(stmt.cloneWithTargetPc(newTargetPc));
@@ -522,8 +527,7 @@ public class Sequentialization {
    * Returns {@code true} if any {@link SeqCaseClause} of any thread can be pruned, i.e. contains
    * only blank statements, and {@code false} otherwise.
    */
-  private static boolean isPrunable(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
+  private boolean isPrunable(ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
     for (ImmutableList<SeqCaseClause> caseClauses : pCaseClauses.values()) {
       for (SeqCaseClause caseClause : caseClauses) {
@@ -539,7 +543,7 @@ public class Sequentialization {
    * A helper mapping {@link SeqCaseClause}s to their {@link SeqCaseLabel} values, which are always
    * {@code int} values in the sequentialization.
    */
-  private static ImmutableMap<Integer, SeqCaseClause> mapCaseLabelValueToCaseClauses(
+  private ImmutableMap<Integer, SeqCaseClause> mapCaseLabelValueToCaseClauses(
       ImmutableList<SeqCaseClause> pCaseClauses) {
 
     ImmutableMap.Builder<Integer, SeqCaseClause> rOriginPcs = ImmutableMap.builder();
@@ -551,10 +555,10 @@ public class Sequentialization {
 
   /**
    * Returns the first {@link SeqCaseClause} in the {@code pc} chain that has no {@link
-   * SeqBlankStatement}.
+   * SeqBlankStatement}. If pInit reaches a threads termination through only blank statement,
+   * returns {@link Optional#empty()}.
    */
-  @Nullable
-  private static SeqCaseClause findNonEmptyCaseClause(
+  private Optional<SeqCaseClause> findNonBlankCaseClause(
       final ImmutableMap<Integer, SeqCaseClause> pCaseLabelValueMap,
       final SeqCaseClause pInit,
       Set<SeqCaseClause> pPruned,
@@ -566,17 +570,18 @@ public class Sequentialization {
         SeqBlankStatement blank = (SeqBlankStatement) stmt;
         SeqCaseClause nextCaseClause = pCaseLabelValueMap.get(blank.getTargetPc().orElseThrow());
         if (nextCaseClause == null) {
-          return null;
+          // this is only reachable if blank is a threads exit -> no successors
+          return Optional.empty();
         }
         // do not visit exit nodes of the threads cfa
         if (!nextCaseClause.caseBlock.statements.isEmpty()) {
-          return findNonEmptyCaseClause(pCaseLabelValueMap, pInit, pPruned, nextCaseClause);
+          return findNonBlankCaseClause(pCaseLabelValueMap, pInit, pPruned, nextCaseClause);
         }
       }
-      // otherwise break recursion -> non-empty case found
-      return pCurrent;
+      // otherwise break recursion -> non-blank case found
+      return Optional.of(pCurrent);
     }
-    throw new IllegalArgumentException("pCurrent statements are empty");
+    throw new IllegalArgumentException("pCurrent statements cannot be empty");
   }
 
   // FunctionVars ================================================================================
@@ -587,7 +592,7 @@ public class Sequentialization {
    * <p>E.g. the function {@code fib} in thread 0 is mapped to the expression of {@code int
    * __return_pc_t0_fib}.
    */
-  private static ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
+  private ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
       mapReturnPcVars(ImmutableSet<MPORThread> pThreads) {
 
     ImmutableMap.Builder<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> rVars =
@@ -612,7 +617,7 @@ public class Sequentialization {
    * ;} and {@code __t0_1_paramB = paramB ;}. Both substitution vars are declared in {@link
    * CSimpleDeclarationSubstitution#paramSubs}.
    */
-  private static ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
+  private ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
       mapParameterAssignments(
           MPORThread pThread,
           ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
@@ -656,7 +661,7 @@ public class Sequentialization {
    * <p>Note that {@code main} functions and start routines of threads oftentimes do not have
    * corresponding {@link CFunctionSummaryEdge}s.
    */
-  private static ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
+  private ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
       mapReturnValueAssignments(
           MPORThread pThread,
           ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
@@ -708,7 +713,7 @@ public class Sequentialization {
    * <p>E.g. a {@link CFunctionSummaryEdge} going from pc 5 to 10 for the function {@code fib} in
    * thread 0 is mapped to the storage with the assignment {@code __return_pc_t0_fib = 10;}.
    */
-  private static ImmutableMap<ThreadEdge, FunctionReturnPcStorage> mapReturnPcStorages(
+  private ImmutableMap<ThreadEdge, FunctionReturnPcStorage> mapReturnPcStorages(
       MPORThread pThread, ImmutableMap<CFunctionDeclaration, CIdExpression> pReturnPcVars) {
 
     ImmutableMap.Builder<ThreadEdge, FunctionReturnPcStorage> rAssigns = ImmutableMap.builder();
@@ -732,7 +737,7 @@ public class Sequentialization {
    * <p>E.g. a {@link FunctionExitNode} for the function {@code fib} in thread 0 is mapped to the
    * assignment {@code pc[0] = __return_pc_t0_fib;}.
    */
-  private static ImmutableMap<ThreadNode, FunctionReturnPcRetrieval> mapReturnPcRetrievals(
+  private ImmutableMap<ThreadNode, FunctionReturnPcRetrieval> mapReturnPcRetrievals(
       MPORThread pThread, ImmutableMap<CFunctionDeclaration, CIdExpression> pReturnPcVars) {
 
     Map<ThreadNode, FunctionReturnPcRetrieval> rAssigns = new HashMap<>();
@@ -756,7 +761,7 @@ public class Sequentialization {
 
   // ThreadVars ==================================================================================
 
-  private static ImmutableMap<CIdExpression, MutexLocked> mapMutexLockedVars(
+  private ImmutableMap<CIdExpression, MutexLocked> mapMutexLockedVars(
       ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
 
     ImmutableMap.Builder<CIdExpression, MutexLocked> rVars = ImmutableMap.builder();
@@ -779,7 +784,7 @@ public class Sequentialization {
     return rVars.buildOrThrow();
   }
 
-  private static ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>>
+  private ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>>
       mapThreadAwaitsMutexVars(
           ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
 
@@ -807,7 +812,7 @@ public class Sequentialization {
     return rVars.buildOrThrow();
   }
 
-  private static ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>>
+  private ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>>
       mapThreadJoinsThreadVars(ImmutableSet<MPORThread> pThreads) {
 
     ImmutableMap.Builder<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>> rVars =
@@ -833,7 +838,7 @@ public class Sequentialization {
     return rVars.buildOrThrow();
   }
 
-  private static ImmutableMap<MPORThread, ThreadBeginsAtomic> mapThreadBeginsAtomicVars(
+  private ImmutableMap<MPORThread, ThreadBeginsAtomic> mapThreadBeginsAtomicVars(
       ImmutableSet<MPORThread> pThreads) {
 
     ImmutableMap.Builder<MPORThread, ThreadBeginsAtomic> rVars = ImmutableMap.builder();

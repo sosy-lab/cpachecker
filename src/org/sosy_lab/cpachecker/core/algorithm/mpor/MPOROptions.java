@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableSet;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.Arrays;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Option;
 
 /**
@@ -59,10 +58,9 @@ public class MPOROptions {
   private boolean equalFieldNames() {
     // extract string of all fields in MPOROptions
     ImmutableSet<String> optionsFieldNames =
-        ImmutableSet.copyOf(
-            Arrays.stream(MPOROptions.class.getDeclaredFields())
-                .map(Field::getName)
-                .collect(Collectors.toSet()));
+        Arrays.stream(MPOROptions.class.getDeclaredFields())
+            .map(Field::getName)
+            .collect(ImmutableSet.toImmutableSet());
     // check if fields from MPORAlgorithm with @Option have a field with same name in this class
     for (Field algoField : MPORAlgorithm.class.getDeclaredFields()) {
       if (algoField.isAnnotationPresent(Option.class)) {
