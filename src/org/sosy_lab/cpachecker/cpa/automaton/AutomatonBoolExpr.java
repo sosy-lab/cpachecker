@@ -606,16 +606,45 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
           + edgeSuccessorMatch
           + ")";
     }
+  }
+
+  /** Checks if the given edge ends at any of the provided nodes */
+  class CheckEndsAtNodes implements AutomatonBoolExpr {
+
+    private final Set<CFANode> edgeSuccessorMatch;
+
+    public CheckEndsAtNodes(Set<CFANode> pEdgeSuccessorMatch) {
+      edgeSuccessorMatch = pEdgeSuccessorMatch;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+
+      // Sometimes it happens that there are multiple ways of getting to the same node.
+      // We only want the edges which went through the condition element. In particular this
+      // happens when there is no else branch in an if statement.
+      if (edgeSuccessorMatch.contains(edge.getSuccessor())) {
+        return CONST_TRUE;
+      }
+
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "CHECK_ENDS_AT(nodes=" + edgeSuccessorMatch + ")";
+    }
 
     @Override
     public int hashCode() {
-      return edgePredecessorMatch.hashCode() * 57 + edgeSuccessorMatch.hashCode();
+      return edgeSuccessorMatch.hashCode() * 51;
     }
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof CheckPassesThroughNodes checker
-          && edgePredecessorMatch.equals(checker.edgePredecessorMatch)
+      return o instanceof CheckEndsAtNodes checker
           && edgeSuccessorMatch == checker.edgeSuccessorMatch;
     }
   }

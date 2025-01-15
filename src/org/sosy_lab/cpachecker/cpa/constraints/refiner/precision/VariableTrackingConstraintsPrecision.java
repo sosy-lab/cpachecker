@@ -28,7 +28,7 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
 
   final boolean mustTrackAll;
 
-  private enum INCREMENT_SCOPE {
+  private enum IncrementScope {
     NONE(0),
     LOCAL(1),
     FUNCTION(2),
@@ -36,11 +36,11 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
 
     private final int order;
 
-    INCREMENT_SCOPE(final int pOrder) {
+    IncrementScope(final int pOrder) {
       order = pOrder;
     }
 
-    public INCREMENT_SCOPE lower(final INCREMENT_SCOPE pOther) {
+    public IncrementScope lower(final IncrementScope pOther) {
       if (pOther.order < order) {
         return pOther;
       } else {
@@ -67,7 +67,7 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
   public boolean isTracked(final Constraint pConstraint, final CFANode pLocation) {
     // check if constraint is already tracked in constraintsPrecision
     if (!constraintsPrecision.isTracked(pConstraint, pLocation)) {
-      INCREMENT_SCOPE constraintScope = INCREMENT_SCOPE.NONE;
+      IncrementScope constraintScope = IncrementScope.NONE;
       // verify if pConstraint is Unary or BinaryConstraint
       if (pConstraint instanceof UnaryConstraint) {
         constraintScope =
@@ -76,7 +76,7 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
                     .getOperand()
                     .accept(SymbolicIdentifierLocator.getInstance()),
                 pLocation,
-                INCREMENT_SCOPE.GLOBAL);
+                IncrementScope.GLOBAL);
       } else if (pConstraint instanceof BinaryConstraint) {
         constraintScope =
             getScopeForConstraint(
@@ -84,8 +84,8 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
                     .getOperand1()
                     .accept(SymbolicIdentifierLocator.getInstance()),
                 pLocation,
-                INCREMENT_SCOPE.GLOBAL);
-        if (constraintScope != INCREMENT_SCOPE.NONE) {
+                IncrementScope.GLOBAL);
+        if (constraintScope != IncrementScope.NONE) {
           constraintScope =
               getScopeForConstraint(
                   ((BinaryConstraint) pConstraint)
@@ -117,21 +117,21 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
         case NONE:
           break;
       }
-      return constraintScope != INCREMENT_SCOPE.NONE;
+      return constraintScope != IncrementScope.NONE;
     }
     return true;
   }
 
-  private INCREMENT_SCOPE getScopeForConstraint(
-      final Set<SymbolicIdentifier> symVars, final CFANode pLocation, INCREMENT_SCOPE pInitScope) {
-    INCREMENT_SCOPE varScope;
-    INCREMENT_SCOPE resScope = pInitScope;
+  private IncrementScope getScopeForConstraint(
+      final Set<SymbolicIdentifier> symVars, final CFANode pLocation, IncrementScope pInitScope) {
+    IncrementScope varScope;
+    IncrementScope resScope = pInitScope;
     boolean noVarTracked = true;
     for (SymbolicIdentifier symId : symVars) {
       varScope = getTrackedScopeForVar(symId, pLocation);
-      if (varScope == INCREMENT_SCOPE.NONE) {
+      if (varScope == IncrementScope.NONE) {
         if (mustTrackAll) {
-          return INCREMENT_SCOPE.NONE;
+          return IncrementScope.NONE;
         }
       } else {
         noVarTracked = false;
@@ -139,24 +139,24 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
       }
     }
     if (!mustTrackAll && noVarTracked) {
-      return INCREMENT_SCOPE.NONE;
+      return IncrementScope.NONE;
     }
     return resScope;
   }
 
-  private INCREMENT_SCOPE getTrackedScopeForVar(
+  private IncrementScope getTrackedScopeForVar(
       final SymbolicIdentifier pSymId, final CFANode pLocation) {
     String var = pSymId.getRepresentation();
     if (trackedGlobal.contains(var)) {
-      return INCREMENT_SCOPE.GLOBAL;
+      return IncrementScope.GLOBAL;
     }
     if (trackedFunctions.containsEntry(pLocation.getFunctionName(), var)) {
-      return INCREMENT_SCOPE.FUNCTION;
+      return IncrementScope.FUNCTION;
     }
     if (trackedLocations.containsEntry(pLocation, var)) {
-      return INCREMENT_SCOPE.LOCAL;
+      return IncrementScope.LOCAL;
     }
-    return INCREMENT_SCOPE.NONE;
+    return IncrementScope.NONE;
   }
 
   @Override

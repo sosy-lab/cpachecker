@@ -110,6 +110,7 @@ public class SMGCPAAbstractionManager {
     statistics.startTotalListSearchTime();
 
     // Sort in DLL and SLL candidates and also order by nesting
+    // TODO: refactor and split getListCandidates()
     List<Set<SMGCandidate>> orderedListCandidatesByNesting = getListCandidates();
 
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
@@ -235,6 +236,7 @@ public class SMGCPAAbstractionManager {
     return true;
   }
 
+  // TODO: refactor and split
   List<Set<SMGCandidate>> getListCandidates() throws SMGException {
     equalityCache = EqualityCache.of();
     objectCache = EqualityCache.of();
@@ -303,12 +305,10 @@ public class SMGCPAAbstractionManager {
               foundChains.add(candidate);
             }
             alreadySeen.addAll(candidate.suspectedElements);
-            continue;
           }
         }
         // Incorrect or not usable next element, maybe a prev exists though,
         //   don't put current in seen list, and it will be found via the prev object
-        continue;
 
       } else {
         List<SMGHasValueEdge> valuesInHeapObj =

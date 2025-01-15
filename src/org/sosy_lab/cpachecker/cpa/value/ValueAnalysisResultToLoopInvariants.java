@@ -33,6 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -72,6 +73,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -82,6 +84,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
   @Option(secure = true, description = "enable if loop invariant export should consider context")
   private boolean invariantsContextSensitive = true;
+
+  @Option(secure = true, description = "Enable to export invariants on single variables")
+  private boolean exportUnary = true;
 
   @Option(secure = true, description = "Enable to export invariants that include two variables")
   private boolean exportBinary = true;
@@ -110,6 +115,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   @Option(secure = true, description = "Enable invariants that use a bit operator")
   private boolean exportBitops = true;
 
+  @Option(secure = true, description = "Enable invariants that relate (compare) two variables")
+  private boolean exportRelational = true;
+
   @Option(
       secure = true,
       description =
@@ -126,6 +134,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   private boolean removeRedundantInvariants = true;*/
 
   private final @Nullable ImmutableSet<CFANode> loopHeads;
+  private final LogManager logger;
 
   private final PredicateMapWriter predExporter;
   private final Solver solver;
@@ -133,6 +142,15 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   private final ImmutableMap<MemoryLocation, Type> varToType;
   private final CtoFormulaConverter c2Formula;
   private final MachineModel machineModel;
+
+  private int numBooleanInvariants = -1;
+  private int numNumericInvariants = -1;
+
+  private int numCompRelationalInvariants = -1;
+  private int numArithmeticRelationalInvariants = -1;
+  private int numBitRelationalInvariants = -1;
+
+  private int numLinearInvariants = -1;
 
   public ValueAnalysisResultToLoopInvariants(
       final @Nullable ImmutableSet<CFANode> pLoopHeads,
@@ -143,6 +161,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       throws InvalidConfigurationException {
     loopHeads = pLoopHeads;
     pConfig.inject(this);
+    logger = pLogger;
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
     predExporter = new PredicateMapWriter(pConfig, solver.getFormulaManager());
     absMgr = new AbstractionManager(new SymbolicRegionManager(solver), pConfig, pLogger, solver);
@@ -158,6 +177,15 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             new CtoFormulaTypeHandler(pLogger, pCfa.getMachineModel()),
             AnalysisDirection.FORWARD);
     machineModel = pCfa.getMachineModel();
+    if (!anyInvariantsConfiguredForExport()) {
+      logger.log(Level.WARNING, "No invariants configured for export");
+    }
+  }
+
+  private boolean anyInvariantsConfiguredForExport() {
+    return exportUnary
+        || (exportBinary && (exportArithmetic || exportBitops || exportLinear || exportRelational))
+        || (exportTernary && exportLinear);
   }
 
   private ImmutableMap<MemoryLocation, Type> extractVarsWithType(final CFA pCfa) {
@@ -182,8 +210,48 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     solver.close();
   }
 
+  public void writeInvariantStatistics(final StatisticsWriter pWriter) {
+    pWriter
+        .beginLevel()
+        .putIf(
+            numBooleanInvariants >= 0,
+            "Number of generated boolean value invariants",
+            numBooleanInvariants)
+        .putIf(
+            numNumericInvariants >= 0,
+            "Number of generated variable range invariants",
+            numNumericInvariants)
+        .putIf(
+            numCompRelationalInvariants >= 0,
+            "Number of generated variable comparison invariants",
+            numCompRelationalInvariants)
+        .putIf(
+            numArithmeticRelationalInvariants >= 0,
+            "Number of generated variable arithmetic computation invariants",
+            numArithmeticRelationalInvariants)
+        .putIf(
+            numBitRelationalInvariants >= 0,
+            "Number of generated variable bit computation invariants",
+            numBitRelationalInvariants)
+        .putIf(
+            numLinearInvariants >= 0, "Number of generated linear invariants", numLinearInvariants);
+  }
+
   public void generateAndExportLoopInvariantsAsPredicatePrecision(
       final UnmodifiableReachedSet pReached, final Appendable sb) throws IOException {
+    // reset statistics
+    numBooleanInvariants = -1;
+    numNumericInvariants = -1;
+    numCompRelationalInvariants = -1;
+    numArithmeticRelationalInvariants = -1;
+    numBitRelationalInvariants = -1;
+    numLinearInvariants = -1;
+
+    if (!anyInvariantsConfiguredForExport()) {
+      logger.log(Level.INFO, "No invariants configured for export.");
+      return;
+    }
+
     ImmutableMultimap<Pair<CFANode, Optional<CallstackStateEqualsWrapper>>, ValueAnalysisState>
         contextLocToStates = extractAndMapRelevantValueStates(pReached);
 
@@ -249,13 +317,15 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
               .transform(bf -> absMgr.makePredicate(bf)));
     }
 
+    AbstractionPredicate falsePredicate = absMgr.makeFalsePredicate();
     ImmutableSetMultimap<CFANode, AbstractionPredicate> locInvariants = locInvBuilder.build();
+
     predExporter.writePredicateMap(
         ImmutableSetMultimap.of(),
         locInvariants,
         ImmutableSetMultimap.of(),
-        ImmutableSet.of(),
-        locInvariants.values(),
+        ImmutableSet.of(falsePredicate),
+        FluentIterable.from(locInvariants.values()).append(falsePredicate).toSet(),
         sb);
   }
 
@@ -297,10 +367,12 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
     ImmutableCollection.Builder<CandidateInvariant> invBuilder = new ImmutableList.Builder<>();
 
-    // single variable
-    addSingleVariableInvariants(varsWithVals, invBuilder);
+    if (exportUnary) {
+      // single variable
+      addSingleVariableInvariants(varsWithVals, invBuilder);
+    }
 
-    if (exportBinary) {
+    if (exportBinary && (exportArithmetic || exportBitops || exportLinear || exportRelational)) {
       // two variables
       addInvariantsOverTwoVariables(varsWithVals, invBuilder);
     }
@@ -326,6 +398,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     // not supported: set of values,  (allgemein x == a (mod b)
     // not supported bitwise negation ~x
     // not expressible: zweierpotenz
+    numNumericInvariants = 0;
+    numBooleanInvariants = 0;
     SingleNumericVariableInvariant numInv;
     SingleBooleanVariableInvariant boolInv;
     Value val;
@@ -339,12 +413,14 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           numInv.adaptToAdditionalValue(valPlusType.getValue());
         }
         pInvBuilder.add(numInv);
+        numNumericInvariants += numInv.getNumInvariants();
       } else if (val instanceof BooleanValue) {
         boolInv = new SingleBooleanVariableInvariant(varAndVals.getKey(), (BooleanValue) val);
         for (ValueAndType valPlusType : varAndVals.getValue()) {
           boolInv.adaptToAdditionalValue(valPlusType.getValue());
         }
         pInvBuilder.add(boolInv);
+        numBooleanInvariants += boolInv.getNumInvariants();
       }
     }
   }
@@ -352,6 +428,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   private void addInvariantsOverTwoVariables(
       final Map<MemoryLocation, List<ValueAndType>> pVarsWithVals,
       final ImmutableCollection.Builder<CandidateInvariant> pInvBuilder) {
+    numCompRelationalInvariants = 0;
+    numArithmeticRelationalInvariants = 0;
+    numBitRelationalInvariants = 0;
+    numLinearInvariants = 0;
+
     // two variables
     // relational
     // x > y, x<y, x>=y,x<=y, x==y, x!=y
@@ -360,7 +441,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     // -x + by + c =
     // arithmetic (non-linear)
     // x%y, x*y, x/y  <=/==/>=
-    // bitoperations
+    // bit operations
     // x&y, x|y, x^y, x<<y, x>>y
     // not expressible: x = y**2
 
@@ -493,12 +574,16 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             bitInv = null;
           }
 
-          relInv =
-              new TwoVariableRelationInvariant(
-                  varWithVals1.getKey(),
-                  val1.get(0).getValue().asNumericValue(),
-                  varWithVals2.getKey(),
-                  val2.get(0).getValue().asNumericValue());
+          if (exportRelational) {
+            relInv =
+                new TwoVariableRelationInvariant(
+                    varWithVals1.getKey(),
+                    val1.get(0).getValue().asNumericValue(),
+                    varWithVals2.getKey(),
+                    val2.get(0).getValue().asNumericValue());
+          } else {
+            relInv = null;
+          }
 
           for (int i = 1;
               (relInv != null
@@ -540,18 +625,23 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
           if (relInv != null) {
             pInvBuilder.add(relInv);
+            numCompRelationalInvariants++;
           }
           if (arInv != null) {
             pInvBuilder.add(arInv);
+            numArithmeticRelationalInvariants += arInv.getNumInvariants();
           }
           if (bitInv != null) {
             pInvBuilder.add(bitInv);
+            numBitRelationalInvariants += bitInv.getNumInvariants();
           }
           if (linInv1 != null) {
             pInvBuilder.add(linInv1);
+            numLinearInvariants++;
           }
           if (linInv2 != null) {
             pInvBuilder.add(linInv2);
+            numLinearInvariants++;
           }
         }
       }
@@ -564,6 +654,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       final ImmutableCollection.Builder<CandidateInvariant> pInvBuilder) {
     Preconditions.checkState(exportLinear);
     Preconditions.checkState(exportTernary);
+    numLinearInvariants = Math.max(0, numLinearInvariants);
 
     CSimpleType type1;
     CSimpleType type2;
@@ -749,14 +840,17 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
               }
               if (linInv1 != null) {
                 pInvBuilder.add(linInv1);
+                numLinearInvariants++;
               }
 
               if (linInv2 != null) {
                 pInvBuilder.add(linInv2);
+                numLinearInvariants++;
               }
 
               if (linInv3 != null) {
                 pInvBuilder.add(linInv3);
+                numLinearInvariants++;
               }
             }
           }
@@ -1106,6 +1200,10 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       }
     }
 
+    private int getNumInvariants() {
+      return alwaysTrue || alwaysFalse ? 1 : 0;
+    }
+
     private void adaptToAdditionalValue(final Value pValue) {
       Preconditions.checkNotNull(pValue);
       Preconditions.checkArgument(pValue instanceof BooleanValue);
@@ -1225,6 +1323,22 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     private boolean isZeroInMinMax() {
       NumericValue zeroVal = new NumericValue(0);
       return compareVals(minVal, zeroVal) <= 0 && compareVals(maxVal, zeroVal) >= 0;
+    }
+
+    private int getNumInvariants() {
+      int num = 0;
+      if (minVal.equals(maxVal)) {
+        num++;
+      } else {
+        num += 2;
+      }
+      if (isNeverZero && isZeroInMinMax()) {
+        num++;
+      }
+      if (alwaysEven || alwaysOdd) {
+        num++;
+      }
+      return num;
     }
 
     @Override
@@ -1605,6 +1719,24 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       return adaptSuccess;
     }
 
+    private int getNumInvariants() {
+      int num = 0;
+      if (opMul.getSecond() != EqualCompareType.NONE) {
+        num++;
+      }
+      if (opDiv.getSecond() != EqualCompareType.NONE) {
+        num++;
+      }
+      if (opModVar1Left.getSecond() != EqualCompareType.NONE) {
+        num++;
+      }
+
+      if (opModVar2Left.getSecond() != EqualCompareType.NONE) {
+        num++;
+      }
+      return num;
+    }
+
     @Override
     protected Collection<BooleanFormula> asBooleanFormulae(
         FormulaManagerView pFmgrV,
@@ -1851,6 +1983,43 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                   || opVar2ShiftLeft.getSecond() != EqualCompareType.NONE
                   || opVar1ShiftRight.getSecond() != EqualCompareType.NONE
                   || opVar2ShiftRight.getSecond() != EqualCompareType.NONE));
+    }
+
+    private int getNumInvariants() {
+      int num = 0;
+
+      if (opBitAnd.getSecond() != EqualCompareType.NONE) {
+        num++;
+      }
+
+      if (opBitOr.getSecond() != EqualCompareType.NONE) {
+        num++;
+      }
+
+      if (opBitXor.getSecond() != EqualCompareType.NONE) {
+        num++;
+      }
+
+      if (includeShiftOps) {
+
+        if (opVar1ShiftLeft.getSecond() != EqualCompareType.NONE) {
+          num++;
+        }
+
+        if (opVar2ShiftLeft.getSecond() != EqualCompareType.NONE) {
+          num++;
+        }
+
+        if (opVar1ShiftRight.getSecond() != EqualCompareType.NONE) {
+          num++;
+        }
+
+        if (opVar2ShiftRight.getSecond() != EqualCompareType.NONE) {
+          num++;
+        }
+      }
+
+      return num;
     }
 
     @Override

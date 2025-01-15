@@ -346,8 +346,8 @@ public abstract class CFloat {
     long bias =
         switch (getType()) {
           case CFloatNativeAPI.FP_TYPE_SINGLE,
-                  CFloatNativeAPI.FP_TYPE_DOUBLE,
-                  CFloatNativeAPI.FP_TYPE_LONG_DOUBLE ->
+              CFloatNativeAPI.FP_TYPE_DOUBLE,
+              CFloatNativeAPI.FP_TYPE_LONG_DOUBLE ->
               getExponentMask() / 2;
           default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
         };

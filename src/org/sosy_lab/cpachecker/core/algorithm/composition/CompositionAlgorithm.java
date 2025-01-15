@@ -169,7 +169,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
 
-  public enum INTERMEDIATESTATSOPT {
+  public enum IntermediateStatistics {
     EXECUTE,
     NONE,
     PRINT
@@ -180,7 +180,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       description =
           "print the statistics of each component of the composition algorithm"
               + " directly after the component's computation is finished")
-  private INTERMEDIATESTATSOPT intermediateStatistics = INTERMEDIATESTATSOPT.NONE;
+  private IntermediateStatistics intermediateStatistics = IntermediateStatistics.NONE;
 
   @Option(
       secure = true,

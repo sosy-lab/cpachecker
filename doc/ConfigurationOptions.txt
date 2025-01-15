@@ -2243,6 +2243,10 @@ cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
   enum:     [DISABLE, INT2BV, BV2INT]
 
+# when reading invariants from YML witness ignore the location context and
+# only consider function context program)
+cpa.predicate.abstraction.initialPredicates.ignoreLocationInfoInYMLWitness = false
+
 # initial predicates are added as atomic predicates
 cpa.predicate.abstraction.initialPredicates.splitIntoAtoms = false
 
@@ -3757,7 +3761,7 @@ cpa.value.assignEqualityAssumptions = true
 
 # configure when to export loop invariants
 cpa.value.exportLoopInvariants = IF_TRUE
-  enum:     [ALWAYS, IF_NOT_FALSE, IF_TRUE]
+  enum:     [ALWAYS, IF_NOT_FALSE, IF_TRUE, IF_UNKNOWN]
 
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
@@ -3810,6 +3814,9 @@ cpa.value.invExport.exportBitops = true
 # + by + c = 0, ax + bx + c <= 0, ax + bx + c >= 0, or ax + by + cy + d = 0
 cpa.value.invExport.exportLinear = true
 
+# Enable invariants that relate (compare) two variables
+cpa.value.invExport.exportRelational = true
+
 # Enable invariants that use a shift operator, note that additionally
 # exportBitops must be enabled
 cpa.value.invExport.exportShiftops = true
@@ -3817,6 +3824,9 @@ cpa.value.invExport.exportShiftops = true
 # Enable to export invariants that include three variables, currently only
 # effective if exportLinear is enabled, too
 cpa.value.invExport.exportTernary = true
+
+# Enable to export invariants on single variables
+cpa.value.invExport.exportUnary = true
 
 # enable if loop invariant export should consider context
 cpa.value.invExport.invariantsContextSensitive = true

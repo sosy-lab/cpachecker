@@ -92,10 +92,6 @@ public final class ResourceLimitChecker {
     }
   }
 
-  public List<ResourceLimit> getResourceLimits() {
-    return limits;
-  }
-
   /**
    * Create an instance of this class from some configuration options. The returned instance is not
    * started yet.
@@ -258,7 +254,6 @@ public final class ResourceLimitChecker {
           // Check if expired
           final long currentValue = limit.getCurrentValue();
           if (limit.isExceeded(currentValue)) {
-            updateCurrentValuesOfAllLimits();
             String reason = String.format("The %s has elapsed.", limit.getName());
             shutdownManager.requestShutdown(reason);
             return;
@@ -281,24 +276,10 @@ public final class ResourceLimitChecker {
         try {
           Thread.sleep(millisToSleep);
         } catch (InterruptedException e) {
-          updateCurrentValuesOfAllLimits();
           // Cancel requested by ResourceLimitChecker#cancel()
           shutdownManager.getNotifier().unregister(interruptThreadOnShutdown);
           return;
         }
-      }
-    }
-
-    /**
-     * For each limit call getCurrentValue() a last time, to (possibly) update the last used value
-     * in the resource limit, this is especially important for ThreadCPULimits as the used cpu time
-     * of a thread can only be determined while it is running, afterwards this is not possible any
-     * more so this limit needs to cache the amount time in order to be able to return it to the
-     * user
-     */
-    private void updateCurrentValuesOfAllLimits() {
-      for (ResourceLimit l : limits) {
-        l.getCurrentValue();
       }
     }
   }

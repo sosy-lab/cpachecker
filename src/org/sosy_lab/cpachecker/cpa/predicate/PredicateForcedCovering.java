@@ -55,7 +55,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * An implementation of {@link ForcedCovering} which works with {@link PredicateAbstractState}s and
  * tries to strengthen them the necessary amount by using interpolation.
  */
-public class PredicateForcedCovering implements ForcedCovering, StatisticsProvider {
+final class PredicateForcedCovering implements ForcedCovering, StatisticsProvider {
 
   private static final class FCStatistics implements Statistics {
 
@@ -94,7 +94,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   private final PredicateAbstractionManager predAbsMgr;
   private final ImpactUtility impact;
 
-  public PredicateForcedCovering(
+  PredicateForcedCovering(
       Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     logger = pLogger;

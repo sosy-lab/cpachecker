@@ -6,7 +6,12 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-include: /build/gitlab-ci.yml
+# This file contains only some global CI config.
+# Most jobs are included here:
+include:
+  - local: build/gitlab-ci.local.yml
+    rules:
+      - if: $AUTO_UPDATE_DEPENDENCIES != "true"
 
 # Run either MR pipelines or regular pipelines, but never both at the same time.
 # Cf. https://docs.gitlab.com/ee/ci/yaml/workflow.html#switch-between-branch-pipelines-and-merge-request-pipelines
@@ -18,352 +23,29 @@ workflow:
 
 variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
-  GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
   REFASTER_REPO_REVISION: bba447e6b8e1df7ef8cdb6864319a4569e3e275b
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.30.0
-  PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
-  npm_config_cache: "${CI_PROJECT_DIR}/.cache/npm"
-  npm_config_prefer_offline: "true"
+  REFASTER_VERSION: 2.36.0
 
-.pip-cache: &pip-cache
-  cache:
-    key: "${CI_JOB_NAME}"
-    paths:
-      - ".cache/pip"
-
-.node-cache: &node-cache
-  cache:
-    key: "${CI_JOB_NAME}"
-    paths:
-      - ".cache/npm"
-
-.binary_check: &binary_check
-  stage: checks
-
-.configuration-checks: &configuration-checks
-  <<: *binary_check
-  script: "ant $ANT_PROPS_CHECKS configuration-checks"
-  artifacts:
-    paths:
-      - "ConfigurationChecks.html"
-      - "hs_err_pid*.log"
-    when: always
-    reports:
-      junit: "output/configuration-checks/TESTS-TestSuites.xml"
-
-configuration-checks:jdk-17:
-  <<: *configuration-checks
-  dependencies:
-    - build-dependencies
-    - build:jdk-17
-  needs:
-    - build-dependencies
-    - build:jdk-17
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
-
-configuration-checks:jdk-23:
-  <<: *configuration-checks
-  dependencies:
-    - build-dependencies
-    - build:jdk-23
-  needs:
-    - build-dependencies
-    - build:jdk-23
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
-
-
-configuration-documentation:
-  <<: *binary_check
-  script:
-    - "cp doc/ConfigurationOptions.txt doc/ConfigurationOptions.txt.old"
-    - "ant $ANT_PROPS_CHECKS build-documentation -Ddocumentation.uptodate=false"
-    - "diff doc/ConfigurationOptions.txt.old doc/ConfigurationOptions.txt"
-  dependencies:
-    - build-dependencies
-    - build:jdk-17
-  needs:
-    - build-dependencies
-    - build:jdk-17
-
-
-configuration-plot:
-  stage: checks
-  script:
-    - "mkdir -p output"
-    - "touch output/AssumptionAutomaton.txt"
-    - "scripts/configViz.py > ConfigurationPlot.dot"
-    - "dot -Tsvg ConfigurationPlot.dot -O"
-  dependencies: []
-  needs: []
-  artifacts:
-    paths:
-      - "ConfigurationPlot.dot.svg"
-
-
-forbidden-apis:
-  <<: *binary_check
-  script: "ant $ANT_PROPS_CHECKS forbiddenapis"
-  dependencies:
-    - build-dependencies
-    - build:jdk-17
-  needs:
-    - build-dependencies
-    - build:jdk-17
-
-
-check-code-patterns:
-  stage: checks
-  script: "build/check-code-patterns.sh"
-  dependencies: []
-  needs: []
-  image: ubuntu:20.04
-
-
-.python-unit-tests: &python-unit-tests
-  <<: *binary_check
-  script: "ant $ANT_PROPS_CHECKS python-unit-tests"
-
-python-unit-tests:jdk-17:
-  <<: *python-unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-17
-  needs:
-    - build-dependencies
-    - build:jdk-17
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
-
-python-unit-tests:jdk-23:
-  <<: *python-unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-23
-  needs:
-    - build-dependencies
-    - build:jdk-23
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
-
-
-javascript-build:
-  stage: checks
-  dependencies: []
-  needs: []
-  image: ${CI_REGISTRY_IMAGE}/test:node
-  before_script:
-    - cd src/org/sosy_lab/cpachecker/core/counterexample/
-    - npm ci
-  script:
-    - npm run build
-    - git diff --stat --exit-code
-  artifacts:
-    paths:
-      -  src/org/sosy_lab/cpachecker/core/counterexample/build
-    when: on_failure
-  <<: *node-cache
-
-javascript-unit-tests:
-  stage: checks
-  dependencies: []
-  needs: []
-  image: ${CI_REGISTRY_IMAGE}/test:node
-  before_script:
-    - cd src/org/sosy_lab/cpachecker/core/counterexample/
-    - npm ci
-  script:
-    - npm test
-  cache:
-    paths:
-    - "src/org/sosy_lab/cpachecker/core/counterexample/node_modules/"
-  artifacts:
-    paths:
-      - src/org/sosy_lab/cpachecker/core/counterexample/unit_testing_report.html
-    when: always
-  <<: *node-cache
-
-javascript-eslint:
-  stage: checks
-  dependencies: []
-  needs: []
-  image: ${CI_REGISTRY_IMAGE}/test:node
-  before_script:
-    - cd src/org/sosy_lab/cpachecker/core/counterexample/
-    - npm ci
-  script:
-    - npm run lint
-  <<: *node-cache
-
-
-build-docker:test:java-node:
-  extends: .build-docker
-  variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.java-node
-    IMAGE: /test:java-node
-
-build-docker:test:node:
-  extends: .build-docker
-  variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.node
-    IMAGE: /test:node
-
-# Build Docker images and push to Docker Hub
-# following this guideline: https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
-.build-docker-hub:
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
-  script:
-    - mkdir -p /root/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}, \"https://index.docker.io/v1/\":{\"username\":\"$DOCKER_HUB_USER\",\"password\":\"$DOCKER_HUB_TOKEN\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE:$TAG --destination docker.io/sosylab/cpachecker:$TAG $EXTRA_ARGS
-  only:
-    variables:
-      - $DOCKER_HUB_USER
-      - $DOCKER_HUB_TOKEN
-
-build-docker:release:
-  stage: images
-  extends: .build-docker-hub
-  variables:
-    DOCKERFILE: build/Dockerfile.release
-    TAG: "4.0"
-    EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest --destination docker.io/sosylab/cpachecker:latest"
-  only:
-    refs:
-      - schedules
-      - web
-
-
-javascript-e2e-tests:
-  stage: checks
-  dependencies:
-    - build-dependencies
-    - build:jdk-17
-  needs:
-    - build-dependencies
-    - build:jdk-17
-  image: ${CI_REGISTRY_IMAGE}/test:java-node
-  before_script:
-      # generate example report
-    - bin/cpachecker -predicateAnalysis test/programs/simple/SSAMap-bug.c
-    - cd src/org/sosy_lab/cpachecker/core/counterexample/
-    - npm ci
-    - "npx webdriver-manager update --versions.chrome $(dpkg-query --showformat='${Version}' --show google-chrome-stable)"
-  script:
-    - npm run e2e-test
-  cache:
-    paths:
-    - src/org/sosy_lab/cpachecker/core/counterexample/node_modules/
-  artifacts:
-    paths:
-      - output/Counterexample.1.html
-      - src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests-report
-    when: always
-
-
-# Checks for Python code
-check-format-python:
-  stage: checks
-  dependencies: []
-  needs: []
-  image: python
-  before_script:
-    - pip install 'black[jupyter]<25'
-  script:
-    - black . --check --diff
-  <<: *pip-cache
-
-flake8:
-  stage: checks
-  dependencies: []
-  needs: []
-  image: python:3.8
-  before_script:
-    - "pip install 'flake8<6' flake8-awesome"
-  script:
-    - flake8
-  <<: *pip-cache
-
-
-build-tar:
-  stage: checks
-  dependencies:
-    - build-dependencies
-    - build:jdk-17
-  needs:
-    - build-dependencies
-    - build:jdk-17
-  script: "ant $ANT_PROPS_CHECKS dist-unix -Dnamet=cpachecker"
-  artifacts:
-    paths:
-      - "cpachecker.tar.bz2"
-  only:
-    refs:
-      - trunk
-
-deploy-docker:
+auto-update-dependencies:
   stage: deploy
-  dependencies:
-    - build-tar
-  needs:
-    - build-tar
-  extends: .build-docker-hub
-  variables:
-    DOCKERFILE: build/Dockerfile.dev
-    TAG: "dev"
-    EXTRA_ARGS: "--context dir://."
-  only:
-    refs:
-      - trunk
-
-
-# No coverage is computed for CPAchecker
-unit-tests:jdk-17:
-  script: "ant $ANT_PROPS_CHECKS unit-tests"
-  artifacts:
-    reports:
-      junit: "output/junit/TESTS-TestSuites.xml"
-
-unit-tests:jdk-21:
-  script: "ant $ANT_PROPS_CHECKS unit-tests"
-  artifacts:
-    reports:
-      junit: "output/junit/TESTS-TestSuites.xml"
-
-unit-tests:jdk-23:
-  script: "ant $ANT_PROPS_CHECKS unit-tests"
-  artifacts:
-    reports:
-      junit: "output/junit/TESTS-TestSuites.xml"
-
-
-# Override Java version for some jobs
-image: ${CI_REGISTRY_IMAGE}/test:jdk-17
-
-spotbugs:
-  dependencies:
-    - build-dependencies
-    - build:jdk-17
-  needs:
-    - build-dependencies
-    - build:jdk-17
-
-refaster:
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
-
-
-# Disable Java 11 jobs
-build-docker:test:jdk-11:
-  only: []
-
-build:jdk-11:
-  only: []
-
-unit-tests:jdk-11:
-  only: []
-
-
-# Disable some checks because they are not used for CPAchecker
-javadoc:
-  only: []
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends git xmlstarlet openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY_BASE64" | base64 -d | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - build/auto-update-dependencies.sh
+  environment: repo/auto-update-dependencies
+  rules:
+    - if: $AUTO_UPDATE_DEPENDENCIES == "true"
+  cache:
+    key: "$CI_JOB_NAME"
+    paths:
+      - ".ivy2/"

@@ -797,10 +797,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       }
     }
     if (witnessId.equals(witnessThreadId.getValue())) {
-      // corrent branch
+      // current branch
       return ts;
     } else {
-      // threadId does not match -> no successor
+      // threadId does not match -> should be no successor
+      // but keep continuining to avoid cutting off too much in some situations
+      // (cf. 7f01668b139817f88f08791695d9245e7f8ca841)
       return ts;
     }
   }
