@@ -166,6 +166,9 @@ public class SMGCPAAbstractionManager {
     assert candidatesHaveBeenAbstracted(orderedListCandidatesByNesting, currentState);
     assert currentState.getMemoryModel().checkSMGSanity();
     assert checkNestingLevel(currentState);
+    assert new SMGCPAAbstractionManager(currentState, minimumLengthForListsForAbstraction, null)
+        .getListCandidates()
+        .isEmpty();
     return currentState;
   }
 
