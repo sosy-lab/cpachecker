@@ -56,6 +56,7 @@ as supported by the `reuse` tool.
   The command-line binary is necessary because Ultimate LassoRanker calls it.
 
 - `mpfr_java.jar`
-  and `libmpfr_java.so`: [MPFR Java Bindings](https://github.com/runtimeverification/mpfr-java/)
-  Java bindings for the [MPFR](https://www.mpfr.org/), a C library for multiple-precision
-  floating-point computations with correct rounding.
+  and `libmpfr_java.so`: [mpfr-java](https://github.com/runtimeverification/mpfr-java/)  
+  Java bindings for [MPFR](https://www.mpfr.org/), a C library for multiple-precision
+  floating-point computations with correct rounding.  
+  Build instructions can be found in `native/source/mpfr-java/README.md`
