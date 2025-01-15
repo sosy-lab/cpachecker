@@ -471,11 +471,10 @@ public class Sequentialization {
         if (!prunable.contains(caseClause)) {
           if (caseClause.isPrunable()) {
             int pc = caseClause.caseLabel.value;
-            Optional<SeqCaseClause> optNonBlank =
+            SeqCaseClause nonBlank =
                 findNonBlankCaseClause(caseLabelValueMap, caseClause, prunable, caseClause);
-            if (optNonBlank.isPresent()) {
-              SeqCaseClause nonBlank = optNonBlank.orElseThrow();
-              int nonBlankPc = nonBlank.caseLabel.value;
+            int nonBlankPc = nonBlank.caseLabel.value;
+            if (!nonBlank.isPrunable()) {
               if (prunePcs.containsKey(nonBlankPc)) {
                 // a nonBlank may be reachable through multiple blank paths
                 // -> reference the first clone to prevent duplication of cases
@@ -486,11 +485,15 @@ public class Sequentialization {
                 prunePcs.put(nonBlankPc, pc);
               }
             } else {
-              // no non-blank found: path leads to thread exit node -> entire path is blank
-              assert caseClause.caseBlock.statements.size() == 1;
-              int targetPc = caseClause.caseBlock.statements.get(0).getTargetPc().orElseThrow();
+              // non-blank still prunable -> path leads to thread exit node
+              assert nonBlank.caseBlock.statements.size() == 1;
+              int targetPc = nonBlank.caseBlock.statements.get(0).getTargetPc().orElseThrow();
               assert targetPc == SeqUtil.EXIT_PC;
-              prunePcs.put(pc, targetPc);
+              prunePcs.put(nonBlankPc, targetPc);
+              // pcs not equal -> thread exit reachable through multiple paths -> add both to pruned
+              if (pc != nonBlankPc) {
+                prunePcs.put(pc, targetPc);
+              }
             }
           } else if (!newIds.contains(caseClause.id)) {
             prune1.add(caseClause);
@@ -556,9 +559,9 @@ public class Sequentialization {
   /**
    * Returns the first {@link SeqCaseClause} in the {@code pc} chain that has no {@link
    * SeqBlankStatement}. If pInit reaches a threads termination through only blank statement,
-   * returns {@link Optional#empty()}.
+   * returns pInit, i.e. the first blank statement.
    */
-  private Optional<SeqCaseClause> findNonBlankCaseClause(
+  private SeqCaseClause findNonBlankCaseClause(
       final ImmutableMap<Integer, SeqCaseClause> pCaseLabelValueMap,
       final SeqCaseClause pInit,
       Set<SeqCaseClause> pPruned,
@@ -570,8 +573,11 @@ public class Sequentialization {
         SeqBlankStatement blank = (SeqBlankStatement) stmt;
         SeqCaseClause nextCaseClause = pCaseLabelValueMap.get(blank.getTargetPc().orElseThrow());
         if (nextCaseClause == null) {
-          // this is only reachable if blank is a threads exit -> no successors
-          return Optional.empty();
+          // this is only reachable if it is a threads exit (no successors)
+          assert pCurrent.caseBlock.statements.size() == 1;
+          int targetPc = pCurrent.caseBlock.statements.get(0).getTargetPc().orElseThrow();
+          assert targetPc == SeqUtil.EXIT_PC;
+          return pCurrent;
         }
         // do not visit exit nodes of the threads cfa
         if (!nextCaseClause.caseBlock.statements.isEmpty()) {
@@ -579,7 +585,7 @@ public class Sequentialization {
         }
       }
       // otherwise break recursion -> non-blank case found
-      return Optional.of(pCurrent);
+      return pCurrent;
     }
     throw new IllegalArgumentException("pCurrent statements cannot be empty");
   }

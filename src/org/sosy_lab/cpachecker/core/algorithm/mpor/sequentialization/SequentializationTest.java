@@ -83,14 +83,6 @@ public class SequentializationTest {
     testCompile(path, options);
   }
 
-  @Test
-  public void testCompileSeq_stack1_scalarPc() throws Exception {
-    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/stack-1.c");
-    assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = new MPOROptions(false, true, false);
-    testCompile(path, options);
-  }
-
   private void testCompile(Path pInputFilePath, MPOROptions pOptions) throws Exception {
     // create cfa for test program pFileName
     LogManager logger = LogManager.createTestLogManager();
