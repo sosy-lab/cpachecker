@@ -771,17 +771,6 @@ public abstract class AbstractExpressionValueVisitor
     return Value.UnknownValue.getInstance();
   }
 
-  /** Round a float value to an integer with the given C type */
-  private Number roundFloatToInteger(MachineModel pMachineModel, CType pType, FloatValue pValue) {
-    int sizeOfType =
-        pMachineModel.getSizeof(pType).intValue() * pMachineModel.getSizeofCharInBits();
-    return switch (sizeOfType) {
-      case SIZE_OF_JAVA_INT -> pValue.integerValue();
-      case SIZE_OF_JAVA_LONG -> pValue.longValue();
-      default -> throw new IllegalArgumentException();
-    };
-  }
-
   /**
    * Helper method to handle unary builtin function in {@link
    * AbstractExpressionValueVisitor#visit(CFunctionCallExpression)}
@@ -930,19 +919,33 @@ public abstract class AbstractExpressionValueVisitor
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
-              (FloatValue arg) ->
-                  roundFloatToInteger(
-                      machineModel, CNumericTypes.LONG_INT, arg.round(RoundingMode.NEAREST_AWAY)));
+              (FloatValue arg) -> {
+                int sizeOfType =
+                    machineModel.getSizeof(CNumericTypes.LONG_INT)
+                        * machineModel.getSizeofCharInBits();
+                FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
+                return switch (sizeOfType) {
+                  case SIZE_OF_JAVA_INT -> value.integerValue();
+                  case SIZE_OF_JAVA_LONG -> value.longValue();
+                  default -> throw new IllegalArgumentException();
+                };
+              });
 
         } else if (BuiltinFloatFunctions.matchesLlround(calledFunctionName)) {
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
-              (FloatValue arg) ->
-                  roundFloatToInteger(
-                      machineModel,
-                      CNumericTypes.LONG_LONG_INT,
-                      arg.round(RoundingMode.NEAREST_AWAY)));
+              (FloatValue arg) -> {
+                int sizeOfType =
+                    machineModel.getSizeof(CNumericTypes.LONG_LONG_INT)
+                        * machineModel.getSizeofCharInBits();
+                FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
+                return switch (sizeOfType) {
+                  case SIZE_OF_JAVA_INT -> value.integerValue();
+                  case SIZE_OF_JAVA_LONG -> value.longValue();
+                  default -> throw new IllegalArgumentException();
+                };
+              });
 
         } else if (BuiltinFloatFunctions.matchesTrunc(calledFunctionName)) {
           return handleBuiltinFunction1(
