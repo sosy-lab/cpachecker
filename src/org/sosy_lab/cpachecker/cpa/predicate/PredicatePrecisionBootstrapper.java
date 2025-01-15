@@ -12,8 +12,11 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
+import com.google.common.io.MoreFiles;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,9 +59,11 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.LemmaUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaEntry;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "cpa.predicate")
@@ -226,6 +231,27 @@ public final class PredicatePrecisionBootstrapper {
     }
 
     return result;
+  }
+
+  public ImmutableSet<LemmaEntry> prepareInitialLemmas()
+      throws InterruptedException, InvalidConfigurationException {
+    List<LemmaEntry> lemmaSet = new ArrayList<>();
+
+    if (!predicatesFiles.isEmpty()) {
+      for (Path lemmaFile : predicatesFiles) {
+        try {
+          IO.checkReadableFile(lemmaFile);
+          if (!AutomatonWitnessV2ParserUtils.isYAMLWitness(lemmaFile)) {
+            logger.log(Level.WARNING, "Lemmas can only be supplied via a YAML file.");
+            continue;
+          }
+          lemmaSet.addAll(LemmaUtils.parseLemmasFromFile(lemmaFile, logger));
+        } catch (IOException e) {
+          logger.logfUserException(Level.WARNING, e, "Could not read lemma file");
+        }
+      }
+    }
+    return ImmutableSet.copyOf(lemmaSet);
   }
 
   private PredicatePrecision parseInvariantFromYMLCorrectnessWitnessNonLocally(

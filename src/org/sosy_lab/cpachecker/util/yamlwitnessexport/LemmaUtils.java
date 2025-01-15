@@ -23,23 +23,22 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaSetEntry;
 
 public class LemmaUtils {
-  public static ImmutableSet<LemmaEntry> parseLemmas(List<Path> lemmaFiles, LogManager logger) {
+
+  public static ImmutableSet<LemmaEntry> parseLemmasFromFile(Path lemmaFile, LogManager logger) {
     List<LemmaEntry> lemmaSet = new ArrayList<>();
-    for (Path lemmaFile : lemmaFiles) {
-      try {
-        List<LemmaSetEntry> lemmaSetEntries = readLemmaFile(lemmaFile);
-        for (LemmaSetEntry e : lemmaSetEntries) {
-          List<LemmaEntry> lemmaEntries = e.getContent();
-          lemmaSet.addAll(lemmaEntries);
-        }
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not read lemmas from file");
+    try {
+      List<LemmaSetEntry> lemmaSetEntries = readLemmaFile(lemmaFile);
+      for (LemmaSetEntry e : lemmaSetEntries) {
+        List<LemmaEntry> lemmaEntries = e.getContent();
+        lemmaSet.addAll(lemmaEntries);
       }
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not read lemmas from file");
     }
     return ImmutableSet.copyOf(lemmaSet);
   }
 
-  private static List<LemmaSetEntry> readLemmaFile(Path lemmaFile) throws IOException {
+  public static List<LemmaSetEntry> readLemmaFile(Path lemmaFile) throws IOException {
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     mapper.findAndRegisterModules();
     List<AbstractEntry> entries =

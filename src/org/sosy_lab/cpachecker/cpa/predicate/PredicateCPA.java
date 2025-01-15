@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaEntry;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** CPA that defines symbolic predicate abstraction. */
@@ -125,6 +126,7 @@ public class PredicateCPA
   private final PredicateTransferRelation transfer;
 
   private final PredicatePrecision initialPrecision;
+  private final ImmutableSet<LemmaEntry> initialLemmas;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
   private final PredicateCPAStatistics stats;
@@ -214,6 +216,8 @@ public class PredicateCPA
             predAbsManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
+    initialLemmas = precisionBootstraper.prepareInitialLemmas();
+    logger.log(Level.FINEST, "Initial lemmas are", initialLemmas);
 
     PredicateProvider predicateProvider =
         new PredicateProvider(config, pCfa, logger, formulaManager, predAbsManager);
