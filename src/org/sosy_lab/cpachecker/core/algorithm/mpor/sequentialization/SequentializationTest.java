@@ -20,6 +20,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
 public class SequentializationTest {
@@ -89,19 +90,15 @@ public class SequentializationTest {
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     CFACreator creatorWithPreProcessor =
         new CFACreator(
-            Configuration.builder()
-                .setOption("parser.usePreprocessor", "true")
-                .setOption("algorithm.MPOR.addPOR", "true")
-                .setOption("algorithm.MPOR.addLoopInvariants", "true")
-                .setOption("algorithm.MPOR.scalarPc", String.valueOf(scalarPc))
-                .build(),
+            Configuration.builder().setOption("parser.usePreprocessor", "true").build(),
             logger,
             ShutdownNotifier.createDummy());
     CFA inputCfa =
         creatorWithPreProcessor.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
 
-    // create seq with mpor algorithm
-    MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa);
+    // create mpor algorithm and options (use additional loop invariants and por for compile test)
+    MPOROptions options = new MPOROptions(true, true, scalarPc);
+    MPORAlgorithm algorithm = MPORAlgorithm.testInstance(options, logger, inputCfa);
     String initSeq = algorithm.buildInitSeq();
     String testProgram = "test.i";
     String finalSeq =

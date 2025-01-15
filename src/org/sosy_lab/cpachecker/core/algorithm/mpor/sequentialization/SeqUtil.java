@@ -136,6 +136,7 @@ public class SeqUtil {
         int targetPc = threadEdge.getSuccessor().pc;
         CFANode successor = threadEdge.getSuccessor().cfaNode;
 
+        // TODO use SeqBlankStatement here instead, its just pc[i] = -1; here -> can be pruned
         if (successor instanceof FunctionExitNode
             && successor.getFunction().getType().equals(pThread.startRoutine)) {
           // exiting thread -> set pc of thread to -1

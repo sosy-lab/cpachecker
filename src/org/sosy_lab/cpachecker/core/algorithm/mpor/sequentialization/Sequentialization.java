@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
@@ -121,9 +122,7 @@ public class Sequentialization {
   /** Generates and returns the sequentialized program. */
   public String generateProgram(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
-      boolean pAddLoopInvariants,
-      boolean pAddPOR,
-      boolean pScalarPc,
+      MPOROptions pOptions,
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
@@ -198,16 +197,16 @@ public class Sequentialization {
     assert validCaseClauses(prunedCaseClauses, pLogger);
     // optional: include loop invariant assertions over thread variables
     Optional<ImmutableList<SeqLogicalAndExpression>> loopInvariants =
-        pAddLoopInvariants
+        pOptions.addLoopInvariants
             ? Optional.of(createLoopInvariants(pSubstitutions.keySet(), threadVars))
             : Optional.empty();
     // optional: include POR assumptions
     Optional<ImmutableList<SeqFunctionCallExpression>> porAssumptions =
-        pAddPOR ? Optional.of(createPORAssumptions(prunedCaseClauses)) : Optional.empty();
+        pOptions.addPOR ? Optional.of(createPORAssumptions(prunedCaseClauses)) : Optional.empty();
     SeqMainFunction mainMethod =
         new SeqMainFunction(
             threadCount,
-            pScalarPc,
+            pOptions,
             loopInvariants,
             createThreadSimulationAssumptions(pSubstitutions.keySet(), threadVars),
             porAssumptions,

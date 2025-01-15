@@ -22,6 +22,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection.InputRejectionMessage;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
@@ -46,8 +47,10 @@ public class InputRejectionTest {
         creatorWithPreProcessor.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
 
     // test if MPORAlgorithm rejects program with correct throwable and pErrorMessage
+    MPOROptions options = new MPOROptions(false, false, false);
     T throwable =
-        assertThrows(pExpectedThrowable, () -> MPORAlgorithm.testInstance(logger, inputCfa));
+        assertThrows(
+            pExpectedThrowable, () -> MPORAlgorithm.testInstance(options, logger, inputCfa));
     assertThat(pExpectedThrowable.isInstance(throwable)).isTrue();
     assertThat(throwable.getMessage().contains(pExpected.message)).isTrue();
   }

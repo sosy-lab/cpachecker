@@ -18,7 +18,6 @@ import java.nio.file.Path;
 import java.time.Year;
 import java.time.ZoneId;
 import java.util.Optional;
-import java.util.logging.Level;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -103,6 +102,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " int arrays. may slow down or improve verification depending on the verifier")
   private boolean scalarPc = false;
 
+  private final MPOROptions options;
+
   private static final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
   /** Matches both Windows (\r\n) and Unix-like (\n) newline conventions. */
@@ -145,7 +146,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /** Returns the initial sequentialization, i.e. we adjust it in later stages */
   public String buildInitSeq() throws UnrecognizedCodeException {
-    return seq.generateProgram(substitutions, addLoopInvariants, addPOR, scalarPc, logger);
+    return seq.generateProgram(substitutions, options, logger);
   }
 
   /**
@@ -247,10 +248,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       CFA pInputCfa)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, CPAException {
 
     pConfiguration.inject(this);
 
+    options = new MPOROptions(addLoopInvariants, addPOR, scalarPc);
     cpa = pCpa;
     config = pConfiguration;
     logger = pLogManager;
@@ -260,15 +262,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     InputRejection.handleInitialRejections(logger, inputCfa);
 
     gac = new GlobalAccessChecker();
-
-    try {
-      PredicateCPA predicateCpa =
-          CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, PredicateRefiner.class);
-      ptr = predicateCpa.getTransferRelation();
-    } catch (Exception e) {
-      logger.logException(Level.SEVERE, e, e.getMessage());
-      throw new AssertionError();
-    }
+    PredicateCPA predicateCpa =
+        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, PredicateRefiner.class);
+    ptr = predicateCpa.getTransferRelation();
 
     funcCallMap = getFunctionCallMap(inputCfa);
 
@@ -277,7 +273,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     threads = getThreads(inputCfa, funcCallMap);
 
-    initStaticVariables(inputCfa, logger, scalarPc, threads.size());
+    initStaticVariables(inputCfa, logger, options, threads.size());
 
     ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
     substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads);
@@ -285,12 +281,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     seq = new Sequentialization(threads.size());
   }
 
-  public static MPORAlgorithm testInstance(LogManager pLogManager, CFA pInputCfa) {
-    return new MPORAlgorithm(pLogManager, pInputCfa);
+  public static MPORAlgorithm testInstance(
+      MPOROptions pOptions, LogManager pLogManager, CFA pInputCfa) {
+    return new MPORAlgorithm(pOptions, pLogManager, pInputCfa);
   }
 
   /** Use this constructor only for test purposes. */
-  private MPORAlgorithm(LogManager pLogManager, CFA pInputCfa) {
+  private MPORAlgorithm(MPOROptions pOptions, LogManager pLogManager, CFA pInputCfa) {
+    options = pOptions;
     cpa = null;
     config = null;
     logger = pLogManager;
@@ -309,7 +307,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     threads = getThreads(inputCfa, funcCallMap);
 
-    initStaticVariables(inputCfa, logger, scalarPc, threads.size());
+    initStaticVariables(inputCfa, logger, options, threads.size());
 
     ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
     substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads);
@@ -402,13 +400,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   private void initStaticVariables(
-      CFA pInputCfa, LogManager pLogger, boolean pScalarPc, int pNumThreads) {
+      CFA pInputCfa, LogManager pLogger, MPOROptions pOptions, int pNumThreads) {
     // in tests, we may use the same CPAchecker instance -> builder may be init already
     if (!MPORStatics.isBinExprBuilderSet()) {
       MPORStatics.setBinExprBuilder(
           new CBinaryExpressionBuilder(pInputCfa.getMachineModel(), pLogger));
     }
-    if (pScalarPc) {
+    if (pOptions.scalarPc) {
       if (SeqIdExpression.areScalarPcSet()) {
         SeqIdExpression.resetScalarPc();
       }

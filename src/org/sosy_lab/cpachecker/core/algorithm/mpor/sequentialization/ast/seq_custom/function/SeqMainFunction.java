@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
@@ -87,7 +88,7 @@ public class SeqMainFunction implements SeqFunction {
 
   public SeqMainFunction(
       int pNumThreads,
-      boolean pScalarPc,
+      MPOROptions pOptions,
       Optional<ImmutableList<SeqLogicalAndExpression>> pLoopInvariants,
       ImmutableList<SeqFunctionCallExpression> pThreadAssumptions,
       Optional<ImmutableList<SeqFunctionCallExpression>> pPORAssumptions,
@@ -107,7 +108,7 @@ public class SeqMainFunction implements SeqFunction {
     porAssumptions = pPORAssumptions;
     caseClauses = pCaseClauses;
 
-    pcDeclarations = createPcDeclarations(pNumThreads, pScalarPc);
+    pcDeclarations = createPcDeclarations(pNumThreads, pOptions.scalarPc);
 
     assignNextThread =
         new CFunctionCallAssignmentStatement(
@@ -122,7 +123,7 @@ public class SeqMainFunction implements SeqFunction {
 
     assumeNextThread =
         new SeqFunctionCallExpression(SeqIdExpression.ASSUME, boundNextThreadExpression());
-    assumeNextThreadPc = createNextThreadPcAssumption(pNumThreads, pScalarPc);
+    assumeNextThreadPc = createNextThreadPcAssumption(pNumThreads, pOptions.scalarPc);
 
     assignPrevThread =
         porAssumptions.isPresent()
