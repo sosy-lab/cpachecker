@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
@@ -552,16 +553,8 @@ public class SMTFloat extends CFloat {
             prover.addConstraint(c);
           }
           if (!prover.isUnsat()) {
-            Object object = prover.getEvaluator().evaluate(formula);
-            if (object instanceof Float floatValue) {
-              value = Optional.of((double) floatValue);
-            } else if (object instanceof Double doubleValue) {
-              value = Optional.of(doubleValue);
-            } else {
-              // Should be unreachable, as guaranteed by the precondition in the constructor
-              throw new UnsupportedOperationException();
-            }
-            return value.orElseThrow();
+            FloatingPointNumber result = prover.getEvaluator().evaluate(formula);
+            return result.doubleValue();
           }
         } catch (SolverException e) {
           throw new RuntimeException(e);
