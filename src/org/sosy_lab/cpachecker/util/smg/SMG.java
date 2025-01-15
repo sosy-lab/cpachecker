@@ -1312,7 +1312,7 @@ public class SMG {
     // the new SMG and return it.
     SMGHasValueEdge newHVEdge = new SMGHasValueEdge(value, offset, sizeInBits);
     newSMG = newSMG.copyAndAddHVEdge(newHVEdge, object);
-    // assert newSMG.checkValueInConcreteMemorySanity();
+    assert newSMG.checkValueInConcreteMemorySanity();
     return newSMG;
   }
 
@@ -2174,7 +2174,14 @@ public class SMG {
           valuesToRegionsTheyAreSavedInRef =
               valuesToRegionsTheyAreSavedInRef.putAndCopy(value, inner);
         } else {
-          valuesToRegionsTheyAreSavedInRef = valuesToRegionsTheyAreSavedInRef.removeAndCopy(value);
+          inner = inner.removeAndCopy(obj);
+          if (inner.isEmpty()) {
+            valuesToRegionsTheyAreSavedInRef =
+                valuesToRegionsTheyAreSavedInRef.removeAndCopy(value);
+          } else {
+            valuesToRegionsTheyAreSavedInRef =
+                valuesToRegionsTheyAreSavedInRef.putAndCopy(value, inner);
+          }
         }
 
         if (value.isZero()) {
@@ -2196,8 +2203,14 @@ public class SMG {
             objectsAndPointersPointingAtThemRef =
                 objectsAndPointersPointingAtThemRef.putAndCopy(target, innerPointer);
           } else {
-            objectsAndPointersPointingAtThemRef =
-                objectsAndPointersPointingAtThemRef.removeAndCopy(target);
+            innerPointer = innerPointer.removeAndCopy(value);
+            if (innerPointer.isEmpty()) {
+              objectsAndPointersPointingAtThemRef =
+                  objectsAndPointersPointingAtThemRef.removeAndCopy(target);
+            } else {
+              objectsAndPointersPointingAtThemRef =
+                  objectsAndPointersPointingAtThemRef.putAndCopy(target, innerPointer);
+            }
           }
 
           waitlist.add(target);
