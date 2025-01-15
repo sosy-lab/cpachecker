@@ -16,6 +16,7 @@ import java.math.BigInteger;
 import java.util.List;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
@@ -949,6 +950,25 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     for (int i = 0; i < listLength; i++) {
       resetSMGStateAndVisitor();
       Value[] pointersAbstractedShortList = buildConcreteList(false, sllSize, listLength);
+
+      SMGObjectAndSMGState stackObjAndState =
+          currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+      currentState = stackObjAndState.getState();
+      SMGObject stackObj = stackObjAndState.getSMGObject();
+      currentState = currentState.copyAndAddDummyStackFrame();
+      currentState =
+          currentState.copyAndAddLocalVariable(
+              stackObjAndState.getSMGObject(), "var", CPointerType.POINTER_TO_VOID);
+      currentState =
+          currentState.writeValueWithoutChecks(
+              stackObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(pointersAbstractedShortList[0])
+                  .orElseThrow());
+
       int counter = 0;
       for (Value pointer : pointersAbstractedShortList) {
         // Generate the same list for each top list segment and save the first pointer as data
@@ -1045,6 +1065,26 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     for (int i = 0; i < listLength; i++) {
       resetSMGStateAndVisitor();
       Value[] pointersConcreteDifferentList = buildConcreteList(false, sllSize, listLength);
+
+      currentState = currentState.copyAndAddStackFrame(CFunctionDeclaration.DUMMY);
+      SMGObjectAndSMGState stackObjAndState =
+          currentState.copyAndAddStackObject(new NumericValue(pointerSizeInBits));
+      currentState = stackObjAndState.getState();
+      currentState =
+          currentState.copyAndAddLocalVariable(
+              stackObjAndState.getSMGObject(), "var", CPointerType.POINTER_TO_VOID);
+      SMGObject stackObj =
+          currentState.getMemoryModel().getObjectForVisibleVariable("var").orElseThrow();
+      currentState =
+          currentState.writeValueWithoutChecks(
+              stackObj,
+              BigInteger.ZERO,
+              pointerSizeInBits,
+              currentState
+                  .getMemoryModel()
+                  .getSMGValueFromValue(pointersConcreteDifferentList[0])
+                  .orElseThrow());
+
       // Adds sublists equal sublists (0 value in all)
       Value[][] nestedDifferentLists =
           addSubListsToList(listLength, pointersConcreteDifferentList, false);

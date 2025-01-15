@@ -7196,6 +7196,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     currentState = objAndState.getState();
     SMGObject stackObj = objAndState.getSMGObject();
     currentState =
+        currentState.copyAndAddLocalVariable(stackObj, "var", CPointerType.POINTER_TO_VOID);
+    currentState =
         currentState.writeValueWithoutChecks(
             stackObj, BigInteger.ZERO, pointerSizeInBits, pointerToFirst);
 
@@ -7352,6 +7354,9 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     // Save the pointer in a stack variable
     SMGObjectAndSMGState objAndState = currentState.copyAndAddStackObject(sllSizeValue);
     currentState = objAndState.getState();
+    currentState =
+        currentState.copyAndAddLocalVariable(
+            objAndState.getSMGObject(), "var", CPointerType.POINTER_TO_VOID);
     SMGObject stackObj = objAndState.getSMGObject();
     currentState =
         currentState.writeValueWithoutChecks(
@@ -7516,6 +7521,9 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     stackObjForPointerAndState = currentState.copyAndAddStackObject(numericPointerSizeInBits);
     SMGObject newHeadOnStack = stackObjForPointerAndState.getSMGObject();
     currentState = stackObjForPointerAndState.getState();
+    currentState = currentState.copyAndAddDummyStackFrame();
+    currentState =
+        currentState.copyAndAddLocalVariable(newHeadOnStack, "var", CPointerType.POINTER_TO_VOID);
 
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
       // Now, in a loop, create/reuse a stack variable, create a new list segment,
