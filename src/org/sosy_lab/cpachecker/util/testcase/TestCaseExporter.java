@@ -459,8 +459,8 @@ public class TestCaseExporter {
           continue;
         }
         newInput.set(i, String.valueOf(val));
-      } catch (NumberFormatException e) {
-        continue;
+      } catch (NumberFormatException ignored) {
+        // ignore
       }
     }
     return newInput;

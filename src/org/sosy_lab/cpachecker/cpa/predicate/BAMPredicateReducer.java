@@ -52,8 +52,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.predicate.bam")
-public class BAMPredicateReducer
-    extends GenericReducer<PredicateAbstractState, PredicatePrecision> {
+final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, PredicatePrecision> {
 
   private final PathFormulaManager pmgr;
   private final PredicateAbstractionManager pamgr;
@@ -81,7 +80,7 @@ public class BAMPredicateReducer
       secure = true)
   private boolean useAbstractionReduction = true;
 
-  public BAMPredicateReducer(BAMPredicateCPA cpa, Configuration pConfig)
+  BAMPredicateReducer(BAMPredicateCPA cpa, Configuration pConfig)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     pmgr = cpa.getPathFormulaManager();

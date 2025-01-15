@@ -11,19 +11,19 @@ package org.sosy_lab.cpachecker.pcc.propertychecker;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.sign.SIGN;
+import org.sosy_lab.cpachecker.cpa.sign.Sign;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class SingleSignChecker extends PerElementPropertyChecker {
 
   private final String varName;
-  private final SIGN value;
+  private final Sign value;
   private final String label;
 
   public SingleSignChecker(String pName, String pValue, String pLabel) {
     varName = pName;
-    value = SIGN.valueOf(pValue);
+    value = Sign.valueOf(pValue);
     label = pLabel;
   }
 

@@ -20,7 +20,6 @@ public class ThreadCpuTimeLimit implements ResourceLimit {
   private final long duration;
   private long endTime;
   private Thread thread;
-  private long overallUsedTime = 0;
 
   private ThreadCpuTimeLimit(long pLimit, TimeUnit pUnit) {
     checkArgument(pLimit > 0);
@@ -57,11 +56,7 @@ public class ThreadCpuTimeLimit implements ResourceLimit {
   @Override
   public synchronized long getCurrentValue() {
     Preconditions.checkState(thread != null);
-    long currentValue = getCurrentThreadTime(thread);
-    if (currentValue != -1) {
-      overallUsedTime = currentValue;
-    }
-    return currentValue;
+    return getCurrentThreadTime(thread);
   }
 
   private static long getCurrentThreadTime(Thread pThread) {
@@ -80,11 +75,6 @@ public class ThreadCpuTimeLimit implements ResourceLimit {
   public synchronized long nanoSecondsToNextCheck(long pCurrentValue) {
     Preconditions.checkState(thread != null);
     return (endTime - pCurrentValue) / 2;
-  }
-
-  public synchronized TimeSpan getOverallUsedTime() {
-    Preconditions.checkState(thread != null);
-    return TimeSpan.of(overallUsedTime, TimeUnit.NANOSECONDS);
   }
 
   @Override

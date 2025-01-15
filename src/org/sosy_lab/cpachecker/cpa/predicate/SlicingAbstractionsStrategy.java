@@ -68,9 +68,10 @@ import org.sosy_lab.java_smt.api.SolverException;
  * (doi:10.1007/978-3-642-27940-9_13)
  */
 @Options(prefix = "cpa.predicate.slicingabstractions")
-public class SlicingAbstractionsStrategy extends RefinementStrategy implements StatisticsProvider {
+public final class SlicingAbstractionsStrategy extends RefinementStrategy
+    implements StatisticsProvider {
 
-  private class Stats implements Statistics {
+  private final class Stats implements Statistics {
 
     private final Timer coverTime = new Timer();
     private final Timer argUpdate = new Timer();

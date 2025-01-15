@@ -203,9 +203,7 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
 
     String scopeSelector = "";
     for (String currentLine : contents) {
-      if (currentLine.trim().isEmpty()) {
-        continue;
-      } else if (currentLine.endsWith(":")) {
+      if (currentLine.endsWith(":")) {
         scopeSelector = currentLine.substring(0, currentLine.indexOf(":"));
         Matcher matcher = CFAUtils.CFA_NODE_NAME_PATTERN.matcher(scopeSelector);
         if (matcher.matches()) {
@@ -214,7 +212,7 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
         } else {
           isNodeScope = false;
         }
-      } else {
+      } else if (!currentLine.trim().isEmpty()) {
         MemoryLocation memoryLocation = MemoryLocation.parseExtendedQualifiedName(currentLine);
         if (applyInScope) {
           if (memoryLocation.isOnFunctionStack()) {

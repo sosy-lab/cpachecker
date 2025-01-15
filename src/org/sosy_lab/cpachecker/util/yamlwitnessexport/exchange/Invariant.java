@@ -22,13 +22,19 @@ public class Invariant {
   private final ExpressionTree<AExpression> formula;
   private final int line;
   private final int column;
+  private final String function;
   private final boolean isLoopInvariant;
 
   public Invariant(
-      ExpressionTree<AExpression> pFormula, int pLine, int pColumn, boolean pIsLoopInvariant) {
+      ExpressionTree<AExpression> pFormula,
+      int pLine,
+      int pColumn,
+      String pFunction,
+      boolean pIsLoopInvariant) {
     formula = Objects.requireNonNull(pFormula);
     line = pLine;
     column = pColumn;
+    function = Objects.requireNonNull(pFunction);
     isLoopInvariant = pIsLoopInvariant;
   }
 
@@ -38,6 +44,10 @@ public class Invariant {
 
   public int getColumn() {
     return column;
+  }
+
+  public String getFunction() {
+    return function;
   }
 
   public boolean isLoopInvariant() {
@@ -51,6 +61,7 @@ public class Invariant {
   @Override
   public int hashCode() {
     int hashCode = column + 124765 * line;
+    hashCode = 31 * hashCode + function.hashCode();
     hashCode = 31 * hashCode + formula.hashCode();
     return hashCode;
   }
@@ -65,6 +76,7 @@ public class Invariant {
         && other.formula.equals(formula)
         && other.line == line
         && other.column == column
+        && other.function.equals(function)
         && other.isLoopInvariant == isLoopInvariant;
   }
 

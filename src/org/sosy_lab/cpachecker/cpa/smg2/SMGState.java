@@ -87,11 +87,13 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -305,6 +307,18 @@ public class SMGState
   @SuppressWarnings("unused")
   public boolean containsConstraint(Constraint o) {
     return constraintsState.contains(o);
+  }
+
+  public void logUnknownValue(String msg) {
+    logger.log(Level.FINE, msg);
+  }
+
+  public void logUnknownValue(String msg, CFAEdge edge) {
+    logUnknownValue(msg + edge);
+  }
+
+  public void logUnknownValue(CFAEdge edge) {
+    logUnknownValue("A unknown value was assumed in ", edge);
   }
 
   /**
@@ -1470,100 +1484,74 @@ public class SMGState
         ConstantSymbolicExpressionLocator.getInstance();
     // There are 3 sources of constraints, values in objects (HVEs), offsets and sizes.
 
-    ImmutableSet.Builder<SymbolicValue> offsetsIdentsBuilder = ImmutableSet.builder();
+    Set<SymbolicIdentifier> allUsedIdentifiers = new HashSet<>();
     for (SMGPointsToEdge pte : getMemoryModel().getSmg().getPTEdges()) {
       Value value = pte.getOffset();
       // Get all symbolic values in offsets (they might not have a SMGValue mapping anymore below!)
       if (value instanceof SymbolicValue symValue) {
         for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
-          SymbolicValue usedIdentifier = constSym;
           if (constSym.getValue() instanceof SymbolicIdentifier symIdent) {
-            usedIdentifier = symIdent;
+            allUsedIdentifiers.add(symIdent);
           }
-          offsetsIdentsBuilder.add(usedIdentifier);
         }
       }
     }
-    ImmutableSet<SymbolicValue> offsetIdents = offsetsIdentsBuilder.build();
 
-    ImmutableSet.Builder<SymbolicValue> sizeIdentsBuilder = ImmutableSet.builder();
     for (SMGObject obj : getMemoryModel().getSmg().getObjects()) {
       Value value = obj.getSize();
       // Get all symbolic values in sizes (they might not have a SMGValue mapping anymore below!)
       if (value instanceof SymbolicValue symValue) {
         for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
-          SymbolicValue usedIdentifier = constSym;
           if (constSym.getValue() instanceof SymbolicIdentifier symIdent) {
-            usedIdentifier = symIdent;
+            allUsedIdentifiers.add(symIdent);
           }
-          sizeIdentsBuilder.add(usedIdentifier);
         }
       }
     }
-    ImmutableSet<SymbolicValue> sizeIdents = sizeIdentsBuilder.build();
 
-    ImmutableSet.Builder<Constraint> constraints = ImmutableSet.builder();
     // First, get all SMGValues for possible identifier
-    Map<SymbolicValue, Set<SMGValue>> identToAllValues = new HashMap<>();
     for (Entry<Wrapper<Value>, SMGValue> mapping :
         memoryModel.getValueToSMGValueMapping().entrySet()) {
       Value value = mapping.getKey().get();
       SMGValue smgValue = mapping.getValue();
-      if (value instanceof SymbolicValue symValue) {
-        for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
-          SymbolicValue usedIdentifier = constSym;
-          if (constSym.getValue() instanceof SymbolicIdentifier symIdent) {
-            usedIdentifier = symIdent;
-          }
-          if (!identToAllValues.containsKey(usedIdentifier)) {
-            identToAllValues.put(usedIdentifier, new HashSet<>());
-          }
-          identToAllValues.get(usedIdentifier).add(smgValue);
-        }
-      }
-    }
-
-    // This removed unused symbolic values from the constraints
-    for (Constraint constraint : getConstraints()) {
-      Set<ConstantSymbolicExpression> identifiersInConstraint = constraint.accept(symIdentVisitor);
-      // Check that those are truly used somewhere, otherwise remove the constraint
-      for (ConstantSymbolicExpression identifierInConstraint : identifiersInConstraint) {
-        // There might be additional cast expressions etc. that wrap the identifier
-        SymbolicValue usedIdentifier = identifierInConstraint;
-        // Current interpretation: if at least 1 symbolic is present and used, keep constraint
-        if (identifierInConstraint.getValue() instanceof SymbolicIdentifier symIdent) {
-          usedIdentifier = symIdent;
-        }
-
-        if (sizeIdents.contains(usedIdentifier) || offsetIdents.contains(usedIdentifier)) {
-          constraints.add(constraint);
-          break;
-        }
-
-        Set<SMGValue> maybeSMGValues =
-            identToAllValues.getOrDefault(usedIdentifier, ImmutableSet.of());
-        for (SMGValue smgValue : maybeSMGValues) {
-          if (memoryModel.getSmg().getNumberOfSMGValueUsages(smgValue) > 0) {
-            constraints.add(constraint);
-            break;
-          }
-          ImmutableSet.Builder<Constraint> tmpCopy = ImmutableSet.builder();
-          for (Constraint constraintToCopy : getConstraints()) {
-            if (constraintToCopy != constraint) {
-              tmpCopy.add(constraintToCopy);
+      if (memoryModel.getSmg().getNumberOfSMGValueUsages(smgValue) > 0) {
+        if (value instanceof SymbolicValue symValue) {
+          for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
+            if (constSym.getValue() instanceof SymbolicIdentifier symIdent) {
+              allUsedIdentifiers.add(symIdent);
             }
           }
-          // TODO: This is expensive and does not delete isolated cyclic unused sym value
-          // constraints
-          // The value might be part of other constraints though
-          if (copyWithNewConstraints(tmpCopy.build()).valueContainedInConstraints(usedIdentifier)) {
-            constraints.add(constraint);
-            break;
-          }
         }
       }
     }
-    return copyWithNewConstraints(constraints.build());
+
+    boolean done = false;
+    ImmutableSet.Builder<Constraint> constraintsToKeep = ImmutableSet.builder();
+    Set<Constraint> constraintsToCheck = new HashSet<>(getConstraints());
+    Map<Constraint, Set<SymbolicIdentifier>> constraintsToIdentsInside = new HashMap<>();
+    while (!done) {
+      done = true;
+      for (Iterator<Constraint> constraintIter = constraintsToCheck.iterator();
+          constraintIter.hasNext(); ) {
+        Constraint constraint = constraintIter.next();
+        Set<SymbolicIdentifier> identsInConstraint = constraintsToIdentsInside.get(constraint);
+        if (identsInConstraint == null) {
+          identsInConstraint = memoryModel.getSymbolicIdentifiersForValue(constraint);
+          constraintsToIdentsInside.put(constraint, identsInConstraint);
+        }
+
+        if (!Collections.disjoint(allUsedIdentifiers, identsInConstraint)) {
+          // Shares idents, remove all useful constraints from constraintIter
+          allUsedIdentifiers.addAll(identsInConstraint);
+          constraintsToKeep.add(constraint);
+          constraintIter.remove();
+          done = false;
+        }
+      }
+    }
+
+    // The constraints left in constraintsToCheck could not be removed -> they are useless
+    return copyWithNewConstraints(constraintsToKeep.build());
   }
 
   /**
@@ -2316,7 +2304,7 @@ public class SMGState
     return copyAndReplaceMemoryModel(newHeap).copyWithMemLeak(unreachableObjects, null);
   }
 
-  public SMGState copyAndPruneUnreachable(CFAEdge edge) {
+  public SMGState copyAndPruneUnreachable(CFAEdge edge) throws SMGException {
     SPCAndSMGObjects newHeapAndUnreachables = memoryModel.copyAndPruneUnreachable();
     SymbolicProgramConfiguration newHeap = newHeapAndUnreachables.getSPC();
     Collection<SMGObject> unreachableObjects =
@@ -2329,8 +2317,7 @@ public class SMGState
     }
     for (SMGObject unreachable : unreachableObjects) {
       if (unreachable instanceof SMGSinglyLinkedListSegment sll && sll.getMinLength() == 0) {
-        throw new UnsupportedOperationException(
-            "Error in tracking abstracted list memory for materialization.");
+        throw new SMGException("Error in tracking abstracted list memory for materialization.");
       }
     }
 
@@ -3074,7 +3061,9 @@ public class SMGState
       Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTargetAndOffset =
           getPointsToTarget(addressExprValue.getMemoryAddress());
       if (maybeTargetAndOffset.isEmpty()) {
-        return ValueAndSMGState.ofUnknownValue(this);
+        return ValueAndSMGState.ofUnknownValue(
+            this,
+            "Returned unknown value because the target of a requested pointer could not be found.");
       }
       SMGObjectAndOffsetMaybeNestingLvl targetAndOffset = maybeTargetAndOffset.orElseThrow();
 
@@ -3092,7 +3081,9 @@ public class SMGState
           addressAndState.getState());
 
     } else {
-      return ValueAndSMGState.ofUnknownValue(this);
+      return ValueAndSMGState.ofUnknownValue(
+          this,
+          "Returned unknown value because the target of a requested pointer could not be found.");
     }
   }
 
@@ -3434,8 +3425,7 @@ public class SMGState
           "Partial read of symbolic value detected. Overapproximated due to missing"
               + " implementation.";
       logger.log(Level.INFO, msg);
-      throw new UnsupportedOperationException(
-          "Symbolic handling of partial reads are not supported at the moment.");
+      throw new SMGException("Symbolic handling of partial reads are not supported at the moment.");
       // SymbolicValueFactory vF = SymbolicValueFactory.getInstance();
       // asConstant needed?
       /*
@@ -3814,6 +3804,19 @@ public class SMGState
     return this.addConstraint(newConstraint);
   }
 
+  /** Returns a new state with a new constraint added: symbolicValue == value. */
+  private SMGState copyAndAddValuesEqualConstraint(
+      Value symbolicValueToAssign, Value value, CType typeOfValue, CFAEdge edge) {
+
+    // Use an SMT solver to argue about the offset/size values
+    final ConstraintFactory constraintFactory =
+        ConstraintFactory.getInstance(this, machineModel, logger, options, evaluator, edge);
+    final Constraint newConstraint =
+        constraintFactory.getEqualConstraint(symbolicValueToAssign, value, typeOfValue, this);
+
+    return this.addConstraint(newConstraint);
+  }
+
   /**
    * Writes into the given {@link SMGObject} at the specified offset in bits with the size in bits
    * the value given. This method adds the Value <-> SMGValue mapping if none is known, else it uses
@@ -3938,7 +3941,7 @@ public class SMGState
       // Memsafety not violated
 
       if (!writeOffsetInBits.isNumericValue()) {
-        return handleSymbolicOffset(
+        return handleSymbolicOffsetForWriteOperation(
             object,
             writeOffsetInBits,
             sizeInBits,
@@ -4005,12 +4008,91 @@ public class SMGState
   }
 
   /**
+   * Handles symbolic offsets (and sizes if they are symbolic as well) in read operations. Will
+   * check if there are options to handle symbolic values, if yes, will use those, e.g.
+   * overapproximate or find concrete values.
+   */
+  @NonNull
+  public List<ValueAndSMGState> handleSymbolicOffsetForReadOperation(
+      SMGObject object,
+      Value readOffsetInBits,
+      BigInteger sizeInBits,
+      CExpression exprReadingFromValueVisitor,
+      @Nullable CFAEdge edge,
+      SMGState currentState)
+      throws SMGException, SMGSolverException {
+    if (options.isOverapproximateSymbolicOffsets()) {
+      // Delete ALL edges in the target region, as they may all be now different
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState.copyAndReplaceMemoryModel(
+                  currentState.memoryModel.copyAndReplaceHVEdgesAt(object, PersistentSet.of())),
+              "Returned unknown as a result of option isOverapproximateSymbolicOffsets true for a"
+                  + " symbolic offset.",
+              edge));
+
+    } else if (options.isFindConcreteValuesForSymbolicOffsets()) {
+      // Find the possible assignments of the offset (or the symbolic value therein)
+      //   and create concrete states based on concrete offsets them.
+      // We know that memory-safety is not violated, so the values are most likely finite.
+      return assignConcreteValuesForSymbolicValuesAndRead(
+          object, readOffsetInBits, sizeInBits, exprReadingFromValueVisitor, edge, currentState);
+
+    } else {
+      throw new SMGException(
+          "Stop analysis because of an error in symbolic offset in read operation. Enable the"
+              + " option findConcreteValuesForSymbolicOffsets or overapproximateSymbolicOffsets if"
+              + " you want to continue. "
+              + edge);
+    }
+  }
+
+  @NonNull
+  private List<ValueAndSMGState> assignConcreteValuesForSymbolicValuesAndRead(
+      SMGObject object,
+      Value offsetValueInBits,
+      BigInteger sizeInBits,
+      CExpression exprReadingFromValueVisitor,
+      @Nullable CFAEdge edge,
+      SMGState currentState)
+      throws SMGException, SMGSolverException {
+    options.incConcreteValueForSymbolicOffsetsAssignmentMaximum();
+
+    List<SMGState> assignedStates =
+        findAssignmentsWithSolverAndReplaceSymbolicValues(
+            object, offsetValueInBits, new NumericValue(sizeInBits), edge, currentState);
+
+    // (The concrete assignments don't invoke an SMT check anymore if there are no more symbolic
+    // values in any of the size or offset expressions)
+    if (assignedStates.isEmpty()) {
+      // No more assignments possible.
+      options.decConcreteValueForSymbolicOffsetsAssignmentMaximum();
+      return ImmutableList.of();
+    }
+
+    // Temporary restriction
+    Preconditions.checkArgument(assignedStates.size() == 2);
+    // Run the evaluation for the values with symbolic idents assigned in them again
+    // e.g. offset/size
+    ImmutableList.Builder<ValueAndSMGState> finalValuesAndStates = ImmutableList.builder();
+    for (SMGState assignedState : assignedStates) {
+      // The offset is not necessarily concrete now! We assign a concrete value in one state and
+      //   block it in the symbolic value for another state.
+      List<ValueAndSMGState> assignedValuesAndStates =
+          reEvaluateValueAfterConcreteAssignment(exprReadingFromValueVisitor, edge, assignedState);
+      finalValuesAndStates.addAll(assignedValuesAndStates);
+    }
+    options.decConcreteValueForSymbolicOffsetsAssignmentMaximum();
+    return finalValuesAndStates.build();
+  }
+
+  /**
    * Handles smybolic offsets (and sizes if they are symbolic as well) in write operations. Will
    * check if there are options to handle symbolic values, if yes, will use those, e.g.
    * overapproximate or find concrete values.
    */
   @NonNull
-  private List<SMGState> handleSymbolicOffset(
+  private List<SMGState> handleSymbolicOffsetForWriteOperation(
       SMGObject object,
       Value writeOffsetInBits,
       Value sizeInBits,
@@ -4136,14 +4218,11 @@ public class SMGState
    * Usually this signals that the symbolic offset will lead to a memsafety violation or a change
    * later.
    */
-  @Nullable
   public List<SMGStateAndOptionalSMGObjectAndOffset>
-      assignConcreteValuesForSymbolicValuesAndHandleSubscriptAddress(
-          Value subscriptOffset,
-          SMGState pCurrentState,
-          CArraySubscriptExpression expr,
-          @Nullable CFAEdge edge)
+      assignConcreteValuesForSymbolicValuesAndReevaluateExpressionInAddressVisitor(
+          SymbolicValue valueToAssign, CArraySubscriptExpression expr, @Nullable CFAEdge edge)
           throws CPATransferException {
+    options.incConcreteValueForSymbolicOffsetsAssignmentMaximum();
 
     if (expr == null) {
       throw new SMGException(
@@ -4155,36 +4234,41 @@ public class SMGState
     // We don't know if the access is safe or if the values are only allowed to be in the range of
     // the object as we are just asking for an address!
     List<SMGState> assignedStates =
-        findSubscriptAssignmentsWithSolverAndReplaceSymbolicValues(
-            subscriptOffset, edge, pCurrentState);
+        findSubscriptAssignmentsWithSolverAndReplaceSymbolicValues(valueToAssign, edge);
 
-    if (assignedStates == null) {
-      return null;
-    }
     // (The concrete assignments don't invoke an SMT check anymore if there are no more symbolic
     // values in any of the size or offset expressions)
     if (assignedStates.isEmpty()) {
       // No more assignments possible.
+      options.decConcreteValueForSymbolicOffsetsAssignmentMaximum();
       return ImmutableList.of();
     }
 
-    // Temporary restriction
-    Preconditions.checkArgument(assignedStates.size() == 2);
     // Run the evaluation again to get the concrete offsets
     ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> results = ImmutableList.builder();
     for (SMGState assignedState : assignedStates) {
       // The offset is not necessarily concrete now! We assign a concrete value in one state and
       //   block it in the symbolic value for another state.
-      results.addAll(
-          expr.accept(new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger, options)));
+      List<SMGStateAndOptionalSMGObjectAndOffset> assignedAndEvaldStates =
+          expr.accept(new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger, options));
+      if (options.isMemoryErrorTarget()) {
+        for (SMGStateAndOptionalSMGObjectAndOffset assignedAndEvaldState : assignedAndEvaldStates) {
+          if (assignedAndEvaldState.getSMGState().hasMemoryErrors()) {
+            options.decConcreteValueForSymbolicOffsetsAssignmentMaximum();
+            return ImmutableList.of(assignedAndEvaldState);
+          }
+        }
+      }
+      results.addAll(assignedAndEvaldStates);
     }
+    options.decConcreteValueForSymbolicOffsetsAssignmentMaximum();
     return results.build();
   }
 
   @NonNull
   private SMGStateAndOptionalSMGObjectAndOffset
       reEvaluateTargetObjectAndOffsetAfterConcreteAssignment(
-          CExpression lValueExpr, @javax.annotation.Nullable CFAEdge edge, SMGState assignedState)
+          CExpression lValueExpr, @Nullable CFAEdge edge, SMGState assignedState)
           throws SMGException, SMGSolverException {
     List<SMGStateAndOptionalSMGObjectAndOffset> targetsAndOffsetsAndStates;
     try {
@@ -4213,6 +4297,28 @@ public class SMGState
               + edge);
     }
     return targetAndOffsetAndState;
+  }
+
+  /** Re-evaluates the value visitor with the given expression */
+  private List<ValueAndSMGState> reEvaluateValueAfterConcreteAssignment(
+      CExpression exprReading, @Nullable CFAEdge edge, SMGState assignedState)
+      throws SMGException, SMGSolverException {
+    List<ValueAndSMGState> valuesAndStates;
+    try {
+      valuesAndStates =
+          exprReading.accept(
+              new SMGCPAValueVisitor(evaluator, assignedState, edge, logger, options));
+    } catch (CPATransferException e) {
+      if (e instanceof SMGException) {
+        throw (SMGException) e;
+      } else if (e instanceof SMGSolverException) {
+        throw (SMGSolverException) e;
+      }
+      // This can never happen, but i am forced to do this as the visitor demands the
+      // CPATransferException
+      throw new RuntimeException(e);
+    }
+    return valuesAndStates;
   }
 
   @NonNull
@@ -4254,14 +4360,14 @@ public class SMGState
     currentState = maybeAssignmentResultAndState.getState();
 
     // Get used variables
-    Map<SymbolicValue, CType> sizeIdentsAndTypes =
+    Map<SymbolicIdentifier, CType> sizeIdentsAndTypes =
         memoryModel.getSymbolicIdentifiersWithTypesForValue(sizeInBits);
-    Map<SymbolicValue, CType> offsetIdentsAndTypes =
+    Map<SymbolicIdentifier, CType> offsetIdentsAndTypes =
         memoryModel.getSymbolicIdentifiersWithTypesForValue(offsetInBits);
-    ImmutableMap.Builder<SymbolicValue, CType> allIdentsAndTypesBuilder = ImmutableMap.builder();
-    for (Entry<SymbolicValue, CType> sizeIdentAndType : sizeIdentsAndTypes.entrySet()) {
+    ImmutableMap.Builder<SymbolicIdentifier, CType> allIdentsAndTypesBuilder =
+        ImmutableMap.builder();
+    for (Entry<SymbolicIdentifier, CType> sizeIdentAndType : sizeIdentsAndTypes.entrySet()) {
       if (!offsetIdentsAndTypes.containsKey(sizeIdentAndType.getKey())) {
-
         allIdentsAndTypesBuilder.put(sizeIdentAndType);
       } else {
         Preconditions.checkArgument(
@@ -4270,7 +4376,7 @@ public class SMGState
                 .equals(offsetIdentsAndTypes.get(sizeIdentAndType.getKey())));
       }
     }
-    Map<SymbolicValue, CType> identsToReplaceWithTypes =
+    Map<SymbolicIdentifier, CType> identsToReplaceWithTypes =
         allIdentsAndTypesBuilder.putAll(offsetIdentsAndTypes).buildOrThrow();
 
     ImmutableList.Builder<SMGState> assignedStatesBuilder = ImmutableList.builder();
@@ -4318,13 +4424,93 @@ public class SMGState
     return assignedStatesBuilder.build();
   }
 
-  @Nullable
   private List<SMGState> findSubscriptAssignmentsWithSolverAndReplaceSymbolicValues(
-      Value valueToAssign, @Nullable CFAEdge edge, SMGState currentState)
-      throws SMGException, SMGSolverException {
+      SymbolicValue valueToAssign, @Nullable CFAEdge edge) throws SMGException, SMGSolverException {
     Map<SymbolicIdentifier, Value> assignments = new HashMap<>();
     // Get used variables
-    Set<SymbolicValue> identsToReplace = memoryModel.getSymbolicIdentifiersForValue(valueToAssign);
+    Set<SymbolicIdentifier> identsToReplace;
+    if (valueToAssign instanceof SymbolicIdentifier symIdenToReplace) {
+      identsToReplace = ImmutableSet.of(symIdenToReplace);
+    } else {
+      identsToReplace = memoryModel.getSymbolicIdentifiersForValue(valueToAssign);
+    }
+
+    ImmutableList.Builder<SMGState> assignedStatesBuilder = ImmutableList.builder();
+
+    SatisfiabilityAndSMGState maybeAssignmentResultAndState;
+    if (identsToReplace.size() == 1) {
+      // Some nested variable is to be replaced
+      // Add the parameters for the memory access and check sat to get a model
+      maybeAssignmentResultAndState = evaluator.checkIsUnsatWithCurrentConstraints(this);
+      SMGState currentState = maybeAssignmentResultAndState.getState();
+
+      if (maybeAssignmentResultAndState.isSAT()) {
+        // Found assignment
+        ImmutableList<ValueAssignment> solverModel = currentState.getModel();
+        for (ValueAssignment va : solverModel) {
+          if (SymbolicValues.isSymbolicTerm(va.getName())) {
+            SymbolicIdentifier identifier =
+                SymbolicValues.convertTermToSymbolicIdentifierWithoutMemLoc(va.getName());
+            if (identsToReplace.contains(identifier)) {
+              Value value = SymbolicValues.convertToValue(va);
+              assignments.put(identifier, value);
+              logger.log(
+                  Level.FINE,
+                  "Variable %s was used as part of symbolic value subscript offset and was "
+                      + "assigned a concrete value %s.",
+                  va.getName(),
+                  value);
+            }
+          }
+        }
+        // We allow only simple assignments to pure variables for the moment
+        if (assignments.size() > 1) {
+          throw new SMGException(
+              "Stop analysis because of symbolic offset in subscript expression that could not be"
+                  + " assigned. "
+                  + edge);
+        }
+
+        // Got all possible assignments. Now we need to assign them in all possible combinations.
+        // Subscript is always int
+        CType calcTypeForMemAccess = CNumericTypes.INT;
+        for (Entry<SymbolicIdentifier, Value> assignment : assignments.entrySet()) {
+          List<SMGState> simpleAssignedStates =
+              currentState.assignSymbolicVariable(
+                  assignment.getKey(), assignment.getValue(), calcTypeForMemAccess, edge);
+          // Each of those states now must be combined with each other possible assignment state
+          assignedStatesBuilder.addAll(simpleAssignedStates);
+        }
+      }
+    } else {
+      Preconditions.checkArgument(identsToReplace.size() > 1);
+      // valueToAssign is exactly a variable to assign, but consists of more than one variable.
+      // Assign it, remember the constraints and then replace the var with the concrete.
+      List<ValueAndSMGState> concreteValueAndNewStates =
+          findValueAssignmentsWithSolver(valueToAssign, edge);
+
+      // Got all possible assignments. Now we need to assign them in all possible combinations.
+      // Subscript is always int
+      CType calcTypeForMemAccess = CNumericTypes.INT;
+      for (ValueAndSMGState assignmentAndState : concreteValueAndNewStates) {
+        SMGState stateWithConstraints = assignmentAndState.getState();
+        Value concreteAssignment = assignmentAndState.getValue();
+        assert concreteAssignment.isNumericValue();
+
+        List<SMGState> simpleAssignedStates =
+            stateWithConstraints.assignSymbolicVariable(
+                valueToAssign, concreteAssignment, calcTypeForMemAccess, edge);
+        // Each of those states now must be combined with each other possible assignment state
+        assignedStatesBuilder.addAll(simpleAssignedStates);
+      }
+    }
+    return assignedStatesBuilder.build();
+  }
+
+  public boolean isConcreteAssignmentFeasible(SymbolicValue valueToAssign) {
+    // Get used variables
+    Set<SymbolicIdentifier> identsToReplace =
+        memoryModel.getSymbolicIdentifiersForValue(valueToAssign);
 
     boolean isNotConstraints = true;
     for (Constraint constraint : getConstraints()) {
@@ -4334,59 +4520,130 @@ public class SMGState
         break;
       }
     }
-    if (isNotConstraints) {
-      // There is no constraints or no idents. Abort.
-      return null;
+    // For no constraints or no idents, no assignment feasible.
+    return !isNotConstraints;
+  }
+
+  /**
+   * Returns a filled Optional if there is a concrete assignment possible to a variable with that
+   * variable inside. Either its only 1, that's just a single variable that we assign. If it more,
+   * we try to strip the concrete offset calculation (e.g. 8 bit mult) and find the next best
+   * variable to assign. Example: int var = x + y - z; array[bla]; We try to find var and remember
+   * that x + y - z == the concrete value of var. If that's not possible, we return an empty
+   * optional.
+   */
+  public Optional<SymbolicValue> isVariableAssignmentFeasible(SymbolicValue valueToAssign)
+      throws SMGException {
+    // Get used variables
+    Set<SymbolicIdentifier> identsToReplace =
+        memoryModel.getSymbolicIdentifiersForValue(valueToAssign);
+
+    if (identsToReplace.size() == 1) {
+      for (SymbolicValue ident : identsToReplace) {
+        return Optional.of(ident);
+      }
+    } else {
+      // A combining variable needs to include all identifiers
+      SymbolicValue strippedValue = valueToAssign;
+      while (memoryModel
+          .getSymbolicIdentifiersForValue(strippedValue)
+          .containsAll(identsToReplace)) {
+        if (memoryModel.getSMGValueFromValue(strippedValue).isPresent()) {
+          return Optional.of(strippedValue);
+        }
+        if (valueToAssign instanceof BinarySymbolicExpression binExpr) {
+          if (binExpr.getOperand1().isNumericValue() && binExpr.getOperand2().isNumericValue()) {
+            // Not possible, but better be sure
+            throw new SMGException(
+                "Expression that could be evaluated concretely found when assigning symbolic"
+                    + " values.");
+          } else if (binExpr.getOperand1().isNumericValue()) {
+            strippedValue = binExpr.getOperand2();
+          } else if (binExpr.getOperand2().isNumericValue()) {
+            strippedValue = binExpr.getOperand1();
+          } else {
+            // Either split into 2+ variables, or concrete nested expression that is not evaluated
+            // correctly
+            // TODO: investigate if the later is possible
+            return Optional.empty();
+          }
+        } else if (valueToAssign instanceof UnarySymbolicExpression unExpr) {
+          strippedValue = unExpr.getOperand();
+        }
+      }
     }
+    return Optional.empty();
+  }
+
+  /**
+   * Returns a value that is the concrete and numeric assignment found by the solver. Its state
+   * remembers a constraint for that value. Also, might return many more states with other concrete
+   * values and constraints.
+   *
+   * @param valueToAssign a (symbolic) value that is supposed to get a concrete value assigned.
+   * @param edge current CFAEdge
+   * @return either null for no values possible at all or if there are no constraints for it.
+   *     Otherwise, a list of concrete values as replacements for the input value and their states.
+   * @throws SMGSolverException in case of errors, e.g. interrupts.
+   */
+  public List<ValueAndSMGState> findValueAssignmentsWithSolver(
+      Value valueToAssign, @Nullable CFAEdge edge) throws SMGSolverException {
+    // The constraint x + y - z == valueToAssign is assigned a concrete value with constraints only.
+    // This is slow with the solver later on.
+
+    // Create a new, unique, symbolic value and add a == constraint to the given.
+    SymbolicIdentifier newSymbolicToBeAssigned =
+        SymbolicValueFactory.getInstance().newIdentifier(null);
+    // Got all possible assignments. Now we need to assign them in all possible combinations.
+    // Subscript is always int
+    CType calcTypeForMemAccess = CNumericTypes.INT;
+    SMGState equalsState =
+        copyAndAddValuesEqualConstraint(
+            valueToAssign, newSymbolicToBeAssigned, calcTypeForMemAccess, edge);
 
     // Add the parameters for the memory access and check sat to get a model
     SatisfiabilityAndSMGState maybeAssignmentResultAndState =
-        evaluator.checkIsUnsatWithCurrentConstraints(currentState);
-    currentState = maybeAssignmentResultAndState.getState();
+        evaluator.checkIsUnsatWithCurrentConstraints(equalsState);
+    equalsState = maybeAssignmentResultAndState.getState();
 
-    ImmutableList.Builder<SMGState> assignedStatesBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> assignedBuilder = ImmutableList.builder();
 
     if (maybeAssignmentResultAndState.isSAT()) {
+      Value assignment = null;
       // Found assignment
-      ImmutableList<ValueAssignment> solverModel = currentState.getModel();
+      ImmutableList<ValueAssignment> solverModel = equalsState.getModel();
       for (ValueAssignment va : solverModel) {
         if (SymbolicValues.isSymbolicTerm(va.getName())) {
           SymbolicIdentifier identifier =
               SymbolicValues.convertTermToSymbolicIdentifierWithoutMemLoc(va.getName());
-          if (identsToReplace.contains(identifier)) {
-            Value value = SymbolicValues.convertToValue(va);
-            assignments.put(identifier, value);
+          if (identifier.equals(newSymbolicToBeAssigned)) {
+            assignment = SymbolicValues.convertToValue(va);
             logger.log(
                 Level.FINE,
-                "Variable %s was used as part of symbolic value subscript offset and was "
-                    + "assigned a concrete value %s.",
-                va.getName(),
-                value);
+                "Assigned concrete value %s as symbolic value subscript offset (in Bits).",
+                assignment);
+            break;
           }
         }
       }
-      // We allow only simple assignments to pure variables for the moment
-      // TODO: we need to evaluate all values that use the assigned values and then assign them
-      // again
 
-      // Got all possible assignments. Now we need to assign them in all possible combinations.
-      // Subscript is always int
-      CType calcTypeForMemAccess = CNumericTypes.INT;
-      for (Entry<SymbolicIdentifier, Value> assignment : assignments.entrySet()) {
-        if (assignments.size() > 1) {
-          throw new SMGException(
-              "Stop analysis because of symbolic offset in subscript expression that could not be"
-                  + " assigned. "
-                  + edge);
-        }
-        List<SMGState> simpleAssignedStates =
-            currentState.assignSymbolicVariable(
-                assignment.getKey(), assignment.getValue(), calcTypeForMemAccess, edge);
-        // Each of those states now must be combined with each other possible assignment state
-        assignedStatesBuilder.addAll(simpleAssignedStates);
+      if (assignment != null) {
+        equalsState =
+            equalsState.copyAndAddValuesEqualConstraint(
+                valueToAssign, assignment, calcTypeForMemAccess, edge);
+        assignedBuilder.add(ValueAndSMGState.of(assignment, equalsState));
+
+        SMGState unEqualState =
+            copyAndAddValueBlockingConstraint(
+                (SymbolicValue) valueToAssign, assignment, calcTypeForMemAccess, edge);
+
+        List<ValueAndSMGState> recursiveAssignments =
+            unEqualState.findValueAssignmentsWithSolver(valueToAssign, edge);
+
+        assignedBuilder.addAll(recursiveAssignments);
       }
     }
-    return assignedStatesBuilder.build();
+    return assignedBuilder.build();
   }
 
   /**
@@ -4416,8 +4673,35 @@ public class SMGState
     return returnStates.build();
   }
 
+  /**
+   * Assigns the value concretely in one state to the given identifier and blocks it via a
+   * constraint in the second state returned.
+   *
+   * @param symbolicValueToAssignTo the symbolic value (identifier) that is assigned. No pointers
+   *     allowed.
+   * @param newlyAssignedValue the concrete value to assign to the symbolic value.
+   * @param typeOfValueToAssign the type of the value that is assigned.
+   * @return 2 states, one with the value assigned for every entry of the symbolic value and a
+   *     second state with a constraint that the symbolic value is not equal to the given value.
+   */
+  private List<SMGState> assignSymbolicVariable(
+      SymbolicValue symbolicValueToAssignTo,
+      Value newlyAssignedValue,
+      CType typeOfValueToAssign,
+      CFAEdge edge)
+      throws SMGException {
+    Preconditions.checkArgument(!memoryModel.isPointer(symbolicValueToAssignTo));
+    ImmutableList.Builder<SMGState> returnStates = ImmutableList.builder();
+
+    returnStates.add(copyAndReplaceValue(symbolicValueToAssignTo, newlyAssignedValue));
+    returnStates.add(
+        copyAndAddValueBlockingConstraint(
+            symbolicValueToAssignTo, newlyAssignedValue, typeOfValueToAssign, edge));
+    return returnStates.build();
+  }
+
   private SMGState copyAndReplaceValue(
-      SymbolicIdentifier pSymbolicValueToAssignTo, Value pNewlyAssignedValue) throws SMGException {
+      SymbolicValue pSymbolicValueToAssignTo, Value pNewlyAssignedValue) throws SMGException {
     // We need to not only replace the value, but every other value that has the values inside of it
     return copyAndReplaceMemoryModel(
         memoryModel.replaceValueWithAndCopy(pSymbolicValueToAssignTo, pNewlyAssignedValue));
@@ -6316,9 +6600,12 @@ public class SMGState
       Optional<SMGObject> maybeVariableObject =
           memoryModel.getObjectForVisibleVariable(variable.getQualifiedName());
       if (maybeVariableObject.isPresent()) {
-        // Get objects present outside of the current scope
+        // Get objects present outside the current scope
         Set<SMGObject> otherPresentObjects = memoryModel.getObjectsValidInOtherStackFrames();
-        if (!otherPresentObjects.contains(maybeVariableObject.orElseThrow())) {
+        // Pointers from may be given as array argument, then we have the object, but don't own it,
+        // hence no heap objs.
+        if (!otherPresentObjects.contains(maybeVariableObject.orElseThrow())
+            && !memoryModel.isHeapObject(maybeVariableObject.orElseThrow())) {
           return copyAndReplaceMemoryModel(
               memoryModel.invalidateSMGObject(maybeVariableObject.orElseThrow(), false));
         }

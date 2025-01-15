@@ -126,15 +126,15 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
     public boolean isLogicalOperator() {
       return switch (this) {
         case MULTIPLY,
-                DIVIDE,
-                MODULO,
-                PLUS,
-                MINUS,
-                SHIFT_LEFT,
-                SHIFT_RIGHT,
-                BINARY_AND,
-                BINARY_OR,
-                BINARY_XOR ->
+            DIVIDE,
+            MODULO,
+            PLUS,
+            MINUS,
+            SHIFT_LEFT,
+            SHIFT_RIGHT,
+            BINARY_AND,
+            BINARY_OR,
+            BINARY_XOR ->
             false;
         case LESS_EQUAL, LESS_THAN, GREATER_EQUAL, GREATER_THAN, EQUALS, NOT_EQUALS -> true;
         default -> throw new AssertionError("Unhandled case statement");

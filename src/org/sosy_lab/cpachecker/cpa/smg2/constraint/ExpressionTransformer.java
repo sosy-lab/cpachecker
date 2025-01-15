@@ -507,6 +507,24 @@ public class ExpressionTransformer
             constSymbolicValueUnequalTo, constValueUnequalTo, comparisonType, comparisonType);
   }
 
+  public Constraint getEqualConstraint(
+      Value arbitrarySymbolicExpression,
+      Value valueEqualTo,
+      CType comparisonType,
+      SMGState currentState) {
+    SymbolicExpression constSymbolicValueEqualTo =
+        SymbolicValueFactory.getInstance()
+            .asConstant(arbitrarySymbolicExpression, comparisonType)
+            .copyForState(currentState);
+    SymbolicExpression constValueEqualTo =
+        SymbolicValueFactory.getInstance()
+            .asConstant(valueEqualTo, comparisonType)
+            .copyForState(currentState);
+
+    return factory.equal(
+        constSymbolicValueEqualTo, constValueEqualTo, comparisonType, comparisonType);
+  }
+
   public List<Constraint> getValidMemoryAccessConstraints(
       Value offsetInBits,
       Value readSizeInBits,
