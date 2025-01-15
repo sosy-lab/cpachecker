@@ -2581,9 +2581,13 @@ public class SMG {
                                     && (!(sllSource instanceof SMGDoublyLinkedListSegment dllSource)
                                         || !h.getOffset().equals(dllSource.getPrevOffset())))
                     && !sllTarget.equals(sllSource)
-                    && sllSource.getNestingLevel() <= sllTarget.getNestingLevel()) {
+                    && sllSource.getNestingLevel() >= sllTarget.getNestingLevel()) {
+                  assert pte.targetSpecifier().equals(SMGTargetSpecifier.IS_ALL_POINTER);
+                  // A nested linked list has a wrong nesting level
                   return false;
                 } else if (ptrNestingLevel != sllTarget.getNestingLevel()) {
+                  assert pte.targetSpecifier().equals(SMGTargetSpecifier.IS_LAST_POINTER)
+                      && pte.targetSpecifier().equals(SMGTargetSpecifier.IS_FIRST_POINTER);
                   return false;
                 }
               }
