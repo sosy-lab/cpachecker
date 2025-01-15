@@ -100,19 +100,7 @@ class CFloatImpl extends CFloat {
   }
 
   private static FloatValue parseFloat(String repr, Format format) {
-    if ("nan".equals(repr)) {
-      return FloatValue.nan(format);
-    } else if ("-inf".equals(repr)) {
-      return FloatValue.negativeInfinity(format);
-    } else if ("inf".equals(repr)) {
-      return FloatValue.infinity(format);
-    } else if ("-0.0".equals(repr)) {
-      return FloatValue.negativeZero(format);
-    } else if ("0.0".equals(repr)) {
-      return FloatValue.zero(format);
-    } else {
-      return FloatValue.fromString(format, repr);
-    }
+    return FloatValue.fromString(format, repr);
   }
 
   @Override
