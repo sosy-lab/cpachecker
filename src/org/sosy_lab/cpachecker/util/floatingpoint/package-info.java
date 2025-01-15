@@ -9,5 +9,8 @@
 /**
  * An implementation of multi-precision floating point numbers that generalizes the IEEE 754
  * standard to arbitrary bit sizes.
+ *
+ * <p>See {@link org.sosy_lab.cpachecker.util.floatingpoint.FloatValue} and {@link
+ * org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format} for the classes in this package.
  */
 package org.sosy_lab.cpachecker.util.floatingpoint;
