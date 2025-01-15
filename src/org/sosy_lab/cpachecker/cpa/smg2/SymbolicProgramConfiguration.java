@@ -2711,53 +2711,24 @@ public class SymbolicProgramConfiguration {
     assert smg.getSMGObjectsWithSMGHasValueEdges()
         .getOrDefault(target, PersistentSet.of())
         .isEmpty();
-    boolean updateNesting =
-        target instanceof SMGSinglyLinkedListSegment targetSLL
-            && (!(source instanceof SMGSinglyLinkedListSegment sourceSLL)
-                || targetSLL.getNestingLevel() != sourceSLL.getNestingLevel());
-    Map<SMGObject, SMGObject> topListsAndNestedToUpdate = new HashMap<>();
+
     SMG newSMG = smg;
     for (SMGHasValueEdge hve : setOfValues) {
       newSMG = newSMG.incrementValueToMemoryMapEntry(target, hve.hasValue());
-      if (updateNesting) {
-        SMGSinglyLinkedListSegment targetSLL = (SMGSinglyLinkedListSegment) target;
-        if (newSMG.isPointer(hve.hasValue())
-            && !hve.getOffset().equals(targetSLL.getNextOffset())) {
-          if (targetSLL instanceof SMGDoublyLinkedListSegment targetDLL
-              && targetDLL.getPrevOffset().equals(hve.getOffset())) {
-            continue;
-          }
-          // Update nesting level of directly nested abstracted structures
-          if (newSMG.getPTEdge(hve.hasValue()).orElseThrow().pointsTo()
-              instanceof SMGSinglyLinkedListSegment nestedLL) {
-            topListsAndNestedToUpdate.put(targetSLL, nestedLL);
-          }
-        }
-      }
     }
-    SymbolicProgramConfiguration newSPC =
-        of(
-            newSMG.copyAndSetHVEdges(setOfValues, target),
-            globalVariableMapping,
-            atExitStack,
-            stackVariableMapping,
-            heapObjects,
-            externalObjectAllocation,
-            valueMapping,
-            variableToTypeMap,
-            memoryAddressAssumptionsMap,
-            mallocZeroMemory,
-            readBlacklist,
-            valueToTypeMap);
-
-    for (Entry<SMGObject, SMGObject> topListAndNestedToUpdate :
-        topListsAndNestedToUpdate.entrySet()) {
-      newSPC =
-          newSPC.updateNestingLevelOf(
-              topListAndNestedToUpdate.getValue(),
-              topListAndNestedToUpdate.getKey().getNestingLevel() + 1);
-    }
-    return newSPC;
+    return of(
+        newSMG.copyAndSetHVEdges(setOfValues, target),
+        globalVariableMapping,
+        atExitStack,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory,
+        readBlacklist,
+        valueToTypeMap);
   }
 
   private static MergedSPCAndMapping copyHVEdgesFromTo(
@@ -3941,7 +3912,7 @@ public class SymbolicProgramConfiguration {
       newSPC = copyAndInvalidateExternalAllocation(pObject);
     }
     SMG newSMG = newSPC.getSmg().copyAndInvalidateObject(pObject, deleteDanglingPointers);
-    assert newSMG.checkSMGSanity(newSPC.stackVariableMapping, newSPC.globalVariableMapping);
+    assert newSMG.checkSMGSanity();
     return newSPC.copyAndReplaceSMG(newSMG).copyAndRemoveNumericAddressAssumption(pObject);
   }
 
