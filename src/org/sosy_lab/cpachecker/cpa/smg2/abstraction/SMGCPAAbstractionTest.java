@@ -7480,6 +7480,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         currentState.copyAndAddStackObject(numericPointerSizeInBits);
     SMGObject plist = stackObjForPointerAndState.getSMGObject();
     currentState = stackObjForPointerAndState.getState();
+    currentState = currentState.copyAndAddDummyStackFrame();
+    currentState = currentState.copyAndAddLocalVariable(plist, "var", CPointerType.POINTER_TO_VOID);
 
     // "malloc" a list segment and create head pointer and save in stack
     SMGObjectAndSMGState initialListSegmentAndState =
@@ -7669,7 +7671,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int minAbstractionLength = 3;
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
       resetSMGStateAndVisitor();
-      SMGState state = createXLongExplicitDLLOnHeap(i, 1, 0, 0);
+      SMGState state = createXLongExplicitDLLOnHeap(i, 1, 0, 0, false);
       SMGCPAAbstractionManager absFinder =
           new SMGCPAAbstractionManager(state, minAbstractionLength, new SMGCPAStatistics());
       ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
@@ -7789,7 +7791,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int minAbstractionLength = 3;
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
       resetSMGStateAndVisitor();
-      SMGState state = createXLongExplicitDLLOnHeap(i, 1, 0, 0);
+      SMGState state = createXLongExplicitDLLOnHeap(i, 1, 0, 0, false);
       SMGCPAAbstractionManager absFinder =
           new SMGCPAAbstractionManager(state, minAbstractionLength, new SMGCPAStatistics());
       ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
@@ -7848,7 +7850,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         minLength = minLength + 10) {
       for (int i = 1; i < TEST_LIST_LENGTH; i++) {
         resetSMGStateAndVisitor();
-        SMGState state = createXLongExplicitDLLOnHeap(i, 1, 0, 0);
+        SMGState state = createXLongExplicitDLLOnHeap(i, 1, 0, 0, false);
         SMGCPAAbstractionManager absFinder =
             new SMGCPAAbstractionManager(state, minLength, new SMGCPAStatistics());
         ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
@@ -7920,7 +7922,11 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * increment based on list segment size (0,1,2... until nfo is reached).
    */
   private SMGState createXLongExplicitDLLOnHeap(
-      int length, int value, int nextPtrTargetOffset, int prevPtrTargetOffset)
+      int length,
+      int value,
+      int nextPtrTargetOffset,
+      int prevPtrTargetOffset,
+      boolean createStackVarForPointers)
       throws SMGException, SMGSolverException {
     buildConcreteListWithEqualValues(
         true,
@@ -7929,7 +7935,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         value,
         BigInteger.valueOf(nextPtrTargetOffset),
         Optional.of(BigInteger.valueOf(prevPtrTargetOffset)),
-        true);
+        createStackVarForPointers);
     return currentState;
   }
 

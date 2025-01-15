@@ -514,6 +514,7 @@ public class SMGCPATest0 {
     Preconditions.checkArgument(!dll || prevPointerTargetOffset.isPresent());
     Value[] pointerArray = new Value[listLength];
     SMGObject prevObject = null;
+    int id = 0;
 
     for (int i = 0; i < listLength; i++) {
       SMGObject listSegment = SMGObject.of(0, sizeOfSegment, BigInteger.ZERO);
@@ -594,6 +595,10 @@ public class SMGCPATest0 {
         currentState = stackObjAndState.getState();
         SMGObject dummyStackObject = stackObjAndState.getSMGObject();
         currentState =
+            currentState.copyAndAddLocalVariable(
+                dummyStackObject, "var" + id, CPointerType.POINTER_TO_VOID);
+        id++;
+        currentState =
             currentState.writeValueWithChecks(
                 dummyStackObject,
                 new NumericValue(BigInteger.ZERO),
@@ -610,16 +615,23 @@ public class SMGCPATest0 {
     return pointerArray;
   }
 
+  protected Value[][] addSubListsToList(int listLength, Value[] pointersOfTopList, boolean dll)
+      throws SMGException, SMGSolverException {
+    return addSubListsToList(listLength, pointersOfTopList, dll, false);
+  }
+
   // Adds an EQUAL sublists depending on nfo, pfo and dll to each object that the pointer array
   // points to
   // Returns a matrix of the nested pointers
-  protected Value[][] addSubListsToList(int listLength, Value[] pointersOfTopList, boolean dll)
+  protected Value[][] addSubListsToList(
+      int listLength, Value[] pointersOfTopList, boolean dll, boolean createStackObjForPointers)
       throws SMGSolverException, SMGException {
     Value[][] nestedPointers = new Value[listLength][];
     int i = 0;
     for (Value pointer : pointersOfTopList) {
       // Generate the same list for each top list segment and save the first pointer as data
-      Value[] pointersNested = buildConcreteList(dll, sllSize, listLength);
+      Value[] pointersNested =
+          buildConcreteList(dll, sllSize, listLength, createStackObjForPointers);
       nestedPointers[i] = pointersNested;
       // We care only about the first pointer here
       SMGStateAndOptionalSMGObjectAndOffset topListSegmentAndState =
