@@ -80,7 +80,7 @@ public abstract class ConcreteErrorPathAllocator<S extends AbstractState> {
       return isLeftHandSideValueKnown(idExp, pAlreadyAssigned);
     }
     // only variable declaration matter for value analysis
-    return false;
+    return true;
   }
 
   protected boolean isLeftHandSideValueKnown(
@@ -123,26 +123,9 @@ public abstract class ConcreteErrorPathAllocator<S extends AbstractState> {
     }
 
     // TODO Complex Cast
-
-    private static CExpression getRootExpression(CExpression pExpr) {
-      if (pExpr instanceof CFieldReference pFieldReference) {
-        return getRootExpression(pFieldReference.getFieldOwner());
-      } else {
-        return pExpr;
-      }
-    }
-
     @Override
     public Boolean visit(CFieldReference pE) {
-      // Check if there was an assigment to *any* of the fields in the union or structure. This is
-      // probably an over approximation
-      // TODO: Only count writes that affect the same address in memory
-      for (CExpression assigned : alreadyAssigned) {
-        if (getRootExpression(pE).equals(getRootExpression(assigned))) {
-          return false;
-        }
-      }
-      return true;
+      return !alreadyAssigned.contains(pE);
     }
 
     @Override

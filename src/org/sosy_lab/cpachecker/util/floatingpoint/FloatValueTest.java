@@ -39,7 +39,6 @@ import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
-import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 /**
  * Abstract test class for the {@link CFloat} interface.
@@ -98,8 +97,7 @@ public class FloatValueTest {
   public enum ReferenceImpl {
     MPFR,
     JAVA,
-    NATIVE,
-    SMT
+    NATIVE
   }
 
   /** Floating point formats for the tests and the number of values to generate for each of them */
@@ -198,11 +196,6 @@ public class FloatValueTest {
           floatValue.getValue().getSignificand(),
           floatValue.getValue().getExponent(),
           context);
-    } else if (pValue instanceof SMTFloat floatExpr) {
-      FloatingPointType floatType = floatExpr.getFloatingPointType();
-      return new BigFloat(
-          floatExpr.getValue(),
-          new BinaryMathContext(floatType.getMantissaSize() + 1, floatType.getExponentSize()));
     } else {
       CFloatType toType = pValue.getType();
       if (pValue instanceof CFloatNative val && toType == CFloatType.LONG_DOUBLE) {
@@ -383,17 +376,10 @@ public class FloatValueTest {
     } else {
       BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
       BigFloat constant = new BigFloat(0.5f, context);
-      if (configuration.pReference.equals(ReferenceImpl.SMT)) {
-        return FluentIterable.concat(
-            floatConstants(format),
-            floatPowers(format, 3, constant, 3, constant),
-            floatRandom(format, 16));
-      } else {
-        return FluentIterable.concat(
-            floatConstants(format),
-            floatPowers(format, 14, constant, 20, constant),
-            floatRandom(format, configuration.pNumber));
-      }
+      return FluentIterable.concat(
+          floatConstants(format),
+          floatPowers(format, 14, constant, 20, constant),
+          floatRandom(format, configuration.pNumber));
     }
   }
 
@@ -410,14 +396,10 @@ public class FloatValueTest {
       BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
       BigFloat constant = new BigFloat(0.5f, context);
 
-      if (configuration.pReference.equals(ReferenceImpl.SMT)) {
-        return FluentIterable.concat(floatConstants(format), floatRandom(format, 4));
-      } else {
-        return FluentIterable.concat(
-            floatConstants(format),
-            floatPowers(format, 3, constant, 3, constant),
-            floatRandom(format, (int) Math.sqrt(configuration.pNumber)));
-      }
+      return FluentIterable.concat(
+          floatConstants(format),
+          floatPowers(format, 3, constant, 3, constant),
+          floatRandom(format, (int) Math.sqrt(configuration.pNumber)));
     }
   }
 
@@ -454,12 +436,8 @@ public class FloatValueTest {
   /** Generate integer test inputs that include both special cases and random values. */
   private Iterable<BigFloat> integerTestValues() {
     Format format = configuration.pFormat;
-    if (configuration.pReference.equals(ReferenceImpl.SMT)) {
-      return FluentIterable.concat(integerConstants(format), integerRandom(format, 16));
-    } else {
-      return FluentIterable.concat(
-          integerConstants(format), integerRandom(format, (int) Math.sqrt(configuration.pNumber)));
-    }
+    return FluentIterable.concat(
+        integerConstants(format), integerRandom(format, (int) Math.sqrt(configuration.pNumber)));
   }
 
   private static int calculateExpWidth(Format pFormat) {
@@ -768,7 +746,6 @@ public class FloatValueTest {
                       value.sign() ? Double.longBitsToDouble(0xFFF8000000000000L) : Float.NaN)
                   : new JDouble(value.doubleValue()));
       case NATIVE -> new CFloatNative(toPlainString(value), toNativeType(configuration.pFormat));
-      case SMT -> new SMTFloat(toPlainString(value), configuration.pFormat);
     };
   }
 
@@ -1109,25 +1086,25 @@ public class FloatValueTest {
 
   @Test
   public void differenceTest() {
-    assume().that(configuration.pReference).isAnyOf(ReferenceImpl.NATIVE, ReferenceImpl.SMT);
+    assume().that(configuration.pReference).isEqualTo(ReferenceImpl.NATIVE);
     testOperator("difference", 0, (CFloat a, CFloat b) -> a.difference(b));
   }
 
   @Test
   public void minTest() {
-    assume().that(configuration.pReference).isAnyOf(ReferenceImpl.NATIVE, ReferenceImpl.SMT);
+    assume().that(configuration.pReference).isEqualTo(ReferenceImpl.NATIVE);
     testOperator("min", 0, (CFloat a, CFloat b) -> a.min(b));
   }
 
   @Test
   public void maxTest() {
-    assume().that(configuration.pReference).isAnyOf(ReferenceImpl.NATIVE, ReferenceImpl.SMT);
+    assume().that(configuration.pReference).isEqualTo(ReferenceImpl.NATIVE);
     testOperator("max", 0, (CFloat a, CFloat b) -> a.max(b));
   }
 
   @Test
   public void fractionTest() {
-    assume().that(configuration.pReference).isAnyOf(ReferenceImpl.NATIVE, ReferenceImpl.SMT);
+    assume().that(configuration.pReference).isEqualTo(ReferenceImpl.NATIVE);
     testOperator("fraction", 0, (CFloat a) -> a.fraction());
   }
 
