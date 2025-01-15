@@ -90,7 +90,6 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
  * </code> and test all three implementations with a much smaller number of randomly generated
  * tests.
  */
-@SuppressWarnings("deprecation")
 @RunWith(Parameterized.class)
 public class FloatValueTest {
   /** Supported reference implementations */

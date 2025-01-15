@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
  * C.
  */
 @SuppressWarnings("EnumOrdinal")
-@Deprecated
 class CFloatNative extends CFloat {
   private final CFloatWrapper wrapper;
   private final CFloatType type;

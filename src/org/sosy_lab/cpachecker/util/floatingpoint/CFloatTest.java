@@ -13,7 +13,6 @@ import static com.google.common.truth.Truth.assertThat;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 
-@SuppressWarnings("deprecation")
 public class CFloatTest {
 
   /**
