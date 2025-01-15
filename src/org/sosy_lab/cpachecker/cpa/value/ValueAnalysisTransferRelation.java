@@ -87,7 +87,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -1450,8 +1449,7 @@ public class ValueAnalysisTransferRelation
               NumericValue numericValue = value.asNumericValue();
               CSimpleType paramType =
                   BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(nameOfCalledFunc);
-              if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE, CBasicType.FLOAT128)
-                  .contains(paramType.getType())) {
+              if (paramType.getType().isFloatingPointType()) {
                 FloatValue.Format format = FloatValue.Format.fromCType(machineModel, paramType);
                 FloatValue integralPartValue =
                     numericValue.floatingPointValue(format).round(RoundingMode.TRUNCATE);
