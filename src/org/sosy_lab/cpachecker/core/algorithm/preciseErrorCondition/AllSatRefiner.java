@@ -75,20 +75,22 @@ public class AllSatRefiner implements Refiner {
 
     return exclusionModelFormula;
   }
-}
 
-class AllSatCallback implements BasicProverEnvironment.AllSatCallback<List<BooleanFormula>> {
 
-  private final List<BooleanFormula> assignments = new ArrayList<>();
+  private static class AllSatCallback
+      implements BasicProverEnvironment.AllSatCallback<List<BooleanFormula>> {
 
-  @Override
-  public void apply(List<BooleanFormula> model) {
-    // combine the assignments into a single formula
-    assignments.addAll(model);
-  }
+    private final List<BooleanFormula> assignments = new ArrayList<>();
 
-  @Override
-  public List<BooleanFormula> getResult() {
-    return assignments;
+    @Override
+    public void apply(List<BooleanFormula> model) {
+      // combine the assignments into a single formula
+      assignments.addAll(model);
+    }
+
+    @Override
+    public List<BooleanFormula> getResult() {
+      return assignments;
+    }
   }
 }

@@ -126,15 +126,13 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
           foundNewCounterexamples = true;
           logger.log(Level.INFO,
               String.format("Iteration %d: Entering For Loop...", currentIteration));
-          // initial exclusion formula is empty
-          PathFormula exclusionFormula = refiner.getExclusionFormula();
           for (CounterexampleInfo cex : counterExamples) {
             // Refinement
-            exclusionFormula = refiner.refine(cex);
-            refiner.shutdown();
+            PathFormula exclusionFormula = refiner.refine(cex);
+            // refiner.shutdown();
           }
           // update initial state with the exclusion formula
-          initialState = updateInitialStateWithExclusions(initialState, exclusionFormula);
+          initialState = updateInitialStateWithExclusions(initialState, refiner.getExclusionFormula());
         }
 
       } while (foundNewCounterexamples && (++currentIteration < maxIterations

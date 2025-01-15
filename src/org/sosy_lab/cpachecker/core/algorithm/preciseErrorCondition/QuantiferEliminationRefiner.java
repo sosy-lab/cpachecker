@@ -82,12 +82,12 @@ public class QuantiferEliminationRefiner implements Refiner {
         entry -> entry.getKey().contains("_nondet"));
 
     // TODO handle modulo operations through string manipulation
-    String translatedResultAsString =
-        context.getSolver().getFormulaManager().dumpArbitraryFormula(quantifierEliminationResult);
-    // modulo replacement
-    translatedResultAsString = translatedResultAsString.replace("bvsrem_i", "bvsrem");
-    quantifierEliminationResult =
-        context.getSolver().getFormulaManager().parse(translatedResultAsString);
+//    String translatedResultAsString =
+//        context.getSolver().getFormulaManager().dumpArbitraryFormula(quantifierEliminationResult);
+//    // modulo replacement
+//    translatedResultAsString = translatedResultAsString.replace("bvsrem_i", "bvsrem");
+//    quantifierEliminationResult =
+//        context.getSolver().getFormulaManager().parse(translatedResultAsString);
 
 
     // translate back to MATHSAT

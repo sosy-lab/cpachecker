@@ -36,11 +36,13 @@ public class CompositeRefiner implements Refiner {
       FormulaContext pContext, Solvers pQuantifierSolver)
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     context = pContext;
-    exclusionFormula = context.getManager().makeEmptyPathFormula();
+    exclusionFormula = context.getManager().makeEmptyPathFormula(); // initially empty
     generateModelRefiner = new GenerateModelRefiner(context);
-    System.out.printf("Refiner for %s\n", generateModelRefiner.getClass().getSimpleName()); // delete later
+    System.out.printf("Refiner for %s\n",
+        generateModelRefiner.getClass().getSimpleName()); // delete later
     allSatRefiner = new AllSatRefiner(context);
     quantifierEliminationRefiner = new QuantiferEliminationRefiner(context, pQuantifierSolver);
+    // TODO make nThreads a passable variable
     executor = Executors.newFixedThreadPool(2); // 2 threads for parallel refinement
 
   }
@@ -56,7 +58,7 @@ public class CompositeRefiner implements Refiner {
           pCounterexample));
       tasks.add(() -> refineWith("AllSatRefiner", allSatRefiner, pCounterexample));
 
-      // Execute tasks with a timeout and return the first successful result
+      // execute tasks with a timeout and return the first successful result
       RefinerResult result = executor.invokeAny(tasks, TIMEOUT_SECONDS, TimeUnit.SECONDS);
       exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
       context.getLogger().log(Level.INFO, "Refiner completed: " + result.getRefinerName());
