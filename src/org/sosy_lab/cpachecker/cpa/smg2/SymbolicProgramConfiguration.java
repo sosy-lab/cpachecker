@@ -2858,24 +2858,6 @@ public class SymbolicProgramConfiguration {
     return newSPC.invalidateSMGObject(objectToUpdate, false);
   }
 
-  // Replace the pointer behind value with a new pointer with the new SMGObject target
-  public SymbolicProgramConfiguration replaceAllPointersTowardsWith(
-      SMGValue pointerValue, SMGObject newTarget) {
-    return of(
-        smg.replaceAllPointersTowardsWith(pointerValue, newTarget),
-        globalVariableMapping,
-        atExitStack,
-        stackVariableMapping,
-        heapObjects,
-        externalObjectAllocation,
-        valueMapping,
-        variableToTypeMap,
-        memoryAddressAssumptionsMap,
-        mallocZeroMemory,
-        readBlacklist,
-        valueToTypeMap);
-  }
-
   public PersistentStack<Value> getAtExitStack() {
     return atExitStack;
   }
@@ -2953,7 +2935,7 @@ public class SymbolicProgramConfiguration {
     for (String varName : frame.getVariables().keySet()) {
       newVariableToTypeMap = newVariableToTypeMap.removeAndCopy(varName);
     }
-    assert newSmg.checkSMGSanity();
+    assert newSmg.checkSMGSanity(newStack, globalVariableMapping);
     // TODO: remove types of values no longer needed
 
     return of(
@@ -3959,7 +3941,7 @@ public class SymbolicProgramConfiguration {
       newSPC = copyAndInvalidateExternalAllocation(pObject);
     }
     SMG newSMG = newSPC.getSmg().copyAndInvalidateObject(pObject, deleteDanglingPointers);
-    assert newSMG.checkSMGSanity();
+    assert newSMG.checkSMGSanity(newSPC.stackVariableMapping, newSPC.globalVariableMapping);
     return newSPC.copyAndReplaceSMG(newSMG).copyAndRemoveNumericAddressAssumption(pObject);
   }
 
@@ -4713,6 +4695,10 @@ public class SymbolicProgramConfiguration {
       }
     }
     return withNewValueMappings(newValueMapping.buildOrThrow());
+  }
+
+  public boolean checkSMGSanity() {
+    return smg.checkSMGSanity(stackVariableMapping, globalVariableMapping);
   }
 
   public boolean isPointingToMallocZero(SMGValue pSMGValue) {

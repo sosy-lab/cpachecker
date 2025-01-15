@@ -6150,7 +6150,7 @@ public class SMGState
       return this;
     }
 
-    assert getMemoryModel().getSmg().checkSMGSanity();
+    assert getMemoryModel().checkSMGSanity();
     SMGObject nextObj = maybeNext.orElseThrow().getObject();
     SMGValue nextPtrFromRoot = maybeNext.orElseThrow().getValue();
 
@@ -6344,7 +6344,7 @@ public class SMGState
       }
     }
 
-    assert currentState.getMemoryModel().getSmg().checkSMGSanity();
+    assert currentState.getMemoryModel().checkSMGSanity();
     assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(root) == 0);
     assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj)
         == 0);
@@ -6519,7 +6519,7 @@ public class SMGState
         currentState.copyAndReplaceMemoryModel(
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(nextObj).getSPC());
 
-    assert currentState.getMemoryModel().getSmg().checkSMGSanity();
+    assert currentState.getMemoryModel().checkSMGSanity();
     assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(root) == 0);
     assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj)
         == 0);

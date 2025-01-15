@@ -796,7 +796,7 @@ public class SMGCPATransferRelationTest {
         assertThat(statesAfterDecl).hasSize(1);
         // We check the variable later
         SMGState stateAfterDecl = statesAfterDecl.get(0);
-        assertThat(stateAfterDecl.getMemoryModel().getSmg().checkSMGSanity()).isTrue();
+        assertThat(stateAfterDecl.getMemoryModel().checkSMGSanity()).isTrue();
 
         CFunctionCallAssignmentStatement mallocAndAssignmentExpr =
             new CFunctionCallAssignmentStatement(
@@ -842,7 +842,7 @@ public class SMGCPATransferRelationTest {
             SymbolicProgramConfiguration memoryModel =
                 statesListAfterMallocAssign.get(0).getMemoryModel();
 
-            assertThat(memoryModel.getSmg().checkSMGSanity()).isTrue();
+            assertThat(memoryModel.checkSMGSanity()).isTrue();
 
             assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
             SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
@@ -934,7 +934,7 @@ public class SMGCPATransferRelationTest {
         assertThat(mallocObjectAndOffset.getOffsetForObject().asNumericValue().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
 
-        assertThat(memoryModel.getSmg().checkSMGSanity()).isTrue();
+        assertThat(memoryModel.checkSMGSanity()).isTrue();
 
         // Read the SMGObject to make sure that there is no value written
         // TODO:

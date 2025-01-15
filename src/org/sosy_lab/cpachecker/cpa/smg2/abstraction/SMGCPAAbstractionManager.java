@@ -116,7 +116,7 @@ public class SMGCPAAbstractionManager {
     // TODO: refactor and split getListCandidates()
     List<Set<SMGCandidate>> orderedListCandidatesByNesting = getListCandidates();
 
-    assert currentState.getMemoryModel().getSmg().checkSMGSanity();
+    assert currentState.getMemoryModel().checkSMGSanity();
     statistics.stopTotalListSearchTime();
     statistics.startTotalAbstractionTime();
     // Abstract top level nesting first
@@ -164,7 +164,7 @@ public class SMGCPAAbstractionManager {
     statistics.stopTotalAbstractionTime();
 
     assert candidatesHaveBeenAbstracted(orderedListCandidatesByNesting, currentState);
-    assert currentState.getMemoryModel().getSmg().checkSMGSanity();
+    assert currentState.getMemoryModel().checkSMGSanity();
     assert checkNestingLevel(currentState);
     return currentState;
   }

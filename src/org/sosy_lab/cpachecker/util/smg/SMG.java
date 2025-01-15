@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Deque;
@@ -37,6 +38,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cpa.smg2.StackFrame;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
@@ -44,8 +46,10 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGNode;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
@@ -865,7 +869,8 @@ public class SMG {
    *     switched to pNewObject and all HVEs copied to pNewObject.
    */
   public SMG copyAndReplaceObject(SMGObject pOldObject, SMGObject pNewObject) {
-    PersistentSet<SMGHasValueEdge> oldHVEdges = hasValueEdges.get(pOldObject);
+    PersistentSet<SMGHasValueEdge> oldHVEdges =
+        hasValueEdges.getOrDefault(pOldObject, PersistentSet.of());
     // replace has value edges
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges =
         hasValueEdges.removeAndCopy(pOldObject).putAndCopy(pNewObject, oldHVEdges);
@@ -1824,20 +1829,6 @@ public class SMG {
     return hasValueEdges;
   }
 
-  // Replace the pointer behind value with a new pointer with the new SMGObject target
-  public SMG replaceAllPointersTowardsWith(SMGValue pointerValue, SMGObject newTarget) {
-    SMGPointsToEdge oldEdge = getPTEdge(pointerValue).orElseThrow();
-    assert (newTarget instanceof SMGSinglyLinkedListSegment
-            && !oldEdge.targetSpecifier().equals(SMGTargetSpecifier.IS_REGION))
-        || oldEdge.targetSpecifier().equals(SMGTargetSpecifier.IS_REGION);
-    SMG newSMG =
-        copyAndSetPTEdges(
-            new SMGPointsToEdge(newTarget, oldEdge.getOffset(), oldEdge.targetSpecifier()),
-            pointerValue);
-    assert newSMG.checkSMGSanity();
-    return newSMG;
-  }
-
   /**
    * Search for all pointers towards the object old and replaces them with pointers pointing towards
    * the new object. If the newTarget is a region, specifiers are set to region. All other
@@ -2131,56 +2122,90 @@ public class SMG {
    *
    * @return false if anything is violated.
    */
-  public boolean checkSMGSanity() {
-    return checkCorrectObjectsToPointersMapSanity()
+  public boolean checkSMGSanity(
+      PersistentStack<StackFrame> stackVariableMapping,
+      PersistentMap<String, SMGObject> globalVariableMapping) {
+    return checkCorrectReverseMapSanity(stackVariableMapping, globalVariableMapping)
         && checkValueInConcreteMemorySanity()
         && verifyPointsToEdgeSanity()
         && checkPointerNestingLevelConsistency();
   }
 
-  // Only every use this after all operations are done. I.e. at the beginning and end of abstracting
-  // a list segment for example.
-  private boolean checkCorrectObjectsToPointersMapSanity() {
-    for (Entry<SMGObject, PersistentMap<SMGValue, Integer>> realTargetAndPointers :
-        objectsAndPointersPointingAtThem.entrySet()) {
-      SMGObject target = realTargetAndPointers.getKey();
-      if (target.isZero() || !isValid(target)) {
+  public boolean checkSMGSanity() {
+    return checkValueInConcreteMemorySanity()
+        && verifyPointsToEdgeSanity()
+        && checkPointerNestingLevelConsistency();
+  }
+
+  // Check sanity of the 2 maps:
+  // 1. objects and pointers pointing at them
+  // 2. values and objects with them in it
+  private boolean checkCorrectReverseMapSanity(
+      PersistentStack<StackFrame> stackVariableMapping,
+      PersistentMap<String, SMGObject> globalVariableMapping) {
+    PersistentMap<SMGObject, PersistentMap<SMGValue, Integer>> objectsAndPointersPointingAtThemRef =
+        objectsAndPointersPointingAtThem;
+    PersistentMap<SMGValue, PersistentMap<SMGObject, Integer>> valuesToRegionsTheyAreSavedInRef =
+        valuesToRegionsTheyAreSavedIn;
+    Set<SMGObject> stackObjs = new HashSet<>(globalVariableMapping.values());
+    stackVariableMapping
+        .iterator()
+        .forEachRemaining(sf -> stackObjs.addAll(sf.getAllObjects().stream().toList()));
+    Set<SMGNode> alreadyProcessed = new HashSet<>();
+    List<SMGObject> waitlist = new ArrayList<>(stackObjs);
+    for (int i = 0; i < waitlist.size(); i++) {
+      SMGObject obj = waitlist.get(i);
+      if (alreadyProcessed.contains(obj)) {
         continue;
       }
-      PersistentMap<SMGValue, Integer> realPointersAndOcc = realTargetAndPointers.getValue();
-      // now check the smg for this obj
-      Map<SMGValue, Integer> pointersTowardsTarget = new HashMap<>();
-      for (PersistentSet<SMGHasValueEdge> hves : hasValueEdges.values()) {
-        for (SMGHasValueEdge hve : hves) {
-          SMGValue value = hve.hasValue();
-          if (pointsToEdges.containsKey(value)
-              && pointsToEdges.get(value).pointsTo().equals(target)) {
-            if (pointersTowardsTarget.containsKey(value)) {
-              pointersTowardsTarget.replace(
-                  value, pointersTowardsTarget.getOrDefault(value, 0) + 1);
-            } else {
-              pointersTowardsTarget.put(value, pointersTowardsTarget.getOrDefault(value, 0) + 1);
-            }
-          }
+      alreadyProcessed.add(obj);
+      PersistentSet<SMGHasValueEdge> allHVEInStackObj =
+          getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj, PersistentSet.of());
+      for (SMGHasValueEdge hve : allHVEInStackObj) {
+        SMGValue value = hve.hasValue();
+
+        PersistentMap<SMGObject, Integer> inner = valuesToRegionsTheyAreSavedInRef.get(value);
+        assert inner != null;
+        Integer num = inner.get(obj);
+        assert num != null;
+        assert num - 1 >= 0;
+        if (num - 1 != 0) {
+          inner = inner.putAndCopy(obj, num - 1);
+          valuesToRegionsTheyAreSavedInRef =
+              valuesToRegionsTheyAreSavedInRef.putAndCopy(value, inner);
+        } else {
+          valuesToRegionsTheyAreSavedInRef = valuesToRegionsTheyAreSavedInRef.removeAndCopy(value);
         }
-      }
-      if (pointersTowardsTarget.size() != realPointersAndOcc.size()) {
-        return false;
-      } else {
-        for (Entry<SMGValue, Integer> realEntry : realPointersAndOcc.entrySet()) {
-          SMGValue realValue = realEntry.getKey();
-          int realNumOfOcc = realEntry.getValue();
-          if (!pointersTowardsTarget.containsKey(realValue)) {
-            return false;
+
+        if (value.isZero()) {
+          continue;
+        }
+
+        Optional<SMGPointsToEdge> maybePte = getPTEdge(value);
+        if (maybePte.isPresent()) {
+          SMGObject target = maybePte.orElseThrow().pointsTo();
+
+          PersistentMap<SMGValue, Integer> innerPointer =
+              objectsAndPointersPointingAtThemRef.get(target);
+          assert innerPointer != null;
+          Integer numPointer = innerPointer.get(value);
+          assert numPointer != null;
+          assert numPointer - 1 >= 0;
+          if (numPointer - 1 != 0) {
+            innerPointer = innerPointer.putAndCopy(value, numPointer - 1);
+            objectsAndPointersPointingAtThemRef =
+                objectsAndPointersPointingAtThemRef.putAndCopy(target, innerPointer);
           } else {
-            int smgOcc = pointersTowardsTarget.get(realValue); // reference map created here
-            if (smgOcc != realNumOfOcc) {
-              return false;
-            }
+            objectsAndPointersPointingAtThemRef =
+                objectsAndPointersPointingAtThemRef.removeAndCopy(target);
           }
+
+          waitlist.add(target);
         }
       }
     }
+    assert valuesToRegionsTheyAreSavedInRef.isEmpty();
+    assert objectsAndPointersPointingAtThemRef.isEmpty();
     return true;
   }
 

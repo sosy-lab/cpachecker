@@ -81,13 +81,24 @@ public class SMGCPAMaterializer {
     assert state.getMemoryModel().getSmg().checkPointerNestingLevelConsistency();
     // Materialize from the left ( CE -> 3+ -> 0 => CE -> CE -> 2+ -> 0) for first ptrs and all next
     // ptrs. Materialize from the right for all last ptrs and prevs.
+    List<SMGValueAndSMGState> materializedResult;
     if (pAbstractObject.getMinLength() == MINIMUM_LIST_LENGTH) {
       // handles 0+ and splits into 2 states. One with a longer list and 0+ again, one where its
       // removed
-      return handleZeroPlusMaterialization(pAbstractObject, valueToPointerToAbstractObject, state);
+      materializedResult =
+          handleZeroPlusMaterialization(pAbstractObject, valueToPointerToAbstractObject, state);
     } else {
-      return ImmutableList.of(
-          materialiseAbstractedList(pAbstractObject, valueToPointerToAbstractObject, state));
+      materializedResult =
+          ImmutableList.of(
+              materialiseAbstractedList(pAbstractObject, valueToPointerToAbstractObject, state));
+    }
+    assertSMGSanity(materializedResult);
+    return materializedResult;
+  }
+
+  private void assertSMGSanity(List<SMGValueAndSMGState> materializedResult) {
+    for (SMGValueAndSMGState newState : materializedResult) {
+      assert newState.getSMGState().getMemoryModel().checkSMGSanity();
     }
   }
 
@@ -282,7 +293,7 @@ public class SMGCPAMaterializer {
               + ": trying to materialize out of invalid memory.");
     }
 
-    assert pState.getMemoryModel().getSmg().checkSMGSanity();
+    assert pState.getMemoryModel().checkSMGSanity();
     Preconditions.checkArgument(pListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
     Preconditions.checkArgument(
         pointerSpecifier.equals(SMGTargetSpecifier.IS_LAST_POINTER)
@@ -309,7 +320,7 @@ public class SMGCPAMaterializer {
     }
 
     statistics.stopTotalMaterializationTime();
-    assert materializedPointerAndState.getSMGState().getMemoryModel().getSmg().checkSMGSanity();
+    assert materializedPointerAndState.getSMGState().getMemoryModel().checkSMGSanity();
     return materializedPointerAndState;
   }
 
