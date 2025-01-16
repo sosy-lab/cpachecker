@@ -2802,33 +2802,6 @@ public class SymbolicProgramConfiguration {
     return MergedSPCAndMapping.of(targetSPC, mappingBetweenStates);
   }
 
-  private SymbolicProgramConfiguration updateNestingLevelOf(
-      SMGObject objectToUpdate, int newNestingLevel) {
-    Preconditions.checkArgument(
-        !(objectToUpdate instanceof SMGSinglyLinkedListSegment) || newNestingLevel >= 0);
-    Preconditions.checkArgument(
-        objectToUpdate instanceof SMGSinglyLinkedListSegment || newNestingLevel == 0);
-    if (objectToUpdate.getNestingLevel() == newNestingLevel) {
-      return this;
-    }
-    SymbolicProgramConfiguration newSPC = this;
-    Preconditions.checkArgument(getSmg().isValid(objectToUpdate) && isHeapObject(objectToUpdate));
-    SMGObject newObjWNestingLevel = objectToUpdate.copyWithNewNestingLevel(newNestingLevel);
-    // Add new heap obj
-    newSPC = newSPC.copyAndAddHeapObject(newObjWNestingLevel);
-    // Switch all HVEs to new
-    newSPC = newSPC.copyHVEdgesFromTo(objectToUpdate, newObjWNestingLevel);
-    // Switch all ptrs from old to new obj
-    newSPC = newSPC.replaceAllPointersTowardsWith(objectToUpdate, newObjWNestingLevel);
-    // invalidate old obj
-    Preconditions.checkArgument(
-        newSPC
-            .smg
-            .getAllSourcesForPointersPointingTowardsWithNumOfOccurrences(objectToUpdate)
-            .isEmpty());
-    return newSPC.invalidateSMGObject(objectToUpdate, false);
-  }
-
   public PersistentStack<Value> getAtExitStack() {
     return atExitStack;
   }
