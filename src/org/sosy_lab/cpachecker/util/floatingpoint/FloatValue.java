@@ -43,29 +43,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * <p>With floating point values rounding is necessary after almost all operations to match the
  * precision of the result. We guarantee "correct rounding" for all operations, that is the result
  * is always the same as if the calculation had been performed with infinite precision before
- * rounding down to the precision of the final result. This can easily be ensured for the
- * "algebraic" operations in this class, that is addition, subtraction, multiplication, division and
- * the square root. Here worst case bounds exist on the number of extra digits that need to be
- * calculated before the number can always be rounded correctly. The same is not true for
- * transcendental functions where such bounds are unknown and may not even exist. This problem is
- * known as <a href="https://en.wikipedia.org/wiki/Rounding#Table-maker's_dilemma">"Table-maker's
- * dilemma"</a>. Luckily for the transcendental functions {@link FloatValue#exp()}, {@link
- * FloatValue#ln()} and {@link FloatValue#pow(FloatValue)}) from this class it can be shown that
- * only a finite number of extra digits are needed for correct rounding. This follows from
- * Lindemann’s theorem that e^z is transcendental for every nonzero algebraic complex number z.
- * Since floating point numbers are algebraic, the result of the calculation can never fall exactly
- * on a floating point value, or the break-point between two floating point values. It is therefore
- * enough to repeat the calculation with increasing precision until the result no longer falls on a
- * break-point and can be correctly rounded. This approach is know as <a
- * href="https://dl.acm.org/doi/pdf/10.1145/114697.116813">Ziv's technique</a> and requires a
- * "rounding test" that decides if the value calculated in the current iteration can be correctly
- * rounded. Such test depend on the rounding mode used, but for "round-to-nearest-ties-to-even" (the
- * standard rounding mode in IEEE 754, and what is being used by this implementation) it can be
- * enough to simply look for patterns of the form 01+ or 10+ at the end of the significand. These
- * last few digits are exactly on the break-point in the current iteration and can still change when
- * the calculation is repeated with a higher precision. Everything before that is stable, however,
- * and we implement the rounding test by checking if there are enough stable bits to round down to
- * the final precision of the result.
+ * rounding down to the precision of the final result. See the <b>Background</b> section at the
+ * bottom for more information on how correct rounding can be guaranteed.
  *
  * <h3>Comparison operators</h3>
  *
@@ -99,6 +78,32 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  *       {@link #compareWithTotalOrder(FloatValue)} to implement the totalOrder predicate from the
  *       IEEE-754 standard.
  * </ul>
+ *
+ * <h3>Background</h3>
+ *
+ * <p>Correct rounding can easily be ensured for the "algebraic" operations in this class, that is
+ * addition, subtraction, multiplication, division and the square root. Here worst case bounds exist
+ * on the number of extra digits that need to be calculated before the number can always be rounded
+ * correctly. The same is not true for transcendental functions where such bounds are unknown and
+ * may not even exist. This problem is known as <a
+ * href="https://en.wikipedia.org/wiki/Rounding#Table-maker's_dilemma">"Table-maker's dilemma"</a>.
+ * Luckily for the transcendental functions {@link FloatValue#exp()}, {@link FloatValue#ln()} and
+ * {@link FloatValue#pow(FloatValue)}) from this class it can be shown that only a finite number of
+ * extra digits are needed for correct rounding. This follows from Lindemann’s theorem that e^z is
+ * transcendental for every nonzero algebraic complex number z. Since floating point numbers are
+ * algebraic, the result of the calculation can never fall exactly on a floating point value, or the
+ * break-point between two floating point values. It is therefore enough to repeat the calculation
+ * with increasing precision until the result no longer falls on a break-point and can be correctly
+ * rounded. This approach is know as <a
+ * href="https://dl.acm.org/doi/pdf/10.1145/114697.116813">Ziv's technique</a> and requires a
+ * "rounding test" that decides if the value calculated in the current iteration can be correctly
+ * rounded. Such test depend on the rounding mode used, but for "round-to-nearest-ties-to-even" (the
+ * standard rounding mode in IEEE 754, and what is being used by this implementation) it can be
+ * enough to simply look for patterns of the form 01+ or 10+ at the end of the significand. These
+ * last few digits are exactly on the break-point in the current iteration and can still change when
+ * the calculation is repeated with a higher precision. Everything before that is stable, however,
+ * and we implement the rounding test by checking if there are enough stable bits to round down to
+ * the final precision of the result.
  *
  * @see <a href="https://link.springer.com/book/10.1007/978-3-319-76526-6">Handbook of
  *     Floating-Point Arithmetic (12.1.1 The Table Maker’s Dilemma, 12.4.1 Lindemann’s theorem,
