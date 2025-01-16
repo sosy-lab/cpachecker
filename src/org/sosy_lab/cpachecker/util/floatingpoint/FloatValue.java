@@ -2764,17 +2764,22 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * <p>Valid input strings must match the following grammar:
    *
    * <pre>
+   * signed-floating-constant ::=
+   *     [sign] floating-constant
+   *
    * floating-constant ::=
-   *     [sign] decimal-floating-constant
-   *   | [sign] hexadecimal-floating-constant
+   *     `nan`
+   *   | `inf`
+   *   | decimal-floating-constant
+   *   | hexadecimal-floating-constant
    *
    * decimal-floating-constant ::=
    *     fractional-constant [exponent-part]
    *   | digit+ exponent-part
    *
    * hexadecimal-floating-constant ::=
-   *     `0x` hexadecimal-fractional-constant binary-exponent-part
-   *   | `0x` hexadecimal-digit+ binary-exponent-part
+   *     hexadecimal-prefix hexadecimal-fractional-constant binary-exponent-part
+   *   | hexadecimal-prefix hexadecimal-digit+ binary-exponent-part
    *
    * fractional-constant ::=
    *     digit* `.` digit+
@@ -2793,8 +2798,9 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    *   | `P` [sign] digit+
    *
    * sign ::= `+` | `-`
-   *
    * digit ::= `0` ... `9`
+   *
+   * hexadecimal-prefix ::= `0x` | `0X`
    * hexadecimal-digit ::= digit | `A` ... `F` | `a` ... `f`
    * </pre>
    */
