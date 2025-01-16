@@ -111,8 +111,10 @@ class Benchmark(VcloudBenchmarkBase):
                 text=True,
                 capture_output=True,
             )
-            if result.returncode != 0:
-                sys.exit("Error: Failed to check the Git status of the repository.")
+        if result.returncode != 0:
+            sys.exit(
+                f"Error: Failed to check the Git status of the repository. "
+                f"Git output:\n{result.stderr}")
             if result.stdout.strip():
                 sys.exit(
                     "Error: Only revisions in the CPAchecker repository are supported when "
@@ -126,8 +128,10 @@ class Benchmark(VcloudBenchmarkBase):
                 text=True,
                 capture_output=True,
             )
-            if branch_result.returncode != 0:
-                sys.exit("Error: Failed to determine the current Git branch.")
+        if branch_result.returncode != 0:
+            sys.exit(
+                f"Error: Failed to determine the current Git branch. "
+                f"Git output:\n{branch_result.stderr}")
             current_branch = branch_result.stdout.strip()
 
             unpushed_result = subprocess.run(
@@ -136,11 +140,14 @@ class Benchmark(VcloudBenchmarkBase):
                 text=True,
                 capture_output=True,
             )
-            if unpushed_result.returncode != 0:
-                sys.exit("Error: Failed to check for unpushed commits.")
+            logging.warning(
+                f"Warning: Failed to check for unpushed commits. "
+                f"Git output:\n{unpushed_result.stderr}")
             if unpushed_result.stdout.strip():
-                sys.exit(
-                    "Error: Local checkout has unpushed commits. Please push them before proceeding."
+                logging.warning(
+                    "Warning: The current branch and its upstream-tracking branch differ, "
+                    "benchmarking will not work if the current revision was not pushed to "
+                    "the CPAchecker repository."
                 )
 
             revision_result = subprocess.run(
@@ -149,11 +156,12 @@ class Benchmark(VcloudBenchmarkBase):
                 text=True,
                 capture_output=True,
             )
-            if revision_result.returncode != 0 or not revision_result.stdout.strip():
-                sys.exit(
-                    "Error: Could not determine the latest Git revision. "
-                    "Please explicitly pass --revision to specify the revision you want to benchmark."
-                )
+        if revision_result.returncode != 0 or not revision_result.stdout.strip():
+            sys.exit(
+                f"Error: Could not determine the latest Git revision. "
+                f"Git output:\n{revision_result.stderr}\n"
+                "Please explicitly pass --revision to specify the revision you want to benchmark."
+            )
 
             return revision_result.stdout.strip()
 
