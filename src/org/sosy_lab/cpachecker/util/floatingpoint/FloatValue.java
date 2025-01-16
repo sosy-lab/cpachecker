@@ -2524,59 +2524,6 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
   }
 
-  /**
-   * Helper class for the conversion between {@link FloatValue} and float
-   *
-   * @param sign The sign bit, 'true' if the value is negative
-   * @param exponent The exponent field, without the IEEE bias
-   * @param significand The significand. including the hidden bit
-   */
-  private record FloatBitField(boolean sign, int exponent, int significand) {
-    /** Bit mask for the sign bit */
-    private static final int SIGN_MASK = (1 << Format.FLOAT32_EXP_BITS) << Format.FLOAT32_SIG_BITS;
-
-    /** Bit mask for the exponent field */
-    private static final int EXPONENT_MASK =
-        ((1 << Format.FLOAT32_EXP_BITS) - 1) << Format.FLOAT32_SIG_BITS;
-
-    /** Bit mask for the significand field */
-    private static final int SIGNIFICAND_MASK = (1 << Format.FLOAT32_SIG_BITS) - 1;
-
-    /** Convert a float to its bitfield representation */
-    public static FloatBitField fromFloat(float pFloat) {
-      int rawBits = Float.floatToRawIntBits(pFloat);
-
-      // Get the sign
-      boolean sign = (rawBits & SIGN_MASK) != 0;
-
-      // Extract the exponent and the significand
-      int expBits = (rawBits & EXPONENT_MASK) >> Format.FLOAT32_SIG_BITS;
-      int sigBits = rawBits & SIGNIFICAND_MASK;
-
-      // Add the hidden bit to the significand
-      if (expBits != 0) {
-        sigBits |= 1 << Format.FLOAT32_SIG_BITS;
-      }
-
-      // Remove the bias from the exponent
-      expBits = expBits - (int) Format.Float32.bias();
-
-      return new FloatBitField(sign, expBits, sigBits);
-    }
-
-    /** Create a float from its bitfield representation */
-    public float toFloat() {
-      // Set the sign
-      int signBit = sign ? SIGN_MASK : 0;
-      // Add the bias to the exponent
-      int expBits = (exponent + (int) Format.Float32.bias()) << Format.FLOAT32_SIG_BITS;
-      // Remove the hidden bit from the significand
-      int sigBits = significand & SIGNIFICAND_MASK;
-
-      return Float.intBitsToFloat(signBit | expBits | sigBits);
-    }
-  }
-
   /** Convert a {@link FloatingPointNumber} to {@link FloatValue} */
   public static FloatValue fromFloatingPointNumber(FloatingPointNumber pNumber) {
     Format format = new Format(pNumber.getExponentSize(), pNumber.getMantissaSize());
@@ -2601,100 +2548,60 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   /** Convert a <code>float</code> to {@link FloatValue} */
   public static FloatValue fromFloat(float pFloat) {
-    FloatBitField floatBitField = FloatBitField.fromFloat(pFloat);
-    if (Float.isNaN(pFloat)) {
-      return floatBitField.sign ? nan(Format.Float32).negate() : nan(Format.Float32);
-    } else if (Float.isInfinite(pFloat)) {
-      return floatBitField.sign ? negativeInfinity(Format.Float32) : infinity(Format.Float32);
-    } else {
-      return new FloatValue(
-          Format.Float32,
-          floatBitField.sign,
-          floatBitField.exponent,
-          BigInteger.valueOf(floatBitField.significand));
+    final int SIGN_MASK = (1 << Format.FLOAT32_EXP_BITS) << Format.FLOAT32_SIG_BITS;
+    final int EXPONENT_MASK = ((1 << Format.FLOAT32_EXP_BITS) - 1) << Format.FLOAT32_SIG_BITS;
+    final int SIGNIFICAND_MASK = (1 << Format.FLOAT32_SIG_BITS) - 1;
+
+    int rawBits = Float.floatToRawIntBits(pFloat);
+
+    // Get the sign, exponent and significand
+    boolean sign = (rawBits & SIGN_MASK) != 0;
+    int expBits = (rawBits & EXPONENT_MASK) >> Format.FLOAT32_SIG_BITS;
+    int sigBits = rawBits & SIGNIFICAND_MASK;
+
+    // Add the hidden bit to the significand
+    if (expBits != 0) {
+      sigBits |= 1 << Format.FLOAT32_SIG_BITS;
     }
+
+    // Remove the bias from the exponent
+    expBits = expBits - (int) Format.Float32.bias();
+
+    return new FloatValue(Format.Float32, sign, expBits, BigInteger.valueOf(sigBits));
   }
 
   @Override
   public float floatValue() {
-    FloatValue f = withPrecision(Format.Float32);
-    return new FloatBitField(f.sign, (int) f.exponent, f.significand.intValue()).toFloat();
+    return toFloatingPointNumber().floatValue();
   }
 
-  /**
-   * Helper class for the conversion between {@link FloatValue} and double
-   *
-   * @param sign The sign bit, 'true' if the value is negative
-   * @param exponent The exponent field, without the IEEE bias
-   * @param significand The significand. including the hidden bit
-   */
-  private record DoubleBitField(boolean sign, long exponent, long significand) {
-    /** Bit mask for the sign bit */
-    private static final long SIGN_MASK =
-        (1L << Format.FLOAT64_EXP_BITS) << Format.FLOAT64_SIG_BITS;
-
-    /** Bit mask for the exponent field */
-    private static final long EXPONENT_MASK =
-        ((1L << Format.FLOAT64_EXP_BITS) - 1L) << Format.FLOAT64_SIG_BITS;
-
-    /** Bit mask for the significand field */
-    private static final long SIGNIFICAND_MASK = (1L << Format.FLOAT64_SIG_BITS) - 1L;
-
-    /** Convert a double to its bitfield representation */
-    public static DoubleBitField fromDouble(double pDouble) {
-      long rawBits = Double.doubleToRawLongBits(pDouble);
-
-      // Get the sign
-      boolean sign = (rawBits & SIGN_MASK) != 0;
-
-      // Extract the exponent and the significand
-      long expBits = (rawBits & EXPONENT_MASK) >> Format.FLOAT64_SIG_BITS;
-      long sigBits = rawBits & SIGNIFICAND_MASK;
-
-      // Add the hidden bit to the significand
-      if (expBits != 0) {
-        sigBits |= 1L << Format.FLOAT64_SIG_BITS;
-      }
-
-      // Remove the bias from the exponent
-      expBits = expBits - Format.Float64.bias();
-
-      return new DoubleBitField(sign, expBits, sigBits);
-    }
-
-    /** Create a double from its bitfield representation */
-    public double toDouble() {
-      // Set the sign
-      long signBit = sign ? SIGN_MASK : 0;
-      // Add the bias to the exponent
-      long expBits = (exponent + Format.Float64.bias()) << Format.FLOAT64_SIG_BITS;
-      // Remove the hidden bit from the significand
-      long sigBits = significand & SIGNIFICAND_MASK;
-
-      return Double.longBitsToDouble(signBit | expBits | sigBits);
-    }
-  }
-
-  /** Convert a `double` to {@link FloatValue#byteValue()} */
+  /** Convert a <code>double</code> to {@link FloatValue#byteValue()} */
   public static FloatValue fromDouble(double pDouble) {
-    DoubleBitField doubleBitField = DoubleBitField.fromDouble(pDouble);
-    if (Double.isNaN(pDouble)) {
-      return doubleBitField.sign ? nan(Format.Float64).negate() : nan(Format.Float64);
-    } else if (Double.isInfinite(pDouble)) {
-      return doubleBitField.sign ? negativeInfinity(Format.Float64) : infinity(Format.Float64);
-    } else {
-      return new FloatValue(
-          Format.Float64,
-          doubleBitField.sign,
-          doubleBitField.exponent,
-          BigInteger.valueOf(doubleBitField.significand));
+    final long SIGN_MASK = (1L << Format.FLOAT64_EXP_BITS) << Format.FLOAT64_SIG_BITS;
+    final long EXPONENT_MASK = ((1L << Format.FLOAT64_EXP_BITS) - 1L) << Format.FLOAT64_SIG_BITS;
+    final long SIGNIFICAND_MASK = (1L << Format.FLOAT64_SIG_BITS) - 1L;
+
+    long rawBits = Double.doubleToRawLongBits(pDouble);
+
+    // Get the sign, exponent and the significand
+    boolean sign = (rawBits & SIGN_MASK) != 0;
+    long expBits = (rawBits & EXPONENT_MASK) >> Format.FLOAT64_SIG_BITS;
+    long sigBits = rawBits & SIGNIFICAND_MASK;
+
+    // Add the hidden bit to the significand
+    if (expBits != 0) {
+      sigBits |= 1L << Format.FLOAT64_SIG_BITS;
     }
+
+    // Remove the bias from the exponent
+    expBits = expBits - Format.Float64.bias();
+
+    return new FloatValue(Format.Float64, sign, expBits, BigInteger.valueOf(sigBits));
   }
 
   @Override
   public double doubleValue() {
-    FloatValue d = withPrecision(Format.Float64);
-    return new DoubleBitField(d.sign, d.exponent, d.significand.longValue()).toDouble();
+    return toFloatingPointNumber().doubleValue();
   }
 
   /**
