@@ -129,7 +129,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
           for (CounterexampleInfo cex : counterExamples) {
             // Refinement
             PathFormula exclusionFormula = refiner.refine(cex);
-            // refiner.shutdown();
+            System.out.printf("IGNORE. " + exclusionFormula.getLength());
           }
           // update initial state with the exclusion formula
           initialState = updateInitialStateWithExclusions(initialState, refiner.getExclusionFormula());
@@ -137,7 +137,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
 
       } while (foundNewCounterexamples && (++currentIteration < maxIterations
           || maxIterations == -1));
-
+      refiner.shutdown();
       return status;
 
     } catch (InvalidConfigurationException | SolverException ex) {

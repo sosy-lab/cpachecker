@@ -61,7 +61,6 @@ public class CompositeRefiner implements Refiner {
       // execute tasks with a timeout and return the first successful result
       RefinerResult result = executor.invokeAny(tasks, TIMEOUT_SECONDS, TimeUnit.SECONDS);
       exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
-      context.getLogger().log(Level.INFO, "Refiner completed: " + result.getRefinerName());
       return exclusionFormula;
 
     } catch (TimeoutException e) {
@@ -70,10 +69,10 @@ public class CompositeRefiner implements Refiner {
       context.getLogger().log(Level.SEVERE, "Error during parallel refinement.", e);
     }
 
-    // Fallback
+    // Fallback TODO better handling fallback
     context.getLogger()
         .log(Level.WARNING, "All refiners failed. Returning an empty exclusion formula.");
-    return exclusionFormula;
+    return null;
   }
 
   private RefinerResult refineWith(String refinerName, Refiner refiner, CounterexampleInfo cex)

@@ -24,6 +24,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import javax.annotation.Nonnull;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.FormulaTransformationVisitor;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
@@ -72,7 +76,6 @@ public class QuantiferEliminationRefiner implements Refiner {
     BooleanFormula translatedFormula =
         translateFormula(cexFormula.getFormula(), context.getSolver(), quantifierSolver);
 
-
     // Quantifier Elimination
     BooleanFormula quantifierEliminationResult = eliminateVariables(
         translatedFormula,
@@ -81,14 +84,8 @@ public class QuantiferEliminationRefiner implements Refiner {
         // this predicate keeps the non-det variables
         entry -> entry.getKey().contains("_nondet"));
 
-    // TODO handle modulo operations through string manipulation
-//    String translatedResultAsString =
-//        context.getSolver().getFormulaManager().dumpArbitraryFormula(quantifierEliminationResult);
-//    // modulo replacement
-//    translatedResultAsString = translatedResultAsString.replace("bvsrem_i", "bvsrem");
-//    quantifierEliminationResult =
-//        context.getSolver().getFormulaManager().parse(translatedResultAsString);
-
+    // handle modulo operation translation
+    quantifierEliminationResult = handleModuloOp(quantifierEliminationResult);
 
     // translate back to MATHSAT
     quantifierEliminationResult =
@@ -105,6 +102,52 @@ public class QuantiferEliminationRefiner implements Refiner {
     currentRefinementIteration++;
     return exclusionFormula;
   }
+
+    @Nonnull
+  private BooleanFormula handleModuloOp_(BooleanFormula quantifierEliminationResult) {
+    String translatedResultAsString =
+        context.getSolver().getFormulaManager().dumpArbitraryFormula(quantifierEliminationResult);
+    // modulo replacement
+    translatedResultAsString = translatedResultAsString.replace("bvsrem_i", "bvsrem");
+    quantifierEliminationResult =
+        context.getSolver().getFormulaManager().parse(translatedResultAsString);
+    return quantifierEliminationResult;
+  }
+
+  /*
+  Traverse the entire formula, and replace encountered modulo op 'bvsrem_i' with 'bvsrem' while keeping the same arguments
+   */
+  @Nonnull
+  private BooleanFormula handleModuloOp(BooleanFormula formula) {
+    FormulaManagerView formulaManager = context.getSolver().getFormulaManager();
+
+    FormulaTransformationVisitor formulaVisitor =
+        new FormulaTransformationVisitor(formulaManager) {
+          @Override
+          public Formula visitFunction(
+              Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
+            if ("bvsrem_i".equals(functionDeclaration.getName())) {
+              List<Formula> translatedArgs = new ArrayList<>();
+              for (Formula arg : args) {
+                translatedArgs.add(
+                    formulaManager.translateFrom(
+                        (BooleanFormula) arg, quantifierSolver.getFormulaManager()));
+              }
+              String newFunctionName = "bvsrem";
+              FunctionDeclaration<?> newFunctionDeclaration =
+                  formulaManager.getFunctionFormulaManager().declareUF(
+                      newFunctionName, functionDeclaration.getType(),
+                      functionDeclaration.getArgumentTypes());
+              return formulaManager.getFunctionFormulaManager()
+                  .callUF(newFunctionDeclaration, translatedArgs);
+            }
+            return super.visitFunction(f, args, functionDeclaration);
+          }
+        };
+
+    return formulaManager.transformRecursively(formula, formulaVisitor);
+  }
+
 
   private void updateExclusionFormula(
       BooleanFormula quantifierEliminationResult,
