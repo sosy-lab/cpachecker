@@ -1323,7 +1323,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       final FormulaType<?> toType = pC2Formula.getFormulaTypeFromCType(goalType);
 
       Preconditions.checkArgument(
-          fromType.isBitvectorType() && toType.isBitvectorType() || toType.isFloatingPointType());
+          (fromType.isBitvectorType() && toType.isBitvectorType()) || toType.isFloatingPointType());
 
       final Formula ret;
       if (fromType.equals(toType)) {
