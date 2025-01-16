@@ -2909,6 +2909,9 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * value. This length guarantees that <code>fromString(toString(x)) = x</code> always holds. For
    * single-precision values the number of digits is 9, for double-precision it is 17 and for
    * extended-precision 21 digits are needed.
+   *
+   * <p>The special values <code>NaN</code> and <code>Infinity</code> will be printed as <code>"nan"
+   * </code> and <code>"inf"</code>.
    */
   @Override
   public String toString() {
