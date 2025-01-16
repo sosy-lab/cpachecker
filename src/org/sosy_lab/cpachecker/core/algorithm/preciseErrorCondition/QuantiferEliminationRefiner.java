@@ -86,6 +86,9 @@ public class QuantiferEliminationRefiner implements Refiner {
 
     // handle modulo operation translation
     quantifierEliminationResult = handleModuloOp(quantifierEliminationResult);
+    context.getLogger().log(Level.INFO,
+        String.format("Iteration %d: Modified Result After Modulo Fix: %s \n", currentRefinementIteration,
+            quantifierEliminationResult));
 
     // translate back to MATHSAT
     quantifierEliminationResult =
@@ -103,15 +106,17 @@ public class QuantiferEliminationRefiner implements Refiner {
     return exclusionFormula;
   }
 
-    @Nonnull
-  private BooleanFormula handleModuloOp_(BooleanFormula quantifierEliminationResult) {
-    String translatedResultAsString =
-        context.getSolver().getFormulaManager().dumpArbitraryFormula(quantifierEliminationResult);
-    // modulo replacement
-    translatedResultAsString = translatedResultAsString.replace("bvsrem_i", "bvsrem");
-    quantifierEliminationResult =
-        context.getSolver().getFormulaManager().parse(translatedResultAsString);
-    return quantifierEliminationResult;
+  private BooleanFormula translateFormula(
+      BooleanFormula formula,
+      Solver thisSolver,
+      Solver otherSolver) {
+    // formula translation between solvers, e.g. MATHSAT5 to Z3 or vice versa.
+    BooleanFormula translatedFormula = otherSolver.getFormulaManager().translateFrom(
+        formula, thisSolver.getFormulaManager());
+    context.getLogger().log(Level.INFO,
+        String.format("Iteration %d: Translated Formula:\n%s \n", currentRefinementIteration,
+            translatedFormula));
+    return translatedFormula;
   }
 
   /*
@@ -126,26 +131,32 @@ public class QuantiferEliminationRefiner implements Refiner {
           @Override
           public Formula visitFunction(
               Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
+            // check if the function name is "bvsrem_i"
             if ("bvsrem_i".equals(functionDeclaration.getName())) {
-              List<Formula> translatedArgs = new ArrayList<>();
-              for (Formula arg : args) {
-                translatedArgs.add(
-                    formulaManager.translateFrom(
-                        (BooleanFormula) arg, quantifierSolver.getFormulaManager()));
-              }
-              String newFunctionName = "bvsrem";
+              // replace "bvsrem_i" with "bvsrem" while keeping the arguments unchanged
               FunctionDeclaration<?> newFunctionDeclaration =
                   formulaManager.getFunctionFormulaManager().declareUF(
-                      newFunctionName, functionDeclaration.getType(),
-                      functionDeclaration.getArgumentTypes());
-              return formulaManager.getFunctionFormulaManager()
-                  .callUF(newFunctionDeclaration, translatedArgs);
+                      "bvsrem", functionDeclaration.getType(), functionDeclaration.getArgumentTypes());
+              return formulaManager.getFunctionFormulaManager().callUF(newFunctionDeclaration, args);
             }
             return super.visitFunction(f, args, functionDeclaration);
           }
         };
 
+    // transform the formula recursively using the visitor
     return formulaManager.transformRecursively(formula, formulaVisitor);
+  }
+
+
+  @Nonnull
+  private BooleanFormula handleModuloOp_(BooleanFormula quantifierEliminationResult) {
+    String translatedResultAsString =
+        context.getSolver().getFormulaManager().dumpArbitraryFormula(quantifierEliminationResult);
+    // modulo replacement
+    translatedResultAsString = translatedResultAsString.replace("bvsrem_i", "bvsrem");
+    quantifierEliminationResult =
+        context.getSolver().getFormulaManager().parse(translatedResultAsString);
+    return quantifierEliminationResult;
   }
 
 
@@ -187,19 +198,6 @@ public class QuantiferEliminationRefiner implements Refiner {
         ssaBuilder.setIndex(variable, cexFormula.getSsa().getType(variable), 1);
       }
     }
-  }
-
-  private BooleanFormula translateFormula(
-      BooleanFormula formula,
-      Solver thisSolver,
-      Solver otherSolver) {
-    // formula translation between solvers, e.g. MATHSAT5 to Z3 or vice versa.
-    BooleanFormula translatedFormula = otherSolver.getFormulaManager().translateFrom(
-        formula, thisSolver.getFormulaManager());
-    context.getLogger().log(Level.INFO,
-        String.format("Iteration %d: Translated Formula:\n%s \n", currentRefinementIteration,
-            translatedFormula));
-    return translatedFormula;
   }
 
   // eliminate variables matching a predicate (Quantifier Elimination)
