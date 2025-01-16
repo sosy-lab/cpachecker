@@ -33,7 +33,7 @@ public class CompositeRefiner implements Refiner {
   private final ExecutorService executor;
 
   public CompositeRefiner(
-      FormulaContext pContext, Solvers pQuantifierSolver)
+      FormulaContext pContext, Solvers pQuantifierSolver) // TODO add a list of different refinements and a flag for parallelism
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     context = pContext;
     exclusionFormula = context.getManager().makeEmptyPathFormula(); // initially empty

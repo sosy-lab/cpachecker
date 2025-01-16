@@ -124,7 +124,7 @@ public class QuantiferEliminationRefiner implements Refiner {
    */
   @Nonnull
   private BooleanFormula handleModuloOp(BooleanFormula formula) {
-    FormulaManagerView formulaManager = context.getSolver().getFormulaManager();
+    FormulaManagerView formulaManager = quantifierSolver.getFormulaManager();
 
     FormulaTransformationVisitor formulaVisitor =
         new FormulaTransformationVisitor(formulaManager) {
@@ -136,7 +136,7 @@ public class QuantiferEliminationRefiner implements Refiner {
               // replace "bvsrem_i" with "bvsrem" while keeping the arguments unchanged
               FunctionDeclaration<?> newFunctionDeclaration =
                   formulaManager.getFunctionFormulaManager().declareUF(
-                      "bvsrem", functionDeclaration.getType(), functionDeclaration.getArgumentTypes());
+                      "bvsrem_32", functionDeclaration.getType(), functionDeclaration.getArgumentTypes());
               return formulaManager.getFunctionFormulaManager().callUF(newFunctionDeclaration, args);
             }
             return super.visitFunction(f, args, functionDeclaration);
