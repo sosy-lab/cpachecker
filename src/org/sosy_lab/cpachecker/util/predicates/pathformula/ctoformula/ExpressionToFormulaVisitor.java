@@ -78,6 +78,7 @@ import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -463,19 +464,16 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCodeException {
-    FloatingPointType t =
-        (FloatingPointType) conv.getFormulaTypeFromCType(fExp.getExpressionType());
     FloatingPointFormulaManager fmgr = mgr.getFloatingPointFormulaManager();
-
-    // FIXME: Remove this hack and use FloatingPointNumber directly
     FloatValue value = fExp.getValue();
-    if (value.isNan()) {
-      return fmgr.makeNaN(t);
-    } else if (value.isInfinite()) {
-      return value.isNegative() ? fmgr.makeMinusInfinity(t) : fmgr.makePlusInfinity(t);
-    } else {
-      return fmgr.makeNumber(value.toString(), t);
-    }
+    FloatingPointNumber converted = value.toFloatingPointNumber();
+
+    return fmgr.makeNumber(
+        converted.getExponent(),
+        converted.getMantissa(),
+        converted.getSign(),
+        FloatingPointType.getFloatingPointType(
+            value.getFormat().expBits(), value.getFormat().sigBits()));
   }
 
   @Override

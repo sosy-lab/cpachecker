@@ -29,6 +29,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
 
 /**
  * Java based implementation of multi-precision floating point values with correct rounding.
@@ -2576,7 +2577,29 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
   }
 
-  /** Convert a `float` to {@link FloatValue} */
+  /** Convert a {@link FloatingPointNumber} to {@link FloatValue} */
+  public static FloatValue fromFloatingPointNumber(FloatingPointNumber pNumber) {
+    Format format = new Format(pNumber.getExponentSize(), pNumber.getMantissaSize());
+    long exponent = pNumber.getExponent().longValue() - format.bias();
+    BigInteger significand = pNumber.getMantissa();
+    if (pNumber.getExponent().equals(BigInteger.ZERO)) {
+      // If it's not a subnormal number, add the hidden bit to the significand
+      significand = significand.setBit(format.sigBits);
+    }
+    return new FloatValue(format, pNumber.getSign(), exponent, significand);
+  }
+
+  /** Convert this {@link FloatValue} to {@link FlointingPointNumber} */
+  public FloatingPointNumber toFloatingPointNumber() {
+    return FloatingPointNumber.of(
+        sign,
+        BigInteger.valueOf(exponent + format.bias()),
+        significand.clearBit(format.sigBits()),
+        format.expBits(),
+        format.sigBits());
+  }
+
+  /** Convert a <code>float</code> to {@link FloatValue} */
   public static FloatValue fromFloat(float pFloat) {
     FloatBitField floatBitField = FloatBitField.fromFloat(pFloat);
     if (Float.isNaN(pFloat)) {
