@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.base.Ascii;
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
@@ -2872,10 +2873,15 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Convert the value to a binary float representation
     if (isHexLiteral) {
-      Preconditions.checkArgument(digits.matches("[0-9a-fA-F]+"));
+      Preconditions.checkArgument(
+          !digits.isEmpty()
+              && CharMatcher.inRange('0', '9')
+                  .or(CharMatcher.inRange('a', 'f'))
+                  .matchesAllOf(digits));
       return fromHexadecimal(pFormat, sign, digits, expValue);
     } else {
-      Preconditions.checkArgument(digits.matches("\\d+"));
+      Preconditions.checkArgument(
+          !digits.isEmpty() && CharMatcher.inRange('0', '9').matchesAllOf(digits));
       return fromDecimal(pFormat, sign, digits, expValue);
     }
   }
