@@ -115,7 +115,9 @@ class Benchmark(VcloudBenchmarkBase):
                 sys.exit("Error: Failed to check the Git status of the repository.")
             if result.stdout.strip():
                 sys.exit(
-                    "Error: Local checkout has uncommitted changes. Please commit or stash them before proceeding."
+                    "Error: Only revisions in the CPAchecker repository are supported when "
+                    "benchmarking CPAchecker remotely via Benchcloud."
+                    "Please either specify an existing revision to be benchmarked or commit and push your changes."
                 )
 
             branch_result = subprocess.run(
