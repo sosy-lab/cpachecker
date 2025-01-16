@@ -111,14 +111,14 @@ class Benchmark(VcloudBenchmarkBase):
                 text=True,
                 capture_output=True,
             )
-        if result.returncode != 0:
-            sys.exit(
-                f"Error: Failed to check the Git status of the repository. "
-                f"Git output:\n{result.stderr}")
+            if result.returncode != 0:
+                sys.exit(
+                    f"Error: Failed to check the Git status of the repository. "
+                    f"Git output:\n{result.stderr}")
             if result.stdout.strip():
                 sys.exit(
                     "Error: Only revisions in the CPAchecker repository are supported when "
-                    "benchmarking CPAchecker remotely via Benchcloud."
+                    "benchmarking CPAchecker remotely via Benchcloud. "
                     "Please either specify an existing revision to be benchmarked or commit and push your changes."
                 )
 
@@ -128,27 +128,31 @@ class Benchmark(VcloudBenchmarkBase):
                 text=True,
                 capture_output=True,
             )
-        if branch_result.returncode != 0:
-            sys.exit(
-                f"Error: Failed to determine the current Git branch. "
-                f"Git output:\n{branch_result.stderr}")
-            current_branch = branch_result.stdout.strip()
+            if branch_result.returncode != 0:
+                sys.exit(
+                    f"Error: Failed to determine the current Git branch. "
+                    f"Git output:\n{branch_result.stderr}")
 
-            unpushed_result = subprocess.run(
-                ["git", "rev-list", f"{current_branch}@{{u}}...{current_branch}"],
+            upstream_check = subprocess.run(
+                ["git", "rev-parse", "HEAD", "HEAD@{u}"],
                 cwd=_ROOT_DIR,
                 text=True,
                 capture_output=True,
             )
-            logging.warning(
-                f"Warning: Failed to check for unpushed commits. "
-                f"Git output:\n{unpushed_result.stderr}")
-            if unpushed_result.stdout.strip():
+
+            if upstream_check.returncode != 0:
                 logging.warning(
-                    "Warning: The current branch and its upstream-tracking branch differ, "
-                    "benchmarking will not work if the current revision was not pushed to "
-                    "the CPAchecker repository."
+                    "Warning: No upstream branch configured for the current branch. "
+                    "Benchmarking will proceed using the current revision hash, "
+                    "but ensure this revision is accessible in your repository."
                 )
+            else:
+                local_commit, upstream_commit = upstream_check.stdout.strip().splitlines()
+                if local_commit != upstream_commit:
+                    logging.warning(
+                        "Warning: Current branch and upstream branch differ. "
+                        "Benchmarking may fail if the local revision has not been pushed."
+                    )
 
             revision_result = subprocess.run(
                 ["git", "rev-parse", "HEAD"],
@@ -156,12 +160,12 @@ class Benchmark(VcloudBenchmarkBase):
                 text=True,
                 capture_output=True,
             )
-        if revision_result.returncode != 0 or not revision_result.stdout.strip():
-            sys.exit(
-                f"Error: Could not determine the latest Git revision. "
-                f"Git output:\n{revision_result.stderr}\n"
-                "Please explicitly pass --revision to specify the revision you want to benchmark."
-            )
+            if revision_result.returncode != 0 or not revision_result.stdout.strip():
+                sys.exit(
+                    f"Error: Could not determine the latest Git revision. "
+                    f"Please explicitly pass --revision to specify the revision you want to benchmark."
+                    f"Git output:\n{revision_result.stderr}"
+                )
 
             return revision_result.stdout.strip()
 
