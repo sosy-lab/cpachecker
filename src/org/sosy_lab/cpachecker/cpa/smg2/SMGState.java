@@ -5711,8 +5711,7 @@ public class SMGState
     objsPointingAtTraversedTarget.remove(pOtherTarget);
     objsPointingAtTraversedOtherTarget.remove(pTarget);
 
-    return objsPointingAtTraversedOtherTarget.size() == objsPointingAtTraversedTarget.size()
-        && objsPointingAtTraversedOtherTarget.containsAll(objsPointingAtTraversedTarget);
+    return objsPointingAtTraversedOtherTarget.size() == objsPointingAtTraversedTarget.size();
   }
 
   private void gatherConnectedMemory(
@@ -5733,6 +5732,7 @@ public class SMGState
     for (SMGHasValueEdge ptrEdge : conntectedMemoryPtrs) {
       SMGObject connectedMemory = smg.getPTEdge(ptrEdge.hasValue()).orElseThrow().pointsTo();
       gatherConnectedMemory(connectedMemory, pTraversedObjects, pObjsPointingAtTraversed);
+      assert pObjsPointingAtTraversed.contains(nestedMemory);
     }
   }
 
