@@ -123,10 +123,17 @@ public class SMGCPAAbstractionManager {
     for (Set<SMGCandidate> candidates : orderedListCandidatesByNesting) {
       for (SMGCandidate candidate : candidates) {
         // Not valid means kicked out by abstraction
-        // TODO: the nesting update might invalidate (nested) objects that should be abstracted now,
-        //    think of a solution without searching the entire SMG again
         if (!currentState.getMemoryModel().isObjectValid(candidate.getObject())) {
-          continue;
+          SMGValue ptrToObj = candidate.getPointerToObject();
+          Optional<SMGPointsToEdge> pte =
+              currentState.getMemoryModel().getSmg().getPTEdge(ptrToObj);
+          if (pte.isPresent()
+              && currentState.getMemoryModel().isObjectValid(pte.orElseThrow().pointsTo())) {
+            candidate =
+                SMGCandidate.moveCandidateTo(ptrToObj, pte.orElseThrow().pointsTo(), candidate);
+          } else {
+            continue;
+          }
         }
 
         // Check that there are pointers towards the candidate
@@ -166,15 +173,17 @@ public class SMGCPAAbstractionManager {
     assert candidatesHaveBeenAbstracted(orderedListCandidatesByNesting, currentState);
     assert currentState.getMemoryModel().checkSMGSanity();
     assert checkNestingLevel(currentState);
-    assert new SMGCPAAbstractionManager(currentState, minimumLengthForListsForAbstraction, null)
-        .getListCandidates()
-        .isEmpty();
     return currentState;
   }
 
   private boolean candidatesHaveBeenAbstracted(
       List<Set<SMGCandidate>> orderedListCandidatesByNesting, SMGState stateAfterAbstraction)
       throws SMGException {
+    assert new SMGCPAAbstractionManager(
+            stateAfterAbstraction, minimumLengthForListsForAbstraction, null)
+        .getListCandidates()
+        .isEmpty();
+
     PersistentSet<SMGObject> objectsAfterAbstr =
         stateAfterAbstraction.getMemoryModel().getHeapObjects();
     for (Set<SMGCandidate> set : orderedListCandidatesByNesting) {
@@ -374,7 +383,7 @@ public class SMGCPAAbstractionManager {
           Set<SMGObject> objsWithPtrsTowardsHeapObj =
               smg.getValuesToRegionsTheyAreSavedIn().get(ptrValue).keySet();
           if (!pCandidate.suspectedElements.containsAll(objsWithPtrsTowardsHeapObj)) {
-            return SMGCandidate.moveCandidateTo(maybeRoot, pCandidate);
+            return SMGCandidate.moveCandidateTo(ptrValue, maybeRoot, pCandidate);
           }
         }
       }
@@ -389,7 +398,14 @@ public class SMGCPAAbstractionManager {
 
       if (len == pCandidate.maximalSizeOfList) {
         // Correct object for len
-        return SMGCandidate.moveCandidateTo(canObj, pCandidate);
+        Set<SMGValue> ptrsTowardsHeapObj = smg.getPointerValuesForTarget(canObj);
+        for (SMGValue ptrValue : ptrsTowardsHeapObj) {
+          Set<SMGObject> objsWithPtrsTowardsHeapObj =
+              smg.getValuesToRegionsTheyAreSavedIn().get(ptrValue).keySet();
+          if (!pCandidate.suspectedElements.containsAll(objsWithPtrsTowardsHeapObj)) {
+            return SMGCandidate.moveCandidateTo(ptrValue, canObj, pCandidate);
+          }
+        }
       }
     }
     // Should never happen
@@ -467,14 +483,22 @@ public class SMGCPAAbstractionManager {
         }
       }
     }
-    return lookThroughPrevAndThenSearchForList(
-        currentObj,
-        suspectedNfo,
-        nextPointerTargetOffset,
-        maybePfo,
-        maybePrevPointerTargetOffset,
-        alreadySeenInChain,
-        new HashSet<>());
+    SMGCandidateOrRejectedObject maybeListCandidate =
+        lookThroughPrevAndThenSearchForList(
+            currentObj,
+            suspectedNfo,
+            nextPointerTargetOffset,
+            maybePfo,
+            maybePrevPointerTargetOffset,
+            alreadySeenInChain,
+            new HashSet<>());
+
+    if (maybeListCandidate.isListCandidate() || currentObj instanceof SMGSinglyLinkedListSegment) {
+      return maybeListCandidate;
+    }
+
+    // Try other NFOs if possible
+    return maybeListCandidate;
   }
 
   private SMGCandidateOrRejectedObject lookThroughPrevAndThenSearchForList(
@@ -547,6 +571,7 @@ public class SMGCPAAbstractionManager {
 
       SMGCandidate newCandidate =
           new SMGCandidate(
+              null,
               leftMostObj,
               suspectedNfo,
               nextPointerTargetOffset,
@@ -1356,7 +1381,8 @@ public class SMGCPAAbstractionManager {
     if (potentialRoot instanceof SMGSinglyLinkedListSegment sll) {
       pAlreadyVisited.add(potentialRoot);
       // BigInteger.ZERO is potentially wrong, but this code is about to be removed
-      return Optional.of(new SMGCandidate(potentialRoot, sll.getNextOffset(), BigInteger.ZERO));
+      return Optional.of(
+          new SMGCandidate(null, potentialRoot, sll.getNextOffset(), BigInteger.ZERO));
     }
 
     ImmutableSet<SMGHasValueEdge> setOfPointers =
@@ -1379,7 +1405,7 @@ public class SMGCPAAbstractionManager {
           && (sll.getNextOffset().compareTo(nfo) == 0)) {
         pAlreadyVisited.add(potentialRoot);
         // BigInteger.ZERO is potentially wrong, but this code is about to be removed
-        return Optional.of(new SMGCandidate(potentialRoot, nfo, BigInteger.ZERO));
+        return Optional.of(new SMGCandidate(null, potentialRoot, nfo, BigInteger.ZERO));
       }
 
       // Check that reached object has a pointer at the same offset
@@ -1391,13 +1417,13 @@ public class SMGCPAAbstractionManager {
             potentialRoot, nfo, heapObjects)) {
           pAlreadyVisited.add(potentialRoot);
           // BigInteger.ZERO is potentially wrong, but this code is about to be removed
-          return Optional.of(new SMGCandidate(potentialRoot, nfo, BigInteger.ZERO));
+          return Optional.of(new SMGCandidate(null, potentialRoot, nfo, BigInteger.ZERO));
         } else {
           // TODO: check that there is a "external" pointer pointing towards this (a pointer that is
           // not inside the list)
           pAlreadyVisited.add(potentialRoot);
           // BigInteger.ZERO is potentially wrong, but this code is about to be removed
-          return Optional.of(new SMGCandidate(potentialRoot, nfo, BigInteger.ZERO));
+          return Optional.of(new SMGCandidate(null, potentialRoot, nfo, BigInteger.ZERO));
         }
       }
     }
@@ -1691,6 +1717,9 @@ public class SMGCPAAbstractionManager {
 
   @VisibleForTesting
   protected static class SMGCandidate {
+    // The object might be invalid due to abstraction, but at least 1 pointer will be valid for
+    // nested objects
+    private final SMGValue pointerToObject;
     private final SMGObject object;
     private final BigInteger suspectedNfo;
 
@@ -1717,7 +1746,11 @@ public class SMGCPAAbstractionManager {
     private boolean looping = false;
 
     public SMGCandidate(
-        SMGObject pObject, BigInteger pSuspectedNfo, BigInteger pSuspectedNfoTargetPointerOffset) {
+        SMGValue ptrToCandidate,
+        SMGObject pObject,
+        BigInteger pSuspectedNfo,
+        BigInteger pSuspectedNfoTargetPointerOffset) {
+      pointerToObject = ptrToCandidate;
       object = pObject;
       suspectedNfo = pSuspectedNfo;
       suspectedNfoTargetPointerOffset = pSuspectedNfoTargetPointerOffset;
@@ -1728,6 +1761,7 @@ public class SMGCPAAbstractionManager {
     }
 
     private SMGCandidate(
+        SMGValue ptrToCandidate,
         SMGObject pObject,
         BigInteger pSuspectedNfo,
         BigInteger pSuspectedNfoTargetOffset,
@@ -1735,6 +1769,7 @@ public class SMGCPAAbstractionManager {
         Optional<BigInteger> pSuspectedPfoTargetOffset,
         Set<SMGObject> pSuspectedElements,
         int maxSize) {
+      pointerToObject = ptrToCandidate;
       object = pObject;
       suspectedNfo = pSuspectedNfo;
       suspectedNfoTargetPointerOffset = pSuspectedNfoTargetOffset;
@@ -1745,6 +1780,7 @@ public class SMGCPAAbstractionManager {
     }
 
     private SMGCandidate(
+        SMGValue ptrToCandidate,
         SMGObject pObject,
         BigInteger pSuspectedNfo,
         BigInteger pSuspectedNfoTargetOffset,
@@ -1753,6 +1789,7 @@ public class SMGCPAAbstractionManager {
         Set<SMGObject> pSuspectedElements,
         int maxSize,
         boolean pLooping) {
+      pointerToObject = ptrToCandidate;
       object = pObject;
       suspectedNfo = pSuspectedNfo;
       suspectedPfo = pSuspectedPfo;
@@ -1766,6 +1803,23 @@ public class SMGCPAAbstractionManager {
     public static SMGCandidate moveCandidateTo(
         SMGObject newCandidateInSameList, SMGCandidate oldCandidateOnSameList) {
       return new SMGCandidate(
+          null,
+          newCandidateInSameList,
+          oldCandidateOnSameList.suspectedNfo,
+          oldCandidateOnSameList.suspectedNfoTargetPointerOffset,
+          oldCandidateOnSameList.suspectedPfo,
+          oldCandidateOnSameList.suspectedPfoTargetOffset,
+          oldCandidateOnSameList.suspectedElements,
+          oldCandidateOnSameList.maximalSizeOfList,
+          oldCandidateOnSameList.looping);
+    }
+
+    public static SMGCandidate moveCandidateTo(
+        SMGValue ptrToCandidate,
+        SMGObject newCandidateInSameList,
+        SMGCandidate oldCandidateOnSameList) {
+      return new SMGCandidate(
+          ptrToCandidate,
           newCandidateInSameList,
           oldCandidateOnSameList.suspectedNfo,
           oldCandidateOnSameList.suspectedNfoTargetPointerOffset,
@@ -1779,6 +1833,7 @@ public class SMGCPAAbstractionManager {
     public static SMGCandidate withPfo(
         BigInteger pSuspectedPfo, BigInteger pSuspectedPfoTargetOffset, SMGCandidate candidate) {
       return new SMGCandidate(
+          candidate.pointerToObject,
           candidate.object,
           candidate.suspectedNfo,
           candidate.suspectedNfoTargetPointerOffset,
@@ -1791,6 +1846,7 @@ public class SMGCPAAbstractionManager {
 
     public static SMGCandidate setIsLooping(SMGCandidate candidate) {
       return new SMGCandidate(
+          candidate.pointerToObject,
           candidate.object,
           candidate.suspectedNfo,
           candidate.suspectedNfoTargetPointerOffset,
@@ -1804,6 +1860,7 @@ public class SMGCPAAbstractionManager {
     public static SMGCandidate withFoundListElements(
         Set<SMGObject> pSuspectedElements, int lengthOfList, SMGCandidate candidate) {
       return new SMGCandidate(
+          candidate.pointerToObject,
           candidate.object,
           candidate.suspectedNfo,
           candidate.suspectedNfoTargetPointerOffset,
@@ -1812,6 +1869,10 @@ public class SMGCPAAbstractionManager {
           pSuspectedElements,
           lengthOfList,
           candidate.looping);
+    }
+
+    public SMGValue getPointerToObject() {
+      return pointerToObject;
     }
 
     public SMGObject getObject() {
