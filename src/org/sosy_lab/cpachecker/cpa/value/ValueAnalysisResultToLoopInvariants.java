@@ -1046,10 +1046,10 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         if (isBigInt2) {
           return ((Rational) num1).compareTo(Rational.ofBigInteger((BigInteger) num2));
         }
-        if (isFloat2 || num2 instanceof FloatValue) {
+        if (isFloat2 || num2 instanceof FloatValue floatValue) {
           // FIXME: Conversion is imprecise
-          return ((Rational) num1)
-              .compareTo(Rational.ofBigDecimal(BigDecimal.valueOf(pVal2.doubleValue())));
+          return FloatValue.fromDouble(num1.doubleValue())
+              .compareTo(pVal2.floatingPointValue(FloatValue.Format.Float64));
         }
       } else if (num2 instanceof Rational) {
         if (isIntegral1) {
@@ -1060,8 +1060,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         }
         if (isFloat1 || num1 instanceof FloatValue) {
           // FIXME: Conversion is imprecise
-          return Rational.ofBigDecimal(BigDecimal.valueOf(pVal1.doubleValue()))
-              .compareTo((Rational) num2);
+          return pVal1
+              .floatingPointValue(FloatValue.Format.Float64)
+              .compareTo(FloatValue.fromDouble(num2.doubleValue()));
         }
       }
 
