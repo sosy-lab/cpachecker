@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Frank Schüssele
+#
+# SPDX-License-Identifier: Apache-2.0
+
 - entry_type: invariant_set
   metadata:
     format_version: '2.1'
@@ -19,8 +23,7 @@
       type: location_invariant
       location:
         file_name: 'nondet_inc.c'
-        file_hash: 'fa3065a8f9b8e6215da5b42fa91b717ebb3ce9800def22311b93de89c5243a42'
-        line: 43
+        line: 48
         column: 5
         function: 'inc'
       value: 'x >= g'
@@ -53,8 +56,7 @@
     ghost_updates:
       - location:
           file_name: 'nondet_inc.c'
-          file_hash: 'fa3065a8f9b8e6215da5b42fa91b717ebb3ce9800def22311b93de89c5243a42'
-          line: 56
+          line: 60
           column: 3
           function: 'main'
         updates:

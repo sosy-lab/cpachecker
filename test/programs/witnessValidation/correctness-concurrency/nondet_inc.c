@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Frank Schüssele
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /*-----------------------------------------------------------------------------
  * nondet_inc.c - Concurrent program that non-deterministically increments the
  *                value of a shared variable
