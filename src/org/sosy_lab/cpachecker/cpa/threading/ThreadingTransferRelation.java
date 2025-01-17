@@ -722,7 +722,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     // add local access lock, if necessary and possible
     final boolean isImporantForThreading =
-        globalAccessChecker.hasGlobalAccess(cfaEdge) || isImporantForThreading(cfaEdge);
+        globalAccessChecker.hasGlobalAccess(cfaEdge) || isImportantForThreading(cfaEdge);
     if (isImporantForThreading) {
       return threadingState.removeLockAndCopy(activeThread, LOCAL_ACCESS_LOCK);
     } else {
@@ -730,7 +730,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
   }
 
-  private static boolean isImporantForThreading(CFAEdge cfaEdge) {
+  private static boolean isImportantForThreading(CFAEdge cfaEdge) {
     switch (cfaEdge.getEdgeType()) {
       case StatementEdge:
         {

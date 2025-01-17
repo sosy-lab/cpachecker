@@ -1,0 +1,63 @@
+- entry_type: invariant_set
+  metadata:
+    format_version: '2.1'
+    uuid: '50881274-19e0-4783-aa2f-a02c0b7db14a'
+    creation_time: '2023-07-12T17:17:17.000Z'
+    producer:
+      name: 'Ultimate GemCutter'
+      version: '0.2.3-dev'
+    task:
+      input_files:
+        - 'nondet_inc.c'
+      input_file_hashes:
+        nondet_inc.c: 'fa3065a8f9b8e6215da5b42fa91b717ebb3ce9800def22311b93de89c5243a42'
+      specification: 'CHECK( init(main()), LTL(G ! call(reach_error())) )'
+      data_model: 'ILP32'
+      language: 'C'
+  content:
+  - invariant:
+      type: location_invariant
+      location:
+        file_name: 'nondet_inc.c'
+        file_hash: 'fa3065a8f9b8e6215da5b42fa91b717ebb3ce9800def22311b93de89c5243a42'
+        line: 43
+        column: 5
+        function: 'inc'
+      value: 'x >= g'
+      format: c_expression
+
+- entry_type: 'ghost_instrumentation'
+  metadata:
+    format_version: '2.1'
+    uuid: '23f32795-b94d-4ac7-a66c-1ffb52124cf8'
+    creation_time: '2023-07-12T17:17:17.000Z'
+    producer:
+      name: 'Ultimate GemCutter'
+      version: '0.2.3-dev'
+    task:
+      input_files:
+        - 'nondet_inc.c'
+      input_file_hashes:
+        nondet_inc.c: 'fa3065a8f9b8e6215da5b42fa91b717ebb3ce9800def22311b93de89c5243a42'
+      specification: 'CHECK( init(main()), LTL(G ! call(reach_error())) )'
+      data_model: 'ILP32'
+      language: 'C'
+  content:
+    ghost_variables:
+      - name: 'g'
+        scope: 'global'
+        type: 'int'
+        initial:
+          value: '0'
+          format: 'c_expression'
+    ghost_updates:
+      - location:
+          file_name: 'nondet_inc.c'
+          file_hash: 'fa3065a8f9b8e6215da5b42fa91b717ebb3ce9800def22311b93de89c5243a42'
+          line: 56
+          column: 3
+          function: 'main'
+        updates:
+          - variable: 'g'
+            value: 'val'
+            format: 'c_expression'

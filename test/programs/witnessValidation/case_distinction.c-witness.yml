@@ -1,0 +1,63 @@
+- entry_type: invariant_set
+  metadata:
+    format_version: '2.1'
+    uuid: '7ad08b37-8b12-40c1-a3c4-fe4fc00cae18'
+    creation_time: '2023-07-12T17:17:17.000Z'
+    producer:
+      name: 'Ultimate GemCutter'
+      version: '0.2.3-dev'
+    task:
+      input_files:
+        - 'case_distinction.c'
+      input_file_hashes:
+        case_distinction.c: '52c075e4addc44dcf127098ff65b5bbd001534f018551d6d4a9ae5c36150d1a2'
+      specification: 'CHECK( init(main()), LTL(G ! call(reach_error())) )'
+      data_model: 'ILP32'
+      language: 'C'
+  content:
+  - invariant:
+      type: location_invariant
+      location:
+        file_name: 'case_distinction.c'
+        file_hash: '52c075e4addc44dcf127098ff65b5bbd001534f018551d6d4a9ae5c36150d1a2'
+        line: 40
+        column: 5
+        function: 'inc'
+      value: 'g != 1 || x >= 42'
+      format: c_expression
+
+- entry_type: 'ghost_instrumentation'
+  metadata:
+    format_version: '2.1'
+    uuid: '8c508694-8f92-4950-a722-f0f1489c34c1'
+    creation_time: '2023-07-12T17:17:17.000Z'
+    producer:
+      name: 'Ultimate GemCutter'
+      version: '0.2.3-dev'
+    task:
+      input_files:
+        - 'case_distinction.c'
+      input_file_hashes:
+        case_distinction.c: '52c075e4addc44dcf127098ff65b5bbd001534f018551d6d4a9ae5c36150d1a2'
+      specification: 'CHECK( init(main()), LTL(G ! call(reach_error())) )'
+      data_model: 'ILP32'
+      language: 'C'
+  content:
+    ghost_variables:
+      - name: 'g'
+        scope: 'global'
+        type: 'int'
+        initial:
+          value: '0'
+          format: 'c_expression'
+    ghost_updates:
+      - location:
+          file_name: 'case_distinction.c'
+          file_hash: '52c075e4addc44dcf127098ff65b5bbd001534f018551d6d4a9ae5c36150d1a2'
+          line: 54
+          column: 3
+          function: 'main'
+        updates:
+          - variable: 'g'
+            value: '1'
+            format: 'c_expression'
