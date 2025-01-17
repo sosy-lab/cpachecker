@@ -2644,47 +2644,48 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
      * We use `AlgorithmM` from "How to read floating point numbers accurately" to ensure correct
      * rounding. See https://dl.acm.org/doi/pdf/10.1145/93548.93557 for the details.
      */
-    int p = pExpValue - (pDigits.length() - 1);
-    BigInteger f = new BigInteger(pDigits);
-    BigInteger e = BigInteger.TEN.pow(Math.abs(p));
+    int fixedExponent = pExpValue - (pDigits.length() - 1);
+    BigInteger significand10 = new BigInteger(pDigits);
+    BigInteger exponent10 = BigInteger.TEN.pow(Math.abs(fixedExponent));
 
-    BigInteger u = p > 0 ? f.multiply(e) : f;
-    BigInteger v = p > 0 ? BigInteger.ONE : e;
+    BigInteger numerator = fixedExponent > 0 ? significand10.multiply(exponent10) : significand10;
+    BigInteger divisor = fixedExponent > 0 ? BigInteger.ONE : exponent10;
 
     // Convert from decimal to binary floating point representation
-    int b1 = u.bitLength();
-    int b2 = v.bitLength();
+    int numeratorSize = numerator.bitLength();
+    int divisorSize = divisor.bitLength();
 
     // Consider the bit length of the numerator and the denominator and pull out 2^k
-    int k = -b2 + (b1 - pFormat.sigBits);
-    if (k < 0) {
-      u = u.shiftLeft(Math.abs(k));
+    int exponent = -divisorSize + (numeratorSize - pFormat.sigBits);
+    if (exponent < 0) {
+      numerator = numerator.shiftLeft(Math.abs(exponent));
     } else {
-      v = v.shiftLeft(k);
+      divisor = divisor.shiftLeft(exponent);
     }
 
     // Fine tune for the actual value. If the quotient is already between 1.0 and 2.0 we're done.
     // Otherwise, multiply by 2 once more to fix the exponent.
-    BigInteger x = u.divide(v);
-    if (x.bitLength() < pFormat.sigBits + 1) {
-      u = u.shiftLeft(1);
-      k--;
+    BigInteger significand = numerator.divide(divisor);
+    if (significand.bitLength() < pFormat.sigBits + 1) {
+      numerator = numerator.shiftLeft(1);
+      exponent--;
     }
 
     // Build the final value
     Format precision = pFormat.withUnlimitedExponent();
-    BigInteger q = u.divide(v);
-    BigInteger r1 = u.subtract(q.multiply(v));
-    BigInteger r2 = v.subtract(r1);
-    FloatValue z = fromInteger(precision, q);
-    z = z.withExponent(z.exponent + k);
-    boolean isEven = q.mod(BigInteger.TWO).equals(BigInteger.ZERO);
-    if (r1.compareTo(r2) > 0 || (r1.compareTo(r2) == 0 && !isEven)) { // Round up
-      z = z.plus1Ulp();
+    significand = numerator.divide(divisor);
+    BigInteger remainder1 = numerator.subtract(significand.multiply(divisor));
+    BigInteger remainder2 = divisor.subtract(remainder1);
+    FloatValue floatValue = fromInteger(precision, significand);
+    floatValue = floatValue.withExponent(floatValue.exponent + exponent);
+    boolean isEven = significand.mod(BigInteger.TWO).equals(BigInteger.ZERO);
+    if (remainder1.compareTo(remainder2) > 0
+        || (remainder1.compareTo(remainder2) == 0 && !isEven)) { // Round up
+      floatValue = floatValue.plus1Ulp();
     }
 
-    FloatValue r = z.withPrecision(pFormat);
-    return pSign ? r.negate() : r;
+    FloatValue roundedResult = floatValue.withPrecision(pFormat);
+    return pSign ? roundedResult.negate() : roundedResult;
   }
 
   /**
