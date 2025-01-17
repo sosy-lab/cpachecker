@@ -17,44 +17,41 @@ import java.util.List;
 /**
  * Description of a simple Java structure's type.
  *
- * <p>These descriptions are mostly merely primitive types, but include special cases like <code>
- * null</code> either. Actually, possible concrete types are all enum constants of {@link
- * JBasicType}.
+ * <p>These descriptions are mostly merely primitive types, but also a special unspecified type.
  */
 public enum JSimpleType implements JType {
-  BOOLEAN(JBasicType.BOOLEAN),
-  BYTE(JBasicType.BYTE),
-  SHORT(JBasicType.SHORT),
-  CHAR(JBasicType.CHAR),
-  INT(JBasicType.INT),
-  LONG(JBasicType.LONG),
-  FLOAT(JBasicType.FLOAT),
-  DOUBLE(JBasicType.DOUBLE),
-  UNSPECIFIED(JBasicType.UNSPECIFIED),
-  VOID(JBasicType.VOID);
+  BOOLEAN("boolean"),
+  BYTE("byte"),
+  SHORT("short"),
+  CHAR("char"),
+  INT("int"),
+  LONG("long"),
+  FLOAT("float"),
+  DOUBLE("double"),
+  UNSPECIFIED(""),
+  VOID("void");
 
   @Serial private static final long serialVersionUID = 7153757299840260748L;
 
-  private final JBasicType type;
+  private final String code;
 
-  private JSimpleType(JBasicType pType) {
-    type = pType;
+  private JSimpleType(String pCode) {
+    code = pCode;
   }
 
-  /**
-   * Returns the concrete primitive type this class represents.
-   *
-   * @return the concrete primitive type this class represents
-   */
-  public JBasicType getType() {
-    return type;
+  public boolean isFloatingPointType() {
+    return this == FLOAT || this == DOUBLE;
+  }
+
+  public boolean isIntegerType() {
+    return this == BYTE || this == CHAR || this == SHORT || this == INT || this == LONG;
   }
 
   @Override
   public String toASTString(String pDeclarator) {
     List<String> parts = new ArrayList<>();
 
-    parts.add(Strings.emptyToNull(type.toASTString()));
+    parts.add(Strings.emptyToNull(code));
     parts.add(Strings.emptyToNull(pDeclarator));
 
     return Joiner.on(' ').skipNulls().join(parts);
@@ -62,9 +59,9 @@ public enum JSimpleType implements JType {
 
   @Override
   public String toString() {
-    return switch (type) {
+    return switch (this) {
       case UNSPECIFIED -> "unspecified";
-      default -> type.toASTString();
+      default -> code;
     };
   }
 }

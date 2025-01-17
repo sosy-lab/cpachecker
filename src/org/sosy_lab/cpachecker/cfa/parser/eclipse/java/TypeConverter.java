@@ -122,15 +122,15 @@ abstract class TypeConverter {
 
     JSimpleType type =
         switch (primitiveTypeName) {
-          case "boolean" -> BOOLEAN;
-          case "char" -> CHAR;
-          case "double" -> DOUBLE;
-          case "float" -> FLOAT;
-          case "int" -> INT;
-          case "void" -> VOID;
-          case "long" -> LONG;
-          case "short" -> SHORT;
-          case "byte" -> BYTE;
+          case "boolean" -> JSimpleType.BOOLEAN;
+          case "char" -> JSimpleType.CHAR;
+          case "double" -> JSimpleType.DOUBLE;
+          case "float" -> JSimpleType.FLOAT;
+          case "int" -> JSimpleType.INT;
+          case "void" -> JSimpleType.VOID;
+          case "long" -> JSimpleType.LONG;
+          case "short" -> JSimpleType.SHORT;
+          case "byte" -> JSimpleType.BYTE;
           default ->
               throw new CFAGenerationRuntimeException(
                   "Unknown primitive type " + primitiveTypeName);

@@ -16,7 +16,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
@@ -77,6 +76,6 @@ public class ASTConverterTest {
   public void testUnboxing() {
     JClassType jClassTypeOfInteger = createStringJClassType("java.lang.Integer", "Integer");
     assertThat(ASTConverter.unboxJClassType(jClassTypeOfInteger).orElseThrow())
-        .isEqualTo(JBasicType.INT);
+        .isEqualTo(JSimpleType.INT);
   }
 }
