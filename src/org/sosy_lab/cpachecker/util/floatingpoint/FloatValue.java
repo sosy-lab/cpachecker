@@ -404,11 +404,13 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
      * the two formats are incomparable.
      */
     public Format matchWith(Format pOther) {
-      int newExp = Math.max(expBits, pOther.expBits);
-      int newSig = Math.max(sigBits, pOther.sigBits);
-      Format r = new Format(newExp, newSig);
-      Preconditions.checkArgument(r.equals(this) || r.equals(pOther));
-      return r;
+      if (expBits >= pOther.expBits && sigBits >= pOther.sigBits) {
+        return this;
+      } else if (expBits < pOther.expBits && sigBits < pOther.sigBits) {
+        return pOther;
+      } else {
+        throw new IllegalArgumentException("Floating point formats are incomparable");
+      }
     }
 
     /**
