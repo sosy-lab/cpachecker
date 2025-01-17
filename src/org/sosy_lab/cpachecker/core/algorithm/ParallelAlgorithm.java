@@ -17,7 +17,6 @@ import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDef
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
@@ -53,6 +52,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Tickers;
+import org.sosy_lab.common.time.Tickers.TickerWithUnit;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -74,7 +76,6 @@ import org.sosy_lab.cpachecker.exceptions.CompoundException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.cpachecker.util.resources.ThreadCpuTimeLimit;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options(prefix = "parallelAlgorithm")
@@ -305,14 +306,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     AtomicBoolean terminated = new AtomicBoolean(false);
     StatisticsEntry statisticsEntry =
-        stats.getNewSubStatistics(
-            reached,
-            singleConfigFileName.toString(),
-            Iterables.getOnlyElement(
-                FluentIterable.from(singleAnalysisOverallLimit.getResourceLimits())
-                    .filter(ThreadCpuTimeLimit.class),
-                null),
-            terminated);
+        stats.getNewSubStatistics(reached, singleConfigFileName.toString(), terminated);
     return () ->
         runParallelAnalysis(
             singleConfigFileName.toString(),
@@ -466,6 +460,12 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       singleLogger.log(Level.INFO, "Analysis was terminated");
       return ParallelAnalysisResult.absent(analysisName);
     } finally {
+      try {
+        TickerWithUnit threadCputime = Tickers.getCurrentThreadCputime();
+        pStatisticsEntry.threadCpuTime = TimeSpan.of(threadCputime.read(), threadCputime.unit());
+      } catch (UnsupportedOperationException e) {
+        singleLogger.logDebugException(e);
+      }
       terminated.set(true);
     }
   }
@@ -573,12 +573,9 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     public synchronized StatisticsEntry getNewSubStatistics(
-        ReachedSet pReached,
-        String pName,
-        @Nullable ThreadCpuTimeLimit pRLimit,
-        AtomicBoolean pTerminated) {
+        ReachedSet pReached, String pName, AtomicBoolean pTerminated) {
       Collection<Statistics> subStats = new CopyOnWriteArrayList<>();
-      StatisticsEntry entry = new StatisticsEntry(subStats, pReached, pName, pRLimit, pTerminated);
+      StatisticsEntry entry = new StatisticsEntry(subStats, pReached, pName, pTerminated);
       allAnalysesStats.add(entry);
       return entry;
     }
@@ -604,12 +601,12 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         String title = "Statistics for: " + subStats.name;
         pOut.println(title);
         pOut.println("=".repeat(title.length()));
-        if (subStats.rLimit != null) {
+        if (subStats.threadCpuTime != null) {
           pOut.println(
               "Time spent in analysis thread "
                   + subStats.name
                   + ": "
-                  + subStats.rLimit.getOverallUsedTime().formatAs(TimeUnit.SECONDS));
+                  + subStats.threadCpuTime.formatAs(TimeUnit.SECONDS));
         }
         boolean terminated = subStats.terminated.get();
         if (terminated) {
@@ -687,20 +684,18 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     private final String name;
 
-    private final @Nullable ThreadCpuTimeLimit rLimit;
+    private volatile @Nullable TimeSpan threadCpuTime;
 
     private final AtomicBoolean terminated;
 
-    public StatisticsEntry(
+    private StatisticsEntry(
         Collection<Statistics> pSubStatistics,
         ReachedSet pReachedSet,
         String pName,
-        @Nullable ThreadCpuTimeLimit pRLimit,
         AtomicBoolean pTerminated) {
       subStatistics = Objects.requireNonNull(pSubStatistics);
       reachedSet = new AtomicReference<>(Objects.requireNonNull(pReachedSet));
       name = Objects.requireNonNull(pName);
-      rLimit = pRLimit;
       terminated = Objects.requireNonNull(pTerminated);
     }
   }

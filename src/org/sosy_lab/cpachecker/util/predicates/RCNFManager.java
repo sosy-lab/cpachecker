@@ -63,7 +63,7 @@ public class RCNFManager implements StatisticsProvider {
   private int expansionResultSizeLimit = 100;
 
   @Option(secure = true, description = "Quantifier elimination strategy", toUppercase = true)
-  private BOUND_VARS_HANDLING boundVarsHandling = BOUND_VARS_HANDLING.QE_LIGHT_THEN_DROP;
+  private BoundVarsHandling boundVarsHandling = BoundVarsHandling.QE_LIGHT_THEN_DROP;
 
   @Option(
       secure = true,
@@ -72,7 +72,7 @@ public class RCNFManager implements StatisticsProvider {
               + "expanded into 'x >= a AND x <= a'. Can lead to stronger weakenings.")
   private boolean expandEquality = false;
 
-  public enum BOUND_VARS_HANDLING {
+  public enum BoundVarsHandling {
 
     /**
      * Run best-effort quantifier elimination and then over-approximate lemmas which still have

@@ -294,7 +294,7 @@ final class TypeHierarchy {
               new HashSet<>());
 
       JMethodType unresolvableMethodType =
-          new JMethodType(JSimpleType.getUnspecified(), new ArrayList<>(), false);
+          new JMethodType(JSimpleType.UNSPECIFIED, new ArrayList<>(), false);
       unresolvableMethodDeclaration =
           new JMethodDeclaration(
               FileLocation.DUMMY,

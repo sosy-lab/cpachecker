@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
 
-public enum SIGN implements Serializable {
+public enum Sign implements Serializable {
   // ALL = 111, PLUS = 100, MINUS = 010, ...
   EMPTY(0),
   PLUS(1),
@@ -26,17 +26,17 @@ public enum SIGN implements Serializable {
 
   private final int numVal;
 
-  private static final ImmutableMap<Integer, SIGN> VALUE_MAP;
+  private static final ImmutableMap<Integer, Sign> VALUE_MAP;
 
   static {
-    ImmutableMap.Builder<Integer, SIGN> builder = ImmutableMap.builder();
-    for (SIGN s : SIGN.values()) {
+    ImmutableMap.Builder<Integer, Sign> builder = ImmutableMap.builder();
+    for (Sign s : Sign.values()) {
       builder.put(s.numVal, s);
     }
     VALUE_MAP = builder.buildOrThrow();
   }
 
-  SIGN(int numVal) {
+  Sign(int numVal) {
     this.numVal = numVal;
   }
 
@@ -48,27 +48,27 @@ public enum SIGN implements Serializable {
     return this == EMPTY;
   }
 
-  public SIGN combineWith(SIGN sign) {
+  public Sign combineWith(Sign sign) {
     // combine bit values
     return VALUE_MAP.get(sign.numVal | numVal);
   }
 
-  public boolean covers(SIGN sign) {
+  public boolean covers(Sign sign) {
     return (sign.numVal | numVal) == numVal;
   }
 
-  public boolean intersects(SIGN sign) {
+  public boolean intersects(Sign sign) {
     return (sign.numVal & numVal) != 0;
   }
 
-  public static SIGN min(SIGN sign0, SIGN sign1) {
+  public static Sign min(Sign sign0, Sign sign1) {
     if (sign0.isSubsetOf(sign1)) {
       return sign0;
     }
     return sign1;
   }
 
-  public boolean isSubsetOf(SIGN sign) {
+  public boolean isSubsetOf(Sign sign) {
     if (sign.isAll()) {
       return true;
     }
@@ -76,9 +76,9 @@ public enum SIGN implements Serializable {
     return sign.split().containsAll(split());
   }
 
-  public ImmutableSet<SIGN> split() { // TODO performance
-    ImmutableSet.Builder<SIGN> builder = ImmutableSet.builder();
-    for (SIGN s : ImmutableList.of(PLUS, MINUS, ZERO)) {
+  public ImmutableSet<Sign> split() { // TODO performance
+    ImmutableSet.Builder<Sign> builder = ImmutableSet.builder();
+    for (Sign s : ImmutableList.of(PLUS, MINUS, ZERO)) {
       if ((s.numVal & numVal) > 0) {
         builder.add(s);
       }

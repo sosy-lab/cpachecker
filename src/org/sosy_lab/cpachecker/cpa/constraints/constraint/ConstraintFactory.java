@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -202,7 +201,7 @@ public class ConstraintFactory {
 
       return false;
     } else if (pType instanceof JSimpleType) {
-      switch (((JSimpleType) pType).getType()) {
+      switch ((JSimpleType) pType) {
         case BYTE:
         case CHAR:
         case SHORT:
@@ -230,7 +229,7 @@ public class ConstraintFactory {
     }
 
     if (pType instanceof JSimpleType) {
-      return ((JSimpleType) pType).getType() == JBasicType.BOOLEAN;
+      return pType == JSimpleType.BOOLEAN;
     } else {
       throw new AssertionError("Unexpected type " + pType);
     }
@@ -241,7 +240,7 @@ public class ConstraintFactory {
   }
 
   private SymbolicExpression getTrueValueConstant() {
-    return expressionFactory.asConstant(BooleanValue.valueOf(true), JSimpleType.getBoolean());
+    return expressionFactory.asConstant(BooleanValue.valueOf(true), JSimpleType.BOOLEAN);
   }
 
   private Constraint createNot(Constraint pConstraint) {

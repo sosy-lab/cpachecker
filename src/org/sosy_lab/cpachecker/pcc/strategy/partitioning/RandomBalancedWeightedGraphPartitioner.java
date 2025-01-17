@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -22,6 +23,7 @@ public class RandomBalancedWeightedGraphPartitioner extends RandomBalancedGraphP
     implements WeightedBalancedGraphPartitioner {
 
   @Override
+  @SuppressFBWarnings(value = "DMI_RANDOM_USED_ONLY_ONCE", justification = "called in a loop")
   public List<Set<Integer>> computePartitioning(int pNumPartitions, WeightedGraph wGraph)
       throws InterruptedException {
     checkArgument(

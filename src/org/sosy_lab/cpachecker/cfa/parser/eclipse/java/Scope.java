@@ -154,7 +154,7 @@ class Scope {
     JType returnType = pMethod.getType().getReturnType();
     String qualifiedReturnVarName = createQualifiedName(RETURN_VAR_NAME);
 
-    if (JSimpleType.getVoid().equals(returnType)) {
+    if (JSimpleType.VOID.equals(returnType)) {
       return null;
     }
 
