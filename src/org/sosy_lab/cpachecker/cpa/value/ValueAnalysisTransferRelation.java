@@ -666,7 +666,7 @@ public class ValueAnalysisTransferRelation
 
   private Type getBooleanType(AExpression pExpression) {
     if (pExpression instanceof JExpression) {
-      return JSimpleType.getBoolean();
+      return JSimpleType.BOOLEAN;
     } else if (pExpression instanceof CExpression) {
       return CNumericTypes.INT;
 
@@ -1212,7 +1212,7 @@ public class ValueAnalysisTransferRelation
       MemoryLocation memLoc = getMemoryLocation(idExpression);
       Value unknownValue = UnknownValue.getInstance();
 
-      state.assignConstant(memLoc, unknownValue, JSimpleType.getUnspecified());
+      state.assignConstant(memLoc, unknownValue, JSimpleType.UNSPECIFIED);
 
     } else {
       JArraySubscriptExpression enclosingSubscriptExpression =

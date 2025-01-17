@@ -1143,7 +1143,7 @@ class ASTConverter {
     }
 
     return createInstanceOfDisjunction(
-        pLeftOperand, allPossibleClasses, JSimpleType.getBoolean(), pLocation, isRightOperandArray);
+        pLeftOperand, allPossibleClasses, JSimpleType.BOOLEAN, pLocation, isRightOperandArray);
   }
 
   /**
@@ -2169,7 +2169,7 @@ class ASTConverter {
 
     JIdExpression methodName =
         new JIdExpression(
-            oldMethodCall.getFileLocation(), JSimpleType.getUnspecified(), name, declaration);
+            oldMethodCall.getFileLocation(), JSimpleType.UNSPECIFIED, name, declaration);
 
     if (oldMethodCall instanceof JReferencedMethodInvocationExpression) {
       return new JReferencedMethodInvocationExpression(
@@ -2581,7 +2581,7 @@ class ASTConverter {
     final JType rightHandType = rightHandSide.getExpressionType();
     BinaryOperator op = convert(e.getOperator(), leftHandType, rightHandType);
 
-    if (type.equals(JSimpleType.getUnspecified())) {
+    if (type.equals(JSimpleType.UNSPECIFIED)) {
       if (op == BinaryOperator.STRING_CONCATENATION) {
         if (scope.containsClassType("java.lang.String")) {
           type = scope.getClassType("java.lang.String");
@@ -2881,7 +2881,7 @@ class ASTConverter {
 
     FileLocation fileloc = enhancedForLoopIterator.getFileLocation();
 
-    JType type = JSimpleType.getBoolean();
+    JType type = JSimpleType.BOOLEAN;
 
     JExpression name = new JIdExpression(fileloc, type, "hasNext", null);
 

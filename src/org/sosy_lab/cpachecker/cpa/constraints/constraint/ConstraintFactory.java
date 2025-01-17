@@ -241,7 +241,7 @@ public class ConstraintFactory {
   }
 
   private SymbolicExpression getTrueValueConstant() {
-    return expressionFactory.asConstant(BooleanValue.valueOf(true), JSimpleType.getBoolean());
+    return expressionFactory.asConstant(BooleanValue.valueOf(true), JSimpleType.BOOLEAN);
   }
 
   private Constraint createNot(Constraint pConstraint) {

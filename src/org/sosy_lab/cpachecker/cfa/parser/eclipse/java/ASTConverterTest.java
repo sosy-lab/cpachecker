@@ -31,17 +31,17 @@ public class ASTConverterTest {
   @Test
   public void testGetClassOfJType() {
     Optional<Class<?>> optionalOfPrimitiveType =
-        ASTConverter.getClassOfJType(JSimpleType.getBoolean(), ImmutableSet.of());
+        ASTConverter.getClassOfJType(JSimpleType.BOOLEAN, ImmutableSet.of());
     assertThat(optionalOfPrimitiveType.orElseThrow()).isEqualTo(boolean.class);
   }
 
   @Test
   public void testGetClassOfPrimitiveType() {
-    assertThat(ASTConverter.getClassOfPrimitiveType(JSimpleType.getInt())).isEqualTo(int.class);
+    assertThat(ASTConverter.getClassOfPrimitiveType(JSimpleType.INT)).isEqualTo(int.class);
 
-    assertThat(ASTConverter.getClassOfPrimitiveType(JSimpleType.getLong())).isEqualTo(long.class);
+    assertThat(ASTConverter.getClassOfPrimitiveType(JSimpleType.LONG)).isEqualTo(long.class);
 
-    assertThat(ASTConverter.getClassOfPrimitiveType(JSimpleType.getVoid())).isEqualTo(void.class);
+    assertThat(ASTConverter.getClassOfPrimitiveType(JSimpleType.VOID)).isEqualTo(void.class);
   }
 
   @Test

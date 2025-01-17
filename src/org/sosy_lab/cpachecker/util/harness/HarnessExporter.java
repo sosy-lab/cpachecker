@@ -403,7 +403,7 @@ public class HarnessExporter {
 
       if (!isPredefinedFunction(functionDeclaration)
           && !(functionCallExpression.getExpressionType() instanceof CVoidType)
-          && (functionCallExpression.getExpressionType() != JSimpleType.getVoid())) {
+          && (functionCallExpression.getExpressionType() != JSimpleType.VOID)) {
 
         AExpression nameExpression = functionCallExpression.getFunctionNameExpression();
         if (nameExpression instanceof AIdExpression idExpression) {

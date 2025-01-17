@@ -29,7 +29,7 @@ public abstract sealed class JArrayLengthExpression extends AbstractExpression
   @Serial private static final long serialVersionUID = 7278006181009822118L;
 
   private JArrayLengthExpression(FileLocation pFileLocation) {
-    super(pFileLocation, JSimpleType.getInt());
+    super(pFileLocation, JSimpleType.INT);
   }
 
   public static JArrayLengthExpression getInstance(JExpression pQualifier, FileLocation pLocation) {
