@@ -458,7 +458,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       return ParallelAnalysisResult.of(currentReached, status, analysisName);
 
     } catch (InterruptedException e) {
-      singleLogger.log(Level.INFO, "Analysis was terminated");
+      singleLogger.logUserException(Level.INFO, e, "Analysis was terminated");
       return ParallelAnalysisResult.absent(analysisName);
     } finally {
       try {
