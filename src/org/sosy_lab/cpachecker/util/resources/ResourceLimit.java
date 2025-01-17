@@ -16,6 +16,10 @@ package org.sosy_lab.cpachecker.util.resources;
  * designed such that typical implementations can avoid any mutable state and need to due
  * potentially expensive measurements only in {@link #getCurrentValue()}.
  *
+ * <p>Implementations do not need to worry about thread-safety, it is the responsibility of the
+ * caller to ensure that each instance is only used from a single thread at the same time and that
+ * there is a proper happens-before relationship between calls that happen on different threads.
+ *
  * <p>Methods of this interface should never throw an exception.
  */
 public interface ResourceLimit {

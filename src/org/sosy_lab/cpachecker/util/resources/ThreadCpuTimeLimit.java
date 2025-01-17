@@ -48,13 +48,13 @@ public class ThreadCpuTimeLimit implements ResourceLimit {
    *
    * @param pThread the {@link Thread} who's time is to be tracked/limited.
    */
-  public synchronized void setThread(Thread pThread) {
+  public void setThread(Thread pThread) {
     endTime = getCurrentThreadTime(pThread) + duration;
     thread = pThread;
   }
 
   @Override
-  public synchronized long getCurrentValue() {
+  public long getCurrentValue() {
     Preconditions.checkState(thread != null);
     return getCurrentThreadTime(thread);
   }
@@ -66,13 +66,13 @@ public class ThreadCpuTimeLimit implements ResourceLimit {
   }
 
   @Override
-  public synchronized boolean isExceeded(long pCurrentValue) {
+  public boolean isExceeded(long pCurrentValue) {
     Preconditions.checkState(thread != null);
     return pCurrentValue >= endTime;
   }
 
   @Override
-  public synchronized long nanoSecondsToNextCheck(long pCurrentValue) {
+  public long nanoSecondsToNextCheck(long pCurrentValue) {
     Preconditions.checkState(thread != null);
     return (endTime - pCurrentValue) / 2;
   }

@@ -43,6 +43,7 @@ import org.sosy_lab.common.time.TimeSpan;
 public final class ResourceLimitChecker {
 
   private final Thread thread;
+  // Limits must be used in a single-threaded manner, we basically only call them from our thread
   private final List<ResourceLimit> limits;
 
   /**
@@ -77,6 +78,9 @@ public final class ResourceLimitChecker {
   public void start() {
     if (thread != null) {
       for (ResourceLimit limit : limits) {
+        // This is the only place where we call a limit from a different thread than the usual
+        // thread, which is fine because it happens before thread.start(), so there is a happens-
+        // before relationship.
         if (limit instanceof ThreadCpuTimeLimit pThreadCpuTimeLimit) {
           pThreadCpuTimeLimit.setThread(Thread.currentThread());
         }
