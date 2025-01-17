@@ -2630,21 +2630,28 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     return pSign ? r.negate() : r;
   }
 
-  private static FloatValue makeValue(Format pFormat, BigInteger u, BigInteger v, int k) {
-    Format precision = pFormat.withUnlimitedExponent();
-    BigInteger q = u.divide(v);
-    BigInteger r1 = u.subtract(q.multiply(v));
-    BigInteger r2 = v.subtract(r1);
-    FloatValue z = fromInteger(precision, q);
-    z = z.withExponent(z.exponent + k);
-    boolean isEven = q.mod(BigInteger.TWO).equals(BigInteger.ZERO);
-    if (r1.compareTo(r2) > 0 || (r1.compareTo(r2) == 0 && !isEven)) { // Round up
-      z = z.plus1Ulp();
-    }
-    return z.withPrecision(pFormat);
-  }
+  /**
+   * Create a floating point value from its decimal string representation.
+   *
+   * @param pFormat target precision
+   * @param pSign `true` if there is a '-' sign in front of the number
+   * @param pDigits digits of the number (with the period shifted all the way to the right)
+   * @param pExpValue exponent of the number, corrected for the period shift
+   */
+  private static FloatValue fromDecimal(
+      Format pFormat, boolean pSign, String pDigits, int pExpValue) {
+    /*
+     * We use `AlgorithmM` from "How to read floating point numbers accurately" to ensure correct
+     * rounding. See https://dl.acm.org/doi/pdf/10.1145/93548.93557 for the details.
+     */
+    int p = pExpValue - (pDigits.length() - 1);
+    BigInteger f = new BigInteger(pDigits);
+    BigInteger e = BigInteger.TEN.pow(Math.abs(p));
 
-  private static FloatValue fromDecimal_(Format pFormat, BigInteger u, BigInteger v) {
+    BigInteger u = p > 0 ? f.multiply(e) : f;
+    BigInteger v = p > 0 ? BigInteger.ONE : e;
+
+    // Convert from decimal to binary floating point representation
     int b1 = u.bitLength();
     int b2 = v.bitLength();
 
@@ -2664,28 +2671,19 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       k--;
     }
 
-    return makeValue(pFormat, u, v, k);
-  }
+    // Build the final value
+    Format precision = pFormat.withUnlimitedExponent();
+    BigInteger q = u.divide(v);
+    BigInteger r1 = u.subtract(q.multiply(v));
+    BigInteger r2 = v.subtract(r1);
+    FloatValue z = fromInteger(precision, q);
+    z = z.withExponent(z.exponent + k);
+    boolean isEven = q.mod(BigInteger.TWO).equals(BigInteger.ZERO);
+    if (r1.compareTo(r2) > 0 || (r1.compareTo(r2) == 0 && !isEven)) { // Round up
+      z = z.plus1Ulp();
+    }
 
-  /**
-   * Create a floating point value from its decimal string representation.
-   *
-   * @param pFormat target precision
-   * @param pSign `true` if there is a '-' sign in front of the number
-   * @param pDigits digits of the number (with the period shifted all the way to the right)
-   * @param pExpValue exponent of the number, corrected for the period shift
-   */
-  private static FloatValue fromDecimal(
-      Format pFormat, boolean pSign, String pDigits, int pExpValue) {
-    /*
-     * We use `AlgorithmM` from "How to read floating point numbers accurately" to ensure correct
-     * rounding. See https://dl.acm.org/doi/pdf/10.1145/93548.93557 for the details.
-     */
-    int k = pExpValue - (pDigits.length() - 1);
-    BigInteger f = new BigInteger(pDigits);
-    BigInteger e = BigInteger.TEN.pow(Math.abs(k));
-    FloatValue r =
-        k > 0 ? fromDecimal_(pFormat, f.multiply(e), BigInteger.ONE) : fromDecimal_(pFormat, f, e);
+    FloatValue r = z.withPrecision(pFormat);
     return pSign ? r.negate() : r;
   }
 
