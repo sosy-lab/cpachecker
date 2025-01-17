@@ -1024,7 +1024,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           && (num2 instanceof FloatValue || isBigInt2 || isIntegral2 || isFloat2)) {
         // Get the format of the floating point variable
         FloatValue.Format precision;
-        if (num1 instanceof FloatValue floatValue) {
+        if (num1 instanceof FloatValue floatValue1 && num2 instanceof FloatValue floatValue2) {
+          precision = floatValue1.getFormat().matchWith(floatValue2.getFormat());
+        } else if (num1 instanceof FloatValue floatValue) {
           precision = floatValue.getFormat();
         } else if (num2 instanceof FloatValue floatValue) {
           precision = floatValue.getFormat();
