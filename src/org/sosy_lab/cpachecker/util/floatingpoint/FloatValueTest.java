@@ -1065,17 +1065,6 @@ public class FloatValueTest {
   }
 
   @Test
-  public void castToByteTest() {
-    testIntegerFunction("castToByteTest", (CFloat a) -> a.castToOther(CIntegerType.CHAR).orElse(0));
-  }
-
-  @Test
-  public void castToShortTest() {
-    testIntegerFunction(
-        "castToShortTest", (CFloat a) -> a.castToOther(CIntegerType.SHORT).orElse(0));
-  }
-
-  @Test
   public void castToIntTest() {
     testIntegerFunction("castToIntTest", (CFloat a) -> a.castToOther(CIntegerType.INT).orElse(0));
   }

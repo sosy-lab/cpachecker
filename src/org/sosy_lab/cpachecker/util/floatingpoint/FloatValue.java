@@ -2211,8 +2211,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * Round to the next integer (under the given rounding mode)
    *
    * <p>The result is again a floating point value. To convert directly to integer use {@link
-   * FloatValue#toInteger()} or the methods {@link FloatValue#byteValue()}, {@link
-   * FloatValue#shortValue()}, {@link FloatValue#intValue()} and {@link FloatValue#longValue()}
+   * FloatValue#toInteger()} or the methods {@link FloatValue#intValue()} and {@link
+   * FloatValue#longValue()}
    */
   public FloatValue round(RoundingMode pRoundingMode) {
     if (isInfinite()) {
@@ -2319,46 +2319,6 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       }
       return Optional.of(resultSignificand);
     }
-  }
-
-  /**
-   * Convert the value to a byte
-   *
-   * <p>Returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was too large to
-   * fit into a byte.
-   *
-   * <p>This method will truncate the number if it is not already an integer. See {@link
-   * FloatValue#toInteger} for more details.
-   */
-  public Optional<Byte> toByte() {
-    BigInteger max = BigInteger.valueOf(Byte.MAX_VALUE);
-    BigInteger min = BigInteger.valueOf(Byte.MIN_VALUE);
-    return toInteger()
-        .flatMap(
-            integerValue ->
-                (integerValue.compareTo(min) >= 0 && integerValue.compareTo(max) <= 0)
-                    ? Optional.of(integerValue.byteValue())
-                    : Optional.empty());
-  }
-
-  /**
-   * Convert the value to a short
-   *
-   * <p>Returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was too large to
-   * fit into a short.
-   *
-   * <p>This method will truncate the number if it is not already an integer. See {@link
-   * FloatValue#toInteger} for more details.
-   */
-  public Optional<Short> toShort() {
-    BigInteger max = BigInteger.valueOf(Short.MAX_VALUE);
-    BigInteger min = BigInteger.valueOf(Short.MIN_VALUE);
-    return toInteger()
-        .flatMap(
-            integerValue ->
-                (integerValue.compareTo(min) >= 0 && integerValue.compareTo(max) <= 0)
-                    ? Optional.of(integerValue.shortValue())
-                    : Optional.empty());
   }
 
   /**

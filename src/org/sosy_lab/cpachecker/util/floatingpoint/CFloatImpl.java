@@ -298,8 +298,6 @@ class CFloatImpl extends CFloat {
   @Override
   public Optional<Number> castToOther(CIntegerType toType) {
     return switch (toType) {
-      case CHAR -> delegate.toByte().map(s -> s);
-      case SHORT -> delegate.toShort().map(s -> s);
       case INT -> delegate.toInt().map(s -> s);
       case LONG -> delegate.toLong().map(s -> s);
       default -> throw new UnsupportedOperationException();
