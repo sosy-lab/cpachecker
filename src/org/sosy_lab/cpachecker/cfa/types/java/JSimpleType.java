@@ -27,7 +27,6 @@ public final class JSimpleType implements JType {
   @Serial private static final long serialVersionUID = 7153757299840260748L;
 
   private final JBasicType type;
-  private final boolean isPrimitive;
 
   private static final JSimpleType SINGLETON_BOOL = new JSimpleType(JBasicType.BOOLEAN);
   private static final JSimpleType SINGLETON_BYTE = new JSimpleType(JBasicType.BYTE);
@@ -87,12 +86,6 @@ public final class JSimpleType implements JType {
    */
   private JSimpleType(JBasicType pType) {
     type = pType;
-
-    isPrimitive =
-        switch (type) {
-          case BOOLEAN, BYTE, INT, SHORT, FLOAT, DOUBLE -> true;
-          default -> false;
-        };
   }
 
   /**
@@ -114,16 +107,11 @@ public final class JSimpleType implements JType {
     return Joiner.on(' ').skipNulls().join(parts);
   }
 
-  public boolean isPrimitive() {
-    return isPrimitive;
-  }
-
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 7;
     result = prime * result + Objects.hashCode(type);
-    result = prime * result + Boolean.hashCode(isPrimitive);
     return result;
   }
 
@@ -141,9 +129,7 @@ public final class JSimpleType implements JType {
       return true;
     }
 
-    return obj instanceof JSimpleType other
-        && type == other.type
-        && isPrimitive == other.isPrimitive;
+    return obj instanceof JSimpleType other && type == other.type;
   }
 
   @Override
