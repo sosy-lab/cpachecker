@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.resources;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 
 import com.google.common.base.Joiner;
@@ -70,20 +71,18 @@ public final class ResourceLimitChecker {
   }
 
   /**
-   * Actually start enforcing the limits. May be called only once. Only a {@link ThreadCpuTimeLimit}
-   * started with this method associates the current {@link Thread} with the {@link
-   * ThreadCpuTimeLimit} and starts its tracking from the point of calling this method. All other
-   * time-limits start from the moment of their creation.
+   * Actually start enforcing the limits and use the current point in time as the start time of the
+   * limit. May be called only once. In order to support per-thread limits, this should be called
+   * from the thread that will do the work and should be limited.
    */
   public void start() {
     if (thread != null) {
+      checkState(!thread.isAlive());
       for (ResourceLimit limit : limits) {
         // This is the only place where we call a limit from a different thread than the usual
         // thread, which is fine because it happens before thread.start(), so there is a happens-
         // before relationship.
-        if (limit instanceof ThreadCpuTimeLimit pThreadCpuTimeLimit) {
-          pThreadCpuTimeLimit.setThread(Thread.currentThread());
-        }
+        limit.start(Thread.currentThread());
       }
       thread.start();
     }
@@ -109,7 +108,7 @@ public final class ResourceLimitChecker {
 
     ImmutableList.Builder<ResourceLimit> limits = ImmutableList.builder();
     if (options.walltime.compareTo(TimeSpan.empty()) >= 0) {
-      limits.add(WalltimeLimit.fromNowOn(options.walltime));
+      limits.add(WalltimeLimit.create(options.walltime));
     }
     boolean cpuTimeLimitSet = options.cpuTime.compareTo(TimeSpan.empty()) >= 0;
     if (options.cpuTimeRequired.compareTo(TimeSpan.empty()) >= 0) {
@@ -131,7 +130,7 @@ public final class ResourceLimitChecker {
     }
     if (cpuTimeLimitSet) {
       try {
-        limits.add(ProcessCpuTimeLimit.fromNowOn(options.cpuTime));
+        limits.add(ProcessCpuTimeLimit.create(options.cpuTime));
       } catch (JMException e) {
         logger.logDebugException(e, "Querying cpu time failed");
         logger.log(
@@ -140,7 +139,7 @@ public final class ResourceLimitChecker {
       }
     }
     if (options.threadTime.compareTo(TimeSpan.empty()) >= 0) {
-      limits.add(ThreadCpuTimeLimit.withTimeSpan(options.threadTime));
+      limits.add(ThreadCpuTimeLimit.create(options.threadTime));
     }
 
     ImmutableList<ResourceLimit> limitsList = limits.build();
@@ -165,7 +164,7 @@ public final class ResourceLimitChecker {
     }
 
     try {
-      ResourceLimit cpuTimeLimitChecker = ProcessCpuTimeLimit.fromNowOn(cpuTime);
+      ResourceLimit cpuTimeLimitChecker = ProcessCpuTimeLimit.create(cpuTime);
       logger.log(Level.INFO, "Using " + cpuTimeLimitChecker.getName());
       return new ResourceLimitChecker(shutdownManager, ImmutableList.of(cpuTimeLimitChecker));
     } catch (JMException e) {

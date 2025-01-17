@@ -512,7 +512,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     ShutdownManager localShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     List<ResourceLimit> limits = new ArrayList<>();
     try {
-      limits.add(ProcessCpuTimeLimit.fromNowOn(TimeSpan.ofSeconds(pCurrentContext.getTimeLimit())));
+      limits.add(ProcessCpuTimeLimit.create(TimeSpan.ofSeconds(pCurrentContext.getTimeLimit())));
     } catch (JMException e) {
       logger.log(
           Level.SEVERE,

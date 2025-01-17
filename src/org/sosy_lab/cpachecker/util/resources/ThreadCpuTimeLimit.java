@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.resources;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
 import java.lang.management.ManagementFactory;
@@ -24,44 +25,24 @@ public class ThreadCpuTimeLimit implements ResourceLimit {
   private ThreadCpuTimeLimit(long pLimit, TimeUnit pUnit) {
     checkArgument(pLimit > 0);
     duration = TimeUnit.NANOSECONDS.convert(pLimit, pUnit);
-    endTime = -1;
-    thread = null;
   }
 
-  /**
-   * This creates a not yet started {@link ThreadCpuTimeLimit} with the given {@link TimeSpan}, but
-   * no thread associated. You need to set a thread via {@link #setThread(Thread)} before starting
-   * this time limit!
-   *
-   * @param timeSpan any {@link TimeSpan} with arbitrary {@link TimeUnit}.
-   * @return a not started {@link ThreadCpuTimeLimit} with a set time-span, but not thread
-   *     associated.
-   */
-  public static ThreadCpuTimeLimit withTimeSpan(TimeSpan timeSpan) {
+  public static ThreadCpuTimeLimit create(TimeSpan timeSpan) {
     return new ThreadCpuTimeLimit(timeSpan.asNanos(), TimeUnit.NANOSECONDS);
   }
 
-  /**
-   * This associates a {@link Thread} with the {@link ThreadCpuTimeLimit}, making it ready to track
-   * and limit the time of the one thread associated once {@link ResourceLimitChecker#start()} is
-   * called.
-   *
-   * @param pThread the {@link Thread} who's time is to be tracked/limited.
-   */
-  public void setThread(Thread pThread) {
-    endTime = getCurrentThreadTime(pThread) + duration;
+  @Override
+  public void start(Thread pThread) {
+    checkState(thread == null);
     thread = pThread;
+    endTime = getCurrentValue() + duration;
   }
 
   @Override
   public long getCurrentValue() {
     Preconditions.checkState(thread != null);
-    return getCurrentThreadTime(thread);
-  }
-
-  private static long getCurrentThreadTime(Thread pThread) {
     @SuppressWarnings("deprecation") // Replacement Thread.threadId() is only available on Java 19+
-    final long threadId = pThread.getId();
+    final long threadId = thread.getId();
     return ManagementFactory.getThreadMXBean().getThreadCpuTime(threadId);
   }
 

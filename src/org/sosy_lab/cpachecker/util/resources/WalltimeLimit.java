@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.resources;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.util.concurrent.TimeUnit;
 import org.sosy_lab.common.time.TimeSpan;
@@ -17,21 +18,26 @@ import org.sosy_lab.common.time.TimeSpan;
 public class WalltimeLimit implements ResourceLimit {
 
   private final long duration;
-  private final long endTime;
+  private long endTime = -1;
 
   private WalltimeLimit(long pDuration) {
     duration = pDuration;
-    endTime = getCurrentValue() + pDuration;
   }
 
-  public static WalltimeLimit fromNowOn(TimeSpan timeSpan) {
-    return fromNowOn(timeSpan.asNanos(), TimeUnit.NANOSECONDS);
+  public static WalltimeLimit create(TimeSpan timeSpan) {
+    return create(timeSpan.asNanos(), TimeUnit.NANOSECONDS);
   }
 
-  public static WalltimeLimit fromNowOn(long time, TimeUnit unit) {
+  public static WalltimeLimit create(long time, TimeUnit unit) {
     checkArgument(time > 0);
     long nanoDuration = TimeUnit.NANOSECONDS.convert(time, unit);
     return new WalltimeLimit(nanoDuration);
+  }
+
+  @Override
+  public void start(Thread pThread) {
+    checkState(endTime == -1);
+    endTime = getCurrentValue() + duration;
   }
 
   @Override
@@ -41,11 +47,13 @@ public class WalltimeLimit implements ResourceLimit {
 
   @Override
   public boolean isExceeded(long pCurrentValue) {
+    checkState(endTime != -1);
     return pCurrentValue >= endTime;
   }
 
   @Override
   public long nanoSecondsToNextCheck(long pCurrentValue) {
+    checkState(endTime != -1);
     return endTime - pCurrentValue;
   }
 

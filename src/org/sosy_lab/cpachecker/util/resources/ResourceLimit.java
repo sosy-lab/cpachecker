@@ -13,16 +13,26 @@ package org.sosy_lab.cpachecker.util.resources;
  * CPU-time per process, CPU-time per thread, memory, etc.).
  *
  * <p>Instances of this class are to be used with {@link ResourceLimitChecker}. The interface is
- * designed such that typical implementations can avoid any mutable state and need to due
- * potentially expensive measurements only in {@link #getCurrentValue()}.
+ * designed such that typical implementations can avoid any mutable state after {@link
+ * #start(Thread)} and need to due potentially expensive measurements only in {@link
+ * #getCurrentValue()}.
  *
  * <p>Implementations do not need to worry about thread-safety, it is the responsibility of the
  * caller to ensure that each instance is only used from a single thread at the same time and that
  * there is a proper happens-before relationship between calls that happen on different threads.
  *
- * <p>Methods of this interface should never throw an exception.
+ * <p>Methods of this interface should never throw an exception (except for bugs).
  */
 public interface ResourceLimit {
+
+  /**
+   * Mark the start point in time for this limit. Limit implementations typically need to store this
+   * for later use in {@link #isExceeded(long)}. This method is called only once.
+   *
+   * @param thread The thread for which this limit is relevant (limit implementations might want to
+   *     make use of this).
+   */
+  void start(Thread thread);
 
   /**
    * Measure the current value of the resource as needed for this implementation.
