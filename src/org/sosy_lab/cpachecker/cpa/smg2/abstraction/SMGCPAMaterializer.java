@@ -217,6 +217,17 @@ public class SMGCPAMaterializer {
     // We can assume that a 0+ does not have other valid pointers to it!
     // Remove all other pointers/subgraphs associated with the 0+ object
     currentState =
+        currentState.writeValueWithoutChecks(
+            pListSeg, nfo, currentState.getMemoryModel().getSizeOfPointer(), SMGValue.zeroValue());
+    if (pListSeg instanceof SMGDoublyLinkedListSegment dll) {
+      currentState =
+          currentState.writeValueWithoutChecks(
+              pListSeg,
+              dll.getPrevOffset(),
+              currentState.getMemoryModel().getSizeOfPointer(),
+              SMGValue.zeroValue());
+    }
+    currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState
                 .getMemoryModel()
@@ -430,6 +441,17 @@ public class SMGCPAMaterializer {
             .getAllSourcesForPointersPointingTowardsWithNumOfOccurrences(pListSeg)
             .isEmpty());
     currentState =
+        currentState.writeValueWithoutChecks(
+            pListSeg, nfo, currentState.getMemoryModel().getSizeOfPointer(), SMGValue.zeroValue());
+    if (pListSeg instanceof SMGDoublyLinkedListSegment dll) {
+      currentState =
+          currentState.writeValueWithoutChecks(
+              pListSeg,
+              dll.getPrevOffset(),
+              currentState.getMemoryModel().getSizeOfPointer(),
+              SMGValue.zeroValue());
+    }
+    currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState
                 .getMemoryModel()
@@ -537,6 +559,17 @@ public class SMGCPAMaterializer {
             .getSmg()
             .getAllSourcesForPointersPointingTowardsWithNumOfOccurrences(pListSeg)
             .isEmpty());
+    currentState =
+        currentState.writeValueWithoutChecks(
+            pListSeg, nfo, currentState.getMemoryModel().getSizeOfPointer(), SMGValue.zeroValue());
+    if (pListSeg instanceof SMGDoublyLinkedListSegment dll) {
+      currentState =
+          currentState.writeValueWithoutChecks(
+              pListSeg,
+              dll.getPrevOffset(),
+              currentState.getMemoryModel().getSizeOfPointer(),
+              SMGValue.zeroValue());
+    }
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState
