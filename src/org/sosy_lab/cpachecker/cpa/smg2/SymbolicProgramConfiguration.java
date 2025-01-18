@@ -2093,7 +2093,7 @@ public class SymbolicProgramConfiguration {
       }
       if (maybeHve1.get(0).hasValue().isZero()) {
         SMGValue smgValueFrom2 = hve2NotZero.hasValue();
-        CType maybeV2Type = spc1.valueToTypeMap.get(smgValueFrom2);
+        CType maybeV2Type = spc2.valueToTypeMap.get(smgValueFrom2);
         if (maybeV2Type == null) {
           throw new SMGException(
               "Error when merging. A new symbolic value could not have been created due to a"
