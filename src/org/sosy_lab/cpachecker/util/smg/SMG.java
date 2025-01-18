@@ -983,9 +983,8 @@ public class SMG {
 
   public SMG copyAndRemoveAbstractedObjectFromHeap(SMGObject pUnreachableObject) {
     assert objectsAndPointersPointingAtThem
-            .getOrDefault(pUnreachableObject, PathCopyingPersistentTreeMap.of())
-            .size()
-        == 0;
+        .getOrDefault(pUnreachableObject, PathCopyingPersistentTreeMap.of())
+        .isEmpty();
     PersistentMap<SMGObject, Boolean> newObjects = smgObjects.removeAndCopy(pUnreachableObject);
     PersistentSet<SMGHasValueEdge> values =
         hasValueEdges.getOrDefault(pUnreachableObject, PersistentSet.of());
@@ -995,72 +994,137 @@ public class SMG {
   }
 
   /**
-   * Removes e.g. a 0+ object from the SMG. This assumed that no valid pointers to the object exist
-   * and removes all pointers TOWARDS the object and all objects that are connected to those
-   * pointers (removes the subgraph). Also deleted the object in the end. This does not check for
-   * pointers that point away from the object!
+   * Removes all objects of the sub-SMG rooted below the given object, including the given object,
+   * that are not reachable from outside the sub-SMG of the root object. E.g. a 0+ object from the
+   * SMG. I.e. if the given object and its sub-SMG has no external pointers towards it, the sub-SMG
+   * is completely removed. If there is external pointers that lead to an object, it's not removed.
    *
-   * @param objectToRemove the object to remove and start the subgraph removal.
-   * @return a new SMG with the object and its subgraphs removed + the all removed objects.
+   * @param objectToRemove the object to start the subgraph removal.
+   * @return a new SMG with as many objects in the sub-SMG removed as possible, as well as all
+   *     removed objects.
    */
   public SMGAndSMGObjects copyAndRemoveObjectAndSubSMG(SMGObject objectToRemove) {
-    // TODO: use for both DLL and SLL
-    // TODO: remwork as this is shit! Needs to remove the
     if (!smgObjects.containsKey(objectToRemove) || !isValid(objectToRemove)) {
       return SMGAndSMGObjects.ofEmptyObjects(this);
     }
-    ImmutableMap.Builder<SMGValue, SMGPointsToEdge> newPointers = ImmutableMap.builder();
-    ImmutableSet.Builder<SMGObject> objectsToRemoveBuilder = ImmutableSet.builder();
-    ImmutableSet.Builder<SMGValue> valuesToRemoveBuilder = ImmutableSet.builder();
-    // We expect there to be very few, if any objects towards a 0+ element as we don't join
-    // TODO: use pointersTowardsObjectsMap
-    // Find all pointers towards the object
-    for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry : pointsToEdges.entrySet()) {
-      if (pointsToEntry.getValue().pointsTo().equals(objectToRemove)) {
-        valuesToRemoveBuilder.add(pointsToEntry.getKey());
-      } else {
-        newPointers.put(pointsToEntry);
-      }
-    }
 
-    ImmutableSet<SMGValue> valuesToRemove = valuesToRemoveBuilder.build();
-    // Find all objects w pointers pointing towards the object
-    // TODO: use pointersTowardsObjectsMap
-    if (!valuesToRemove.isEmpty()) {
-      for (PersistentSet<SMGHasValueEdge> hasValueEntryValue : hasValueEdges.values()) {
-        for (SMGHasValueEdge valueEdge : hasValueEntryValue) {
-          if (valuesToRemove.contains(valueEdge.hasValue())) {
-            objectsToRemoveBuilder.add(objectToRemove);
+    // TODO: this could be solved MUCH more efficiently with a UNION-find.
+
+    // Explore the complete sub-SMG, gather all memory connected by PTEs (objsInSubSMG) and all
+    // memory that is pointing towards the sub-SMG (ptrsToSubSMG).
+    // If: the external pointers are a subset of the found reached -> remove all reached, done.
+    // Else: go through the sub-SMG again from the root and find all objects with pointers from
+    // outside the sub-SMG (objectsReachableDirectlyFromOutside).
+    //  Then, explore their sub-SMGs and gather their objects (objectsReachableFromOutside).
+    //  All those are not allowed to be removed.
+    Set<SMGObject> objsPointingAtInitialObjToRemove =
+        getAllSourcesForPointersPointingTowards(objectToRemove);
+    Set<SMGObject> objsInSubSMG = new HashSet<>();
+    objsInSubSMG.add(objectToRemove);
+    Set<SMGObject> waitlist = new HashSet<>(objsInSubSMG);
+    Set<SMGObject> ptrsToSubSMG = new HashSet<>(objsPointingAtInitialObjToRemove);
+
+    while (!waitlist.isEmpty()) {
+      Set<SMGObject> newObjsInSubSMG = new HashSet<>();
+      for (SMGObject obj : waitlist) {
+        ptrsToSubSMG.addAll(getAllSourcesForPointersPointingTowards(obj));
+        for (SMGHasValueEdge hve :
+            getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj, PersistentSet.of())) {
+          Optional<SMGPointsToEdge> pte = getPTEdge(hve.hasValue());
+          if (pte.isPresent()) {
+            newObjsInSubSMG.add(pte.orElseThrow().pointsTo());
           }
         }
       }
+      waitlist.addAll(newObjsInSubSMG);
+      waitlist.removeAll(objsInSubSMG);
+      objsInSubSMG.addAll(newObjsInSubSMG);
     }
 
-    SMG newSMG = decrementHVEdgesInValueToMemoryMap(objectToRemove, true);
+    Set<SMGObject> objsToRemove;
+    if (objsInSubSMG.containsAll(ptrsToSubSMG)) {
+      // Remove them all
+      objsToRemove = objsInSubSMG;
+    } else {
+      // There are external pointers towards the sub-SMG, only remove those that need it.
+      // First we collect all sub-SMGs that are reachable from outside the sub-SMG, by collecting
+      // all objects reachable from the outside, and then expanding their sub-SMGs.
+      Set<SMGObject> objectsReachableDirectlyFromOutside = new HashSet<>();
+      Set<SMGObject> reached = new HashSet<>();
+      reached.add(objectToRemove);
+      waitlist = new HashSet<>();
+      waitlist.add(objectToRemove);
+      while (!waitlist.isEmpty()) {
+        Set<SMGObject> newObjsInSubSMG = new HashSet<>();
+        for (SMGObject obj : waitlist) {
+          if (!objsInSubSMG.containsAll(getAllSourcesForPointersPointingTowards(obj))) {
+            objectsReachableDirectlyFromOutside.add(obj);
+          }
+          for (SMGHasValueEdge hve :
+              getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj, PersistentSet.of())) {
+            Optional<SMGPointsToEdge> pte = getPTEdge(hve.hasValue());
+            if (pte.isPresent()) {
+              newObjsInSubSMG.add(pte.orElseThrow().pointsTo());
+            }
+          }
+        }
+        waitlist.addAll(newObjsInSubSMG);
+        waitlist.removeAll(reached);
+        reached.addAll(newObjsInSubSMG);
+      }
+
+      Set<SMGObject> objectsReachableFromOutside = new HashSet<>();
+      for (SMGObject objReachableFromOutside : objectsReachableDirectlyFromOutside) {
+        reached = new HashSet<>();
+        reached.add(objReachableFromOutside);
+        waitlist = new HashSet<>();
+        waitlist.add(objReachableFromOutside);
+        while (!waitlist.isEmpty()) {
+          Set<SMGObject> newObjsInSubSMG = new HashSet<>();
+          for (SMGObject obj : waitlist) {
+            if (objectsReachableFromOutside.contains(obj)) {
+              continue;
+            }
+            objectsReachableFromOutside.add(obj);
+            for (SMGHasValueEdge hve :
+                getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj, PersistentSet.of())) {
+              Optional<SMGPointsToEdge> pte = getPTEdge(hve.hasValue());
+              if (pte.isPresent()) {
+                newObjsInSubSMG.add(pte.orElseThrow().pointsTo());
+              }
+            }
+          }
+          waitlist.addAll(newObjsInSubSMG);
+          waitlist.removeAll(reached);
+          reached.addAll(newObjsInSubSMG);
+        }
+      }
+
+      objsToRemove = objsInSubSMG;
+      objsToRemove.removeAll(objectsReachableFromOutside);
+    }
+
+    SMG newSMG = this;
+    PersistentMap<SMGObject, Boolean> newSMGObjects = newSMG.smgObjects;
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEs = newSMG.hasValueEdges;
+    for (SMGObject objToRemove : objsToRemove) {
+      newSMG = newSMG.decrementHVEdgesInValueToMemoryMap(objToRemove, true);
+      newSMGObjects = newSMGObjects.removeAndCopy(objToRemove);
+      newHVEs = newHVEs.removeAndCopy(objToRemove);
+    }
 
     // Remove object from the SMG and remove all values inside from the SMG
     SMG currentSMG =
         new SMG(
-            newSMG.smgObjects.removeAndCopy(objectToRemove),
+            newSMGObjects,
             newSMG.smgValuesAndNestingLvl,
-            newSMG.hasValueEdges.removeAndCopy(objectToRemove),
+            newHVEs,
             newSMG.valuesToRegionsTheyAreSavedIn,
-            newPointers.buildOrThrow(),
+            newSMG.pointsToEdges,
             newSMG.objectsAndPointersPointingAtThem,
             newSMG.sizeOfPointer);
-    ImmutableSet<SMGObject> objectsToRemove = objectsToRemoveBuilder.build();
-    ImmutableSet.Builder<SMGObject> objectsThatHaveBeenRemovedBuilder = ImmutableSet.builder();
-    objectsThatHaveBeenRemovedBuilder.add(objectToRemove);
-    // Remove transitive objects
-    if (!objectsToRemove.isEmpty()) {
-      for (SMGObject toRemove : objectsToRemove) {
-        SMGAndSMGObjects newSMGAndRemoved = currentSMG.copyAndRemoveObjectAndSubSMG(toRemove);
-        objectsThatHaveBeenRemovedBuilder.addAll(newSMGAndRemoved.getSMGObjects());
-        currentSMG = newSMGAndRemoved.getSMG();
-      }
-    }
 
-    return SMGAndSMGObjects.of(currentSMG, objectsThatHaveBeenRemovedBuilder.build());
+    return SMGAndSMGObjects.of(currentSMG, objsToRemove);
   }
 
   /**
