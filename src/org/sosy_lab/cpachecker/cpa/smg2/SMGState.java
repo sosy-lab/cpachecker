@@ -5732,7 +5732,8 @@ public class SMGState
     for (SMGHasValueEdge ptrEdge : conntectedMemoryPtrs) {
       SMGObject connectedMemory = smg.getPTEdge(ptrEdge.hasValue()).orElseThrow().pointsTo();
       gatherConnectedMemory(connectedMemory, pTraversedObjects, pObjsPointingAtTraversed);
-      assert pObjsPointingAtTraversed.contains(nestedMemory);
+      assert pTraversedObjects.contains(connectedMemory)
+          || pObjsPointingAtTraversed.contains(nestedMemory);
     }
   }
 
@@ -6811,9 +6812,10 @@ public class SMGState
    * Invalidates variables. For local variables that i.e. went out of scope.
    *
    * @param variable {@link MemoryLocation} for the variable to be invalidated.
+   * @param deleteDanglingPointers if true, does delete points-to-edges that are no longer saved in any memory location after invalidating the given.
    * @return a new state with the variables SMGObject invalid.
    */
-  public SMGState invalidateVariable(MemoryLocation variable) {
+  public SMGState invalidateVariable(MemoryLocation variable, boolean deleteDanglingPointers) {
     if (isLocalOrGlobalVariablePresent(variable)) {
       Optional<SMGObject> maybeVariableObject =
           memoryModel.getObjectForVisibleVariable(variable.getQualifiedName());
@@ -6825,7 +6827,7 @@ public class SMGState
         if (!otherPresentObjects.contains(maybeVariableObject.orElseThrow())
             && !memoryModel.isHeapObject(maybeVariableObject.orElseThrow())) {
           return copyAndReplaceMemoryModel(
-              memoryModel.invalidateSMGObject(maybeVariableObject.orElseThrow(), false));
+              memoryModel.invalidateSMGObject(maybeVariableObject.orElseThrow(), deleteDanglingPointers));
         }
       }
     }

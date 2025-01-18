@@ -524,7 +524,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
             if (!options.isEnforcePointerSensitiveLiveness()) {
               // TODO: LiveVariablesCPA fails to track stack based memory correctly and invalidates
               //  e.g. arrays to early. Hence isEnforcePointerInsensitiveLiveness = true is unsound!
-              currentState = currentState.invalidateVariable(variable);
+              currentState = currentState.invalidateVariable(variable, true);
 
             } else {
               // Don't invalidate memory that may have valid outside pointers to it that may keep it
@@ -542,7 +542,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
                         .filter(o -> !o.equals(maybeVarObj.orElseThrow()))
                         .collect(ImmutableSet.toImmutableSet());
                 if (allObjsPointingTowards.isEmpty()) {
-                  currentState = currentState.invalidateVariable(variable);
+                  currentState = currentState.invalidateVariable(variable, true);
                 }
               }
             }
