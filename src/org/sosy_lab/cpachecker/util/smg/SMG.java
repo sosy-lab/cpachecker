@@ -1032,6 +1032,9 @@ public class SMG {
             getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj, PersistentSet.of())) {
           Optional<SMGPointsToEdge> pte = getPTEdge(hve.hasValue());
           if (pte.isPresent()) {
+            if (pte.orElseThrow().pointsTo().isZero()) {
+              continue;
+            }
             newObjsInSubSMG.add(pte.orElseThrow().pointsTo());
           }
         }
@@ -1064,6 +1067,9 @@ public class SMG {
               getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj, PersistentSet.of())) {
             Optional<SMGPointsToEdge> pte = getPTEdge(hve.hasValue());
             if (pte.isPresent()) {
+              if (obj.isZero()) {
+                continue;
+              }
               newObjsInSubSMG.add(pte.orElseThrow().pointsTo());
             }
           }
@@ -1082,6 +1088,9 @@ public class SMG {
         while (!waitlist.isEmpty()) {
           Set<SMGObject> newObjsInSubSMG = new HashSet<>();
           for (SMGObject obj : waitlist) {
+            if (obj.isZero()) {
+              continue;
+            }
             if (objectsReachableFromOutside.contains(obj)) {
               continue;
             }
@@ -1090,6 +1099,9 @@ public class SMG {
                 getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj, PersistentSet.of())) {
               Optional<SMGPointsToEdge> pte = getPTEdge(hve.hasValue());
               if (pte.isPresent()) {
+                if (obj.isZero()) {
+                  continue;
+                }
                 newObjsInSubSMG.add(pte.orElseThrow().pointsTo());
               }
             }
@@ -1108,6 +1120,9 @@ public class SMG {
     PersistentMap<SMGObject, Boolean> newSMGObjects = newSMG.smgObjects;
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEs = newSMG.hasValueEdges;
     for (SMGObject objToRemove : objsToRemove) {
+      if (objToRemove.isZero()) {
+        continue;
+      }
       newSMG = newSMG.decrementHVEdgesInValueToMemoryMap(objToRemove, true);
       newSMGObjects = newSMGObjects.removeAndCopy(objToRemove);
       newHVEs = newHVEs.removeAndCopy(objToRemove);

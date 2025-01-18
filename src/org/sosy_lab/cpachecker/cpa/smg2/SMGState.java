@@ -6812,7 +6812,8 @@ public class SMGState
    * Invalidates variables. For local variables that i.e. went out of scope.
    *
    * @param variable {@link MemoryLocation} for the variable to be invalidated.
-   * @param deleteDanglingPointers if true, does delete points-to-edges that are no longer saved in any memory location after invalidating the given.
+   * @param deleteDanglingPointers if true, does delete points-to-edges that are no longer saved in
+   *     any memory location after invalidating the given.
    * @return a new state with the variables SMGObject invalid.
    */
   public SMGState invalidateVariable(MemoryLocation variable, boolean deleteDanglingPointers) {
@@ -6827,7 +6828,8 @@ public class SMGState
         if (!otherPresentObjects.contains(maybeVariableObject.orElseThrow())
             && !memoryModel.isHeapObject(maybeVariableObject.orElseThrow())) {
           return copyAndReplaceMemoryModel(
-              memoryModel.invalidateSMGObject(maybeVariableObject.orElseThrow(), deleteDanglingPointers));
+              memoryModel.invalidateSMGObject(
+                  maybeVariableObject.orElseThrow(), deleteDanglingPointers));
         }
       }
     }
