@@ -260,7 +260,7 @@ public class SymbolicProgramConfiguration {
             memoryAddressAssumptionsMap,
             mallocZeroMemory,
             newReadBlackList,
-            valueToTypeMap));
+            mergedSMGWithMergedStackAndValues.valueToTypeMap));
   }
 
   // We join the SPCs here, (Algorithm 10: joinSPCs)
@@ -534,9 +534,9 @@ public class SymbolicProgramConfiguration {
     for (SMGHasValueEdge hve2 :
         spc2.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj2, PersistentSet.of())) {
       boolean offsetsMatch = offsetsToSize1.containsKey(hve2.getOffset().intValue());
-      boolean sizesMatch =
-          offsetsToSize1.get(hve2.getOffset().intValue()).equals(hve2.getSizeInBits().intValue());
       if (offsetsMatch) {
+        boolean sizesMatch =
+            offsetsToSize1.get(hve2.getOffset().intValue()) == hve2.getSizeInBits().intValue();
         if (!sizesMatch) {
           // Fields not matching. Is this allowed? Would cause problems below. Fix in mergeFields().
           throw new SMGException(
@@ -635,21 +635,34 @@ public class SymbolicProgramConfiguration {
     Value v2v = pSpc2.getValueFromSMGValue(v2).orElseThrow();
     CType maybeV1Type = pSpc1.valueToTypeMap.get(v1);
     CType maybeV2Type = pSpc2.valueToTypeMap.get(v2);
+    int v1NestingLvl = pSpc1.getNestingLevel(v1v);
+    int v2NestingLvl = pSpc2.getNestingLevel(v2v);
     if (maybeV1Type == null || maybeV2Type == null) {
       throw new SMGException(
           "Error when merging. A symbolic value could not be compared or created due to a missing"
               + " type.");
     }
+    CType sharedType = maybeV1Type;
 
     // Return for equal values (e.g. numeric values) but not pointers
     // TODO: this only works if the memory is also eq, so pull areValuesEqual() down to SPC level
-    if ((v1v.isNumericValue() && v2v.isNumericValue() && v1v.equals(v2v))
-        || (v1.equals(v2) && !pSpc1.getSmg().isPointer(v1) && !pSpc2.getSmg().isPointer(v2))) {
+    if (v1NestingLvl == v2NestingLvl
+        && ((v1v.isNumericValue() && v2v.isNumericValue() && v1v.equals(v2v))
+            || (v1.equals(v2) && !pSpc1.getSmg().isPointer(v1) && !pSpc2.getSmg().isPointer(v2)))) {
+      if (!maybeV1Type.equals(maybeV2Type)) {
+        // Not really an error, look into this
+        throw new SMGException(
+            "Error when merging. A symbolic value could not be compared or created due to a missing"
+                + " type.");
+      }
+      SymbolicProgramConfiguration newSPC =
+          pNewSpc.copyAndPutValue(
+              pSpc1.getValueFromSMGValue(v1).orElseThrow(), v1, v1NestingLvl, sharedType);
       return Optional.of(
           MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.of(
               v1,
               MergedSPCAndMergeStatusWithMergingSPCsAndMapping.of(
-                  pNewSpc, initialJoinStatus, pSpc1, pSpc2, mapping1, mapping2)));
+                  newSPC, initialJoinStatus, pSpc1, pSpc2, mapping1, mapping2)));
     }
 
     // 2. if m1(v1) == m2(v2) = v != 0, return (already joined). (m1 == mapping1 etc.)
@@ -700,19 +713,17 @@ public class SymbolicProgramConfiguration {
       }
 
       // Create a new value v such that level(v) = max(level(v1), level(v2))
-      Value valueToWrite = pNewSpc.getNewSymbolicValueForType(maybeV1Type);
+      Value valueToWrite = pNewSpc.getNewSymbolicValueForType(sharedType);
       SMGValue v = SMGValue.of();
-      int level1 = pSpc1.smg.getNestingLevel(v1);
-      int level2 = pSpc2.smg.getNestingLevel(v2);
-      int level = Integer.max(level1, level2);
+      int level = Integer.max(v1NestingLvl, v2NestingLvl);
       SymbolicProgramConfiguration newSPC =
-          pNewSpc.copyAndPutValue(valueToWrite, v, level, maybeV1Type);
+          pNewSpc.copyAndPutValue(valueToWrite, v, level, sharedType);
       // Extend mapping such that m1(v1) == m2(v2) == v
       mapping1 =
           ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping1).put(v1, v).buildOrThrow();
       mapping2 =
           ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping2).put(v2, v).buildOrThrow();
-      assert pNewSpc.smg.hasValue(v);
+      assert newSPC.smg.hasValue(v);
 
       // Note on the nesting level here: we use 0 for all non-ptr values, so this will never fail.
       // Reason being that we don't want to have copies of concrete values that are irrelevant in
@@ -721,11 +732,11 @@ public class SymbolicProgramConfiguration {
       // Since values can only be changed when merging or on concrete elements, this is no issue.
 
       // If level(v1) - level(v2) < nestingLevel, update join status with ⊏
-      if (level1 - level2 < nestingDiff) {
+      if (v1NestingLvl - v2NestingLvl < nestingDiff) {
         status = status.updateWith(SMGMergeStatus.LEFT_ENTAIL);
       }
       // If level(v1) - level(v2) > nestingLevel, update join status with ⊐
-      if (level1 - level2 > nestingDiff) {
+      if (v1NestingLvl - v2NestingLvl > nestingDiff) {
         status = status.updateWith(SMGMergeStatus.RIGHT_ENTAIL);
       }
       // Return with new value equal v (the paper says v1, but that's clearly wrong!)
@@ -1657,8 +1668,9 @@ public class SymbolicProgramConfiguration {
       mapping1 = res.getMapping1();
       mapping2 = res.getMapping2();
       SMGValue a = res.getAddressValue();
-      Preconditions.checkArgument(newSPC.smg.isPointer(a));
-      Preconditions.checkArgument(
+      Preconditions.checkState(newSPC.valueToTypeMap.containsKey(a));
+      Preconditions.checkState(newSPC.smg.isPointer(a));
+      Preconditions.checkState(
           newSPC.smg.getPTEdge(a).orElseThrow().pointsTo().equals(mapping1.get(o1)));
       return Optional.of(
           MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.of(
@@ -1785,8 +1797,9 @@ public class SymbolicProgramConfiguration {
         mapTargetAddress(newSPC, spc1, spc2, v1, v2, mapping1, mapping2);
     SMGValue a = resMapTargetAddress.getAddressValue();
     newSPC = resMapTargetAddress.getMergedSPC();
-    Preconditions.checkArgument(newSPC.smg.isPointer(a));
-    Preconditions.checkArgument(newSPC.smg.getPTEdge(a).orElseThrow().pointsTo().equals(o));
+    Preconditions.checkState(newSPC.smg.isPointer(a));
+    Preconditions.checkState(newSPC.valueToTypeMap.containsKey(a));
+    Preconditions.checkState(newSPC.smg.getPTEdge(a).orElseThrow().pointsTo().equals(o));
     mapping1 = resMapTargetAddress.getMapping1();
     mapping2 = resMapTargetAddress.getMapping2();
 
