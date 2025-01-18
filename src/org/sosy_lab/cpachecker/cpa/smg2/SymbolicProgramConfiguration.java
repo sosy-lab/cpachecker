@@ -1945,7 +1945,7 @@ public class SymbolicProgramConfiguration {
       int offset = hve2.getOffset().intValue();
       if (value.isZero()) {
         offsetsToZero2.put(offset, hve2);
-      } else if (spc1.smg.isPointer(value)) {
+      } else if (spc2.smg.isPointer(value)) {
         offsetsToNonZeroPtrs2Builder.put(offset, hve2);
       }
     }
@@ -1993,7 +1993,7 @@ public class SymbolicProgramConfiguration {
         throw new SMGException("Error when merging.");
       }
       SMGHasValueEdge hve2 = maybeHve2.get(0);
-      if (hve2.hasValue().isZero()) {
+      if (!hve2.hasValue().isZero() && !spc2.smg.isPointer(hve2.hasValue())) {
         hves1NotZeroPtrsNotIn2Builder.add(h1);
       }
     }
@@ -2007,7 +2007,7 @@ public class SymbolicProgramConfiguration {
         throw new SMGException("Error when merging.");
       }
       SMGHasValueEdge hve1 = maybeHve1.get(0);
-      if (hve1.hasValue().isZero()) {
+      if (!hve1.hasValue().isZero() && !spc1.smg.isPointer(hve1.hasValue())) {
         hves2NotZeroPtrsNotIn1Builder.add(h2);
       }
     }
