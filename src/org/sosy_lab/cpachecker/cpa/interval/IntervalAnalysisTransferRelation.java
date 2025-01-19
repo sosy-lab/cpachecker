@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -41,7 +42,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -359,30 +361,68 @@ public class IntervalAnalysisTransferRelation
   protected Collection<IntervalAnalysisState> handleDeclarationEdge(
       CDeclarationEdge declarationEdge, CDeclaration declaration) throws UnrecognizedCodeException {
 
-    IntervalAnalysisState newState = state;
     if (declarationEdge.getDeclaration() instanceof CVariableDeclaration decl) {
-
-      // ignore pointer variables
-      if (decl.getType() instanceof CPointerType) {
-        return soleSuccessor(newState);
-      }
-
-      Interval interval;
-      CInitializer init = decl.getInitializer();
-
-      // variable may be initialized explicitly on the spot ...
-      if (init instanceof CInitializerExpression) {
-        CExpression exp = ((CInitializerExpression) init).getExpression();
-        interval = evaluateInterval(state, exp, declarationEdge);
-      } else {
-        interval = Interval.UNBOUND;
-      }
-
-      newState = newState.addInterval(decl.getQualifiedName(), interval, threshold);
+      return handleVariableDeclarationEdge(declarationEdge, decl);
     }
 
-    return soleSuccessor(newState);
+    return soleSuccessor(state);
   }
+
+  private Collection<IntervalAnalysisState> handleVariableDeclarationEdge(CDeclarationEdge declarationEdge, CVariableDeclaration decl)
+      throws UnrecognizedCodeException {
+
+    if (decl.getType() instanceof CSimpleType) {
+      return handleSimpleTypeVariableDeclarationEdge(declarationEdge, decl);
+    }
+    if (decl.getType() instanceof CArrayType) {
+      return handleArrayVariableDeclarationEdge(declarationEdge, decl);
+    }
+    return soleSuccessor(state);
+  }
+
+  private Collection<IntervalAnalysisState> handleSimpleTypeVariableDeclarationEdge(CDeclarationEdge declarationEdge, CVariableDeclaration decl)
+      throws UnrecognizedCodeException {
+    Interval interval;
+
+    // variable may be initialized explicitly on the spot ...
+    if (decl.getInitializer() instanceof CInitializerExpression initializerExpression) {
+      CExpression expression = initializerExpression.getExpression();
+      interval = evaluateInterval(state, expression, declarationEdge);
+    } else {
+      interval = Interval.UNBOUND;
+    }
+
+    return soleSuccessor(state.addInterval(decl.getQualifiedName(), interval, threshold));
+  }
+
+  private Collection<IntervalAnalysisState> handleArrayVariableDeclarationEdge(CDeclarationEdge declarationEdge, CVariableDeclaration decl)
+      throws UnrecognizedCodeException {
+    FunArray array = new FunArray();
+    if (decl.getInitializer() instanceof CInitializerList initializerList) {
+      List<CInitializer> inititalizers = initializerList.getInitializers();
+      List<Interval> intervals = new ArrayList<>();
+
+      for (CInitializer initializer : inititalizers) {
+        if (initializer instanceof CInitializerExpression initializerExpression) {
+          CExpression expression = initializerExpression.getExpression();
+          Interval interval = evaluateInterval(state, expression, declarationEdge);
+          intervals.add(interval);
+        } else {
+          intervals.add(Interval.UNBOUND);
+        }
+      }
+
+      return soleSuccessor(state.addArray(decl.getQualifiedName(), new FunArray(intervals)));
+    } else if (decl.getType() instanceof CArrayType arrayType) {
+      FunArray simpleArray = new FunArray(arrayType.getLength());
+      return soleSuccessor(state.addArray(decl.getQualifiedName(), simpleArray));
+    }
+
+
+    return soleSuccessor(state.addArray(decl.getQualifiedName(), array));
+  }
+
+
 
   /**
    * This method handles unary and binary statements.

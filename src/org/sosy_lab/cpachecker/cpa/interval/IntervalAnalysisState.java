@@ -24,6 +24,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
@@ -52,6 +54,8 @@ public class IntervalAnalysisState
   /** the intervals of the element */
   private final PersistentMap<String, Interval> intervals;
 
+  private final PersistentMap<String, FunArray> arrays;
+
   /** the reference counts of the element */
   private final PersistentMap<String, Integer> referenceCounts;
 
@@ -62,6 +66,7 @@ public class IntervalAnalysisState
   public IntervalAnalysisState() {
     intervals = PathCopyingPersistentTreeMap.of();
     referenceCounts = PathCopyingPersistentTreeMap.of();
+    arrays = PathCopyingPersistentTreeMap.of();
   }
 
   /**
@@ -72,9 +77,10 @@ public class IntervalAnalysisState
    * @param referencesMap the reference counts
    */
   public IntervalAnalysisState(
-      PersistentMap<String, Interval> intervals, PersistentMap<String, Integer> referencesMap) {
+      PersistentMap<String, Interval> intervals, PersistentMap<String, Integer> referencesMap, PersistentMap<String, FunArray> arrays) {
     this.intervals = intervals;
     referenceCounts = referencesMap;
+    this.arrays = arrays;
   }
 
   /**
@@ -108,6 +114,15 @@ public class IntervalAnalysisState
     return intervals.containsKey(variableName);
   }
 
+  public boolean containsArray(String variableName) {
+    return arrays.containsKey(variableName);
+  }
+
+  public Interval arrayAccess(String variableName, CExpression index, ExpressionValueVisitor visitor)
+      throws UnrecognizedCodeException {
+    return arrays.get(variableName).arrayAccess(index, visitor);
+  }
+
   /**
    * This method assigns an interval to a variable and puts it in the map.
    *
@@ -128,12 +143,22 @@ public class IntervalAnalysisState
       if (pThreshold == -1 || referenceCount < pThreshold) {
         return new IntervalAnalysisState(
             intervals.putAndCopy(variableName, interval),
-            referenceCounts.putAndCopy(variableName, referenceCount + 1));
+            referenceCounts.putAndCopy(variableName, referenceCount + 1),
+            arrays
+        );
       } else {
         return removeInterval(variableName);
       }
     }
     return this;
+  }
+
+  public IntervalAnalysisState addArray(String variableName, FunArray funArray) {
+    return new IntervalAnalysisState(
+        intervals,
+        referenceCounts,
+        arrays.putAndCopy(variableName, funArray)
+    );
   }
 
   /**
@@ -145,7 +170,7 @@ public class IntervalAnalysisState
   // see ExplicitState::forget
   public IntervalAnalysisState removeInterval(String variableName) {
     if (intervals.containsKey(variableName)) {
-      return new IntervalAnalysisState(intervals.removeAndCopy(variableName), referenceCounts);
+      return new IntervalAnalysisState(intervals.removeAndCopy(variableName), referenceCounts, arrays);
     }
 
     return this;
@@ -169,6 +194,7 @@ public class IntervalAnalysisState
    */
   @Override
   public IntervalAnalysisState join(IntervalAnalysisState reachedState) {
+    //TODO: Join arrays as well
     boolean changed = false;
     PersistentMap<String, Interval> newIntervals = PathCopyingPersistentTreeMap.of();
     PersistentMap<String, Integer> newReferences = referenceCounts;
@@ -203,7 +229,7 @@ public class IntervalAnalysisState
     }
 
     if (changed) {
-      return new IntervalAnalysisState(newIntervals, newReferences);
+      return new IntervalAnalysisState(newIntervals, newReferences, arrays);
     } else {
       return reachedState;
     }
@@ -383,6 +409,13 @@ public class IntervalAnalysisState
           String.format(
               "%s = %s (%s), ",
               entry.getKey(), entry.getValue(), getReferenceCount(entry.getKey())));
+    }
+
+    for (Entry<String, FunArray> entry : arrays.entrySet()) {
+      sb.append(
+          String.format(
+              "%s = %s, ",
+              entry.getKey(), entry.getValue()));
     }
     sb.append("}");
 
