@@ -363,7 +363,7 @@ public class SMGOptions {
       name = "joinOnBlockEnd",
       description =
           "Perform merge SMGStates by SMGJoin on ends of code block. Works with 'merge=JOIN'")
-  private boolean joinOnBlockEnd = false;
+  private boolean joinOnBlockEnd = true;
 
   @Option(
       secure = true,
