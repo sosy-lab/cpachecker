@@ -577,14 +577,14 @@ public class SymbolicProgramConfiguration {
         if (!isNextOrPrev && obj1 instanceof SMGDoublyLinkedListSegment dll1) {
           isNextOrPrev = dll1.getPrevOffset().intValue() == offset;
         }
-        currentNestingDiff = isNextOrPrev ? currentNestingDiff + 1 : currentNestingDiff;
+        currentNestingDiff = isNextOrPrev ? currentNestingDiff : currentNestingDiff + 1;
       }
       if (obj2 instanceof SMGSinglyLinkedListSegment sll2) {
         boolean isNextOrPrev = sll2.getNextOffset().intValue() == offset;
         if (!isNextOrPrev && obj2 instanceof SMGDoublyLinkedListSegment dll2) {
           isNextOrPrev = dll2.getPrevOffset().intValue() == offset;
         }
-        currentNestingDiff = isNextOrPrev ? currentNestingDiff - 1 : currentNestingDiff;
+        currentNestingDiff = isNextOrPrev ? currentNestingDiff : currentNestingDiff - 1;
       }
       // joinValues()
       // Returns a value that represents both inputs, inclusive their memory, if it succeeds.
@@ -1153,6 +1153,7 @@ public class SymbolicProgramConfiguration {
     spc2 = resRest.getMergingSPC2();
     mapping1 = resRest.getMapping1();
     mapping2 = resRest.getMapping2();
+    newSPC = resRest.getMergedSPC();
 
     // 11. Introduce new HVE in d for offset nf and size ptr for a'.
     newSPC =
@@ -1895,8 +1896,8 @@ public class SymbolicProgramConfiguration {
     }
     SymbolicProgramConfiguration mergedSPC = pMergedSPC;
     // 5. Extend A by a fresh address a, then extend P by a new points-to edge a−of,tg−→o.
-    Preconditions.checkArgument(
-        pMergingSPC1.smg.getNestingLevel(a1) == pMergingSPC2.smg.getNestingLevel(a2));
+    // Note: The nesting level may differ here by 1, if we are currently merging a nested object
+    // with a non nested object.
     Preconditions.checkArgument(offset.isNumericValue());
     CType type1 = pMergingSPC1.valueToTypeMap.get(a1);
     CType type2 = pMergingSPC2.valueToTypeMap.get(a2);
