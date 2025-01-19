@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.concurrent.ConcurrentHashMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -2324,37 +2326,41 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   /**
    * Convert the value to an int
    *
-   * <p>Returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was too large to
-   * fit into an int.
+   * <p>Returns {@link OptionalInt#empty()} if the value was NaN or Infinity, or if it was too large
+   * to fit into an int.
    *
    * <p>This method will truncate the number if it is not already an integer. See {@link
    * FloatValue#toInteger} for more details.
    */
-  public Optional<Integer> toInt() {
-    return toInteger()
-        .flatMap(
-            integerValue ->
-                (BigInteger.valueOf(integerValue.intValue()).equals(integerValue))
-                    ? Optional.of(integerValue.intValue())
-                    : Optional.empty());
+  public OptionalInt toInt() {
+    if (toInteger().isPresent()) {
+      BigInteger integerValue = toInteger().get();
+      return BigInteger.valueOf(integerValue.intValue()).equals(integerValue)
+          ? OptionalInt.of(integerValue.intValue())
+          : OptionalInt.empty();
+    } else {
+      return OptionalInt.empty();
+    }
   }
 
   /**
    * Convert the value to a long
    *
-   * <p>Returns {@link Optional#empty()} if the value was NaN or Infinity, or if it was too large to
-   * fit into a long.
+   * <p>Returns {@link OptionalLong#empty()} if the value was NaN or Infinity, or if it was too
+   * large to fit into a long.
    *
    * <p>This method will truncate the number if it is not already an integer. See {@link
    * FloatValue#toInteger} for more details.
    */
-  public Optional<Long> toLong() {
-    return toInteger()
-        .flatMap(
-            integerValue ->
-                (BigInteger.valueOf(integerValue.longValue()).equals(integerValue))
-                    ? Optional.of(integerValue.longValue())
-                    : Optional.empty());
+  public OptionalLong toLong() {
+    if (toInteger().isPresent()) {
+      BigInteger integerValue = toInteger().get();
+      return BigInteger.valueOf(integerValue.longValue()).equals(integerValue)
+          ? OptionalLong.of(integerValue.longValue())
+          : OptionalLong.empty();
+    } else {
+      return OptionalLong.empty();
+    }
   }
 
   /**
