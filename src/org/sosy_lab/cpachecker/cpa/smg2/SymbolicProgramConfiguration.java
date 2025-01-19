@@ -562,12 +562,14 @@ public class SymbolicProgramConfiguration {
               .getHvEdges()
               .get(0)
               .hasValue();
+      assert spc1.getValueFromSMGValue(v1).isPresent();
       SMGValue v2 =
           spc2.getSmg()
               .readValue(obj2, BigInteger.valueOf(offset), BigInteger.valueOf(size), false)
               .getHvEdges()
               .get(0)
               .hasValue();
+      assert spc2.getValueFromSMGValue(v2).isPresent();
       int currentNestingDiff = nestingDiff;
       // Calculate diff of nesting levels for linked lists/regions
       if (obj1 instanceof SMGSinglyLinkedListSegment sll1) {
@@ -1908,6 +1910,8 @@ public class SymbolicProgramConfiguration {
       SMGObject obj1,
       SMGObject obj2)
       throws SMGException {
+    // TODO: this method can be heavily refactored once we don't need all the info for debugging ;D
+
     // TreeMap is sorted. Entry set and even key/value sets are always sorted ascending by key.
     PersistentSet<SMGHasValueEdge> hves1 =
         spc1.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj1, PersistentSet.of());
@@ -1973,7 +1977,7 @@ public class SymbolicProgramConfiguration {
     // TODO: optimize
 
     //   b  Extend the sets without zeros with the smallest set of edges to zero, that both original
-    // sets shared
+    // sets shared. (Both have the same 0 edges after this)
 
     // Adds the zero edges for hves1
     hves1 =
@@ -1982,33 +1986,57 @@ public class SymbolicProgramConfiguration {
     hves2 =
         addMinimalOverlappingZeroEdgesTo(offsetsToZero2.values(), offsetsToZero1.values(), hves2);
 
-    // From here on, both have zero edges at the same locations only
-
     // Gather all non-zero pointers in the 2 sets that are not in the other
     ImmutableSet.Builder<SMGHasValueEdge> hves1NotZeroPtrsNotIn2Builder = ImmutableSet.builder();
     for (SMGHasValueEdge h1 : offsetsToNonZeroPtrs1.values()) {
-      List<SMGHasValueEdge> maybeHve2 =
-          spc2.smg.readValue(obj2, h1.getOffset(), h1.getSizeInBits(), false).getHvEdges();
-      if (maybeHve2.size() != 1) {
-        throw new SMGException("Error when merging.");
-      }
-      SMGHasValueEdge hve2 = maybeHve2.get(0);
-      if (!hve2.hasValue().isZero() && !spc2.smg.isPointer(hve2.hasValue())) {
+      if (hves2 == null) {
         hves1NotZeroPtrsNotIn2Builder.add(h1);
+        continue;
+      }
+      ImmutableList<SMGHasValueEdge> allEqualEdgesIn2 =
+          hves2.stream()
+              .filter(
+                  h2 ->
+                      h2.getOffset().equals(h1.getOffset())
+                          && h2.getSizeInBits().equals(h1.getSizeInBits()))
+              .collect(ImmutableList.toImmutableList());
+      if (allEqualEdgesIn2.size() > 1) {
+        throw new SMGException("Error when merging.");
+      } else if (allEqualEdgesIn2.isEmpty()) {
+        hves1NotZeroPtrsNotIn2Builder.add(h1);
+      } else {
+        SMGHasValueEdge hve2 = allEqualEdgesIn2.get(0);
+        assert !hve2.hasValue().isZero();
+        if (!spc2.smg.isPointer(hve2.hasValue())) {
+          hves1NotZeroPtrsNotIn2Builder.add(h1);
+        }
       }
     }
     Set<SMGHasValueEdge> hves1NotZeroPtrsNotIn2 = hves1NotZeroPtrsNotIn2Builder.build();
 
     ImmutableSet.Builder<SMGHasValueEdge> hves2NotZeroPtrsNotIn1Builder = ImmutableSet.builder();
     for (SMGHasValueEdge h2 : offsetsToNonZeroPtrs2.values()) {
-      List<SMGHasValueEdge> maybeHve1 =
-          spc1.smg.readValue(obj2, h2.getOffset(), h2.getSizeInBits(), false).getHvEdges();
-      if (maybeHve1.size() != 1) {
-        throw new SMGException("Error when merging.");
-      }
-      SMGHasValueEdge hve1 = maybeHve1.get(0);
-      if (!hve1.hasValue().isZero() && !spc1.smg.isPointer(hve1.hasValue())) {
+      if (hves1 == null) {
         hves2NotZeroPtrsNotIn1Builder.add(h2);
+        continue;
+      }
+      ImmutableList<SMGHasValueEdge> allEqualEdgesIn1 =
+          hves1.stream()
+              .filter(
+                  h1 ->
+                      h1.getOffset().equals(h2.getOffset())
+                          && h1.getSizeInBits().equals(h2.getSizeInBits()))
+              .collect(ImmutableList.toImmutableList());
+      if (allEqualEdgesIn1.size() > 1) {
+        throw new SMGException("Error when merging.");
+      } else if (allEqualEdgesIn1.isEmpty()) {
+        hves2NotZeroPtrsNotIn1Builder.add(h2);
+      } else {
+        SMGHasValueEdge hve1 = allEqualEdgesIn1.get(0);
+        assert !hve1.hasValue().isZero();
+        if (!spc1.smg.isPointer(hve1.hasValue())) {
+          hves2NotZeroPtrsNotIn1Builder.add(h2);
+        }
       }
     }
     Set<SMGHasValueEdge> hves2NotZeroPtrsNotIn1 = hves2NotZeroPtrsNotIn1Builder.build();
@@ -2020,6 +2048,8 @@ public class SymbolicProgramConfiguration {
 
     //   c Then, extend each object, that does not include a (non 0) ptr at a location
     //      where the other has a non 0 ptr, with a 0 ptr
+    // (After this, all 0 edges are either shared in both, or when one has a pointer where the other
+    // had none, the none is replaced by a zero edge)
     for (SMGHasValueEdge hve2NotZeroPtrNotIn1 : hves2NotZeroPtrsNotIn1) {
       updatedSPC1 =
           updatedSPC1.writeValue(
