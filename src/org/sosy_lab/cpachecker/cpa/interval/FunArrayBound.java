@@ -48,6 +48,7 @@ public abstract sealed class FunArrayBound permits FunArrayTailBound, FunArrayNo
 
   abstract String getArrayString();
   abstract Interval arrayAccess(CExpression index, ExpressionValueVisitor visitor) throws UnrecognizedCodeException;
+  abstract FunArrayBound copy();
 
   public CExpression getIndexExpression() {
     return indexExpression;
@@ -78,6 +79,11 @@ public abstract sealed class FunArrayBound permits FunArrayTailBound, FunArrayNo
         return Interval.EMPTY;
       }
     }
+
+    @Override
+    FunArrayTailBound copy() {
+      return new FunArrayTailBound(this.getIndexExpression());
+    }
   }
 
   final static class FunArrayNonTailBound extends FunArrayBound {
@@ -87,6 +93,12 @@ public abstract sealed class FunArrayBound permits FunArrayTailBound, FunArrayNo
 
     FunArrayNonTailBound(int boundIndex, Interval pSucceedingSegmentValue, FunArrayBound pSuccessorBound) {
       super(boundIndex);
+      this.successorBound = pSuccessorBound;
+      this.succeedingSegmentValue = pSucceedingSegmentValue;
+    }
+
+    FunArrayNonTailBound(CExpression pIndexExpression, Interval pSucceedingSegmentValue, FunArrayBound pSuccessorBound) {
+      super(pIndexExpression);
       this.successorBound = pSuccessorBound;
       this.succeedingSegmentValue = pSucceedingSegmentValue;
     }
@@ -105,6 +117,11 @@ public abstract sealed class FunArrayBound permits FunArrayTailBound, FunArrayNo
       }
 
       return successorBound.arrayAccess(index, visitor);
+    }
+
+    @Override
+    FunArrayNonTailBound copy() {
+      return new FunArrayNonTailBound(this.getIndexExpression(), this.succeedingSegmentValue, this.successorBound.copy());
     }
 
     protected String getArrayString() {
