@@ -2110,8 +2110,12 @@ public class SymbolicProgramConfiguration {
 
     // 5. Add values present in ones SMGs object in the other as far as possible
     // TODO: this merging of values could be a Symbolic Expression of (0 OR other value)
+    hves1 =
+        updatedSPC1.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj1, PersistentSet.of());
     Set<SMGHasValueEdge> hves1NotZeros =
         hves1.stream().filter(h -> !h.hasValue().isZero()).collect(ImmutableSet.toImmutableSet());
+    hves2 =
+        updatedSPC2.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj2, PersistentSet.of());
     Set<SMGHasValueEdge> hves2NotZeros =
         hves2.stream().filter(h -> !h.hasValue().isZero()).collect(ImmutableSet.toImmutableSet());
     // Extend obj2 with new values where modified obj2 has a 0 edge but modified obj1 does not
