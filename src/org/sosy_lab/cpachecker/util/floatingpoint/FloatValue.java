@@ -2331,12 +2331,10 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * FloatValue#toInteger} for more details.
    */
   public Optional<Integer> toInt() {
-    BigInteger max = BigInteger.valueOf(Integer.MAX_VALUE);
-    BigInteger min = BigInteger.valueOf(Integer.MIN_VALUE);
     return toInteger()
         .flatMap(
             integerValue ->
-                (integerValue.compareTo(min) >= 0 && integerValue.compareTo(max) <= 0)
+                (BigInteger.valueOf(integerValue.intValue()).equals(integerValue))
                     ? Optional.of(integerValue.intValue())
                     : Optional.empty());
   }
@@ -2351,12 +2349,10 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * FloatValue#toInteger} for more details.
    */
   public Optional<Long> toLong() {
-    BigInteger max = BigInteger.valueOf(Long.MAX_VALUE);
-    BigInteger min = BigInteger.valueOf(Long.MIN_VALUE);
     return toInteger()
         .flatMap(
             integerValue ->
-                (integerValue.compareTo(min) >= 0 && integerValue.compareTo(max) <= 0)
+                (BigInteger.valueOf(integerValue.longValue()).equals(integerValue))
                     ? Optional.of(integerValue.longValue())
                     : Optional.empty());
   }
