@@ -109,15 +109,30 @@ public final class Interval implements Serializable {
    * @return the new interval with the respective bounds
    */
   public Interval union(Interval other) {
-    if (isEmpty() || other.isEmpty()) {
-      return EMPTY;
-    } else if (low <= other.low && high >= other.high) {
-      return this;
-    } else if (low >= other.low && high <= other.high) {
-      return other;
+    Long newLow;
+    if (this.low != null) {
+      if (other.low != null) {
+        newLow = Math.min(low, other.low);
+      } else {
+        newLow = this.low;
+      }
     } else {
-      return new Interval(Math.min(low, other.low), Math.max(high, other.high));
+      newLow = other.low;
     }
+
+
+    Long newHigh;
+    if (this.high != null) {
+      if (other.high != null) {
+        newHigh = Math.max(high, other.high);
+      } else {
+        newHigh = this.high;
+      }
+    } else {
+      newHigh = other.high;
+    }
+
+    return new Interval(newLow, newHigh);
   }
 
   /**
