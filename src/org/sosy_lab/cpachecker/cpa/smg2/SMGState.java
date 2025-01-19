@@ -1178,6 +1178,7 @@ public class SMGState
    */
   public Optional<SMGState> merge(SMGState pOther) throws CPAException {
     if (getSize() != pOther.getSize()) {
+      // If there is a non-equal number of (stack/global) variables, the merge fails anyways
       return Optional.empty();
     }
 
@@ -1224,6 +1225,7 @@ public class SMGState
       return Optional.empty();
     }
 
+    assert maybeNewSPC.orElseThrow().checkSMGSanity();
     return Optional.of(
         new SMGState(
             machineModel,
