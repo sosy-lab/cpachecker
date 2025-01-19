@@ -19,13 +19,13 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -1660,7 +1660,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     // Initial value (0.5 will always converge)
     FloatValue x = oneHalf;
 
-    List<FloatValue> partial = new ArrayList<>();
+    Set<FloatValue> partial = new HashSet<>();
     do {
       partial.add(x);
       // x_n+1 = x_n * (3/2 - 1/2 * f * x_n^2)
