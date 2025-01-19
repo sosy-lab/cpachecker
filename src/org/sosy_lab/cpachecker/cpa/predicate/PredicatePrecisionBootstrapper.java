@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.LemmaUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
@@ -245,7 +244,7 @@ public final class PredicatePrecisionBootstrapper {
             logger.log(Level.WARNING, "Lemmas can only be supplied via a YAML file.");
             continue;
           }
-          lemmaSet.addAll(LemmaUtils.parseLemmasFromFile(lemmaFile, logger));
+          lemmaSet.addAll(AutomatonWitnessV2ParserUtils.parseLemmasFromFile(lemmaFile, logger));
         } catch (IOException e) {
           logger.logfUserException(Level.WARNING, e, "Could not read lemma file");
         }

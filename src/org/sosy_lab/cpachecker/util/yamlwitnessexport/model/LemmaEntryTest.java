@@ -19,7 +19,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.LemmaUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 
 public class LemmaEntryTest {
   public static final String TEST_DIR_PATH = "test/lemma";
@@ -40,7 +40,8 @@ public class LemmaEntryTest {
   @Test
   public void testParseLemmas() {
     Path lemmaFile = Path.of(TEST_DIR_PATH, "witness.yml");
-    ImmutableSet<LemmaEntry> lemmaSet = LemmaUtils.parseLemmasFromFile(lemmaFile, null);
+    ImmutableSet<LemmaEntry> lemmaSet =
+        AutomatonWitnessV2ParserUtils.parseLemmasFromFile(lemmaFile, null);
     assertThat(lemmaSet).hasSize(2);
     assertThat(lemmaSet.asList().get(0).getValue()).isEqualTo("MaxArray(A,0) = A[0]");
     assertThat(lemmaSet.asList().get(0).getFormat().toString()).isEqualTo("c_expression");
