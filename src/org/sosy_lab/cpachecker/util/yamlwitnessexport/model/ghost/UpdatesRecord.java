@@ -25,12 +25,11 @@ public class UpdatesRecord {
   private final YAMLWitnessExpressionType format;
 
   public UpdatesRecord(
-      @JsonProperty("variable") String pVariable,
-      @JsonProperty("value") int pValue,
-      @JsonProperty("format") YAMLWitnessExpressionType pFormat) {
+      @JsonProperty("variable") String pVariable, @JsonProperty("value") int pValue) {
     variable = pVariable;
     value = pValue;
-    format = pFormat;
+    // the format of ghost updates is currently always c_expression
+    format = YAMLWitnessExpressionType.C;
   }
 
   public String getVariable() {

@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.Tran
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.And;
@@ -120,6 +121,18 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     public Multimap<FunctionEntryNode, ARGState> functionContractRequires = HashMultimap.create();
     public Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures =
         HashMultimap.create();
+
+    /**
+     * {@link ARGState}s (from, to) wrapped in {@link ThreadingState}s that are connected through a
+     * lock operation.
+     */
+    public Multimap<ARGState, ARGState> lockUpdates = HashMultimap.create();
+
+    /**
+     * {@link ARGState}s (from, to) wrapped in {@link ThreadingState}s that are connected through an
+     * unlock operation.
+     */
+    public Multimap<ARGState, ARGState> unlockUpdates = HashMultimap.create();
   }
 
   /**
@@ -171,6 +184,29 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
         if (pSuccessor.getChildren().size() > 1 && !callStackRecovery.containsKey(pSuccessor)) {
           callStackRecovery.put(pSuccessor, ArrayListMultimap.create(functionEntryStatesCallStack));
+        }
+      }
+
+      if (pSuccessor.getWrappedState() instanceof ThreadingState childThreadingState) {
+        for (ARGState parent : pSuccessor.getParents()) {
+          assert parent.getWrappedState() instanceof ThreadingState
+              : "parent of ThreadingState must be ThreadingState too";
+          ThreadingState parentThreadingState = (ThreadingState) parent.getWrappedState();
+          // locks unequal -> a lock / unlock operation was performed between states
+          if (!childThreadingState.locks.equals(parentThreadingState.locks)) {
+            int parentLocksNum = parentThreadingState.locks.size();
+            int childLocksNum = childThreadingState.locks.size();
+            if (parentLocksNum + 1 == childLocksNum) {
+              // more locks in child -> lock was locked
+              collectedStates.lockUpdates.put(parent, pSuccessor);
+            }
+            if (parentLocksNum == childLocksNum + 1) {
+              // more locks in parent -> lock was unlocked
+              collectedStates.unlockUpdates.put(parent, pSuccessor);
+            } else {
+              throw new AssertionError("multiple locks within one operation");
+            }
+          }
         }
       }
     }

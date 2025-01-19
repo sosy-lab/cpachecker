@@ -62,7 +62,7 @@ public class ThreadingState
   private final PersistentMap<String, ThreadState> threads;
 
   // String :: lock-id  -->  String :: thread-id
-  private final PersistentMap<String, String> locks;
+  public final PersistentMap<String, String> locks;
 
   /**
    * Thread-id of last active thread that produced this exact {@link ThreadingState}. This value
@@ -102,12 +102,12 @@ public class ThreadingState
       PersistentMap<String, ThreadState> pThreads,
       PersistentMap<String, String> pLocks,
       String pActiveThread,
-      FunctionCallEdge entryFunction,
+      FunctionCallEdge pEntryFunction,
       PersistentMap<String, Integer> pThreadIdsForWitness) {
     threads = pThreads;
     locks = pLocks;
     activeThread = pActiveThread;
-    this.entryFunction = entryFunction;
+    this.entryFunction = pEntryFunction;
     threadIdsForWitness = pThreadIdsForWitness;
   }
 

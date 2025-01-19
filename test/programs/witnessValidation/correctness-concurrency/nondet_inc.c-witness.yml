@@ -23,7 +23,7 @@
       type: location_invariant
       location:
         file_name: 'nondet_inc.c'
-        line: 48
+        line: 47
         column: 5
         function: 'inc'
       value: 'x >= g'
