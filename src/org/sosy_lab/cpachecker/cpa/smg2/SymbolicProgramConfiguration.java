@@ -1107,6 +1107,8 @@ public class SymbolicProgramConfiguration {
     mapping1 = newSPCAndMapping.getMapping();
 
     Preconditions.checkArgument(newSPC.heapObjects.contains(d));
+    Preconditions.checkArgument(newSPC.smg.getObjects().contains(d));
+    Preconditions.checkState(mapping1.containsKey(sll1) && mapping1.get(sll1).equals(d));
     Preconditions.checkArgument(((SMGSinglyLinkedListSegment) d).getMinLength() == 0);
     // 9. Let value a be the address such that the PTE of a equals the offset,
     //      size and target d if such an address already exists in new SMG.
@@ -1341,6 +1343,8 @@ public class SymbolicProgramConfiguration {
     mapping2 = newSPCAndMapping.getMapping();
 
     Preconditions.checkArgument(newSPC.heapObjects.contains(d));
+    Preconditions.checkArgument(newSPC.smg.getObjects().contains(d));
+    Preconditions.checkState(mapping2.containsKey(sll2) && mapping2.get(sll2).equals(d));
     Preconditions.checkArgument(((SMGSinglyLinkedListSegment) d).getMinLength() == 0);
     // 9. Let value a be the address such that the PTE of a equals the offset,
     //      size and target d if such an address already exists in new SMG.
@@ -1516,7 +1520,29 @@ public class SymbolicProgramConfiguration {
     // We can't handle stack variables here. Alloca would be fine.
     // TODO: handle non variable stack memory here.
     Preconditions.checkState(rootSPC.isHeapObject(rootObj));
-    SymbolicProgramConfiguration currentNewSPC = newSPC.copyAndAddHeapObject(newMemory);
+    SymbolicProgramConfiguration currentNewSPC = newSPC;
+    SMGNode mappedNodeForRootObj = mappingOfNodes.get(rootObj);
+    if (mappedNodeForRootObj != null) {
+      // Already added/done
+      Preconditions.checkState(mappedNodeForRootObj == newMemory);
+      assert rootSPC
+          .smg
+          .getSMGObjectsWithSMGHasValueEdges()
+          .getOrDefault(rootObj, PersistentSet.of())
+          .equals(
+              newSPC
+                  .smg
+                  .getSMGObjectsWithSMGHasValueEdges()
+                  .getOrDefault(newMemory, PersistentSet.of()));
+      return MergedSPCAndMapping.of(currentNewSPC, mappingOfNodes);
+    } else {
+      mappingOfNodes =
+          ImmutableMap.<SMGNode, SMGNode>builder()
+              .putAll(mappingOfNodes)
+              .put(rootObj, newMemory)
+              .buildOrThrow();
+      currentNewSPC = newSPC.copyAndAddHeapObject(newMemory);
+    }
     if (rootSPC.externalObjectAllocation.containsKey(rootObj)) {
       currentNewSPC = currentNewSPC.copyAndAddExternalObject(newMemory);
     }
@@ -1552,43 +1578,43 @@ public class SymbolicProgramConfiguration {
       SMGValue smgValueRoot = hve.hasValue();
       SMGPointsToEdge pteRoot = rootSPC.smg.getPTEdge(smgValueRoot).orElseThrow();
       SMGObject rootTargetMemory = pteRoot.pointsTo();
-      Preconditions.checkArgument(mappingOfNodes.containsKey(smgValueRoot));
+      Preconditions.checkState(mappingOfNodes.containsKey(smgValueRoot));
       SMGValue newSMGValue = (SMGValue) mappingOfNodes.get(smgValueRoot);
-      boolean copyRecursivly = false;
+      boolean copyMemoryRecursivly = false;
 
-      // Replicate sub-SMG if not yet done
+      // Replicate sub-SMG if not yet done (the value was copied, but not the PTE)
       if (!currentNewSPC.smg.isPointer(newSMGValue)) {
         SMGObject newMemoryTargetObject;
-        if (mappingOfNodes.containsKey(rootTargetMemory)) {
-          // Known memory, just insert ptr
-          newMemoryTargetObject = (SMGObject) mappingOfNodes.get(rootTargetMemory);
-          Preconditions.checkState(currentNewSPC.heapObjects.contains(newMemoryTargetObject));
+        SMGNode mappedNodeForTargetMemory = mappingOfNodes.get(rootTargetMemory);
+        if (mappedNodeForTargetMemory != null) {
+          // Known memory, just insert PTE
+          newMemoryTargetObject = (SMGObject) mappedNodeForTargetMemory;
+          Preconditions.checkState(currentNewSPC.isHeapObject(newMemoryTargetObject));
+          assert currentNewSPC
+              .smg
+              .getSMGObjectsWithSMGHasValueEdges()
+              .getOrDefault(newMemoryTargetObject, PersistentSet.of())
+              .equals(rootSPC.smg.getEdges(rootTargetMemory));
 
         } else {
-          // Copy memory and insert new pointer
+          // Copy memory and insert PTE
           Preconditions.checkState(!currentNewSPC.heapObjects.contains(rootTargetMemory));
           // We can't handle stack variables here. Alloca would be fine.
           // TODO: handle non variable stack memory here.
           Preconditions.checkState(rootSPC.isHeapObject(rootTargetMemory));
-          currentNewSPC = currentNewSPC.copyAndAddHeapObject(rootTargetMemory);
-          mappingOfNodes =
-              ImmutableMap.<SMGNode, SMGNode>builder()
-                  .putAll(mappingOfNodes)
-                  .put(rootTargetMemory, rootTargetMemory)
-                  .buildOrThrow();
           newMemoryTargetObject = rootTargetMemory;
-          copyRecursivly = true;
+          copyMemoryRecursivly = true;
         }
         // Insert correct PTE in new SPC
         SMGPointsToEdge newPTE =
             new SMGPointsToEdge(
                 newMemoryTargetObject, pteRoot.getOffset(), pteRoot.targetSpecifier());
-        Preconditions.checkState(!currentNewSPC.smg.getPTEdges().anyMatch(e -> e.equals(newPTE)));
+        assert !currentNewSPC.smg.getPTEdges().anyMatch(e -> e.equals(newPTE));
         currentNewSPC =
             currentNewSPC.copyWithNewSMG(
                 currentNewSPC.smg.copyAndAddPTEdgeWithInternalMapping(newPTE, newSMGValue));
 
-        if (copyRecursivly) {
+        if (copyMemoryRecursivly) {
           // Now copy all values and copy all memory for pointers again recursively
           currentNewSPCAndMapping =
               copyMemoryOfTo(
@@ -1605,11 +1631,10 @@ public class SymbolicProgramConfiguration {
       } else {
         // There is a PTE in the new SPC already, make some checks that it's OK.
         SMGPointsToEdge pteNew = currentNewSPC.smg.getPTEdge(newSMGValue).orElseThrow();
-        Preconditions.checkArgument(pteRoot.getOffset().equals(pteNew.getOffset()));
-        Preconditions.checkArgument(mappingOfNodes.containsKey(pteRoot.pointsTo()));
-        Preconditions.checkArgument(
-            mappingOfNodes.get(pteRoot.pointsTo()).equals(pteNew.pointsTo()));
-        Preconditions.checkArgument(pteRoot.targetSpecifier().equals(pteNew.targetSpecifier()));
+        Preconditions.checkState(pteRoot.getOffset().equals(pteNew.getOffset()));
+        Preconditions.checkState(mappingOfNodes.containsKey(pteRoot.pointsTo()));
+        Preconditions.checkState(mappingOfNodes.get(pteRoot.pointsTo()).equals(pteNew.pointsTo()));
+        Preconditions.checkState(pteRoot.targetSpecifier().equals(pteNew.targetSpecifier()));
       }
     }
     return MergedSPCAndMapping.of(currentNewSPC, mappingOfNodes);
