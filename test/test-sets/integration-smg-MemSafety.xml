@@ -55,7 +55,8 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="MemSafety-LinkedLists">
     <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
-    <option name="--smg"/>
+    <option name="--smg2"/>
+    <option name="--option">cpa.smg2.merge=JOIN</option>
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
