@@ -414,30 +414,4 @@ abstract class CFloat implements Comparable<CFloat> {
       default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
     };
   }
-
-  /**
-   * Calculate the (positive) difference between two numbers
-   *
-   * <p>Returns `x - y` if `x >= y` and `0` otherwise.
-   */
-  public abstract CFloat difference(CFloat pOther);
-
-  /**
-   * Returns the smaller of the two number
-   *
-   * <p>If one of the arguments is <code>NaN</code>, the other is returned. When both numbers are
-   * zero the sign is considered and +0.0 is only returned if they are both positive.
-   */
-  public abstract CFloat min(CFloat pOther);
-
-  /**
-   * Returns the larger of the two number
-   *
-   * <p>If one of the arguments is <code>NaN</code>, the other is returned. When both numbers are
-   * zero the sign is considered and -0.0 is only returned if they are both negative.
-   */
-  public abstract CFloat max(CFloat pOther);
-
-  /** Returns the fraction part of the number */
-  public abstract CFloat fraction();
 }

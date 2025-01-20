@@ -395,53 +395,6 @@ class CFloatNative extends CFloat {
   }
 
   @Override
-  public CFloat difference(CFloat pOther) {
-    CFloatWrapper newFloat =
-        CFloatNativeAPI.fdimFp(
-            wrapper, type.ordinal(), pOther.copyWrapper(), pOther.getType().ordinal());
-    return new CFloatNative(
-        newFloat, toFloatType(Math.max(type.ordinal(), pOther.getType().ordinal())));
-  }
-
-  @Override
-  public CFloat min(CFloat pOther) {
-    if (pOther instanceof CFloatNative otherFloat) {
-      if (isZero() && otherFloat.isZero()) {
-        // If both arguments are zero consider the sign to decide which one is smaller
-        return isNegative() ? this : pOther;
-      }
-      CFloatWrapper newFloat =
-          CFloatNativeAPI.fminFp(
-              wrapper, type.ordinal(), pOther.copyWrapper(), pOther.getType().ordinal());
-      return new CFloatNative(
-          newFloat, toFloatType(Math.max(type.ordinal(), pOther.getType().ordinal())));
-    }
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public CFloat max(CFloat pOther) {
-    if (pOther instanceof CFloatNative otherFloat) {
-      if (isZero() && otherFloat.isZero()) {
-        // If both arguments are zero consider the sign to decide which one is larger
-        return isNegative() ? pOther : this;
-      }
-      CFloatWrapper newFloat =
-          CFloatNativeAPI.fmaxFp(
-              wrapper, type.ordinal(), pOther.copyWrapper(), pOther.getType().ordinal());
-      return new CFloatNative(
-          newFloat, toFloatType(Math.max(type.ordinal(), pOther.getType().ordinal())));
-    }
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public CFloat fraction() {
-    CFloatWrapper newFloat = CFloatNativeAPI.modfFp(wrapper, type.ordinal());
-    return new CFloatNative(newFloat, toFloatType(type.ordinal()));
-  }
-
-  @Override
   protected CFloatWrapper getWrapper() {
     return wrapper;
   }

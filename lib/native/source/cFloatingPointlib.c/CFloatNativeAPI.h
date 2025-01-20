@@ -386,40 +386,6 @@ JNIEXPORT jint JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNa
 JNIEXPORT jlong JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_castFpToLong
   (JNIEnv *, jclass, jobject, jint);
 
-/*
- * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
- * Method:    fdimFp
- * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;ILorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;
- */
-JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_fdimFp
-  (JNIEnv *, jclass, jobject, jint, jobject, jint);
-
-
-/*
- * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
- * Method:    fminFp
- * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;ILorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;
- */
-JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_fminFp
-  (JNIEnv *, jclass, jobject, jint, jobject, jint);
-
-
-/*
- * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
- * Method:    fmaxFp
- * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;ILorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;
- */
-JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_fmaxFp
-  (JNIEnv *, jclass, jobject, jint, jobject, jint);
-
-/*
- * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
- * Method:    modfFp
- * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;
- */
-JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_modfFp
-  (JNIEnv *, jclass, jobject, jint);
-
 #ifdef __cplusplus
 }
 #endif

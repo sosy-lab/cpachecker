@@ -311,24 +311,4 @@ class JFloat extends CFloat {
     }
     throw new UnsupportedOperationException();
   }
-
-  @Override
-  public CFloat difference(CFloat pOther) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public CFloat min(CFloat pOther) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public CFloat max(CFloat pOther) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public CFloat fraction() {
-    throw new UnsupportedOperationException();
-  }
 }

@@ -184,15 +184,4 @@ class CFloatNativeAPI {
   public static native int castFpToInt(CFloatWrapper fp, int fp_from_type);
 
   public static native long castFpToLong(CFloatWrapper fp, int fp_from_type);
-
-  public static native CFloatWrapper fdimFp(
-      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
-
-  public static native CFloatWrapper fminFp(
-      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
-
-  public static native CFloatWrapper fmaxFp(
-      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
-
-  public static native CFloatWrapper modfFp(CFloatWrapper fp, int fp_type);
 }
