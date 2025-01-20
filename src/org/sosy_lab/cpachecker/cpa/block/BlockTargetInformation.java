@@ -17,12 +17,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
  * block. Additionally, the {@link org.sosy_lab.cpachecker.cpa.arg.ARGStopSep} ignores target
  * locations that exclusively contain target information of this type when checking for coverage.
  */
-public class BlockEntryReachedTargetInformation implements TargetInformation {
+public class BlockTargetInformation implements TargetInformation {
 
   private final CFANode node;
   private final boolean abstraction;
 
-  public BlockEntryReachedTargetInformation(CFANode pNode, boolean pAbstraction) {
+  public BlockTargetInformation(CFANode pNode, boolean pAbstraction) {
     node = pNode;
     abstraction = pAbstraction;
   }

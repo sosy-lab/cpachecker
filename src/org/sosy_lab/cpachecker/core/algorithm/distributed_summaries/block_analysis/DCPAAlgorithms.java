@@ -22,8 +22,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.block.BlockEntryReachedTargetInformation;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.block.BlockTargetInformation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -114,7 +114,7 @@ public class DCPAAlgorithms {
             continue;
           }
           for (TargetInformation targetInformation : argState.getTargetInformation()) {
-            if (targetInformation instanceof BlockEntryReachedTargetInformation) {
+            if (targetInformation instanceof BlockTargetInformation) {
               // only on abstraction locations we can find this information
               abstractions.add(argState);
             } else {

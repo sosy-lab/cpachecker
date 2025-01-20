@@ -90,7 +90,7 @@ public class BlockState
   public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
     return isTarget()
         ? ImmutableSet.of(
-            new BlockEntryReachedTargetInformation(
+            new BlockTargetInformation(
                 blockNode.getAbstractionLocation(), type == BlockStateType.ABSTRACTION))
         : ImmutableSet.of();
   }
@@ -101,7 +101,7 @@ public class BlockState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
-    if (isTarget() && errorCondition.isPresent()) {
+    if (isTarget()) {
       FluentIterable<BooleanFormula> approximations =
           AbstractStates.asIterable(errorCondition.orElseThrow())
               .filter(VerificationConditionReportingState.class)
@@ -130,8 +130,8 @@ public class BlockState
 
   @Override
   public boolean isTarget() {
-    return (errorCondition.isEmpty() && node.equals(blockNode.getLast()))
-        || (blockNode.getAbstractionLocation().equals(node) && blockNode.isAbstractionPossible())
-        || (!blockNode.isAbstractionPossible() && blockNode.getLast().equals(node));
+    return errorCondition.isPresent()
+        && blockNode.isAbstractionPossible()
+        && node.equals(blockNode.getAbstractionLocation());
   }
 }
