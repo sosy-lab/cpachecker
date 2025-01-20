@@ -386,6 +386,10 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       resultState = resultState.removeOldConstraints();
     }
 
+    if (checkAbstractListAt(location)) {
+      resultState = resultState.withBlockEnd();
+    }
+
     return Optional.of(new PrecisionAdjustmentResult(resultState, pPrecision, Action.CONTINUE));
   }
 

@@ -170,6 +170,9 @@ public class SMGState
 
   private final SMGCPAStatistics statistics;
 
+  // Remembers the location (block-end or not) to determine better merge locations
+  private final boolean blockEnd;
+
   // Constructor only for NEW/EMPTY SMGStates!
   private SMGState(
       MachineModel pMachineModel,
@@ -188,6 +191,32 @@ public class SMGState
     lastCheckedMemoryAccess = Optional.empty();
     evaluator = pEvaluator;
     constraintsState = new ConstraintsState();
+    blockEnd = false;
+  }
+
+  private SMGState(
+      MachineModel pMachineModel,
+      SymbolicProgramConfiguration spc,
+      LogManagerWithoutDuplicates logManager,
+      SMGOptions opts,
+      List<SMGErrorInfo> errorInf,
+      SMGCPAMaterializer pMaterializer,
+      Optional<Constraint> pLastCheckedMemoryAccess,
+      ConstraintsState pConstraintsState,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics,
+      boolean pBlockEnd) {
+    memoryModel = spc;
+    machineModel = pMachineModel;
+    logger = logManager;
+    options = opts;
+    errorInfo = errorInf;
+    materializer = pMaterializer;
+    lastCheckedMemoryAccess = pLastCheckedMemoryAccess;
+    evaluator = pEvaluator;
+    constraintsState = pConstraintsState;
+    statistics = pStatistics;
+    blockEnd = pBlockEnd;
   }
 
   private SMGState(
@@ -211,6 +240,22 @@ public class SMGState
     evaluator = pEvaluator;
     constraintsState = pConstraintsState;
     statistics = pStatistics;
+    blockEnd = false;
+  }
+
+  public SMGState withBlockEnd() {
+    return new SMGState(
+        machineModel,
+        memoryModel,
+        logger,
+        options,
+        errorInfo,
+        materializer,
+        lastCheckedMemoryAccess,
+        constraintsState,
+        evaluator,
+        statistics,
+        true);
   }
 
   private SMGState copyWithAddedConstraints(ImmutableList<Constraint> pConstraints) {
@@ -1178,7 +1223,7 @@ public class SMGState
    */
   public Optional<SMGState> merge(SMGState pOther) throws CPAException {
     if (getSize() != pOther.getSize()) {
-      // If there is a non-equal number of (stack/global) variables, the merge fails anyways
+      // If there is a non-equal number of (stack/global) variables, the merge fails anyway
       return Optional.empty();
     }
 
@@ -1284,7 +1329,7 @@ public class SMGState
             otherRetVal,
             equalityCache,
             objectCache,
-            treatSymbolicsAsEqualWEqualConstrains(pOther))) {
+            treatSymbolicsAsEqualWEqualConstrains(pOther, null))) {
           return false;
         }
       } else {
@@ -1320,7 +1365,7 @@ public class SMGState
           otherValue,
           equalityCache,
           objectCache,
-          treatSymbolicsAsEqualWEqualConstrains(pOther))) {
+          treatSymbolicsAsEqualWEqualConstrains(pOther, otherMemLoc))) {
         return false;
       }
       // Remove the checked values (don't double-check later)
@@ -1486,11 +1531,16 @@ public class SMGState
    * @param pOther the other state compared in lessOrEquals.
    * @return true if symbolics are to be treated as equal for equal constrains. False else.
    */
-  private boolean treatSymbolicsAsEqualWEqualConstrains(SMGState pOther) {
+  private boolean treatSymbolicsAsEqualWEqualConstrains(
+      SMGState pOther, @Nullable MemoryLocation possibleMemLoc) {
     Set<SMGSinglyLinkedListSegment> allAbstr =
         getMemoryModel().getSmg().getAllValidAbstractedObjects();
     if (allAbstr.isEmpty()) {
       return false;
+    }
+    if (possibleMemLoc != null
+        && possibleMemLoc.getExtendedQualifiedName().contains("__CPAchecker_TMP_")) {
+      return true;
     }
     Set<SMGSinglyLinkedListSegment> otherAllAbstr =
         pOther.getMemoryModel().getSmg().getAllValidAbstractedObjects();
@@ -7227,6 +7277,14 @@ public class SMGState
   @Override
   public @Nullable Object getPartitionKey() {
     return getMemoryModel().getSmg().getNumberOfAbstractedLists() * 100000 + getSize();
+  }
+
+  public boolean createdAtBlockEnd() {
+    return blockEnd;
+  }
+
+  public boolean mergeAtBlockEnd() {
+    return options.getJoinOnBlockEnd();
   }
 
   // TODO: To be replaced with a better structure, i.e. union-find

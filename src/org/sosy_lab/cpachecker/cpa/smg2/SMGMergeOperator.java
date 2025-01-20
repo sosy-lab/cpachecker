@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class SMGMergeOperator implements MergeOperator {
@@ -33,13 +35,23 @@ public class SMGMergeOperator implements MergeOperator {
     SMGState state1 = (SMGState) abstrState1;
     SMGState state2 = (SMGState) abstrState2;
 
-    totalMergeTimer.start();
-    statistics.incrementMergeAttempts();
-    Optional<SMGState> maybeMergedState = state1.merge(state2);
-    totalMergeTimer.stop();
-    if (maybeMergedState.isPresent()) {
-      statistics.incrementNumberOfSuccessfulMerges();
-      return maybeMergedState.orElseThrow();
+    if (!state1.isLessOrEqual(state2)) {
+      if (!state1.mergeAtBlockEnd() || (state1.createdAtBlockEnd() && state2.createdAtBlockEnd())) {
+        totalMergeTimer.start();
+        statistics.incrementMergeAttempts();
+        Optional<SMGState> maybeMergedState = state1.merge(state2);
+        totalMergeTimer.stop();
+
+        if (maybeMergedState.isPresent()) {
+          statistics.incrementNumberOfSuccessfulMerges();
+          // Retain block-end status
+          SMGState mergedState = maybeMergedState.orElseThrow();
+          if (state1.createdAtBlockEnd() && state2.createdAtBlockEnd()) {
+            mergedState = mergedState.withBlockEnd();
+          }
+          return mergedState;
+        }
+      }
     }
     return state2;
   }
