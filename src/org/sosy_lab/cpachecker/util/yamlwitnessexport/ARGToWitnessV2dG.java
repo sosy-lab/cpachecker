@@ -10,8 +10,10 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.List;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,8 +50,8 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
             lockEdge.getFileLocation(),
             lockEdge.getSuccessor().getFunctionName(),
             cfa.getAstCfaRelation());
-    String lockId = getLockedId(pParent, pChild);
-    return new GhostUpdateRecord(locationRecord, List.of(new UpdatesRecord(lockId, pValue)));
+    UpdatesRecord updatesRecord = new UpdatesRecord(getLockId(pParent, pChild), pValue);
+    return new GhostUpdateRecord(locationRecord, ImmutableList.of(updatesRecord));
   }
 
   /* TODO
@@ -73,35 +75,38 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
    * Returns the lock String id as used in {@link ThreadingState} that is updated between pParent
    * and pChild and throws an {@link AssertionError} if no lock is found.
    */
-  private String getLockedId(ARGState pParent, ARGState pChild) {
+  private String getLockId(@NonNull ARGState pParent, @NonNull ARGState pChild) {
+    checkNotNull(pParent);
+    checkNotNull(pChild);
     if (pParent.getWrappedState() instanceof ThreadingState parent
         && pChild.getWrappedState() instanceof ThreadingState child) {
-      assert parent.locks.size() + 1 == child.locks.size()
+      ImmutableSet<String> symmetricDifference =
+          symmetricDifference(parent.locks.keySet(), child.locks.keySet());
+      assert symmetricDifference.size() == 1
           : "there must be exactly one lock update between pParent and pChild";
-      for (String lock : child.locks.keySet()) {
-        if (!parent.locks.containsKey(lock)) {
-          return lock;
-        }
-      }
+      return symmetricDifference.iterator().next();
+    } else {
+      throw new AssertionError("both pParent and pChild must be ThreadingStates");
     }
-    throw new AssertionError("both pParent and pChild must be ThreadingStates");
   }
 
   /**
-   * Returns the lock String id as used in {@link ThreadingState} that is updated between pParent
-   * and pChild and throws an {@link AssertionError} if no lock is found.
+   * Extracts the symmetric difference of the sets pA and pB.
+   *
+   * <p>E.g. A := {1, 2, 3} and B := {3, 4, 5} then symmetricDifference(A, B) = {1, 2, 4, 5}.
    */
-  private String getUnlockedId(ARGState pParent, ARGState pChild) {
-    if (pParent.getWrappedState() instanceof ThreadingState parent
-        && pChild.getWrappedState() instanceof ThreadingState child) {
-      assert parent.locks.size() == child.locks.size() + 1
-          : "there must be exactly one lock update between pParent and pChild";
-      for (String lock : parent.locks.keySet()) {
-        if (!child.locks.containsKey(lock)) {
-          return lock;
-        }
+  private <E> ImmutableSet<E> symmetricDifference(Set<E> pA, Set<E> pB) {
+    ImmutableSet.Builder<E> rDifference = ImmutableSet.builder();
+    for (E aElem : pA) {
+      if (!pB.contains(aElem)) {
+        rDifference.add(aElem);
       }
     }
-    throw new AssertionError("both pParent and pChild must be ThreadingStates");
+    for (E bElem : pB) {
+      if (!pA.contains(bElem)) {
+        rDifference.add(bElem);
+      }
+    }
+    return rDifference.build();
   }
 }
