@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -359,7 +360,7 @@ public class SymbolicProgramConfiguration {
         }
         CType thisType = thisSMG.variableToTypeMap.get(otherVarName);
         CType otherType = otherSMG.variableToTypeMap.get(otherVarName);
-        if (!thisType.equals(otherType)) {
+        if (!Objects.equals(thisType, otherType)) {
           return Optional.empty();
         }
         // Copy
