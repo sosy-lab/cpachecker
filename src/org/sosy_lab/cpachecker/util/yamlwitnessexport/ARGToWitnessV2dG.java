@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
@@ -29,6 +30,8 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostInstrumentationContentRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostInstrumentationEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostUpdateRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostVariableRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.InitialRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.UpdatesRecord;
 
 @SuppressWarnings("unused")
@@ -62,19 +65,37 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     // Collect the information about the states relevant for ghost variables
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 
-    ImmutableList.Builder<GhostUpdateRecord> ghostUpdates = ImmutableList.builder();
+    ImmutableList.Builder<GhostUpdateRecord> ghostUpdatesB = ImmutableList.builder();
     // Handle ghost updates through locks
     for (var entry : statesCollector.lockUpdates.entries()) {
-      ghostUpdates.add(createGhostUpdate(entry.getKey(), entry.getValue(), 1));
+      ghostUpdatesB.add(createGhostUpdate(entry.getKey(), entry.getValue(), 1));
     }
     // Handle ghost updates through unlocks
     for (var entry : statesCollector.unlockUpdates.entries()) {
-      ghostUpdates.add(createGhostUpdate(entry.getKey(), entry.getValue(), 0));
+      ghostUpdatesB.add(createGhostUpdate(entry.getKey(), entry.getValue(), 0));
     }
+    ImmutableList<GhostUpdateRecord> ghostUpdates = ghostUpdatesB.build();
 
-    // TODO extract variables (init value 0) from ghostUpdates
+    Set<String> ghostVariableNames = new HashSet<>();
+    ImmutableList.Builder<GhostVariableRecord> ghostVariablesB = ImmutableList.builder();
+    // from ghostUpdates, extract all relevant ghost variables
+    for (GhostUpdateRecord ghostUpdate : ghostUpdates) {
+      for (UpdatesRecord update : ghostUpdate.getUpdates()) {
+        // add variable only once even with multiple updates
+        if (ghostVariableNames.add(update.getVariable())) {
+          // TODO initial value always 0?
+          InitialRecord initial = new InitialRecord(0, YAMLWitnessExpressionType.C);
+          // TODO create GhostVariableType enum
+          GhostVariableRecord ghostVariable =
+              new GhostVariableRecord(update.getVariable(), "int", initial);
+          ghostVariablesB.add(ghostVariable);
+        }
+      }
+    }
+    ImmutableList<GhostVariableRecord> ghostVariables = ghostVariablesB.build();
+
     GhostInstrumentationContentRecord record =
-        new GhostInstrumentationContentRecord(null, ghostUpdates.build());
+        new GhostInstrumentationContentRecord(ghostVariables, ghostUpdates);
     exportEntries(
         new GhostInstrumentationEntry(getMetadata(YAMLWitnessVersion.V2dG), record), pPath);
 
