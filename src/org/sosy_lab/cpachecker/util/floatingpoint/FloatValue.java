@@ -643,8 +643,17 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     return Objects.hash(format, sign, exponent, significand);
   }
 
-  /** Shift the significand to the right while preserving the sticky bit. */
-  private static BigInteger truncate(BigInteger pSignificand, int pBits) {
+  /**
+   * Shift the significand to the right while preserving the sticky bit.
+   *
+   * <p>"Sticky bit" refers to the least significand bit of the result. It represents the bits that
+   * were dropped while truncating and will be set to <code>1</code> if any of these bits were
+   * non-zero.
+   *
+   * <p>This method is generally followed by a call to {@link #applyRoundingBits} to round the
+   * result down to the final precision.
+   */
+  private static BigInteger truncateWithRoundingBits(BigInteger pSignificand, int pBits) {
     BigInteger mask = BigInteger.ONE.shiftLeft(pBits).subtract(BigInteger.ONE);
     BigInteger r = pSignificand.and(mask);
     BigInteger l = pSignificand.shiftRight(pBits);
@@ -672,9 +681,13 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   /**
    * Round the significand.
    *
-   * <p>We expect the significand to be followed by 3 grs bits.
+   * <p>This method is meant to be called after {@link #truncateWithRoundingBits} and will round the
+   * result according to the chosen rounding mode. We expect the significand to be followed by a
+   * <code>guard</code>, <code>round</code> and <code>sticky</code> bit. The <code>sticky</code> bit
+   * will be set by the earlier call to {@link #truncateWithRoundingBits}, the <code>guard</code>
+   * and <code>round</code> come before it and are simply the next two digits of the result.
    */
-  private static BigInteger applyRounding(
+  private static BigInteger applyRoundingBits(
       RoundingMode pRoundingMode, boolean pNegative, BigInteger pSignificand) {
     long grs = pSignificand.and(new BigInteger("111", 2)).longValue();
     pSignificand = pSignificand.shiftRight(3);
@@ -774,8 +787,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
 
     // Truncate the value and round the result
-    resultSignificand = truncate(resultSignificand, format.sigBits + leading);
-    resultSignificand = applyRounding(RoundingMode.NEAREST_EVEN, sign, resultSignificand);
+    resultSignificand = truncateWithRoundingBits(resultSignificand, format.sigBits + leading);
+    resultSignificand = applyRoundingBits(RoundingMode.NEAREST_EVEN, sign, resultSignificand);
 
     // Normalize if rounding caused an overflow
     if (resultSignificand.testBit(pTargetFormat.sigBits + 1)) {
@@ -1076,7 +1089,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     significand2 = significand2.shiftLeft(3);
 
     // Shift the number with the smaller exponent to the exponent of the other number.
-    significand2 = truncate(significand2, exp_diff);
+    significand2 = truncateWithRoundingBits(significand2, exp_diff);
 
     // Add the two significands
     BigInteger result = significand1.add(significand2);
@@ -1094,7 +1107,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     //     f.ex 1.0e3 + 1.0e3 = 10.0e3
     //     (here we normalize the result to 1.0e4)
     if (resultSignificand.testBit(format.sigBits + 4)) {
-      resultSignificand = truncate(resultSignificand, 1);
+      resultSignificand = truncateWithRoundingBits(resultSignificand, 1);
       resultExponent += 1;
     }
 
@@ -1115,7 +1128,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
 
     // Round the result according to the grs bits
-    resultSignificand = applyRounding(RoundingMode.NEAREST_EVEN, resultSign, resultSignificand);
+    resultSignificand = applyRoundingBits(RoundingMode.NEAREST_EVEN, resultSign, resultSignificand);
 
     // Shift the significand to the right if rounding has caused an overflow
     if (resultSignificand.bitLength() > format.sigBits + 1) {
@@ -1236,10 +1249,10 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     // at the end. We need to shift by at least |precision of the significand| bits.
     // If one of the factors was subnormal the results may have leading zeroes as well, and we need
     // to shift further by 'leading' bits.
-    resultSignificand = truncate(resultSignificand, format.sigBits + leading);
+    resultSignificand = truncateWithRoundingBits(resultSignificand, format.sigBits + leading);
 
     // Round the result
-    resultSignificand = applyRounding(RoundingMode.NEAREST_EVEN, resultSign, resultSignificand);
+    resultSignificand = applyRoundingBits(RoundingMode.NEAREST_EVEN, resultSign, resultSignificand);
 
     // Shift the significand to the right if rounding has caused an overflow
     if (resultSignificand.bitLength() > format.sigBits + 1) {
@@ -1463,8 +1476,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
 
     // Truncate the value and round the result
-    resultSignificand = truncate(resultSignificand, format.sigBits + leading);
-    resultSignificand = applyRounding(RoundingMode.NEAREST_EVEN, resultSign, resultSignificand);
+    resultSignificand = truncateWithRoundingBits(resultSignificand, format.sigBits + leading);
+    resultSignificand = applyRoundingBits(RoundingMode.NEAREST_EVEN, resultSign, resultSignificand);
 
     // Shift the significand to the right if rounding has caused an overflow
     if (resultSignificand.bitLength() > format.sigBits + 1) {
@@ -2233,8 +2246,9 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     resultSignificand = resultSignificand.shiftLeft(3);
 
     // Shift the fractional part to the right and then round the result
-    resultSignificand = truncate(resultSignificand, (int) (format.sigBits - exponent));
-    resultSignificand = applyRounding(pRoundingMode, sign, resultSignificand);
+    resultSignificand =
+        truncateWithRoundingBits(resultSignificand, (int) (format.sigBits - exponent));
+    resultSignificand = applyRoundingBits(pRoundingMode, sign, resultSignificand);
 
     // Recalculate the exponent
     int resultExponent = resultSignificand.bitLength() - 1;
@@ -2271,10 +2285,10 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Truncate the number while carrying over the grs bits.
     BigInteger significand = pNumber.abs().shiftLeft(pFormat.sigBits + 3);
-    significand = truncate(significand, exponent);
+    significand = truncateWithRoundingBits(significand, exponent);
 
     // Round the result
-    significand = applyRounding(RoundingMode.NEAREST_EVEN, sign, significand);
+    significand = applyRoundingBits(RoundingMode.NEAREST_EVEN, sign, significand);
 
     // Shift the significand to the right if rounding has caused an overflow
     if (significand.bitLength() > pFormat.sigBits + 1) {
