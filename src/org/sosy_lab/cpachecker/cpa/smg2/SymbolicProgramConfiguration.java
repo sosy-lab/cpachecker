@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -296,7 +295,10 @@ public class SymbolicProgramConfiguration {
       }
       CType thisType = thisSMG.variableToTypeMap.get(thisVarName);
       CType otherType = otherSMG.variableToTypeMap.get(thisVarName);
-      if (!thisType.equals(otherType)) {
+      if (thisType == null ^ otherType == null) {
+        return Optional.empty();
+      } else if (thisType != null
+          && !thisType.getCanonicalType().equals(otherType.getCanonicalType())) {
         return Optional.empty();
       }
       SMGObject newObject = SMGObject.of(0, thisGlobalObj.getSize(), BigInteger.ZERO, thisVarName);
@@ -360,7 +362,10 @@ public class SymbolicProgramConfiguration {
         }
         CType thisType = thisSMG.variableToTypeMap.get(otherVarName);
         CType otherType = otherSMG.variableToTypeMap.get(otherVarName);
-        if (!Objects.equals(thisType, otherType)) {
+        if (thisType == null ^ otherType == null) {
+          return Optional.empty();
+        } else if (thisType != null
+            && !thisType.getCanonicalType().equals(otherType.getCanonicalType())) {
           return Optional.empty();
         }
         // Copy
@@ -645,14 +650,14 @@ public class SymbolicProgramConfiguration {
           "Error when merging. A symbolic value could not be compared or created due to a missing"
               + " type.");
     }
-    CType sharedType = maybeV1Type;
+    CType sharedType = maybeV1Type.getCanonicalType();
 
     // Return for equal values (e.g. numeric values) but not pointers
     // TODO: this only works if the memory is also eq, so pull areValuesEqual() down to SPC level
     if (v1NestingLvl == v2NestingLvl
         && ((v1v.isNumericValue() && v2v.isNumericValue() && v1v.equals(v2v))
             || (v1.equals(v2) && !pSpc1.getSmg().isPointer(v1) && !pSpc2.getSmg().isPointer(v2)))) {
-      if (!maybeV1Type.equals(maybeV2Type)) {
+      if (!maybeV1Type.getCanonicalType().equals(maybeV2Type.getCanonicalType())) {
         // Not really an error, look into this
         throw new SMGException(
             "Error when merging. A symbolic value could not be compared or created due to a missing"
@@ -705,7 +710,7 @@ public class SymbolicProgramConfiguration {
         }
       } else {
         // 2 symbolic values, check that constraints match
-        if (!maybeV1Type.equals(maybeV2Type)) {
+        if (!maybeV1Type.getCanonicalType().equals(maybeV2Type.getCanonicalType())) {
           // Types not matching.
           // TODO: This is not necessarily a bad thing!
           return Optional.empty();
@@ -1744,7 +1749,8 @@ public class SymbolicProgramConfiguration {
     // 10. Let level(o) = max level of o1 and o2
     SMGObject o = o1.join(o2);
     // TODO: We could also have stack objs due to alloca(), if we hit this, implement it.
-    Preconditions.checkArgument(spc1.heapObjects.contains(o1) && spc2.heapObjects.contains(o2));
+    Preconditions.checkState(spc1.heapObjects.contains(o1) && spc2.heapObjects.contains(o2));
+    assert o.getMinLength() == Integer.min(o1.getMinLength(), o2.getMinLength());
     newSPC = newSPC.copyAndAddHeapObject(o);
     if (!pSpc1.smg.isValid(o1)) {
       newSPC = newSPC.invalidateSMGObject(o, false);
@@ -1902,9 +1908,11 @@ public class SymbolicProgramConfiguration {
     Preconditions.checkArgument(offset.isNumericValue());
     CType type1 = pMergingSPC1.valueToTypeMap.get(a1);
     CType type2 = pMergingSPC2.valueToTypeMap.get(a2);
-    if (type1 == null || type1 != type2) {
+    if (type1 == null
+        || type2 == null
+        || !type1.getCanonicalType().equals(type2.getCanonicalType())) {
       // Fix or return Optional.Empty if this is hit
-      throw new SMGException("Inequal types when merging SMGStates.");
+      throw new SMGException("Unequal types when merging SMGStates.");
     }
     Value newAddressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     mergedSPC =
@@ -2136,7 +2144,8 @@ public class SymbolicProgramConfiguration {
               "Error when merging. A new symbolic value could not have been created due to a"
                   + " missing type.");
         }
-        Value valueToWrite = updatedSPC2.getNewSymbolicValueForType(maybeV1Type);
+        maybeV1Type = maybeV1Type.getCanonicalType();
+        Value valueToWrite = updatedSPC2.getNewSymbolicValueForType(maybeV1Type.getCanonicalType());
         SMGValue newSMGValue = SMGValue.of();
         // TODO: we can do better with SMT solvers
         updatedSPC2 = updatedSPC2.copyAndPutValue(valueToWrite, newSMGValue, 0, maybeV1Type);
@@ -2160,6 +2169,7 @@ public class SymbolicProgramConfiguration {
               "Error when merging. A new symbolic value could not have been created due to a"
                   + " missing type.");
         }
+        maybeV2Type = maybeV2Type.getCanonicalType();
         SMGValue newSMGValue = SMGValue.of();
         // TODO: we can do better with SMT solvers
         Value valueToWrite = updatedSPC2.getNewSymbolicValueForType(maybeV2Type);
@@ -2247,12 +2257,20 @@ public class SymbolicProgramConfiguration {
     return hves;
   }
 
+  /**
+   * Returns the canonical type for the value. Throws an {@link NullPointerException} if the type is
+   * null.
+   */
   public CType getTypeForValue(SMGValue value) {
     CType type = valueToTypeMap.get(value);
     Preconditions.checkNotNull(type);
-    return type;
+    return type.getCanonicalType();
   }
 
+  /**
+   * Returns the canonical type for the value. Throws an {@link NullPointerException} if the type is
+   * null.
+   */
   public CType getTypeForValue(Value value) {
     return getTypeForValue(getSMGValueFromValue(value).orElseThrow());
   }
@@ -4106,8 +4124,7 @@ public class SymbolicProgramConfiguration {
   }
 
   public CType getTypeOfVariable(MemoryLocation memLoc) {
-    CType type = variableToTypeMap.get(memLoc.getQualifiedName());
-    return type;
+    return variableToTypeMap.get(memLoc.getQualifiedName());
   }
 
   public PersistentMap<String, CType> getVariableTypeMap() {
