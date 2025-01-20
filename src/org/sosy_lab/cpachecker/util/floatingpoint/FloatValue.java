@@ -830,15 +830,13 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    */
   public boolean equalTo(FloatValue pNumber) {
     checkMatchingPrecision(pNumber);
-    FloatValue arg1 = this;
-    FloatValue arg2 = pNumber;
 
-    if (arg1.isNan() || arg2.isNan()) {
+    if (isNan() || pNumber.isNan()) {
       return false;
-    } else if (arg1.isZero()) {
-      return arg2.isZero();
+    } else if (isZero()) {
+      return pNumber.isZero();
     } else {
-      return arg1.equals(arg2);
+      return equals(pNumber);
     }
   }
 
@@ -967,24 +965,22 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    */
   public int compareWithTotalOrder(FloatValue pNumber) {
     checkMatchingPrecision(pNumber);
-    FloatValue arg1 = this;
-    FloatValue arg2 = pNumber;
 
-    if (arg1.equals(arg2)) {
+    if (equals(pNumber)) {
       // Check identity
       return 0;
-    } else if (arg1.isNan()) {
+    } else if (isNan()) {
       // Handle NaN on the left
-      return arg1.isNegative() ? -1 : 1;
-    } else if (arg2.isNan()) {
+      return isNegative() ? -1 : 1;
+    } else if (pNumber.isNan()) {
       // Handle NaN on the right
-      return arg2.isNegative() ? 1 : -1;
-    } else if (arg1.isZero() && arg2.isZero()) {
+      return pNumber.isNegative() ? 1 : -1;
+    } else if (isZero() && pNumber.isZero()) {
       // Handle -0 < +0
-      return arg1.isNegative() ? -1 : 1;
+      return isNegative() ? -1 : 1;
     } else {
       // Everything else is already ordered
-      return arg1.lessThan(arg2) ? -1 : 1;
+      return lessThan(pNumber) ? -1 : 1;
     }
   }
 
@@ -1384,14 +1380,14 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   }
 
   /** Division */
-  public FloatValue divide(FloatValue pNumber) {
-    checkMatchingPrecision(pNumber);
+  public FloatValue divide(FloatValue pDivisor) {
+    checkMatchingPrecision(pDivisor);
     // TODO: Replace with precision.intermediatePrecision()
     //   Currently this does not seem to work as we get incorrectly rounded results for Float8
     Format precision = /*precision.intermediatePrecision();*/
         new Format(Format.Float256.expBits, 2 * (1 + format.sigBits) + 2);
     FloatValue arg1 = this.withPrecision(precision);
-    FloatValue arg2 = pNumber.withPrecision(precision);
+    FloatValue arg2 = pDivisor.withPrecision(precision);
 
     return arg1.divideNewton(arg2).withPrecision(format);
   }
@@ -1405,14 +1401,14 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    *
    * <p>This method assumes that both arguments use the same precision.
    */
-  private FloatValue divideSlow(FloatValue pNumber) {
+  private FloatValue divideSlow(FloatValue pDivisor) {
     // Calculate the sign of the result
-    boolean resultSign = sign ^ pNumber.sign;
+    boolean resultSign = sign ^ pDivisor.sign;
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
     long exponent1 = Math.max(exponent, format.minExp());
-    long exponent2 = Math.max(pNumber.exponent, format.minExp());
+    long exponent2 = Math.max(pDivisor.exponent, format.minExp());
 
     // Normalize both arguments.
     BigInteger significand1 = significand;
@@ -1422,7 +1418,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       exponent1 -= shift1;
     }
 
-    BigInteger significand2 = pNumber.significand;
+    BigInteger significand2 = pDivisor.significand;
     int shift2 = (format.sigBits + 1) - significand2.bitLength();
     if (shift2 > 0) {
       significand2 = significand2.shiftLeft(shift2);
@@ -1491,45 +1487,43 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     return Math.log(pNumber) / Math.log(2);
   }
 
-  private FloatValue divideNewton(FloatValue pNumber) {
-    boolean resultSign = isNegative() ^ pNumber.isNegative(); // Sign of the result
+  private FloatValue divideNewton(FloatValue pDivisor) {
+    boolean resultSign = isNegative() ^ pDivisor.isNegative(); // Sign of the result
 
     // Handle special cases:
-    if (isNan() || pNumber.isNan()) {
+    if (isNan() || pDivisor.isNan()) {
       // (1) Either argument is NaN
       return nan(format);
     } else if (isZero()) {
       // (2) Dividend is zero
-      if (pNumber.isZero()) {
-        // Divisor is zero or infinite
+      if (pDivisor.isZero()) {
         return resultSign ? nan(format).negate() : nan(format);
       } else {
         return resultSign ? negativeZero(format) : zero(format);
       }
     } else if (isInfinite()) {
       // (3) Dividend is infinite
-      if (pNumber.isInfinite()) {
-        // Divisor is infinite
+      if (pDivisor.isInfinite()) {
         return resultSign ? nan(format).negate() : nan(format);
       } else {
         return resultSign ? negativeInfinity(format) : infinity(format);
       }
-    } else if (pNumber.isZero()) {
+    } else if (pDivisor.isZero()) {
       // (4) Divisor is zero (and dividend is finite)
       return resultSign ? negativeInfinity(format) : infinity(format);
-    } else if (pNumber.isInfinite()) {
+    } else if (pDivisor.isInfinite()) {
       // (5) Divisor is infinite (and dividend is finite)
       return resultSign ? negativeZero(format) : zero(format);
     }
 
     // Extract exponents and significand bits
     int exponent1 = (int) Math.max(exponent, format.minExp());
-    int exponent2 = (int) Math.max(pNumber.exponent, format.minExp());
+    int exponent2 = (int) Math.max(pDivisor.exponent, format.minExp());
 
     // Shift numerator and divisor by pulling out common factors in the exponent.
     // This will put the divisor in the range of 0.5 to 1.0
     FloatValue n = new FloatValue(format, false, exponent1 - (exponent2 + 1), significand);
-    FloatValue d = new FloatValue(format, false, -1, pNumber.significand);
+    FloatValue d = new FloatValue(format, false, -1, pDivisor.significand);
 
     // Calculate how many iterations are needed
     int bound = (int) Math.ceil(lb((format.sigBits + 2) / lb(17)));
@@ -1546,7 +1540,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     FloatValue r = x.multiply(n);
 
     // Set the sign bit and return the result
-    return r.withSign(sign ^ pNumber.sign);
+    return r.withSign(sign ^ pDivisor.sign);
   }
 
   /**
