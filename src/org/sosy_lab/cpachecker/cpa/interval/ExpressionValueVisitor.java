@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import java.math.BigInteger;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -27,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Visitor that get's the interval from an expression, */
-public class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, UnrecognizedCodeException>
+class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, UnrecognizedCodeException>
     implements CRightHandSideVisitor<Interval, UnrecognizedCodeException> {
 
   private final IntervalAnalysisState readableState;
@@ -59,16 +58,6 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, 
     } else {
       return getArithmeticInterval(operator, interval1, interval2);
     }
-  }
-
-  @Override
-  public Interval visit(CArraySubscriptExpression arraySubscriptExpression) throws UnrecognizedCodeException {
-    if (arraySubscriptExpression.getArrayExpression() instanceof CIdExpression arrayNameExpression) {
-      CExpression indexExpression = arraySubscriptExpression.getSubscriptExpression();
-      String arrayName = arrayNameExpression.getDeclaration().getQualifiedName();
-      return readableState.arrayAccess(arrayName, indexExpression, this);
-    }
-    return Interval.UNBOUND;
   }
 
   private static Interval getLogicInterval(
