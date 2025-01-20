@@ -11,6 +11,6 @@ CONTROL AUTOMATON taintAnalysis
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  CHECK("taintViolation") -> ERROR("no-taint: tainted variable in $location");
+  CHECK("taintViolation") -> ERROR("taint: tainted variable in $location");
 
 END AUTOMATON
