@@ -52,7 +52,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
-  private static final List<String> SOURCES = Lists.newArrayList("getRSAKey");
+  private static final List<String> SOURCES =
+      Lists.newArrayList("getRSAKey", "__VERIFIER_nondet_int");
   private static final List<String> SINKS = Lists.newArrayList("printf");
 
   private final LogManager logger;
@@ -259,9 +260,49 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private TaintAnalysisState handleStatementEdge(
-      TaintAnalysisState pState, CStatementEdge pCfaEdge, CStatement pStatement) {
+      TaintAnalysisState pState, CStatementEdge pCfaEdge, CStatement pStatement)
+      throws CPATransferException {
     Set<CIdExpression> killedVars = new HashSet<>();
     Set<CIdExpression> generatedVars = new HashSet<>();
+
+    if (pStatement instanceof CFunctionCallStatement functionCallStmt) {
+      CFunctionCallExpression callExpr = functionCallStmt.getFunctionCallExpression();
+      String functionName = callExpr.getFunctionNameExpression().toString();
+
+      if ("__VERIFIER_assert_taint".equals(functionName)) {
+        List<CExpression> params = callExpr.getParameterExpressions();
+
+        if (params.size() == 2 && params.get(0) instanceof CIdExpression variableToCheck) {
+          CExpression taintCheck = params.get(1);
+
+          try {
+            int expectedTaint = TaintAnalysisUtils.evaluateExpressionToInteger(taintCheck);
+
+            boolean isCurrentlyTainted = pState.getTaintedVariables().contains(variableToCheck);
+
+            if ((expectedTaint == 1 && !isCurrentlyTainted)
+                || (expectedTaint == 0 && isCurrentlyTainted)) {
+              logger.log(
+                  Level.WARNING,
+                  String.format(
+                      "Assertion violation at %s: Variable '%s' was expected to be %s tainted but is %s tainted.",
+                      pCfaEdge.getFileLocation(),
+                      variableToCheck.getName(),
+                      expectedTaint == 1 ? "" : "not",
+                      isCurrentlyTainted ? "" : "not"));
+
+              TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars);
+              newState.setViolatesProperty();
+              return newState;
+            }
+
+          } catch (CPATransferException e) {
+            logger.log(Level.WARNING, "Invalid taint assertion detected: " + e.getMessage());
+            throw new CPATransferException("Error processing taint assertion", e);
+          }
+        }
+      }
+    }
 
     if (pCfaEdge.getStatement() instanceof CExpressionAssignmentStatement) {
       CLeftHandSide lhs =
