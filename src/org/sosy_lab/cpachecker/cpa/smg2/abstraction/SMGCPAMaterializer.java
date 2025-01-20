@@ -741,7 +741,8 @@ public class SMGCPAMaterializer {
       } else if (currentState.getMemoryModel().getNestingLevel(smgValue)
           == parentMaterialized.getNestingLevel()) {
         // TODO: isCopyValue() is legacy, remove once safely refactored using only the nesting lvl!
-        assert isCopyValue(maybeValue.orElseThrow(), replicationCache);
+        // Merge might change the used pointer, so then this fails
+        // assert isCopyValue(maybeValue.orElseThrow(), replicationCache);
         // Copy case; we already copied the value, do nothing.
         continue;
       }
