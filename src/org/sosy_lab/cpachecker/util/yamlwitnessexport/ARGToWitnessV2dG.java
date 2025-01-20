@@ -23,6 +23,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
@@ -83,11 +84,10 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
       for (UpdatesRecord update : ghostUpdate.getUpdates()) {
         // add variable only once even with multiple updates
         if (ghostVariableNames.add(update.getVariable())) {
-          // TODO initial value always 0?
+          // TODO initial value always 0? (yes for locks)
           InitialRecord initial = new InitialRecord(0, YAMLWitnessExpressionType.C);
-          // TODO create GhostVariableType enum
           GhostVariableRecord ghostVariable =
-              new GhostVariableRecord(update.getVariable(), "int", initial);
+              new GhostVariableRecord(update.getVariable(), CBasicType.INT.toASTString(), initial);
           ghostVariablesB.add(ghostVariable);
         }
       }
