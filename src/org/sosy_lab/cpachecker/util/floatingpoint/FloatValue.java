@@ -2519,20 +2519,28 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     int rawBits = Float.floatToRawIntBits(pFloat);
 
-    // Get the sign, exponent and significand
+    // Get the sign
     boolean sign = (rawBits & SIGN_MASK) != 0;
-    int expBits = (rawBits & EXPONENT_MASK) >> Format.FLOAT32_SIG_BITS;
-    int sigBits = rawBits & SIGNIFICAND_MASK;
 
-    // Add the hidden bit to the significand
-    if (expBits != 0) {
-      sigBits |= 1 << Format.FLOAT32_SIG_BITS;
+    if (Double.isNaN(pFloat)) {
+      return sign ? nan(Format.Float32).negate() : nan(Format.Float32);
+    } else if (Double.isInfinite(pFloat)) {
+      return sign ? negativeInfinity(Format.Float32) : infinity(Format.Float32);
+    } else {
+      // Get the exponent and the significand
+      long expBits = (rawBits & EXPONENT_MASK) >> Format.FLOAT32_SIG_BITS;
+      long sigBits = rawBits & SIGNIFICAND_MASK;
+
+      // Add the hidden bit to the significand
+      if (expBits != 0) {
+        sigBits |= 1 << Format.FLOAT32_SIG_BITS;
+      }
+
+      // Remove the bias from the exponent
+      expBits = expBits - (int) Format.Float32.bias();
+
+      return new FloatValue(Format.Float32, sign, expBits, BigInteger.valueOf(sigBits));
     }
-
-    // Remove the bias from the exponent
-    expBits = expBits - (int) Format.Float32.bias();
-
-    return new FloatValue(Format.Float32, sign, expBits, BigInteger.valueOf(sigBits));
   }
 
   @Override
@@ -2548,20 +2556,28 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     long rawBits = Double.doubleToRawLongBits(pDouble);
 
-    // Get the sign, exponent and the significand
+    // Get the sign
     boolean sign = (rawBits & SIGN_MASK) != 0;
-    long expBits = (rawBits & EXPONENT_MASK) >> Format.FLOAT64_SIG_BITS;
-    long sigBits = rawBits & SIGNIFICAND_MASK;
 
-    // Add the hidden bit to the significand
-    if (expBits != 0) {
-      sigBits |= 1L << Format.FLOAT64_SIG_BITS;
+    if (Double.isNaN(pDouble)) {
+      return sign ? nan(Format.Float64).negate() : nan(Format.Float64);
+    } else if (Double.isInfinite(pDouble)) {
+      return sign ? negativeInfinity(Format.Float64) : infinity(Format.Float64);
+    } else {
+      // Get the exponent and the significand
+      long expBits = (rawBits & EXPONENT_MASK) >> Format.FLOAT64_SIG_BITS;
+      long sigBits = rawBits & SIGNIFICAND_MASK;
+
+      // Add the hidden bit to the significand
+      if (expBits != 0) {
+        sigBits |= 1L << Format.FLOAT64_SIG_BITS;
+      }
+
+      // Remove the bias from the exponent
+      expBits = expBits - Format.Float64.bias();
+
+      return new FloatValue(Format.Float64, sign, expBits, BigInteger.valueOf(sigBits));
     }
-
-    // Remove the bias from the exponent
-    expBits = expBits - Format.Float64.bias();
-
-    return new FloatValue(Format.Float64, sign, expBits, BigInteger.valueOf(sigBits));
   }
 
   @Override
