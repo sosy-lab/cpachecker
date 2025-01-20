@@ -56,6 +56,8 @@ public class SMGCPAAbstractionManager {
 
   private final int minimumLengthForListsForAbstraction;
 
+  private int maxTriesBeforeAbort = 3;
+
   private final SMGCPAStatistics statistics;
 
   private enum ListType {
@@ -75,6 +77,21 @@ public class SMGCPAAbstractionManager {
     // Set caches for tests
     equalityCache = EqualityCache.of();
     objectCache = EqualityCache.of();
+    maxTriesBeforeAbort = 3;
+  }
+
+  public SMGCPAAbstractionManager(
+      SMGState pState,
+      int pMinimumLengthForListsForAbstraction,
+      SMGCPAStatistics pStatistics,
+      int pMaxTriesBeforeAbort) {
+    state = pState;
+    minimumLengthForListsForAbstraction = pMinimumLengthForListsForAbstraction;
+    statistics = pStatistics;
+    // Set caches for tests
+    equalityCache = EqualityCache.of();
+    objectCache = EqualityCache.of();
+    maxTriesBeforeAbort = pMaxTriesBeforeAbort;
   }
 
   /*
@@ -109,15 +126,20 @@ public class SMGCPAAbstractionManager {
    *
    */
   public SMGState findAndAbstractLists() throws SMGException {
+    Preconditions.checkState(maxTriesBeforeAbort > 0);
     SMGState currentState = state;
     statistics.startTotalListSearchTime();
 
     // Sort in DLL and SLL candidates and also order by nesting
     // TODO: refactor and split getListCandidates()
     List<Set<SMGCandidate>> orderedListCandidatesByNesting = getListCandidates();
+    statistics.stopTotalListSearchTime();
+    if (orderedListCandidatesByNesting.isEmpty()) {
+      return currentState;
+    }
 
     assert currentState.getMemoryModel().checkSMGSanity();
-    statistics.stopTotalListSearchTime();
+
     statistics.startTotalAbstractionTime();
     // Abstract top level nesting first
     for (Set<SMGCandidate> candidates : orderedListCandidatesByNesting) {
@@ -170,6 +192,14 @@ public class SMGCPAAbstractionManager {
     currentState = currentState.removeUnusedValues();
     statistics.stopTotalAbstractionTime();
 
+    currentState =
+        new SMGCPAAbstractionManager(
+                currentState,
+                minimumLengthForListsForAbstraction,
+                statistics,
+                maxTriesBeforeAbort - 1)
+            .findAndAbstractLists();
+
     assert candidatesHaveBeenAbstracted(orderedListCandidatesByNesting, currentState);
     assert currentState.getMemoryModel().checkSMGSanity();
     assert checkNestingLevel(currentState);
@@ -179,6 +209,7 @@ public class SMGCPAAbstractionManager {
   private boolean candidatesHaveBeenAbstracted(
       List<Set<SMGCandidate>> orderedListCandidatesByNesting, SMGState stateAfterAbstraction)
       throws SMGException {
+
     assert new SMGCPAAbstractionManager(
             stateAfterAbstraction, minimumLengthForListsForAbstraction, null)
         .getListCandidates()
@@ -513,7 +544,9 @@ public class SMGCPAAbstractionManager {
     int minimumLengthForLists = minimumLengthForListsForAbstraction - 1;
     // We count the currentObj as being the first valid candidate
     if (currentObj instanceof SMGSinglyLinkedListSegment sllHeapObj) {
-      minimumLengthForLists = minimumLengthForListsForAbstraction - sllHeapObj.getMinLength() + 1;
+      // minimumLengthForLists = minimumLengthForListsForAbstraction - sllHeapObj.getMinLength() +
+      // 1;
+      minimumLengthForLists = 0;
     }
     // Also collect all list segments to the left, as otherwise we might use the prev
     // pointer instead as the next pointer (as we might be at the end of the list for next
@@ -698,7 +731,7 @@ public class SMGCPAAbstractionManager {
         // potentialNextObj is a valid list segment
         int reduce = 1;
         if (potentialNextObj instanceof SMGSinglyLinkedListSegment targetSLL) {
-          reduce = targetSLL.getMinLength();
+          reduce = remainingMinLength;
         }
         remainingMinLength = remainingMinLength - reduce;
         alreadySeenInChain.add(potentialNextObj);
@@ -1121,7 +1154,9 @@ public class SMGCPAAbstractionManager {
       SMGCandidate candidateWithListInfo =
           getLinkedCandidateLength(
               candidate.getObject(), candidate.getSuspectedNfo(), 0, new HashSet<>(), candidate);
-      if (minimumLengthForListsForAbstraction <= candidateWithListInfo.maximalSizeOfList) {
+      if (minimumLengthForListsForAbstraction <= candidateWithListInfo.maximalSizeOfList
+          || candidateWithListInfo.suspectedElements.stream()
+              .anyMatch(o -> o instanceof SMGSinglyLinkedListSegment)) {
         refinedLinkedCandidatesBuilder.add(candidateWithListInfo);
       }
     }
@@ -1672,7 +1707,13 @@ public class SMGCPAAbstractionManager {
               || specifier.equals(SMGTargetSpecifier.IS_LAST_POINTER);
           if (currentObject instanceof SMGSinglyLinkedListSegment) {
             // There is at most 1 parent
-            assert currentObject.getNestingLevel() + 1 == targetNestingLvl;
+            if (offset.equals(((SMGSinglyLinkedListSegment) currentObject).getNextOffset())
+                || (target instanceof SMGDoublyLinkedListSegment currDll
+                    && offset.equals(currDll.getPrevOffset()))) {
+              assert currentObject.getNestingLevel() == targetNestingLvl;
+            } else {
+              assert currentObject.getNestingLevel() + 1 == targetNestingLvl;
+            }
           }
         } else {
           assert specifier.equals(SMGTargetSpecifier.IS_REGION);
