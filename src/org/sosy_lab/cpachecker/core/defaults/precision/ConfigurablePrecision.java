@@ -173,7 +173,8 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       return false;
 
       // If we don't track irrelevant variables, check whether this is the case
-    } else if (!trackIrrelevantVariables && !varClassification.getRelevantVariables().contains(variableName)) {
+    } else if (!trackIrrelevantVariables
+        && !varClassification.getRelevantVariables().contains(variableName)) {
       return false;
 
       // in this case addressed variables can at most be included in the
@@ -238,8 +239,10 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     }
 
     VariableClassification varClassification = vc.orElseThrow();
-    boolean trackSomeIntBools = trackBooleanVariables && !varClassification.getIntBoolVars().isEmpty();
-    boolean trackSomeIntEquals = trackIntEqualVariables && !varClassification.getIntEqualVars().isEmpty();
+    boolean trackSomeIntBools =
+        trackBooleanVariables && !varClassification.getIntBoolVars().isEmpty();
+    boolean trackSomeIntEquals =
+        trackIntEqualVariables && !varClassification.getIntEqualVars().isEmpty();
     boolean trackSomeIntAdds = trackIntAddVariables && !varClassification.getIntAddVars().isEmpty();
 
     return !(trackSomeIntBools

@@ -64,64 +64,63 @@ public class STBridges {
       for (ImmutableList<CFANode> connection : connections) {
         if (connection.size() == 1) {
           continue;
-        } else {
-          ImmutableSet<CFANode> includes = ImmutableSet.copyOf(connection);
-          ImmutableSet.Builder<CFAEdge> connectionEdges = ImmutableSet.builder();
-          CFANode last = null;
-          CFANode first = null;
+        }
+        ImmutableSet<CFANode> includes = ImmutableSet.copyOf(connection);
+        ImmutableSet.Builder<CFAEdge> connectionEdges = ImmutableSet.builder();
+        CFANode last = null;
+        CFANode first = null;
 
-          for (CFANode cfaNode : connection) {
-            boolean hasSuccessorInIncludes = false;
-            boolean hasSuccessorOutOfIncludes = false;
-            for (CFAEdge leavingEdge : CFAUtils.leavingEdges(cfaNode)) {
-              if (includes.contains(leavingEdge.getSuccessor())) {
-                connectionEdges.add(leavingEdge);
-                hasSuccessorInIncludes = true;
-              } else {
-                hasSuccessorOutOfIncludes = true;
-              }
-            }
-
-            if (!hasSuccessorInIncludes) {
-              // terminating functions may cause 0 successors, too
-              if (last == null
-                  || last.getNumLeavingEdges() == 0
-                  || cfaNode.getNumLeavingEdges() > 0) {
-                last = cfaNode;
-              }
-            } else if (hasSuccessorOutOfIncludes) {
-              last = cfaNode;
-            }
-
-            boolean hasPredecessorInIncludes = false;
-            boolean hasPredecessorOutOfIncludes = false;
-            for (CFAEdge enteringEdge : CFAUtils.enteringEdges(cfaNode)) {
-              if (includes.contains(enteringEdge.getPredecessor())) {
-                hasPredecessorInIncludes = true;
-              } else {
-                hasPredecessorOutOfIncludes = true;
-              }
-            }
-
-            if (!hasPredecessorInIncludes) {
-              first = cfaNode;
-            } else if (hasPredecessorOutOfIncludes && first == null) {
-              first = cfaNode;
+        for (CFANode cfaNode : connection) {
+          boolean hasSuccessorInIncludes = false;
+          boolean hasSuccessorOutOfIncludes = false;
+          for (CFAEdge leavingEdge : CFAUtils.leavingEdges(cfaNode)) {
+            if (includes.contains(leavingEdge.getSuccessor())) {
+              connectionEdges.add(leavingEdge);
+              hasSuccessorInIncludes = true;
+            } else {
+              hasSuccessorOutOfIncludes = true;
             }
           }
 
-          // Ensure first and last nodes are found
-          checkState(
-              first != null && last != null, "First or last node not found in the connection.");
+          if (!hasSuccessorInIncludes) {
+            // terminating functions may cause 0 successors, too
+            if (last == null
+                || last.getNumLeavingEdges() == 0
+                || cfaNode.getNumLeavingEdges() > 0) {
+              last = cfaNode;
+            }
+          } else if (hasSuccessorOutOfIncludes) {
+            last = cfaNode;
+          }
 
-          edges.add(
-              new BlockNodeWithoutGraphInformation(
-                  idPrefix + id++,
-                  Objects.requireNonNull(first),
-                  Objects.requireNonNull(last),
-                  includes,
-                  connectionEdges.build()));
+          boolean hasPredecessorInIncludes = false;
+          boolean hasPredecessorOutOfIncludes = false;
+          for (CFAEdge enteringEdge : CFAUtils.enteringEdges(cfaNode)) {
+            if (includes.contains(enteringEdge.getPredecessor())) {
+              hasPredecessorInIncludes = true;
+            } else {
+              hasPredecessorOutOfIncludes = true;
+            }
+          }
+
+          if (!hasPredecessorInIncludes) {
+            first = cfaNode;
+          } else if (hasPredecessorOutOfIncludes && first == null) {
+            first = cfaNode;
+          }
         }
+
+        // Ensure first and last nodes are found
+        checkState(
+            first != null && last != null, "First or last node not found in the connection.");
+
+        edges.add(
+            new BlockNodeWithoutGraphInformation(
+                idPrefix + id++,
+                Objects.requireNonNull(first),
+                Objects.requireNonNull(last),
+                includes,
+                connectionEdges.build()));
       }
       return edges.build();
     }
