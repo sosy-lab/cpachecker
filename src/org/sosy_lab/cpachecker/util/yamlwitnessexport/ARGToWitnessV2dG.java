@@ -13,6 +13,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
@@ -24,6 +26,8 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostInstrumentationContentRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostInstrumentationEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostUpdateRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.UpdatesRecord;
 
@@ -54,8 +58,7 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     return new GhostUpdateRecord(locationRecord, ImmutableList.of(updatesRecord));
   }
 
-  /* TODO
-  WitnessExportResult exportWitness(ARGState pRootState, Path pPath) {
+  WitnessExportResult exportWitness(ARGState pRootState, Path pPath) throws IOException {
     // Collect the information about the states relevant for ghost variables
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 
@@ -68,8 +71,15 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     for (var entry : statesCollector.unlockUpdates.entries()) {
       ghostUpdates.add(createGhostUpdate(entry.getKey(), entry.getValue(), 0));
     }
-    return null;
-  }*/
+
+    // TODO extract variables (init value 0) from ghostUpdates
+    GhostInstrumentationContentRecord record =
+        new GhostInstrumentationContentRecord(null, ghostUpdates.build());
+    exportEntries(
+        new GhostInstrumentationEntry(getMetadata(YAMLWitnessVersion.V2dG), record), pPath);
+
+    return new WitnessExportResult(true);
+  }
 
   /**
    * Returns the lock String id as used in {@link ThreadingState} that is updated between pParent
