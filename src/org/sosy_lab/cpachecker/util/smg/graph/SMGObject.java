@@ -90,6 +90,10 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return NULL_OBJECT;
   }
 
+  public int getMinLength() {
+    return 1;
+  }
+
   public static SMGObject of(int pNestingLevel, Value pSize, BigInteger pOffset) {
     return new SMGObject(pNestingLevel, pSize, pOffset);
   }
@@ -210,9 +214,12 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     // 9. If LL, let min length = min of o1 or o2
     // 10. Let level(o) = max level of o1 and o2
     int newNestingLevel = Integer.max(nestingLevel, otherObj.nestingLevel);
+    int newMinLength = Integer.min(getMinLength(), otherObj.getMinLength());
     if (otherObj instanceof SMGSinglyLinkedListSegment otherSLL) {
       // This includes DLLs
-      return otherSLL.copyWithNewNestingLevel(newNestingLevel);
+      return otherSLL
+          .copyWithNewMinimumLength(newMinLength)
+          .copyWithNewNestingLevel(newNestingLevel);
     } else {
       return copyWithNewNestingLevel(newNestingLevel);
     }
