@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationR
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaEntry;
 
 public class InvariantExchangeFormatTransformer {
 
@@ -117,6 +118,23 @@ public class InvariantExchangeFormatTransformer {
         };
 
     return createExpressionTreeFromString(resultFunction, invariantString, line, callStack, scope);
+  }
+
+  public ExpressionTree<AExpression> parseLemmaEntry(LemmaEntry pLemmaEntry)
+      throws InterruptedException {
+    Integer line = pLemmaEntry.getLocation().getLine();
+    Optional<String> resultFunction = Optional.ofNullable(pLemmaEntry.getLocation().getFunction());
+    String lemmaString = pLemmaEntry.getValue();
+
+    Deque<String> callStack = new ArrayDeque<>();
+    callStack.push(pLemmaEntry.getLocation().getFunction());
+
+    Scope scope =
+        switch (cfa.getLanguage()) {
+          case C -> new CProgramScope(cfa, logger);
+          default -> DummyScope.getInstance();
+        };
+    return createExpressionTreeFromString(resultFunction, lemmaString, line, callStack, scope);
   }
 
   /**

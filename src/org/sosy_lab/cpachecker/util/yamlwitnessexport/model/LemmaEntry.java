@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -25,11 +27,21 @@ public class LemmaEntry extends AbstractInformationRecord {
   @JsonProperty("value")
   protected final String value;
 
+  @JsonProperty("location")
+  @JsonInclude(Include.NON_NULL)
+  private final LocationRecord location;
+
   public LemmaEntry(
       @JsonProperty("value") String pString,
-      @JsonProperty("format") YAMLWitnessExpressionType pFormat) {
+      @JsonProperty("format") YAMLWitnessExpressionType pFormat,
+      @JsonProperty("location") LocationRecord plocation) {
     super("lemma", pFormat);
+    location = plocation;
     value = pString;
+  }
+
+  public LocationRecord getLocation() {
+    return location;
   }
 
   public String getValue() {
@@ -54,7 +66,8 @@ public class LemmaEntry extends AbstractInformationRecord {
       // (less elegant, but we probably never touch that code again, so it is fine):
       return new LemmaEntry(
           mapper.treeToValue(lemmaNode.get("value"), String.class),
-          mapper.treeToValue(lemmaNode.get("format"), YAMLWitnessExpressionType.class));
+          mapper.treeToValue(lemmaNode.get("format"), YAMLWitnessExpressionType.class),
+          mapper.treeToValue(lemmaNode.get("location"), LocationRecord.class));
     }
   }
 }
