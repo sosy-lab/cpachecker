@@ -2545,7 +2545,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   @Override
   public float floatValue() {
-    return toFloatingPointNumber().floatValue();
+    return withPrecision(Format.Float32).toFloatingPointNumber().floatValue();
   }
 
   /** Convert a <code>double</code> to {@link FloatValue#byteValue()} */
@@ -2582,7 +2582,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   @Override
   public double doubleValue() {
-    return toFloatingPointNumber().doubleValue();
+    return withPrecision(Format.Float64).toFloatingPointNumber().doubleValue();
   }
 
   /**
