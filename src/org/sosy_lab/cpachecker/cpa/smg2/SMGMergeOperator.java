@@ -9,12 +9,10 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class SMGMergeOperator implements MergeOperator {

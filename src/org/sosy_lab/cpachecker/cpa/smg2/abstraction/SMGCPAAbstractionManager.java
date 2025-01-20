@@ -543,7 +543,7 @@ public class SMGCPAAbstractionManager {
     SMG smg = state.getMemoryModel().getSmg();
     int minimumLengthForLists = minimumLengthForListsForAbstraction - 1;
     // We count the currentObj as being the first valid candidate
-    if (currentObj instanceof SMGSinglyLinkedListSegment sllHeapObj) {
+    if (currentObj instanceof SMGSinglyLinkedListSegment) {
       // minimumLengthForLists = minimumLengthForListsForAbstraction - sllHeapObj.getMinLength() +
       // 1;
       minimumLengthForLists = 0;
@@ -730,7 +730,7 @@ public class SMGCPAAbstractionManager {
 
         // potentialNextObj is a valid list segment
         int reduce = 1;
-        if (potentialNextObj instanceof SMGSinglyLinkedListSegment targetSLL) {
+        if (potentialNextObj instanceof SMGSinglyLinkedListSegment) {
           reduce = remainingMinLength;
         }
         remainingMinLength = remainingMinLength - reduce;
