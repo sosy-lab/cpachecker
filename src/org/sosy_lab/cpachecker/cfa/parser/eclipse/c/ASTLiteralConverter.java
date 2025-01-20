@@ -170,10 +170,10 @@ class ASTLiteralConverter {
       // FloatValue.fromString allows some inputs that would not be legal in a C program.
       // We check for these values and throw an exception manually.
       Preconditions.checkArgument(
-          input.equals("nan")
+          !(input.equals("nan")
               || input.equals("inf")
               || input.startsWith("+")
-              || input.startsWith("-"));
+              || input.startsWith("-")));
       value = FloatValue.fromString(format, input);
     } catch (IllegalArgumentException e) {
       throw parseContext.parseError(

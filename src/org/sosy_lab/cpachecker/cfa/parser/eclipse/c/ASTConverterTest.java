@@ -208,11 +208,11 @@ public class ASTConverterTest {
             new TestCase("0x5ep2", "3.76000000e+02", CNumericTypes.FLOAT),
             new TestCase("0x5ep-2", "2.35000000e+01", CNumericTypes.FLOAT),
             new TestCase("3.41E+38", "3.4100000000000000e+38", CNumericTypes.DOUBLE),
-            new TestCase("-308e-2f", "-3.07999992e+00", CNumericTypes.FLOAT),
-            new TestCase("-308.0L", "-3.08000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
-            new TestCase("-0x308p-2F", "-1.94000000e+02", CNumericTypes.FLOAT),
-            new TestCase("-0x30ap0l", "-7.78000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
-            new TestCase("-0000.000e+0", "-0.00000000e+00", CNumericTypes.FLOAT),
+            new TestCase("308e-2f", "3.07999992e+00", CNumericTypes.FLOAT),
+            new TestCase("308.0L", "3.08000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
+            new TestCase("0x308p-2F", "1.94000000e+02", CNumericTypes.FLOAT),
+            new TestCase("0x30ap0l", "7.78000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
+            new TestCase("0000.000e+0", "0.00000000e+00", CNumericTypes.FLOAT),
             new TestCase("1.0", "1.00000000e+00", CNumericTypes.FLOAT),
             new TestCase(".0", "0.00000000e+00", CNumericTypes.FLOAT),
             new TestCase(".0e0", "0.00000000e+00", CNumericTypes.FLOAT),
@@ -245,11 +245,8 @@ public class ASTConverterTest {
     ImmutableList<TestCase> input_output =
         ImmutableList.of(
             new TestCase("3.41e+38f", "inf", CNumericTypes.FLOAT),
-            new TestCase("-4.2e+38f", "-inf", CNumericTypes.FLOAT),
             new TestCase("1.8e+308", "inf", CNumericTypes.DOUBLE),
-            new TestCase("-2.3e+308", "-inf", CNumericTypes.DOUBLE),
-            new TestCase("1.2e+4932l", "inf", CNumericTypes.LONG_DOUBLE),
-            new TestCase("-1.2e+4932l", "-inf", CNumericTypes.LONG_DOUBLE));
+            new TestCase("1.2e+4932l", "inf", CNumericTypes.LONG_DOUBLE));
 
     for (ASTLiteralConverter converter : converters) {
       for (TestCase test : input_output) {
