@@ -300,11 +300,11 @@ class CFloatImpl extends CFloat {
     return switch (toType) {
       case INT ->
           delegate.toInt().isPresent()
-              ? Optional.of(delegate.toInt().getAsInt())
+              ? Optional.of(delegate.toInt().orElseThrow())
               : Optional.empty();
       case LONG ->
           delegate.toLong().isPresent()
-              ? Optional.of(delegate.toLong().getAsLong())
+              ? Optional.of(delegate.toLong().orElseThrow())
               : Optional.empty();
       default -> throw new UnsupportedOperationException();
     };

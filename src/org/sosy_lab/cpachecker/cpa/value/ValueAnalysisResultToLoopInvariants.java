@@ -1046,7 +1046,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         if (isBigInt2) {
           return ((Rational) num1).compareTo(Rational.ofBigInteger((BigInteger) num2));
         }
-        if (isFloat2 || num2 instanceof FloatValue floatValue) {
+        if (isFloat2 || num2 instanceof FloatValue) {
           // FIXME: Conversion is imprecise
           return FloatValue.fromDouble(num1.doubleValue())
               .compareTo(pVal2.floatingPointValue(FloatValue.Format.Float64));
