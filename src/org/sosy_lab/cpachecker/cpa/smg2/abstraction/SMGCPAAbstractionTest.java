@@ -245,6 +245,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     // Now merge
     SMGMergeOperator mergeOp = new SMGMergeOperator(new SMGCPAStatistics());
+    stateLeft = stateLeft.withBlockEnd();
+    stateRight = stateRight.withBlockEnd();
     SMGState mergedState = (SMGState) mergeOp.merge(stateLeft, stateRight, null);
     assertThat(mergedState).isNotEqualTo(stateLeft);
     // merge returns right for failing
