@@ -432,9 +432,24 @@ class WebInterface:
         self._group_id = str(random.randint(0, 1000000))  # noqa: S311
         self._read_hash_code_cache()
         version_information = self._request_tool_information(revision)
-        self._revision = version_information.get("commitHash", "")
-        self._tool_version = version_information.get("toolVersion", "")
-        self._tool_name = version_information.get("toolName", "")
+        self._revision = version_information.get("commitHash", revision)
+        self._tool_version = version_information.get("toolVersion", self._revision)
+        self._tool_name = version_information.get("toolName", "CPAchecker")
+
+        if "commitHash" not in version_information:
+            logging.warning(
+                "Warning: Could not retrieve commit hash. Using fallback value: %s",
+                revision)
+
+        if "toolVersion" not in version_information:
+            logging.warning(
+                "Warning: Could not retrieve the tool version. Using fallback value: %s",
+                self._revision)
+
+        if "toolName" not in version_information:
+            logging.warning(
+                "Warning: Could not retrieve the tool name. Using fallback value: %s",
+                "CPAchecker")
 
         if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
             logging.warning(
