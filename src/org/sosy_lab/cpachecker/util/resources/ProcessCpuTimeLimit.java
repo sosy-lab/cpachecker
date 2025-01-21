@@ -50,11 +50,11 @@ public class ProcessCpuTimeLimit implements ResourceLimit {
   @Override
   public void start(Thread pThread) {
     checkState(endTime == -1);
-    endTime = getCurrentValue() + duration;
+    endTime = getCurrentMeasurementValue() + duration;
   }
 
   @Override
-  public long getCurrentValue() {
+  public long getCurrentMeasurementValue() {
     try {
       return ProcessCpuTime.read();
     } catch (JMException e) {

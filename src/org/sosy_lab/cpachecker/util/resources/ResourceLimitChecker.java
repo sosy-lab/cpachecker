@@ -261,7 +261,7 @@ public final class ResourceLimitChecker {
           }
 
           // Check if expired
-          final long currentValue = limit.getCurrentValue();
+          final long currentValue = limit.getCurrentMeasurementValue();
           if (limit.isExceeded(currentValue)) {
             String reason = String.format("The %s has elapsed.", limit.getName());
             shutdownManager.requestShutdown(reason);

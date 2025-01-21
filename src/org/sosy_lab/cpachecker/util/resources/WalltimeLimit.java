@@ -43,11 +43,11 @@ public class WalltimeLimit implements ResourceLimit {
   @Override
   public void start(Thread pThread) {
     checkState(endTime == -1);
-    endTime = getCurrentValue() + duration;
+    endTime = getCurrentMeasurementValue() + duration;
   }
 
   @Override
-  public long getCurrentValue() {
+  public long getCurrentMeasurementValue() {
     return System.nanoTime();
   }
 

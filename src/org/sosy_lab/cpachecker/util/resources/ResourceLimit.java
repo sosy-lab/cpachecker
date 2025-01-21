@@ -15,7 +15,7 @@ package org.sosy_lab.cpachecker.util.resources;
  * <p>Instances of this class are to be used with {@link ResourceLimitChecker}. The interface is
  * designed such that typical implementations can avoid any mutable state after {@link
  * #start(Thread)} and need to due potentially expensive measurements only in {@link
- * #getCurrentValue()}.
+ * #getCurrentMeasurementValue()}.
  *
  * <p>Classes beside {@link ResourceLimitChecker} should only create {@link ResourceLimit} instances
  * and pass then to {@link
@@ -44,12 +44,12 @@ public interface ResourceLimit {
    *
    * @return An arbitrary value (won't be interpreted).
    */
-  long getCurrentValue();
+  long getCurrentMeasurementValue();
 
   /**
-   * Check whether a given value (that was returned by {@link #getCurrentValue()} means that the
-   * limit has been exceeded and we should stop. The limit won't be asked again after this method
-   * returned true once.
+   * Check whether a given value (that was returned by {@link #getCurrentMeasurementValue()} means
+   * that the limit has been exceeded and we should stop. The limit won't be asked again after this
+   * method returned true once.
    *
    * <p>For performance, this method should not actually do any measurements and only interpret the
    * given value.
@@ -57,16 +57,17 @@ public interface ResourceLimit {
    * <p>Usually, this method checks whether the current value is greater or equal than some stored
    * value that specifies the limit.
    *
-   * @param currentValue A value previously returned by {@link #getCurrentValue()}
+   * @param currentValue A value previously returned by {@link #getCurrentMeasurementValue()}
    * @return True if the limit has been exceeded.
    */
   boolean isExceeded(long currentValue);
 
   /**
    * Check how much time can elapse before we should bother checking this limit again after a call
-   * to {@link #getCurrentValue()} returned the given value. This can be used by limits that can
-   * estimate how much (wall) time is left at minimum before the limit can exceed. Limits that can
-   * not do so may simply return 0 (indicating that they need to check again as soon as possible).
+   * to {@link #getCurrentMeasurementValue()} returned the given value. This can be used by limits
+   * that can estimate how much (wall) time is left at minimum before the limit can exceed. Limits
+   * that can not do so may simply return 0 (indicating that they need to check again as soon as
+   * possible).
    *
    * <p>For performance, this method should not actually do any measurements and only interpret the
    * given value.
@@ -74,9 +75,9 @@ public interface ResourceLimit {
    * <p>Note that the caller is not forced to respect this value, it may choose to ask the limit
    * more often or more rarely (if the higher load or the higher imprecision is acceptable).
    *
-   * @param currentValue A value previously returned by {@link #getCurrentValue()}
+   * @param currentValue A value previously returned by {@link #getCurrentMeasurementValue()}
    * @return A time in nanoseconds from now on during which the caller does not need to bother
-   *     calling {@link #getCurrentValue()} and {@link #isExceeded(long)}.
+   *     calling {@link #getCurrentMeasurementValue()} and {@link #isExceeded(long)}.
    */
   long nanoSecondsToNextCheck(long currentValue);
 

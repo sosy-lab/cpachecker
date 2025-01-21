@@ -49,11 +49,11 @@ public class ThreadCpuTimeLimit implements ResourceLimit {
   public void start(Thread pThread) {
     checkState(thread == null);
     thread = pThread;
-    endTime = getCurrentValue() + duration;
+    endTime = getCurrentMeasurementValue() + duration;
   }
 
   @Override
-  public long getCurrentValue() {
+  public long getCurrentMeasurementValue() {
     Preconditions.checkState(thread != null);
     @SuppressWarnings("deprecation") // Replacement Thread.threadId() is only available on Java 19+
     final long threadId = thread.getId();
