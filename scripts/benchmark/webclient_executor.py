@@ -82,8 +82,6 @@ def get_system_info():
 
 
 def execute_benchmark(benchmark, output_handler):
-    global _webclient
-
     if benchmark.tool_name != _webclient.tool_name():
         logging.warning("The web client does only support %s.", _webclient.tool_name())
         return 1
@@ -126,8 +124,6 @@ def stop():
 
 
 def _submitRunsParallel(runSet, benchmark, output_handler):
-    global _webclient
-
     logging.info("Submitting runs...")
 
     meta_information = json.dumps(
