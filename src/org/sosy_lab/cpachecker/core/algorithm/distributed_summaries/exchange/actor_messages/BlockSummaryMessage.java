@@ -234,12 +234,6 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     ERROR,
 
     /**
-     * Messages of this type deny a previously received {@link BlockSummaryErrorConditionMessage}.
-     * See {@link BlockSummaryErrorConditionUnreachableMessage}.
-     */
-    ERROR_CONDITION_UNREACHABLE,
-
-    /**
      * Messages of this type transport results of a backward analysis. See {@link
      * BlockSummaryErrorConditionMessage}.
      */
@@ -306,8 +300,6 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
       return switch (type) {
         case FOUND_RESULT -> new BlockSummaryResultMessage(uniqueBlockId, nodeNumber, payload);
         case ERROR -> new BlockSummaryExceptionMessage(uniqueBlockId, nodeNumber, payload);
-        case ERROR_CONDITION_UNREACHABLE ->
-            new BlockSummaryErrorConditionUnreachableMessage(uniqueBlockId, nodeNumber, payload);
         case ERROR_CONDITION ->
             new BlockSummaryErrorConditionMessage(uniqueBlockId, nodeNumber, payload);
         case BLOCK_POSTCONDITION ->

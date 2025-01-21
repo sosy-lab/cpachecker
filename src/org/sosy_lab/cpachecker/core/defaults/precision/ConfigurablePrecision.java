@@ -239,10 +239,8 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     }
 
     VariableClassification varClass = vc.orElseThrow();
-    boolean trackSomeIntBools =
-        trackBooleanVariables && !varClass.getIntBoolVars().isEmpty();
-    boolean trackSomeIntEquals =
-        trackIntEqualVariables && !varClass.getIntEqualVars().isEmpty();
+    boolean trackSomeIntBools = trackBooleanVariables && !varClass.getIntBoolVars().isEmpty();
+    boolean trackSomeIntEquals = trackIntEqualVariables && !varClass.getIntEqualVars().isEmpty();
     boolean trackSomeIntAdds = trackIntAddVariables && !varClass.getIntAddVars().isEmpty();
 
     return !(trackSomeIntBools

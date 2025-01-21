@@ -92,7 +92,6 @@ public class BlockSummaryHubAnalysisWorker extends BlockSummaryWorker {
         threads.forEach(Thread::interrupt);
         yield ImmutableSet.of();
       }
-      case ERROR_CONDITION_UNREACHABLE -> ImmutableSet.of();
       case ERROR_CONDITION -> {
         errorConditions.put(pMessage.getBlockId(), (BlockSummaryErrorConditionMessage) pMessage);
         threads.add(spawnWorker(pMessage));

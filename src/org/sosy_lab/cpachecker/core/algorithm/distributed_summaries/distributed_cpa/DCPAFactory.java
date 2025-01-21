@@ -65,7 +65,6 @@ public class DCPAFactory {
           pCFA,
           pConfiguration,
           pOptions,
-          pMessageFactory,
           pLogManager,
           pShutdownNotifier,
           integerToNodeMap);
@@ -119,7 +118,6 @@ public class DCPAFactory {
       CFA pCFA,
       Configuration pConfiguration,
       BlockSummaryAnalysisOptions pOptions,
-      BlockSummaryMessageFactory pMessageFactory,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       Map<Integer, CFANode> pIntegerCFANodeMap)
@@ -130,7 +128,6 @@ public class DCPAFactory {
         pCFA,
         pConfiguration,
         pOptions,
-        pMessageFactory,
         pLogManager,
         pShutdownNotifier,
         pIntegerCFANodeMap);

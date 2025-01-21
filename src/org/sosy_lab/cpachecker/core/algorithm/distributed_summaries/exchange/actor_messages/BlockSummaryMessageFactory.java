@@ -65,21 +65,6 @@ public class BlockSummaryMessageFactory {
     }
   }
 
-  public BlockSummaryMessage newErrorConditionUnreachableMessage(
-      String pUniqueBlockId, String denied) {
-    BlockSummaryMessagePayload payload =
-        BlockSummaryMessagePayload.builder()
-            .addEntry(BlockSummaryMessagePayload.REASON, denied)
-            .addEntry("readable", denied)
-            .buildPayload();
-    if (debugMode) {
-      return new BlockSummaryErrorConditionUnreachableMessage(
-          pUniqueBlockId, 0, payload, getTimestampForMessage());
-    } else {
-      return new BlockSummaryErrorConditionUnreachableMessage(pUniqueBlockId, 0, payload);
-    }
-  }
-
   public BlockSummaryMessage newResultMessage(
       String pUniqueBlockId, int pTargetNodeNumber, Result pResult) {
     BlockSummaryMessagePayload payload =

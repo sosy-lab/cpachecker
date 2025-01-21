@@ -129,7 +129,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
         shutdown = true;
         return ImmutableSet.of(messageFactory.newStatisticsMessage(getBlockId(), getStats()));
       }
-      case ERROR_CONDITION_UNREACHABLE, STATISTICS -> {
+      case STATISTICS -> {
         return ImmutableSet.of();
       }
       default -> throw new AssertionError("MessageType " + message.getType() + " does not exist");
@@ -139,7 +139,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   public void storeMessage(BlockSummaryMessage message)
       throws SolverException, InterruptedException {
     switch (message.getType()) {
-      case STATISTICS, FOUND_RESULT, ERROR, ERROR_CONDITION_UNREACHABLE -> {}
+      case STATISTICS, FOUND_RESULT, ERROR -> {}
       case ERROR_CONDITION -> {
         BlockSummaryErrorConditionMessage errorCond = (BlockSummaryErrorConditionMessage) message;
         dcpaAlgorithm.updateErrorCondition(errorCond);

@@ -60,8 +60,7 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
         result = Optional.of(((BlockSummaryResultMessage) pMessage).getResult());
         statusObserver.updateStatus(pMessage);
       }
-      case ERROR_CONDITION_UNREACHABLE, ERROR_CONDITION, BLOCK_POSTCONDITION ->
-          statusObserver.updateStatus(pMessage);
+      case ERROR_CONDITION, BLOCK_POSTCONDITION -> statusObserver.updateStatus(pMessage);
       case ERROR -> {
         shutdown = true;
         errorMessage = Optional.of(((BlockSummaryExceptionMessage) pMessage).getErrorMessage());
