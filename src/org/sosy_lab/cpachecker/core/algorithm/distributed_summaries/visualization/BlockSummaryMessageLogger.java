@@ -78,6 +78,8 @@ public class BlockSummaryMessageLogger {
     messageToJSON.put("hashCode", hashCode);
     messageToJSON.put("from", pMessage.getUniqueBlockId());
     messageToJSON.put("payload", pMessage.getPayloadJSON(pFilter));
+    messageToJSON.put("uniqueBlockId", pMessage.getUniqueBlockId());
+    messageToJSON.put("targetNodeNumber", pMessage.getTargetNodeNumber());
     JSON.writeJSONString(
         messageToJSON, reportFiles.resolve("M" + ID_GENERATOR.getFreshId() + ".json"));
   }
