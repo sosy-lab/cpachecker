@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -194,6 +195,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
   private ImmutableMap<MemoryLocation, Type> extractVarsWithType(final CFA pCfa) {
     ImmutableMap.Builder<MemoryLocation, Type> builder = ImmutableMap.builder();
+    Set<MemoryLocation> seenVars = new HashSet<>();
+    MemoryLocation var;
+
     for (AbstractSimpleDeclaration decl :
         FluentIterable.from(pCfa.edges())
             .filter(ADeclarationEdge.class)
@@ -203,7 +207,10 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                 Predicates.or(
                     Predicates.instanceOf(AVariableDeclaration.class),
                     Predicates.instanceOf(AParameterDeclaration.class)))) {
-      builder.put(MemoryLocation.forDeclaration(decl), decl.getType());
+      var = MemoryLocation.forDeclaration(decl);
+      if (seenVars.add(var)) {
+        builder.put(var, decl.getType());
+      }
     }
 
     for (AParameterDeclaration decl :
@@ -212,7 +219,10 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             .transform(FunctionCallEdge::getFunctionCallExpression)
             .transform(AFunctionCallExpression::getDeclaration)
             .transformAndConcat(AFunctionDeclaration::getParameters)) {
-      builder.put(MemoryLocation.forDeclaration(decl), decl.getType());
+      var = MemoryLocation.forDeclaration(decl);
+      if (seenVars.add(var)) {
+        builder.put(var, decl.getType());
+      }
     }
 
     return builder.buildOrThrow();
