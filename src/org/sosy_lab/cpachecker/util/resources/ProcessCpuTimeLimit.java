@@ -15,7 +15,17 @@ import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 import org.sosy_lab.common.time.TimeSpan;
 
-/** A limit that measures the CPU time used by the current process (if available on this JVM). */
+/**
+ * A limit that is based on how much CPU time is spent for the whole process. This includes our
+ * code, code in native libraries, the JVM and its garbage collector, etc. (not not started
+ * subprocesses).
+ *
+ * <p>This limit might not be available on all JVMs.
+ *
+ * <p>Created instances should be passed to {@link
+ * ResourceLimitChecker#ResourceLimitChecker(org.sosy_lab.common.ShutdownManager, java.util.List)},
+ * but not used in any other way.
+ */
 public class ProcessCpuTimeLimit implements ResourceLimit {
 
   private final int processorCount = Runtime.getRuntime().availableProcessors();

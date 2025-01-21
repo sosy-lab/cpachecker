@@ -53,8 +53,14 @@ public final class ResourceLimitChecker {
    * empty list of limits, limits that have already been exceeded, or a shutdown notifier that has
    * already been triggered.
    *
+   * <p>The given {@link ResourceLimit} instances must be fresh instances and not started yet.
+   * Callers should only create them and pass them to this constructor, but not use them in any
+   * other way before or afterwards.
+   *
+   * <p>Note that {@link #start()} needs to be called in order to actually start the limits.
+   *
    * @param shutdownManager A non-null shutdown notifier instance.
-   * @param limits A (possibly empty) list without null entries of resource limits.
+   * @param limits A (possibly empty) list without null entries of not-yet-started resource limits.
    */
   public ResourceLimitChecker(ShutdownManager shutdownManager, List<ResourceLimit> limits) {
     checkNotNull(shutdownManager);
@@ -97,7 +103,7 @@ public final class ResourceLimitChecker {
 
   /**
    * Create an instance of this class from some configuration options. The returned instance is not
-   * started yet.
+   * started yet, {@link #start()} still needs to be called.
    */
   public static ResourceLimitChecker fromConfiguration(
       Configuration config, LogManager logger, ShutdownManager shutdownManager)

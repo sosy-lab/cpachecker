@@ -14,7 +14,13 @@ import static com.google.common.base.Preconditions.checkState;
 import java.util.concurrent.TimeUnit;
 import org.sosy_lab.common.time.TimeSpan;
 
-/** A limit that measures the elapsed time as returned by {@link System#nanoTime()}. */
+/**
+ * A limit that is based on how much wall time elapses (based on {@link System#nanoTime()}).
+ *
+ * <p>Created instances should be passed to {@link
+ * ResourceLimitChecker#ResourceLimitChecker(org.sosy_lab.common.ShutdownManager, java.util.List)},
+ * but not used in any other way.
+ */
 public class WalltimeLimit implements ResourceLimit {
 
   private final long duration;

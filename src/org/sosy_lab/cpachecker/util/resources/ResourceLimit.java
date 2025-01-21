@@ -17,6 +17,11 @@ package org.sosy_lab.cpachecker.util.resources;
  * #start(Thread)} and need to due potentially expensive measurements only in {@link
  * #getCurrentValue()}.
  *
+ * <p>Classes beside {@link ResourceLimitChecker} should only create {@link ResourceLimit} instances
+ * and pass then to {@link
+ * ResourceLimitChecker#ResourceLimitChecker(org.sosy_lab.common.ShutdownManager, java.util.List)},
+ * but never call ony of the methods of this interface.
+ *
  * <p>Implementations do not need to worry about thread-safety, it is the responsibility of the
  * caller to ensure that each instance is only used from a single thread at the same time and that
  * there is a proper happens-before relationship between calls that happen on different threads.

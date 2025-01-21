@@ -16,6 +16,20 @@ import java.lang.management.ManagementFactory;
 import java.util.concurrent.TimeUnit;
 import org.sosy_lab.common.time.TimeSpan;
 
+/**
+ * A limit that is based on how much CPU time is spent for one particular thread. This includes our
+ * code, code in native libraries, the JVM and maybe parts of its garbage collector, etc., if
+ * executed within our thread.
+ *
+ * <p>Which thread is measured is determined later on, it is the thread that calls {@link
+ * ResourceLimitChecker#start()}. Which thread creates the instance does not matter.
+ *
+ * <p>This limit might not be available on all JVMs.
+ *
+ * <p>Created instances should be passed to {@link
+ * ResourceLimitChecker#ResourceLimitChecker(org.sosy_lab.common.ShutdownManager, java.util.List)},
+ * but not used in any other way.
+ */
 public class ThreadCpuTimeLimit implements ResourceLimit {
 
   private final long duration;
