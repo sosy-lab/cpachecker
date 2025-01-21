@@ -137,6 +137,9 @@ SPDX-License-Identifier: Apache-2.0
                 <replacetokens begintoken="=" endtoken="g">
                     <token key="warnin" value="=error"/>
                 </replacetokens>
+                <replacetokens begintoken="=" endtoken="o">
+                    <token key="inf" value="=ignore"/>
+                </replacetokens>
             </filterchain>
         </copy>
 

@@ -41,12 +41,16 @@ public class LockReducer implements Reducer, StatisticsProvider {
 
   public class LockReducerStatistics implements Statistics {
 
-    private StatTimer lockReducing = new StatTimer("Time for reducing locks");
-    private StatTimer reduceUselessLocksTimer = new StatTimer("Time for reducing useless locks");
-    private StatTimer reduceLockCountersTimer = new StatTimer("Time for reducing lock counters");
-    private StatTimer lockExpanding = new StatTimer("Time for expanding locks");
-    private StatTimer expandUselessLocksTimer = new StatTimer("Time for expanding useless locks");
-    private StatTimer expandLockCountersTimer = new StatTimer("Time for expanding lock counters");
+    private final StatTimer lockReducing = new StatTimer("Time for reducing locks");
+    private final StatTimer reduceUselessLocksTimer =
+        new StatTimer("Time for reducing useless locks");
+    private final StatTimer reduceLockCountersTimer =
+        new StatTimer("Time for reducing lock counters");
+    private final StatTimer lockExpanding = new StatTimer("Time for expanding locks");
+    private final StatTimer expandUselessLocksTimer =
+        new StatTimer("Time for expanding useless locks");
+    private final StatTimer expandLockCountersTimer =
+        new StatTimer("Time for expanding lock counters");
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {

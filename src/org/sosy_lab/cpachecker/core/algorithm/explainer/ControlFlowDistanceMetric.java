@@ -277,6 +277,8 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
    * @param pARGStates the ARGStates
    * @return the new Generated Path (maybe more than one found)
    */
+  @SuppressWarnings("RedundantControlFlow") // FIXME
+  // https://gitlab.com/sosy-lab/software/cpachecker/-/commit/5f68fc9d6b5e69680a6b798b2d320106711197cd#note_2269388303
   private List<List<CFAEdge>> pathGenerator(List<CFAEdge> pBranchesCE, List<ARGState> pARGStates) {
     if (pBranchesCE.isEmpty()) {
       return null;
