@@ -439,17 +439,20 @@ class WebInterface:
         if "commitHash" not in version_information:
             logging.warning(
                 "Warning: Could not retrieve commit hash. Using fallback value: %s",
-                revision)
+                revision,
+            )
 
         if "toolVersion" not in version_information:
             logging.warning(
                 "Warning: Could not retrieve the tool version. Using fallback value: %s",
-                self._revision)
+                self._revision,
+            )
 
         if "toolName" not in version_information:
             logging.warning(
                 "Warning: Could not retrieve the tool name. Using fallback value: %s",
-                "CPAchecker")
+                "CPAchecker",
+            )
 
         if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
             logging.warning(
