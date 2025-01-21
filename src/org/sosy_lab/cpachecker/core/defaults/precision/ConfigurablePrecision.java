@@ -265,7 +265,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
           && trackIntAddVariables == precisionCompare.trackIntAddVariables
           && trackFloatVariables == precisionCompare.trackFloatVariables
           && trackAddressedVariables == precisionCompare.trackAddressedVariables
-          && (vc.isPresent()) == (precisionCompare.vc.isPresent())
+          && vc.isPresent() == precisionCompare.vc.isPresent()
           && vc.isPresent()
           && vc.orElseThrow().equals(precisionCompare.vc.orElseThrow())
           && cpaClass.equals(precisionCompare.cpaClass)) {
