@@ -37,9 +37,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -241,7 +243,27 @@ public class BlockGraphModification {
           return new CDeclarationEdge(rawStatement, loc, pStart, pEnd, e.getDeclaration());
         }
       }
-      default -> throw new AssertionError("Unexpected edge: " + pEdge);
+      case ReturnStatementEdge -> {
+        if (!(pEdge instanceof CReturnStatementEdge e)) {
+          throw new AssertionError("Expected C program, but got edge " + pEdge);
+        } else if (!(pEnd instanceof FunctionExitNode exitNode)) {
+          throw new AssertionError(
+              "Expected exit node to be " + FunctionExitNode.class + " but got " + pEnd.getClass());
+        } else {
+          return new CReturnStatementEdge(
+              rawStatement, e.getReturnStatement(), loc, pStart, exitNode);
+        }
+      }
+      default ->
+          throw new AssertionError(
+              "Unexpected edge: "
+                  + pEdge
+                  + "\nStart node: "
+                  + pStart.getClass()
+                  + "\nEnd node: "
+                  + pEdge.getSuccessor().getClass()
+                  + "\nEntering summary edge: "
+                  + pEdge.getSuccessor().getEnteringSummaryEdge());
     }
   }
 
@@ -294,32 +316,66 @@ public class BlockGraphModification {
     ImmutableMap.Builder<CFANode, CFAEdge> abstractions = ImmutableMap.builder();
     for (CFANode originalBlockEnd : blockEnds) {
       CFANode mutableCfaBlockEnd = blockMapping.originalToInstrumentedNodes().get(originalBlockEnd);
+      checkState(
+          mutableCfaBlockEnd.getClass().equals(originalBlockEnd.getClass()),
+          "Node types at block end do not match: "
+              + originalBlockEnd.getClass()
+              + " vs. "
+              + mutableCfaBlockEnd.getClass());
       if (mutableCfaBlockEnd.getLeavingSummaryEdge() == null
           && !mutableCfaBlockEnd.equals(pOriginalCfa.getMainFunction())
           && !(mutableCfaBlockEnd instanceof CFATerminationNode)) {
         CFANode newNodeBeforeBlockEnd = new CFANode(mutableCfaBlockEnd.getFunction());
         pMutableCfa.addNode(newNodeBeforeBlockEnd);
-
-        List<CFANode> originalNodesBeforeBlockEnd =
-            CFAUtils.enteringEdges(mutableCfaBlockEnd).transform(e -> e.getPredecessor()).toList();
-        for (CFANode n : originalNodesBeforeBlockEnd) {
+        final CFAEdge ghostEdge;
+        if (mutableCfaBlockEnd instanceof FunctionExitNode
+            && mutableCfaBlockEnd.getNumEnteringEdges() == 1
+            && mutableCfaBlockEnd.getEnteringEdge(0)
+                instanceof CReturnStatementEdge originalReturnEdge) {
+          List<CFANode> originalNodesBeforeBlockEnd =
+              CFAUtils.enteringEdges(mutableCfaBlockEnd)
+                  .transform(e -> e.getPredecessor())
+                  .toList();
           checkState(
-              n.getNumLeavingEdges() == 1,
-              "Violated assumption in block-graph decomposition of DSS: CFA node just before end of"
-                  + " block has more than one leaving edges: "
-                  + "%s",
-              CFAUtils.leavingEdges(n));
-          CFAEdge e = n.getLeavingEdge(0);
-          CFAEdge edgeToNewNode = cloneEdge(e, n, newNodeBeforeBlockEnd);
-          n.removeLeavingEdge(e);
-          n.addLeavingEdge(edgeToNewNode);
-          newNodeBeforeBlockEnd.addEnteringEdge(edgeToNewNode);
-        }
+              originalNodesBeforeBlockEnd.size() == 1,
+              "More than one node right before return statement: " + originalNodesBeforeBlockEnd);
+          CFANode originalNodeBeforeBlockEnd = originalNodesBeforeBlockEnd.get(0);
 
-        CFAEdge blockEndEdge = insertGhostEdge(newNodeBeforeBlockEnd, mutableCfaBlockEnd);
-        newNodeBeforeBlockEnd.addLeavingEdge(blockEndEdge);
-        mutableCfaBlockEnd.addEnteringEdge(blockEndEdge);
-        abstractions.put(originalBlockEnd, blockEndEdge);
+          // return statement should go into FunctionExitNode at block end ...
+          CFAEdge newReturnEdge =
+              cloneEdge(originalReturnEdge, newNodeBeforeBlockEnd, mutableCfaBlockEnd);
+          originalNodeBeforeBlockEnd.removeLeavingEdge(originalReturnEdge);
+          mutableCfaBlockEnd.removeEnteringEdge(originalReturnEdge);
+          newNodeBeforeBlockEnd.addLeavingEdge(newReturnEdge);
+          mutableCfaBlockEnd.addEnteringEdge(newReturnEdge);
+          // ... so insert ghost edge not at block end, but one before that.
+          ghostEdge = insertGhostEdge(originalNodeBeforeBlockEnd, newNodeBeforeBlockEnd);
+          originalNodeBeforeBlockEnd.addLeavingEdge(ghostEdge);
+          newNodeBeforeBlockEnd.addEnteringEdge(ghostEdge);
+
+        } else {
+          List<CFANode> originalNodesBeforeBlockEnd =
+              CFAUtils.enteringEdges(mutableCfaBlockEnd)
+                  .transform(e -> e.getPredecessor())
+                  .toList();
+          for (CFANode n : originalNodesBeforeBlockEnd) {
+            checkState(
+                n.getNumLeavingEdges() == 1,
+                "Violated assumption in block-graph decomposition of DSS: CFA node just before end"
+                    + " of block has more than one leaving edges: %s",
+                CFAUtils.leavingEdges(n));
+            CFAEdge e = n.getLeavingEdge(0);
+            CFAEdge edgeToNewNode = cloneEdge(e, n, newNodeBeforeBlockEnd);
+            n.removeLeavingEdge(e);
+            n.addLeavingEdge(edgeToNewNode);
+            newNodeBeforeBlockEnd.addEnteringEdge(edgeToNewNode);
+          }
+
+          ghostEdge = insertGhostEdge(newNodeBeforeBlockEnd, mutableCfaBlockEnd);
+          newNodeBeforeBlockEnd.addLeavingEdge(ghostEdge);
+          mutableCfaBlockEnd.addEnteringEdge(ghostEdge);
+        }
+        abstractions.put(originalBlockEnd, ghostEdge);
       } else {
         if (mutableCfaBlockEnd.getLeavingSummaryEdge() != null) {
           unableToAbstract.add(mutableCfaBlockEnd);
