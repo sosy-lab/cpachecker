@@ -1082,10 +1082,14 @@ class WebInterface:
         if self._run_collection_ids is not None and self._unfinished_runs:
             for run_collection_id in self._run_collection_ids:
                 try:
-                    state, _ = self._request("GET", "runs/collection/", + run_collection_id + "/state")
+                    state, _ = self._request(
+                        "GET", "runs/collection/", + run_collection_id + "/state"
+                    )
                     if state.decode("utf-8") == "COMPLETED":
-                        logging.info("Skipping run collection %s as it is already completed",
-                                     run_collection_id)
+                        logging.info(
+                        "Skipping run collection %s as it is already completed",
+                        run_collection_id,
+                        )
                         continue
 
                     logging.info("Deleting run collection %s", run_collection_id)
