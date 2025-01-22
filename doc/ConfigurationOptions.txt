@@ -2246,6 +2246,10 @@ cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
   enum:     [DISABLE, INT2BV, BV2INT]
 
+# when reading invariants from YML witness ignore the location context and
+# only consider function context program)
+cpa.predicate.abstraction.initialPredicates.ignoreLocationInfoInYMLWitness = false
+
 # initial predicates are added as atomic predicates
 cpa.predicate.abstraction.initialPredicates.splitIntoAtoms = false
 

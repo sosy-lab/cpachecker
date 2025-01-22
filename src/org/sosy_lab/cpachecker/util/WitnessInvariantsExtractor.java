@@ -74,10 +74,10 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 @Options(prefix = "witness")
 public class WitnessInvariantsExtractor {
 
-  private Configuration config;
-  private LogManager logger;
-  private CFA cfa;
-  private ShutdownNotifier shutdownNotifier;
+  private final Configuration config;
+  private final LogManager logger;
+  private final CFA cfa;
+  private final ShutdownNotifier shutdownNotifier;
   private ReachedSet reachedSet;
   private Specification automatonAsSpec;
 

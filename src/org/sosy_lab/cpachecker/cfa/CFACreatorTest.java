@@ -19,10 +19,15 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.io.MoreFiles;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -234,6 +239,45 @@ public class CFACreatorTest {
         .isTrue();
   }
 
+  @Test
+  public void testFileLocationsInCfa() throws IOException, InterruptedException, ParserException {
+    Path program_path = Path.of("test/programs/cfa-creation/cfa-creation-test.c");
+    CFA createdCFA =
+        TestDataTools.makeCFA(
+            IOUtils.toString(
+                MoreFiles.asByteSource(program_path).openStream(), StandardCharsets.UTF_8));
+
+    Path testFilepath = Path.of("./test");
+    assertThat(TestDataTools.getEdge("x = 0", createdCFA).getFileLocation())
+        .isEqualTo(new FileLocation(testFilepath, 252, 10, 10, 10, 3, 13));
+    assertThat(TestDataTools.getEdge("y = 0", createdCFA).getFileLocation())
+        .isEqualTo(new FileLocation(testFilepath, 265, 10, 11, 11, 3, 13));
+    assertThat(TestDataTools.getEdge("[x == y]", createdCFA).getFileLocation())
+        .isEqualTo(new FileLocation(testFilepath, 282, 6, 12, 12, 7, 13));
+    assertThat(TestDataTools.getEdge("!(x == y)", createdCFA).getFileLocation())
+        .isEqualTo(new FileLocation(testFilepath, 282, 6, 12, 12, 7, 13));
+    assertThat(TestDataTools.getEdge("[x == 0]", createdCFA).getFileLocation())
+        .isEqualTo(new FileLocation(testFilepath, 292, 6, 12, 12, 17, 23));
+    assertThat(TestDataTools.getEdge("!(x == 0)", createdCFA).getFileLocation())
+        .isEqualTo(new FileLocation(testFilepath, 292, 6, 12, 12, 17, 23));
+    assertThat(TestDataTools.getEdge("[y == 0]", createdCFA).getFileLocation())
+        .isEqualTo(new FileLocation(testFilepath, 308, 6, 13, 13, 7, 13));
+    assertThat(TestDataTools.getEdge("!(y == 0)", createdCFA).getFileLocation())
+        .isEqualTo(new FileLocation(testFilepath, 308, 6, 13, 13, 7, 13));
+    assertThat(TestDataTools.getEdge("[t1 == t2]", createdCFA).getFileLocation())
+        .isEqualTo(new FileLocation(testFilepath, 384, 8, 21, 21, 10, 18));
+    assertThat(TestDataTools.getEdge("!(t1 == t2)", createdCFA).getFileLocation())
+        .isEqualTo(new FileLocation(testFilepath, 384, 8, 21, 21, 10, 18));
+    assertThat(TestDataTools.getEdge("[t1 == t3]", createdCFA).getFileLocation())
+        .isEqualTo(new FileLocation(testFilepath, 405, 8, 22, 22, 10, 18));
+    assertThat(TestDataTools.getEdge("!(t1 == t3)", createdCFA).getFileLocation())
+        .isEqualTo(new FileLocation(testFilepath, 405, 8, 22, 22, 10, 18));
+    assertThat(TestDataTools.getEdge("[t2 == t3]", createdCFA).getFileLocation())
+        .isEqualTo(new FileLocation(testFilepath, 426, 17, 23, 24, 10, 12));
+    assertThat(TestDataTools.getEdge("!(t2 == t3)", createdCFA).getFileLocation())
+        .isEqualTo(new FileLocation(testFilepath, 426, 17, 23, 24, 10, 12));
+  }
+
   private CFACreator createCfaCreatorForTesting(Configuration config)
       throws InvalidConfigurationException {
     final LogManager logger = LogManager.createTestLogManager();
@@ -287,8 +331,7 @@ public class CFACreatorTest {
     List<JParameterDeclaration> jParameterDeclarations = new ArrayList<>(parameters.size());
     for (String parameter : parameters) {
       jParameterDeclarations.add(
-          new JParameterDeclaration(
-              FileLocation.DUMMY, JSimpleType.getInt(), parameter, "stub", false));
+          new JParameterDeclaration(FileLocation.DUMMY, JSimpleType.INT, parameter, "stub", false));
     }
     if (!parametersSubString.isEmpty()) {
       name.append("_").append(parametersSubString);

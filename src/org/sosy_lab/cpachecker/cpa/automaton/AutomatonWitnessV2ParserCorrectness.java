@@ -22,14 +22,19 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversLines;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEndsAtNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
 class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon {
@@ -56,6 +61,8 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
     Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
     String entryStateId = "singleState";
 
+    AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
+
     ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
 
     SetMultimap<Pair<Integer, Integer>, Pair<String, String>> lineToSeenInvariants =
@@ -71,6 +78,7 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
             Integer line = invariantEntry.getLocation().getLine();
             Integer column = invariantEntry.getLocation().getColumn();
             Pair<Integer, Integer> position = Pair.of(line, column);
+            String invariantType = invariantEntry.getType();
 
             // Parsing is expensive for long invariants, we therefore try to reduce it
             Pair<String, String> lookupKey = Pair.of(resultFunction.orElseThrow(), invariantString);
@@ -87,11 +95,33 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
               continue;
             }
 
-            transitions.add(
-                new AutomatonTransition.Builder(
-                        new CheckCoversLines(ImmutableSet.of(line)), entryStateId)
-                    .withCandidateInvariants(invariant)
-                    .build());
+            if (invariantType.equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())) {
+              Optional<IterationElement> optionalIterationStructure =
+                  astCfaRelation.getIterationStructureStartingAtColumn(column, line);
+
+              IterationElement iterationElement = optionalIterationStructure.orElseThrow();
+              Optional<CFANode> optionalLoopHead = iterationElement.getLoopHead();
+              if (optionalLoopHead.isEmpty()) {
+                // TODO: Handle correctly
+                continue;
+              }
+
+              transitions.add(
+                  new AutomatonTransition.Builder(
+                          new CheckEndsAtNodes(ImmutableSet.of(optionalLoopHead.orElseThrow())),
+                          entryStateId)
+                      .withCandidateInvariants(invariant)
+                      .build());
+            } else if (invariantType.equals(InvariantRecordType.LOCATION_INVARIANT.getKeyword())) {
+              transitions.add(
+                  new AutomatonTransition.Builder(
+                          new CheckCoversColumnAndLine(column, line), entryStateId)
+                      .withCandidateInvariants(invariant)
+                      .build());
+            } else {
+              throw new WitnessParseException(
+                  "The witness contained other statements than Loop and Location Invariants!");
+            }
           }
         }
         automatonName = invariantSetEntry.metadata.getUuid();

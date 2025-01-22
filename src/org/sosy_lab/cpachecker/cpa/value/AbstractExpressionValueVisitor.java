@@ -88,7 +88,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
@@ -1749,16 +1748,16 @@ public abstract class AbstractExpressionValueVisitor
             (NumericValue) pLValue,
             (NumericValue) pRValue,
             pOperator,
-            ((JSimpleType) pLType).getType(),
-            ((JSimpleType) pRType).getType());
+            (JSimpleType) pLType,
+            (JSimpleType) pRType);
 
       } else {
         return calculateIntegerOperation(
             (NumericValue) pLValue,
             (NumericValue) pRValue,
             pOperator,
-            ((JSimpleType) pLType).getType(),
-            ((JSimpleType) pRType).getType());
+            (JSimpleType) pLType,
+            (JSimpleType) pRType);
       }
 
     } else if (pLValue instanceof BooleanValue) {
@@ -1839,8 +1838,8 @@ public abstract class AbstractExpressionValueVisitor
       NumericValue pLeftValue,
       NumericValue pRightValue,
       JBinaryExpression.BinaryOperator pBinaryOperator,
-      JBasicType pLeftType,
-      JBasicType pRightType)
+      JSimpleType pLeftType,
+      JSimpleType pRightType)
       throws IllegalOperationException {
 
     checkNotNull(pLeftType);
@@ -1904,7 +1903,7 @@ public abstract class AbstractExpressionValueVisitor
             // type
             // int or long, so we have to cast if the actual type is int.
             case SHIFT_LEFT:
-              if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
+              if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
                 final int intResult = ((int) lVal) << rVal;
                 numResult = intResult;
               } else {
@@ -1913,7 +1912,7 @@ public abstract class AbstractExpressionValueVisitor
               break;
 
             case SHIFT_RIGHT_SIGNED:
-              if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
+              if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
                 final int intResult = ((int) lVal) >> rVal;
                 numResult = intResult;
               } else {
@@ -1922,7 +1921,7 @@ public abstract class AbstractExpressionValueVisitor
               break;
 
             case SHIFT_RIGHT_UNSIGNED:
-              if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
+              if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
                 final int intResult = ((int) lVal) >>> rVal;
                 numResult = intResult;
               } else {
@@ -1934,7 +1933,7 @@ public abstract class AbstractExpressionValueVisitor
               throw new AssertionError("Unhandled operator " + pBinaryOperator);
           }
 
-          if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
+          if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
             int intNumResult = (int) numResult;
             numResult = intNumResult;
           }
@@ -1975,14 +1974,14 @@ public abstract class AbstractExpressionValueVisitor
       NumericValue pLeftValue,
       NumericValue pRightValue,
       JBinaryExpression.BinaryOperator pBinaryOperator,
-      JBasicType pLeftOperand,
-      JBasicType pRightOperand)
+      JSimpleType pLeftOperand,
+      JSimpleType pRightOperand)
       throws IllegalOperationException {
 
     final double lVal;
     final double rVal;
 
-    if (pLeftOperand != JBasicType.DOUBLE && pRightOperand != JBasicType.DOUBLE) {
+    if (pLeftOperand != JSimpleType.DOUBLE && pRightOperand != JSimpleType.DOUBLE) {
       lVal = pLeftValue.floatValue();
       rVal = pRightValue.floatValue();
     } else {
@@ -2181,11 +2180,11 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private static boolean isIntegerType(JType type) {
-    return type instanceof JSimpleType && ((JSimpleType) type).getType().isIntegerType();
+    return type instanceof JSimpleType && ((JSimpleType) type).isIntegerType();
   }
 
   private static boolean isFloatType(JType type) {
-    return type instanceof JSimpleType && ((JSimpleType) type).getType().isFloatingPointType();
+    return type instanceof JSimpleType && ((JSimpleType) type).isFloatingPointType();
   }
 
   @Override
@@ -2668,12 +2667,12 @@ public abstract class AbstractExpressionValueVisitor
       if (isIntegerType(sourceType)) {
         long longValue = numericValue.longValue();
 
-        return createValue(longValue, st.getType());
+        return createValue(longValue, st);
 
       } else if (isFloatType(sourceType)) {
         double doubleValue = numericValue.doubleValue();
 
-        return createValue(doubleValue, st.getType());
+        return createValue(doubleValue, st);
 
       } else {
         throw new AssertionError(
@@ -2684,7 +2683,7 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private static Value createValue(long value, JBasicType targetType) {
+  private static Value createValue(long value, JSimpleType targetType) {
     switch (targetType) {
       case BYTE:
         return new NumericValue((byte) value);
@@ -2712,7 +2711,7 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private static Value createValue(double value, JBasicType targetType) {
+  private static Value createValue(double value, JSimpleType targetType) {
     return switch (targetType) {
       case BYTE -> new NumericValue((byte) value);
       case CHAR, SHORT -> new NumericValue((short) value);
