@@ -215,7 +215,7 @@ public class ThreadingState
 
   /** returns the set of lock ids */
   public ImmutableSet<String> getLockIds() {
-    return FluentIterable.from(locks.keySet()).toSet();
+    return ImmutableSet.copyOf(locks.keySet());
   }
 
   public Set<String> getLocksForThread(String threadId) {

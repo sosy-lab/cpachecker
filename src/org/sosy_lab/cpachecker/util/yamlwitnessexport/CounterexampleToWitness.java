@@ -444,7 +444,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     segments.add(SegmentRecord.ofOnlyElement(targetWaypoint(lastEdge, astCFARelation)));
 
     exportEntries(
-        new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments.build()), pPath);
+        ImmutableList.of(
+            new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments.build())),
+        pPath);
   }
 
   /**

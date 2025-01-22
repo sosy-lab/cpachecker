@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -24,10 +25,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostInstrumentationContentRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostInstrumentationEntry;
@@ -65,7 +70,8 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     return new GhostUpdateRecord(locationRecord, ImmutableList.of(updateRecord));
   }
 
-  WitnessExportResult exportWitness(ARGState pRootState, Path pPath) throws IOException {
+  WitnessExportResult exportWitness(ARGState pRootState, Path pPath)
+      throws IOException, ReportingMethodNotImplementedException, InterruptedException {
     // Collect the information about the states relevant for ghost variables
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 
@@ -98,8 +104,18 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
 
     GhostInstrumentationContentRecord record =
         new GhostInstrumentationContentRecord(ghostVariables.build(), ghostUpdates);
+
+    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
+    Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
+
+    // TODO: use the collected states and ghost variables to generate invariants
+    ImmutableList.Builder<AbstractInvariantEntry> invariantEntries = new ImmutableList.Builder<>();
+
     exportEntries(
-        new GhostInstrumentationEntry(getMetadata(YAMLWitnessVersion.V2dG), record), pPath);
+        ImmutableList.of(
+            new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2), invariantEntries.build()),
+            new GhostInstrumentationEntry(getMetadata(YAMLWitnessVersion.V2dG), record)),
+        pPath);
 
     return new WitnessExportResult(true);
   }

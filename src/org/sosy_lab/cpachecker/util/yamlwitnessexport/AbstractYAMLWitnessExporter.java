@@ -91,14 +91,14 @@ abstract class AbstractYAMLWitnessExporter {
     return Verify.verifyNotNull(astCFARelation);
   }
 
-  protected void exportEntries(AbstractEntry entry, Path outFile) {
-    if (outFile == null) {
+  protected void exportEntries(List<AbstractEntry> pEntries, Path pOutFile) {
+    if (pOutFile == null) {
       logger.log(Level.FINE, "Output file is null, not exporting witness.");
       return;
     }
 
-    try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
-      String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
+    try (Writer writer = IO.openOutputFile(pOutFile, Charset.defaultCharset())) {
+      String entryYaml = mapper.writeValueAsString(pEntries);
       writer.write(entryYaml);
     } catch (JsonProcessingException e) {
       throw new AssertionError(e);
@@ -107,7 +107,7 @@ abstract class AbstractYAMLWitnessExporter {
           Level.INFO,
           e,
           "witness export to "
-              + outFile
+              + pOutFile
               + " failed due to not being able to write to the output file.");
     }
   }
