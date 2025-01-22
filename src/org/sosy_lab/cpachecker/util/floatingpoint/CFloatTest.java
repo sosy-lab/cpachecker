@@ -183,11 +183,11 @@ public class CFloatTest {
     p = new CFloatNative(res.copyWrapper(), CFloatNativeAPI.CFloatType.DOUBLE);
     assertThat(p.toString()).isEqualTo("2.0000000000000000e+01");
 
-    res = res.add(ten).add(ten).add(five);
+    res = res.add(ten).add(ten).add(five.castTo(CFloatType.DOUBLE));
     p = new CFloatNative(res.copyWrapper(), CFloatNativeAPI.CFloatType.DOUBLE);
     assertThat(p.toString()).isEqualTo("4.5000000000000000e+01");
 
-    res = res.add(nOne).add(nOne).add(nOne);
+    res = res.castTo(CFloatType.LONG_DOUBLE).add(nOne).add(nOne).add(nOne);
     p = new CFloatNative(res.copyWrapper(), CFloatNativeAPI.CFloatType.LONG_DOUBLE);
     assertThat(p.toString()).isEqualTo("4.20000000000000000000e+01");
   }
