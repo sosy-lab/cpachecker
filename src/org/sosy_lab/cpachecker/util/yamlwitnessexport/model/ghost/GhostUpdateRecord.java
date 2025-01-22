@@ -18,11 +18,11 @@ public class GhostUpdateRecord {
   private final LocationRecord location;
 
   @JsonProperty("updates")
-  private final List<UpdatesRecord> updates;
+  private final List<UpdateRecord> updates;
 
   public GhostUpdateRecord(
       @JsonProperty("location") LocationRecord pLocation,
-      @JsonProperty("updates") List<UpdatesRecord> pUpdates) {
+      @JsonProperty("updates") List<UpdateRecord> pUpdates) {
     location = pLocation;
     updates = pUpdates;
   }
@@ -31,7 +31,7 @@ public class GhostUpdateRecord {
     return location;
   }
 
-  public List<UpdatesRecord> getUpdates() {
+  public List<UpdateRecord> getUpdates() {
     return updates;
   }
 }

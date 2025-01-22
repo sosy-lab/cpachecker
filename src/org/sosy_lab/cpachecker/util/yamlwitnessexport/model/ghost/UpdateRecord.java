@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 
-public class UpdatesRecord {
+public class UpdateRecord {
 
   @JsonProperty("variable")
   private final String variable;
@@ -24,12 +24,13 @@ public class UpdatesRecord {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   private final YAMLWitnessExpressionType format;
 
-  public UpdatesRecord(
-      @JsonProperty("variable") String pVariable, @JsonProperty("value") int pValue) {
+  public UpdateRecord(
+      @JsonProperty("variable") String pVariable,
+      @JsonProperty("value") int pValue,
+      @JsonProperty("format") YAMLWitnessExpressionType pFormat) {
     variable = pVariable;
     value = pValue;
-    // the format of ghost updates is currently always c_expression
-    format = YAMLWitnessExpressionType.C;
+    format = pFormat;
   }
 
   public String getVariable() {

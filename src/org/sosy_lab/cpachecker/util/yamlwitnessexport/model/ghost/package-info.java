@@ -8,6 +8,7 @@
 
 /**
  * Classes representing the concurrent correctness YAML witness format as specified in the 2024
- * paper "Correctness Witnesses for Concurrent Programs".
+ * paper "Correctness Witnesses for Concurrent Programs" (see
+ * https://doi.org/10.48550/arXiv.2411.16612).
  */
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost;

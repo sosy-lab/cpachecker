@@ -11,7 +11,8 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -33,7 +34,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostInstrumen
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostUpdateRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostVariableRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.InitialRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.UpdatesRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.UpdateRecord;
 
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
@@ -58,8 +59,10 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
             lockEdge.getFileLocation(),
             lockEdge.getSuccessor().getFunctionName(),
             cfa.getAstCfaRelation());
-    UpdatesRecord updatesRecord = new UpdatesRecord(getLockId(pParent, pChild), pValue);
-    return new GhostUpdateRecord(locationRecord, ImmutableList.of(updatesRecord));
+    // TODO the format of ghost updates is currently always c_expression
+    UpdateRecord updateRecord =
+        new UpdateRecord(getLockId(pParent, pChild), pValue, YAMLWitnessExpressionType.C);
+    return new GhostUpdateRecord(locationRecord, ImmutableList.of(updateRecord));
   }
 
   WitnessExportResult exportWitness(ARGState pRootState, Path pPath) throws IOException {
@@ -78,24 +81,22 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     ImmutableList<GhostUpdateRecord> ghostUpdates = ghostUpdatesB.build();
 
     Set<String> ghostVariableNames = new HashSet<>();
-    ImmutableList.Builder<GhostVariableRecord> ghostVariablesB = ImmutableList.builder();
+    ImmutableList.Builder<GhostVariableRecord> ghostVariables = ImmutableList.builder();
     // from ghostUpdates, extract all relevant ghost variables
     for (GhostUpdateRecord ghostUpdate : ghostUpdates) {
-      for (UpdatesRecord update : ghostUpdate.getUpdates()) {
+      for (UpdateRecord update : ghostUpdate.getUpdates()) {
         // add variable only once even with multiple updates
         if (ghostVariableNames.add(update.getVariable())) {
           // TODO initial value always 0? (yes for locks)
           InitialRecord initial = new InitialRecord(0, YAMLWitnessExpressionType.C);
-          GhostVariableRecord ghostVariable =
-              new GhostVariableRecord(update.getVariable(), CBasicType.INT.toASTString(), initial);
-          ghostVariablesB.add(ghostVariable);
+          ghostVariables.add(
+              new GhostVariableRecord(update.getVariable(), CBasicType.INT.toASTString(), initial));
         }
       }
     }
-    ImmutableList<GhostVariableRecord> ghostVariables = ghostVariablesB.build();
 
     GhostInstrumentationContentRecord record =
-        new GhostInstrumentationContentRecord(ghostVariables, ghostUpdates);
+        new GhostInstrumentationContentRecord(ghostVariables.build(), ghostUpdates);
     exportEntries(
         new GhostInstrumentationEntry(getMetadata(YAMLWitnessVersion.V2dG), record), pPath);
 
@@ -111,33 +112,13 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     checkNotNull(pChild);
     if (pParent.getWrappedState() instanceof ThreadingState parent
         && pChild.getWrappedState() instanceof ThreadingState child) {
-      ImmutableSet<String> symmetricDifference =
-          symmetricDifference(parent.locks.keySet(), child.locks.keySet());
+      SetView<String> symmetricDifference =
+          Sets.symmetricDifference(parent.locks.keySet(), child.locks.keySet());
       assert symmetricDifference.size() == 1
           : "there must be exactly one lock update between pParent and pChild";
       return symmetricDifference.iterator().next();
     } else {
       throw new AssertionError("both pParent and pChild must be ThreadingStates");
     }
-  }
-
-  /**
-   * Extracts the symmetric difference of the sets pA and pB.
-   *
-   * <p>E.g. A := {1, 2, 3} and B := {3, 4, 5} then symmetricDifference(A, B) = {1, 2, 4, 5}.
-   */
-  private <E> ImmutableSet<E> symmetricDifference(Set<E> pA, Set<E> pB) {
-    ImmutableSet.Builder<E> rDifference = ImmutableSet.builder();
-    for (E aElem : pA) {
-      if (!pB.contains(aElem)) {
-        rDifference.add(aElem);
-      }
-    }
-    for (E bElem : pB) {
-      if (!pA.contains(bElem)) {
-        rDifference.add(bElem);
-      }
-    }
-    return rDifference.build();
   }
 }
