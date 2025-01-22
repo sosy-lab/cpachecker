@@ -1137,7 +1137,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       }
     } else if (arg1.isInfinite()) {
       // (3) Only one argument is infinite
-      // No need to check m as it can't be larger, and one of the args is finite
+      // No need to check arg2 as it can't be larger, and one of the args is finite
       return arg1;
     } else if (arg1.isZero() && arg2.isZero()) {
       // (4) Both arguments are zero (or negative zero)
@@ -1257,7 +1257,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       return nan(format);
     } else if (arg1.isInfinite()) {
       // (2) One of the argument is infinite
-      // No need to check m as it can't be larger, and one of the args is finite
+      // No need to check arg2 as it can't be larger, and one of the args is finite
       if (arg2.isZero()) {
         // Return NaN if we're trying to multiply infinity by zero
         return nan(format);
@@ -1338,7 +1338,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       return nan(format);
     } else if (arg1.isInfinite()) {
       // (2) One of the argument is infinite
-      // No need to check m as it can't be larger, and one of the args is finite
+      // No need to check arg2 as it can't be larger, and one of the args is finite
       if (arg2.isZero()) {
         // Return NaN if we're trying to multiply infinity by zero
         return nan(format);
