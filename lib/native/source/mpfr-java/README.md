@@ -27,8 +27,8 @@ podman run --rm \
     ./lib/native/source/mpfr-java/compile.sh
 ```
 
-Once the build is complete the needed *.so files are copied to the cpachecker/lib
-folder and can be used from there.
+Once the build is complete the needed *.so files will be copied to the cpachecker/lib
+folder. From there they can then be pushed to the CPAchecker repository to update the library.
 
 ### Updating the Podman image
 

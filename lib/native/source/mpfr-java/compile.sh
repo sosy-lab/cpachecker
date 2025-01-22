@@ -8,8 +8,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# Download and build mpfr-java with its dependencies GMP and MPFR and copy the libraries to the CPAchecker /lib directory
-# Usage: ./compile.sh
+# This script is meant to be run inside a podman container.
+# It will download and build mpfr-java with its dependencies GMP and MPFR and copy the libraries to
+# the CPAchecker /lib directory.
+#
+# Please refer to the README file in this folder for more instructions.
 
 # Versions for GMP, MPFR and mpfr-java that will be used for the build
 VERSION_GMP="6.3.0"
