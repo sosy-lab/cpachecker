@@ -910,13 +910,10 @@ public abstract class AbstractExpressionValueVisitor
               calledFunctionName,
               parameterValues,
               (FloatValue arg) -> {
-                int sizeOfType =
-                    machineModel.getSizeof(CNumericTypes.LONG_INT)
-                        * machineModel.getSizeofCharInBits();
                 FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
-                return switch (sizeOfType) {
-                  case SIZE_OF_JAVA_INT -> new NumericValue(value.integerValue());
-                  case SIZE_OF_JAVA_LONG -> new NumericValue(value.longValue());
+                return switch (machineModel.getSizeofLongInt()) {
+                  case Integer.BYTES -> new NumericValue(value.integerValue());
+                  case Long.BYTES -> new NumericValue(value.longValue());
                   default -> Value.UnknownValue.getInstance();
                 };
               });
@@ -926,13 +923,10 @@ public abstract class AbstractExpressionValueVisitor
               calledFunctionName,
               parameterValues,
               (FloatValue arg) -> {
-                int sizeOfType =
-                    machineModel.getSizeof(CNumericTypes.LONG_LONG_INT)
-                        * machineModel.getSizeofCharInBits();
                 FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
-                return switch (sizeOfType) {
-                  case SIZE_OF_JAVA_INT -> new NumericValue(value.integerValue());
-                  case SIZE_OF_JAVA_LONG -> new NumericValue(value.longValue());
+                return switch (machineModel.getSizeofLongLongInt()) {
+                  case Integer.BYTES -> new NumericValue(value.integerValue());
+                  case Long.BYTES -> new NumericValue(value.longValue());
                   default -> Value.UnknownValue.getInstance();
                 };
               });
