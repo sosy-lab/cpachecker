@@ -13,6 +13,8 @@ import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
@@ -61,5 +63,30 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression
     }
 
     return obj instanceof CFloatLiteralExpression && super.equals(obj);
+  }
+
+  @Override
+  public String toASTString() {
+    FloatValue value = getValue();
+    if (value.isInfinite()) {
+      // "Infinity" is not a valid float literal
+      // We need to rewrite it as the expression 1.0/0.0
+      return (value.isNegative() ? "-" : "") + "1.0/0.0";
+    } else if (value.isNan()) {
+      // Same for NaN: It needs to be replaced by the expression 0.0/0.0
+      return (value.isNegative() ? "-" : "") + "0.0/0.0";
+    } else {
+      // We have a regular value: print the number and add a suffix if necessary
+      String repr = value.toString();
+
+      // Add a suffix for "float" and "long double"
+      CSimpleType type = (CSimpleType) getExpressionType();
+      String suffix =
+          type.equals(CNumericTypes.FLOAT)
+              ? "f"
+              : type.equals(CNumericTypes.LONG_DOUBLE) ? "l" : "";
+
+      return repr + suffix;
+    }
   }
 }
