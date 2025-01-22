@@ -689,16 +689,17 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    */
   private static BigInteger applyRoundingBits(
       RoundingMode pRoundingMode, boolean pNegative, BigInteger pSignificand) {
-    long grs = pSignificand.and(new BigInteger("111", 2)).longValue();
-    pSignificand = pSignificand.shiftRight(3);
-    BigInteger plusOne = pSignificand.add(BigInteger.ONE);
+    int grs = pSignificand.intValue() & 0b111;
+    BigInteger shifted = pSignificand.shiftRight(3);
     return switch (pRoundingMode) {
-      case NEAREST_AWAY -> (grs >= 4) ? plusOne : pSignificand;
+      case NEAREST_AWAY -> (grs >= 0b100) ? shifted.add(BigInteger.ONE) : shifted;
       case NEAREST_EVEN ->
-          ((grs == 4 && pSignificand.testBit(0)) || grs > 4) ? plusOne : pSignificand;
-      case CEILING -> (grs > 0 && !pNegative) ? plusOne : pSignificand;
-      case FLOOR -> (grs > 0 && pNegative) ? plusOne : pSignificand;
-      case TRUNCATE -> pSignificand;
+          ((grs == 0b100 && shifted.testBit(0)) || grs > 0b100)
+              ? shifted.add(BigInteger.ONE)
+              : shifted;
+      case CEILING -> (grs > 0b000 && !pNegative) ? shifted.add(BigInteger.ONE) : shifted;
+      case FLOOR -> (grs > 0b000 && pNegative) ? shifted.add(BigInteger.ONE) : shifted;
+      case TRUNCATE -> shifted;
     };
   }
 
