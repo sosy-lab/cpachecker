@@ -286,6 +286,7 @@ class JDouble extends CFloat {
 
   @Override
   public int compareTo(CFloat other) {
+    // FIXME: We only allow comparisons with other JDouble objects
     if (other instanceof JDouble otherDouble) {
       return Double.compare(value, otherDouble.value);
     }
