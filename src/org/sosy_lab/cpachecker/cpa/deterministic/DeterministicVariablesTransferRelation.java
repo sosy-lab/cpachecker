@@ -64,12 +64,12 @@ public class DeterministicVariablesTransferRelation
         DeterministicVariablesState, DeterministicVariablesState, Precision>
     implements Statistics {
 
-  private StatCounter numberOfAssumes = new StatCounter("Number of assume edges");
-  private StatCounter numberOfNonDetAssumes =
+  private final StatCounter numberOfAssumes = new StatCounter("Number of assume edges");
+  private final StatCounter numberOfNonDetAssumes =
       new StatCounter("Number of non-deterministic assume edges");
 
-  private Set<CFANode> assumes = new HashSet<>();
-  private Set<CFANode> nondetAssumes = new HashSet<>();
+  private final Set<CFANode> assumes = new HashSet<>();
+  private final Set<CFANode> nondetAssumes = new HashSet<>();
 
   @Override
   protected DeterministicVariablesState handleDeclarationEdge(

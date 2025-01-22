@@ -128,14 +128,14 @@ public class BlockOperator {
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
   private ImmutableSet<CFANode> loopHeads = null;
 
-  public StatCounter numBlkEntryFunctionHeads = new StatCounter("");
-  public StatCounter numBlkFunctionHeads = new StatCounter("");
-  public StatCounter numBlkFunctions = new StatCounter("");
-  public StatCounter numBlkLoops = new StatCounter("");
-  public StatCounter numBlkJoins = new StatCounter("");
-  public StatCounter numBlkBranch = new StatCounter("");
-  public StatCounter numBlkThreshold = new StatCounter("");
-  public StatCounter numBlkExit = new StatCounter("");
+  public final StatCounter numBlkEntryFunctionHeads = new StatCounter("");
+  public final StatCounter numBlkFunctionHeads = new StatCounter("");
+  public final StatCounter numBlkFunctions = new StatCounter("");
+  public final StatCounter numBlkLoops = new StatCounter("");
+  public final StatCounter numBlkJoins = new StatCounter("");
+  public final StatCounter numBlkBranch = new StatCounter("");
+  public final StatCounter numBlkThreshold = new StatCounter("");
+  public final StatCounter numBlkExit = new StatCounter("");
 
   /**
    * Check whether an abstraction should be computed.

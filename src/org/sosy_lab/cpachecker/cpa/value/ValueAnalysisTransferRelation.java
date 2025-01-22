@@ -93,7 +93,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -666,7 +665,7 @@ public class ValueAnalysisTransferRelation
 
   private Type getBooleanType(AExpression pExpression) {
     if (pExpression instanceof JExpression) {
-      return JSimpleType.getBoolean();
+      return JSimpleType.BOOLEAN;
     } else if (pExpression instanceof CExpression) {
       return CNumericTypes.INT;
 
@@ -783,14 +782,12 @@ public class ValueAnalysisTransferRelation
       if (isComplexJavaType(declarationType)) {
         return NullValue.getInstance();
 
-      } else if (declarationType instanceof JSimpleType) {
-        JBasicType basicType = ((JSimpleType) declarationType).getType();
-
-        return switch (basicType) {
+      } else if (declarationType instanceof JSimpleType simpleType) {
+        return switch (simpleType) {
           case BOOLEAN -> BooleanValue.valueOf(defaultBooleanValue);
           case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> new NumericValue(defaultNumericValue);
           case UNSPECIFIED -> UnknownValue.getInstance();
-          default -> throw new AssertionError("Impossible type for declaration: " + basicType);
+          default -> throw new AssertionError("Impossible type for declaration: " + simpleType);
         };
       }
     }
@@ -1212,7 +1209,7 @@ public class ValueAnalysisTransferRelation
       MemoryLocation memLoc = getMemoryLocation(idExpression);
       Value unknownValue = UnknownValue.getInstance();
 
-      state.assignConstant(memLoc, unknownValue, JSimpleType.getUnspecified());
+      state.assignConstant(memLoc, unknownValue, JSimpleType.UNSPECIFIED);
 
     } else {
       JArraySubscriptExpression enclosingSubscriptExpression =

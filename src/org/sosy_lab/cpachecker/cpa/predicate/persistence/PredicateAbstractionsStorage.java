@@ -42,14 +42,14 @@ import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class PredicateAbstractionsStorage {
+public final class PredicateAbstractionsStorage {
 
-  public static class AbstractionNode {
+  public static final class AbstractionNode {
     private final int id;
     private final OptionalInt locationId;
     private final BooleanFormula formula;
 
-    public AbstractionNode(int pId, BooleanFormula pFormula, OptionalInt pLocationId) {
+    AbstractionNode(int pId, BooleanFormula pFormula, OptionalInt pLocationId) {
       id = pId;
       formula = pFormula;
       locationId = pLocationId;
@@ -86,13 +86,13 @@ public class PredicateAbstractionsStorage {
 
   private final Path abstractionsFile;
   private final FormulaManagerView fmgr;
-  protected final LogManager logger;
+  private final LogManager logger;
   private final Converter converter;
 
   private Integer rootAbstractionId = null;
   private ImmutableMap<Integer, AbstractionNode> abstractions = ImmutableMap.of();
   private ImmutableListMultimap<Integer, Integer> abstractionTree = ImmutableListMultimap.of();
-  private Set<Integer> reusedAbstractions = new TreeSet<>();
+  private final Set<Integer> reusedAbstractions = new TreeSet<>();
 
   public PredicateAbstractionsStorage(
       Path pFile, LogManager pLogger, FormulaManagerView pFmgr, @Nullable Converter pConverter)

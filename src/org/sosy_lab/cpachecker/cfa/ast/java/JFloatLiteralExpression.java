@@ -28,9 +28,9 @@ public final class JFloatLiteralExpression extends AFloatLiteralExpression
   /** Returns the equivalent Java type for a {@link FloatValue} */
   private static JSimpleType getJType(FloatValue pValue) {
     if (pValue.getFormat().equals(FloatValue.Format.Float32)) {
-      return JSimpleType.getFloat();
+      return JSimpleType.FLOAT;
     } else if (pValue.getFormat().equals(FloatValue.Format.Float64)) {
-      return JSimpleType.getDouble();
+      return JSimpleType.DOUBLE;
     } else {
       throw new IllegalArgumentException();
     }

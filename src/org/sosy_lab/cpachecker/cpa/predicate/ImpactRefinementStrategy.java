@@ -41,7 +41,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  *
  * <p>This class can be used both with and without BDDs.
  */
-class ImpactRefinementStrategy extends RefinementStrategy implements StatisticsProvider {
+final class ImpactRefinementStrategy extends RefinementStrategy implements StatisticsProvider {
 
   private class Stats implements Statistics {
 
@@ -79,7 +79,7 @@ class ImpactRefinementStrategy extends RefinementStrategy implements StatisticsP
   // (we sometimes needs this to refer to the previous block).
   private AbstractionFormula lastAbstraction = null;
 
-  protected ImpactRefinementStrategy(
+  ImpactRefinementStrategy(
       final Configuration config,
       final Solver pSolver,
       final PredicateAbstractionManager pPredAbsMgr)

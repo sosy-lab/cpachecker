@@ -1231,7 +1231,6 @@ public class SMGTransferRelation
                   addressToAssign,
                   leftHandSideType,
                   cfaEdge));
-          continue;
         }
         continue;
       }

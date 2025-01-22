@@ -134,7 +134,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
@@ -168,17 +167,17 @@ class ASTConverter {
   private JIdExpression enhancedForLoopIterator;
 
   /** Map for unboxing of JClassTypes */
-  private static final ImmutableMap<String, JBasicType> unboxingMap =
-      ImmutableMap.<String, JBasicType>builder()
-          .put("java.lang.Boolean", JBasicType.BOOLEAN)
-          .put("java.lang.Byte", JBasicType.BYTE)
-          .put("java.lang.Character", JBasicType.CHAR)
-          .put("java.lang.Float", JBasicType.FLOAT)
-          .put("java.lang.Integer", JBasicType.INT)
-          .put("java.lang.Long", JBasicType.LONG)
-          .put("java.lang.Short", JBasicType.SHORT)
-          .put("java.lang.Double", JBasicType.DOUBLE)
-          .put("java.lang.Void", JBasicType.VOID)
+  private static final ImmutableMap<String, JSimpleType> unboxingMap =
+      ImmutableMap.<String, JSimpleType>builder()
+          .put("java.lang.Boolean", JSimpleType.BOOLEAN)
+          .put("java.lang.Byte", JSimpleType.BYTE)
+          .put("java.lang.Character", JSimpleType.CHAR)
+          .put("java.lang.Float", JSimpleType.FLOAT)
+          .put("java.lang.Integer", JSimpleType.INT)
+          .put("java.lang.Long", JSimpleType.LONG)
+          .put("java.lang.Short", JSimpleType.SHORT)
+          .put("java.lang.Double", JSimpleType.DOUBLE)
+          .put("java.lang.Void", JSimpleType.VOID)
           .buildOrThrow();
 
   /**
@@ -1098,8 +1097,8 @@ class ASTConverter {
     JType instanceOfType = convert(e.resolveTypeBinding());
 
     assert instanceOfType instanceof JSimpleType;
-    if (((JSimpleType) instanceOfType).getType() != JBasicType.UNSPECIFIED) {
-      assert ((JSimpleType) instanceOfType).getType() == JBasicType.BOOLEAN
+    if (instanceOfType != JSimpleType.UNSPECIFIED) {
+      assert instanceOfType == JSimpleType.BOOLEAN
           : "InstanceofExpression is not always of type boolean!";
     }
 
@@ -1143,7 +1142,7 @@ class ASTConverter {
     }
 
     return createInstanceOfDisjunction(
-        pLeftOperand, allPossibleClasses, JSimpleType.getBoolean(), pLocation, isRightOperandArray);
+        pLeftOperand, allPossibleClasses, JSimpleType.BOOLEAN, pLocation, isRightOperandArray);
   }
 
   /**
@@ -1732,7 +1731,7 @@ class ASTConverter {
   @VisibleForTesting
   static Class<?> getClassOfPrimitiveType(JSimpleType pJSimpleType) {
     Class<?> cls =
-        switch (pJSimpleType.getType()) {
+        switch (pJSimpleType) {
           case BOOLEAN -> boolean.class;
           case CHAR -> char.class;
           case DOUBLE -> double.class;
@@ -2169,7 +2168,7 @@ class ASTConverter {
 
     JIdExpression methodName =
         new JIdExpression(
-            oldMethodCall.getFileLocation(), JSimpleType.getUnspecified(), name, declaration);
+            oldMethodCall.getFileLocation(), JSimpleType.UNSPECIFIED, name, declaration);
 
     if (oldMethodCall instanceof JReferencedMethodInvocationExpression) {
       return new JReferencedMethodInvocationExpression(
@@ -2422,19 +2421,19 @@ class ASTConverter {
     final String invalidTypeMsg =
         "Invalid type '" + type + "' for assignment with binary operation.";
 
-    JBasicType basicType;
+    JSimpleType simpleType;
 
     if (type instanceof JSimpleType) {
-      basicType = ((JSimpleType) type).getType();
+      simpleType = (JSimpleType) type;
     } else {
-      basicType = null;
+      simpleType = null;
     }
 
     if (op.equals(Assignment.Operator.ASSIGN)) {
       return null;
 
-    } else if (basicType != null) {
-      return switch (basicType) {
+    } else if (simpleType != null) {
+      return switch (simpleType) {
         case BOOLEAN -> convertBooleanOperator(op);
         case BYTE, SHORT, INT, LONG, DOUBLE, FLOAT -> convertNumberOperator(op);
         default -> throw new CFAGenerationRuntimeException(invalidTypeMsg);
@@ -2581,7 +2580,7 @@ class ASTConverter {
     final JType rightHandType = rightHandSide.getExpressionType();
     BinaryOperator op = convert(e.getOperator(), leftHandType, rightHandType);
 
-    if (type.equals(JSimpleType.getUnspecified())) {
+    if (type.equals(JSimpleType.UNSPECIFIED)) {
       if (op == BinaryOperator.STRING_CONCATENATION) {
         if (scope.containsClassType("java.lang.String")) {
           type = scope.getClassType("java.lang.String");
@@ -2618,31 +2617,31 @@ class ASTConverter {
   private BinaryOperator convert(InfixExpression.Operator op, JType pOp1Type, JType pOp2Type) {
     final String invalidTypeMsg =
         "Invalid operation '" + pOp1Type + " " + op + " " + pOp2Type + "'";
-    JBasicType basicTypeOp1 = null;
-    JBasicType basicTypeOp2 = null;
+    JSimpleType simpleTypeOp1 = null;
+    JSimpleType simpleTypeOp2 = null;
 
     if (pOp1Type instanceof JSimpleType) {
-      basicTypeOp1 = ((JSimpleType) pOp1Type).getType();
+      simpleTypeOp1 = (JSimpleType) pOp1Type;
     }
 
     if (pOp2Type instanceof JSimpleType) {
-      basicTypeOp2 = ((JSimpleType) pOp2Type).getType();
+      simpleTypeOp2 = (JSimpleType) pOp2Type;
     }
 
-    JBasicType jBasicType;
-    if (pOp1Type instanceof JClassType && basicTypeOp2 != null) {
-      jBasicType = unboxJClassType((JClassType) pOp1Type).orElse(null);
-      if (jBasicType == basicTypeOp2) {
-        basicTypeOp1 = jBasicType;
+    JSimpleType jSimpleType;
+    if (pOp1Type instanceof JClassType && simpleTypeOp2 != null) {
+      jSimpleType = unboxJClassType((JClassType) pOp1Type).orElse(null);
+      if (jSimpleType == simpleTypeOp2) {
+        simpleTypeOp1 = jSimpleType;
       }
-    } else if (pOp2Type instanceof JClassType && basicTypeOp1 != null) {
-      jBasicType = unboxJClassType((JClassType) pOp2Type).orElse(null);
-      if (jBasicType == basicTypeOp1) {
-        basicTypeOp2 = jBasicType;
+    } else if (pOp2Type instanceof JClassType && simpleTypeOp1 != null) {
+      jSimpleType = unboxJClassType((JClassType) pOp2Type).orElse(null);
+      if (jSimpleType == simpleTypeOp1) {
+        simpleTypeOp2 = jSimpleType;
       }
     }
 
-    if (basicTypeOp1 == null || basicTypeOp2 == null) {
+    if (simpleTypeOp1 == null || simpleTypeOp2 == null) {
       if (op.equals(InfixExpression.Operator.EQUALS)) {
         return BinaryOperator.EQUALS;
       } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
@@ -2653,9 +2652,9 @@ class ASTConverter {
       } else {
         throw new CFAGenerationRuntimeException(invalidTypeMsg);
       }
-    } else if (isNumericCompatible(basicTypeOp1) && isNumericCompatible(basicTypeOp2)) {
+    } else if (isNumericCompatible(simpleTypeOp1) && isNumericCompatible(simpleTypeOp2)) {
       return convertNumericOperator(op);
-    } else if (isBooleanCompatible(basicTypeOp1) && isBooleanCompatible(basicTypeOp2)) {
+    } else if (isBooleanCompatible(simpleTypeOp1) && isBooleanCompatible(simpleTypeOp2)) {
       return convertBooleanOperator(op);
     } else {
       throw new CFAGenerationRuntimeException(invalidTypeMsg);
@@ -2663,19 +2662,19 @@ class ASTConverter {
   }
 
   @VisibleForTesting
-  public static Optional<JBasicType> unboxJClassType(JClassType pJClassType) {
+  public static Optional<JSimpleType> unboxJClassType(JClassType pJClassType) {
     return Optional.ofNullable(unboxingMap.getOrDefault(pJClassType.getName(), null));
   }
 
-  private boolean isNumericCompatible(JBasicType pType) {
+  private boolean isNumericCompatible(JSimpleType pType) {
     return pType != null
         && (pType.isIntegerType()
             || pType.isFloatingPointType()
-            || pType == JBasicType.UNSPECIFIED);
+            || pType == JSimpleType.UNSPECIFIED);
   }
 
-  private boolean isBooleanCompatible(JBasicType pType) {
-    return pType == JBasicType.BOOLEAN || pType == JBasicType.UNSPECIFIED;
+  private boolean isBooleanCompatible(JSimpleType pType) {
+    return pType == JSimpleType.BOOLEAN || pType == JSimpleType.UNSPECIFIED;
   }
 
   private boolean isStringType(JType t) {
@@ -2752,7 +2751,7 @@ class ASTConverter {
     JType type = convert(e.resolveTypeBinding());
     String valueStr = e.getToken();
 
-    JBasicType t = ((JSimpleType) type).getType();
+    JSimpleType t = (JSimpleType) type;
 
     switch (t) {
       case INT:
@@ -2877,7 +2876,7 @@ class ASTConverter {
 
     FileLocation fileloc = enhancedForLoopIterator.getFileLocation();
 
-    JType type = JSimpleType.getBoolean();
+    JType type = JSimpleType.BOOLEAN;
 
     JExpression name = new JIdExpression(fileloc, type, "hasNext", null);
 
@@ -2988,7 +2987,7 @@ class ASTConverter {
       //      We also need to check for BOOLEAN class
       JType type = e.getExpressionType();
 
-      return type instanceof JSimpleType && ((JSimpleType) type).getType() == JBasicType.BOOLEAN;
+      return type == JSimpleType.BOOLEAN;
     }
   }
 

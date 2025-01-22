@@ -121,14 +121,15 @@ public class CFunctionPointerResolver implements StatisticsProvider {
           FunctionSet.USED_IN_CODE, FunctionSet.RETURN_VALUE, FunctionSet.EQ_PARAM_TYPES);
 
   private static class CFunctionPointerResolverStatistics implements Statistics {
-    private StatInt totalFPs = new StatInt(StatKind.SUM, "Function calls via function pointers");
-    private StatInt instrumentedFPs =
+    private final StatInt totalFPs =
+        new StatInt(StatKind.SUM, "Function calls via function pointers");
+    private final StatInt instrumentedFPs =
         new StatInt(StatKind.SUM, "Instrumented function pointer calls");
-    private StatInt totalFPsWithParameter =
+    private final StatInt totalFPsWithParameter =
         new StatInt(StatKind.SUM, "Function calls with function pointer arguments");
-    private StatInt instrumentedFPsWithParameter =
+    private final StatInt instrumentedFPsWithParameter =
         new StatInt(StatKind.SUM, "Instrumented function pointer arguments");
-    private StatTimer totalTimer = new StatTimer("Time for function pointers resolving");
+    private final StatTimer totalTimer = new StatTimer("Time for function pointers resolving");
 
     @Override
     public String getName() {

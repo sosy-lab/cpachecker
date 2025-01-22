@@ -86,7 +86,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "staticRefiner")
-public class PredicateStaticRefiner extends StaticRefiner
+final class PredicateStaticRefiner extends StaticRefiner
     implements ARGBasedRefiner, StatisticsProvider {
 
   @Option(
@@ -140,7 +140,7 @@ public class PredicateStaticRefiner extends StaticRefiner
 
   private boolean usedStaticRefinement = false;
 
-  public PredicateStaticRefiner(
+  PredicateStaticRefiner(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,

@@ -84,7 +84,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * <p>It does, however, produce a nice error path in case of a feasible counterexample.
  */
 @Options(prefix = "cpa.predicate.refinement")
-public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
+final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
 
   @Option(secure = true, description = "which sliced prefix should be used for interpolation")
   private List<PrefixPreference> prefixPreference = PrefixSelector.NO_SELECTION;
@@ -168,7 +168,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final Optional<NewtonRefinementManager> newtonManager;
   private final Optional<UCBRefinementManager> ucbManager;
 
-  public PredicateCPARefiner(
+  PredicateCPARefiner(
       final Configuration pConfig,
       final LogManager pLogger,
       final Optional<LoopStructure> pLoopStructure,

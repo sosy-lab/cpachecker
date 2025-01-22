@@ -376,13 +376,12 @@ public class CFABuilder {
 
       int succNum = terminatorInst.getNumSuccessors();
       if (succNum == 0) {
-        continue;
+        // nothing to do
       } else if (succNum == 1) {
         BasicBlock succ = terminatorInst.getSuccessor(0);
         CFALabelNode label = (CFALabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
 
         addEdge(new BlankEdge("(goto)", FileLocation.DUMMY, brNode, label, "(goto)"));
-        continue;
       } else if (terminatorInst.isBranchInst()) {
         // get the operands and add branching edges
         CExpression conditionForElse = getBranchConditionForElse(terminatorInst, pFileName);
@@ -498,7 +497,7 @@ public class CFABuilder {
 
     for (Value i : pItem) {
       if (i.isDbgInfoIntrinsic() || i.isDbgDeclareInst()) {
-        continue;
+        // nothing to do
 
       } else if (i.isSelectInst()) {
         CDeclaration decl = (CDeclaration) getAssignedVarDeclaration(i, funcName, null, pFileName);
@@ -716,8 +715,6 @@ public class CFABuilder {
       throw new LLVMException(
           "Program contains PHI nodes, but they are not supported by CPAchecker, yet."
               + "Please remove them with `opt -reg2mem $PROG`");
-    } else if (pItem.isInvokeInst()) {
-      throw new UnsupportedOperationException();
     } else {
       throw new UnsupportedOperationException();
     }
