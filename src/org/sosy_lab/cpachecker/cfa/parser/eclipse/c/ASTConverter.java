@@ -305,7 +305,7 @@ class ASTConverter {
   private final ASTLiteralConverter literalConverter;
   private final ASTOperatorConverter operatorConverter;
   private final ASTTypeConverter typeConverter;
-  private final MachineModel machinemodel;
+  private final MachineModel machineModel;
 
   private final ParseContext parseContext;
 
@@ -337,7 +337,7 @@ class ASTConverter {
     literalConverter = new ASTLiteralConverter(pMachineModel, pParseContext);
     operatorConverter = new ASTOperatorConverter(pParseContext);
     parseContext = pParseContext;
-    machinemodel = pMachineModel;
+    machineModel = pMachineModel;
     staticVariablePrefix = pStaticVariablePrefix;
     sideAssignmentStack = pSideAssignmentStack;
 
@@ -1390,7 +1390,7 @@ class ASTConverter {
     Collections.reverse(fields);
 
     for (CFieldReference field : fields) {
-      BigInteger offset = machinemodel.getFieldOffsetInBits(structType, field.getFieldName());
+      BigInteger offset = machineModel.getFieldOffsetInBits(structType, field.getFieldName());
       sumOffset = sumOffset.add(offset);
       CFieldReference lastField = fields.get(fields.size() - 1);
       if (!field.equals(lastField)) {
@@ -1643,7 +1643,7 @@ class ASTConverter {
           // now do not forget: operand should get promoted to int if its type is smaller than int:
           type =
               CTypes.isIntegerType(innerType)
-                  ? machinemodel.applyIntegerPromotion(innerType)
+                  ? machineModel.applyIntegerPromotion(innerType)
                   : innerType;
         } else {
           type = typeConverter.convert(e.getExpressionType());
@@ -1791,7 +1791,7 @@ class ASTConverter {
         logger.log(
             Level.WARNING, loc + ":", "Return statement without expression in non-void function.");
         CInitializer defaultValue =
-            CDefaults.forType(machinemodel, returnVariableDeclaration.orElseThrow().getType(), loc);
+            CDefaults.forType(machineModel, returnVariableDeclaration.orElseThrow().getType(), loc);
         if (defaultValue instanceof CInitializerExpression) {
           rhs = ((CInitializerExpression) defaultValue).getExpression();
         }
@@ -2428,24 +2428,24 @@ class ASTConverter {
     CSimpleType newType;
     switch (mode) {
       case "word": // assume that pointers have word size, which is the case on our platforms
-        newType = machinemodel.getPointerSizedIntType();
+        newType = machineModel.getPointerSizedIntType();
         break;
       case "byte":
       case "QI": // quarter integer
         newType = CNumericTypes.CHAR;
         break;
       case "HI": // half integer
-        assert machinemodel.getSizeofShortInt() == 2; // not guaranteed by C, but on our platforms
+        assert machineModel.getSizeofShortInt() == 2; // not guaranteed by C, but on our platforms
         newType = CNumericTypes.SHORT_INT;
         break;
       case "SI": // single integer
-        assert machinemodel.getSizeofInt() == 4; // not guaranteed by C, but on our platforms
+        assert machineModel.getSizeofInt() == 4; // not guaranteed by C, but on our platforms
         newType = CNumericTypes.INT;
         break;
       case "DI": // double integer
-        if (machinemodel.getSizeofLongInt() == 8) {
+        if (machineModel.getSizeofLongInt() == 8) {
           newType = CNumericTypes.LONG_INT;
-        } else if (machinemodel.getSizeofLongLongInt() == 8) {
+        } else if (machineModel.getSizeofLongLongInt() == 8) {
           newType = CNumericTypes.LONG_LONG_INT;
         } else {
           // could occur, but not on our platforms
@@ -2698,8 +2698,8 @@ class ASTConverter {
     final BigInteger minValue = Collections.min(enumeratorValues);
     final BigInteger maxValue = Collections.max(enumeratorValues);
     for (CSimpleType integerType : ENUM_REPRESENTATION_CANDIDATE_TYPES) {
-      if (minValue.compareTo(machinemodel.getMinimalIntegerValue(integerType)) >= 0
-          && maxValue.compareTo(machinemodel.getMaximalIntegerValue(integerType)) <= 0) {
+      if (minValue.compareTo(machineModel.getMinimalIntegerValue(integerType)) >= 0
+          && maxValue.compareTo(machineModel.getMaximalIntegerValue(integerType)) <= 0) {
         // if all enumeration values are matching into the range, we use it
         return integerType;
       }
@@ -2707,7 +2707,7 @@ class ASTConverter {
     throw new CFAGenerationRuntimeException(
         "The range of enum values does not fit into any of the available integer types of the"
             + " selected machine model. Machine model: '"
-            + machinemodel.name()
+            + machineModel.name()
             + "', available integer types: '"
             + ENUM_REPRESENTATION_CANDIDATE_TYPES.stream().map(CType::toString).toList()
             + "', enum values: "
