@@ -2566,7 +2566,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   @Override
   public float floatValue() {
-    if (format.equals(Format.Float32)) {
+    if (!format.equals(Format.Float32)) {
       // Convert to the right precision first
       return withPrecision(Format.Float32).floatValue();
     }
@@ -2617,7 +2617,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   @Override
   public double doubleValue() {
-    if (format.equals(Format.Float64)) {
+    if (!format.equals(Format.Float64)) {
       // Convert to the right precision first
       return withPrecision(Format.Float64).floatValue();
     }
