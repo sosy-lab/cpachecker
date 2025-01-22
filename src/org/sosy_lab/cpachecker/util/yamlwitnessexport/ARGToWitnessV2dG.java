@@ -92,7 +92,8 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
       // the format of an initial is currently always c_expression
       InitialRecord initial = new InitialRecord(0, YAMLWitnessExpressionType.C);
       // the scope of a ghost variable is always global
-      ghostVariables.add(new GhostVariableRecord(varName, CBasicType.INT.toASTString(), "global", initial));
+      ghostVariables.add(
+          new GhostVariableRecord(varName, CBasicType.INT.toASTString(), "global", initial));
     }
 
     GhostInstrumentationContentRecord record =
@@ -113,7 +114,7 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     if (pParent.getWrappedState() instanceof ThreadingState parent
         && pChild.getWrappedState() instanceof ThreadingState child) {
       SetView<String> symmetricDifference =
-          Sets.symmetricDifference(parent.locks.keySet(), child.locks.keySet());
+          Sets.symmetricDifference(parent.getLockIds(), child.getLockIds());
       assert symmetricDifference.size() == 1
           : "there must be exactly one lock update between pParent and pChild";
       return symmetricDifference.iterator().next();

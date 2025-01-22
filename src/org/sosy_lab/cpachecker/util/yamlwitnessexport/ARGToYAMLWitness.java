@@ -193,9 +193,9 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
               : "parent of ThreadingState must be ThreadingState too";
           ThreadingState parentThreadingState = (ThreadingState) parent.getWrappedState();
           // locks unequal -> a lock / unlock operation was performed between states
-          if (!childThreadingState.locks.equals(parentThreadingState.locks)) {
-            int parentLocksNum = parentThreadingState.locks.size();
-            int childLocksNum = childThreadingState.locks.size();
+          if (!childThreadingState.getLockIds().equals(parentThreadingState.getLockIds())) {
+            int parentLocksNum = parentThreadingState.getLockIds().size();
+            int childLocksNum = childThreadingState.getLockIds().size();
             if (parentLocksNum + 1 == childLocksNum) {
               // more locks in child -> lock was locked
               collectedStates.lockUpdates.put(parent, pSuccessor);

@@ -18,6 +18,7 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.is
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -62,7 +63,7 @@ public class ThreadingState
   private final PersistentMap<String, ThreadState> threads;
 
   // String :: lock-id  -->  String :: thread-id
-  public final PersistentMap<String, String> locks;
+  private final PersistentMap<String, String> locks;
 
   /**
    * Thread-id of last active thread that produced this exact {@link ThreadingState}. This value
@@ -210,6 +211,11 @@ public class ThreadingState
   /** returns whether there is any lock registered for the thread. */
   public boolean hasLockForThread(String threadId) {
     return locks.containsValue(threadId);
+  }
+
+  /** returns the set of lock ids */
+  public ImmutableSet<String> getLockIds() {
+    return FluentIterable.from(locks.keySet()).toSet();
   }
 
   public Set<String> getLocksForThread(String threadId) {
