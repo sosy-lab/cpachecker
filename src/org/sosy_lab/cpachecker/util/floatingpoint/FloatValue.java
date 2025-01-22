@@ -2545,7 +2545,21 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   @Override
   public float floatValue() {
-    return withPrecision(Format.Float32).toFloatingPointNumber().floatValue();
+    if (format.equals(Format.Float32)) {
+      // Convert to the right precision first
+      return withPrecision(Format.Float32).floatValue();
+    }
+    final int SIGN_MASK = (1 << Format.FLOAT32_EXP_BITS) << Format.FLOAT32_SIG_BITS;
+    final int SIGNIFICAND_MASK = (1 << Format.FLOAT32_SIG_BITS) - 1;
+
+    // Set the sign
+    int signBit = sign ? SIGN_MASK : 0;
+    // Add the bias to the exponent
+    int expBits = (int) (exponent + Format.Float32.bias()) << Format.FLOAT32_SIG_BITS;
+    // Remove the hidden bit from the significand
+    int sigBits = significand.intValue() & SIGNIFICAND_MASK;
+
+    return Float.intBitsToFloat(signBit | expBits | sigBits);
   }
 
   /** Convert a <code>double</code> to {@link FloatValue#byteValue()} */
@@ -2582,7 +2596,21 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   @Override
   public double doubleValue() {
-    return withPrecision(Format.Float64).toFloatingPointNumber().doubleValue();
+    if (format.equals(Format.Float64)) {
+      // Convert to the right precision first
+      return withPrecision(Format.Float64).floatValue();
+    }
+    final long SIGN_MASK = (1L << Format.FLOAT64_EXP_BITS) << Format.FLOAT64_SIG_BITS;
+    final long SIGNIFICAND_MASK = (1L << Format.FLOAT64_SIG_BITS) - 1L;
+
+    // Set the sign
+    long signBit = sign ? SIGN_MASK : 0;
+    // Add the bias to the exponent
+    long expBits = (exponent + Format.Float64.bias()) << Format.FLOAT64_SIG_BITS;
+    // Remove the hidden bit from the significand
+    long sigBits = significand.longValue() & SIGNIFICAND_MASK;
+
+    return Double.longBitsToDouble(signBit | expBits | sigBits);
   }
 
   /**
