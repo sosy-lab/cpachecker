@@ -1025,6 +1025,14 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
   }
 
+  /**
+   * Internal method for addition
+   *
+   * <p>Should only ever be called by {@link #add}.
+   *
+   * <p>Assumes that both arguments have the same {@link Format} and that the exponent of <code>arg1
+   * </code> is larger or equal to the exponent of <code>arg2</code>.
+   */
   private static FloatValue addImpl(Format format, FloatValue arg1, FloatValue arg2) {
     // Handle special cases:
     if (arg1.isNan() || arg2.isNan()) {
@@ -1148,6 +1156,14 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     return add(pNumber.negate());
   }
 
+  /**
+   * Internal method for multiplication
+   *
+   * <p>Should only ever be called by {@link #multiply}.
+   *
+   * <p>Assumes that both arguments have the same {@link Format} and that the exponent of <code>arg1
+   * </code> is larger or equal to the exponent of <code>arg2</code>.
+   */
   private static FloatValue multiplyImpl(Format format, FloatValue arg1, FloatValue arg2) {
     // Handle special cases:
     if (arg1.isNan() || arg2.isNan()) {
@@ -1267,6 +1283,14 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     return multiplyImpl(arg1.format, arg1, arg2);
   }
 
+  /**
+   * Internal method for exact multiplication
+   *
+   * <p>Should only ever be called by {@link #multiplyExact}.
+   *
+   * <p>Assumes that both arguments have the same {@link Format} and that the exponent of <code>arg1
+   * </code> is larger or equal to the exponent of <code>arg2</code>.
+   */
   private static FloatValue multiplyExactImpl(Format format, FloatValue arg1, FloatValue arg2) {
     // Handle special cases:
     if (arg1.isNan() || arg2.isNan()) {
