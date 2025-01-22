@@ -674,7 +674,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     CEILING,
     /** Round toward -∞ */
     FLOOR,
-    /** Round toward */
+    /** Round toward zero */
     TRUNCATE
   }
 
