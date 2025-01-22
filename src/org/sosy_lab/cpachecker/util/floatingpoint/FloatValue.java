@@ -1026,6 +1026,25 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   }
 
   private static FloatValue addImpl(Format format, FloatValue arg1, FloatValue arg2) {
+    // Handle special cases:
+    if (arg1.isNan() || arg2.isNan()) {
+      // (1) Either argument is NaN
+      return nan(format);
+    } else if (arg1.isInfinite() && arg2.isInfinite()) {
+      // (2) Both arguments are infinite
+      return arg1.isNegative() == arg2.isNegative() ? arg1 : nan(format);
+    } else if (arg1.isInfinite()) {
+      // (3) Only one argument is infinite
+      // No need to check arg2 as it can't be larger, and one of the args is finite
+      return arg1;
+    } else if (arg1.isZero() && arg2.isZero()) {
+      // (4) Both arguments are zero (or negative zero)
+      return (arg1.isNegative() && arg2.isNegative()) ? negativeZero(format) : zero(format);
+    } else if (arg1.isZero() || arg2.isZero()) {
+      // (5) Only one of the arguments is zero (or negative zero)
+      return arg1.isZero() ? arg2 : arg1;
+    }
+
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
     long exponent1 = Math.max(arg1.exponent, format.minExp());
@@ -1121,25 +1140,6 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       arg1 = pNumber;
       arg2 = this;
     }
-
-    // Handle special cases:
-    if (arg1.isNan() || arg2.isNan()) {
-      // (1) Either argument is NaN
-      return nan(format);
-    } else if (arg1.isInfinite() && arg2.isInfinite()) {
-      // (2) Both arguments are infinite
-      return arg1.isNegative() == arg2.isNegative() ? arg1 : nan(format);
-    } else if (arg1.isInfinite()) {
-      // (3) Only one argument is infinite
-      // No need to check arg2 as it can't be larger, and one of the args is finite
-      return arg1;
-    } else if (arg1.isZero() && arg2.isZero()) {
-      // (4) Both arguments are zero (or negative zero)
-      return (arg1.isNegative() && arg2.isNegative()) ? negativeZero(format) : zero(format);
-    } else if (arg1.isZero() || arg2.isZero()) {
-      // (5) Only one of the arguments is zero (or negative zero)
-      return arg1.isZero() ? arg2 : arg1;
-    }
     return addImpl(arg1.format, arg1, arg2);
   }
 
@@ -1149,6 +1149,26 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   }
 
   private static FloatValue multiplyImpl(Format format, FloatValue arg1, FloatValue arg2) {
+    // Handle special cases:
+    if (arg1.isNan() || arg2.isNan()) {
+      // (1) Either argument is NaN
+      return nan(format);
+    } else if (arg1.isInfinite()) {
+      // (2) One of the argument is infinite
+      // No need to check arg2 as it can't be larger, and one of the args is finite
+      if (arg2.isZero()) {
+        // Return NaN if we're trying to multiply infinity by zero
+        return nan(format);
+      } else {
+        return (arg1.isNegative() ^ arg2.isNegative())
+            ? negativeInfinity(format)
+            : infinity(format);
+      }
+    } else if (arg1.isZero() || arg2.isZero()) {
+      // (3) One of the arguments is zero (or negative zero)
+      return (arg1.isNegative() ^ arg2.isNegative()) ? negativeZero(format) : zero(format);
+    }
+
     // Calculate the sign of the result
     boolean resultSign = arg1.sign ^ arg2.sign;
 
@@ -1244,7 +1264,10 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       arg1 = pNumber;
       arg2 = this;
     }
+    return multiplyImpl(arg1.format, arg1, arg2);
+  }
 
+  private static FloatValue multiplyExactImpl(Format format, FloatValue arg1, FloatValue arg2) {
     // Handle special cases:
     if (arg1.isNan() || arg2.isNan()) {
       // (1) Either argument is NaN
@@ -1264,10 +1287,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       // (3) One of the arguments is zero (or negative zero)
       return (arg1.isNegative() ^ arg2.isNegative()) ? negativeZero(format) : zero(format);
     }
-    return multiplyImpl(arg1.format, arg1, arg2);
-  }
 
-  private static FloatValue multiplyExactImpl(Format format, FloatValue arg1, FloatValue arg2) {
     // We assume both arguments are normal
     Preconditions.checkArgument(
         arg1.exponent >= format.minExp() && arg2.exponent >= format.minExp());
@@ -1324,26 +1344,6 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     } else {
       arg1 = pNumber;
       arg2 = this;
-    }
-
-    // Handle special cases:
-    if (arg1.isNan() || arg2.isNan()) {
-      // (1) Either argument is NaN
-      return nan(format);
-    } else if (arg1.isInfinite()) {
-      // (2) One of the argument is infinite
-      // No need to check arg2 as it can't be larger, and one of the args is finite
-      if (arg2.isZero()) {
-        // Return NaN if we're trying to multiply infinity by zero
-        return nan(format);
-      } else {
-        return (arg1.isNegative() ^ arg2.isNegative())
-            ? negativeInfinity(format)
-            : infinity(format);
-      }
-    } else if (arg1.isZero() || arg2.isZero()) {
-      // (3) One of the arguments is zero (or negative zero)
-      return (arg1.isNegative() ^ arg2.isNegative()) ? negativeZero(format) : zero(format);
     }
     return multiplyExactImpl(arg1.format, arg1, arg2);
   }
