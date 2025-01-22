@@ -466,8 +466,10 @@ public class PredicateAbstractionManager {
     logger.log(Level.ALL, "Predicates:", pPredicates);
 
     final BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
+    System.out.println("Instantiated formual when buiilding abstraction: " + absFormula.toString());
     final BooleanFormula symbFormula = getFormulaFromPathFormula(pathFormula);
     BooleanFormula primaryFormula = bfmgr.and(absFormula, symbFormula);
+    System.out.println("Primary formual when buiilding abstraction: " + primaryFormula.toString());
     final SSAMap ssa = pathFormula.getSsa();
 
     // Try to reuse stored abstractions

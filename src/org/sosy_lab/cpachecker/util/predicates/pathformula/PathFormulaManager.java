@@ -11,8 +11,11 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import java.io.PrintStream;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -69,7 +72,9 @@ public interface PathFormulaManager {
   PathFormula makeOr(PathFormula pF1, PathFormula pF2) throws InterruptedException;
 
   PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula);
-  PathFormula makeAndFormulaWithSsaIndex(PathFormula pPathFormula, BooleanFormula pOtherFormula);
+  PathFormula makeAndFormulaWithOutInstantiateSsaIndex(PathFormula pPathFormula,
+                                                       BooleanFormula pOtherFormula,
+                                                       @Nullable SSAMap newSSAMap);
 
   PathFormula makeAnd(PathFormula pPathFormula, CExpression pAssumption)
       throws CPATransferException, InterruptedException;
@@ -220,4 +225,11 @@ public interface PathFormulaManager {
 
   PointerTargetSet mergePts(PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMapBuilder pSSA)
       throws InterruptedException;
+
+  /**
+   * Check if the path formula has a variable with more than one ssa index. Such as formula "x_1 = x_0 + 1" or in multiple predicates
+   * @param pPathFormula
+   * @return Map variable to it min ssa index
+   */
+  HashMap<String, Integer> extractVariablesWithTransition(PathFormula pPathFormula);
 }

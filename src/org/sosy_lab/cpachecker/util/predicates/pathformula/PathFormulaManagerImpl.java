@@ -16,9 +16,14 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.io.Serial;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -394,9 +399,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @return
    */
   @Override
-  public PathFormula makeAndFormulaWithSsaIndex(PathFormula pPathFormula, BooleanFormula pOtherFormula) {
-    SSAMap ssa = pPathFormula.getSsa();
-//    BooleanFormula otherFormula = fmgr.instantiate(pOtherFormula, ssa);
+  public PathFormula makeAndFormulaWithOutInstantiateSsaIndex(PathFormula pPathFormula,
+                                                              BooleanFormula pOtherFormula,
+                                                              @Nullable SSAMap newSSAMap) {
+    SSAMap ssa = newSSAMap != null ? newSSAMap : pPathFormula.getSsa();
     BooleanFormula resultFormula = bfmgr.and(pPathFormula.getFormula(), pOtherFormula);
     final PointerTargetSet pts = pPathFormula.getPointerTargetSet();
     return new PathFormula(resultFormula, ssa, pts, pPathFormula.getLength());
@@ -550,5 +556,26 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
 
     throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public HashMap<String, Integer> extractVariablesWithTransition(PathFormula pPathFormula) {
+    HashMap<String, Integer> variableWithTransition = new HashMap<>();
+    Set<String> allVarNameInPathFormula = new HashSet<>(fmgr.extractVariableNames(pPathFormula.getFormula()));
+
+    for (String var1 : allVarNameInPathFormula) {
+      String varNameWithOutIndex = fmgr.splitIndexSeparator(var1)[0];
+      for (String var2 : allVarNameInPathFormula) {
+        if (!Objects.equals(var1, var2)
+            && var2.contains(varNameWithOutIndex)
+            && !variableWithTransition.containsKey(varNameWithOutIndex)) {
+          int minIndex = Math.min(
+              Integer.parseInt(fmgr.splitIndexSeparator(var1)[1]),
+              Integer.parseInt(fmgr.splitIndexSeparator(var2)[1]));
+          variableWithTransition.put(varNameWithOutIndex, minIndex);
+        }
+      }
+    }
+    return variableWithTransition;
   }
 }

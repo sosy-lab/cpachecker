@@ -14,9 +14,11 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Predicate;
 import java.io.PrintStream;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.LongAdder;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -184,8 +186,10 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeAndFormulaWithSsaIndex(PathFormula pPathFormula, BooleanFormula pOtherFormula) {
-    return delegate.makeAndFormulaWithSsaIndex(pPathFormula, pOtherFormula);
+  public PathFormula makeAndFormulaWithOutInstantiateSsaIndex(PathFormula pPathFormula,
+                                                              BooleanFormula pOtherFormula,
+                                                              @Nullable SSAMap newSSAMap) {
+    return delegate.makeAndFormulaWithOutInstantiateSsaIndex(pPathFormula, pOtherFormula, newSSAMap);
   }
 
   @Override
@@ -275,5 +279,10 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public PathFormulaBuilder createNewPathFormulaBuilder() {
     return delegate.createNewPathFormulaBuilder();
+  }
+
+  @Override
+  public HashMap<String, Integer> extractVariablesWithTransition(PathFormula pPathFormula) {
+    return delegate.extractVariablesWithTransition(pPathFormula);
   }
 }

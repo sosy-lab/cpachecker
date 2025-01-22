@@ -1127,6 +1127,7 @@ public class FormulaManagerView {
 
   // the character for separating name and index of a value
   public static final char INDEX_SEPARATOR = '@';
+  public static final String PRIME_SUFFIX = "_prime";
   private static final Splitter INDEX_SPLITTER = Splitter.on(INDEX_SEPARATOR);
 
   static String makeName(String name, int idx) {
@@ -1166,6 +1167,10 @@ public class FormulaManagerView {
                 throw new IllegalArgumentException(
                     "already instantiated variable " + pFullSymbolName + " in formula");
               }
+              if (pFullSymbolName.contains(PRIME_SUFFIX)) {
+                return makeName(pFullSymbolName.replace(PRIME_SUFFIX, ""), pSsa.getIndex(pFullSymbolName));
+              }
+
               final int reInstantiateWithIndex = pSsa.getIndex(pFullSymbolName);
 
               if (reInstantiateWithIndex > 0) {
@@ -1230,6 +1235,35 @@ public class FormulaManagerView {
                 name.charAt(name.length() - 1) == INDEX_SEPARATOR
                     ? name
                     : parseName(name).getFirst()));
+  }
+
+  /**
+   * Uninstantiate a given formula. (remove the SSA indices from its free variables and UFs)
+   *
+   * @param pSSAMap
+   * @param f Input formula
+   * @return Uninstantiated formula
+   */
+  public <F extends Formula> F uninstantiateFormulaWithTPA(F f, SSAMap pSSAMap) {
+    return wrap(
+        getFormulaType(f),
+        myFreeVariableNodeTransformer(
+            unwrap(f),
+            uninstantiateCache,
+            name -> {
+              if (name.charAt(name.length() - 1) != INDEX_SEPARATOR) {
+                Pair<String, OptionalInt> parsedName = parseName(name);
+                if (parsedName.getSecond().isPresent()) {
+                  int index = parsedName.getSecond().getAsInt();
+                  if (pSSAMap.allVariables().contains(parsedName.getFirst() + PRIME_SUFFIX)
+                  && pSSAMap.allVariables().contains(parsedName.getFirst())
+                  && pSSAMap.getIndex(parsedName.getFirst()+ PRIME_SUFFIX) == index) {
+                    return parsedName.getFirst() + PRIME_SUFFIX;
+                  } else return parsedName.getFirst();
+                }
+              }
+              return name;
+            }));
   }
 
   /**
@@ -1555,7 +1589,9 @@ public class FormulaManagerView {
    * @return A BooleanFormula object with replaced variables
    */
   public BooleanFormula replaceVariableInFormula(BooleanFormula f, List<Formula> variableOrderList) {
-    BooleanFormula newFormula = null;
+    if (variableOrderList.isEmpty()) return null;
+
+    BooleanFormula newFormula;
     if (this.isNotFormula(f)) { // If is not formula then reverse make operation between 2 variable
       BooleanFormula nonNegatedAtom = this.stripNegation2(f);
       FunctionDeclarationKind funcKind = this.extractFunctionDeclarationKind(nonNegatedAtom);
@@ -1590,6 +1626,17 @@ public class FormulaManagerView {
     return newFormula;
   }
 
+  /**
+   * Remove Index separator from variable's name. x@2 -> x
+   * @param varName
+   * @return
+   */
+  public String[] splitIndexSeparator(String varName) {
+    if (!varName.contains(Character.toString(INDEX_SEPARATOR))) {
+      throw new IllegalArgumentException("Variable name " + varName + "does not contain index separator! ");
+    }
+    return varName.split(Character.toString(INDEX_SEPARATOR), 2);
+  }
 
   /**
    * For an equality {@code x = y} where {@code x} and {@code y} are not boolean, return a list
