@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -90,6 +91,21 @@ public final class Solver implements AutoCloseable {
   private boolean enableLoggingInSolver = false;
 
   private final @Nullable UFCheckingProverOptions ufCheckingProverOptions;
+
+  @Option(
+      secure = true,
+      description =
+          "How the SMT solver is supposed to interpolate. Default uses a solvers native"
+              + " interpolation.")
+  private InterpolationMode interpolationMode = null;
+
+  // TODO: interpolationMode fallback
+
+  public enum InterpolationMode {
+    INDEPENDENT_MODEL_BASED,
+    INDEPENDENT_UNIFORM_FORWARD,
+    INDEPENDENT_UNIFORM_BACKWARD
+  }
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -335,6 +351,21 @@ public final class Solver implements AutoCloseable {
     return pe;
   }
 
+  private ProverOptions[] addInterpolatingProverOptions(ProverOptions... options) {
+    if (interpolationMode != null) {
+      ProverOptions[] newOptions = Arrays.copyOf(options, options.length + 1);
+      newOptions[options.length] =
+          switch (interpolationMode) {
+            case INDEPENDENT_MODEL_BASED -> ProverOptions.GENERATE_MODEL_BASED_INTERPOLANTS;
+            case INDEPENDENT_UNIFORM_FORWARD -> ProverOptions.GENERATE_UNIFORM_FORWARD_INTERPOLANTS;
+            case INDEPENDENT_UNIFORM_BACKWARD ->
+                ProverOptions.GENERATE_UNIFORM_BACKWARD_INTERPOLANTS;
+          };
+      return newOptions;
+    }
+    return options;
+  }
+
   /**
    * Direct reference to the underlying SMT solver for interpolation queries. This creates a fresh,
    * new, environment in the solver. This environment needs to be closed after it is used by calling
@@ -344,7 +375,8 @@ public final class Solver implements AutoCloseable {
   public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(
       ProverOptions... options) {
     InterpolatingProverEnvironment<?> ipe =
-        interpolatingContext.newProverEnvironmentWithInterpolation(options);
+        interpolatingContext.newProverEnvironmentWithInterpolation(
+            addInterpolatingProverOptions(options));
 
     if (solvingContext != interpolatingContext) {
       // If interpolatingContext is not the normal solver,

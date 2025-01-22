@@ -2864,6 +2864,11 @@ cpa.predicate.solver.checkUFs = false
 # deprecated name for solver.enableLoggingInSolver
 cpa.predicate.solver.enableLoggingInSolver = false
 
+# deprecated name for solver.interpolationMode
+cpa.predicate.solver.interpolationMode = no default value
+  enum:     [INDEPENDENT_MODEL_BASED, INDEPENDENT_UNIFORM_FORWARD,
+             INDEPENDENT_UNIFORM_BACKWARD]
+
 # deprecated name for solver.interpolationSolver
 cpa.predicate.solver.interpolationSolver = no default value
   enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
@@ -4990,6 +4995,12 @@ solver.checkUFs = false
 # whether CPAchecker's logger should be used as logger for the solver,
 # otherwise nothing is logged from the solver.
 solver.enableLoggingInSolver = false
+
+# How the SMT solver is supposed to interpolate. Default uses a solvers
+# native interpolation.
+solver.interpolationMode = no default value
+  enum:     [INDEPENDENT_MODEL_BASED, INDEPENDENT_UNIFORM_FORWARD,
+             INDEPENDENT_UNIFORM_BACKWARD]
 
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
