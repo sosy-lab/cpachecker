@@ -2334,8 +2334,9 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * FloatValue#toInteger} for more details.
    */
   public OptionalInt toInt() {
-    if (toInteger().isPresent()) {
-      BigInteger integerValue = toInteger().orElseThrow();
+    Optional<BigInteger> maybeInteger = toInteger();
+    if (maybeInteger.isPresent()) {
+      BigInteger integerValue = maybeInteger.orElseThrow();
       return BigInteger.valueOf(integerValue.intValue()).equals(integerValue)
           ? OptionalInt.of(integerValue.intValue())
           : OptionalInt.empty();
@@ -2354,8 +2355,9 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * FloatValue#toInteger} for more details.
    */
   public OptionalLong toLong() {
-    if (toInteger().isPresent()) {
-      BigInteger integerValue = toInteger().orElseThrow();
+    Optional<BigInteger> maybeInteger = toInteger();
+    if (maybeInteger.isPresent()) {
+      BigInteger integerValue = maybeInteger.orElseThrow();
       return BigInteger.valueOf(integerValue.longValue()).equals(integerValue)
           ? OptionalLong.of(integerValue.longValue())
           : OptionalLong.empty();
