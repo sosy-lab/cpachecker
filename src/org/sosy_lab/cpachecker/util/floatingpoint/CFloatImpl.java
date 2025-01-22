@@ -31,12 +31,12 @@ class CFloatImpl extends CFloat {
   }
 
   public CFloatImpl(String repr, CFloatType pType) {
-    delegate = parseFloat(repr, toFormat(pType));
+    delegate = FloatValue.fromString(toFormat(pType), repr);
     wrapper = toWrapper(delegate);
   }
 
   public CFloatImpl(String repr, Format pFormat) {
-    delegate = parseFloat(repr, pFormat);
+    delegate = FloatValue.fromString(pFormat, repr);
     wrapper = toWrapper(delegate);
   }
 
@@ -96,10 +96,6 @@ class CFloatImpl extends CFloat {
     } else {
       throw new IllegalArgumentException();
     }
-  }
-
-  private static FloatValue parseFloat(String repr, Format format) {
-    return FloatValue.fromString(format, repr);
   }
 
   @Override
