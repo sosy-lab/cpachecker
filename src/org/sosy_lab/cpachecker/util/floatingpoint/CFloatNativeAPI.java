@@ -20,6 +20,11 @@ import org.sosy_lab.common.NativeLibraries;
  */
 @SuppressWarnings("EnumOrdinal")
 class CFloatNativeAPI {
+  /**
+   * Whenever new native methods are added to this class the C header in
+   * lib/native/sources/cFloatingPoints must be recreated, This can be done by running `javac -h` on
+   * this file.
+   */
   private CFloatNativeAPI() {}
 
   static {
@@ -28,14 +33,23 @@ class CFloatNativeAPI {
 
   /** Native float types from C */
   public enum CFloatType {
-    // DON'T CHANGE THIS ENUM WITHOUT UPDATING THE C HEADERS
+    /* Whenever this enum is changed, the C header in lib/native/sources/cFloatingPoints also needs
+     * to be updated. The header file will contain a '#define' for each of the values in the enum
+     * that maps its ordinal(). When new values are added to the enum (or moved to a different
+     * position) the ordinal must also be updated.
+     */
     SINGLE,
     DOUBLE,
     LONG_DOUBLE
   }
 
+  /** Native integer types from C */
   public enum CIntegerType {
-    // DON'T CHANGE THIS ENUM WITHOUT UPDATING THE C HEADERS
+    /* Whenever this enum is changed, the C header in lib/native/sources/cFloatingPoints also needs
+     * to be updated. The header file will contain a '#define' for each of the values in the enum
+     * that maps its ordinal(). When new values are added to the enum (or moved to a different
+     * position) the ordinal must also be updated.
+     */
     CHAR,
     SHORT,
     INT,
