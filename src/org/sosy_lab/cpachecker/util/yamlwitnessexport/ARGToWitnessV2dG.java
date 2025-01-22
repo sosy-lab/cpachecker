@@ -10,14 +10,14 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -59,7 +59,7 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
             lockEdge.getFileLocation(),
             lockEdge.getSuccessor().getFunctionName(),
             cfa.getAstCfaRelation());
-    // TODO the format of ghost updates is currently always c_expression
+    // the format of ghost updates is currently always c_expression
     UpdateRecord updateRecord =
         new UpdateRecord(getLockId(pParent, pChild), pValue, YAMLWitnessExpressionType.C);
     return new GhostUpdateRecord(locationRecord, ImmutableList.of(updateRecord));
@@ -80,19 +80,19 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     }
     ImmutableList<GhostUpdateRecord> ghostUpdates = ghostUpdatesB.build();
 
-    Set<String> ghostVariableNames = new HashSet<>();
+    // extract ghost variable names from ghostUpdates
+    ImmutableSet<String> ghostVarNames =
+        FluentIterable.from(ghostUpdates)
+            .transformAndConcat(GhostUpdateRecord::updates)
+            .transform(UpdateRecord::variable)
+            .toSet();
     ImmutableList.Builder<GhostVariableRecord> ghostVariables = ImmutableList.builder();
-    // from ghostUpdates, extract all relevant ghost variables
-    for (GhostUpdateRecord ghostUpdate : ghostUpdates) {
-      for (UpdateRecord update : ghostUpdate.getUpdates()) {
-        // add variable only once even with multiple updates
-        if (ghostVariableNames.add(update.getVariable())) {
-          // TODO initial value always 0? (yes for locks)
-          InitialRecord initial = new InitialRecord(0, YAMLWitnessExpressionType.C);
-          ghostVariables.add(
-              new GhostVariableRecord(update.getVariable(), CBasicType.INT.toASTString(), initial));
-        }
-      }
+    for (String varName : ghostVarNames) {
+      // TODO initial value always 0? (yes for locks)
+      // the format of an initial is currently always c_expression
+      InitialRecord initial = new InitialRecord(0, YAMLWitnessExpressionType.C);
+      // the scope of a ghost variable is always global
+      ghostVariables.add(new GhostVariableRecord(varName, CBasicType.INT.toASTString(), "global", initial));
     }
 
     GhostInstrumentationContentRecord record =

@@ -12,26 +12,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
-public class GhostUpdateRecord {
-
-  @JsonProperty("location")
-  private final LocationRecord location;
-
-  @JsonProperty("updates")
-  private final List<UpdateRecord> updates;
-
-  public GhostUpdateRecord(
-      @JsonProperty("location") LocationRecord pLocation,
-      @JsonProperty("updates") List<UpdateRecord> pUpdates) {
-    location = pLocation;
-    updates = pUpdates;
-  }
-
-  public LocationRecord getLocation() {
-    return location;
-  }
-
-  public List<UpdateRecord> getUpdates() {
-    return updates;
-  }
-}
+public record GhostUpdateRecord(
+    @JsonProperty("location") LocationRecord location,
+    @JsonProperty("updates") List<UpdateRecord> updates) {}

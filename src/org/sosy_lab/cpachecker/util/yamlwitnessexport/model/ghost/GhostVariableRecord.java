@@ -10,45 +10,9 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class GhostVariableRecord {
-
-  @JsonProperty("name")
-  private final String name;
-
-  // variable type, not to be confused with invariant type
-  @JsonProperty("type")
-  private final String type;
-
-  @JsonProperty("scope")
-  private final String scope;
-
-  @JsonProperty("initial")
-  private final InitialRecord initial;
-
-  public GhostVariableRecord(
-      @JsonProperty("name") String pName,
-      @JsonProperty("type") String pType,
-      @JsonProperty("initial") InitialRecord pInitial) {
-    name = pName;
-    type = pType;
-    // the scope of a ghost variable is always global
-    scope = "global";
-    initial = pInitial;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public String getType() {
-    return type;
-  }
-
-  public String getScope() {
-    return scope;
-  }
-
-  public InitialRecord getInitial() {
-    return initial;
-  }
-}
+public record GhostVariableRecord(
+    @JsonProperty("name") String name,
+    // variable type e.g. 'int', not to be confused with invariant type
+    @JsonProperty("type") String type,
+    @JsonProperty("scope") String scope,
+    @JsonProperty("initial") InitialRecord initial) {}
