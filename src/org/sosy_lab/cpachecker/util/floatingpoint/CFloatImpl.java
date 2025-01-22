@@ -370,7 +370,6 @@ class CFloatImpl extends CFloat {
 
   @Override
   public int compareTo(CFloat other) {
-    // FIXME: We only allow comparisons with other CFloatImpl objects
     if (other instanceof CFloatImpl that) {
       return delegate.compareTo(that.delegate);
     }
