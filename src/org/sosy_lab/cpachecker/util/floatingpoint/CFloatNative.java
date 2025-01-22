@@ -246,17 +246,6 @@ class CFloatNative extends CFloat {
     return Optional.of(r);
   }
 
-  private int constructParametersForMultiOperation(
-      int index, int maxType, CFloatWrapper[] wrappers, int[] types, CFloat... summands) {
-    types[0] = type.ordinal();
-    for (CFloat f : summands) {
-      wrappers[index] = f.copyWrapper();
-      maxType = Math.max(maxType, f.getType().ordinal());
-      types[++index] = f.getType().ordinal();
-    }
-    return maxType;
-  }
-
   @Override
   public String toString() {
     return CFloatNativeAPI.printFp(wrapper, type.ordinal());
