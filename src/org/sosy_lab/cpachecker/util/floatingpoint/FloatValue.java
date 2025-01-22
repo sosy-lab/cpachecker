@@ -1128,13 +1128,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       return nan(format);
     } else if (arg1.isInfinite() && arg2.isInfinite()) {
       // (2) Both arguments are infinite
-      if (arg1.isNegative() && arg2.isNegative()) {
-        return negativeInfinity(format);
-      } else if (!arg1.isNegative() && !arg2.isNegative()) {
-        return infinity(format);
-      } else {
-        return nan(format);
-      }
+      return arg1.isNegative() == arg2.isNegative() ? arg1 : nan(format);
     } else if (arg1.isInfinite()) {
       // (3) Only one argument is infinite
       // No need to check arg2 as it can't be larger, and one of the args is finite
