@@ -1756,7 +1756,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     return add(oneUlp());
   }
 
-  /** Returns the floating point number immediately below this number. */
+  /** Returns the next smaller floating point number. */
   private FloatValue minus1Ulp() {
     return add(oneUlp().negate());
   }
