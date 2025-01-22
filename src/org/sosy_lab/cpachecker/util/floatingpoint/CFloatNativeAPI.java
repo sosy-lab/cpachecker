@@ -99,14 +99,6 @@ class CFloatNativeAPI {
   public static native CFloatWrapper remainderFp(
       CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
 
-  public static native CFloatWrapper add3Fp(
-      CFloatWrapper fp1,
-      int fp_type1,
-      CFloatWrapper fp2,
-      int fp_type2,
-      CFloatWrapper fp3,
-      int fp_type3);
-
   public static native CFloatWrapper logFp(CFloatWrapper fp1, int fp_type1);
 
   public static native CFloatWrapper expFp(CFloatWrapper fp1, int fp_type1);

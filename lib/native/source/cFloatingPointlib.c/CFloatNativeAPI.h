@@ -68,14 +68,6 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 
 /*
  * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
- * Method:    add3Fp
- * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;ILorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;ILorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;
- */
-JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_add3Fp
-  (JNIEnv *, jclass, jobject, jint, jobject, jint, jobject, jint);
-
-/*
- * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
  * Method:    subtractFp
  * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;ILorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;
  */

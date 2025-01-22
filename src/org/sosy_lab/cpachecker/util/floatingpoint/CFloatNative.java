@@ -49,23 +49,6 @@ class CFloatNative extends CFloat {
         newFloat, toFloatType(Math.max(type.ordinal(), summand.getType().ordinal())));
   }
 
-  public CFloat add3(CFloat summand1, CFloat summand2) {
-    CFloatWrapper newFloat =
-        CFloatNativeAPI.add3Fp(
-            wrapper,
-            type.ordinal(),
-            summand1.copyWrapper(),
-            summand1.getType().ordinal(),
-            summand2.copyWrapper(),
-            summand2.getType().ordinal());
-    return new CFloatNative(
-        newFloat,
-        toFloatType(
-            Math.max(
-                type.ordinal(),
-                Math.max(summand1.getType().ordinal(), summand1.getType().ordinal()))));
-  }
-
   @Override
   public CFloat multiply(CFloat factor) {
     CFloatWrapper newFloat =
