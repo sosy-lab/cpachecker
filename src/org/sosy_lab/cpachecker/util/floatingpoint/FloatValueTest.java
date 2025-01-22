@@ -812,18 +812,8 @@ public class FloatValueTest {
   }
 
   @Test
-  public void addManyTest() {
-    testOperator("addManyTest", 0, (CFloat a, CFloat b) -> b.add(a, b));
-  }
-
-  @Test
   public void multiplyTest() {
     testOperator("multiply", 0, (CFloat a, CFloat b) -> a.multiply(b));
-  }
-
-  @Test
-  public void multiplyManyTest() {
-    testOperator("multiplyManyTest", 0, (CFloat a, CFloat b) -> b.multiply(a, b));
   }
 
   @Test

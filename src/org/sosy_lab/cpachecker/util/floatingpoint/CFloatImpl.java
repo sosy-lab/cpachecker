@@ -111,41 +111,11 @@ class CFloatImpl extends CFloat {
   }
 
   @Override
-  public CFloat add(CFloat... pSummands) {
-    Format p = new Format(2, 1); // the smallest supported format
-    for (CFloat f : pSummands) {
-      CFloatImpl mf = (CFloatImpl) f;
-      p = p.matchWith(mf.delegate.getFormat());
-    }
-    FloatValue r = delegate.withPrecision(p);
-    for (CFloat f : pSummands) {
-      CFloatImpl mf = (CFloatImpl) f;
-      r = r.add(mf.delegate.withPrecision(p));
-    }
-    return new CFloatImpl(r);
-  }
-
-  @Override
   public CFloat multiply(CFloat pFactor) {
     if (pFactor instanceof CFloatImpl myFactor) {
       return new CFloatImpl(delegate.multiply(myFactor.delegate));
     }
     throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public CFloat multiply(CFloat... pFactors) {
-    Format p = new Format(2, 1); // the smallest supported format
-    for (CFloat f : pFactors) {
-      CFloatImpl mf = (CFloatImpl) f;
-      p = p.matchWith(mf.delegate.getFormat());
-    }
-    FloatValue r = delegate.withPrecision(p);
-    for (CFloat f : pFactors) {
-      CFloatImpl mf = (CFloatImpl) f;
-      r = r.multiply(mf.delegate.withPrecision(p));
-    }
-    return new CFloatImpl(r);
   }
 
   @Override

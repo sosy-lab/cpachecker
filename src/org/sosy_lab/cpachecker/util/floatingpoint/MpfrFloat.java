@@ -135,26 +135,8 @@ class MpfrFloat extends CFloat {
   }
 
   @Override
-  public CFloat add(CFloat... pSummands) {
-    BigFloat result = value;
-    for (CFloat f : pSummands) {
-      result = result.add(toBigFloat(f.getWrapper()), format);
-    }
-    return new MpfrFloat(result, format);
-  }
-
-  @Override
   public CFloat multiply(CFloat pFactor) {
     return new MpfrFloat(value.multiply(toBigFloat(pFactor.getWrapper()), format), format);
-  }
-
-  @Override
-  public CFloat multiply(CFloat... pFactor) {
-    BigFloat result = value;
-    for (CFloat f : pFactor) {
-      result = result.multiply(toBigFloat(f.getWrapper()), format);
-    }
-    return new MpfrFloat(result, format);
   }
 
   @Override

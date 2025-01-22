@@ -107,12 +107,6 @@ class CFloatNativeAPI {
       CFloatWrapper fp3,
       int fp_type3);
 
-  public static native CFloatWrapper addManyFp(
-      CFloatWrapper fp1, int[] fp_types, CFloatWrapper... fps);
-
-  public static native CFloatWrapper multiplyManyFp(
-      CFloatWrapper fp1, int[] fp_types, CFloatWrapper... fps);
-
   public static native CFloatWrapper logFp(CFloatWrapper fp1, int fp_type1);
 
   public static native CFloatWrapper expFp(CFloatWrapper fp1, int fp_type1);

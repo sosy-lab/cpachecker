@@ -67,52 +67,12 @@ class CFloatNative extends CFloat {
   }
 
   @Override
-  public CFloat add(CFloat... summands) {
-    if (summands.length < 1) {
-      return this;
-    }
-    if (summands.length < 2) {
-      return add(summands[0]);
-    }
-
-    int index = 0;
-    int maxType = -1;
-    CFloatWrapper[] wrappers = new CFloatWrapper[summands.length];
-    int[] types = new int[summands.length + 1];
-
-    maxType = constructParametersForMultiOperation(index, maxType, wrappers, types, summands);
-
-    CFloatWrapper newFloat = CFloatNativeAPI.addManyFp(wrapper, types, wrappers);
-    return new CFloatNative(newFloat, toFloatType(maxType));
-  }
-
-  @Override
   public CFloat multiply(CFloat factor) {
     CFloatWrapper newFloat =
         CFloatNativeAPI.multiplyFp(
             wrapper, type.ordinal(), factor.copyWrapper(), factor.getType().ordinal());
     return new CFloatNative(
         newFloat, toFloatType(Math.max(type.ordinal(), factor.getType().ordinal())));
-  }
-
-  @Override
-  public CFloat multiply(CFloat... factors) {
-    if (factors.length < 1) {
-      return this;
-    }
-    if (factors.length < 2) {
-      return add(factors[0]);
-    }
-
-    int index = 0;
-    int maxType = -1;
-    CFloatWrapper[] wrappers = new CFloatWrapper[factors.length];
-    int[] types = new int[factors.length + 1];
-
-    maxType = constructParametersForMultiOperation(index, maxType, wrappers, types, factors);
-
-    CFloatWrapper newFloat = CFloatNativeAPI.multiplyManyFp(wrapper, types, wrappers);
-    return new CFloatNative(newFloat, toFloatType(maxType));
   }
 
   @Override

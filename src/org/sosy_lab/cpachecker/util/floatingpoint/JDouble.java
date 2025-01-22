@@ -82,26 +82,8 @@ class JDouble extends CFloat {
   }
 
   @Override
-  public CFloat add(CFloat... pSummands) {
-    double result = value;
-    for (CFloat f : pSummands) {
-      result += toDouble(f.getWrapper());
-    }
-    return new JDouble(result);
-  }
-
-  @Override
   public CFloat multiply(CFloat pFactor) {
     return new JDouble(value * toDouble(pFactor.getWrapper()));
-  }
-
-  @Override
-  public CFloat multiply(CFloat... pFactors) {
-    double result = value;
-    for (CFloat f : pFactors) {
-      result *= toDouble(f.getWrapper());
-    }
-    return new JDouble(result);
   }
 
   @Override

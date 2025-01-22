@@ -116,22 +116,6 @@ JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloa
 
 /*
  * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
- * Method:    addManyFp
- * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;[I[Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;)Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;
- */
-JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_addManyFp
-  (JNIEnv *, jclass, jobject, jintArray, jobjectArray);
-
-/*
- * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
- * Method:    multiplyManyFp
- * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;[I[Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;)Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;
- */
-JNIEXPORT jobject JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFloatNativeAPI_multiplyManyFp
-  (JNIEnv *, jclass, jobject, jintArray, jobjectArray);
-
-/*
- * Class:     org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI
  * Method:    logFp
  * Signature: (Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;I)Lorg/sosy_lab/cpachecker/util/floatingpoint/CFloatWrapper;
  */

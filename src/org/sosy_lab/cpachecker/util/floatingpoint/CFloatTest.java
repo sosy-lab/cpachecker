@@ -183,11 +183,11 @@ public class CFloatTest {
     p = new CFloatNative(res.copyWrapper(), CFloatNativeAPI.CFloatType.DOUBLE);
     assertThat(p.toString()).isEqualTo("2.0000000000000000e+01");
 
-    res = res.add(ten, ten, five);
+    res = res.add(ten).add(ten).add(five);
     p = new CFloatNative(res.copyWrapper(), CFloatNativeAPI.CFloatType.DOUBLE);
     assertThat(p.toString()).isEqualTo("4.5000000000000000e+01");
 
-    res = res.add(nOne, nOne, nOne);
+    res = res.add(nOne).add(nOne).add(nOne);
     p = new CFloatNative(res.copyWrapper(), CFloatNativeAPI.CFloatType.LONG_DOUBLE);
     assertThat(p.toString()).isEqualTo("4.20000000000000000000e+01");
   }
@@ -222,7 +222,7 @@ public class CFloatTest {
     resI2 = resI.add(bI.add(bIFractioned));
     res = new CFloatNative(resI2.copyWrapper(), resI2.getType());
 
-    assertThat(res.toString()).isEqualTo(a.add(b, b.add(bFractioned)).toString());
+    assertThat(res.toString()).isEqualTo(a.add(b).add(b.add(bFractioned)).toString());
     assertThat(res.toString()).isEqualTo("1.00000024e+00");
 
     wrapper = bI.copyWrapper();

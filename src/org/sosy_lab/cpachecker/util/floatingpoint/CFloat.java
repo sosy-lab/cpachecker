@@ -31,21 +31,6 @@ abstract class CFloat implements Comparable<CFloat> {
   public abstract CFloat add(final CFloat pSummand);
 
   /**
-   * Add multiple {@link CFloat} objects to <code>this</code> and return the resulting {@link
-   * CFloat}.
-   *
-   * <p>The performance of this method is highly dependent on if the implementation just loops
-   * {@link CFloat#add(CFloat)} or uses some sort of optimized procedure. However, it should be
-   * taken into consideration, that C compilations in general do not guarantee a commutative
-   * addition of multiple floating point numbers, due to over-/underflows introduced by large
-   * differences in the exponent.
-   *
-   * @param pSummands the other {@link CFloat} instances to add
-   * @return the resulting {@link CFloat}
-   */
-  public abstract CFloat add(final CFloat... pSummands);
-
-  /**
    * Multiply <code>this</code> with another {@link CFloat} object and return the resulting {@link
    * CFloat} instance.
    *
@@ -56,21 +41,6 @@ abstract class CFloat implements Comparable<CFloat> {
    * @return the resulting {@link CFloat}
    */
   public abstract CFloat multiply(final CFloat pFactor);
-
-  /**
-   * Multiply <code>this</code> with multiple {@link CFloat} objects and return the resulting {@link
-   * CFloat}.
-   *
-   * <p>The performance of this method is highly dependent on if the implementation just loops
-   * {@link CFloat#multiply(CFloat)} or uses some sort of optimized procedure. However, it should be
-   * taken into consideration, that C compilations in general do not guarantee a commutative
-   * multiplication of multiple floating point numbers, due to over-/underflows introduced by large
-   * differences in the exponent.
-   *
-   * @param pFactors the other {@link CFloat} instances to multiply
-   * @return the resulting {@link CFloat}
-   */
-  public abstract CFloat multiply(CFloat... pFactors);
 
   /**
    * Subtract another {@link CFloat} object from <code>this</code> and return the resulting {@link

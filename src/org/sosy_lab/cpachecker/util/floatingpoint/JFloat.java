@@ -82,26 +82,8 @@ class JFloat extends CFloat {
   }
 
   @Override
-  public CFloat add(CFloat... pSummands) {
-    float result = value;
-    for (CFloat f : pSummands) {
-      result += toFloat(f.getWrapper());
-    }
-    return new JFloat(result);
-  }
-
-  @Override
   public CFloat multiply(CFloat pFactor) {
     return new JFloat(value * toFloat(pFactor.getWrapper()));
-  }
-
-  @Override
-  public CFloat multiply(CFloat... pFactors) {
-    float result = value;
-    for (CFloat f : pFactors) {
-      result *= toFloat(f.getWrapper());
-    }
-    return new JFloat(result);
   }
 
   @Override
