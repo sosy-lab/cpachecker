@@ -2821,7 +2821,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * extended-precision 21 digits are needed.
    *
    * <p>The special values <code>NaN</code> and <code>Infinity</code> will be printed as <code>"nan"
-   * </code> and <code>"inf"</code>.
+   * </code> and <code>"inf"</code>. Note that negative NaN values will be printed simply as <code>
+   * "-nan"</code>.
    */
   @Override
   public String toString() {
