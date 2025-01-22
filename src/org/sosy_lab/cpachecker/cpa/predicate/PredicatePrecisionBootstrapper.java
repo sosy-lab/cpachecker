@@ -232,7 +232,7 @@ public final class PredicatePrecisionBootstrapper {
     return result;
   }
 
-  public ImmutableSet<LemmaEntry> prepareInitialLemmas()
+  public ImmutableSet<ExpressionTree<AExpression>> prepareInitialLemmas()
       throws InterruptedException, InvalidConfigurationException {
     List<LemmaEntry> lemmaSet = new ArrayList<>();
 
@@ -250,7 +250,16 @@ public final class PredicatePrecisionBootstrapper {
         }
       }
     }
-    return ImmutableSet.copyOf(lemmaSet);
+
+    InvariantExchangeFormatTransformer transformer =
+        new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
+
+    ImmutableSet.Builder<ExpressionTree<AExpression>> lemmas = new ImmutableSet.Builder<>();
+    for (LemmaEntry e : lemmaSet) {
+      lemmas.add(transformer.parseLemmaEntry(e));
+    }
+    ImmutableSet<ExpressionTree<AExpression>> eTree = lemmas.build();
+    return eTree;
   }
 
   private PredicatePrecision parseInvariantFromYMLCorrectnessWitnessNonLocally(

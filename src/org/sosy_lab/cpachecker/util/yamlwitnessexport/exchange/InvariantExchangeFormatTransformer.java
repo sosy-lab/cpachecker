@@ -122,9 +122,8 @@ public class InvariantExchangeFormatTransformer {
 
   public ExpressionTree<AExpression> parseLemmaEntry(LemmaEntry pLemmaEntry)
       throws InterruptedException {
-    Integer line = pLemmaEntry.getLocation().getLine();
     Optional<String> resultFunction = Optional.ofNullable(pLemmaEntry.getLocation().getFunction());
-    String lemmaString = pLemmaEntry.getValue();
+    Set<String> lemmaString = Set.of(pLemmaEntry.getValue());
 
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(pLemmaEntry.getLocation().getFunction());
@@ -134,7 +133,8 @@ public class InvariantExchangeFormatTransformer {
           case C -> new CProgramScope(cfa, logger);
           default -> DummyScope.getInstance();
         };
-    return createExpressionTreeFromString(resultFunction, lemmaString, line, callStack, scope);
+    return CParserUtils.parseStatementsAsExpressionTree(
+        lemmaString, resultFunction, cparser, scope, parserTools);
   }
 
   /**
