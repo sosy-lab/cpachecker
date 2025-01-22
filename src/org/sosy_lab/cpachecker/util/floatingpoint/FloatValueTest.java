@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.truth.Correspondence.BinaryPredicate;
 import com.google.common.truth.Expect;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -90,6 +91,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
  * </code> and test all three implementations with a much smaller number of randomly generated
  * tests.
  */
+@SuppressFBWarnings(value = "DMI_RANDOM_USED_ONLY_ONCE")
 @RunWith(Parameterized.class)
 public class FloatValueTest {
   /** Supported reference implementations */
