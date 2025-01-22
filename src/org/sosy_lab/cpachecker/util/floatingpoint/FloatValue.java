@@ -2619,7 +2619,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   public double doubleValue() {
     if (!format.equals(Format.Float64)) {
       // Convert to the right precision first
-      return withPrecision(Format.Float64).floatValue();
+      return withPrecision(Format.Float64).doubleValue();
     }
     final long SIGN_MASK = (1L << Format.FLOAT64_EXP_BITS) << Format.FLOAT64_SIG_BITS;
     final long SIGNIFICAND_MASK = (1L << Format.FLOAT64_SIG_BITS) - 1L;
