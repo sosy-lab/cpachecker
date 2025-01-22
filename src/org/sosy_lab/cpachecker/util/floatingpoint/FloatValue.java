@@ -1547,7 +1547,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     // Calculate how many iterations are needed
     int bound = (int) Math.ceil(lb((format.sigBits + 2) / lb(17)));
 
-    // Set the initial value to 48/32 - 32/17*D
+    // Set the initial value to 48/17 - 32/17*D
     FloatValue x = lookupSqrtT1().subtract(lookupSqrtT2().multiply(d));
 
     for (int i = 0; i < bound; i++) {
