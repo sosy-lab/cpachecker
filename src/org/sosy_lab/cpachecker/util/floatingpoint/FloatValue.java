@@ -2522,9 +2522,9 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     // Get the sign
     boolean sign = (rawBits & SIGN_MASK) != 0;
 
-    if (Double.isNaN(pFloat)) {
+    if (Float.isNaN(pFloat)) {
       return sign ? nan(Format.Float32).negate() : nan(Format.Float32);
-    } else if (Double.isInfinite(pFloat)) {
+    } else if (Float.isInfinite(pFloat)) {
       return sign ? negativeInfinity(Format.Float32) : infinity(Format.Float32);
     } else {
       // Get the exponent and the significand
