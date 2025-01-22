@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.Truth.assert_;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
@@ -296,14 +296,10 @@ public class ASTConverterTest {
 
     for (ASTLiteralConverter converter : converters) {
       for (String value : inputs) {
-        try {
-          converter.parseFloatLiteral(FileLocation.DUMMY, CNumericTypes.DOUBLE, value, null);
-          assertWithMessage(
-                  "Expected an exception while parsing `%s`, but nothing was thrown", value)
-              .fail();
-        } catch (CFAGenerationRuntimeException e) {
-          // Skip, we expect the exception
-        }
+        assertThrows(
+            CFAGenerationRuntimeException.class,
+            () ->
+                converter.parseFloatLiteral(FileLocation.DUMMY, CNumericTypes.DOUBLE, value, null));
       }
     }
   }
