@@ -129,9 +129,6 @@ public abstract class AbstractExpressionValueVisitor
         JRightHandSideVisitor<Value, NoException>,
         JExpressionVisitor<Value, NoException> {
 
-  /** length of type INT in Java (in bit). */
-  private static final int SIZE_OF_JAVA_INT = 32;
-
   /** length of type LONG in Java (in bit). */
   private static final int SIZE_OF_JAVA_LONG = 64;
 
