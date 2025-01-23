@@ -53,27 +53,17 @@ public class CompositeRefiner implements Refiner {
   public PathFormula refine(CounterexampleInfo pCounterexample)
       throws CPATransferException, InterruptedException, InvalidConfigurationException,
              SolverException {
+
     if (refiners.size() == 1) {
       refinementTimer.start();
-      context.getLogger().log(Level.INFO, "Parallel Refinement is disabled, once refiner");
-      try {
-        List<Callable<RefinerResult>> tasks = new ArrayList<>();
-        refiners.values().forEach(
-            (pRefiner)
-                -> tasks.add(() -> refineWith(pRefiner, pCounterexample)));
+      context.getLogger().log(Level.INFO, "Parallel Refinement is disabled, one refiner");
+
+        RefinerResult result = refineWith(refiners.get(RefinementStrategy.QUANTIFIER_ELIMINATION), pCounterexample);
 
         // execute tasks with a timeout and return the first successful result
-        RefinerResult result = executor.invokeAny(tasks, TIMEOUT_SECONDS, TimeUnit.SECONDS);
         exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
         refinementTimer.stop();
         return exclusionFormula;
-
-      } catch (TimeoutException e) {
-        context.getLogger().log(Level.SEVERE, "Refinement timed out for all strategies.", e);
-      } catch (Exception e) {
-        context.getLogger().log(Level.SEVERE, "Error during parallel refinement.", e);
-      }
-
     }
 
     if (parallelRefinement && refiners.size() >= 2) {
