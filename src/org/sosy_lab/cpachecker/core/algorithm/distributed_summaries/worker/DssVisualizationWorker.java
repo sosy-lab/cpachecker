@@ -27,7 +27,6 @@ public class DssVisualizationWorker extends DssWorker {
 
   private final DssMessageLogger messageLogger;
   private final DssConnection connection;
-  private final LogManager logger;
   private boolean shutdown = false;
 
   DssVisualizationWorker(
@@ -39,13 +38,12 @@ public class DssVisualizationWorker extends DssWorker {
       LogManager pLogger)
       throws InvalidConfigurationException {
     super(id, pMessageFactory, pLogger);
-    logger = pLogger;
     connection = pConnection;
     messageLogger = new DssMessageLogger(pTree, pOptions.getParentConfig());
     try {
       messageLogger.logBlockGraph();
     } catch (IOException e) {
-      logger.logException(
+      pLogger.logException(
           Level.WARNING,
           e,
           "VisualizationWorker failed to log the BlockTree. "
