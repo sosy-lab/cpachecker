@@ -1426,7 +1426,10 @@ public class AssumptionToEdgeAllocator {
         return ExplicitValueLiteral.valueOf(
             FloatValue.fromFloatingPointNumber(floatingPointNumber), machineModel, pType);
       }
-      throw new UnsupportedOperationException();
+      throw new UnsupportedOperationException(
+          String.format(
+              "Tried handle the value `%s` of type `%s` as a floating point number.",
+              pValue, pValue.getClass().getSimpleName()));
     }
 
     public void resolveStruct(
