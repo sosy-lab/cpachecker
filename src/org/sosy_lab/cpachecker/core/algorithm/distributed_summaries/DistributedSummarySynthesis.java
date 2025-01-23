@@ -93,7 +93,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "distributedSummaries")
-public class DssAnalysis implements Algorithm, StatisticsProvider, Statistics {
+public class DistributedSummarySynthesis implements Algorithm, StatisticsProvider, Statistics {
 
   private record OldAndNewMessages(List<DssMessage> oldMessages, List<DssMessage> newMessages) {}
 
@@ -207,7 +207,7 @@ public class DssAnalysis implements Algorithm, StatisticsProvider, Statistics {
     DEFAULT
   }
 
-  public DssAnalysis(
+  public DistributedSummarySynthesis(
       Configuration pConfig,
       LogManager pLogger,
       CFA pInitialCFA,
