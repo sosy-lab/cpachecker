@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.CompositeRefiner;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.ReachabilityAnalyzer;
+import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.RefinementStrategy;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -54,17 +55,38 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "findErrorCondition")
 public class FindErrorCondition implements Algorithm, StatisticsProvider, Statistics {
 
+  @Option(
+      secure = true,
+      description = "Maximum iterations for error condition refinement.",
+      name = "maxIterations")
+  private int maxIterations = -1; // default: no iteration limit
+
+  @Option(
+      secure = true,
+      description = "Solver that should perform quantifier Elimination.",
+      name = "qSolver")
+  private Solvers qSolver = Solvers.Z3;
+
+  @Option(
+      secure = true,
+      description = "List of refiners to use",
+      name = "refiners")
+  private RefinementStrategy[] refiners =
+      {RefinementStrategy.QUANTIFIER_ELIMINATION, RefinementStrategy.ALLSAT}; // default
+
+  @Option(
+      secure = true,
+      description = "Enable parallel refinement. Only if at least two refiners are in use.",
+      name = "parallel")
+  private boolean parallelRefinement = true;
+
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
   private final LogManager logger;
   private final StatTimer totalTime =
       new StatTimer("Total time for finding precise error condition");
-
-  @Option(description = "Maximum iterations for error condition refinement.")
-  private int maxIterations = -1; // default: no iteration limit
   private int currentIteration = 0;
   private final FormulaContext context;
-
 
   public FindErrorCondition(
       Algorithm pAlgorithm,
@@ -90,7 +112,6 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         pCfa,
         AnalysisDirection.FORWARD);
     context = new FormulaContext(solver, manager, pCfa, logger, pConfig, pShutdownNotifier);
-
   }
 
   @Override
@@ -105,7 +126,8 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       boolean foundNewCounterexamples;
       ReachabilityAnalyzer analyzer = new ReachabilityAnalyzer(cpa, context, currentIteration);
       AbstractState initialState = analyzer.getInitialState();
-      CompositeRefiner refiner = new CompositeRefiner(context, Solvers.Z3);
+      CompositeRefiner refiner =
+          new CompositeRefiner(context, refiners, qSolver, parallelRefinement);
 
       do {
         logger.log(Level.INFO, "Iteration: " + currentIteration);
@@ -132,12 +154,15 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
             System.out.printf("IGNORE. " + exclusionFormula.getLength());
           }
           // update initial state with the exclusion formula
-          initialState = updateInitialStateWithExclusions(initialState, refiner.getExclusionFormula());
+          initialState =
+              updateInitialStateWithExclusions(initialState, refiner.getExclusionFormula());
         }
 
       } while (foundNewCounterexamples && (++currentIteration < maxIterations
           || maxIterations == -1));
-      refiner.shutdown();
+      if (parallelRefinement) {
+        refiner.shutdown();
+      }
       return status;
 
     } catch (InvalidConfigurationException | SolverException ex) {

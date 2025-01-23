@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,6 +22,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -27,61 +30,82 @@ public class CompositeRefiner implements Refiner {
   private static final int TIMEOUT_SECONDS = 180; // timeout for each refiner in seconds
   private final FormulaContext context;
   private PathFormula exclusionFormula;
-  private final QuantiferEliminationRefiner quantifierEliminationRefiner;
-  private final GenerateModelRefiner generateModelRefiner;
-  private final AllSatRefiner allSatRefiner;
+  private final Map<RefinementStrategy, Refiner> refiners = new EnumMap<>(RefinementStrategy.class);
   private final ExecutorService executor;
+  private final Boolean parallelRefinement;
+  private final StatTimer refinementTimer =
+      new StatTimer("Total time for refinement.");
 
   public CompositeRefiner(
-      FormulaContext pContext, Solvers pQuantifierSolver) // TODO add a list of different refinements and a flag for parallelism
+      FormulaContext pContext,
+      RefinementStrategy[] pRefiners,
+      Solvers pQuantifierSolver,
+      Boolean pParallelRefinement)
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     context = pContext;
     exclusionFormula = context.getManager().makeEmptyPathFormula(); // initially empty
-    generateModelRefiner = new GenerateModelRefiner(context);
-    System.out.printf("Refiner for %s\n",
-        generateModelRefiner.getClass().getSimpleName()); // delete later
-    allSatRefiner = new AllSatRefiner(context);
-    quantifierEliminationRefiner = new QuantiferEliminationRefiner(context, pQuantifierSolver);
-    // TODO make nThreads a passable variable
-    executor = Executors.newFixedThreadPool(2); // 2 threads for parallel refinement
-
+    initializeRefiners(pRefiners, pQuantifierSolver);
+    parallelRefinement = pParallelRefinement;
+    executor = Executors.newFixedThreadPool(pRefiners.length); // 2 threads for parallel refinement
   }
 
   @Override
   public PathFormula refine(CounterexampleInfo pCounterexample)
       throws CPATransferException, InterruptedException, InvalidConfigurationException,
              SolverException {
-    try {
-      List<Callable<RefinerResult>> tasks = new ArrayList<>();
-      //tasks.add(() -> refineWith("GenerateModelRefiner", generateModelRefiner, pCounterexample));
-      tasks.add(() -> refineWith("QuantifierEliminationRefiner", quantifierEliminationRefiner,
-          pCounterexample));
-      tasks.add(() -> refineWith("AllSatRefiner", allSatRefiner, pCounterexample));
 
-      // execute tasks with a timeout and return the first successful result
-      RefinerResult result = executor.invokeAny(tasks, TIMEOUT_SECONDS, TimeUnit.SECONDS);
-      exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
-      return exclusionFormula;
+    if (parallelRefinement && refiners.size() >= 2) {
+      refinementTimer.start();
+      context.getLogger().log(Level.INFO, "Parallel Refinement is enabled");
+      try {
+        List<Callable<RefinerResult>> tasks = new ArrayList<>();
+        refiners.values().forEach(
+            (pRefiner)
+                -> tasks.add(() -> refineWith(pRefiner, pCounterexample)));
 
-    } catch (TimeoutException e) {
-      context.getLogger().log(Level.SEVERE, "Refinement timed out for all strategies.", e);
-    } catch (Exception e) {
-      context.getLogger().log(Level.SEVERE, "Error during parallel refinement.", e);
+        // execute tasks with a timeout and return the first successful result
+        RefinerResult result = executor.invokeAny(tasks, TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
+        refinementTimer.stop();
+        return exclusionFormula;
+
+      } catch (TimeoutException e) {
+        context.getLogger().log(Level.SEVERE, "Refinement timed out for all strategies.", e);
+      } catch (Exception e) {
+        context.getLogger().log(Level.SEVERE, "Error during parallel refinement.", e);
+      }
+
+    }
+    if (!parallelRefinement) {
+      // TODO: handle non parallel
     }
 
     // Fallback TODO better handling fallback
-    context.getLogger()
-        .log(Level.WARNING, "All refiners failed. Returning an empty exclusion formula.");
+    {
+      context.getLogger()
+          .log(Level.WARNING, "All refiners failed. Returning an empty exclusion formula.");
+    }
     return null;
   }
 
-  private RefinerResult refineWith(String refinerName, Refiner refiner, CounterexampleInfo cex)
+  private void initializeRefiners(RefinementStrategy[] pRefiners, Solvers pQuantifierSolver)
+      throws InvalidConfigurationException, CPATransferException, InterruptedException {
+    for (RefinementStrategy refiner : pRefiners) {
+      refiners.put(refiner, RefinerFactory.createRefiner(refiner, context, pQuantifierSolver));
+    }
+  }
+
+  private RefinerResult refineWith(
+      Refiner refiner,
+      CounterexampleInfo cex)
       throws SolverException, CPATransferException, InterruptedException,
              InvalidConfigurationException {
-    context.getLogger().log(Level.INFO, "Starting refinement with " + refinerName);
+    context.getLogger()
+        .log(Level.INFO, "Starting refinement with " + refiner.getClass().getSimpleName());
     PathFormula result = refiner.refine(cex);
-    context.getLogger().log(Level.INFO, refinerName + " completed successfully.");
-    return new RefinerResult(refinerName, result);
+    context.getLogger()
+        .log(Level.INFO, refiner.getClass().getSimpleName() + " completed successfully.");
+    return new RefinerResult(refiner.getClass().getSimpleName(), result);
   }
 
 

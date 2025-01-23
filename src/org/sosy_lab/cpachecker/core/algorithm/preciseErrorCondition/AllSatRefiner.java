@@ -10,9 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 
 import java.util.ArrayList;
 import java.util.stream.Collectors;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -27,19 +29,23 @@ public class AllSatRefiner implements Refiner {
 
   private final FormulaContext context;
   private PathFormula exclusionModelFormula;
+  private Solver solver;
+  private ProverEnvironment proverEnv;
 
-  public AllSatRefiner(FormulaContext pContext) {
+  public AllSatRefiner(FormulaContext pContext) throws InvalidConfigurationException {
     context = pContext;
     exclusionModelFormula = context.getManager().makeEmptyPathFormula();
+    solver = Solver.create(context.getConfiguration(), context.getLogger(), context.getShutdownNotifier());
+    proverEnv = solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT);
   }
 
   @Override
   public PathFormula refine(CounterexampleInfo cex)
       throws SolverException, InterruptedException, CPATransferException {
-    BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
-    context.setProverOptions(ProverOptions.GENERATE_ALL_SAT);
+    BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
+    //context.setProverOptions(ProverOptions.GENERATE_ALL_SAT);
 
-    try (ProverEnvironment prover = context.getProver()) {
+    try (ProverEnvironment prover = proverEnv) {
       BooleanFormula formula =
           context.getManager().makeFormulaForPath(cex.getTargetPath().getFullPath()).getFormula();
       prover.push(formula);

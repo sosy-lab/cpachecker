@@ -9,13 +9,16 @@
 package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 
 import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 import java.util.logging.Level;
@@ -24,20 +27,24 @@ public class GenerateModelRefiner implements Refiner {
 
   private final FormulaContext context;
   private PathFormula exclusionModelFormula;
+  private Solver solver;
+  private ProverEnvironment proverEnv;
 
-  public GenerateModelRefiner(FormulaContext pContext) {
+  public GenerateModelRefiner(FormulaContext pContext) throws InvalidConfigurationException {
     context = pContext;
     exclusionModelFormula = context.getManager().makeEmptyPathFormula();
+    solver = Solver.create(context.getConfiguration(), context.getLogger(), context.getShutdownNotifier());
+    proverEnv = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
   }
 
   @Override
   public PathFormula refine(CounterexampleInfo cex)
       throws SolverException, InterruptedException, CPATransferException {
-    BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
+    BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula nondetModel = bmgr.makeTrue();
     ImmutableSet.Builder<String> nondetVariables = ImmutableSet.builder();
 
-    try (ProverEnvironment prover = context.getProver()) {
+    try (ProverEnvironment prover = proverEnv) {
       BooleanFormula formula =
           context.getManager().makeFormulaForPath(cex.getTargetPath().getFullPath()).getFormula();
       prover.push(formula);
