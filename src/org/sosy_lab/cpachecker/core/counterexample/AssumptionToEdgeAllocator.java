@@ -1433,12 +1433,8 @@ public class AssumptionToEdgeAllocator {
       } else if (pValue instanceof FloatValue floatValue) {
         return ExplicitValueLiteral.valueOf(floatValue, machineModel, pType);
       } else if (pValue instanceof FloatingPointNumber floatingPointNumber) {
-        if (!isDoublePrecision(floatingPointNumber) && !isSinglePrecision(floatingPointNumber)) {
-          // FIXME Convert arbitrary size FloatingPointNumbers to FloatValue
-          throw new UnsupportedOperationException();
-        }
         return ExplicitValueLiteral.valueOf(
-            FloatValue.fromDouble(floatingPointNumber.doubleValue()), machineModel, pType);
+            FloatValue.fromFloatingPointNumber(floatingPointNumber), machineModel, pType);
       }
       throw new UnsupportedOperationException();
     }
