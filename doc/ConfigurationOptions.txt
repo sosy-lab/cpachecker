@@ -226,6 +226,9 @@ analysis.algorithm.faultLocalization.by_distance = false
 # formulas
 analysis.algorithm.faultLocalization.by_traceformula = false
 
+# Find error conditions
+analysis.algorithm.findErrorCondition = false
+
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
@@ -4139,6 +4142,9 @@ faultLocalization.import.importFile = no default value
 
 # which scoring functions to use
 faultLocalization.import.scorings = []
+
+# Max Iterations
+findErrorCondition.maxIterations = -1
 
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.

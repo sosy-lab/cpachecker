@@ -36,16 +36,16 @@ public class AllSatRefiner implements Refiner {
     context = pContext;
     exclusionModelFormula = context.getManager().makeEmptyPathFormula();
     solver = Solver.create(context.getConfiguration(), context.getLogger(), context.getShutdownNotifier());
-    proverEnv = solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT);
   }
 
   @Override
   public PathFormula refine(CounterexampleInfo cex)
       throws SolverException, InterruptedException, CPATransferException {
+
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     //context.setProverOptions(ProverOptions.GENERATE_ALL_SAT);
 
-    try (ProverEnvironment prover = proverEnv) {
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
       BooleanFormula formula =
           context.getManager().makeFormulaForPath(cex.getTargetPath().getFullPath()).getFormula();
       prover.push(formula);

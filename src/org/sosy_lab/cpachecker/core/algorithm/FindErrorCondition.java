@@ -65,7 +65,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       secure = true,
       description = "Solver that should perform quantifier Elimination.",
       name = "qSolver")
-  private Solvers qSolver = Solvers.Z3;
+  private Solvers qSolver = Solvers.Z3; // default
 
   @Option(
       secure = true,
@@ -78,7 +78,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       secure = true,
       description = "Enable parallel refinement. Only if at least two refiners are in use.",
       name = "parallel")
-  private boolean parallelRefinement = true;
+  private boolean parallelRefinement = true; // default
 
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
