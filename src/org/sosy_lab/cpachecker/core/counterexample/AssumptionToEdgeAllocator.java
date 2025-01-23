@@ -1409,16 +1409,6 @@ public class AssumptionToEdgeAllocator {
       return new ValueLiterals();
     }
 
-    private static boolean isSinglePrecision(FloatingPointNumber pFloatingPointNumber) {
-      return pFloatingPointNumber.getExponentSize() == 8
-          && pFloatingPointNumber.getMantissaSize() == 23;
-    }
-
-    private static boolean isDoublePrecision(FloatingPointNumber pFloatingPointNumber) {
-      return pFloatingPointNumber.getExponentSize() == 11
-          && pFloatingPointNumber.getMantissaSize() == 52;
-    }
-
     private ValueLiteral handleFloatingPointNumbers(Object pValue, CSimpleType pType) {
       if (pValue instanceof Rational rationalValue) {
         FloatValue.Format format = FloatValue.Format.fromCType(machineModel, pType);
