@@ -1414,15 +1414,40 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   /**
    * Divide the value by another number.
    *
-   * <p>This version of divide is slower and does not check for corner cases. It is still needed to
-   * calculate the constants that are needed for the other, faster version of divide that uses
-   * Newton's method.
+   * <p>This version of divide is slow and only needed to calculate the constants that are needed
+   * for the other, faster version of divide that uses Newton's method.
    *
    * <p>This method assumes that both arguments use the same precision.
    */
   private FloatValue divideSlow(FloatValue pDivisor) {
     // Calculate the sign of the result
     boolean resultSign = sign ^ pDivisor.sign;
+
+    // Handle special cases:
+    if (isNan() || pDivisor.isNan()) {
+      // (1) Either argument is NaN
+      return nan(format);
+    } else if (isZero()) {
+      // (2) Dividend is zero
+      if (pDivisor.isZero()) {
+        return resultSign ? nan(format).negate() : nan(format);
+      } else {
+        return resultSign ? negativeZero(format) : zero(format);
+      }
+    } else if (isInfinite()) {
+      // (3) Dividend is infinite
+      if (pDivisor.isInfinite()) {
+        return resultSign ? nan(format).negate() : nan(format);
+      } else {
+        return resultSign ? negativeInfinity(format) : infinity(format);
+      }
+    } else if (pDivisor.isZero()) {
+      // (4) Divisor is zero (and dividend is finite)
+      return resultSign ? negativeInfinity(format) : infinity(format);
+    } else if (pDivisor.isInfinite()) {
+      // (5) Divisor is infinite (and dividend is finite)
+      return resultSign ? negativeZero(format) : zero(format);
+    }
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
