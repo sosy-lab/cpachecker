@@ -89,18 +89,6 @@ public class BuiltinFloatFunctions {
   private static final ImmutableList<String> SQRT = of("sqrt");
   private static final ImmutableList<String> SQRT_LONG_DOUBLE = of("sqrtl");
 
-  private static final ImmutableList<String> EXP_FLOAT = of("expf");
-  private static final ImmutableList<String> EXP = of("exp");
-  private static final ImmutableList<String> EXP_LONG_DOUBLE = of("expl");
-
-  private static final ImmutableList<String> LOG_FLOAT = of("logf");
-  private static final ImmutableList<String> LOG = of("log");
-  private static final ImmutableList<String> LOG_LONG_DOUBLE = of("logl");
-
-  private static final ImmutableList<String> POW_FLOAT = of("powf");
-  private static final ImmutableList<String> POW = of("pow");
-  private static final ImmutableList<String> POW_LONG_DOUBLE = of("powl");
-
   private static final ImmutableList<String> ISGREATER = of("isgreater");
   private static final ImmutableList<String> ISGREATEREQUAL = of("isgreaterequal");
   private static final ImmutableList<String> ISLESS = of("isless");
@@ -140,9 +128,6 @@ public class BuiltinFloatFunctions {
           .addAll(MODF)
           .addAll(FREMAINDER)
           .addAll(SQRT)
-          .addAll(EXP)
-          .addAll(LOG)
-          .addAll(POW)
 
           // compare-functions are ordered backwards, such that the prefix-search works.
           .addAll(ISGREATEREQUAL)
@@ -382,20 +367,6 @@ public class BuiltinFloatFunctions {
 
   public static boolean matchesSqrt(String pFunctionName) {
     return FluentIterable.concat(SQRT_FLOAT, SQRT, SQRT_LONG_DOUBLE).contains(pFunctionName);
-  }
-
-  public static boolean matchesExp(String pFunctionName) {
-    // TODO: Add other exp variants like exp2 or expm1
-    return FluentIterable.concat(EXP_FLOAT, EXP, EXP_LONG_DOUBLE).contains(pFunctionName);
-  }
-
-  public static boolean matchesLog(String pFunctionName) {
-    // TODO: Add other log variants like log2 or log1p
-    return FluentIterable.concat(LOG_FLOAT, LOG, LOG_LONG_DOUBLE).contains(pFunctionName);
-  }
-
-  public static boolean matchesPow(String pFunctionName) {
-    return FluentIterable.concat(POW_FLOAT, POW, POW_LONG_DOUBLE).contains(pFunctionName);
   }
 
   public static boolean matchesSignbit(String pFunctionName) {
