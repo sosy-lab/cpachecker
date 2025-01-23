@@ -285,7 +285,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
               logger.log(
                   Level.WARNING,
                   String.format(
-                      "Assertion violation at %s: Variable '%s' was expected to be %s tainted but is %s tainted.",
+                      "Assertion violation at %s: Variable '%s' was expected to be %s tainted but"
+                          + " is %s tainted.",
                       pCfaEdge.getFileLocation(),
                       variableToCheck.getName(),
                       expectedTaint == 1 ? "" : "not",
