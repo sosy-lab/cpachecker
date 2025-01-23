@@ -84,9 +84,11 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   }
 
   @Override
-  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition) {
-    return Objects.requireNonNull(
-        AbstractStates.extractStateByType(pARGPath.getFirstState(), getAbstractStateClass()));
+  public Optional<AbstractState> computeVerificationCondition(
+      ARGPath pARGPath, ARGState pPreviousCondition) {
+    return Optional.of(
+        Objects.requireNonNull(
+            AbstractStates.extractStateByType(pARGPath.getFirstState(), getAbstractStateClass())));
   }
 
   @Override

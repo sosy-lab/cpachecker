@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -22,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -138,11 +138,9 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException,
-          InterruptedException,
-          SolverException,
-          VerificationConditionException {
+  public Optional<AbstractState> computeVerificationCondition(
+      ARGPath pARGPath, ARGState pPreviousCondition)
+      throws CPATransferException, InterruptedException, SolverException {
     PathFormula result;
     if (pPreviousCondition == null) {
       result = backwardManager.makeEmptyPathFormula();
@@ -161,14 +159,16 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
     }
     if (hasRootAsPredecessor) {
       if (predicateCPA.getSolver().isUnsat(result.getFormula())) {
-        throw new VerificationConditionException("Formula is unsat at root.");
+        return Optional.empty();
       }
     }
-    return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-        result,
-        (PredicateAbstractState)
-            getInitialState(
-                Objects.requireNonNull(AbstractStates.extractLocation(pARGPath.getFirstState())),
-                StateSpacePartition.getDefaultPartition()));
+    return Optional.of(
+        PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+            result,
+            (PredicateAbstractState)
+                getInitialState(
+                    Objects.requireNonNull(
+                        AbstractStates.extractLocation(pARGPath.getFirstState())),
+                    StateSpacePartition.getDefaultPartition())));
   }
 }

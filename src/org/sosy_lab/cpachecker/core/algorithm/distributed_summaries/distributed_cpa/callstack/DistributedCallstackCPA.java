@@ -13,11 +13,11 @@ import com.google.common.collect.Lists;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -97,8 +97,9 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws InterruptedException, CPATransferException, VerificationConditionException {
+  public Optional<AbstractState> computeVerificationCondition(
+      ARGPath pARGPath, ARGState pPreviousCondition)
+      throws InterruptedException, CPATransferException {
     AbstractState error;
     if (pPreviousCondition == null) {
       error =
@@ -117,10 +118,10 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
               getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
               cfaEdge);
       if (abstractSuccessorsForEdge.isEmpty()) {
-        throw new VerificationConditionException("Callstack not feasible");
+        return Optional.empty();
       }
       error = Iterables.getOnlyElement(abstractSuccessorsForEdge);
     }
-    return error;
+    return Optional.of(error);
   }
 }

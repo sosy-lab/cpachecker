@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
@@ -294,11 +293,9 @@ public class DssBlockAnalysis {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     boolean makeFirst = false;
     for (ARGPath path : pathsToViolations.build()) {
-      AbstractState abstractState;
-      try {
-        abstractState = dcpa.computeVerificationCondition(path, condition);
-      } catch (VerificationConditionException e) {
-        // see semantics of VerificationConditionException
+      Optional<AbstractState> verificationCondition =
+          dcpa.computeVerificationCondition(path, condition);
+      if (verificationCondition.isEmpty()) {
         continue;
       }
       String prefix =
@@ -309,7 +306,8 @@ public class DssBlockAnalysis {
         prefix = pPrefix + "," + prefix;
       }
       DssMessagePayload serialized =
-          dcpa.serialize(abstractState, reachedSet.getPrecision(path.getLastState()));
+          dcpa.serialize(
+              verificationCondition.orElseThrow(), reachedSet.getPrecision(path.getLastState()));
       messages.add(
           messageFactory.newErrorConditionMessage(
               block.getId(),

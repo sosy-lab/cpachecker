@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -97,13 +97,12 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
   }
 
   @Override
-  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException,
-          InterruptedException,
-          VerificationConditionException,
-          SolverException {
-    return new ARGState(
-        wrappedCPA.computeVerificationCondition(pARGPath, pPreviousCondition), null);
+  public Optional<AbstractState> computeVerificationCondition(
+      ARGPath pARGPath, ARGState pPreviousCondition)
+      throws CPATransferException, InterruptedException, SolverException {
+    return wrappedCPA
+        .computeVerificationCondition(pARGPath, pPreviousCondition)
+        .map(state -> new ARGState(state, null));
   }
 
   public DistributedConfigurableProgramAnalysis getWrappedCPA() {

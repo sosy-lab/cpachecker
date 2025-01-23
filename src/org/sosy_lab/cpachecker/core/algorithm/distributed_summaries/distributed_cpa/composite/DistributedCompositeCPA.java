@@ -12,12 +12,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -112,11 +112,9 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException,
-          InterruptedException,
-          VerificationConditionException,
-          SolverException {
+  public Optional<AbstractState> computeVerificationCondition(
+      ARGPath pARGPath, ARGState pPreviousCondition)
+      throws CPATransferException, InterruptedException, SolverException {
     ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
     for (ConfigurableProgramAnalysis cpa : compositeCPA.getWrappedCPAs()) {
       if (!analyses.containsKey(cpa.getClass())) {
@@ -125,12 +123,16 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
                 Objects.requireNonNull(AbstractStates.extractLocation(pARGPath.getFirstState())),
                 StateSpacePartition.getDefaultPartition()));
       } else {
-        states.add(
+        Optional<AbstractState> abstractState =
             Objects.requireNonNull(analyses.get(cpa.getClass()))
-                .computeVerificationCondition(pARGPath, pPreviousCondition));
+                .computeVerificationCondition(pARGPath, pPreviousCondition);
+        if (abstractState.isEmpty()) {
+          return Optional.empty();
+        }
+        states.add(abstractState.orElseThrow());
       }
     }
-    return new CompositeState(states.build());
+    return Optional.of(new CompositeState(states.build()));
   }
 
   @Override

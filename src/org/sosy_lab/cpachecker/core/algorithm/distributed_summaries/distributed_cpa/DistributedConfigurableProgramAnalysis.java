@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
@@ -88,13 +89,11 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    * the same location as the first state of the ARGPath
    *
    * @param pARGPath arg path to collapse
-   * @return verification condition
+   * @return verification condition iff feasible, empty otherwise
    */
-  AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException,
-          InterruptedException,
-          VerificationConditionException,
-          SolverException;
+  Optional<AbstractState> computeVerificationCondition(
+      ARGPath pARGPath, ARGState pPreviousCondition)
+      throws CPATransferException, InterruptedException, SolverException;
 
   default DssMessagePayload serialize(AbstractState pAbstractState, Precision pPrecision) {
     return DssMessagePayload.builder()
