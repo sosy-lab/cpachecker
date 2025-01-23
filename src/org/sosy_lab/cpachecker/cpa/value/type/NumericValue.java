@@ -73,7 +73,8 @@ public record NumericValue(Number number) implements Value {
     } else if (number instanceof Float floatValue) {
       return FloatValue.fromFloat(floatValue);
     } else {
-      throw new IllegalArgumentException();
+      throw new IllegalArgumentException(
+          "Value is not a floating point number and needs to be converted first.");
     }
   }
 
@@ -92,7 +93,7 @@ public record NumericValue(Number number) implements Value {
       FloatValue d = FloatValue.fromInteger(format, rat.getDen());
       return n.divide(d);
     } else {
-      throw new IllegalArgumentException();
+      throw new UnsupportedOperationException("Should be unreachable.");
     }
   }
 
@@ -112,14 +113,15 @@ public record NumericValue(Number number) implements Value {
         || number instanceof Byte) {
       return BigInteger.valueOf(number.longValue());
     } else {
-      throw new IllegalArgumentException();
+      throw new IllegalArgumentException(
+          "Value is not an integer number and needs to be converted first.");
     }
   }
 
   /**
    * Convert to {@link BigInteger}
    *
-   * <p>WARNING: This silently rounds decimal numbers.
+   * <p>WARNING: This silently rounds rational and floating point numbers.
    */
   public BigInteger bigIntegerValue() {
     if (hasIntegerType()) {
@@ -133,7 +135,7 @@ public record NumericValue(Number number) implements Value {
     } else if (number instanceof FloatValue floatValue) {
       return floatValue.integerValue();
     } else {
-      throw new IllegalArgumentException();
+      throw new IllegalArgumentException("Should be unreachable.");
     }
   }
 
@@ -199,7 +201,7 @@ public record NumericValue(Number number) implements Value {
     } else if (number instanceof Rational rat) {
       return new NumericValue(rat.negate());
     } else {
-      throw new IllegalArgumentException();
+      throw new UnsupportedOperationException("Should be unreachable.");
     }
   }
 
