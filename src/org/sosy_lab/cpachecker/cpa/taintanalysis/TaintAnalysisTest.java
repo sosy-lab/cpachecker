@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import java.nio.file.Path;
 import java.util.logging.Level;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
@@ -19,7 +18,7 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
 
 public class TaintAnalysisTest {
 
-  private TestResults parseProgram(String pProgramName) throws Exception {
+  private TestResults runCPAchecker(String pProgramName) throws Exception {
     final Configuration config =
         TestDataTools.configurationForTest()
             .setOption("--config", "config/predicateAnalysis--taintAnalysis.properties")
@@ -34,28 +33,28 @@ public class TaintAnalysisTest {
   @Test
   @Ignore
   public void testExampleNotTaintedSafe() throws Exception {
-    TestResults results = parseProgram("exampleNotTaintedSafe.c");
+    TestResults results = runCPAchecker("exampleNotTaintedSafe.c");
     results.assertIsSafe();
   }
 
   @Test
   @Ignore
   public void testExampleNotTaintedUnsafe() throws Exception {
-    TestResults results = parseProgram("exampleNotTaintedUnsafe.c");
+    TestResults results = runCPAchecker("exampleNotTaintedUnsafe.c");
     results.assertIsUnsafe();
   }
 
   @Test
   @Ignore
   public void testExampleTaintedSafe() throws Exception {
-    TestResults results = parseProgram("exampleTaintedSafe.c");
+    TestResults results = runCPAchecker("exampleTaintedSafe.c");
     results.assertIsSafe();
   }
 
   @Test
   @Ignore
   public void testExampleTaintedUnsafe() throws Exception {
-    TestResults results = parseProgram("exampleTaintedUnsafe.c");
+    TestResults results = runCPAchecker("exampleTaintedUnsafe.c");
     results.assertIsUnsafe();
   }
 }
