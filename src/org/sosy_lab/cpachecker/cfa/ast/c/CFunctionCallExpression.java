@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CFunctionCallExpression extends AFunctionCallExpression
-    implements CRightHandSide {
+    implements CRightHandSide, CExpression {
 
   @Serial private static final long serialVersionUID = -3958452761163446674L;
 
@@ -57,6 +57,11 @@ public final class CFunctionCallExpression extends AFunctionCallExpression
   public CFunctionDeclaration getDeclaration() {
 
     return (CFunctionDeclaration) super.getDeclaration();
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 
   @Override
