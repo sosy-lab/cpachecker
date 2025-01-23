@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
-import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
@@ -16,14 +15,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.NoPrecisionSerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.VerificationConditionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public interface DistributedConfigurableProgramAnalysis extends ConfigurableProgramAnalysis {
 
@@ -74,6 +70,8 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
 
   boolean isTop(AbstractState pAbstractState);
 
+  VerificationConditionOperator getVerificationConditionOperator();
+
   /**
    * Check whether this distributed CPA can work with {@code pClass}.
    *
@@ -83,17 +81,6 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   default boolean doesOperateOn(Class<? extends AbstractState> pClass) {
     return getAbstractStateClass().isAssignableFrom(pClass);
   }
-
-  /**
-   * Collapse the path such that it can be represented as one state. The state is required to have
-   * the same location as the first state of the ARGPath
-   *
-   * @param pARGPath arg path to collapse
-   * @return verification condition iff feasible, empty otherwise
-   */
-  Optional<AbstractState> computeVerificationCondition(
-      ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException, InterruptedException, SolverException;
 
   default DssMessagePayload serialize(AbstractState pAbstractState, Precision pPrecision) {
     return DssMessagePayload.builder()

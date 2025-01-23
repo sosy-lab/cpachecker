@@ -9,26 +9,17 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import java.util.Collection;
-import java.util.Objects;
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.BackwardTransferVerificationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.VerificationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class DistributedFunctionPointerCPA
     implements ForwardingDistributedConfigurableProgramAnalysis {
@@ -37,12 +28,16 @@ public class DistributedFunctionPointerCPA
   private final DeserializeOperator deserialize;
 
   private final FunctionPointerCPA functionPointerCPA;
+  private final VerificationConditionOperator verificationConditionOperator;
 
   public DistributedFunctionPointerCPA(
       FunctionPointerCPA pParentCPA, ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
     functionPointerCPA = pParentCPA;
     serialize = new SerializeFunctionPointerStateOperator();
     deserialize = new DeserializeFunctionPointerStateOperator(pParentCPA, pIntegerCFANodeMap);
+    verificationConditionOperator =
+        new BackwardTransferVerificationConditionOperator(
+            pParentCPA.getTransferRelation(), pParentCPA);
   }
 
   @Override
@@ -76,28 +71,7 @@ public class DistributedFunctionPointerCPA
   }
 
   @Override
-  public Optional<AbstractState> computeVerificationCondition(
-      ARGPath pARGPath, ARGState pPreviousCondition)
-      throws InterruptedException, CPATransferException {
-    AbstractState error =
-        Objects.requireNonNull(
-            pPreviousCondition == null
-                ? FunctionPointerState.createEmptyState()
-                : AbstractStates.extractStateByType(pPreviousCondition, getAbstractStateClass()));
-    for (CFAEdge cfaEdge : Lists.reverse(pARGPath.getFullPath())) {
-      Collection<? extends AbstractState> abstractSuccessorsForEdge =
-          functionPointerCPA
-              .getTransferRelation()
-              .getAbstractSuccessorsForEdge(
-                  error,
-                  getInitialPrecision(
-                      cfaEdge.getSuccessor(), StateSpacePartition.getDefaultPartition()),
-                  cfaEdge);
-      if (abstractSuccessorsForEdge.isEmpty()) {
-        return Optional.empty();
-      }
-      error = Iterables.getOnlyElement(abstractSuccessorsForEdge);
-    }
-    return Optional.of(error);
+  public VerificationConditionOperator getVerificationConditionOperator() {
+    return verificationConditionOperator;
   }
 }

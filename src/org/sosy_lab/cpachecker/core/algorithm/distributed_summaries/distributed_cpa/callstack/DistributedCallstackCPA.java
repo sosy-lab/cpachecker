@@ -8,30 +8,21 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import java.util.Collection;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.BackwardTransferVerificationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.VerificationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelationBackwards;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class DistributedCallstackCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -42,7 +33,8 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
 
   private final CallstackCPA callstackCPA;
   private final CFA cfa;
-  private final CallstackTransferRelationBackwards backwardsTransfer;
+
+  private final VerificationConditionOperator verificationConditionOperator;
 
   public DistributedCallstackCPA(
       CallstackCPA pCallstackCPA, CFA pCFA, Map<Integer, CFANode> pIdToNodeMap) {
@@ -50,7 +42,9 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
     cfa = pCFA;
     serialize = new SerializeCallstackStateOperator();
     deserialize = new DeserializeCallstackStateOperator(pCallstackCPA, pIdToNodeMap::get);
-    backwardsTransfer = callstackCPA.getTransferRelation().copyBackwards();
+    verificationConditionOperator =
+        new BackwardTransferVerificationConditionOperator(
+            callstackCPA.getTransferRelation().copyBackwards(), pCallstackCPA);
   }
 
   @Override
@@ -97,31 +91,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public Optional<AbstractState> computeVerificationCondition(
-      ARGPath pARGPath, ARGState pPreviousCondition)
-      throws InterruptedException, CPATransferException {
-    AbstractState error;
-    if (pPreviousCondition == null) {
-      error =
-          getInitialState(
-              Objects.requireNonNull(AbstractStates.extractLocation(pARGPath.getLastState())),
-              StateSpacePartition.getDefaultPartition());
-    } else {
-      error =
-          Objects.requireNonNull(
-              AbstractStates.extractStateByType(pPreviousCondition, CallstackState.class));
-    }
-    for (CFAEdge cfaEdge : Lists.reverse(pARGPath.getFullPath())) {
-      Collection<? extends AbstractState> abstractSuccessorsForEdge =
-          backwardsTransfer.getAbstractSuccessorsForEdge(
-              error,
-              getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
-              cfaEdge);
-      if (abstractSuccessorsForEdge.isEmpty()) {
-        return Optional.empty();
-      }
-      error = Iterables.getOnlyElement(abstractSuccessorsForEdge);
-    }
-    return Optional.of(error);
+  public VerificationConditionOperator getVerificationConditionOperator() {
+    return verificationConditionOperator;
   }
 }

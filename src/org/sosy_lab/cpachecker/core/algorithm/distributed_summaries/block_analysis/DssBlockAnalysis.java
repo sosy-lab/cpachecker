@@ -294,7 +294,8 @@ public class DssBlockAnalysis {
     boolean makeFirst = false;
     for (ARGPath path : pathsToViolations.build()) {
       Optional<AbstractState> verificationCondition =
-          dcpa.computeVerificationCondition(path, condition);
+          dcpa.getVerificationConditionOperator()
+              .computeVerificationCondition(path, Optional.ofNullable(condition));
       if (verificationCondition.isEmpty()) {
         continue;
       }
