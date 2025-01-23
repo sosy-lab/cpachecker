@@ -381,10 +381,6 @@ class MpfrFloat extends CFloat {
 
   @Override
   public int compareTo(CFloat other) {
-    // FIXME: We only allow comparisons with other MpfrFloat objects
-    if (other instanceof MpfrFloat otherMpfr) {
-      return value.compareTo(otherMpfr.value);
-    }
-    throw new UnsupportedOperationException();
+    return value.compareTo(((MpfrFloat) other).value);
   }
 }
