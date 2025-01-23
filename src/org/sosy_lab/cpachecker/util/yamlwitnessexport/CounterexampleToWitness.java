@@ -78,7 +78,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     InformationRecord informationRecord =
         new InformationRecord(assumption, null, YAMLWitnessExpressionType.C);
     LocationRecord location =
-        LocationRecord.createLocationRecordAfterLocation(
+        LocationRecord.createLocationRecordAtStartOfNextLocation(
             edge.getFileLocation(), edge.getPredecessor().getFunctionName(), pAstCfaRelation);
     return new WaypointRecord(
         WaypointType.ASSUMPTION, WaypointAction.FOLLOW, informationRecord, location);

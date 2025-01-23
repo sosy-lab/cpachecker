@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -189,27 +190,29 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
         }
       }
 
-      ThreadingState child = ARGUtils.extractSingleThreadingState(pSuccessor);
-      for (ARGState argParent : pSuccessor.getParents()) {
-        ThreadingState parent = ARGUtils.extractSingleThreadingState(argParent);
-        ImmutableSet<String> parentLocks = parent.getGlobalLockIds();
-        ImmutableSet<String> childLocks = child.getGlobalLockIds();
-        // locks unequal -> a lock / unlock operation was performed between states
-        if (!parentLocks.equals(childLocks)) {
-          // we later need the edge for the location and function
-          Verify.verify(
-              argParent.getEdgeToChild(pSuccessor) != null,
-              "no edge found connecting parent and child");
-          int parentLocksNum = parentLocks.size();
-          int childLocksNum = childLocks.size();
-          if (parentLocksNum + 1 == childLocksNum) {
-            // more locks in child -> lock was locked
-            collectedStates.lockUpdates.put(argParent, pSuccessor);
-          } else if (parentLocksNum == childLocksNum + 1) {
-            // more locks in parent -> lock was unlocked
-            collectedStates.unlockUpdates.put(argParent, pSuccessor);
-          } else {
-            throw new AssertionError("multiple global locks within one operation");
+      Optional<ThreadingState> child = ARGUtils.tryExtractThreadingState(pSuccessor);
+      if (child.isPresent()) {
+        for (ARGState argParent : pSuccessor.getParents()) {
+          ThreadingState parent = ARGUtils.tryExtractThreadingState(argParent).orElseThrow();
+          ImmutableSet<String> parentLocks = parent.getGlobalLockIds();
+          ImmutableSet<String> childLocks = child.orElseThrow().getGlobalLockIds();
+          // locks unequal -> a lock / unlock operation was performed between states
+          if (!parentLocks.equals(childLocks)) {
+            // we later need the edge for the location and function
+            Verify.verify(
+                argParent.getEdgeToChild(pSuccessor) != null,
+                "no edge found connecting parent and child");
+            int parentLocksNum = parentLocks.size();
+            int childLocksNum = childLocks.size();
+            if (parentLocksNum + 1 == childLocksNum) {
+              // more locks in child -> lock was locked
+              collectedStates.lockUpdates.put(argParent, pSuccessor);
+            } else if (parentLocksNum == childLocksNum + 1) {
+              // more locks in parent -> lock was unlocked
+              collectedStates.unlockUpdates.put(argParent, pSuccessor);
+            } else {
+              throw new AssertionError("multiple global locks within one operation");
+            }
           }
         }
       }

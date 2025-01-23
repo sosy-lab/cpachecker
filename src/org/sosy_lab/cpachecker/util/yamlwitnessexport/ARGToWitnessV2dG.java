@@ -62,12 +62,12 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     checkNotNull(pChild);
     CFAEdge lockEdge = pParent.getEdgeToChild(pChild);
     checkArgument(lockEdge != null, "no edge connects pParent and pChild");
+    // ghost updates always commute with the lock statement -> could also put it at start
     LocationRecord locationRecord =
-        LocationRecord.createLocationRecordAfterLocation(
+        LocationRecord.createLocationRecordAtEnd(
             lockEdge.getFileLocation(),
             // using original name instead of cloned function name
-            lockEdge.getSuccessor().getFunction().getOrigName(),
-            cfa.getAstCfaRelation());
+            lockEdge.getSuccessor().getFunction().getOrigName());
     // the format of ghost updates is currently always c_expression
     UpdateRecord updateRecord =
         new UpdateRecord(getLockId(pParent, pChild), pValue, YAMLWitnessExpressionType.C);
@@ -131,8 +131,8 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
   private @NonNull String getLockId(@NonNull ARGState pParent, @NonNull ARGState pChild) {
     checkNotNull(pParent);
     checkNotNull(pChild);
-    ThreadingState parent = ARGUtils.extractSingleThreadingState(pParent);
-    ThreadingState child = ARGUtils.extractSingleThreadingState(pChild);
+    ThreadingState parent = ARGUtils.tryExtractThreadingState(pParent).orElseThrow();
+    ThreadingState child = ARGUtils.tryExtractThreadingState(pChild).orElseThrow();
     SetView<String> symmetricDifference =
         Sets.symmetricDifference(parent.getGlobalLockIds(), child.getGlobalLockIds());
     Verify.verify(

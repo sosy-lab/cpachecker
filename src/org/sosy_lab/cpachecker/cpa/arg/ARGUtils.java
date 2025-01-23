@@ -20,7 +20,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Verify;
-import com.google.common.base.VerifyException;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -1316,17 +1315,26 @@ public class ARGUtils {
     return results.build();
   }
 
-  /** Extract and return the single {@link ThreadingState} linked to pARGState. If there is no or
-   * multiple {@link ThreadingState}(s), throws a {@link VerifyException}. */
-  public static @NonNull ThreadingState extractSingleThreadingState(@NonNull ARGState pARGState) {
+  /**
+   * Extract and return the single {@link ThreadingState} linked to pARGState.
+   *
+   * <p>If there is no {@link ThreadingState}, returns {@link Optional#empty()}.
+   *
+   * <p>If there are multiple {@link ThreadingState}s, throws an error.
+   */
+  public static Optional<ThreadingState> tryExtractThreadingState(@NonNull ARGState pARGState) {
     checkNotNull(pARGState);
-    FluentIterable<ThreadingState> childThreadingStates =
+    FluentIterable<ThreadingState> threadingStates =
         AbstractStates.asIterable(pARGState).filter(ThreadingState.class);
-    Verify.verify(
-        childThreadingStates.size() == 1,
-        "each ARGState must be linked to exactly one ThreadingState");
-    ThreadingState threadingState = childThreadingStates.get(0);
-    Verify.verify(threadingState != null, "threadingState cannot be null");
-    return threadingState;
+    if (threadingStates.isEmpty()) {
+      return Optional.empty();
+    } else {
+      Verify.verify(
+          threadingStates.size() == 1,
+          "each ARGState must be linked to exactly one ThreadingState");
+      ThreadingState threadingState = threadingStates.get(0);
+      Verify.verify(threadingState != null, "threadingState cannot be null");
+      return Optional.of(threadingState);
+    }
   }
 }
