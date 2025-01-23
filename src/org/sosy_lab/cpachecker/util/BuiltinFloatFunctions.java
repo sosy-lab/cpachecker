@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -85,10 +84,6 @@ public class BuiltinFloatFunctions {
   private static final ImmutableList<String> FREMAINDER = of("remainder");
   private static final ImmutableList<String> FREMAINDER_LONG_DOUBLE = of("remainderl");
 
-  private static final ImmutableList<String> SQRT_FLOAT = of("sqrtf");
-  private static final ImmutableList<String> SQRT = of("sqrt");
-  private static final ImmutableList<String> SQRT_LONG_DOUBLE = of("sqrtl");
-
   private static final ImmutableList<String> ISGREATER = of("isgreater");
   private static final ImmutableList<String> ISGREATEREQUAL = of("isgreaterequal");
   private static final ImmutableList<String> ISLESS = of("isless");
@@ -127,7 +122,6 @@ public class BuiltinFloatFunctions {
           .addAll(FMOD)
           .addAll(MODF)
           .addAll(FREMAINDER)
-          .addAll(SQRT)
 
           // compare-functions are ordered backwards, such that the prefix-search works.
           .addAll(ISGREATEREQUAL)
@@ -363,10 +357,6 @@ public class BuiltinFloatFunctions {
     return FREMAINDER_FLOAT.contains(pFunctionName)
         || FREMAINDER.contains(pFunctionName)
         || FREMAINDER_LONG_DOUBLE.contains(pFunctionName);
-  }
-
-  public static boolean matchesSqrt(String pFunctionName) {
-    return FluentIterable.concat(SQRT_FLOAT, SQRT, SQRT_LONG_DOUBLE).contains(pFunctionName);
   }
 
   public static boolean matchesSignbit(String pFunctionName) {

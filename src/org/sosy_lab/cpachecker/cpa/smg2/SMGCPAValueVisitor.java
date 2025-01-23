@@ -1885,10 +1885,6 @@ public class SMGCPAValueVisitor
               currentState,
               (FloatValue arg1, FloatValue arg2) -> arg1.modulo(arg2));
 
-        } else if (BuiltinFloatFunctions.matchesSqrt(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName, parameterValues, currentState, (FloatValue arg) -> arg.sqrt());
-
         } else if (BuiltinFloatFunctions.matchesIsgreater(calledFunctionName)) {
           return handleBuiltinFunction2(
               calledFunctionName,
