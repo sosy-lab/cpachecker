@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
@@ -58,7 +60,7 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     checkNotNull(pParent);
     checkNotNull(pChild);
     CFAEdge lockEdge = pParent.getEdgeToChild(pChild);
-    assert lockEdge != null : "no edge connects " + pParent + " and " + pChild;
+    Verify.verify(lockEdge != null, "no edge connects pParent and pChild");
     LocationRecord locationRecord =
         LocationRecord.createLocationRecordAfterLocation(
             lockEdge.getFileLocation(),
@@ -121,21 +123,21 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
   }
 
   /**
-   * Returns the lock String id as used in {@link ThreadingState} that is updated between pParent
-   * and pChild and throws an {@link AssertionError} if no lock is found.
+   * Returns the single lock id as used in {@link ThreadingState} that is updated between pParent
+   * and pChild.
    */
-  private String getLockId(@NonNull ARGState pParent, @NonNull ARGState pChild) {
+  private @NonNull String getLockId(@NonNull ARGState pParent, @NonNull ARGState pChild) {
     checkNotNull(pParent);
     checkNotNull(pChild);
-    if (pParent.getWrappedState() instanceof ThreadingState parent
-        && pChild.getWrappedState() instanceof ThreadingState child) {
-      SetView<String> symmetricDifference =
-          Sets.symmetricDifference(parent.getLockIds(), child.getLockIds());
-      assert symmetricDifference.size() == 1
-          : "there must be exactly one lock update between pParent and pChild";
-      return symmetricDifference.iterator().next();
-    } else {
-      throw new AssertionError("both pParent and pChild must be ThreadingStates");
-    }
+    ThreadingState parent = ARGUtils.extractSingleThreadingState(pParent);
+    ThreadingState child = ARGUtils.extractSingleThreadingState(pChild);
+    SetView<String> symmetricDifference =
+        Sets.symmetricDifference(parent.getGlobalLockIds(), child.getGlobalLockIds());
+    Verify.verify(
+        symmetricDifference.size() == 1,
+        "there must be exactly one lock update between pParent and pChild");
+    String rLockId = symmetricDifference.iterator().next();
+    Verify.verify(rLockId != null, "the updated lock cannot be null");
+    return rLockId;
   }
 }

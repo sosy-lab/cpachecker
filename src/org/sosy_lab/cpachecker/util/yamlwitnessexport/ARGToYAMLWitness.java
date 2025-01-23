@@ -12,6 +12,7 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.graph.SuccessorsFunction;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.Repo
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -187,25 +189,27 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
         }
       }
 
-      if (pSuccessor.getWrappedState() instanceof ThreadingState childThreadingState) {
-        for (ARGState parent : pSuccessor.getParents()) {
-          assert parent.getWrappedState() instanceof ThreadingState
-              : "parent of ThreadingState must be ThreadingState too";
-          ThreadingState parentThreadingState = (ThreadingState) parent.getWrappedState();
-          // locks unequal -> a lock / unlock operation was performed between states
-          if (!childThreadingState.getLockIds().equals(parentThreadingState.getLockIds())) {
-            int parentLocksNum = parentThreadingState.getLockIds().size();
-            int childLocksNum = childThreadingState.getLockIds().size();
-            if (parentLocksNum + 1 == childLocksNum) {
-              // more locks in child -> lock was locked
-              collectedStates.lockUpdates.put(parent, pSuccessor);
-            }
-            if (parentLocksNum == childLocksNum + 1) {
-              // more locks in parent -> lock was unlocked
-              collectedStates.unlockUpdates.put(parent, pSuccessor);
-            } else {
-              throw new AssertionError("multiple locks within one operation");
-            }
+      ThreadingState child = ARGUtils.extractSingleThreadingState(pSuccessor);
+      for (ARGState argParent : pSuccessor.getParents()) {
+        ThreadingState parent = ARGUtils.extractSingleThreadingState(argParent);
+        ImmutableSet<String> parentLocks = parent.getGlobalLockIds();
+        ImmutableSet<String> childLocks = child.getGlobalLockIds();
+        // locks unequal -> a lock / unlock operation was performed between states
+        if (!parentLocks.equals(childLocks)) {
+          // we later need the edge for the location and function
+          Verify.verify(
+              argParent.getEdgeToChild(pSuccessor) != null,
+              "no edge found connecting parent and child");
+          int parentLocksNum = parentLocks.size();
+          int childLocksNum = childLocks.size();
+          if (parentLocksNum + 1 == childLocksNum) {
+            // more locks in child -> lock was locked
+            collectedStates.lockUpdates.put(argParent, pSuccessor);
+          } else if (parentLocksNum == childLocksNum + 1) {
+            // more locks in parent -> lock was unlocked
+            collectedStates.unlockUpdates.put(argParent, pSuccessor);
+          } else {
+            throw new AssertionError("multiple global locks within one operation");
           }
         }
       }

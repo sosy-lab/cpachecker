@@ -213,9 +213,19 @@ public class ThreadingState
     return locks.containsValue(threadId);
   }
 
-  /** returns the set of lock ids */
+  /** Returns the set of (both local and global) lock ids in this {@link ThreadingState} */
   public ImmutableSet<String> getLockIds() {
     return ImmutableSet.copyOf(locks.keySet());
+  }
+
+  /**
+   * Returns the set of lock ids in this {@link ThreadingState} that are not {@linkplain
+   * ThreadingTransferRelation#LOCAL_ACCESS_LOCK}.
+   */
+  public ImmutableSet<String> getGlobalLockIds() {
+    return FluentIterable.from(getLockIds())
+        .filter(lock -> !lock.equals(ThreadingTransferRelation.LOCAL_ACCESS_LOCK))
+        .toSet();
   }
 
   public Set<String> getLocksForThread(String threadId) {

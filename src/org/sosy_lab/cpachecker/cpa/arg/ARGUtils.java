@@ -50,6 +50,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -72,6 +73,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathPosition;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.GraphUtils;
@@ -1311,5 +1313,16 @@ public class ARGUtils {
       }
     }
     return results.build();
+  }
+
+  /** Extract and return the single {@link ThreadingState} linked to pARGState. */
+  public static ThreadingState extractSingleThreadingState(@NonNull ARGState pARGState) {
+    checkNotNull(pARGState);
+    FluentIterable<ThreadingState> childThreadingStates =
+        AbstractStates.asIterable(pARGState).filter(ThreadingState.class);
+    Verify.verify(
+        childThreadingStates.size() == 1,
+        "each ARGState must be linked to exactly one ThreadingState");
+    return childThreadingStates.get(0);
   }
 }
