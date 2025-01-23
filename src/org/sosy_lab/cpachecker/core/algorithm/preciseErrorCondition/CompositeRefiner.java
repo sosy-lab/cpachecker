@@ -92,9 +92,9 @@ public class CompositeRefiner implements Refiner {
         return exclusionFormula;
 
       } catch (TimeoutException e) {
-        context.getLogger().log(Level.SEVERE, "Refinement timed out for all strategies.", e);
+        context.getLogger().logfUserException(Level.SEVERE, e, "Refinement timed out for all strategies.");
       } catch (Exception e) {
-        context.getLogger().log(Level.SEVERE, "Error during parallel refinement.", e);
+        context.getLogger().logfUserException(Level.SEVERE, e, "Error during parallel refinement.");
       }
 
     }
@@ -107,7 +107,7 @@ public class CompositeRefiner implements Refiner {
       context.getLogger()
           .log(Level.WARNING, "All refiners failed. Returning an empty exclusion formula.");
     }
-    return null;
+    return context.getManager().makeEmptyPathFormula();
   }
 
   private void initializeRefiners(RefinementStrategy[] pRefiners, Solvers pQuantifierSolver)

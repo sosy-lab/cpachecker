@@ -30,7 +30,6 @@ public class AllSatRefiner implements Refiner {
   private final FormulaContext context;
   private PathFormula exclusionModelFormula;
   private Solver solver;
-  private ProverEnvironment proverEnv;
 
   public AllSatRefiner(FormulaContext pContext) throws InvalidConfigurationException {
     context = pContext;
