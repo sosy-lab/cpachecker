@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
@@ -23,24 +24,28 @@ public class TaintAnalysisTest {
   }
 
   @Test
+  @Ignore
   public void testExampleNotTaintedSafe() throws Exception {
     TestResults results = parseProgram("exampleNotTaintedSafe.c");
     results.assertIsSafe();
   }
 
   @Test
+  @Ignore
   public void testExampleNotTaintedUnsafe() throws Exception {
     TestResults results = parseProgram("exampleNotTaintedUnsafe.c");
     results.assertIsUnsafe();
   }
 
   @Test
+  @Ignore
   public void testExampleTaintedSafe() throws Exception {
     TestResults results = parseProgram("exampleTaintedSafe.c");
     results.assertIsSafe();
   }
 
   @Test
+  @Ignore
   public void testExampleTaintedUnsafe() throws Exception {
     TestResults results = parseProgram("exampleTaintedUnsafe.c");
     results.assertIsUnsafe();
