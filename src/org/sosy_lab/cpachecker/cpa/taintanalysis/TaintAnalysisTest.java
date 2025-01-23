@@ -8,14 +8,14 @@
 
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
+import java.nio.file.Path;
+import java.util.logging.Level;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
-import java.util.logging.Level;
-import java.nio.file.Path;
 
 public class TaintAnalysisTest {
 
