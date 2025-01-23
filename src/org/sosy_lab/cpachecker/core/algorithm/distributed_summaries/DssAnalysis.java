@@ -46,8 +46,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BridgeDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.ImportDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
@@ -95,8 +95,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "distributedSummaries")
 public class DssAnalysis implements Algorithm, StatisticsProvider, Statistics {
 
-  private record OldAndNewMessages(
-      List<DssMessage> oldMessages, List<DssMessage> newMessages) {}
+  private record OldAndNewMessages(List<DssMessage> oldMessages, List<DssMessage> newMessages) {}
 
   private final Configuration configuration;
   private final DssMessageFactory messageFactory;
@@ -335,8 +334,7 @@ public class DssAnalysis implements Algorithm, StatisticsProvider, Statistics {
                 .addAnalysisWorker(blockNode, options)
                 .build();
 
-        DssAnalysisWorker actor =
-            (DssAnalysisWorker) Iterables.getOnlyElement(build.actors());
+        DssAnalysisWorker actor = (DssAnalysisWorker) Iterables.getOnlyElement(build.actors());
         // use list instead of set. Each message has a unique timestamp,
         // so there will be no duplicates that a set can remove.
         // But the equality checks are unnecessarily expensive
@@ -549,8 +547,7 @@ public class DssAnalysis implements Algorithm, StatisticsProvider, Statistics {
       for (Entry<?, ?> entry : forwardMap.entrySet()) {
         writer =
             writer.put(
-                DssStatisticType.valueOf(entry.getKey().toString()).getName()
-                    + " (forward)",
+                DssStatisticType.valueOf(entry.getKey().toString()).getName() + " (forward)",
                 convert(entry.getKey().toString(), entry.getValue().toString()));
         mergeInto(overall, entry.getKey().toString(), entry.getValue());
       }
@@ -560,8 +557,7 @@ public class DssAnalysis implements Algorithm, StatisticsProvider, Statistics {
     for (Entry<String, Object> stringObjectEntry : overall.entrySet()) {
       writer =
           writer.put(
-              DssStatisticType.valueOf(stringObjectEntry.getKey()).getName()
-                  + " (overall)",
+              DssStatisticType.valueOf(stringObjectEntry.getKey()).getName() + " (overall)",
               convert(stringObjectEntry.getKey(), stringObjectEntry.getValue().toString()));
     }
     writer

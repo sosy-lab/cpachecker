@@ -24,9 +24,7 @@ public class DssFixpointNotifier {
   private final DssMessageFactory messageFactory;
 
   private DssFixpointNotifier(
-      DssConnection pConnection,
-      int pConnections,
-      DssMessageFactory pMessageFactory) {
+      DssConnection pConnection, int pConnections, DssMessageFactory pMessageFactory) {
     messageFactory = pMessageFactory;
     connection = pConnection;
     connections = pConnections;
@@ -34,9 +32,7 @@ public class DssFixpointNotifier {
   }
 
   public static void init(
-      DssMessageFactory pMessageFactory,
-      DssConnection connection,
-      int connections) {
+      DssMessageFactory pMessageFactory, DssConnection connection, int connections) {
     // checkState(instance == null, "FixPointNotifier already initialized");
     instance = new DssFixpointNotifier(connection, connections, pMessageFactory);
   }

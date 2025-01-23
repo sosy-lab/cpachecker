@@ -45,8 +45,7 @@ public class DssMessageProcessing extends ForwardingCollection<DssMessage> {
     return EMPTY_STOP;
   }
 
-  public static DssMessageProcessing proceedWith(
-      Collection<DssMessage> pMessages) {
+  public static DssMessageProcessing proceedWith(Collection<DssMessage> pMessages) {
     return new DssMessageProcessing(pMessages, false);
   }
 
@@ -74,8 +73,7 @@ public class DssMessageProcessing extends ForwardingCollection<DssMessage> {
 
   public DssMessageProcessing merge(
       DssMessageProcessing pProcessingInfo, boolean removeDuplicates) {
-    Collection<DssMessage> copy =
-        removeDuplicates ? new LinkedHashSet<>() : new ArrayList<>();
+    Collection<DssMessage> copy = removeDuplicates ? new LinkedHashSet<>() : new ArrayList<>();
 
     // never merge messages of different proceed types
     // proceed messages of one DCPA may corrupt the analysis, if another DCPA wants to stop

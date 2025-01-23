@@ -18,8 +18,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage.MessageType;
 
-public class DssPrioritizeErrorConditionQueue
-    extends ForwardingBlockingQueue<DssMessage> {
+public class DssPrioritizeErrorConditionQueue extends ForwardingBlockingQueue<DssMessage> {
 
   private final BlockingQueue<DssMessage> queue;
   private static final int TAKE_POSTCONDITION = 4;

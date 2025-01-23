@@ -47,8 +47,7 @@ public class DssErrorConditionMessage extends DssMessage {
   public SSAMap getSSAMap() {
     if (getPayload().containsKey(DssMessagePayload.SSA)) {
       return DssSerializeUtil.deserialize(
-          (String) Objects.requireNonNull(getPayload().get(DssMessagePayload.SSA)),
-          SSAMap.class);
+          (String) Objects.requireNonNull(getPayload().get(DssMessagePayload.SSA)), SSAMap.class);
     }
     return SSAMap.emptySSAMap();
   }

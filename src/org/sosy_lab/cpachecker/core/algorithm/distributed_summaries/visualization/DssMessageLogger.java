@@ -60,8 +60,7 @@ public class DssMessageLogger {
   // suppress warnings is fine here because error-prone does not recognize that we call
   // getEpochSeconds before accessing nanos.
   @SuppressWarnings("JavaInstantGetSecondsGetNano")
-  public synchronized void log(DssMessage pMessage, Predicate<String> pFilter)
-      throws IOException {
+  public synchronized void log(DssMessage pMessage, Predicate<String> pFilter) throws IOException {
     Map<String, Object> messageToJSON = new HashMap<>();
     messageToJSON.put("type", pMessage.getType().name());
     Optional<Instant> maybeTimestamp = pMessage.getTimestamp();

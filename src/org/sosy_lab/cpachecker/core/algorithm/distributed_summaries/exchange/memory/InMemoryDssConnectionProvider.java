@@ -19,18 +19,16 @@ import java.util.function.Supplier;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 
-public class InMemoryDssConnectionProvider
-    implements DssConnectionProvider<InMemoryDssConnection> {
+public class InMemoryDssConnectionProvider implements DssConnectionProvider<InMemoryDssConnection> {
 
   private final Supplier<BlockingQueue<DssMessage>> queueFactory;
 
   /**
-   * Create a new {@link InMemoryDssConnectionProvider}. The given supplier is used as
-   * factory for {@link BlockingQueue}s. It has to supply a <b>new</b> {@link BlockingQueue} object
-   * on each invocation, and must allow an arbitrary number of invocations.
+   * Create a new {@link InMemoryDssConnectionProvider}. The given supplier is used as factory for
+   * {@link BlockingQueue}s. It has to supply a <b>new</b> {@link BlockingQueue} object on each
+   * invocation, and must allow an arbitrary number of invocations.
    */
-  public InMemoryDssConnectionProvider(
-      Supplier<BlockingQueue<DssMessage>> pQueueFactory) {
+  public InMemoryDssConnectionProvider(Supplier<BlockingQueue<DssMessage>> pQueueFactory) {
     queueFactory = pQueueFactory;
   }
 

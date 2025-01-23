@@ -65,8 +65,7 @@ public class DssMessageFactory {
     }
   }
 
-  public DssMessage newResultMessage(
-      String pUniqueBlockId, int pTargetNodeNumber, Result pResult) {
+  public DssMessage newResultMessage(String pUniqueBlockId, int pTargetNodeNumber, Result pResult) {
     DssMessagePayload payload =
         DssMessagePayload.builder()
             .addEntry(DssMessagePayload.RESULT, pResult.name())
@@ -82,8 +81,7 @@ public class DssMessageFactory {
   public DssMessage newErrorMessage(String pUniqueBlockId, Throwable pException) {
     DssMessagePayload payload =
         DssMessagePayload.builder()
-            .addEntry(
-                DssMessagePayload.EXCEPTION, Throwables.getStackTraceAsString(pException))
+            .addEntry(DssMessagePayload.EXCEPTION, Throwables.getStackTraceAsString(pException))
             .buildPayload();
     if (debugMode) {
       return new DssExceptionMessage(pUniqueBlockId, 0, payload, getTimestampForMessage());
@@ -92,15 +90,11 @@ public class DssMessageFactory {
     }
   }
 
-  public DssMessage newStatisticsMessage(
-      String pUniqueBlockId, Map<String, Object> pStats) {
+  public DssMessage newStatisticsMessage(String pUniqueBlockId, Map<String, Object> pStats) {
     DssMessagePayload payload =
-        DssMessagePayload.builder()
-            .addEntry(DssMessagePayload.STATS, pStats)
-            .buildPayload();
+        DssMessagePayload.builder().addEntry(DssMessagePayload.STATS, pStats).buildPayload();
     if (debugMode) {
-      return new DssStatisticsMessage(
-          pUniqueBlockId, 0, payload, getTimestampForMessage());
+      return new DssStatisticsMessage(pUniqueBlockId, 0, payload, getTimestampForMessage());
     } else {
       return new DssStatisticsMessage(pUniqueBlockId, 0, payload);
     }

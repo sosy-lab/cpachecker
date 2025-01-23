@@ -35,8 +35,7 @@ public abstract class DssWorker implements DssActor {
    *
    * @param pId the id of the worker
    */
-  protected DssWorker(
-      String pId, DssMessageFactory pMessageFactory, LogManager pLogger) {
+  protected DssWorker(String pId, DssMessageFactory pMessageFactory, LogManager pLogger) {
     id = pId;
     receivedMessages = new StatCounter(pId + " received messages");
     sentMessages = new StatCounter(pId + " sent messages");

@@ -98,9 +98,7 @@ public class DssBlockAnalysisStatistics {
         .put(
             DssStatisticType.DESERIALIZATION_COUNT.name(),
             Integer.toString(deserializationCount.getUpdateCount()))
-        .put(
-            DssStatisticType.PROCEED_COUNT.name(),
-            Integer.toString(proceedCount.getUpdateCount()))
+        .put(DssStatisticType.PROCEED_COUNT.name(), Integer.toString(proceedCount.getUpdateCount()))
         .put(DssStatisticType.SERIALIZATION_TIME.name(), serializationTime.nanos())
         .put(DssStatisticType.DESERIALIZATION_TIME.name(), deserializationTime.nanos())
         .put(DssStatisticType.PROCEED_TIME.name(), proceedTime.nanos())

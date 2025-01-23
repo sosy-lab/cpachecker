@@ -31,8 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class DssWorkerBuilder {
 
   public record Components(
-      ImmutableList<DssActor> actors,
-      ImmutableList<? extends DssConnection> connections) {}
+      ImmutableList<DssActor> actors, ImmutableList<? extends DssConnection> connections) {}
 
   private final CFA cfa;
   private final Specification specification;
@@ -76,8 +75,7 @@ public class DssWorkerBuilder {
   }
 
   @CanIgnoreReturnValue
-  public DssWorkerBuilder addAnalysisWorker(
-      BlockNode pNode, DssAnalysisOptions pOptions) {
+  public DssWorkerBuilder addAnalysisWorker(BlockNode pNode, DssAnalysisOptions pOptions) {
     String workerId = nextId(pNode.getId());
     final LogManager logger = getLogger(pOptions, workerId);
     workerGenerators.add(
@@ -125,13 +123,11 @@ public class DssWorkerBuilder {
   }
 
   @CanIgnoreReturnValue
-  public DssWorkerBuilder addRootWorker(
-      BlockNode pNode, DssAnalysisOptions pOptions) {
+  public DssWorkerBuilder addRootWorker(BlockNode pNode, DssAnalysisOptions pOptions) {
     String workerId = "root-worker-" + nextId(pNode.getId());
     final LogManager logger = getLogger(pOptions, workerId);
     workerGenerators.add(
-        connection ->
-            new DssRootWorker(workerId, connection, pNode, messageFactory, logger));
+        connection -> new DssRootWorker(workerId, connection, pNode, messageFactory, logger));
     return this;
   }
 

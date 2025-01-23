@@ -22,8 +22,6 @@ public class IdentitySerializeOperator implements SerializeOperator {
 
   @Override
   public DssMessagePayload serialize(AbstractState pState) {
-    return DssMessagePayload.builder()
-        .addEntry(parentCPA.getName(), pState)
-        .buildPayload();
+    return DssMessagePayload.builder().addEntry(parentCPA.getName(), pState).buildPayload();
   }
 }

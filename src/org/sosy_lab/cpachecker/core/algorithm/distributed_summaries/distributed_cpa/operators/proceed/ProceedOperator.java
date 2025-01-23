@@ -15,9 +15,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 public interface ProceedOperator {
 
   /**
-   * Processes the given state for a forward-analysis. The returned {@link
-   * DssMessageProcessing} contains information about whether to start a forward analysis
-   * based on the given {@link AbstractState}.
+   * Processes the given state for a forward-analysis. The returned {@link DssMessageProcessing}
+   * contains information about whether to start a forward analysis based on the given {@link
+   * AbstractState}.
    *
    * @param pState Incoming state
    * @return a {@link DssMessageProcessing} that contains a decision whether to proceed and
@@ -28,9 +28,9 @@ public interface ProceedOperator {
       throws InterruptedException, SolverException;
 
   /**
-   * Processes the given state for a backward-analysis. The returned {@link
-   * DssMessageProcessing} contains information about whether to start a backward analysis
-   * based on the given {@link AbstractState}.
+   * Processes the given state for a backward-analysis. The returned {@link DssMessageProcessing}
+   * contains information about whether to start a backward analysis based on the given {@link
+   * AbstractState}.
    *
    * @param pState Incoming state
    * @return a {@link DssMessageProcessing} that contains a decision whether to proceed and

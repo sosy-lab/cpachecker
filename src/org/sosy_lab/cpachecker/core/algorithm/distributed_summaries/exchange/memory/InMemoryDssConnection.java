@@ -16,8 +16,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Dss
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 
 /**
- * The {@link InMemoryDssConnection} provides a queue for incoming messages and knows about
- * all outgoing connections (that are the queues for incoming messages of other workers).
+ * The {@link InMemoryDssConnection} provides a queue for incoming messages and knows about all
+ * outgoing connections (that are the queues for incoming messages of other workers).
  */
 public class InMemoryDssConnection implements DssConnection {
 
@@ -25,8 +25,7 @@ public class InMemoryDssConnection implements DssConnection {
   private final ConcurrentLinkedQueue<BlockingQueue<DssMessage>> out;
   private boolean closed;
 
-  InMemoryDssConnection(
-      BlockingQueue<DssMessage> pIn, List<BlockingQueue<DssMessage>> pOut) {
+  InMemoryDssConnection(BlockingQueue<DssMessage> pIn, List<BlockingQueue<DssMessage>> pOut) {
     in = pIn;
     out = new ConcurrentLinkedQueue<>(pOut);
     closed = false;

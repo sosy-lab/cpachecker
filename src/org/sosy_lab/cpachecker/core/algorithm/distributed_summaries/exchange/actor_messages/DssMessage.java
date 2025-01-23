@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 /**
  * Immutable communication entity for the actor model. Messages cannot be created with the
  * constructor as they have to contain different information depending on their type. Therefore,
- * this class provides static methods to create messages of a certain type. {@link
- * DssMessage}s are the interface for communication for {@link
+ * this class provides static methods to create messages of a certain type. {@link DssMessage}s are
+ * the interface for communication for {@link
  * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor}s
  */
 public abstract class DssMessage implements Comparable<DssMessage> {
@@ -67,10 +67,7 @@ public abstract class DssMessage implements Comparable<DssMessage> {
    * @param pPayload a map that will be transformed into JSON.
    */
   protected DssMessage(
-      MessageType pType,
-      String pUniqueBlockId,
-      int pTargetNodeNumber,
-      DssMessagePayload pPayload) {
+      MessageType pType, String pUniqueBlockId, int pTargetNodeNumber, DssMessagePayload pPayload) {
     this(pType, pUniqueBlockId, pTargetNodeNumber, pPayload, null);
   }
 
@@ -128,14 +125,12 @@ public abstract class DssMessage implements Comparable<DssMessage> {
       return Optional.empty();
     }
     StatusObserver.StatusPrecise isPrecise =
-        StatusObserver.StatusPrecise.valueOf(
-            (String) payload.get(DssMessagePayload.PRECISE));
+        StatusObserver.StatusPrecise.valueOf((String) payload.get(DssMessagePayload.PRECISE));
     StatusObserver.StatusPropertyChecked isPropertyChecked =
         StatusObserver.StatusPropertyChecked.valueOf(
             (String) payload.get(DssMessagePayload.PROPERTY));
     StatusObserver.StatusSoundness isSound =
-        StatusObserver.StatusSoundness.valueOf(
-            (String) payload.get(DssMessagePayload.SOUND));
+        StatusObserver.StatusSoundness.valueOf((String) payload.get(DssMessagePayload.SOUND));
     return Optional.of(statusOf(isPropertyChecked, isSound, isPrecise));
   }
 
@@ -254,13 +249,11 @@ public abstract class DssMessage implements Comparable<DssMessage> {
       mapper = new ObjectMapper();
       SimpleModule serializer =
           new SimpleModule("MessageSerializer", new Version(1, 0, 0, null, null, null));
-      serializer.addSerializer(
-          DssMessage.class, new MessageSerializer(DssMessage.class));
+      serializer.addSerializer(DssMessage.class, new MessageSerializer(DssMessage.class));
       mapper.registerModule(serializer);
       SimpleModule deserializer =
           new SimpleModule("MessageDeserializer", new Version(1, 0, 0, null, null, null));
-      deserializer.addDeserializer(
-          DssMessage.class, new MessageDeserializer(DssMessage.class));
+      deserializer.addDeserializer(DssMessage.class, new MessageDeserializer(DssMessage.class));
       mapper.registerModule(deserializer);
     }
 
@@ -300,10 +293,8 @@ public abstract class DssMessage implements Comparable<DssMessage> {
       return switch (type) {
         case FOUND_RESULT -> new DssResultMessage(uniqueBlockId, nodeNumber, payload);
         case ERROR -> new DssExceptionMessage(uniqueBlockId, nodeNumber, payload);
-        case ERROR_CONDITION ->
-            new DssErrorConditionMessage(uniqueBlockId, nodeNumber, payload);
-        case BLOCK_POSTCONDITION ->
-            new DssPostConditionMessage(uniqueBlockId, nodeNumber, payload);
+        case ERROR_CONDITION -> new DssErrorConditionMessage(uniqueBlockId, nodeNumber, payload);
+        case BLOCK_POSTCONDITION -> new DssPostConditionMessage(uniqueBlockId, nodeNumber, payload);
         default -> throw new AssertionError("Unknown MessageType " + type);
       };
     }
@@ -319,9 +310,7 @@ public abstract class DssMessage implements Comparable<DssMessage> {
 
     @Override
     public void serialize(
-        DssMessage pMessage,
-        JsonGenerator pJsonGenerator,
-        SerializerProvider pSerializerProvider)
+        DssMessage pMessage, JsonGenerator pJsonGenerator, SerializerProvider pSerializerProvider)
         throws IOException {
       Optional<Instant> timestamp = pMessage.getTimestamp();
       pJsonGenerator.writeStartObject();

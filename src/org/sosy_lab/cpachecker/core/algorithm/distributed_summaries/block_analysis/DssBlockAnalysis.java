@@ -34,12 +34,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisFactory.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.BlockAnalysisIntermediateResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisFactory.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssErrorConditionMessage;
@@ -239,8 +239,7 @@ public class DssBlockAnalysis {
     return messages.build();
   }
 
-  private boolean implies(
-      DssPostConditionMessage pMessage1, DssPostConditionMessage pMessage2)
+  private boolean implies(DssPostConditionMessage pMessage1, DssPostConditionMessage pMessage2)
       throws InterruptedException, SolverException {
     if (pMessage1 == null || pMessage2 == null) {
       return false;
@@ -343,11 +342,10 @@ public class DssBlockAnalysis {
     return reportErrorConditions(result.getViolationStates(), null, true, "", true);
   }
 
-  public DssMessageProcessing shouldRepeatAnalysis(
-      DssPostConditionMessage pReceived) throws InterruptedException, SolverException {
+  public DssMessageProcessing shouldRepeatAnalysis(DssPostConditionMessage pReceived)
+      throws InterruptedException, SolverException {
     AbstractState deserialized = dcpa.getDeserializeOperator().deserialize(pReceived);
-    DssMessageProcessing processing =
-        dcpa.getProceedOperator().processForward(deserialized);
+    DssMessageProcessing processing = dcpa.getProceedOperator().processForward(deserialized);
     if (!processing.shouldProceed()) {
       if (predecessors.contains(pReceived.getBlockId())) {
         // null means that we cannot expect a state from this predecessor
@@ -484,8 +482,7 @@ public class DssBlockAnalysis {
     logger.log(Level.INFO, "Running forward analysis with respect to error condition");
     // merge all states into the reached set
     AbstractState errorCondition = dcpa.getDeserializeOperator().deserialize(pErrorCondition);
-    DssMessageProcessing processing =
-        dcpa.getProceedOperator().processBackward(errorCondition);
+    DssMessageProcessing processing = dcpa.getProceedOperator().processBackward(errorCondition);
     if (!processing.shouldProceed()) {
       return processing;
     }

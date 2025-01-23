@@ -49,8 +49,8 @@ public class DssAnalysisWorker extends DssWorker {
   private final ThreadCPUTimer backwardAnalysisTime = new ThreadCPUTimer("Backward Analysis");
 
   /**
-   * {@link DssAnalysisWorker}s trigger forward and backward analyses to find a
-   * verification verdict.
+   * {@link DssAnalysisWorker}s trigger forward and backward analyses to find a verification
+   * verdict.
    *
    * @param pId unique id of worker that will be prefixed with 'analysis-worker-'
    * @param pOptions analysis options for distributed analysis
@@ -136,8 +136,7 @@ public class DssAnalysisWorker extends DssWorker {
     }
   }
 
-  public void storeMessage(DssMessage message)
-      throws SolverException, InterruptedException {
+  public void storeMessage(DssMessage message) throws SolverException, InterruptedException {
     switch (message.getType()) {
       case STATISTICS, FOUND_RESULT, ERROR -> {}
       case ERROR_CONDITION -> {
@@ -196,9 +195,7 @@ public class DssAnalysisWorker extends DssWorker {
         .put(DssStatisticType.FORWARD_TIME.name(), forwardAnalysisTime.nanos())
         .put(DssStatisticType.BACKWARD_TIME.name(), backwardAnalysisTime.nanos())
         .put(DssStatisticType.MESSAGES_SENT.name(), Integer.toString(getSentMessages()))
-        .put(
-            DssStatisticType.MESSAGES_RECEIVED.name(),
-            Integer.toString(getReceivedMessages()))
+        .put(DssStatisticType.MESSAGES_RECEIVED.name(), Integer.toString(getReceivedMessages()))
         .put(
             DssStatisticType.FORWARD_ANALYSIS_STATS.name(),
             forwardDCPA == null ? ImmutableMap.of() : forwardDCPA.getStatistics().getStatistics())

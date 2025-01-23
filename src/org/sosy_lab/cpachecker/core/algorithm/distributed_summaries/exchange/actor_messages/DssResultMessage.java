@@ -25,8 +25,8 @@ public class DssResultMessage extends DssMessage {
   /**
    * Creates a new instance of this object.
    *
-   * @deprecated for debug mode only. use {@link #DssResultMessage(String, int,
-   *     DssMessagePayload)} instead.
+   * @deprecated for debug mode only. use {@link #DssResultMessage(String, int, DssMessagePayload)}
+   *     instead.
    */
   @Deprecated
   protected DssResultMessage(

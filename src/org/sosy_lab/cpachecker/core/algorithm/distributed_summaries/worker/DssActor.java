@@ -16,9 +16,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * A {@link DssActor} is connected to a network of {@link DssActor}s. All
- * participating {@link DssActor}s exchange messages. Every message is broadcast to every
- * other actor. Every actor decides on its own how to handle the message.
+ * A {@link DssActor} is connected to a network of {@link DssActor}s. All participating {@link
+ * DssActor}s exchange messages. Every message is broadcast to every other actor. Every actor
+ * decides on its own how to handle the message.
  */
 public interface DssActor extends Runnable {
 
@@ -71,8 +71,7 @@ public interface DssActor extends Runnable {
   /**
    * Get the next received message.
    *
-   * @return Next {@link DssMessage} to process with {@link
-   *     DssActor#processMessage(DssMessage)}
+   * @return Next {@link DssMessage} to process with {@link DssActor#processMessage(DssMessage)}
    * @throws InterruptedException thrown if system is interrupted unexpectedly
    */
   default DssMessage nextMessage() throws InterruptedException {
