@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -25,21 +25,21 @@ public class ProceedBlockStateOperator implements ProceedOperator {
   }
 
   @Override
-  public BlockSummaryMessageProcessing processForward(AbstractState pState) {
+  public DssMessageProcessing processForward(AbstractState pState) {
     if (Objects.equals(AbstractStates.extractLocation(pState), block.getFirst())) {
-      return BlockSummaryMessageProcessing.proceed();
+      return DssMessageProcessing.proceed();
     } else {
-      return BlockSummaryMessageProcessing.stop();
+      return DssMessageProcessing.stop();
     }
   }
 
   @Override
-  public BlockSummaryMessageProcessing processBackward(AbstractState pState) {
+  public DssMessageProcessing processBackward(AbstractState pState) {
     CFANode node = Objects.requireNonNull(AbstractStates.extractLocation(pState));
     if (!(node.equals(block.getLast())
         || (!node.equals(block.getFirst()) && block.getNodes().contains(node)))) {
-      return BlockSummaryMessageProcessing.stop();
+      return DssMessageProcessing.stop();
     }
-    return BlockSummaryMessageProcessing.proceed();
+    return DssMessageProcessing.proceed();
   }
 }

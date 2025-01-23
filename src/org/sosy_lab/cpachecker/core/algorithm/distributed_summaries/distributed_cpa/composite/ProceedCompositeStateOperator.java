@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
 import java.util.Map;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockAnalysisStatistics;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -22,21 +22,21 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   private final Map<
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
       registered;
-  private final BlockAnalysisStatistics stats;
+  private final DssBlockAnalysisStatistics stats;
 
   public ProceedCompositeStateOperator(
       Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
           pRegistered,
-      BlockAnalysisStatistics pStats) {
+      DssBlockAnalysisStatistics pStats) {
     registered = pRegistered;
     stats = pStats;
   }
 
   @Override
-  public BlockSummaryMessageProcessing processForward(AbstractState pState)
+  public DssMessageProcessing processForward(AbstractState pState)
       throws InterruptedException, SolverException {
     stats.getProceedTime().start();
-    BlockSummaryMessageProcessing processing = BlockSummaryMessageProcessing.proceed();
+    DssMessageProcessing processing = DssMessageProcessing.proceed();
     for (DistributedConfigurableProgramAnalysis value : registered.values()) {
       processing = processing.merge(value.getProceedOperator().processForward(pState), true);
     }
@@ -45,10 +45,10 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   }
 
   @Override
-  public BlockSummaryMessageProcessing processBackward(AbstractState pState)
+  public DssMessageProcessing processBackward(AbstractState pState)
       throws InterruptedException, SolverException {
     stats.getProceedTime().start();
-    BlockSummaryMessageProcessing processing = BlockSummaryMessageProcessing.proceed();
+    DssMessageProcessing processing = DssMessageProcessing.proceed();
     for (DistributedConfigurableProgramAnalysis value : registered.values()) {
       processing = processing.merge(value.getProceedOperator().processBackward(pState), true);
     }

@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import java.util.Objects;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -27,12 +27,12 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   @Override
-  public BlockSummaryMessageProcessing processForward(AbstractState pState) {
-    return BlockSummaryMessageProcessing.proceed();
+  public DssMessageProcessing processForward(AbstractState pState) {
+    return DssMessageProcessing.proceed();
   }
 
   @Override
-  public BlockSummaryMessageProcessing processBackward(AbstractState pState)
+  public DssMessageProcessing processBackward(AbstractState pState)
       throws InterruptedException, SolverException {
     PredicateAbstractState predicateAbstractState =
         Objects.requireNonNull(
@@ -44,8 +44,8 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
       formula = predicateAbstractState.getPathFormula().getFormula();
     }
     if (solver.isUnsat(formula)) {
-      return BlockSummaryMessageProcessing.stop();
+      return DssMessageProcessing.stop();
     }
-    return BlockSummaryMessageProcessing.proceed();
+    return DssMessageProcessing.proceed();
   }
 }

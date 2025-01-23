@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class BridgeDecomposition implements BlockSummaryCFADecomposer {
+public class BridgeDecomposition implements DssBlockDecomposition {
 
   private int id = 1;
 

@@ -21,15 +21,15 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 
-public class VerticalMergeDecomposition implements BlockSummaryCFADecomposer {
+public class VerticalMergeDecomposition implements DssBlockDecomposition {
 
-  private final BlockSummaryCFADecomposer decomposer;
+  private final DssBlockDecomposition decomposer;
   private final long targetNumber;
   private final Comparator<BlockNodeWithoutGraphInformation> sort;
   private int id;
 
   public VerticalMergeDecomposition(
-      BlockSummaryCFADecomposer pDecomposition,
+      DssBlockDecomposition pDecomposition,
       long pTargetNumber,
       Comparator<BlockNodeWithoutGraphInformation> pSort) {
     decomposer = pDecomposition;

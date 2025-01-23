@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockAnalysisStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
@@ -41,7 +41,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   private final DeserializeOperator deserialize;
   private final ProceedCompositeStateOperator proceed;
 
-  private final BlockAnalysisStatistics statistics;
+  private final DssBlockAnalysisStatistics statistics;
 
   private final DeserializeCompositePrecisionOperator deserializePrecisionOperator;
   private final SerializeCompositePrecisionOperator serializePrecisionOperator;
@@ -57,7 +57,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
       ImmutableMap<
               Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
           registered) {
-    statistics = new BlockAnalysisStatistics("DCPA-" + pNode.getId());
+    statistics = new DssBlockAnalysisStatistics("DCPA-" + pNode.getId());
     compositeCPA = pCompositeCPA;
     serialize = new SerializeCompositeStateOperator(registered, statistics);
     deserialize =
@@ -159,7 +159,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
     return new CompositeState(initialStates.build());
   }
 
-  public BlockAnalysisStatistics getStatistics() {
+  public DssBlockAnalysisStatistics getStatistics() {
     return statistics;
   }
 }

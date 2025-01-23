@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -79,7 +79,7 @@ public class PredicateOperatorUtil {
   }
 
   public static String extractFormulaString(
-      BlockSummaryMessage pMessage,
+      DssMessage pMessage,
       Class<? extends ConfigurableProgramAnalysis> pKey,
       FormulaManagerView pFormulaManagerView) {
     return pMessage

@@ -11,9 +11,9 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssPostConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -47,7 +47,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
   }
 
   @Override
-  public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
+  public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
     String formula =
         PredicateOperatorUtil.extractFormulaString(
             pMessage, predicateCPA.getClass(), formulaManagerView);
@@ -56,10 +56,10 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
 
     SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);
     try {
-      if (pMessage instanceof BlockSummaryPostConditionMessage bspcm) {
+      if (pMessage instanceof DssPostConditionMessage bspcm) {
         map = bspcm.getSSAMap();
         pts = bspcm.getPointerTargetSet();
-      } else if (pMessage instanceof BlockSummaryErrorConditionMessage bsecm) {
+      } else if (pMessage instanceof DssErrorConditionMessage bsecm) {
         map = bsecm.getSSAMap();
         pts = bsecm.getPointerTargetSet();
       }

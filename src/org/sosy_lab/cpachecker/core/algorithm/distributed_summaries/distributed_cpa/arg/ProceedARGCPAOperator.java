@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -24,14 +24,14 @@ public class ProceedARGCPAOperator implements ProceedOperator {
   }
 
   @Override
-  public BlockSummaryMessageProcessing processForward(AbstractState pState)
+  public DssMessageProcessing processForward(AbstractState pState)
       throws InterruptedException, SolverException {
     assert pState instanceof ARGState : pState + " is not an instance of " + ARGState.class;
     return wrapped.getProceedOperator().processForward(((ARGState) pState).getWrappedState());
   }
 
   @Override
-  public BlockSummaryMessageProcessing processBackward(AbstractState pState)
+  public DssMessageProcessing processBackward(AbstractState pState)
       throws InterruptedException, SolverException {
     assert pState instanceof ARGState : pState + " is not an instance of " + ARGState.class;
     return wrapped.getProceedOperator().processBackward(((ARGState) pState).getWrappedState());

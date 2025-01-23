@@ -9,7 +9,7 @@
 /**
  * Distributed CPAs extends known CPAs by 4 more operators: Serialize, Deserialize, Proceed, and
  * Combine. Add these operators for an arbitrary CPA and register it in {@link
- * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPAFactory} to
+ * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory} to
  * distribute it.
  */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
