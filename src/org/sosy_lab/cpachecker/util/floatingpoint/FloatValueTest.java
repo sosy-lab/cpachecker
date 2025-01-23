@@ -179,24 +179,7 @@ public class FloatValueTest {
     if (pValue instanceof MpfrFloat floatValue) {
       return floatValue.toBigFloat();
     } else if (pValue instanceof CFloatImpl floatValue) {
-      int sigBits = floatValue.getValue().getFormat().sigBits();
-      int expBits = floatValue.getValue().getFormat().expBits();
-      BinaryMathContext context = new BinaryMathContext(sigBits + 1, expBits);
-      if (floatValue.isNan()) {
-        return floatValue.isNegative()
-            ? BigFloat.NaN(context.precision).negate()
-            : BigFloat.NaN(context.precision);
-      }
-      if (floatValue.isInfinity()) {
-        return floatValue.isNegative()
-            ? BigFloat.negativeInfinity(context.precision)
-            : BigFloat.positiveInfinity(context.precision);
-      }
-      return new BigFloat(
-          floatValue.isNegative(),
-          floatValue.getValue().getSignificand(),
-          floatValue.getValue().getExponent(),
-          context);
+      return floatValueToBigFloat(floatValue.getValue());
     } else {
       CFloatType toType = pValue.getType();
       if (pValue instanceof CFloatNative val && toType == CFloatType.LONG_DOUBLE) {
@@ -229,6 +212,29 @@ public class FloatValueTest {
         };
       }
     }
+  }
+
+  /**
+   * Convert a FloatValue value to BigFloat.
+   *
+   * <p>Used in the implementation of {@link #toBigFloat(CFloat)}.
+   */
+  private BigFloat floatValueToBigFloat(FloatValue pValue) {
+    int sigBits = pValue.getFormat().sigBits();
+    int expBits = pValue.getFormat().expBits();
+    BinaryMathContext context = new BinaryMathContext(sigBits + 1, expBits);
+    if (pValue.isNan()) {
+      return pValue.isNegative()
+          ? BigFloat.NaN(context.precision).negate()
+          : BigFloat.NaN(context.precision);
+    }
+    if (pValue.isInfinite()) {
+      return pValue.isNegative()
+          ? BigFloat.negativeInfinity(context.precision)
+          : BigFloat.positiveInfinity(context.precision);
+    }
+    return new BigFloat(
+        pValue.isNegative(), pValue.getSignificand(), pValue.getExponent(), context);
   }
 
   /** Convert a {@link CFloat} value to an Integer. */
@@ -787,7 +793,9 @@ public class FloatValueTest {
         BigFloat resultReference = toBigFloat(toReferenceImpl(printBigFloat(arg)));
 
         // Calculate result with the tested implementation
-        BigFloat resultTested = toBigFloat(toTestedImpl(printBigFloat(arg)));
+        BigFloat resultTested =
+            floatValueToBigFloat(
+                FloatValue.fromString(floatTestOptions.format, printBigFloat(arg)));
 
         // Calculate result with the reference implementation
         if (!resultTested.equals(resultReference)) {
