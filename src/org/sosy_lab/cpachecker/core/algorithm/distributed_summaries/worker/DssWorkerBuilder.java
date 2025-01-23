@@ -131,30 +131,6 @@ public class DssWorkerBuilder {
     return this;
   }
 
-  @CanIgnoreReturnValue
-  public DssWorkerBuilder addHubWorker(
-      BlockNode pNode,
-      DssAnalysisOptions pOptions,
-      ShutdownManager pShutdownManager,
-      int pMaxThreads) {
-    String workerId = nextId(pNode.getId());
-    final LogManager logger = getLogger(pOptions, workerId);
-    workerGenerators.add(
-        connection ->
-            new DssHubAnalysisWorker(
-                workerId,
-                connection,
-                cfa,
-                specification,
-                pShutdownManager,
-                pMaxThreads,
-                pNode,
-                pOptions,
-                messageFactory,
-                logger));
-    return this;
-  }
-
   private String nextId(String pAdditionalIdentifier) {
     return "W" + workerGenerators.size() + pAdditionalIdentifier;
   }
