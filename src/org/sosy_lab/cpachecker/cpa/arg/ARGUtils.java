@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Verify;
+import com.google.common.base.VerifyException;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -1315,14 +1316,17 @@ public class ARGUtils {
     return results.build();
   }
 
-  /** Extract and return the single {@link ThreadingState} linked to pARGState. */
-  public static ThreadingState extractSingleThreadingState(@NonNull ARGState pARGState) {
+  /** Extract and return the single {@link ThreadingState} linked to pARGState. If there is no or
+   * multiple {@link ThreadingState}(s), throws a {@link VerifyException}. */
+  public static @NonNull ThreadingState extractSingleThreadingState(@NonNull ARGState pARGState) {
     checkNotNull(pARGState);
     FluentIterable<ThreadingState> childThreadingStates =
         AbstractStates.asIterable(pARGState).filter(ThreadingState.class);
     Verify.verify(
         childThreadingStates.size() == 1,
         "each ARGState must be linked to exactly one ThreadingState");
-    return childThreadingStates.get(0);
+    ThreadingState threadingState = childThreadingStates.get(0);
+    Verify.verify(threadingState != null, "threadingState cannot be null");
+    return threadingState;
   }
 }

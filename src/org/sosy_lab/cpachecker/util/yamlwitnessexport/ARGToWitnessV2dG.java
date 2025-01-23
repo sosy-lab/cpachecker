@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Verify;
@@ -60,11 +61,12 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     checkNotNull(pParent);
     checkNotNull(pChild);
     CFAEdge lockEdge = pParent.getEdgeToChild(pChild);
-    Verify.verify(lockEdge != null, "no edge connects pParent and pChild");
+    checkArgument(lockEdge != null, "no edge connects pParent and pChild");
     LocationRecord locationRecord =
         LocationRecord.createLocationRecordAfterLocation(
             lockEdge.getFileLocation(),
-            lockEdge.getSuccessor().getFunctionName(),
+            // using original name instead of cloned function name
+            lockEdge.getSuccessor().getFunction().getOrigName(),
             cfa.getAstCfaRelation());
     // the format of ghost updates is currently always c_expression
     UpdateRecord updateRecord =
