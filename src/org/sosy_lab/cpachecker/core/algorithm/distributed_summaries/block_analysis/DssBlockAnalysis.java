@@ -34,7 +34,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.BlockAnalysisIntermediateResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisIntermediateResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisFactory.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -326,7 +326,7 @@ public class DssBlockAnalysis {
     reachedSet.clear();
     reachedSet.add(makeStartState(), makeStartPrecision());
 
-    BlockAnalysisIntermediateResult result =
+    DssBlockAnalysisIntermediateResult result =
         DssBlockAnalyses.findReachableTargetStatesInBlock(algorithm, reachedSet, block);
 
     status = status.update(result.getStatus());
@@ -499,7 +499,7 @@ public class DssBlockAnalysis {
                     AbstractStates.extractStateByType(abstractState, BlockState.class))
                 .setViolationCondition(ViolationCondition));
 
-    BlockAnalysisIntermediateResult result =
+    DssBlockAnalysisIntermediateResult result =
         DssBlockAnalyses.findReachableTargetStatesInBlock(algorithm, reachedSet, block);
 
     status = status.update(result.getStatus());
