@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -21,6 +22,8 @@ import com.google.common.collect.Sets.SetView;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -81,11 +84,11 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
 
     ImmutableList.Builder<GhostUpdateRecord> ghostUpdatesB = ImmutableList.builder();
     // Handle ghost updates through locks
-    for (var entry : statesCollector.lockUpdates.entries()) {
+    for (var entry : getUniqueEdgeEntries(statesCollector.lockUpdates).entries()) {
       ghostUpdatesB.add(createGhostUpdate(entry.getKey(), entry.getValue(), 1));
     }
     // Handle ghost updates through unlocks
-    for (var entry : statesCollector.unlockUpdates.entries()) {
+    for (var entry : getUniqueEdgeEntries(statesCollector.unlockUpdates).entries()) {
       ghostUpdatesB.add(createGhostUpdate(entry.getKey(), entry.getValue(), 0));
     }
     ImmutableList<GhostUpdateRecord> ghostUpdates = ghostUpdatesB.build();
@@ -122,6 +125,60 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
         pPath);
 
     return new WitnessExportResult(true);
+  }
+
+  /**
+   * Returns the subset of entries in pUpdates where the {@link CFAEdge}s linking {@link ARGState}s
+   * are present exactly once.
+   *
+   * <p>E.g. pUpdates := {@code {(argA, argB), (argC, argD)}} where both are connected through
+   * {@code edgeE}, then return just {@code {(argA, argB)}} or {@code {(argC, argD)}} depending on
+   * the order.
+   *
+   * <p>Also ensures that the lockUpdates for all parent / child pairs of {@link ARGState}s
+   * connected through the same {@link CFAEdge} are equal so that they are equal w.r.t. {@link
+   * GhostUpdateRecord} semantics.
+   */
+  private Multimap<ARGState, ARGState> getUniqueEdgeEntries(
+      @NonNull Multimap<ARGState, ARGState> pUpdates) {
+
+    checkNotNull(pUpdates);
+    Multimap<ARGState, ARGState> rEntries = HashMultimap.create();
+    Map<CFAEdge, Multimap<ARGState, ARGState>> visitedEdges = new HashMap<>();
+    for (var entry : pUpdates.entries()) {
+      ARGState argParent = entry.getKey();
+      ARGState argChild = entry.getValue();
+      CFAEdge edge = argParent.getEdgeToChild(argChild);
+      if (!visitedEdges.containsKey(edge)) {
+        visitedEdges.put(edge, HashMultimap.create());
+        visitedEdges.get(edge).put(argParent, argChild);
+        rEntries.put(argParent, argChild);
+      } else {
+        visitedEdges.get(edge).put(argParent, argChild);
+        // edge is visited -> ensure that global locks are equal for parent / child pairs
+        for (var entryA : visitedEdges.get(edge).entries()) {
+          for (var entryB : visitedEdges.get(edge).entries()) {
+            if (!entryA.equals(entryB)) {
+              ThreadingState parentA =
+                  ARGUtils.tryExtractThreadingState(entryA.getKey()).orElseThrow();
+              ThreadingState parentB =
+                  ARGUtils.tryExtractThreadingState(entryB.getKey()).orElseThrow();
+              Verify.verify(
+                  parentA.getGlobalLockIds().equals(parentB.getGlobalLockIds()),
+                  "global locks must be equal for parent states connected through the same edge");
+              ThreadingState childA =
+                  ARGUtils.tryExtractThreadingState(entryA.getValue()).orElseThrow();
+              ThreadingState childB =
+                  ARGUtils.tryExtractThreadingState(entryB.getValue()).orElseThrow();
+              Verify.verify(
+                  childA.getGlobalLockIds().equals(childB.getGlobalLockIds()),
+                  "global locks must be equal for child states connected through the same edge");
+            }
+          }
+        }
+      }
+    }
+    return rEntries;
   }
 
   /**
