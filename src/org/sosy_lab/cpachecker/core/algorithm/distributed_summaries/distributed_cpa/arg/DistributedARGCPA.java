@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.VerificationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -32,7 +32,7 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
   private final SerializeARGStateOperator serializeARGStateOperator;
   private final SerializePrecisionOperator serializePrecisionOperator;
   private final DeserializePrecisionOperator deserializePrecisionOperator;
-  private final VerificationConditionOperator verificationConditionOperator;
+  private final ViolationConditionOperator verificationConditionOperator;
 
   public DistributedARGCPA(ARGCPA pARGCPA, DistributedConfigurableProgramAnalysis pWrapped) {
     argcpa = pARGCPA;
@@ -42,7 +42,7 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
     deserializeARGStateOperator = new DeserializeARGStateOperator(wrappedCPA);
     serializePrecisionOperator = new SerializeARGPrecisionOperator(wrappedCPA);
     deserializePrecisionOperator = new DeserializeARGPrecisionOperator(wrappedCPA);
-    verificationConditionOperator = new ARGVerificationConditionOperator(wrappedCPA);
+    verificationConditionOperator = new ARGViolationConditionOperator(wrappedCPA);
   }
 
   @Override
@@ -96,7 +96,7 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
   }
 
   @Override
-  public VerificationConditionOperator getVerificationConditionOperator() {
+  public ViolationConditionOperator getViolationConditionOperator() {
     return verificationConditionOperator;
   }
 

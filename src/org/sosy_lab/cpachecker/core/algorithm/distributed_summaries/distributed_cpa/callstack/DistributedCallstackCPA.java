@@ -15,8 +15,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.BackwardTransferVerificationConditionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.VerificationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.BackwardTransferViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -34,7 +34,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   private final CallstackCPA callstackCPA;
   private final CFA cfa;
 
-  private final VerificationConditionOperator verificationConditionOperator;
+  private final ViolationConditionOperator verificationConditionOperator;
 
   public DistributedCallstackCPA(
       CallstackCPA pCallstackCPA, CFA pCFA, Map<Integer, CFANode> pIdToNodeMap) {
@@ -43,7 +43,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
     serialize = new SerializeCallstackStateOperator();
     deserialize = new DeserializeCallstackStateOperator(pCallstackCPA, pIdToNodeMap::get);
     verificationConditionOperator =
-        new BackwardTransferVerificationConditionOperator(
+        new BackwardTransferViolationConditionOperator(
             callstackCPA.getTransferRelation().copyBackwards(), pCallstackCPA);
   }
 
@@ -91,7 +91,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public VerificationConditionOperator getVerificationConditionOperator() {
+  public ViolationConditionOperator getViolationConditionOperator() {
     return verificationConditionOperator;
   }
 }

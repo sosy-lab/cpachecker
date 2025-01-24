@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.VerificationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -25,14 +25,14 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class CompositeVerificationConditionOperator implements VerificationConditionOperator {
+public class CompositeViolationConditionOperator implements ViolationConditionOperator {
 
   private final CompositeCPA compositeCPA;
   private final ImmutableMap<
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
       analyses;
 
-  public CompositeVerificationConditionOperator(
+  public CompositeViolationConditionOperator(
       CompositeCPA pCompositeCPA,
       ImmutableMap<
               Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
@@ -42,7 +42,7 @@ public class CompositeVerificationConditionOperator implements VerificationCondi
   }
 
   @Override
-  public Optional<AbstractState> computeVerificationCondition(
+  public Optional<AbstractState> computeViolationCondition(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException, SolverException {
     ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
@@ -55,8 +55,8 @@ public class CompositeVerificationConditionOperator implements VerificationCondi
       } else {
         Optional<AbstractState> abstractState =
             Objects.requireNonNull(analyses.get(cpa.getClass()))
-                .getVerificationConditionOperator()
-                .computeVerificationCondition(pARGPath, pPreviousCondition);
+                .getViolationConditionOperator()
+                .computeViolationCondition(pARGPath, pPreviousCondition);
         if (abstractState.isEmpty()) {
           return Optional.empty();
         }

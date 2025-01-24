@@ -60,7 +60,7 @@ public class DssObserverWorker extends DssWorker {
         result = Optional.of(((DssResultMessage) pMessage).getResult());
         statusObserver.updateStatus(pMessage);
       }
-      case ERROR_CONDITION, BLOCK_POSTCONDITION -> statusObserver.updateStatus(pMessage);
+      case VIOLATION_CONDITION, BLOCK_POSTCONDITION -> statusObserver.updateStatus(pMessage);
       case ERROR -> {
         shutdown = true;
         errorMessage = Optional.of(((DssExceptionMessage) pMessage).getErrorMessage());

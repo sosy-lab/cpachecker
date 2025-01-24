@@ -10,28 +10,28 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.VerificationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class ARGVerificationConditionOperator implements VerificationConditionOperator {
+public class ARGViolationConditionOperator implements ViolationConditionOperator {
 
   private final DistributedConfigurableProgramAnalysis wrappedCPA;
 
-  public ARGVerificationConditionOperator(DistributedConfigurableProgramAnalysis pWrappedCPA) {
+  public ARGViolationConditionOperator(DistributedConfigurableProgramAnalysis pWrappedCPA) {
     wrappedCPA = pWrappedCPA;
   }
 
   @Override
-  public Optional<AbstractState> computeVerificationCondition(
+  public Optional<AbstractState> computeViolationCondition(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException, SolverException {
     return wrappedCPA
-        .getVerificationConditionOperator()
-        .computeVerificationCondition(pARGPath, pPreviousCondition)
+        .getViolationConditionOperator()
+        .computeViolationCondition(pARGPath, pPreviousCondition)
         .map(state -> new ARGState(state, null));
   }
 }

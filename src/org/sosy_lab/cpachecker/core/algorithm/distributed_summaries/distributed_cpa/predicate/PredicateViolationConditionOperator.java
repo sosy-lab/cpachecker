@@ -12,7 +12,7 @@ import com.google.common.collect.Lists;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.VerificationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -25,13 +25,13 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class PredicateVerificationConditionOperator implements VerificationConditionOperator {
+public class PredicateViolationConditionOperator implements ViolationConditionOperator {
 
   private final PathFormulaManagerImpl backwardManager;
   private final PredicateCPA cpa;
   private final boolean hasRootAsPredecessor;
 
-  public PredicateVerificationConditionOperator(
+  public PredicateViolationConditionOperator(
       PathFormulaManagerImpl pBackwardManager, PredicateCPA pCpa, boolean pHasRootAsPredecessor) {
 
     backwardManager = pBackwardManager;
@@ -40,7 +40,7 @@ public class PredicateVerificationConditionOperator implements VerificationCondi
   }
 
   @Override
-  public Optional<AbstractState> computeVerificationCondition(
+  public Optional<AbstractState> computeViolationCondition(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException, SolverException {
     PathFormula result;

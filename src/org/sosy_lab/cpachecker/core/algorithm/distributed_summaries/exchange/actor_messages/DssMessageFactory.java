@@ -45,7 +45,7 @@ public class DssMessageFactory {
     }
   }
 
-  public DssMessage newErrorConditionMessage(
+  public DssMessage newViolationConditionMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
       DssMessagePayload pPayload,
@@ -58,10 +58,10 @@ public class DssMessageFactory {
             .addEntry(DssMessagePayload.ORIGIN, pOrigin)
             .buildPayload();
     if (debugMode) {
-      return new DssErrorConditionMessage(
+      return new DssViolationConditionMessage(
           pUniqueBlockId, pTargetNodeNumber, newPayload, getTimestampForMessage());
     } else {
-      return new DssErrorConditionMessage(pUniqueBlockId, pTargetNodeNumber, newPayload);
+      return new DssViolationConditionMessage(pUniqueBlockId, pTargetNodeNumber, newPayload);
     }
   }
 

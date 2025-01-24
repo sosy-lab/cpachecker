@@ -58,7 +58,7 @@ public abstract class DssMessage implements Comparable<DssMessage> {
    * message originates from. The target node number {@code pTargetNodeNumber} provides the unique
    * id of a {@link org.sosy_lab.cpachecker.cfa.model.CFANode}. This id is only relevant for
    * messages that actually trigger an analysis: {@link DssPostConditionMessage}, {@link
-   * DssErrorConditionMessage}. Finally, the payload contains a map of key-value pairs that
+   * DssViolationConditionMessage}. Finally, the payload contains a map of key-value pairs that
    * transport arbitrary information.
    *
    * @param pType the type of the message
@@ -79,7 +79,7 @@ public abstract class DssMessage implements Comparable<DssMessage> {
    * message originates from. The target node number {@code pTargetNodeNumber} provides the unique
    * id of a {@link org.sosy_lab.cpachecker.cfa.model.CFANode}. This id is only relevant for
    * messages that actually trigger an analysis: {@link DssPostConditionMessage}, {@link
-   * DssErrorConditionMessage}. Finally, the payload contains a map of key-value pairs that
+   * DssViolationConditionMessage}. Finally, the payload contains a map of key-value pairs that
    * transport arbitrary information.
    *
    * @param pType the type of the message
@@ -230,9 +230,9 @@ public abstract class DssMessage implements Comparable<DssMessage> {
 
     /**
      * Messages of this type transport results of a backward analysis. See {@link
-     * DssErrorConditionMessage}.
+     * DssViolationConditionMessage}.
      */
-    ERROR_CONDITION,
+    VIOLATION_CONDITION,
 
     /**
      * Messages of this type transport results of a forward analysis. See {@link
@@ -293,7 +293,7 @@ public abstract class DssMessage implements Comparable<DssMessage> {
       return switch (type) {
         case FOUND_RESULT -> new DssResultMessage(uniqueBlockId, nodeNumber, payload);
         case ERROR -> new DssExceptionMessage(uniqueBlockId, nodeNumber, payload);
-        case ERROR_CONDITION -> new DssErrorConditionMessage(uniqueBlockId, nodeNumber, payload);
+        case VIOLATION_CONDITION -> new DssViolationConditionMessage(uniqueBlockId, nodeNumber, payload);
         case BLOCK_POSTCONDITION -> new DssPostConditionMessage(uniqueBlockId, nodeNumber, payload);
         default -> throw new AssertionError("Unknown MessageType " + type);
       };

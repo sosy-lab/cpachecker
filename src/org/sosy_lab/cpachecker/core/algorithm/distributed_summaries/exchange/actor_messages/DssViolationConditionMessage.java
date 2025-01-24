@@ -16,13 +16,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Dss
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
-public class DssErrorConditionMessage extends DssMessage {
+public class DssViolationConditionMessage extends DssMessage {
 
   private final boolean first;
   private final String origin;
 
   /** Creates a new instance of this object. */
-  DssErrorConditionMessage(
+  DssViolationConditionMessage(
       String pUniqueBlockId, int pTargetNodeNumber, DssMessagePayload pPayload) {
     this(pUniqueBlockId, pTargetNodeNumber, pPayload, null);
   }
@@ -30,16 +30,16 @@ public class DssErrorConditionMessage extends DssMessage {
   /**
    * Creates a new instance of this object.
    *
-   * @deprecated for debug mode only. use {@link #DssErrorConditionMessage(String, int,
+   * @deprecated for debug mode only. use {@link #DssViolationConditionMessage(String, int,
    *     DssMessagePayload)} instead.
    */
   @Deprecated
-  DssErrorConditionMessage(
+  DssViolationConditionMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
       DssMessagePayload pPayload,
       @Nullable Instant pInstant) {
-    super(MessageType.ERROR_CONDITION, pUniqueBlockId, pTargetNodeNumber, pPayload, pInstant);
+    super(MessageType.VIOLATION_CONDITION, pUniqueBlockId, pTargetNodeNumber, pPayload, pInstant);
     first = extractFlag(DssMessagePayload.FIRST, false);
     origin = (String) getPayload().getOrDefault(DssMessagePayload.ORIGIN, "");
   }

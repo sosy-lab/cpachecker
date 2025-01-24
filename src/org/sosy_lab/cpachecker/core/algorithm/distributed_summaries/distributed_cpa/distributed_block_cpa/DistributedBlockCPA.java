@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.VerificationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -32,7 +32,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   private final DeserializeOperator deserializeOperator;
   private final SerializeOperator serializeOperator;
   private final ProceedOperator proceedOperator;
-  private final VerificationConditionOperator verificationConditionOperator;
+  private final ViolationConditionOperator verificationConditionOperator;
 
   private final ConfigurableProgramAnalysis blockCPA;
   private final Function<CFANode, BlockState> blockStateSupplier;
@@ -49,7 +49,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
     proceedOperator = new ProceedBlockStateOperator(pNode);
     blockStateSupplier =
         node -> new BlockState(node, pNode, BlockStateType.INITIAL, Optional.empty());
-    verificationConditionOperator = new BlockVerificationConditionOperator();
+    verificationConditionOperator = new BlockViolationConditionOperator();
   }
 
   @Override
@@ -83,7 +83,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   }
 
   @Override
-  public VerificationConditionOperator getVerificationConditionOperator() {
+  public ViolationConditionOperator getViolationConditionOperator() {
     return verificationConditionOperator;
   }
 

@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.VerificationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -43,7 +43,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
 
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final ProceedPredicateStateOperator proceedOperator;
-  private final PredicateVerificationConditionOperator verificationConditionOperator;
+  private final PredicateViolationConditionOperator verificationConditionOperator;
 
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA,
@@ -67,7 +67,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
             predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), threadSafeCopy::get);
     proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver());
     verificationConditionOperator =
-        new PredicateVerificationConditionOperator(
+        new PredicateViolationConditionOperator(
             new PathFormulaManagerImpl(
                 pPredicateCPA.getSolver().getFormulaManager(),
                 pConfiguration,
@@ -128,7 +128,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public VerificationConditionOperator getVerificationConditionOperator() {
+  public ViolationConditionOperator getViolationConditionOperator() {
     return verificationConditionOperator;
   }
 }

@@ -10,16 +10,16 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.VerificationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class BlockVerificationConditionOperator implements VerificationConditionOperator {
+public class BlockViolationConditionOperator implements ViolationConditionOperator {
   @Override
-  public Optional<AbstractState> computeVerificationCondition(
+  public Optional<AbstractState> computeViolationCondition(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition) {
     return Optional.of(
         Objects.requireNonNull(

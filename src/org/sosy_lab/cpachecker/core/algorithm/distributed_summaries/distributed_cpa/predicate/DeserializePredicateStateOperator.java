@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssPostConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -59,7 +59,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
       if (pMessage instanceof DssPostConditionMessage bspcm) {
         map = bspcm.getSSAMap();
         pts = bspcm.getPointerTargetSet();
-      } else if (pMessage instanceof DssErrorConditionMessage bsecm) {
+      } else if (pMessage instanceof DssViolationConditionMessage bsecm) {
         map = bsecm.getSSAMap();
         pts = bsecm.getPointerTargetSet();
       }

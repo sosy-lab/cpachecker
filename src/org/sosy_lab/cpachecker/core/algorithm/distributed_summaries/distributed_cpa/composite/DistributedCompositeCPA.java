@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.VerificationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -40,7 +40,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
 
   private final DeserializeCompositePrecisionOperator deserializePrecisionOperator;
   private final SerializeCompositePrecisionOperator serializePrecisionOperator;
-  private final VerificationConditionOperator verificationConditionOperator;
+  private final ViolationConditionOperator verificationConditionOperator;
 
   private final ImmutableMap<
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
@@ -65,7 +65,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
         new DeserializeCompositePrecisionOperator(registered, compositeCPA, pIntegerCFANodeMap);
     analyses = registered;
     verificationConditionOperator =
-        new CompositeVerificationConditionOperator(compositeCPA, analyses);
+        new CompositeViolationConditionOperator(compositeCPA, analyses);
   }
 
   @Override
@@ -110,7 +110,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public VerificationConditionOperator getVerificationConditionOperator() {
+  public ViolationConditionOperator getViolationConditionOperator() {
     return verificationConditionOperator;
   }
 

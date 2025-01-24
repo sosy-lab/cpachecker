@@ -48,7 +48,7 @@ public class DssRootWorker extends DssWorker {
   @Override
   public Collection<DssMessage> processMessage(DssMessage pMessage) {
     return switch (pMessage.getType()) {
-      case ERROR_CONDITION -> {
+      case VIOLATION_CONDITION -> {
         if (pMessage.getTargetNodeNumber() == root.getLast().getNodeNumber()) {
           yield ImmutableSet.of(
               messageFactory.newResultMessage(

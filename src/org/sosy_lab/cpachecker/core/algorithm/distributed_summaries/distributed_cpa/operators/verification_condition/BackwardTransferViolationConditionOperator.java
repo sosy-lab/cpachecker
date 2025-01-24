@@ -24,20 +24,20 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class BackwardTransferVerificationConditionOperator
-    implements VerificationConditionOperator {
+public class BackwardTransferViolationConditionOperator
+    implements ViolationConditionOperator {
 
   private final TransferRelation transferRelation;
   private final ConfigurableProgramAnalysis cpa;
 
-  public BackwardTransferVerificationConditionOperator(
+  public BackwardTransferViolationConditionOperator(
       TransferRelation pTransferRelation, ConfigurableProgramAnalysis pCpa) {
     transferRelation = pTransferRelation;
     cpa = pCpa;
   }
 
   @Override
-  public Optional<AbstractState> computeVerificationCondition(
+  public Optional<AbstractState> computeViolationCondition(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException {
     List<CFAEdge> counterexample = pARGPath.getFullPath();

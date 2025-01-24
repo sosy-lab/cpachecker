@@ -19,7 +19,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * Interface for operators that compute the verification condition for a given path regarding
  * previous conditions.
  */
-public interface VerificationConditionOperator {
+public interface ViolationConditionOperator {
 
   /**
    * Compute the verification condition for the given path.
@@ -29,7 +29,7 @@ public interface VerificationConditionOperator {
    * @return The computed verification condition. Empty if forward analysis of block does not match
    *     the given previous condition.
    */
-  Optional<AbstractState> computeVerificationCondition(
+  Optional<AbstractState> computeViolationCondition(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException, SolverException;
 }

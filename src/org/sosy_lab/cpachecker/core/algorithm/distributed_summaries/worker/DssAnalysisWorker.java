@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssPostConditionMessage;
@@ -104,11 +104,11 @@ public class DssAnalysisWorker extends DssWorker {
   @Override
   public Collection<DssMessage> processMessage(DssMessage message) {
     switch (message.getType()) {
-      case ERROR_CONDITION -> {
+      case VIOLATION_CONDITION -> {
         try {
           backwardAnalysisTime.start();
           return dssBlockAnalysis.runAnalysisUnderCondition(
-              (DssErrorConditionMessage) message, true);
+              (DssViolationConditionMessage) message, true);
         } catch (Exception | Error e) {
           return ImmutableSet.of(messageFactory.newErrorMessage(getBlockId(), e));
         } finally {
@@ -139,9 +139,9 @@ public class DssAnalysisWorker extends DssWorker {
   public void storeMessage(DssMessage message) throws SolverException, InterruptedException {
     switch (message.getType()) {
       case STATISTICS, FOUND_RESULT, ERROR -> {}
-      case ERROR_CONDITION -> {
-        DssErrorConditionMessage errorCond = (DssErrorConditionMessage) message;
-        dssBlockAnalysis.updateErrorCondition(errorCond);
+      case VIOLATION_CONDITION -> {
+        DssViolationConditionMessage errorCond = (DssViolationConditionMessage) message;
+        dssBlockAnalysis.updateViolationCondition(errorCond);
         dssBlockAnalysis.updateSeenPrefixes(errorCond);
       }
       case BLOCK_POSTCONDITION -> {

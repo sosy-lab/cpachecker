@@ -17,7 +17,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.VerificationConditionReportingState;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.ViolationConditionReportingState;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -55,7 +55,7 @@ public class BlockState
     errorCondition = pErrorCondition;
   }
 
-  public void setErrorCondition(AbstractState pErrorCondition) {
+  public void setViolationCondition(AbstractState pErrorCondition) {
     errorCondition = Optional.of(pErrorCondition);
   }
 
@@ -104,8 +104,8 @@ public class BlockState
     if (isTarget()) {
       FluentIterable<BooleanFormula> approximations =
           AbstractStates.asIterable(errorCondition.orElseThrow())
-              .filter(VerificationConditionReportingState.class)
-              .transform(s -> s.getVerificationCondition(manager));
+              .filter(ViolationConditionReportingState.class)
+              .transform(s -> s.getViolationCondition(manager));
       return manager.getBooleanFormulaManager().and(approximations.toList());
     }
     return manager.getBooleanFormulaManager().makeTrue();

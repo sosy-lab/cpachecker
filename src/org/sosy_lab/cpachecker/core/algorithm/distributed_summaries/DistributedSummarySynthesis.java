@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssDefaultQueue;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssPrioritizeErrorConditionQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssPrioritizeViolationConditionQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage.MessageConverter;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage.MessageType;
@@ -129,8 +129,8 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   @Option(
       description =
           "Change the queue type. ERRROR_CONDITION prioritizes the processing"
-              + " ofErrorConditionMessages. DEFAULT does not differ between PostCondition and"
-              + " ErrorCondition messages.",
+              + " of ViolationConditionMessages. DEFAULT does not differ between PostCondition and"
+              + " ViolationCondition messages.",
       secure = true)
   private QueueType queue = QueueType.DEFAULT;
 
@@ -235,7 +235,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
 
   private Supplier<BlockingQueue<DssMessage>> getQueueSupplier() {
     return switch (queue) {
-      case ERROR_CONDITION -> () -> new DssPrioritizeErrorConditionQueue();
+      case ERROR_CONDITION -> () -> new DssPrioritizeViolationConditionQueue();
       case DEFAULT -> () -> new DssDefaultQueue();
     };
   }

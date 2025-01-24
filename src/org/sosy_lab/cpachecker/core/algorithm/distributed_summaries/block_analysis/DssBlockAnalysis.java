@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessageFactory;
@@ -85,7 +85,7 @@ public class DssBlockAnalysis {
   private final Set<String> loopPredecessors;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final Set<Set<String>> seenPrefixes;
-  private final Map<Set<String>, DssErrorConditionMessage> errors;
+  private final Map<Set<String>, DssViolationConditionMessage> errors;
   private final LogManager logger;
 
   private final DssMessageFactory messageFactory;
@@ -260,7 +260,7 @@ public class DssBlockAnalysis {
         .implies(msg1.getPathFormula().getFormula(), msg2.getPathFormula().getFormula());
   }
 
-  private Collection<DssMessage> reportErrorConditions(
+  private Collection<DssMessage> reportViolationConditions(
       Set<ARGState> violations,
       ARGState condition,
       boolean first,
@@ -294,8 +294,8 @@ public class DssBlockAnalysis {
     boolean makeFirst = false;
     for (ARGPath path : pathsToViolations.build()) {
       Optional<AbstractState> verificationCondition =
-          dcpa.getVerificationConditionOperator()
-              .computeVerificationCondition(path, Optional.ofNullable(condition));
+          dcpa.getViolationConditionOperator()
+              .computeViolationCondition(path, Optional.ofNullable(condition));
       if (verificationCondition.isEmpty()) {
         continue;
       }
@@ -310,7 +310,7 @@ public class DssBlockAnalysis {
           dcpa.serialize(
               verificationCondition.orElseThrow(), reachedSet.getPrecision(path.getLastState()));
       messages.add(
-          messageFactory.newErrorConditionMessage(
+          messageFactory.newViolationConditionMessage(
               block.getId(),
               block.getFirst().getNodeNumber(),
               DssBlockAnalyses.appendStatus(status, serialized),
@@ -338,7 +338,7 @@ public class DssBlockAnalysis {
       return reportBlockPostConditions(result.getBlockEndStates(), true);
     }
 
-    return reportErrorConditions(result.getViolationStates(), null, true, "", true);
+    return reportViolationConditions(result.getViolationStates(), null, true, "", true);
   }
 
   public DssMessageProcessing shouldRepeatAnalysis(DssPostConditionMessage pReceived)
@@ -423,10 +423,10 @@ public class DssBlockAnalysis {
     }
 
     ImmutableSet.Builder<DssMessage> fixpointIteration = ImmutableSet.builder();
-    for (DssErrorConditionMessage value : errors.values()) {
+    for (DssViolationConditionMessage value : errors.values()) {
       for (DssMessage dssMessage : runAnalysisUnderCondition(value, false)) {
         if ((dssMessage.getType() == MessageType.BLOCK_POSTCONDITION
-                || dssMessage.getType() == MessageType.ERROR_CONDITION)
+                || dssMessage.getType() == MessageType.VIOLATION_CONDITION)
             && soundPredecessors.containsAll(loopPredecessors)) {
           fixpointIteration.add(dssMessage);
         }
@@ -443,10 +443,10 @@ public class DssBlockAnalysis {
     return dcpa.getInitialPrecision(block.getFirst(), StateSpacePartition.getDefaultPartition());
   }
 
-  public void updateErrorCondition(DssErrorConditionMessage pErrorCondition) {
+  public void updateViolationCondition(DssViolationConditionMessage pViolationCondition) {
     boolean covered = false;
     Set<String> originPrefix =
-        ImmutableSet.copyOf(Splitter.on(",").splitToList(pErrorCondition.getOrigin()));
+        ImmutableSet.copyOf(Splitter.on(",").splitToList(pViolationCondition.getOrigin()));
     for (Set<String> errorPrefixes : errors.keySet()) {
       if (originPrefix.containsAll(errorPrefixes)) {
         covered = true;
@@ -454,11 +454,11 @@ public class DssBlockAnalysis {
       }
     }
     if (!covered) {
-      errors.put(originPrefix, pErrorCondition);
+      errors.put(originPrefix, pViolationCondition);
     }
   }
 
-  public Set<String> updateSeenPrefixes(DssErrorConditionMessage errorCond) {
+  public Set<String> updateSeenPrefixes(DssViolationConditionMessage errorCond) {
     ImmutableSet<String> originPrefixes =
         ImmutableSet.copyOf(Splitter.on(",").splitToList(errorCond.getOrigin()));
     seenPrefixes.add(originPrefixes);
@@ -470,24 +470,24 @@ public class DssBlockAnalysis {
    * the error condition will be attached to that edge. In case this makes the path formula
    * infeasible, we compute an abstraction. If no error condition is present, we run the CPA.
    *
-   * @param pErrorCondition a message containing an abstract state representing an error condition
+   * @param pViolationCondition a message containing an abstract state representing an error condition
    * @return Important messages for other blocks.
    * @throws CPAException thrown if CPA runs into an error
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
    */
   public Collection<DssMessage> runAnalysisUnderCondition(
-      DssErrorConditionMessage pErrorCondition, boolean put)
+      DssViolationConditionMessage pViolationCondition, boolean put)
       throws CPAException, InterruptedException, SolverException {
     logger.log(Level.INFO, "Running forward analysis with respect to error condition");
     // merge all states into the reached set
-    AbstractState errorCondition = dcpa.getDeserializeOperator().deserialize(pErrorCondition);
-    DssMessageProcessing processing = dcpa.getProceedOperator().processBackward(errorCondition);
+    AbstractState ViolationCondition = dcpa.getDeserializeOperator().deserialize(pViolationCondition);
+    DssMessageProcessing processing = dcpa.getProceedOperator().processBackward(ViolationCondition);
     if (!processing.shouldProceed()) {
       return processing;
     }
 
     if (put) {
-      updateErrorCondition(pErrorCondition);
+      updateViolationCondition(pViolationCondition);
     }
     prepareReachedSet();
 
@@ -495,7 +495,7 @@ public class DssBlockAnalysis {
         abstractState ->
             Objects.requireNonNull(
                     AbstractStates.extractStateByType(abstractState, BlockState.class))
-                .setErrorCondition(errorCondition));
+                .setViolationCondition(ViolationCondition));
 
     BlockAnalysisIntermediateResult result =
         DssBlockAnalyses.findReachableTargetStatesInBlock(algorithm, reachedSet, block);
@@ -503,7 +503,7 @@ public class DssBlockAnalysis {
     status = status.update(result.getStatus());
 
     ImmutableSet<Set<String>> previouslySeenPrefixes = ImmutableSet.copyOf(seenPrefixes);
-    Set<String> originPrefixes = updateSeenPrefixes(pErrorCondition);
+    Set<String> originPrefixes = updateSeenPrefixes(pViolationCondition);
     boolean matched = false;
     for (Set<String> seenPrefix : previouslySeenPrefixes) {
       if (originPrefixes.containsAll(seenPrefix)) {
@@ -526,17 +526,17 @@ public class DssBlockAnalysis {
           abstractState ->
               Objects.requireNonNull(
                       AbstractStates.extractStateByType(abstractState, BlockState.class))
-                  .setErrorCondition(errorCondition));
+                  .setViolationCondition(ViolationCondition));
 
       result = DssBlockAnalyses.findReachableTargetStatesInBlock(algorithm, reachedSet, block);
       status = status.update(result.getStatus());
     }
     messages.addAll(
-        reportErrorConditions(
+        reportViolationConditions(
             result.getAbstractionStates(),
-            ((ARGState) errorCondition),
+            ((ARGState) ViolationCondition),
             false,
-            pErrorCondition.getOrigin(),
+            pViolationCondition.getOrigin(),
             false));
     return messages.build();
   }

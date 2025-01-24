@@ -18,7 +18,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage.MessageType;
 
-public class DssPrioritizeErrorConditionQueue extends ForwardingBlockingQueue<DssMessage> {
+public class DssPrioritizeViolationConditionQueue extends ForwardingBlockingQueue<DssMessage> {
 
   private final BlockingQueue<DssMessage> queue;
   private static final int TAKE_POSTCONDITION = 4;
@@ -33,15 +33,15 @@ public class DssPrioritizeErrorConditionQueue extends ForwardingBlockingQueue<Ds
    *
    * @param pQueue the queue to forward
    */
-  private DssPrioritizeErrorConditionQueue(BlockingQueue<DssMessage> pQueue) {
+  private DssPrioritizeViolationConditionQueue(BlockingQueue<DssMessage> pQueue) {
     queue = pQueue;
     highestPriority = new ArrayDeque<>();
     next = new LinkedHashMap<>();
-    next.put(MessageType.ERROR_CONDITION, new ArrayDeque<>());
+    next.put(MessageType.VIOLATION_CONDITION, new ArrayDeque<>());
     next.put(MessageType.BLOCK_POSTCONDITION, new ArrayDeque<>());
   }
 
-  public DssPrioritizeErrorConditionQueue() {
+  public DssPrioritizeViolationConditionQueue() {
     this(new LinkedBlockingQueue<>());
   }
 
@@ -63,21 +63,21 @@ public class DssPrioritizeErrorConditionQueue extends ForwardingBlockingQueue<Ds
       DssMessage message = queue.take();
       switch (message.getType()) {
         case STATISTICS, FOUND_RESULT, ERROR -> highestPriority.add(message);
-        case ERROR_CONDITION, BLOCK_POSTCONDITION -> next.get(message.getType()).add(message);
+        case VIOLATION_CONDITION, BLOCK_POSTCONDITION -> next.get(message.getType()).add(message);
       }
     }
     if (!highestPriority.isEmpty()) {
       return highestPriority.removeFirst();
     }
-    Deque<DssMessage> errorConditions = next.get(MessageType.ERROR_CONDITION);
+    Deque<DssMessage> ViolationConditions = next.get(MessageType.VIOLATION_CONDITION);
     Deque<DssMessage> postConditions = next.get(MessageType.BLOCK_POSTCONDITION);
-    if (!errorConditions.isEmpty()) {
+    if (!ViolationConditions.isEmpty()) {
       if (current >= TAKE_POSTCONDITION && !postConditions.isEmpty()) {
         current = 0;
         return postConditions.removeFirst();
       } else {
         current++;
-        return errorConditions.removeFirst();
+        return ViolationConditions.removeFirst();
       }
     } else if (!postConditions.isEmpty()) {
       return postConditions.removeFirst();
