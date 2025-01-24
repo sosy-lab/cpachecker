@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeH
 public final class SSAMap implements Serializable {
 
   @Serial private static final long serialVersionUID = 7618801653203679876L;
+  public static final int PRIME_DEFAULT_IDX = -1;
 
   // Default value for the default value
   private static final int DEFAULT_DEFAULT_IDX = -1;

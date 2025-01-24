@@ -399,9 +399,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @return
    */
   @Override
-  public PathFormula makeAndFormulaWithOutInstantiateSsaIndex(PathFormula pPathFormula,
-                                                              BooleanFormula pOtherFormula,
-                                                              @Nullable SSAMap newSSAMap) {
+  public PathFormula makeAndWithInstantiatedFormula(PathFormula pPathFormula,
+                                                    BooleanFormula pOtherFormula,
+                                                    @Nullable SSAMap newSSAMap) {
     SSAMap ssa = newSSAMap != null ? newSSAMap : pPathFormula.getSsa();
     BooleanFormula resultFormula = bfmgr.and(pPathFormula.getFormula(), pOtherFormula);
     final PointerTargetSet pts = pPathFormula.getPointerTargetSet();

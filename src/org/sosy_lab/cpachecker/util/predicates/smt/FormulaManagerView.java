@@ -153,6 +153,9 @@ public class FormulaManagerView {
               + "and add axioms like (0 & n = 0)")
   private boolean useBitwiseAxioms = false;
 
+  // Flag raise when use transition predicate abtraction
+  private static boolean useTPA = false;
+
   @Option(
       secure = true,
       description =
@@ -1127,7 +1130,9 @@ public class FormulaManagerView {
 
   // the character for separating name and index of a value
   public static final char INDEX_SEPARATOR = '@';
+  // Suffix for distinguish prime variable in formula.
   public static final String PRIME_SUFFIX = "_prime";
+  // Flag when applying
   private static final Splitter INDEX_SPLITTER = Splitter.on(INDEX_SEPARATOR);
 
   static String makeName(String name, int idx) {
@@ -1136,8 +1141,7 @@ public class FormulaManagerView {
         "Instantiating already instantiated variable %s with index %s",
         name,
         idx);
-    // This is commented out for TPA precision adjustment can add prime variables  with ssa index -1 to the path formula
-//    checkArgument(idx >= 0, "Invalid index %s for variable %s", idx, name);
+    checkArgument(useTPA || idx >= 0, "Invalid index %s for variable %s", idx, name);
     return name + INDEX_SEPARATOR + idx;
   }
 
@@ -2316,5 +2320,9 @@ public class FormulaManagerView {
       }
     }
     return cache.get(f);
+  }
+
+  public static void usingTPA() {
+    FormulaManagerView.useTPA = true;
   }
 }

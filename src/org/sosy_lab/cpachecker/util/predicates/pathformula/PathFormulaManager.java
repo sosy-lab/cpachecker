@@ -12,7 +12,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import java.io.PrintStream;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -72,9 +71,9 @@ public interface PathFormulaManager {
   PathFormula makeOr(PathFormula pF1, PathFormula pF2) throws InterruptedException;
 
   PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula);
-  PathFormula makeAndFormulaWithOutInstantiateSsaIndex(PathFormula pPathFormula,
-                                                       BooleanFormula pOtherFormula,
-                                                       @Nullable SSAMap newSSAMap);
+  PathFormula makeAndWithInstantiatedFormula(PathFormula pPathFormula,
+                                             BooleanFormula pOtherFormula,
+                                             @Nullable SSAMap newSSAMap);
 
   PathFormula makeAnd(PathFormula pPathFormula, CExpression pAssumption)
       throws CPATransferException, InterruptedException;

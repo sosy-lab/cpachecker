@@ -14,7 +14,6 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Predicate;
 import java.io.PrintStream;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.LongAdder;
@@ -186,10 +185,10 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeAndFormulaWithOutInstantiateSsaIndex(PathFormula pPathFormula,
-                                                              BooleanFormula pOtherFormula,
-                                                              @Nullable SSAMap newSSAMap) {
-    return delegate.makeAndFormulaWithOutInstantiateSsaIndex(pPathFormula, pOtherFormula, newSSAMap);
+  public PathFormula makeAndWithInstantiatedFormula(PathFormula pPathFormula,
+                                                    BooleanFormula pOtherFormula,
+                                                    @Nullable SSAMap newSSAMap) {
+    return delegate.makeAndWithInstantiatedFormula(pPathFormula, pOtherFormula, newSSAMap);
   }
 
   @Override

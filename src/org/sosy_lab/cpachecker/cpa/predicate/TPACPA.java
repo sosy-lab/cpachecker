@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 @Options(prefix = "cpa.predicate.transitionpredicateabstraction")
 public class TPACPA extends PredicateCPA
@@ -51,10 +52,9 @@ public class TPACPA extends PredicateCPA
       AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     super(config, logger, pBlk, pCfa, pShutdownNotifier, specification, pAggregatedReachedSets);
+    FormulaManagerView.usingTPA();
 
     logger.log(Level.INFO, "TPA-CPA is initialized");
-
-    // TODO: Modify constructor if necessary
     config.inject(this, TPACPA.class);
     invariantsManager = super.getInvariantsManager();
   }
