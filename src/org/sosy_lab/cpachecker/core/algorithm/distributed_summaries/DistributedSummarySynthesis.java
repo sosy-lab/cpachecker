@@ -128,7 +128,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
 
   @Option(
       description =
-          "Change the queue type. ERRROR_CONDITION prioritizes the processing"
+          "Change the queue type. VIOLATION_CONDITION prioritizes the processing"
               + " of ViolationConditionMessages. DEFAULT does not differ between PostCondition and"
               + " ViolationCondition messages.",
       secure = true)

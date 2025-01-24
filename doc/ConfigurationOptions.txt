@@ -4186,10 +4186,7 @@ distributedSummaries.newConditions = []
 # Where to write responses
 distributedSummaries.outputMessages = "messages/"
 
-# Change the queue type. ERRROR_CONDITION prioritizes the processing of
-# ViolationConditionMessages. DEFAULT does not differ between PostCondition
-# and ViolationCondition messages.
-# Change the queue type. ERRROR_CONDITION prioritizes the processing
+# Change the queue type. VIOLATION_CONDITION prioritizes the processing
 # ofErrorConditionMessages. DEFAULT does not differ between PostCondition and
 # ErrorCondition messages.
 distributedSummaries.queue = DEFAULT
