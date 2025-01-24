@@ -293,10 +293,10 @@ public class DssBlockAnalysis {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     boolean makeFirst = false;
     for (ARGPath path : pathsToViolations.build()) {
-      Optional<AbstractState> verificationCondition =
+      Optional<AbstractState> violationCondition =
           dcpa.getViolationConditionOperator()
               .computeViolationCondition(path, Optional.ofNullable(condition));
-      if (verificationCondition.isEmpty()) {
+      if (violationCondition.isEmpty()) {
         continue;
       }
       String prefix =
@@ -308,7 +308,7 @@ public class DssBlockAnalysis {
       }
       DssMessagePayload serialized =
           dcpa.serialize(
-              verificationCondition.orElseThrow(), reachedSet.getPrecision(path.getLastState()));
+              violationCondition.orElseThrow(), reachedSet.getPrecision(path.getLastState()));
       messages.add(
           messageFactory.newViolationConditionMessage(
               block.getId(),

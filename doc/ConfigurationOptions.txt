@@ -4141,11 +4141,9 @@ distributedSummaries.allowMissingAbstractionNodes = true
 # program.A tolerance of 1 means, that we subtract 1 of the total number of
 # functions.
 distributedSummaries.allowSingleBlockDecompositionWhenMerging = false
-distributedSummaries.allowSingleBlockDecompositionWhenMerging = no default value
 
 # Where to store the block graph in JSON format
 distributedSummaries.blockCFAFile = "block_analysis/blocks.json"
-distributedSummaries.blockCFAFile = no default value
 
 # Whether to enable debug mode of block-summary analysis. This creates visual
 # output for debugging and exports additional metadata.Creating this
