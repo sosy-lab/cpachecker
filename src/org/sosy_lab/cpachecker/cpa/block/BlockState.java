@@ -130,8 +130,6 @@ public class BlockState
 
   @Override
   public boolean isTarget() {
-    return errorCondition.isPresent()
-        && blockNode.isAbstractionPossible()
-        && node.equals(blockNode.getAbstractionLocation());
+    return errorCondition.isPresent() && node.equals(blockNode.getAbstractionLocation());
   }
 }
