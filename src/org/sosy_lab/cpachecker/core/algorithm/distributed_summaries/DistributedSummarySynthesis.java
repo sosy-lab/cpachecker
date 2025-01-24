@@ -203,7 +203,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   }
 
   private enum QueueType {
-    ERROR_CONDITION,
+    VIOLATION_CONDITION,
     DEFAULT
   }
 
@@ -235,7 +235,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
 
   private Supplier<BlockingQueue<DssMessage>> getQueueSupplier() {
     return switch (queue) {
-      case ERROR_CONDITION -> () -> new DssPrioritizeViolationConditionQueue();
+      case VIOLATION_CONDITION -> () -> new DssPrioritizeViolationConditionQueue();
       case DEFAULT -> () -> new DssDefaultQueue();
     };
   }

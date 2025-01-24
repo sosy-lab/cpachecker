@@ -4161,13 +4161,9 @@ distributedSummaries.debug = false
 distributedSummaries.decompositionType = MERGE_DECOMPOSITION
   enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
              NO_DECOMPOSITION]
-distributedSummaries.decompositionType = no default value
-  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
-             NO_DECOMPOSITION]
 
 # Whether to stop after exporting the blockgraph
 distributedSummaries.generateBlockGraphOnly = false
-distributedSummaries.generateBlockGraphOnly = no default value
 
 # Import an existing decomposition from a file
 distributedSummaries.importDecomposition = no default value
@@ -4179,7 +4175,6 @@ distributedSummaries.importDecomposition = no default value
 # If no file is provided, the block-summary analysis assumes the precondition
 # 'true' and the verification condition 'false'.
 distributedSummaries.knownConditions = []
-distributedSummaries.knownConditions = no default value
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'new' by block-summary analysis. For each message
@@ -4190,11 +4185,9 @@ distributedSummaries.knownConditions = no default value
 # block-summary analysis assumes the precondition 'true' and the verification
 # condition 'false'.
 distributedSummaries.newConditions = []
-distributedSummaries.newConditions = no default value
 
 # Where to write responses
 distributedSummaries.outputMessages = "messages/"
-distributedSummaries.outputMessages = no default value
 
 # Change the queue type. ERRROR_CONDITION prioritizes the processing of
 # ViolationConditionMessages. DEFAULT does not differ between PostCondition
@@ -4203,13 +4196,10 @@ distributedSummaries.outputMessages = no default value
 # ofErrorConditionMessages. DEFAULT does not differ between PostCondition and
 # ErrorCondition messages.
 distributedSummaries.queue = DEFAULT
-  enum:     [ERROR_CONDITION, DEFAULT]
-distributedSummaries.queue = no default value
-  enum:     [ERROR_CONDITION, DEFAULT]
+  enum:     [VIOLATION_CONDITION, DEFAULT]
 
 # Whether to spawn a worker for only one block id
 distributedSummaries.spawnWorkerForId = ""
-distributedSummaries.spawnWorkerForId = no default value
 
 # Configuration for forward analysis in computation of distributed summaries
 distributedSummaries.worker.forwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-forward.properties"
