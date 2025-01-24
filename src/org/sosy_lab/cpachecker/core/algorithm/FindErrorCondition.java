@@ -160,9 +160,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
 
       } while (foundNewCounterexamples && (++currentIteration < maxIterations
           || maxIterations == -1));
-      if (parallelRefinement) {
-        refiner.shutdown();
-      }
+
       return status;
 
     } catch (InvalidConfigurationException | SolverException ex) {

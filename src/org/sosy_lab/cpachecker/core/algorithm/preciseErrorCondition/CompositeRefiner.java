@@ -31,7 +31,6 @@ public class CompositeRefiner implements Refiner {
   private final FormulaContext context;
   private PathFormula exclusionFormula;
   private final Map<RefinementStrategy, Refiner> refiners = new EnumMap<>(RefinementStrategy.class);
-  private final ExecutorService executor;
   private final Boolean parallelRefinement;
   private final StatTimer refinementTimer =
       new StatTimer("Total time for refinement.");
@@ -46,57 +45,95 @@ public class CompositeRefiner implements Refiner {
     exclusionFormula = context.getManager().makeEmptyPathFormula(); // initially empty
     initializeRefiners(pRefiners, pQuantifierSolver);
     parallelRefinement = pParallelRefinement;
-    executor = Executors.newFixedThreadPool(pRefiners.length); // 2 threads for parallel refinement
   }
 
   @Override
   public PathFormula refine(CounterexampleInfo pCounterexample)
       throws CPATransferException, InterruptedException, InvalidConfigurationException,
              SolverException {
-
     if (refiners.size() == 1) {
-      refinementTimer.start();
-      context.getLogger().log(Level.INFO, "Parallel Refinement is disabled, one refiner");
-
-        RefinerResult result = refineWith(refiners.get(RefinementStrategy.QUANTIFIER_ELIMINATION), pCounterexample);
-
-        // execute tasks with a timeout and return the first successful result
-        exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
-        refinementTimer.stop();
-        return exclusionFormula;
+      return singleRefinement(pCounterexample);
     }
 
     if (parallelRefinement && refiners.size() >= 2) {
-      refinementTimer.start();
-      context.getLogger().log(Level.INFO, "Parallel Refinement is enabled");
-      try {
-        List<Callable<RefinerResult>> tasks = new ArrayList<>();
-        refiners.values().forEach(
-            (pRefiner)
-                -> tasks.add(() -> refineWith(pRefiner, pCounterexample)));
-
-        // execute tasks with a timeout and return the first successful result
-        RefinerResult result = executor.invokeAny(tasks, TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
-        refinementTimer.stop();
-        return exclusionFormula;
-
-      } catch (TimeoutException e) {
-        context.getLogger().logfUserException(Level.SEVERE, e, "Refinement timed out for all strategies.");
-      } catch (Exception e) {
-        context.getLogger().logfUserException(Level.SEVERE, e, "Error during parallel refinement.");
-      }
-
+      return parallelRefinement(pCounterexample);
     }
+    // sequential
     if (!parallelRefinement) {
-      // TODO: handle non parallel
+      return sequentialRefinement(pCounterexample);
     }
 
     // Fallback TODO better handling fallback
-    {
-      context.getLogger()
-          .log(Level.WARNING, "All refiners failed. Returning an empty exclusion formula.");
+    context.getLogger()
+        .log(Level.SEVERE, "All refiners failed. Returning an empty exclusion formula.");
+    return context.getManager().makeEmptyPathFormula();
+  }
+
+  private PathFormula sequentialRefinement(CounterexampleInfo pCounterexample) {
+    refinementTimer.start();
+    context.getLogger().log(Level.INFO, "Sequential Refinement");
+    for (Refiner refiner : refiners.values()) {
+      try {
+        RefinerResult result = refineWith(refiner, pCounterexample);
+        exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
+        refinementTimer.stop();
+        return exclusionFormula;
+      } catch (Exception e) {
+        context.getLogger()
+            .log(Level.WARNING, "Refiner failed: " + refiner.getClass().getSimpleName());
+        context.getLogger().logfUserException(Level.WARNING, e, "Error during refinement.");
+        context.getLogger().log(Level.INFO, "Moving to ");
+
+      }
     }
+    context.getLogger().log(Level.SEVERE,
+        "Error during sequential refinement. Returning an empty exclusion formula.");
+    return context.getManager().makeEmptyPathFormula();
+  }
+
+  private PathFormula singleRefinement(CounterexampleInfo pCounterexample) {
+    refinementTimer.start();
+    context.getLogger().log(Level.INFO, "Single Refinement");
+    try {
+      RefinerResult result =
+          refineWith(refiners.values().stream().toList().get(0), pCounterexample);
+
+      exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
+      refinementTimer.stop();
+      return exclusionFormula;
+    } catch (Exception e) {
+      context.getLogger().logfUserException(Level.SEVERE, e, "Error during refinement.");
+    }
+    context.getLogger()
+        .log(Level.SEVERE, "Error during refinement. Returning an empty exclusion formula.");
+    return context.getManager().makeEmptyPathFormula();
+  }
+
+  private PathFormula parallelRefinement(CounterexampleInfo pCounterexample) {
+    refinementTimer.start();
+    context.getLogger().log(Level.INFO, "Parallel Refinement is enabled");
+    ExecutorService executor = Executors.newFixedThreadPool(refiners.size());
+
+    try {
+      List<Callable<RefinerResult>> tasks = new ArrayList<>();
+      refiners.values().forEach(
+          (pRefiner) -> tasks.add(() -> refineWith(pRefiner, pCounterexample)));
+
+      // execute tasks with a timeout and return the first successful result
+      RefinerResult result = executor.invokeAny(tasks, TIMEOUT_SECONDS, TimeUnit.SECONDS);
+      exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
+      refinementTimer.stop();
+      executor.shutdown();
+      return exclusionFormula;
+
+    } catch (TimeoutException e) {
+      context.getLogger()
+          .logfUserException(Level.SEVERE, e, "Refinement timed out for all strategies.");
+    } catch (Exception e) {
+      context.getLogger().logfUserException(Level.SEVERE, e, "Error during parallel refinement.");
+    }
+    context.getLogger().log(Level.SEVERE,
+        "Error during parallel refinement. Returning an empty exclusion formula.");
     return context.getManager().makeEmptyPathFormula();
   }
 
@@ -120,13 +157,8 @@ public class CompositeRefiner implements Refiner {
     return new RefinerResult(refiner.getClass().getSimpleName(), result);
   }
 
-
   public PathFormula getExclusionFormula() {
     return exclusionFormula;
-  }
-
-  public void shutdown() {
-    executor.shutdown();
   }
 
   private static class RefinerResult {

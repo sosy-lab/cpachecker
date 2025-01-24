@@ -34,7 +34,8 @@ public class AllSatRefiner implements Refiner {
   public AllSatRefiner(FormulaContext pContext) throws InvalidConfigurationException {
     context = pContext;
     exclusionModelFormula = context.getManager().makeEmptyPathFormula();
-    solver = Solver.create(context.getConfiguration(), context.getLogger(), context.getShutdownNotifier());
+    solver = Solver.create(context.getConfiguration(), context.getLogger(),
+        context.getShutdownNotifier());
   }
 
   @Override
@@ -49,8 +50,7 @@ public class AllSatRefiner implements Refiner {
           context.getManager().makeFormulaForPath(cex.getTargetPath().getFullPath()).getFormula();
       prover.push(formula);
 
-
-      if (!prover.isUnsat()) { // feasible cex
+      if (!prover.isUnsat()) { // only feasible cex
         AllSatCallback callback = new AllSatCallback();
 
         // extract relevant variables
@@ -72,13 +72,13 @@ public class AllSatRefiner implements Refiner {
           context.getLogger()
               .log(Level.INFO, "Added satisfying assignment to exclusion formula: " + assignment);
         }
+        return exclusionModelFormula;
       } else {
-        context.getLogger().log(Level.WARNING, "Counterexample is infeasible.");
+        context.getLogger()
+            .log(Level.WARNING, "Counterexample is infeasible. Returning an empty formula.");
         return exclusionModelFormula; // empty
       }
     }
-
-    return exclusionModelFormula;
   }
 
 

@@ -42,12 +42,16 @@ public class QuantiferEliminationRefiner implements Refiner {
   private final Solver quantifierSolver;
   private int currentRefinementIteration = 0;
   private final SSAMapBuilder ssaBuilder;
+  private final Solver solver;
 
   public QuantiferEliminationRefiner(
       FormulaContext pContext, Solvers pQuantifierSolver)
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     context = pContext;
     exclusionFormula = context.getManager().makeEmptyPathFormula();
+    solver = Solver.create(Configuration.builder().copyFrom(context.getConfiguration()).build(),
+        context.getLogger(),
+        context.getShutdownNotifier());
     quantifierSolver = Solver.create(
         Configuration.builder().copyFrom(context.getConfiguration())
             .setOption("solver.solver", pQuantifierSolver.name())
@@ -74,7 +78,7 @@ public class QuantiferEliminationRefiner implements Refiner {
 
     // translate to Z3
     BooleanFormula translatedFormula =
-        translateFormula(cexFormula.getFormula(), context.getSolver(), quantifierSolver);
+        translateFormula(cexFormula.getFormula(), solver, quantifierSolver);
 
     // Quantifier Elimination
     BooleanFormula quantifierEliminationResult = eliminateVariables(
@@ -87,17 +91,18 @@ public class QuantiferEliminationRefiner implements Refiner {
     // handle modulo operation translation
     quantifierEliminationResult = handleModuloOp(quantifierEliminationResult);
     context.getLogger().log(Level.INFO,
-        String.format("Iteration %d: Modified Result After Modulo Fix: %s \n", currentRefinementIteration,
+        String.format("Iteration %d: Modified Result After Modulo Fix: %s \n",
+            currentRefinementIteration,
             quantifierEliminationResult));
 
     // translate back to MATHSAT
     quantifierEliminationResult =
-        translateFormula(quantifierEliminationResult, quantifierSolver, context.getSolver());
+        translateFormula(quantifierEliminationResult, quantifierSolver, solver);
 
     updateExclusionFormula(quantifierEliminationResult, cexFormula);
 
     String formattedErrorCondition =
-        formatErrorCondition(exclusionFormula.getFormula(), context.getSolver());
+        formatErrorCondition(exclusionFormula.getFormula(), solver);
     context.getLogger().log(Level.INFO,
         String.format("Iteration %d: Error Condition in this iteration: %s \n",
             currentRefinementIteration,
@@ -136,8 +141,10 @@ public class QuantiferEliminationRefiner implements Refiner {
               // replace "bvsrem_i" with "bvsrem" while keeping the arguments unchanged
               FunctionDeclaration<?> newFunctionDeclaration =
                   formulaManager.getFunctionFormulaManager().declareUF(
-                      "bvsrem_32", functionDeclaration.getType(), functionDeclaration.getArgumentTypes());
-              return formulaManager.getFunctionFormulaManager().callUF(newFunctionDeclaration, args);
+                      "bvsrem_32", functionDeclaration.getType(),
+                      functionDeclaration.getArgumentTypes());
+              return formulaManager.getFunctionFormulaManager()
+                  .callUF(newFunctionDeclaration, args);
             }
             return super.visitFunction(f, args, functionDeclaration);
           }
@@ -148,37 +155,25 @@ public class QuantiferEliminationRefiner implements Refiner {
   }
 
 
-  @Nonnull
-  private BooleanFormula handleModuloOp_(BooleanFormula quantifierEliminationResult) {
-    String translatedResultAsString =
-        context.getSolver().getFormulaManager().dumpArbitraryFormula(quantifierEliminationResult);
-    // modulo replacement
-    translatedResultAsString = translatedResultAsString.replace("bvsrem_i", "bvsrem");
-    quantifierEliminationResult =
-        context.getSolver().getFormulaManager().parse(translatedResultAsString);
-    return quantifierEliminationResult;
-  }
-
-
   private void updateExclusionFormula(
       BooleanFormula quantifierEliminationResult,
       PathFormula cexFormula) {
     //update exclusion formula with the new quantified variables from this iteration.
-    exclusionFormula = context.getManager().makeAnd(exclusionFormula,
-            context.getSolver().getFormulaManager().getBooleanFormulaManager().not(
-                quantifierEliminationResult))
-        .withContext(ssaBuilder.build(), cexFormula.getPointerTargetSet());
+    exclusionFormula = context.getManager().makeAnd(
+        exclusionFormula,
+        solver.getFormulaManager().getBooleanFormulaManager().not(quantifierEliminationResult)
+    ).withContext(ssaBuilder.build(), cexFormula.getPointerTargetSet());
 
     context.getLogger().log(Level.INFO,
         String.format("Iteration %d: Updated Exclusion Formula: %s \n", currentRefinementIteration,
             exclusionFormula.getFormula()));
   }
 
-  private String formatErrorCondition(BooleanFormula formula, Solver solver)
+  private String formatErrorCondition(BooleanFormula pFormula, Solver pSolver)
       throws InterruptedException {
-    FormulaToCVisitor visitor = new FormulaToCVisitor(solver.getFormulaManager(), id -> id);
-    BooleanFormula simplifiedFormula = solver.getFormulaManager().simplify(formula);
-    solver.getFormulaManager().visit(simplifiedFormula, visitor);
+    FormulaToCVisitor visitor = new FormulaToCVisitor(pSolver.getFormulaManager(), id -> id);
+    BooleanFormula simplifiedFormula = pSolver.getFormulaManager().simplify(pFormula);
+    pSolver.getFormulaManager().visit(simplifiedFormula, visitor);
 
     String rawFormula = visitor.getString();
 
@@ -263,9 +258,9 @@ public class QuantiferEliminationRefiner implements Refiner {
 
   private void mapNonDetToOriginalNames(
       PathFormula cexFormula,
-      Solver solver) {
+      Solver pSolver) {
     List<String> cexVarNames = new ArrayList<>(
-        solver.getFormulaManager().extractVariableNames(cexFormula.getFormula()));
+        pSolver.getFormulaManager().extractVariableNames(cexFormula.getFormula()));
 
     // Map SSA variable names to original names (e.g., `__VERIFIER_int!2@` -> `x`)
     for (String cexVarName : cexVarNames) {
@@ -279,7 +274,7 @@ public class QuantiferEliminationRefiner implements Refiner {
             cexFormula.getSsa().allVariables()));
     context.getLogger().log(Level.INFO,
         String.format("Iteration %d: CEX EXTRACTED VAR NAMES: %s", currentRefinementIteration,
-            solver.getFormulaManager().extractVariableNames(
+            pSolver.getFormulaManager().extractVariableNames(
                 cexFormula.getFormula())));
     context.getLogger().log(Level.INFO,
         String.format("Iteration %d: CEX Non-Det Variables Mapping: %s", currentRefinementIteration,

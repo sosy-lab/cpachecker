@@ -28,13 +28,12 @@ public class GenerateModelRefiner implements Refiner {
   private final FormulaContext context;
   private PathFormula exclusionModelFormula;
   private Solver solver;
-  private ProverEnvironment proverEnv;
 
   public GenerateModelRefiner(FormulaContext pContext) throws InvalidConfigurationException {
     context = pContext;
     exclusionModelFormula = context.getManager().makeEmptyPathFormula();
-    solver = Solver.create(context.getConfiguration(), context.getLogger(), context.getShutdownNotifier());
-    proverEnv = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+    solver = Solver.create(context.getConfiguration(), context.getLogger(),
+        context.getShutdownNotifier());
   }
 
   @Override
@@ -44,13 +43,14 @@ public class GenerateModelRefiner implements Refiner {
     BooleanFormula nondetModel = bmgr.makeTrue();
     ImmutableSet.Builder<String> nondetVariables = ImmutableSet.builder();
 
-    try (ProverEnvironment prover = proverEnv) {
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       BooleanFormula formula =
           context.getManager().makeFormulaForPath(cex.getTargetPath().getFullPath()).getFormula();
       prover.push(formula);
 
       if (prover.isUnsat()) {
-        context.getLogger().log(Level.WARNING, "Counterexample is infeasible.");
+        context.getLogger()
+            .log(Level.WARNING, "Counterexample is infeasible. Returning an empty formula.");
         return exclusionModelFormula; // empty
       }
 
