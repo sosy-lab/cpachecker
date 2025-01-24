@@ -112,7 +112,7 @@ public class FloatValueTest {
           50000,
           Format.Float64,
           25000,
-          Format.Extended,
+          Format.Float80,
           15000);
 
   /** Reference implementations that will be used as oracles in the test */
@@ -130,7 +130,7 @@ public class FloatValueTest {
     @Override
     public String toString() {
       String floatFormat =
-          format.equals(Format.Extended)
+          format.equals(Format.Float80)
               ? "Extended"
               : String.format("Float%s", 1 + format.expBits() + format.sigBits());
       return reference + ", " + floatFormat;
@@ -155,7 +155,7 @@ public class FloatValueTest {
         if (reference.equals(ReferenceImpl.MPFR)
             || precision.equals(Format.Float32)
             || precision.equals(Format.Float64)
-            || (reference.equals(ReferenceImpl.NATIVE) && precision.equals(Format.Extended))) {
+            || (reference.equals(ReferenceImpl.NATIVE) && precision.equals(Format.Float80))) {
           if (precision.equals(Format.Float32) || enableExpensiveTests) {
             builder.add(
                 new FloatTestOptions(
@@ -197,7 +197,7 @@ public class FloatValueTest {
         }
         CFloatWrapper wrapper = val.getWrapper();
 
-        long exponent = (wrapper.getExponent() & 0x7FFF) - Format.Extended.bias();
+        long exponent = (wrapper.getExponent() & 0x7FFF) - Format.Float80.bias();
         BigInteger significand = new BigInteger(Long.toUnsignedString(wrapper.getMantissa()));
 
         return new BigFloat(val.isNegative(), significand, exponent, context);
@@ -725,7 +725,7 @@ public class FloatValueTest {
       return CFloatType.SINGLE;
     } else if (pFormat.equals(Format.Float64)) {
       return CFloatType.DOUBLE;
-    } else if (pFormat.equals(Format.Extended)) {
+    } else if (pFormat.equals(Format.Float80)) {
       return CFloatType.LONG_DOUBLE;
     } else {
       throw new IllegalArgumentException();
@@ -738,7 +738,7 @@ public class FloatValueTest {
         floatTestOptions.format.equals(Format.Float32)
             || floatTestOptions.format.equals(Format.Float64)
             || (floatTestOptions.reference == ReferenceImpl.NATIVE
-                && floatTestOptions.format.equals(Format.Extended))
+                && floatTestOptions.format.equals(Format.Float80))
             || floatTestOptions.reference == ReferenceImpl.MPFR,
         "Backend %s only support float32 and float64 as format",
         floatTestOptions.reference);

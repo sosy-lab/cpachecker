@@ -35,7 +35,7 @@ public enum MachineModel {
   /** Machine model representing a 32bit Linux machine with alignment: */
   LINUX32(
       // precision float
-      FloatValue.Format.Extended, // long double
+      FloatValue.Format.Float80, // long double
 
       // sizeof numeric types
       2, // short
@@ -77,7 +77,7 @@ public enum MachineModel {
   /** Machine model representing a 64bit Linux machine with alignment: */
   LINUX64(
       // precision float
-      FloatValue.Format.Extended, // long double
+      FloatValue.Format.Float80, // long double
 
       // sizeof numeric types
       2, // short int

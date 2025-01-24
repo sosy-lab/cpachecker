@@ -49,7 +49,7 @@ class CFloatImpl extends CFloat {
     return switch (pType) {
       case SINGLE -> Format.Float32;
       case DOUBLE -> Format.Float64;
-      case LONG_DOUBLE -> Format.Extended;
+      case LONG_DOUBLE -> Format.Float80;
       default -> throw new UnsupportedOperationException();
     };
   }
@@ -85,11 +85,11 @@ class CFloatImpl extends CFloat {
         || Format.Float16.equals(format)
         || Format.Float32.equals(format)
         || Format.Float64.equals(format)
-        || Format.Extended.equals(format)) {
+        || Format.Float80.equals(format)) {
       long signBit = floatValue.isNegative() ? getSignBitMask() : 0;
       long exponent = floatValue.getExponent() + floatValue.getFormat().bias();
       BigInteger mantissa = floatValue.getSignificand();
-      if (!format.equals(Format.Extended)) {
+      if (!format.equals(Format.Float80)) {
         mantissa = mantissa.clearBit(format.sigBits());
       }
       return new CFloatWrapper(signBit | exponent, mantissa.longValue());
@@ -255,7 +255,7 @@ class CFloatImpl extends CFloat {
     return switch (toType) {
       case SINGLE -> new CFloatImpl(delegate.withPrecision(Format.Float32));
       case DOUBLE -> new CFloatImpl(delegate.withPrecision(Format.Float64));
-      case LONG_DOUBLE -> new CFloatImpl(delegate.withPrecision(Format.Extended));
+      case LONG_DOUBLE -> new CFloatImpl(delegate.withPrecision(Format.Float80));
       default -> throw new IllegalArgumentException();
     };
   }
@@ -300,7 +300,7 @@ class CFloatImpl extends CFloat {
       return CFloatType.SINGLE;
     } else if (Format.Float64.equals(format)) {
       return CFloatType.DOUBLE;
-    } else if (Format.Extended.equals(format)) {
+    } else if (Format.Float80.equals(format)) {
       return CFloatType.LONG_DOUBLE;
     } else {
       throw new IllegalStateException();

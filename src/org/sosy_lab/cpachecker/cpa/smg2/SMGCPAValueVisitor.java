@@ -1436,7 +1436,7 @@ public class SMGCPAValueVisitor
             target = FloatValue.Format.Float64;
           } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
             // Must be Linux32 or Linux64, otherwise the second clause would have matched
-            target = FloatValue.Format.Extended;
+            target = FloatValue.Format.Float80;
           } else if (size == machineModel.getSizeofFloat128() * bitPerByte) {
             target = FloatValue.Format.Float128;
           } else {

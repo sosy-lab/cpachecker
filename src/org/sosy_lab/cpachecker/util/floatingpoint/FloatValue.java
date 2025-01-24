@@ -322,6 +322,19 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
      */
     public static final Format Float64 = new Format(FLOAT64_EXP_BITS, FLOAT64_SIG_BITS);
 
+    private static final int FLOAT80_EXP_BITS = 15;
+    private static final int FLOAT80_SIG_BITS = 63;
+
+    /**
+     * Extended-precision floating-point format
+     *
+     * <p>80bit binary floating point format as used by the x87 FPU. Uses 15 bits for the exponent
+     * and 64 for the significand.
+     *
+     * @see <a href="https://en.wikipedia.org/wiki/Extended_precision">Wikipedia</a>
+     */
+    public static final Format Float80 = new Format(FLOAT80_EXP_BITS, FLOAT80_SIG_BITS);
+
     private static final int FLOAT128_EXP_BITS = 15;
     private static final int FLOAT128_SIG_BITS = 112;
 
@@ -349,20 +362,6 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
      *     href="https://en.wikipedia.org/wiki/Octuple-precision_floating-point_format">Wikipedia</a>
      */
     public static final Format Float256 = new Format(FLOAT256_EXP_BITS, FLOAT256_SIG_BITS);
-
-    private static final int FLOAT_EXTENDED_EXP_BITS = 15;
-    private static final int FLOAT_EXTENDED_SIG_BITS = 63;
-
-    /**
-     * Extended-precision floating-point format
-     *
-     * <p>80bit binary floating point format as used by the x87 FPU. Uses 15 bits for the exponent
-     * and 64 for the significand.
-     *
-     * @see <a href="https://en.wikipedia.org/wiki/Extended_precision">Wikipedia</a>
-     */
-    public static final Format Extended =
-        new Format(FLOAT_EXTENDED_EXP_BITS, FLOAT_EXTENDED_SIG_BITS);
 
     /**
      * The exponent 'bias' of a FloatValue value in this format.

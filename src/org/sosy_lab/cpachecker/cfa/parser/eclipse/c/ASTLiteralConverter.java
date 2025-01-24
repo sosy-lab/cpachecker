@@ -157,7 +157,7 @@ class ASTLiteralConverter {
     FloatValue.Format format;
     if (input.endsWith("l")) {
       input = input.substring(0, input.length() - 1);
-      format = FloatValue.Format.Extended;
+      format = FloatValue.Format.Float80;
     } else if (input.endsWith("f")) {
       input = input.substring(0, input.length() - 1);
       format = FloatValue.Format.Float32;
