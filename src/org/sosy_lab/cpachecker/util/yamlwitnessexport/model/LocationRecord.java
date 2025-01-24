@@ -53,18 +53,7 @@ public class LocationRecord {
     return new LocationRecord(fileName, lineNumber, location.getStartColumnInLine(), functionName);
   }
 
-  public static LocationRecord createLocationRecordAtEnd(
-      FileLocation pLocation, String pFunctionName) {
-    return createLocationRecordAtEnd(pLocation, pLocation.getFileName().toString(), pFunctionName);
-  }
-
-  public static LocationRecord createLocationRecordAtEnd(
-      FileLocation pLocation, String pFileName, String pFunctionName) {
-    final int lineNumber = pLocation.getEndingLineNumber();
-    return new LocationRecord(pFileName, lineNumber, pLocation.getEndColumnInLine(), pFunctionName);
-  }
-
-  public static LocationRecord createLocationRecordAtStartOfNextLocation(
+  public static LocationRecord createLocationRecordAfterLocation(
       FileLocation fLoc, String functionName, AstCfaRelation pAstCfaRelation) {
     final String fileName = fLoc.getFileName().toString();
     FileLocation nextStatementFileLocation =

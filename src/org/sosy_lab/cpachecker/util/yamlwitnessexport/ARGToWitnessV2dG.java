@@ -22,6 +22,7 @@ import com.google.common.collect.Sets.SetView;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -50,6 +51,10 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.UpdateRecord;
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 class ARGToWitnessV2dG extends ARGToYAMLWitness {
 
+  private static final Comparator<GhostUpdateRecord> ghostUpdateComparator =
+      Comparator.comparingInt((GhostUpdateRecord ghostUpdate) -> ghostUpdate.location().getLine())
+          .thenComparingInt(ghostUpdate -> ghostUpdate.location().getColumn());
+
   public ARGToWitnessV2dG(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -64,9 +69,9 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     checkNotNull(pChild);
     CFAEdge lockEdge = pParent.getEdgeToChild(pChild);
     checkArgument(lockEdge != null, "no edge connects pParent and pChild");
-    // ghost updates always commute with the lock statement -> could also put it at start
+    // ghost updates always commute with the lock statement -> can put it at end / start
     LocationRecord locationRecord =
-        LocationRecord.createLocationRecordAtEnd(
+        LocationRecord.createLocationRecordAtStart(
             lockEdge.getFileLocation(),
             // using original name instead of cloned function name
             lockEdge.getSuccessor().getFunction().getOrigName());
@@ -104,16 +109,16 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
       @NonNull CollectedARGStates pStatesCollector) {
 
     checkNotNull(pStatesCollector);
-    ImmutableList.Builder<GhostUpdateRecord> rGhostUpdates = ImmutableList.builder();
-    // Handle ghost updates through locks
+    ImmutableList.Builder<GhostUpdateRecord> ghostUpdates = ImmutableList.builder();
+    // handle ghost updates through locks
     for (var entry : getUniqueEdgeEntries(pStatesCollector.lockUpdates).entries()) {
-      rGhostUpdates.add(createGhostUpdate(entry.getKey(), entry.getValue(), 1));
+      ghostUpdates.add(createGhostUpdate(entry.getKey(), entry.getValue(), 1));
     }
-    // Handle ghost updates through unlocks
+    // handle ghost updates through unlocks
     for (var entry : getUniqueEdgeEntries(pStatesCollector.unlockUpdates).entries()) {
-      rGhostUpdates.add(createGhostUpdate(entry.getKey(), entry.getValue(), 0));
+      ghostUpdates.add(createGhostUpdate(entry.getKey(), entry.getValue(), 0));
     }
-    return rGhostUpdates.build();
+    return FluentIterable.from(ghostUpdates.build()).toSortedList(ghostUpdateComparator);
   }
 
   private ImmutableList<GhostVariableRecord> getGhostVariablesFromGhostUpdates(
