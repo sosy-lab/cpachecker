@@ -86,7 +86,6 @@ public class InputRejection {
   public static void handleInitialRejections(LogManager pLogger, CFA pInputCfa) {
     logger = pLogger;
     checkLanguageC(pInputCfa);
-    checkOneInputFile(pInputCfa);
     checkIsParallelProgram(pInputCfa);
     checkUnsupportedFunctions(pInputCfa);
     checkPthreadObjectArrays(pInputCfa);
@@ -108,12 +107,6 @@ public class InputRejection {
     Language language = pInputCfa.getMetadata().getInputLanguage();
     if (!language.equals(Language.C)) {
       handleRejection(InputRejectionMessage.LANGUAGE_NOT_C);
-    }
-  }
-
-  private static void checkOneInputFile(CFA pInputCfa) {
-    if (pInputCfa.getFileNames().size() != 1) {
-      handleRejection(InputRejectionMessage.MULTIPLE_INPUT_FILES);
     }
   }
 
