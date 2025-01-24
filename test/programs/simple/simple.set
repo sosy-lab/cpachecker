@@ -8,6 +8,7 @@
 
 atexit/memsafety*.yml
 atexit/reach*.yml
+atexit/transformation*.yml
 bitvectors/*.yml
 pointer_aliasing/*.yml
 arrays/*.yml
