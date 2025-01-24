@@ -70,13 +70,11 @@ public class CompositeRefiner implements Refiner {
   }
 
   private PathFormula sequentialRefinement(CounterexampleInfo pCounterexample) {
-    refinementTimer.start();
     context.getLogger().log(Level.INFO, "Sequential Refinement");
     for (Refiner refiner : refiners.values()) {
       try {
         RefinerResult result = refineWith(refiner, pCounterexample);
         exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
-        refinementTimer.stop();
         return exclusionFormula;
       } catch (Exception e) {
         context.getLogger()
@@ -92,14 +90,12 @@ public class CompositeRefiner implements Refiner {
   }
 
   private PathFormula singleRefinement(CounterexampleInfo pCounterexample) {
-    refinementTimer.start();
     context.getLogger().log(Level.INFO, "Single Refinement");
     try {
       RefinerResult result =
           refineWith(refiners.values().stream().toList().get(0), pCounterexample);
 
       exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
-      refinementTimer.stop();
       return exclusionFormula;
     } catch (Exception e) {
       context.getLogger().logfUserException(Level.SEVERE, e, "Error during refinement.");
@@ -110,7 +106,6 @@ public class CompositeRefiner implements Refiner {
   }
 
   private PathFormula parallelRefinement(CounterexampleInfo pCounterexample) {
-    refinementTimer.start();
     context.getLogger().log(Level.INFO, "Parallel Refinement is enabled");
     ExecutorService executor = Executors.newFixedThreadPool(refiners.size());
 
@@ -122,7 +117,6 @@ public class CompositeRefiner implements Refiner {
       // execute tasks with a timeout and return the first successful result
       RefinerResult result = executor.invokeAny(tasks, TIMEOUT_SECONDS, TimeUnit.SECONDS);
       exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
-      refinementTimer.stop();
       executor.shutdown();
       return exclusionFormula;
 
