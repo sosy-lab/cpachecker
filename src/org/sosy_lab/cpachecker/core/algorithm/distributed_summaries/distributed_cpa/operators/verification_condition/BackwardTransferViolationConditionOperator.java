@@ -24,8 +24,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class BackwardTransferViolationConditionOperator
-    implements ViolationConditionOperator {
+public class BackwardTransferViolationConditionOperator implements ViolationConditionOperator {
 
   private final TransferRelation transferRelation;
   private final ConfigurableProgramAnalysis cpa;

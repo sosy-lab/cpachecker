@@ -64,8 +64,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
     deserializePrecisionOperator =
         new DeserializeCompositePrecisionOperator(registered, compositeCPA, pIntegerCFANodeMap);
     analyses = registered;
-    verificationConditionOperator =
-        new CompositeViolationConditionOperator(compositeCPA, analyses);
+    verificationConditionOperator = new CompositeViolationConditionOperator(compositeCPA, analyses);
   }
 
   @Override

@@ -41,11 +41,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -470,7 +470,8 @@ public class DssBlockAnalysis {
    * the error condition will be attached to that edge. In case this makes the path formula
    * infeasible, we compute an abstraction. If no error condition is present, we run the CPA.
    *
-   * @param pViolationCondition a message containing an abstract state representing an error condition
+   * @param pViolationCondition a message containing an abstract state representing an error
+   *     condition
    * @return Important messages for other blocks.
    * @throws CPAException thrown if CPA runs into an error
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
@@ -480,7 +481,8 @@ public class DssBlockAnalysis {
       throws CPAException, InterruptedException, SolverException {
     logger.log(Level.INFO, "Running forward analysis with respect to error condition");
     // merge all states into the reached set
-    AbstractState ViolationCondition = dcpa.getDeserializeOperator().deserialize(pViolationCondition);
+    AbstractState ViolationCondition =
+        dcpa.getDeserializeOperator().deserialize(pViolationCondition);
     DssMessageProcessing processing = dcpa.getProceedOperator().processBackward(ViolationCondition);
     if (!processing.shouldProceed()) {
       return processing;

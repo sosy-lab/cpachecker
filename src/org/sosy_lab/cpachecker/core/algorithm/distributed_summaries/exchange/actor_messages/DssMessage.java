@@ -293,7 +293,8 @@ public abstract class DssMessage implements Comparable<DssMessage> {
       return switch (type) {
         case FOUND_RESULT -> new DssResultMessage(uniqueBlockId, nodeNumber, payload);
         case ERROR -> new DssExceptionMessage(uniqueBlockId, nodeNumber, payload);
-        case VIOLATION_CONDITION -> new DssViolationConditionMessage(uniqueBlockId, nodeNumber, payload);
+        case VIOLATION_CONDITION ->
+            new DssViolationConditionMessage(uniqueBlockId, nodeNumber, payload);
         case BLOCK_POSTCONDITION -> new DssPostConditionMessage(uniqueBlockId, nodeNumber, payload);
         default -> throw new AssertionError("Unknown MessageType " + type);
       };

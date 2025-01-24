@@ -49,7 +49,7 @@ public abstract sealed class PredicateAbstractState
         Partitionable,
         Serializable,
         Splitable,
-               ViolationConditionReportingState {
+        ViolationConditionReportingState {
 
   @Serial private static final long serialVersionUID = -265763837277453447L;
 
