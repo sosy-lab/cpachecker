@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -77,40 +76,14 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     return new GhostUpdateRecord(locationRecord, ImmutableList.of(updateRecord));
   }
 
-  WitnessExportResult exportWitness(ARGState pRootState, Path pPath)
-      throws IOException, ReportingMethodNotImplementedException, InterruptedException {
+  WitnessExportResult exportWitness(ARGState pRootState, Path pPath) throws IOException {
     // Collect the information about the states relevant for ghost variables
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
-
-    ImmutableList.Builder<GhostUpdateRecord> ghostUpdatesB = ImmutableList.builder();
-    // Handle ghost updates through locks
-    for (var entry : getUniqueEdgeEntries(statesCollector.lockUpdates).entries()) {
-      ghostUpdatesB.add(createGhostUpdate(entry.getKey(), entry.getValue(), 1));
-    }
-    // Handle ghost updates through unlocks
-    for (var entry : getUniqueEdgeEntries(statesCollector.unlockUpdates).entries()) {
-      ghostUpdatesB.add(createGhostUpdate(entry.getKey(), entry.getValue(), 0));
-    }
-    ImmutableList<GhostUpdateRecord> ghostUpdates = ghostUpdatesB.build();
-
-    // extract ghost variable names from ghostUpdates
-    ImmutableSet<String> ghostVarNames =
-        FluentIterable.from(ghostUpdates)
-            .transformAndConcat(GhostUpdateRecord::updates)
-            .transform(UpdateRecord::variable)
-            .toSet();
-    ImmutableList.Builder<GhostVariableRecord> ghostVariables = ImmutableList.builder();
-    for (String varName : ghostVarNames) {
-      // TODO initial value always 0? (yes for locks)
-      // the format of an initial is currently always c_expression
-      InitialRecord initial = new InitialRecord(0, YAMLWitnessExpressionType.C);
-      // the scope of a ghost variable is always global
-      ghostVariables.add(
-          new GhostVariableRecord(varName, CBasicType.INT.toASTString(), "global", initial));
-    }
-
+    ImmutableList<GhostUpdateRecord> ghostUpdates =
+        getGhostUpdatesFromStateCollector(statesCollector);
     GhostInstrumentationContentRecord record =
-        new GhostInstrumentationContentRecord(ghostVariables.build(), ghostUpdates);
+        new GhostInstrumentationContentRecord(
+            getGhostVariablesFromGhostUpdates(ghostUpdates), ghostUpdates);
 
     Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
     Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
@@ -125,6 +98,44 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
         pPath);
 
     return new WitnessExportResult(true);
+  }
+
+  private ImmutableList<GhostUpdateRecord> getGhostUpdatesFromStateCollector(
+      @NonNull CollectedARGStates pStatesCollector) {
+
+    checkNotNull(pStatesCollector);
+    ImmutableList.Builder<GhostUpdateRecord> rGhostUpdates = ImmutableList.builder();
+    // Handle ghost updates through locks
+    for (var entry : getUniqueEdgeEntries(pStatesCollector.lockUpdates).entries()) {
+      rGhostUpdates.add(createGhostUpdate(entry.getKey(), entry.getValue(), 1));
+    }
+    // Handle ghost updates through unlocks
+    for (var entry : getUniqueEdgeEntries(pStatesCollector.unlockUpdates).entries()) {
+      rGhostUpdates.add(createGhostUpdate(entry.getKey(), entry.getValue(), 0));
+    }
+    return rGhostUpdates.build();
+  }
+
+  private ImmutableList<GhostVariableRecord> getGhostVariablesFromGhostUpdates(
+      @NonNull ImmutableList<GhostUpdateRecord> pGhostUpdates) {
+
+    checkNotNull(pGhostUpdates);
+    // extract ghost variable names from ghostUpdates
+    ImmutableSet<String> ghostVarNames =
+        FluentIterable.from(pGhostUpdates)
+            .transformAndConcat(GhostUpdateRecord::updates)
+            .transform(UpdateRecord::variable)
+            .toSet();
+    ImmutableList.Builder<GhostVariableRecord> rGhostVariables = ImmutableList.builder();
+    for (String varName : ghostVarNames) {
+      // TODO initial value always 0? (yes for locks)
+      // the format of an initial is currently always c_expression
+      InitialRecord initial = new InitialRecord(0, YAMLWitnessExpressionType.C);
+      // the scope of a ghost variable is always global
+      rGhostVariables.add(
+          new GhostVariableRecord(varName, CBasicType.INT.toASTString(), "global", initial));
+    }
+    return rGhostVariables.build();
   }
 
   /**
