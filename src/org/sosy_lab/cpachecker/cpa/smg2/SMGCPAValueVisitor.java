@@ -1522,7 +1522,7 @@ public class SMGCPAValueVisitor
   /** Cast the argument to a floating point type */
   private static FloatValue castToFloat(
       MachineModel pMachineModel, CSimpleType pTargetType, NumericValue pValue) {
-    checkArgument(!pTargetType.getType().isFloatingPointType());
+    checkArgument(pTargetType.getType().isFloatingPointType());
     FloatValue.Format precision = FloatValue.Format.fromCType(pMachineModel, pTargetType);
     return pValue.floatingPointValue(precision);
   }
