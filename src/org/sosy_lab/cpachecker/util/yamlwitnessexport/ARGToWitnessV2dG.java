@@ -24,9 +24,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitness.CollectedARGStates.ARGStatePair;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
@@ -129,12 +130,14 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     checkNotNull(pStatesCollector);
     ImmutableList.Builder<GhostUpdateRecord> ghostUpdates = ImmutableList.builder();
     // handle ghost updates through locks
-    for (var entry : getUniqueEdgeEntries(pStatesCollector.lockUpdates).entries()) {
-      ghostUpdates.add(createGhostUpdate(entry.getKey(), entry.getValue(), 1));
+    for (var entry : pStatesCollector.lockUpdates.entrySet()) {
+      ARGStatePair pair = entry.getValue();
+      ghostUpdates.add(createGhostUpdate(pair.parent(), pair.child(), 1));
     }
     // handle ghost updates through unlocks
-    for (var entry : getUniqueEdgeEntries(pStatesCollector.unlockUpdates).entries()) {
-      ghostUpdates.add(createGhostUpdate(entry.getKey(), entry.getValue(), 0));
+    for (var entry : pStatesCollector.unlockUpdates.entrySet()) {
+      ARGStatePair pair = entry.getValue();
+      ghostUpdates.add(createGhostUpdate(pair.parent(), pair.child(), 0));
     }
     return FluentIterable.from(ghostUpdates.build()).toSortedList(ghostUpdateComparator);
   }
@@ -184,39 +187,6 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
                   varName, CBasicType.INT.toASTString(), "global", initial);
             })
         .toList();
-  }
-
-  /**
-   * Returns the subset of entries in pUpdates where the {@link CFAEdge}s linking {@link ARGState}s
-   * are present exactly once.
-   *
-   * <p>E.g. pUpdates := {@code {(argA, argB), (argC, argD)}} where both are connected through
-   * {@code edgeE}, then return just {@code {(argA, argB)}} or {@code {(argC, argD)}} depending on
-   * the order.
-   *
-   * <p>Also ensures that the lockUpdates for all parent / child pairs of {@link ARGState}s
-   * connected through the same {@link CFAEdge} are equal so that they are equal w.r.t. {@link
-   * GhostUpdateRecord} semantics.
-   */
-  private Multimap<ARGState, ARGState> getUniqueEdgeEntries(
-      @NonNull Multimap<ARGState, ARGState> pUpdates) {
-
-    checkNotNull(pUpdates);
-    Multimap<ARGState, ARGState> rEntries = HashMultimap.create();
-    Map<CFAEdge, Multimap<ARGState, ARGState>> visitedEdges = new HashMap<>();
-    for (var entry : pUpdates.entries()) {
-      ARGState argParent = entry.getKey();
-      ARGState argChild = entry.getValue();
-      CFAEdge edge = argParent.getEdgeToChild(argChild);
-      if (!visitedEdges.containsKey(edge)) {
-        visitedEdges.put(edge, HashMultimap.create());
-        visitedEdges.get(edge).put(argParent, argChild);
-        rEntries.put(argParent, argChild);
-      } else {
-        visitedEdges.get(edge).put(argParent, argChild);
-      }
-    }
-    return rEntries;
   }
 
   /**

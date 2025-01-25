@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
@@ -24,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -49,6 +52,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingCPA;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -57,6 +61,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.RemovingStructuresVisitor;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitness.CollectedARGStates.ARGStatePair;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 
@@ -126,16 +131,18 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
         HashMultimap.create();
 
     /**
-     * {@link ARGState}s (from, to) wrapped in {@link ThreadingState}s that are connected through a
-     * lock operation.
+     * Maps {@link FileLocation}s (to prevent duplicates from cloned functions) to {@link ARGState}
+     * pairs from {@link ThreadingCPA} that are connected through lock operations.
      */
-    public Multimap<ARGState, ARGState> lockUpdates = HashMultimap.create();
+    public BiMap<FileLocation, ARGStatePair> lockUpdates = HashBiMap.create();
 
     /**
-     * {@link ARGState}s (from, to) wrapped in {@link ThreadingState}s that are connected through an
-     * unlock operation.
+     * Maps {@link FileLocation}s (to prevent duplicates from cloned functions) to {@link ARGState}
+     * pairs from {@link ThreadingCPA} that are connected through unlock operations.
      */
-    public Multimap<ARGState, ARGState> unlockUpdates = HashMultimap.create();
+    public BiMap<FileLocation, ARGStatePair> unlockUpdates = HashBiMap.create();
+
+    public record ARGStatePair(@NonNull ARGState parent, @NonNull ARGState child) {}
   }
 
   /**
@@ -199,17 +206,22 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
           // locks unequal -> a lock / unlock operation was performed between states
           if (!parentLocks.equals(childLocks)) {
             // we later need the edge for the location and function
-            Verify.verify(
-                argParent.getEdgeToChild(pSuccessor) != null,
-                "no edge found connecting parent and child");
+            CFAEdge edge = argParent.getEdgeToChild(pSuccessor);
+            Verify.verify(edge != null, "no edge found connecting parent and child");
+            FileLocation location = edge.getFileLocation();
+            ARGStatePair pair = new ARGStatePair(argParent, pSuccessor);
             int parentLocksNum = parentLocks.size();
             int childLocksNum = childLocks.size();
             if (parentLocksNum + 1 == childLocksNum) {
               // more locks in child -> lock was locked
-              collectedStates.lockUpdates.put(argParent, pSuccessor);
+              if (!collectedStates.lockUpdates.containsKey(location)) {
+                collectedStates.lockUpdates.put(location, pair);
+              }
             } else if (parentLocksNum == childLocksNum + 1) {
               // more locks in parent -> lock was unlocked
-              collectedStates.unlockUpdates.put(argParent, pSuccessor);
+              if (!collectedStates.unlockUpdates.containsKey(location)) {
+                collectedStates.unlockUpdates.put(location, pair);
+              }
             } else {
               throw new AssertionError("multiple global locks within one operation");
             }
