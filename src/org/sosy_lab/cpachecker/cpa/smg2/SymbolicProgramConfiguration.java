@@ -460,6 +460,36 @@ public class SymbolicProgramConfiguration {
         mapping1 = mergeResult.getMapping1();
         mapping2 = mergeResult.getMapping2();
       }
+
+      if (thisFrame.getReturnObject().isPresent()) {
+        SMGObject otherObj = otherFrame.getReturnObject().orElseThrow();
+        SMGObject thisObj = thisFrame.getReturnObject().orElseThrow();
+        SMGObject newObj = newFrame.getReturnObject().orElseThrow();
+
+        Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMapping> maybeMergeResult =
+            mergeSubSMGs(
+                thisSPC,
+                otherSPC,
+                thisObj,
+                otherObj,
+                mergedSPC,
+                newObj,
+                mergeStatus,
+                mapping1,
+                mapping2,
+                0);
+        if (maybeMergeResult.isEmpty()) {
+          return Optional.empty();
+        }
+        MergedSPCAndMergeStatusWithMergingSPCsAndMapping mergeResult =
+            maybeMergeResult.orElseThrow();
+        thisSPC = mergeResult.getMergingSPC1();
+        otherSPC = mergeResult.getMergingSPC2();
+        mergeStatus = mergeResult.getMergeStatus();
+        mergedSPC = mergeResult.getMergedSPC();
+        mapping1 = mergeResult.getMapping1();
+        mapping2 = mergeResult.getMapping2();
+      }
     }
 
     // 4. If there is a cycle consisting of only 0+ in the new SPC/SMG, return bottom
