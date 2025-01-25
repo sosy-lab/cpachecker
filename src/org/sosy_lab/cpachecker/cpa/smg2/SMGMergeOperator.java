@@ -9,10 +9,14 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
+import org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus;
+import org.sosy_lab.cpachecker.util.smg.util.MergedSMGStateAndMergeStatus;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class SMGMergeOperator implements MergeOperator {
@@ -27,30 +31,46 @@ public class SMGMergeOperator implements MergeOperator {
 
   @Override
   public AbstractState merge(
-      AbstractState abstrState1, AbstractState abstrState2, Precision precision)
+      AbstractState newState, AbstractState stateFromReached, Precision precision)
       throws CPAException, InterruptedException {
 
-    SMGState state1 = (SMGState) abstrState1;
-    SMGState state2 = (SMGState) abstrState2;
+    SMGState newSMGState = (SMGState) newState;
+    SMGState smgStateFromReached = (SMGState) stateFromReached;
 
-    if (!state1.isLessOrEqual(state2)) {
-      if (!state1.mergeAtBlockEnd() || (state1.createdAtBlockEnd() && state2.createdAtBlockEnd())) {
-        totalMergeTimer.start();
-        statistics.incrementMergeAttempts();
-        Optional<SMGState> maybeMergedState = state1.merge(state2);
-        totalMergeTimer.stop();
-
-        if (maybeMergedState.isPresent()) {
-          statistics.incrementNumberOfSuccessfulMerges();
-          // Retain block-end status
-          SMGState mergedState = maybeMergedState.orElseThrow();
-          if (state1.createdAtBlockEnd() && state2.createdAtBlockEnd()) {
-            mergedState = mergedState.withBlockEnd();
-          }
-          return mergedState;
-        }
-      }
+    // A merge w/o nested lists is expensive but most of the time not needed
+    Set<SMGSinglyLinkedListSegment> abstrObjs1 =
+        newSMGState.getMemoryModel().getSmg().getAllValidAbstractedObjects();
+    Set<SMGSinglyLinkedListSegment> abstrObjs2 =
+        smgStateFromReached.getMemoryModel().getSmg().getAllValidAbstractedObjects();
+    if (abstrObjs1.isEmpty() && abstrObjs2.isEmpty()) {
+      return smgStateFromReached;
     }
-    return state2;
+
+    totalMergeTimer.start();
+    statistics.incrementMergeAttempts();
+    Optional<MergedSMGStateAndMergeStatus> maybeMergedStateAndStatus =
+        newSMGState.merge(smgStateFromReached);
+    totalMergeTimer.stop();
+
+    if (maybeMergedStateAndStatus.isPresent()) {
+      statistics.incrementNumberOfSuccessfulMerges();
+
+      if (maybeMergedStateAndStatus.orElseThrow().getMergeStatus() == SMGMergeStatus.EQUAL) {
+        // Don't merge equal states, as they are subsumed with the stop-operator
+        return smgStateFromReached;
+      }
+
+      // Retain block-end status
+      SMGState mergedState = maybeMergedStateAndStatus.orElseThrow().getMergedSMGState();
+      if (newSMGState.createdAtBlockEnd() && smgStateFromReached.createdAtBlockEnd()) {
+        mergedState = mergedState.withBlockEnd(newSMGState.getBlockEnd());
+      }
+
+      newSMGState.setMergedInto(mergedState);
+      smgStateFromReached.setMergedInto(mergedState);
+      return mergedState;
+    }
+
+    return smgStateFromReached;
   }
 }

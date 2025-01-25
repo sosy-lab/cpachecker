@@ -210,9 +210,10 @@ public class SymbolicProgramConfiguration {
    *
    * @param pOther Another {@link SymbolicProgramConfiguration}
    * @return Either {@link Optional} empty for failed join, or a new {@link
-   *     SymbolicProgramConfiguration} that represents the best merge of the 2 given ones.
+   *     SymbolicProgramConfiguration} that represents the best merge of the 2 given ones with the
+   *     merge status.
    */
-  public Optional<SymbolicProgramConfiguration> merge(
+  public Optional<MergedSPCAndMergeStatus> merge(
       SymbolicProgramConfiguration pOther, MachineModel pMachineModel) throws SMGException {
 
     Set<SMGObject> newReadBlackList =
@@ -243,24 +244,29 @@ public class SymbolicProgramConfiguration {
     if (maybeMergedSMGs.isEmpty()) {
       return Optional.empty();
     }
+    if (maybeMergedSMGs.orElseThrow().getMergeStatus() == SMGMergeStatus.EQUAL) {
+      return Optional.empty();
+    }
     SymbolicProgramConfiguration mergedSMGWithMergedStackAndValues =
         maybeMergedSMGs.orElseThrow().getMergedSPC();
     // TODO: what to do with the merge status?! Its used in the cost calculation, but we don't do
     //  that for merge.
     return Optional.of(
-        new SymbolicProgramConfiguration(
-            mergedSMGWithMergedStackAndValues.smg,
-            mergedSMGWithMergedStackAndValues.globalVariableMapping,
-            mergedSMGWithMergedStackAndValues.atExitStack,
-            mergedSMGWithMergedStackAndValues.stackVariableMapping,
-            mergedSMGWithMergedStackAndValues.heapObjects,
-            mergedSMGWithMergedStackAndValues.externalObjectAllocation,
-            mergedSMGWithMergedStackAndValues.valueMapping,
-            variableToTypeMap,
-            memoryAddressAssumptionsMap,
-            mallocZeroMemory,
-            newReadBlackList,
-            mergedSMGWithMergedStackAndValues.valueToTypeMap));
+        MergedSPCAndMergeStatus.of(
+            new SymbolicProgramConfiguration(
+                mergedSMGWithMergedStackAndValues.smg,
+                mergedSMGWithMergedStackAndValues.globalVariableMapping,
+                mergedSMGWithMergedStackAndValues.atExitStack,
+                mergedSMGWithMergedStackAndValues.stackVariableMapping,
+                mergedSMGWithMergedStackAndValues.heapObjects,
+                mergedSMGWithMergedStackAndValues.externalObjectAllocation,
+                mergedSMGWithMergedStackAndValues.valueMapping,
+                variableToTypeMap,
+                memoryAddressAssumptionsMap,
+                mallocZeroMemory,
+                newReadBlackList,
+                mergedSMGWithMergedStackAndValues.valueToTypeMap),
+            maybeMergedSMGs.orElseThrow().getMergeStatus()));
   }
 
   // We join the SPCs here, (Algorithm 10: joinSPCs)

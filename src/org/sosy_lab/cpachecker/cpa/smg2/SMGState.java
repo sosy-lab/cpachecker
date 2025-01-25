@@ -117,6 +117,8 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
+import org.sosy_lab.cpachecker.util.smg.util.MergedSMGStateAndMergeStatus;
+import org.sosy_lab.cpachecker.util.smg.util.MergedSPCAndMergeStatus;
 import org.sosy_lab.cpachecker.util.smg.util.SMGAndHasValueEdges;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
@@ -1229,7 +1231,7 @@ public class SMGState
    * are incomparable.
    *
    */
-  public Optional<SMGState> merge(SMGState pOther) throws CPAException {
+  public Optional<MergedSMGStateAndMergeStatus> merge(SMGState pOther) throws CPAException {
     if (getSize() != pOther.getSize()) {
       // If there is a non-equal number of (stack/global) variables, the merge fails anyway
       return Optional.empty();
@@ -1262,26 +1264,29 @@ public class SMGState
     thisSanitizedState = thisSanitizedState.removeUnusedValues();
 
     // The merge must happen on garbage free memory models
-    Optional<SymbolicProgramConfiguration> maybeNewSPC =
+    Optional<MergedSPCAndMergeStatus> maybeNewSPC =
         thisSanitizedState.memoryModel.merge(otherSanitizedState.memoryModel, machineModel);
 
     if (maybeNewSPC.isEmpty()) {
       return Optional.empty();
     }
 
-    assert maybeNewSPC.orElseThrow().checkSMGSanity();
+    SymbolicProgramConfiguration newSPC = maybeNewSPC.orElseThrow().getMergedSPC();
+    assert newSPC.checkSMGSanity();
     return Optional.of(
-        new SMGState(
-            machineModel,
-            maybeNewSPC.orElseThrow(),
-            logger,
-            options,
-            errorInfo,
-            materializer,
-            lastCheckedMemoryAccess,
-            thisSanitizedState.constraintsState,
-            evaluator,
-            statistics));
+        MergedSMGStateAndMergeStatus.of(
+            new SMGState(
+                machineModel,
+                newSPC,
+                logger,
+                options,
+                errorInfo,
+                materializer,
+                lastCheckedMemoryAccess,
+                thisSanitizedState.constraintsState,
+                evaluator,
+                statistics),
+            maybeNewSPC.orElseThrow().getMergeStatus()));
   }
 
   private boolean checkErrorEqualityForTwoStates(SMGState pOther) {
