@@ -124,17 +124,17 @@ public class SMGProveNequality {
   }
 
   /**
-   * Implementation of Appendix E Algorithm 12. Traverse all 0+DLLs and collect all visited
-   * SMGObjects as well as the final reached value.
+   * Implementation of Appendix E Algorithm 12. Traverse only 0+DLLs and collect all visited
+   * SMGObjects as well as the final reached initialPointerValue.
    *
-   * @param value - the first address value representation.
-   * @return the finally reached value and the set of all visited objects.
+   * @param initialPointerValue - the first address initialPointerValue representation.
+   * @return the finally reached initialPointerValue and the set of all visited objects.
    */
-  public ValueAndObjectSet lookThrough(SMGValue value) {
+  public ValueAndObjectSet lookThrough(SMGValue initialPointerValue) {
     SMG smg = state.getMemoryModel().getSmg();
     Set<SMGObject> reachedSet = new HashSet<>();
-    SMGValue retValue = value;
-    Optional<SMGPointsToEdge> ptoOptional = smg.getPTEdge(value);
+    SMGValue retValue = initialPointerValue;
+    Optional<SMGPointsToEdge> ptoOptional = smg.getPTEdge(initialPointerValue);
     while (ptoOptional.isPresent() && !ptoOptional.orElseThrow().pointsTo().isZero()) {
       SMGPointsToEdge pointerEdge = ptoOptional.orElseThrow();
       SMGObject nextObject = pointerEdge.pointsTo();
