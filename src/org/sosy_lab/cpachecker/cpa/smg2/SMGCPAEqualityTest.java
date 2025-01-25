@@ -321,7 +321,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isFalse();
     assertThat(
             currentState.checkEqualValuesForTwoStatesWithExemptions(
@@ -330,7 +331,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isFalse();
 
     // If the nfo is restricted, they are equal
@@ -345,7 +347,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                     ImmutableList.of(nfo)),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isTrue();
     assertThat(
             currentState.checkEqualValuesForTwoStatesWithExemptions(
@@ -358,7 +361,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                     ImmutableList.of(nfo)),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isTrue();
 
     SMGObject concreteObjEnd =
@@ -374,7 +378,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isTrue();
     assertThat(
             currentState.checkEqualValuesForTwoStatesWithExemptions(
@@ -383,7 +388,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isTrue();
   }
 
@@ -430,7 +436,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                     ImmutableList.of(nfo)),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isFalse();
 
     assertThat(
@@ -444,7 +451,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                     ImmutableList.of(nfo)),
                 currentState,
                 currentState,
-                EqualityCache.of()))
+                EqualityCache.of(),
+                true))
         .isFalse();
   }
 
@@ -571,7 +579,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableMap.of(),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isFalse();
 
           assertThat(
@@ -581,7 +590,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableMap.of(),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isFalse();
 
           assertThat(
@@ -592,7 +602,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                           obj1, ImmutableList.of(changingNfo), obj2, ImmutableList.of(changingNfo)),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isTrue();
 
           assertThat(
@@ -603,7 +614,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                           obj1, ImmutableList.of(changingNfo), obj2, ImmutableList.of(changingNfo)),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isTrue();
         }
       }
@@ -750,7 +762,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableMap.of(),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isFalse();
 
           assertThat(
@@ -760,7 +773,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableMap.of(),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isFalse();
 
           assertThat(
@@ -771,7 +785,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                           obj1, ImmutableList.of(changingNfo), obj2, ImmutableList.of(changingNfo)),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isFalse();
 
           assertThat(
@@ -782,7 +797,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                           obj1, ImmutableList.of(changingNfo), obj2, ImmutableList.of(changingNfo)),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isFalse();
 
           assertThat(
@@ -796,7 +812,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                           ImmutableList.of(changingNfo, changingPfo)),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isTrue();
 
           assertThat(
@@ -810,7 +827,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                           ImmutableList.of(changingNfo, changingPfo)),
                       currentState,
                       currentState,
-                      EqualityCache.<Value>of()))
+                      EqualityCache.<Value>of(),
+                      true))
               .isTrue();
         }
       }
@@ -882,7 +900,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.<Value>of()))
+                EqualityCache.<Value>of(),
+                true))
         .isTrue();
 
     assertThat(
@@ -892,7 +911,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.<Value>of()))
+                EqualityCache.<Value>of(),
+                true))
         .isTrue();
 
     // Comparing the abstracted objects returns TRUE as they both have the same sublists/values
@@ -903,7 +923,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.<Value>of()))
+                EqualityCache.<Value>of(),
+                true))
         .isTrue();
 
     assertThat(
@@ -913,7 +934,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 ImmutableMap.of(),
                 currentState,
                 currentState,
-                EqualityCache.<Value>of()))
+                EqualityCache.<Value>of(),
+                true))
         .isTrue();
 
     // Compare the length of the top lists by comparing the shape
@@ -925,7 +947,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 pointersAbstractedList[0],
                 EqualityCache.<Value>of(),
                 EqualityCache.of(),
-                false))
+                false,
+                true))
         .isFalse();
     assertThat(
             currentState.areValuesEqual(
@@ -935,7 +958,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                 pointersSmallerAbstractedList[0],
                 EqualityCache.<Value>of(),
                 EqualityCache.of(),
-                false))
+                false,
+                true))
         .isTrue();
   }
 
@@ -1073,7 +1097,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                   ImmutableMap.of(),
                   currentState,
                   currentState,
-                  EqualityCache.<Value>of()))
+                  EqualityCache.<Value>of(),
+                  true))
           .isFalse();
 
       assertThat(
@@ -1083,7 +1108,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                   ImmutableMap.of(),
                   currentState,
                   currentState,
-                  EqualityCache.<Value>of()))
+                  EqualityCache.<Value>of(),
+                  true))
           .isFalse();
     }
   }
@@ -1222,7 +1248,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableList.of(nfo)),
                   currentState,
                   currentState,
-                  EqualityCache.<Value>of()))
+                  EqualityCache.<Value>of(),
+                  true))
           .isFalse();
       assertThat(
               currentState.checkEqualValuesForTwoStatesWithExemptions(
@@ -1235,7 +1262,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableList.of(nfo)),
                   currentState,
                   currentState,
-                  EqualityCache.<Value>of()))
+                  EqualityCache.<Value>of(),
+                  true))
           .isFalse();
 
       assertThat(
@@ -1249,7 +1277,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableList.of(nfo)),
                   currentState,
                   currentState,
-                  EqualityCache.<Value>of()))
+                  EqualityCache.<Value>of(),
+                  true))
           .isFalse();
       assertThat(
               currentState.checkEqualValuesForTwoStatesWithExemptions(
@@ -1262,7 +1291,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                       ImmutableList.of(nfo)),
                   currentState,
                   currentState,
-                  EqualityCache.<Value>of()))
+                  EqualityCache.<Value>of(),
+                  true))
           .isFalse();
     }
   }

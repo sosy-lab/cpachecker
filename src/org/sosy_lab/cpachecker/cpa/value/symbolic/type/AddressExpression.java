@@ -142,7 +142,8 @@ public final class AddressExpression extends SymbolicExpression {
             (SMGState) getAbstractState(),
             addressValue,
             (SMGState) ((AddressExpression) o).getAbstractState(),
-            ((AddressExpression) o).addressValue);
+            ((AddressExpression) o).addressValue,
+            false);
       }
     }
     return super.equals(o);

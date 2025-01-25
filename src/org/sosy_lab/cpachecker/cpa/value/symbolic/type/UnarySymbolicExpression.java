@@ -87,7 +87,11 @@ public abstract sealed class UnarySymbolicExpression extends SymbolicExpression
       // SMG values do not really care about the type, as the SMG knows their types and checks
       // that as well
       return SMGState.areValuesEqual(
-          (SMGState) getAbstractState(), operand, (SMGState) that.getAbstractState(), that.operand);
+          (SMGState) getAbstractState(),
+          operand,
+          (SMGState) that.getAbstractState(),
+          that.operand,
+          true);
     }
 
     return super.equals(that) && operand.equals(that.operand) && type.equals(that.type);
