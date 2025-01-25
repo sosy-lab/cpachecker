@@ -425,20 +425,20 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("[cond]"),
             new InstrumentationOperation(
-                    "if (saved == 0 && !((pc_instr == pc)"
+                "if (saved == 0 && !((pc_instr == pc)"
                     + (!liveVariablesAndTypes.isEmpty() ? " && " : "")
                     + liveVariablesAndTypes.entrySet().stream()
-                    .map(
-                        (entry) ->
-                            "("
-                                + getDereferencesForPointer(entry.getValue())
-                                + entry.getKey()
-                                + " == "
-                                + getDereferencesForPointer(entry.getValue())
-                                + entry.getKey()
-                                + "_instr"
-                                + ")")
-                    .collect(Collectors.joining("&&"))
+                        .map(
+                            (entry) ->
+                                "("
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + " == "
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + "_instr"
+                                    + ")")
+                        .collect(Collectors.joining("&&"))
                     + ")){return=0;}"),
             InstrumentationOrder.BEFORE,
             q4);
