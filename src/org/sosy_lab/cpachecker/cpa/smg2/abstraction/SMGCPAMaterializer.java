@@ -129,6 +129,15 @@ public class SMGCPAMaterializer {
     BigInteger pfo = null;
     if (pListSeg instanceof SMGDoublyLinkedListSegment dll) {
       pfo = dll.getPrevOffset();
+    } else {
+      Preconditions.checkState(
+          currentState
+              .getMemoryModel()
+              .getSmg()
+              .getPTEdge(pointerValueTowardsThisSegment)
+              .orElseThrow()
+              .targetSpecifier()
+              .equals(SMGTargetSpecifier.IS_FIRST_POINTER));
     }
     BigInteger pointerSize = currentState.getMemoryModel().getSizeOfPointer();
 
@@ -136,10 +145,8 @@ public class SMGCPAMaterializer {
     currentState = nextPointerAndState.getSMGState();
     SMGValue nextPointerValue = nextPointerAndState.getSMGValue();
 
-    SMGValue prevPointerValue;
-    if (pListSeg.isSLL()) {
-      prevPointerValue = getSLLPrevObjPointer(currentState, pListSeg, nfo, pointerSize);
-    } else {
+    SMGValue prevPointerValue = null;
+    if (pListSeg instanceof SMGDoublyLinkedListSegment) {
       SMGValueAndSMGState prevPointerAndState =
           currentState.readSMGValue(pListSeg, pfo, pointerSize);
       currentState = prevPointerAndState.getSMGState();
@@ -159,58 +166,58 @@ public class SMGCPAMaterializer {
                     ImmutableSet.of(
                         SMGTargetSpecifier.IS_FIRST_POINTER, SMGTargetSpecifier.IS_ALL_POINTER)));
 
-    // Last ptr to the current
-    // Important: last pointer specifier need to be region for the non-extended case if it points
-    // towards a region, else last
-    assert !(currentState
-                .getMemoryModel()
-                .getSmg()
-                .getPTEdge(prevPointerValue)
-                .orElseThrow()
-                .pointsTo()
-            instanceof SMGSinglyLinkedListSegment)
-        || currentState
-            .getMemoryModel()
-            .getSmg()
-            .getPTEdge(prevPointerValue)
-            .orElseThrow()
-            .targetSpecifier()
-            .equals(SMGTargetSpecifier.IS_LAST_POINTER);
+    // Check that our prev pointer is correct
+    if (pListSeg instanceof SMGDoublyLinkedListSegment) {
+      assert !(currentState
+                  .getMemoryModel()
+                  .getSmg()
+                  .getPTEdge(prevPointerValue)
+                  .orElseThrow()
+                  .pointsTo()
+              instanceof SMGSinglyLinkedListSegment)
+          || currentState
+              .getMemoryModel()
+              .getSmg()
+              .getPTEdge(prevPointerValue)
+              .orElseThrow()
+              .targetSpecifier()
+              .equals(SMGTargetSpecifier.IS_LAST_POINTER);
 
-    assert currentState
-                .getMemoryModel()
-                .getSmg()
-                .getPTEdge(prevPointerValue)
-                .orElseThrow()
-                .pointsTo()
-            instanceof SMGSinglyLinkedListSegment
-        || currentState
-            .getMemoryModel()
-            .getSmg()
-            .getPTEdge(prevPointerValue)
-            .orElseThrow()
-            .targetSpecifier()
-            .equals(SMGTargetSpecifier.IS_REGION);
+      assert currentState
+                  .getMemoryModel()
+                  .getSmg()
+                  .getPTEdge(prevPointerValue)
+                  .orElseThrow()
+                  .pointsTo()
+              instanceof SMGSinglyLinkedListSegment
+          || currentState
+              .getMemoryModel()
+              .getSmg()
+              .getPTEdge(prevPointerValue)
+              .orElseThrow()
+              .targetSpecifier()
+              .equals(SMGTargetSpecifier.IS_REGION);
 
-    assert currentState
-            .getMemoryModel()
-            .getSmg()
-            .getObjectsPointingToZeroPlusAbstraction(pListSeg)
-            .isEmpty()
-        || currentState.getMemoryModel().getSmg().getPTEdgeMapping().values().stream()
-            .anyMatch(
-                pte ->
-                    pte.pointsTo().equals(pListSeg)
-                        && !pte.targetSpecifier().equals(SMGTargetSpecifier.IS_ALL_POINTER));
+      assert currentState
+              .getMemoryModel()
+              .getSmg()
+              .getObjectsPointingToZeroPlusAbstraction(pListSeg)
+              .isEmpty()
+          || currentState.getMemoryModel().getSmg().getPTEdgeMapping().values().stream()
+              .anyMatch(
+                  pte ->
+                      pte.pointsTo().equals(pListSeg)
+                          && !pte.targetSpecifier().equals(SMGTargetSpecifier.IS_ALL_POINTER));
 
-    currentState =
-        currentState.copyAndReplaceMemoryModel(
-            currentState
-                .getMemoryModel()
-                .replacePointerValuesWithExistingOrNew(
-                    pListSeg,
-                    prevPointerValue,
-                    ImmutableSet.of(SMGTargetSpecifier.IS_LAST_POINTER)));
+      currentState =
+          currentState.copyAndReplaceMemoryModel(
+              currentState
+                  .getMemoryModel()
+                  .replacePointerValuesWithExistingOrNew(
+                      pListSeg,
+                      prevPointerValue,
+                      ImmutableSet.of(SMGTargetSpecifier.IS_LAST_POINTER)));
+    }
 
     assert currentState.getMemoryModel().getSmg().getPointerValuesForTarget(pListSeg).isEmpty();
 
