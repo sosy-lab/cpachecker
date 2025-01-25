@@ -207,7 +207,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
           if (!parentLocks.equals(childLocks)) {
             // we later need the edge for the location and function
             CFAEdge edge = argParent.getEdgeToChild(pSuccessor);
-            Verify.verify(edge != null, "no edge found connecting parent and child");
+            assert edge != null : "no edge found connecting parent and child";
             FileLocation location = edge.getFileLocation();
             ARGStatePair pair = new ARGStatePair(argParent, pSuccessor);
             int parentLocksNum = parentLocks.size();

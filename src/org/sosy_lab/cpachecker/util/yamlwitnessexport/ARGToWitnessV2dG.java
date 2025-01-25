@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -24,9 +23,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -130,13 +127,11 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     checkNotNull(pStatesCollector);
     ImmutableList.Builder<GhostUpdateRecord> ghostUpdates = ImmutableList.builder();
     // handle ghost updates through locks
-    for (var entry : pStatesCollector.lockUpdates.entrySet()) {
-      ARGStatePair pair = entry.getValue();
+    for (ARGStatePair pair : pStatesCollector.lockUpdates.values()) {
       ghostUpdates.add(createGhostUpdate(pair.parent(), pair.child(), 1));
     }
     // handle ghost updates through unlocks
-    for (var entry : pStatesCollector.unlockUpdates.entrySet()) {
-      ARGStatePair pair = entry.getValue();
+    for (ARGStatePair pair : pStatesCollector.unlockUpdates.values()) {
       ghostUpdates.add(createGhostUpdate(pair.parent(), pair.child(), 0));
     }
     return FluentIterable.from(ghostUpdates.build()).toSortedList(ghostUpdateComparator);
