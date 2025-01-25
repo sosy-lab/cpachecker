@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
-import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -107,6 +106,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.java_smt.api.FloatingPointNumber;
 
 /**
@@ -1383,26 +1383,87 @@ public class AssumptionToEdgeAllocator {
       return valueLiterals;
     }
 
-    protected ValueLiteral getValueLiteral(CSimpleType pSimpleType, Object pValue) {
-      CSimpleType simpleType = pSimpleType.getCanonicalType();
-      CBasicType basicType = simpleType.getType();
+    /**
+     * Recast a floating point calue as an integer
+     *
+     * <p>Takes the bits of a floating point value and reinterprets them as an integer.
+     */
+    private Number recastToInteger(Number pNumber) {
+      NumericValue numeric = new NumericValue(pNumber);
+      FloatValue floatingPointValue = numeric.getFloatValue();
+      FloatValue.Format precision = floatingPointValue.getFormat();
 
-      switch (basicType) {
-        case BOOL:
-        case CHAR:
-        case INT:
-          return handleIntegerNumbers(pValue, simpleType);
-        case FLOAT:
-        case DOUBLE:
-          if (assumeLinearArithmetics) {
-            break;
-          }
-          return handleFloatingPointNumbers(pValue, simpleType);
-        default:
-          break;
+      if (precision.equals(FloatValue.Format.Float32)) {
+        return Float.floatToRawIntBits(floatingPointValue.floatValue());
+      } else if (precision.equals(FloatValue.Format.Float64)) {
+        return Double.doubleToRawLongBits(floatingPointValue.doubleValue());
+      } else {
+        throw new IllegalArgumentException();
       }
+    }
 
-      return UnknownValueLiteral.getInstance();
+    /**
+     * Recast an integer as a floating point value
+     *
+     * <p>Takes the bits of an integer and reinterprets them as a floating point value.
+     */
+    private Number recastToFloat(Number pNumber) {
+      if (pNumber instanceof Integer intValue) {
+        return Float.intBitsToFloat(intValue);
+      } else if (pNumber instanceof Long longValue) {
+        return Double.longBitsToDouble(longValue);
+      } else if (pNumber instanceof BigInteger integerValue) {
+        // FIXME How to determine the needed precision?
+        return FloatValue.fromInteger(Format.Float64, integerValue);
+      } else {
+        throw new IllegalArgumentException();
+      }
+    }
+
+    protected ValueLiteral getValueLiteral(CSimpleType pSimpleType, Object pValue) {
+      CBasicType basicType = pSimpleType.getCanonicalType().getType();
+      if (pValue instanceof FloatingPointNumber pFloatingPointNumber) {
+        // Unlike other floating point values, FloatingPointNumbers do not implement the Number
+        // interface and need to be converted first
+        pValue = FloatValue.fromFloatingPointNumber(pFloatingPointNumber);
+      }
+      if (pValue instanceof Number pNumber) {
+        NumericValue numericValue = new NumericValue(pNumber);
+        switch (basicType) {
+          case BOOL:
+          case CHAR:
+          case INT:
+          case INT128:
+            Object integerValue;
+            if (numericValue.hasFloatType()) {
+              // Recast if we were given a float, but the target type is integer
+              integerValue = recastToInteger(pNumber);
+            } else if (numericValue.hasIntegerType()) {
+              integerValue = pNumber;
+            } else {
+              throw new IllegalArgumentException();
+            }
+            return handleIntegerNumbers(integerValue, pSimpleType);
+
+          case FLOAT:
+          case DOUBLE:
+          case FLOAT128:
+            Object floatValue;
+            if (numericValue.hasIntegerType()) {
+              // Recast if we were given an integer, but the target type is float
+              floatValue = recastToFloat(pNumber);
+            } else if (numericValue.hasFloatType()) {
+              floatValue = pNumber;
+            } else {
+              throw new IllegalArgumentException();
+            }
+            return handleFloatingPointNumbers(floatValue, pSimpleType);
+
+          default:
+            throw new UnsupportedOperationException();
+        }
+      }
+      throw new IllegalArgumentException();
     }
 
     private ValueLiterals createUnknownValueLiterals() {
@@ -1441,27 +1502,11 @@ public class AssumptionToEdgeAllocator {
     }
 
     private ValueLiteral handleIntegerNumbers(Object pValue, CSimpleType pType) {
-
-      String valueStr = pValue.toString();
-
-      if (valueStr.matches("((-)?)\\d*")) {
-        BigInteger integerValue = new BigInteger(valueStr);
-
-        return handlePotentialIntegerOverflow(integerValue, pType);
-      } else {
-        List<String> numberParts = Splitter.on('.').splitToList(valueStr);
-
-        if (numberParts.size() == 2
-            && numberParts.get(1).matches("0*")
-            && numberParts.get(0).matches("((-)?)\\d*")) {
-
-          BigInteger integerValue = new BigInteger(numberParts.get(0));
-          return handlePotentialIntegerOverflow(integerValue, pType);
-        }
+      if (pValue instanceof Number pNumber) {
+        BigInteger beforeCast = new NumericValue(pNumber).getIntegerValue();
+        return handlePotentialIntegerOverflow(beforeCast, pType);
       }
-
-      ValueLiteral valueLiteral = handleFloatingPointNumbers(pValue, pType);
-      return valueLiteral.isUnknown() ? valueLiteral : valueLiteral.addCast(pType);
+      throw new UnsupportedOperationException();
     }
 
     /**
