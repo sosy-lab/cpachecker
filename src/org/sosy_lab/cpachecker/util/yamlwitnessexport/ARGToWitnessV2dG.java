@@ -214,28 +214,6 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
         rEntries.put(argParent, argChild);
       } else {
         visitedEdges.get(edge).put(argParent, argChild);
-        // TODO doesn't hold when interleaving multiple locks (pthread-atomic/time_var_mutex)
-        // edge is visited -> ensure that global locks are equal for parent / child pairs
-        for (var entryA : visitedEdges.get(edge).entries()) {
-          for (var entryB : visitedEdges.get(edge).entries()) {
-            if (!entryA.equals(entryB)) {
-              ThreadingState parentA =
-                  ARGUtils.tryExtractThreadingState(entryA.getKey()).orElseThrow();
-              ThreadingState parentB =
-                  ARGUtils.tryExtractThreadingState(entryB.getKey()).orElseThrow();
-              Verify.verify(
-                  parentA.getGlobalLockIds().equals(parentB.getGlobalLockIds()),
-                  "global locks must be equal for parent states connected through the same edge");
-              ThreadingState childA =
-                  ARGUtils.tryExtractThreadingState(entryA.getValue()).orElseThrow();
-              ThreadingState childB =
-                  ARGUtils.tryExtractThreadingState(entryB.getValue()).orElseThrow();
-              Verify.verify(
-                  childA.getGlobalLockIds().equals(childB.getGlobalLockIds()),
-                  "global locks must be equal for child states connected through the same edge");
-            }
-          }
-        }
       }
     }
     return rEntries;
