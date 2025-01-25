@@ -1451,7 +1451,8 @@ public class SMGState
         if (!otherAllAbstr.isEmpty()
             && thisAllAbstr.stream().anyMatch(o -> o.getMinLength() == 0)) {
           // Investigate if merge makes it possible to subsume these
-          throw new SMGException("Error in lessOrEqual. Quickcheck failed to subsume 0+ list.");
+          // throw new SMGException("Error in lessOrEqual. Quickcheck failed to subsume 0+ list.");
+          return false;
         }
         return false;
       }
