@@ -354,7 +354,8 @@ public class InstrumentationAutomaton {
   private void constructTerminationWithCountersAutomaton(int pIndex) {
     InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.INIT, this);
     InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
-    InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
+    InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.LOOPHEAD, this);
+    InstrumentationState q4 = new InstrumentationState("q4", StateAnnotation.FALSE, this);
     this.initialState = q1;
 
     InstrumentationTransition t1 =
@@ -421,12 +422,34 @@ public class InstrumentationAutomaton {
             q3);
     InstrumentationTransition t3 =
         new InstrumentationTransition(
-            q3,
+            q2,
+            new InstrumentationPattern("[cond]"),
+            new InstrumentationOperation(
+                    "if (!((pc_instr == pc)"
+                    + (!liveVariablesAndTypes.isEmpty() ? " && " : "")
+                    + liveVariablesAndTypes.entrySet().stream()
+                    .map(
+                        (entry) ->
+                            "("
+                                + getDereferencesForPointer(entry.getValue())
+                                + entry.getKey()
+                                + " == "
+                                + getDereferencesForPointer(entry.getValue())
+                                + entry.getKey()
+                                + "_instr"
+                                + ")")
+                    .collect(Collectors.joining("&&"))
+                    + ")){return=0;}"),
+            InstrumentationOrder.BEFORE,
+            q4);
+    InstrumentationTransition t4 =
+        new InstrumentationTransition(
+            q4,
             new InstrumentationPattern("true"),
             new InstrumentationOperation(""),
             InstrumentationOrder.AFTER,
-            q3);
-    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
+            q4);
+    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3, t4);
   }
 
   private void constructOneStepReachabilityAutomaton(int pIndex) {
