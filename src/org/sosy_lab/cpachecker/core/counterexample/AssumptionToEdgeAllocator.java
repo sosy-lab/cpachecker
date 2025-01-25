@@ -1428,7 +1428,7 @@ public class AssumptionToEdgeAllocator {
       }
       throw new UnsupportedOperationException(
           String.format(
-              "Tried handle the value `%s` of type `%s` as a floating point number.",
+              "Can't handle the value `%s` of type `%s` as a floating point number.",
               pValue, pValue.getClass().getSimpleName()));
     }
 
