@@ -22,22 +22,29 @@ import com.google.common.collect.Sets.SetView;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostInstrumentationContentRecord;
@@ -61,6 +68,77 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     super(pConfig, pCfa, pSpecification, pLogger);
   }
 
+  WitnessExportResult exportWitness(ARGState pRootState, Path pPath)
+      throws IOException, ReportingMethodNotImplementedException, InterruptedException {
+    // collect the information about the states relevant for ghost variables
+    CollectedARGStates statesCollector = getRelevantStates(pRootState);
+
+    // first create ghost variables and their respective ghost updates
+    ImmutableList<GhostUpdateRecord> ghostUpdates =
+        getGhostUpdatesFromStateCollector(statesCollector);
+    GhostInstrumentationContentRecord record =
+        new GhostInstrumentationContentRecord(
+            getGhostVariablesFromGhostUpdates(ghostUpdates), ghostUpdates);
+
+    // second use collected states to generate invariants
+    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
+    Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
+
+    // TODO: also include ghost variables in the invariants
+    ImmutableList.Builder<AbstractInvariantEntry> invariantEntries = new ImmutableList.Builder<>();
+    boolean translationAlwaysSuccessful = true;
+
+    // handle the loop invariants
+    for (CFANode node : loopInvariants.keySet()) {
+      Collection<ARGState> argStates = loopInvariants.get(node);
+      InvariantCreationResult loopInvariant =
+          createInvariant(argStates, node, InvariantRecordType.LOOP_INVARIANT.getKeyword());
+      if (loopInvariant != null) {
+        invariantEntries.add(loopInvariant.invariantEntry());
+        translationAlwaysSuccessful &= loopInvariant.translationSuccessful();
+      }
+    }
+
+    // handle the location invariants
+    for (CFANode node : functionCallInvariants.keySet()) {
+      Collection<ARGState> argStates = functionCallInvariants.get(node);
+      InvariantCreationResult locationInvariant =
+          createInvariant(argStates, node, InvariantRecordType.LOCATION_INVARIANT.getKeyword());
+      if (locationInvariant != null) {
+        invariantEntries.add(locationInvariant.invariantEntry());
+        translationAlwaysSuccessful &= locationInvariant.translationSuccessful();
+      }
+    }
+
+    exportEntries(
+        ImmutableList.of(
+            new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2), invariantEntries.build()),
+            new GhostInstrumentationEntry(getMetadata(YAMLWitnessVersion.V2dG), record)),
+        pPath);
+
+    return new WitnessExportResult(translationAlwaysSuccessful);
+  }
+
+  /**
+   * Creates {@link GhostUpdateRecord}s from the collected {@link ARGState} and sorts them by line
+   * then column.
+   */
+  private ImmutableList<GhostUpdateRecord> getGhostUpdatesFromStateCollector(
+      @NonNull CollectedARGStates pStatesCollector) {
+
+    checkNotNull(pStatesCollector);
+    ImmutableList.Builder<GhostUpdateRecord> ghostUpdates = ImmutableList.builder();
+    // handle ghost updates through locks
+    for (var entry : getUniqueEdgeEntries(pStatesCollector.lockUpdates).entries()) {
+      ghostUpdates.add(createGhostUpdate(entry.getKey(), entry.getValue(), 1));
+    }
+    // handle ghost updates through unlocks
+    for (var entry : getUniqueEdgeEntries(pStatesCollector.unlockUpdates).entries()) {
+      ghostUpdates.add(createGhostUpdate(entry.getKey(), entry.getValue(), 0));
+    }
+    return FluentIterable.from(ghostUpdates.build()).toSortedList(ghostUpdateComparator);
+  }
+
   /** Create a {@link GhostUpdateRecord} for a lock/unlock operation between pParent and pChild. */
   private GhostUpdateRecord createGhostUpdate(
       @NonNull ARGState pParent, @NonNull ARGState pChild, int pValue) {
@@ -81,46 +159,10 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     return new GhostUpdateRecord(locationRecord, ImmutableList.of(updateRecord));
   }
 
-  WitnessExportResult exportWitness(ARGState pRootState, Path pPath) throws IOException {
-    // Collect the information about the states relevant for ghost variables
-    CollectedARGStates statesCollector = getRelevantStates(pRootState);
-    ImmutableList<GhostUpdateRecord> ghostUpdates =
-        getGhostUpdatesFromStateCollector(statesCollector);
-    GhostInstrumentationContentRecord record =
-        new GhostInstrumentationContentRecord(
-            getGhostVariablesFromGhostUpdates(ghostUpdates), ghostUpdates);
-
-    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
-    Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
-
-    // TODO: use the collected states and ghost variables to generate invariants
-    ImmutableList.Builder<AbstractInvariantEntry> invariantEntries = new ImmutableList.Builder<>();
-
-    exportEntries(
-        ImmutableList.of(
-            new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2), invariantEntries.build()),
-            new GhostInstrumentationEntry(getMetadata(YAMLWitnessVersion.V2dG), record)),
-        pPath);
-
-    return new WitnessExportResult(true);
-  }
-
-  private ImmutableList<GhostUpdateRecord> getGhostUpdatesFromStateCollector(
-      @NonNull CollectedARGStates pStatesCollector) {
-
-    checkNotNull(pStatesCollector);
-    ImmutableList.Builder<GhostUpdateRecord> ghostUpdates = ImmutableList.builder();
-    // handle ghost updates through locks
-    for (var entry : getUniqueEdgeEntries(pStatesCollector.lockUpdates).entries()) {
-      ghostUpdates.add(createGhostUpdate(entry.getKey(), entry.getValue(), 1));
-    }
-    // handle ghost updates through unlocks
-    for (var entry : getUniqueEdgeEntries(pStatesCollector.unlockUpdates).entries()) {
-      ghostUpdates.add(createGhostUpdate(entry.getKey(), entry.getValue(), 0));
-    }
-    return FluentIterable.from(ghostUpdates.build()).toSortedList(ghostUpdateComparator);
-  }
-
+  /**
+   * Extracts the ghost variables from pGhostUpdates. Every variable is present once even with
+   * multiple {@link GhostUpdateRecord}s to it.
+   */
   private ImmutableList<GhostVariableRecord> getGhostVariablesFromGhostUpdates(
       @NonNull ImmutableList<GhostUpdateRecord> pGhostUpdates) {
 
@@ -131,16 +173,17 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
             .transformAndConcat(GhostUpdateRecord::updates)
             .transform(UpdateRecord::variable)
             .toSet();
-    ImmutableList.Builder<GhostVariableRecord> rGhostVariables = ImmutableList.builder();
-    for (String varName : ghostVarNames) {
-      // TODO initial value always 0? (yes for locks)
-      // the format of an initial is currently always c_expression
-      InitialRecord initial = new InitialRecord(0, YAMLWitnessExpressionType.C);
-      // the scope of a ghost variable is always global
-      rGhostVariables.add(
-          new GhostVariableRecord(varName, CBasicType.INT.toASTString(), "global", initial));
-    }
-    return rGhostVariables.build();
+    return FluentIterable.from(ghostVarNames)
+        .transform(
+            varName -> {
+              // TODO initial value always 0? (yes for locks)
+              // the format of an initial is currently always c_expression
+              InitialRecord initial = new InitialRecord(0, YAMLWitnessExpressionType.C);
+              // the scope of a ghost variable is always global
+              return new GhostVariableRecord(
+                  varName, CBasicType.INT.toASTString(), "global", initial);
+            })
+        .toList();
   }
 
   /**
@@ -171,6 +214,7 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
         rEntries.put(argParent, argChild);
       } else {
         visitedEdges.get(edge).put(argParent, argChild);
+        // TODO doesn't hold when interleaving multiple locks (pthread-atomic/time_var_mutex)
         // edge is visited -> ensure that global locks are equal for parent / child pairs
         for (var entryA : visitedEdges.get(edge).entries()) {
           for (var entryB : visitedEdges.get(edge).entries()) {
@@ -214,5 +258,48 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     String rLockId = symmetricDifference.iterator().next();
     Verify.verify(rLockId != null, "the updated lock cannot be null");
     return rLockId;
+  }
+
+  // TODO this function is imported as is from ARGToWitnessV2
+  /**
+   * Create an invariant in the format for witnesses version 2.0 for the abstractions encoded by the
+   * arg states
+   *
+   * @param argStates the arg states encoding abstractions of the state
+   * @param node the node at whose location the state should be over approximated
+   * @param type the type of the invariant. Currently only `loop_invariant` and `location_invariant`
+   *     are supported
+   * @return an invariant over approximating the abstraction at the state
+   * @throws InterruptedException if the execution is interrupted
+   */
+  private InvariantCreationResult createInvariant(
+      Collection<ARGState> argStates, CFANode node, String type)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+
+    // We now conjunct all the overapproximations of the states and export them as loop invariants
+    Optional<IterationElement> iterationStructure =
+        getASTStructure().getTightestIterationStructureForNode(node);
+    if (iterationStructure.isEmpty()) {
+      return null;
+    }
+
+    FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
+    ExpressionTreeResult invariantResult =
+        getOverapproximationOfStatesIgnoringReturnVariables(
+            argStates, node, /* useOldKeywordForVariables= */ false);
+    LocationRecord locationRecord =
+        LocationRecord.createLocationRecordAtStart(
+            fileLocation,
+            node.getFunction().getFileLocation().getFileName().toString(),
+            node.getFunctionName());
+
+    InvariantEntry invariantEntry =
+        new InvariantEntry(
+            invariantResult.expressionTree().toString(),
+            type,
+            YAMLWitnessExpressionType.C,
+            locationRecord);
+
+    return new InvariantCreationResult(invariantEntry, invariantResult.backTranslationSuccessful());
   }
 }
