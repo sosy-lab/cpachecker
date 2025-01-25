@@ -26,7 +26,7 @@ public class ProceedBlockStateOperator implements ProceedOperator {
 
   @Override
   public DssMessageProcessing processForward(AbstractState pState) {
-    if (Objects.equals(AbstractStates.extractLocation(pState), block.getFirst())) {
+    if (Objects.equals(AbstractStates.extractLocation(pState), block.getInitialLocation())) {
       return DssMessageProcessing.proceed();
     } else {
       return DssMessageProcessing.stop();
@@ -36,8 +36,8 @@ public class ProceedBlockStateOperator implements ProceedOperator {
   @Override
   public DssMessageProcessing processBackward(AbstractState pState) {
     CFANode node = Objects.requireNonNull(AbstractStates.extractLocation(pState));
-    if (!(node.equals(block.getLast())
-        || (!node.equals(block.getFirst()) && block.getNodes().contains(node)))) {
+    if (!(node.equals(block.getFinalLocation())
+        || (!node.equals(block.getInitialLocation()) && block.getNodes().contains(node)))) {
       return DssMessageProcessing.stop();
     }
     return DssMessageProcessing.proceed();

@@ -91,7 +91,7 @@ public class BlockState
     return isTarget()
         ? ImmutableSet.of(
             new BlockTargetInformation(
-                blockNode.getAbstractionLocation(), type == BlockStateType.ABSTRACTION))
+                blockNode.getViolationConditionLocation(), type == BlockStateType.ABSTRACTION))
         : ImmutableSet.of();
   }
 
@@ -130,6 +130,6 @@ public class BlockState
 
   @Override
   public boolean isTarget() {
-    return errorCondition.isPresent() && node.equals(blockNode.getAbstractionLocation());
+    return errorCondition.isPresent() && node.equals(blockNode.getViolationConditionLocation());
   }
 }

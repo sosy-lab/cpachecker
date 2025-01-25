@@ -88,13 +88,15 @@ public class DssBlockAnalyses {
         }
         ARGState argState = (ARGState) abstractState;
         if (argState.isTarget()) {
+          // if we find a target state, it is either a real violation
+          // or the ghost edge was reached (violation condition cannot be refuted)
           violationsBuilder.add(argState);
-        } else if (pBlockNode.getLast().equals(AbstractStates.extractLocation(argState))) {
+        } else if (pBlockNode.getFinalLocation().equals(AbstractStates.extractLocation(argState))) {
           summariesBuilder.add(argState);
         }
       }
-      summaries = summariesBuilder.build();
       violations = violationsBuilder.build();
+      summaries = summariesBuilder.build();
     }
 
     public AlgorithmStatus getStatus() {

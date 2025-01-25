@@ -42,7 +42,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
     previousState =
         (PredicateAbstractState)
             predicateCPA.getInitialState(
-                pBlockNode.getFirst(), StateSpacePartition.getDefaultPartition());
+                pBlockNode.getInitialLocation(), StateSpacePartition.getDefaultPartition());
     cfa = pCFA;
   }
 

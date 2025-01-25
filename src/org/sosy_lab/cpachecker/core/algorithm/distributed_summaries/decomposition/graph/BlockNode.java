@@ -16,7 +16,7 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
   private final ImmutableSet<String> predecessorIds;
   private final ImmutableSet<String> loopPredecessorIds;
   private final ImmutableSet<String> successorIds;
-  private final CFANode abstractionLocation;
+  private final CFANode violationConditionLocation;
 
   BlockNode(
       String pId,
@@ -48,21 +48,21 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
       ImmutableSet<String> pPredecessorIds,
       ImmutableSet<String> pLoopPredecessorIds,
       ImmutableSet<String> pSuccessorIds,
-      CFANode pAbstractionLocation) {
+      CFANode pViolationConditionLocation) {
     super(pId, pFirst, pLast, pNodes, pEdges);
     predecessorIds = pPredecessorIds;
     loopPredecessorIds = pLoopPredecessorIds;
     successorIds = pSuccessorIds;
-    abstractionLocation = pAbstractionLocation;
+    violationConditionLocation = pViolationConditionLocation;
   }
 
   public boolean isAbstractionPossible() {
-    return !getLast().equals(getAbstractionLocation());
+    return !getFinalLocation().equals(getViolationConditionLocation());
   }
 
   @Override
-  public CFANode getAbstractionLocation() {
-    return abstractionLocation;
+  public CFANode getViolationConditionLocation() {
+    return violationConditionLocation;
   }
 
   @Override
@@ -85,9 +85,9 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
         + "id="
         + getId()
         + ", first="
-        + getFirst()
+        + getInitialLocation()
         + ", last="
-        + getLast()
+        + getFinalLocation()
         + ", pred="
         + predecessorIds
         + ", succ="

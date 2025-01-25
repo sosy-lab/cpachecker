@@ -131,10 +131,8 @@ public class BlockOperator {
 
   @Option(
       secure = true,
-      description =
-          "abstraction always at nodes with outgoing ghost edges. This configuration is specific to"
-              + " distributed summary synthesis.")
-  private boolean alwaysAtDssBlockEnds = false;
+      description = "Abstract at predefined locations given as a list of CFANode ids.")
+  private ImmutableSet<Integer> alwaysAtGivenNodes = ImmutableSet.of();
 
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
   private ImmutableSet<CFANode> loopHeads = null;
@@ -173,10 +171,7 @@ public class BlockOperator {
       return true;
     }
 
-    if (alwaysAtDssBlockEnds
-        && !CFAUtils.allLeavingEdges(loc)
-            .filter(e -> e.getDescription().equals("<<ghost-edge>>"))
-            .isEmpty()) {
+    if (alwaysAtGivenNodes.contains(loc.getNodeNumber())) {
       return true;
     }
 

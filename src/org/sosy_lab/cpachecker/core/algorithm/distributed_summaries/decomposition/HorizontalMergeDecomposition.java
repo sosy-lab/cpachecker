@@ -63,7 +63,8 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
   Collection<BlockNodeWithoutGraphInformation> mergeHorizontally(
       Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
     Multimap<BlockScope, BlockNodeWithoutGraphInformation> blockScopes = ArrayListMultimap.create();
-    pNodes.forEach(n -> blockScopes.put(new BlockScope(n.getFirst(), n.getLast()), n));
+    pNodes.forEach(
+        n -> blockScopes.put(new BlockScope(n.getInitialLocation(), n.getFinalLocation()), n));
     for (BlockScope blockScope : ImmutableSet.copyOf(blockScopes.keySet())) {
       if (blockScopes.get(blockScope).size() <= 1) {
         continue;
@@ -83,7 +84,9 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
     Preconditions.checkArgument(
         pNodes.stream()
             .allMatch(
-                b -> b.getFirst().equals(pScope.start()) && b.getLast().equals(pScope.last())),
+                b ->
+                    b.getInitialLocation().equals(pScope.start())
+                        && b.getFinalLocation().equals(pScope.last())),
         "Some of the given nodes do not have the same scope.");
     return new BlockNodeWithoutGraphInformation(
         "MH" + id++,

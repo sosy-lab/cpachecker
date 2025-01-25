@@ -80,23 +80,23 @@ public class BlockGraph {
           blockNode);
       Preconditions.checkState(
           CFAUtils.existsPath(
-              blockNode.getFirst(),
-              blockNode.getLast(),
+              blockNode.getInitialLocation(),
+              blockNode.getFinalLocation(),
               node -> CFAUtils.allLeavingEdges(node).toSet(),
               pShutdownNotifier),
           "pNodesInBlock (%s) "
               + "must list all nodes but misses either the root node (%s) "
               + "or the last node (%s).",
           blockNode.getNodes(),
-          blockNode.getFirst(),
-          blockNode.getLast());
+          blockNode.getInitialLocation(),
+          blockNode.getFinalLocation());
       // block node is not root implies that there is at least one edge in the block
       Preconditions.checkState(
           !blockNode.getEdges().isEmpty() || blockNode.getPredecessorIds().isEmpty(),
           "Every block needs at least one edge (%s).",
           blockNode);
       Preconditions.checkState(
-          isBlockNodeValid(blockNode.getFirst(), blockNode.getEdges()),
+          isBlockNodeValid(blockNode.getInitialLocation(), blockNode.getEdges()),
           "BlockNodes require to have exactly one exit node (%s).",
           blockNode);
       Preconditions.checkState(
@@ -135,8 +135,8 @@ public class BlockGraph {
     Multimap<CFANode, BlockNodeWithoutGraphInformation> startNodes = ArrayListMultimap.create();
     Multimap<CFANode, BlockNodeWithoutGraphInformation> endNodes = ArrayListMultimap.create();
     for (BlockNodeWithoutGraphInformation blockNode : pNodes) {
-      startNodes.put(blockNode.getFirst(), blockNode);
-      endNodes.put(blockNode.getLast(), blockNode);
+      startNodes.put(blockNode.getInitialLocation(), blockNode);
+      endNodes.put(blockNode.getFinalLocation(), blockNode);
     }
     BlockNode root =
         new BlockNode(
@@ -155,29 +155,31 @@ public class BlockGraph {
     Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation> loopPredecessors =
         findLoopPredecessors(root, pNodes);
 
-    startNodes.put(root.getFirst(), root);
-    endNodes.put(root.getLast(), root);
+    startNodes.put(root.getInitialLocation(), root);
+    endNodes.put(root.getFinalLocation(), root);
     ImmutableSet<BlockNode> blockNodes =
         transformedImmutableSetCopy(
             pNodes,
             b ->
                 new BlockNode(
                     b.getId(),
-                    b.getFirst(),
-                    b.getLast(),
+                    b.getInitialLocation(),
+                    b.getFinalLocation(),
                     b.getNodes(),
                     b.getEdges(),
                     transformedImmutableSetCopy(
-                        endNodes.get(b.getFirst()), BlockNodeWithoutGraphInformation::getId),
+                        endNodes.get(b.getInitialLocation()),
+                        BlockNodeWithoutGraphInformation::getId),
                     Sets.intersection(
                             transformedImmutableSetCopy(
-                                endNodes.get(b.getFirst()),
+                                endNodes.get(b.getInitialLocation()),
                                 BlockNodeWithoutGraphInformation::getId),
                             transformedImmutableSetCopy(
                                 loopPredecessors.get(b), BlockNodeWithoutGraphInformation::getId))
                         .immutableCopy(),
                     transformedImmutableSetCopy(
-                        startNodes.get(b.getLast()), BlockNodeWithoutGraphInformation::getId)));
+                        startNodes.get(b.getFinalLocation()),
+                        BlockNodeWithoutGraphInformation::getId)));
     return new BlockGraph(root, blockNodes);
   }
 
@@ -191,8 +193,8 @@ public class BlockGraph {
       nodes.add(
           new BlockNode(
               blockNode.getId(),
-              blockNode.getFirst(),
-              blockNode.getLast(),
+              blockNode.getInitialLocation(),
+              blockNode.getFinalLocation(),
               blockNode.getNodes(),
               blockNode.getEdges(),
               ImmutableSet.copyOf(importedBlock.predecessors()),
@@ -214,10 +216,10 @@ public class BlockGraph {
         ArrayListMultimap.create();
     Multimap<CFANode, BlockNodeWithoutGraphInformation> startNodeToBlockNodes =
         ArrayListMultimap.create();
-    pNodes.forEach(p -> startNodeToBlockNodes.put(p.getFirst(), p));
+    pNodes.forEach(p -> startNodeToBlockNodes.put(p.getInitialLocation(), p));
     ImmutableList<List<BlockNodeWithoutGraphInformation>> stronglyConnected =
         StronglyConnectedComponents.performTarjanAlgorithm(
-            pRoot, n -> startNodeToBlockNodes.get(n.getLast()));
+            pRoot, n -> startNodeToBlockNodes.get(n.getFinalLocation()));
     for (List<BlockNodeWithoutGraphInformation> connections : stronglyConnected) {
       for (BlockNodeWithoutGraphInformation connection : connections) {
         predecessors.putAll(connection, connections);
@@ -243,10 +245,11 @@ public class BlockGraph {
                           ImmutableList.of(
                               e.getPredecessor().getNodeNumber(),
                               e.getSuccessor().getNodeNumber())));
-              attributes.put("startNode", n.getFirst().getNodeNumber());
-              attributes.put("endNode", n.getLast().getNodeNumber());
+              attributes.put("startNode", n.getInitialLocation().getNodeNumber());
+              attributes.put("endNode", n.getFinalLocation().getNodeNumber());
               attributes.put("loopPredecessors", n.getLoopPredecessorIds());
-              attributes.put("abstractionLocation", n.getAbstractionLocation().getNodeNumber());
+              attributes.put(
+                  "abstractionLocation", n.getViolationConditionLocation().getNodeNumber());
               treeMap.put(n.getId(), attributes);
             });
     JSON.writeJSONString(treeMap, blockCFAFile);
@@ -256,7 +259,7 @@ public class BlockGraph {
   public String toString() {
     return "BlockGraph{"
         + "rootNode="
-        + root.getFirst()
+        + root.getInitialLocation()
         + ", nodes="
         + nodes.stream().map(BlockNode::getId).collect(Collectors.joining(", "))
         + '}';

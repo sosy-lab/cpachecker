@@ -80,7 +80,12 @@ public class DssAnalysisWorker extends DssWorker {
     connection = pConnection;
 
     Configuration forwardConfiguration =
-        Configuration.builder().loadFromFile(pOptions.getForwardConfiguration()).build();
+        Configuration.builder()
+            .loadFromFile(pOptions.getForwardConfiguration())
+            .setOption(
+                "alwaysAtGivenLocations",
+                Integer.toString(pBlock.getFinalLocation().getNodeNumber()))
+            .build();
 
     messageFactory = pMessageFactory;
     logger = pLogger;

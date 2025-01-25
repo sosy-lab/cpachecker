@@ -289,7 +289,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
         for (String successorId : blockGraph.getRoot().getSuccessorIds()) {
           for (BlockNode node : blockGraph.getNodes()) {
             if (node.getId().equals(successorId)) {
-              if (node.getAbstractionLocation().equals(node.getLast())) {
+              if (node.getViolationConditionLocation().equals(node.getFinalLocation())) {
                 throw new AssertionError(
                     "Direct successors of the root node are required to have an abstraction"
                         + " location.");

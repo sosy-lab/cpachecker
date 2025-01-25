@@ -154,7 +154,7 @@ public class DssBlockAnalysis {
     return ImmutableSet.of(
         messageFactory.newBlockPostCondition(
             block.getId(),
-            block.getLast().getNodeNumber(),
+            block.getFinalLocation().getNodeNumber(),
             DssBlockAnalyses.appendStatus(
                 AlgorithmStatus.SOUND_AND_PRECISE, DssMessagePayload.empty()),
             false));
@@ -173,13 +173,13 @@ public class DssBlockAnalysis {
       messages.add(
           messageFactory.newBlockPostCondition(
               block.getId(),
-              block.getLast().getNodeNumber(),
+              block.getFinalLocation().getNodeNumber(),
               DssBlockAnalyses.appendStatus(status, serialized),
               true));
       return messages.build();
     }
     AbstractState start =
-        dcpa.getInitialState(block.getLast(), StateSpacePartition.getDefaultPartition());
+        dcpa.getInitialState(block.getFinalLocation(), StateSpacePartition.getDefaultPartition());
     PredicateCPA predicateCPA =
         Objects.requireNonNull(CPAs.retrieveCPA(dcpa.getCPA(), PredicateCPA.class));
 
@@ -232,7 +232,7 @@ public class DssBlockAnalysis {
     messages.add(
         messageFactory.newBlockPostCondition(
             block.getId(),
-            block.getLast().getNodeNumber(),
+            block.getFinalLocation().getNodeNumber(),
             DssBlockAnalyses.appendStatus(status, serialized),
             true));
     return messages.build();
@@ -312,7 +312,7 @@ public class DssBlockAnalysis {
       messages.add(
           messageFactory.newViolationConditionMessage(
               block.getId(),
-              block.getFirst().getNodeNumber(),
+              block.getInitialLocation().getNodeNumber(),
               DssBlockAnalyses.appendStatus(status, serialized),
               first || makeFirst,
               prefix));
@@ -436,11 +436,13 @@ public class DssBlockAnalysis {
   }
 
   private AbstractState makeStartState() throws InterruptedException {
-    return dcpa.getInitialState(block.getFirst(), StateSpacePartition.getDefaultPartition());
+    return dcpa.getInitialState(
+        block.getInitialLocation(), StateSpacePartition.getDefaultPartition());
   }
 
   private Precision makeStartPrecision() throws InterruptedException {
-    return dcpa.getInitialPrecision(block.getFirst(), StateSpacePartition.getDefaultPartition());
+    return dcpa.getInitialPrecision(
+        block.getInitialLocation(), StateSpacePartition.getDefaultPartition());
   }
 
   public void updateViolationCondition(DssViolationConditionMessage pViolationCondition) {
@@ -481,9 +483,9 @@ public class DssBlockAnalysis {
       throws CPAException, InterruptedException, SolverException {
     logger.log(Level.INFO, "Running forward analysis with respect to error condition");
     // merge all states into the reached set
-    AbstractState ViolationCondition =
+    AbstractState violationCondition =
         dcpa.getDeserializeOperator().deserialize(pViolationCondition);
-    DssMessageProcessing processing = dcpa.getProceedOperator().processBackward(ViolationCondition);
+    DssMessageProcessing processing = dcpa.getProceedOperator().processBackward(violationCondition);
     if (!processing.shouldProceed()) {
       return processing;
     }
@@ -497,7 +499,7 @@ public class DssBlockAnalysis {
         abstractState ->
             Objects.requireNonNull(
                     AbstractStates.extractStateByType(abstractState, BlockState.class))
-                .setViolationCondition(ViolationCondition));
+                .setViolationCondition(violationCondition));
 
     DssBlockAnalysisIntermediateResult result =
         DssBlockAnalyses.runCpaAlgorithm(algorithm, reachedSet, block);
@@ -517,7 +519,7 @@ public class DssBlockAnalysis {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     if (!result.getSummaries().isEmpty()
         && block.isAbstractionPossible()
-        && result.getSummaries().isEmpty()) {
+        && result.getViolations().isEmpty()) {
       messages.addAll(reportBlockPostConditions(result.getSummaries(), false));
     }
     boolean restoreAll = !matched && !loopPredecessors.isEmpty();
@@ -528,15 +530,15 @@ public class DssBlockAnalysis {
           abstractState ->
               Objects.requireNonNull(
                       AbstractStates.extractStateByType(abstractState, BlockState.class))
-                  .setViolationCondition(ViolationCondition));
+                  .setViolationCondition(violationCondition));
 
       result = DssBlockAnalyses.runCpaAlgorithm(algorithm, reachedSet, block);
       status = status.update(result.getStatus());
     }
     messages.addAll(
         reportViolationConditions(
-            result.getSummaries(),
-            ((ARGState) ViolationCondition),
+            result.getViolations(),
+            ((ARGState) violationCondition),
             false,
             pViolationCondition.getOrigin(),
             false));
@@ -571,7 +573,7 @@ public class DssBlockAnalysis {
           }
         }
         if (!cpa.getStopOperator()
-            .stop(value, reachedSet.getReached(block.getFirst()), makeStartPrecision())) {
+            .stop(value, reachedSet.getReached(block.getInitialLocation()), makeStartPrecision())) {
           reachedSet.add(value, makeStartPrecision());
         }
       }

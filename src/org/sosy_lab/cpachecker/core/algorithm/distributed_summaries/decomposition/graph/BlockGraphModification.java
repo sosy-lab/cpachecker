@@ -239,7 +239,7 @@ public class BlockGraphModification {
     MappingInformation blockMapping =
         createMappingBetweenOriginalAndInstrumentedCFA(pOriginalCfa, pMutableCfa);
     ImmutableSet<CFANode> blockEnds =
-        transformedImmutableSetCopy(pBlockGraph.getNodes(), n -> n.getLast());
+        transformedImmutableSetCopy(pBlockGraph.getNodes(), n -> n.getFinalLocation());
     ImmutableSet.Builder<CFANode> unableToAbstract = ImmutableSet.builder();
     ImmutableMap.Builder<CFANode, CFAEdge> abstractions = ImmutableMap.builder();
     for (CFANode originalBlockEnd : blockEnds) {
@@ -293,8 +293,8 @@ public class BlockGraphModification {
           edgeBuilder.add(instrumentedEdge);
         }
       }
-      CFANode abstraction = originalInstrumentedNodes.get(block.getLast());
-      CFAEdge abstractionEdge = blockAbstractionEnds.get(block.getLast());
+      CFANode abstraction = originalInstrumentedNodes.get(block.getFinalLocation());
+      CFAEdge abstractionEdge = blockAbstractionEnds.get(block.getFinalLocation());
       if (abstractionEdge != null) {
         edgeBuilder.add(abstractionEdge);
         abstraction = abstractionEdge.getSuccessor();
@@ -303,8 +303,8 @@ public class BlockGraphModification {
       instrumentedBlocks.add(
           new BlockNode(
               block.getId(),
-              originalInstrumentedNodes.get(block.getFirst()),
-              originalInstrumentedNodes.get(block.getLast()),
+              originalInstrumentedNodes.get(block.getInitialLocation()),
+              originalInstrumentedNodes.get(block.getFinalLocation()),
               nodeBuilder.build(),
               edgeBuilder.build(),
               block.getPredecessorIds(),

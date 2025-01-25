@@ -37,7 +37,9 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (blockState.getType() == BlockStateType.FINAL
-        && !cfaEdge.getSuccessor().equals(blockState.getBlockNode().getAbstractionLocation())) {
+        && !cfaEdge
+            .getSuccessor()
+            .equals(blockState.getBlockNode().getViolationConditionLocation())) {
       return ImmutableList.of();
     }
 
@@ -62,10 +64,10 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private static BlockStateType getBlockStateTypeOfLocation(BlockNode pBlockNode, CFANode pNode) {
-    if (pNode.equals(pBlockNode.getLast())) {
+    if (pNode.equals(pBlockNode.getFinalLocation())) {
       return BlockStateType.FINAL;
     }
-    if (pNode.equals(pBlockNode.getAbstractionLocation())) {
+    if (pNode.equals(pBlockNode.getViolationConditionLocation())) {
       return BlockStateType.ABSTRACTION;
     }
     return BlockStateType.MID;

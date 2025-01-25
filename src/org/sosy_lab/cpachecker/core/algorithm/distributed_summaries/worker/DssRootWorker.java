@@ -35,7 +35,9 @@ public class DssRootWorker extends DssWorker {
       LogManager pLogger) {
     super(pId, pMessageFactory, pLogger);
     checkArgument(
-        pNode.isRoot() && pNode.isEmpty() && pNode.getLast().equals(pNode.getFirst()),
+        pNode.isRoot()
+            && pNode.isEmpty()
+            && pNode.getFinalLocation().equals(pNode.getInitialLocation()),
         "Root node must be empty and cannot have predecessors: " + "%s",
         pNode);
 
@@ -49,10 +51,10 @@ public class DssRootWorker extends DssWorker {
   public Collection<DssMessage> processMessage(DssMessage pMessage) {
     return switch (pMessage.getType()) {
       case VIOLATION_CONDITION -> {
-        if (pMessage.getTargetNodeNumber() == root.getLast().getNodeNumber()) {
+        if (pMessage.getTargetNodeNumber() == root.getFinalLocation().getNodeNumber()) {
           yield ImmutableSet.of(
               messageFactory.newResultMessage(
-                  root.getId(), root.getLast().getNodeNumber(), Result.FALSE));
+                  root.getId(), root.getFinalLocation().getNodeNumber(), Result.FALSE));
         }
         yield ImmutableSet.of();
       }

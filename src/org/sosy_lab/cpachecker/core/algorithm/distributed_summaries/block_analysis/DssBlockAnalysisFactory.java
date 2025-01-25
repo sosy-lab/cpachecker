@@ -65,7 +65,7 @@ public class DssBlockAnalysisFactory {
     Optional.ofNullable(CPAs.retrieveCPA(cpa, BlockCPA.class)).ifPresent(b -> b.init(node));
     Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
     ReachedSet reached =
-        createInitialReachedSet(cpa, node.getFirst(), coreComponents, singleLogger);
+        createInitialReachedSet(cpa, node.getInitialLocation(), coreComponents, singleLogger);
 
     return new AnalysisComponents(algorithm, cpa, reached);
   }
