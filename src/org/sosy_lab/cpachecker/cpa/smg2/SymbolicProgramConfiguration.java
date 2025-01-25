@@ -244,13 +244,9 @@ public class SymbolicProgramConfiguration {
     if (maybeMergedSMGs.isEmpty()) {
       return Optional.empty();
     }
-    if (maybeMergedSMGs.orElseThrow().getMergeStatus() == SMGMergeStatus.EQUAL) {
-      return Optional.empty();
-    }
+
     SymbolicProgramConfiguration mergedSMGWithMergedStackAndValues =
         maybeMergedSMGs.orElseThrow().getMergedSPC();
-    // TODO: what to do with the merge status?! Its used in the cost calculation, but we don't do
-    //  that for merge.
     return Optional.of(
         MergedSPCAndMergeStatus.of(
             new SymbolicProgramConfiguration(
