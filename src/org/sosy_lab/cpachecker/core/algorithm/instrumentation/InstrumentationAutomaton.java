@@ -439,7 +439,7 @@ public class InstrumentationAutomaton {
                                     + "_instr"
                                     + ")")
                         .collect(Collectors.joining("&&"))
-                    + ")){return=0;}"),
+                    + ")){return 0;}"),
             InstrumentationOrder.BEFORE,
             q4);
     InstrumentationTransition t4 =
