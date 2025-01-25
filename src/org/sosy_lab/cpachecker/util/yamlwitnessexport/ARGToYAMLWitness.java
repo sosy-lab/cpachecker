@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.threading.ThreadingCPA;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -64,6 +65,7 @@ import org.sosy_lab.cpachecker.util.expressions.RemovingStructuresVisitor;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitness.CollectedARGStates.ARGStatePair;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
@@ -201,8 +203,8 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
       if (child.isPresent()) {
         for (ARGState argParent : pSuccessor.getParents()) {
           ThreadingState parent = ARGUtils.tryExtractThreadingState(argParent).orElseThrow();
-          ImmutableSet<String> parentLocks = parent.getGlobalLockIds();
-          ImmutableSet<String> childLocks = child.orElseThrow().getGlobalLockIds();
+          ImmutableSet<String> parentLocks = parent.getLockIdsFromInputProgram();
+          ImmutableSet<String> childLocks = child.orElseThrow().getLockIdsFromInputProgram();
           // locks unequal -> a lock / unlock operation was performed between states
           if (!parentLocks.equals(childLocks)) {
             // we later need the edge for the location and function
@@ -391,5 +393,46 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     }
 
     return new ExpressionTreeResult(overapproximationOfState, backTranslationSuccessful);
+  }
+
+  /**
+   * Create an invariant for the abstractions encoded by the {@link ARGState}s
+   *
+   * @param argStates the arg states encoding abstractions of the state
+   * @param node the node at whose location the state should be over approximated
+   * @param type the type of the invariant. Currently only `loop_invariant` and `location_invariant`
+   *     are supported
+   * @return an invariant over approximating the abstraction at the state
+   * @throws InterruptedException if the execution is interrupted
+   */
+  protected InvariantCreationResult createInvariant(
+      Collection<ARGState> argStates, CFANode node, String type)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+
+    // We now conjunct all the overapproximations of the states and export them as loop invariants
+    Optional<IterationElement> iterationStructure =
+        getASTStructure().getTightestIterationStructureForNode(node);
+    if (iterationStructure.isEmpty()) {
+      return null;
+    }
+
+    FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
+    ExpressionTreeResult invariantResult =
+        getOverapproximationOfStatesIgnoringReturnVariables(
+            argStates, node, /* useOldKeywordForVariables= */ false);
+    LocationRecord locationRecord =
+        LocationRecord.createLocationRecordAtStart(
+            fileLocation,
+            node.getFunction().getFileLocation().getFileName().toString(),
+            node.getFunctionName());
+
+    InvariantEntry invariantEntry =
+        new InvariantEntry(
+            invariantResult.expressionTree().toString(),
+            type,
+            YAMLWitnessExpressionType.C,
+            locationRecord);
+
+    return new InvariantCreationResult(invariantEntry, invariantResult.backTranslationSuccessful());
   }
 }

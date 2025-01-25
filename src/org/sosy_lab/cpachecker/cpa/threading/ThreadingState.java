@@ -220,9 +220,9 @@ public class ThreadingState
 
   /**
    * Returns the set of lock ids in this {@link ThreadingState} that are not {@linkplain
-   * ThreadingTransferRelation#LOCAL_ACCESS_LOCK}.
+   * ThreadingTransferRelation#LOCAL_ACCESS_LOCK} i.e. not CPAchecker internal.
    */
-  public ImmutableSet<String> getGlobalLockIds() {
+  public ImmutableSet<String> getLockIdsFromInputProgram() {
     return FluentIterable.from(getLockIds())
         .filter(lock -> !lock.equals(ThreadingTransferRelation.LOCAL_ACCESS_LOCK))
         .toSet();
