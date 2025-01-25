@@ -19,6 +19,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -357,7 +358,18 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   @Override
   public FloatingPointFormula makeNumber(
       BigInteger exponent, BigInteger mantissa, boolean signBit, FloatingPointType type) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+    FloatingPointNumber number =
+        FloatingPointNumber.of(
+            signBit, exponent, mantissa, type.getExponentSize(), type.getMantissaSize());
+    if (type.equals(FloatingPointType.getSinglePrecisionFloatingPointType())
+        || type.equals(FloatingPointType.getDoublePrecisionFloatingPointType())) {
+      return wrap(type, numericFormulaManager.makeNumber(number.doubleValue()));
+    } else {
+      throw new UnsupportedOperationException(
+          String.format(
+              "Unsupported floating point type `%s`. Currently only single and double precision are allowed.",
+              type));
+    }
   }
 
   @Override
