@@ -327,18 +327,18 @@ public class DssBlockAnalysis {
     reachedSet.add(makeStartState(), makeStartPrecision());
 
     DssBlockAnalysisIntermediateResult result =
-        DssBlockAnalyses.findReachableTargetStatesInBlock(algorithm, reachedSet, block);
+        DssBlockAnalyses.runCpaAlgorithm(algorithm, reachedSet, block);
 
     status = status.update(result.getStatus());
 
-    if (result.getViolationStates().isEmpty()) {
-      if (result.getBlockEndStates().isEmpty()) {
+    if (result.getViolations().isEmpty()) {
+      if (result.getSummaries().isEmpty()) {
         return reportUnreachableBlockEnd();
       }
-      return reportBlockPostConditions(result.getBlockEndStates(), true);
+      return reportBlockPostConditions(result.getSummaries(), true);
     }
 
-    return reportViolationConditions(result.getViolationStates(), null, true, "", true);
+    return reportViolationConditions(result.getViolations(), null, true, "", true);
   }
 
   public DssMessageProcessing shouldRepeatAnalysis(DssPostConditionMessage pReceived)
@@ -500,7 +500,7 @@ public class DssBlockAnalysis {
                 .setViolationCondition(ViolationCondition));
 
     DssBlockAnalysisIntermediateResult result =
-        DssBlockAnalyses.findReachableTargetStatesInBlock(algorithm, reachedSet, block);
+        DssBlockAnalyses.runCpaAlgorithm(algorithm, reachedSet, block);
 
     status = status.update(result.getStatus());
 
@@ -515,10 +515,10 @@ public class DssBlockAnalysis {
     }
 
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    if (!result.getBlockEndStates().isEmpty()
+    if (!result.getSummaries().isEmpty()
         && block.isAbstractionPossible()
-        && result.getAbstractionStates().isEmpty()) {
-      messages.addAll(reportBlockPostConditions(result.getBlockEndStates(), false));
+        && result.getSummaries().isEmpty()) {
+      messages.addAll(reportBlockPostConditions(result.getSummaries(), false));
     }
     boolean restoreAll = !matched && !loopPredecessors.isEmpty();
     if (restoreAll) {
@@ -530,12 +530,12 @@ public class DssBlockAnalysis {
                       AbstractStates.extractStateByType(abstractState, BlockState.class))
                   .setViolationCondition(ViolationCondition));
 
-      result = DssBlockAnalyses.findReachableTargetStatesInBlock(algorithm, reachedSet, block);
+      result = DssBlockAnalyses.runCpaAlgorithm(algorithm, reachedSet, block);
       status = status.update(result.getStatus());
     }
     messages.addAll(
         reportViolationConditions(
-            result.getAbstractionStates(),
+            result.getSummaries(),
             ((ARGState) ViolationCondition),
             false,
             pViolationCondition.getOrigin(),

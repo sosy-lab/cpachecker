@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -19,25 +17,14 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssOb
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusObserver.StatusPropertyChecked;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusObserver.StatusSoundness;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.block.BlockTargetInformation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class DssBlockAnalyses {
 
   private DssBlockAnalyses() {}
-
-  static Optional<CFANode> abstractStateToLocation(AbstractState state) {
-    return Optional.ofNullable(AbstractStates.extractLocation(state))
-        .or(
-            () ->
-                Optional.ofNullable(AbstractStates.extractStateByType(state, BlockState.class))
-                    .map(BlockState::getLocationNode));
-  }
 
   static DssMessagePayload appendStatus(
       AlgorithmStatus pStatus, DssMessagePayload pCurrentPayload) {
@@ -65,7 +52,7 @@ public class DssBlockAnalyses {
    * @throws CPAException wrapper exception
    * @throws InterruptedException thread interrupted
    */
-  static DssBlockAnalysisIntermediateResult findReachableTargetStatesInBlock(
+  static DssBlockAnalysisIntermediateResult runCpaAlgorithm(
       Algorithm pAlgorithm, ReachedSet pReachedSet, BlockNode pBlockNode)
       throws CPAException, InterruptedException {
 
@@ -83,9 +70,8 @@ public class DssBlockAnalyses {
 
   static class DssBlockAnalysisIntermediateResult {
 
-    private final ImmutableSet<ARGState> abstractionStates;
-    private final ImmutableSet<ARGState> violationStates;
-    private final ImmutableSet<ARGState> blockEndStates;
+    private final ImmutableSet<ARGState> summaries;
+    private final ImmutableSet<ARGState> violations;
     private final AlgorithmStatus status;
 
     private DssBlockAnalysisIntermediateResult(
@@ -93,68 +79,43 @@ public class DssBlockAnalyses {
         AbstractState pStartState,
         BlockNode pBlockNode,
         AlgorithmStatus pStatus) {
-      ImmutableSet.Builder<ARGState> abstractions = ImmutableSet.builder();
-      ImmutableSet.Builder<ARGState> violations = ImmutableSet.builder();
-      ImmutableSet.Builder<ARGState> blockEnds = ImmutableSet.builder();
+      status = pStatus;
+      ImmutableSet.Builder<ARGState> summariesBuilder = ImmutableSet.builder();
+      ImmutableSet.Builder<ARGState> violationsBuilder = ImmutableSet.builder();
       for (AbstractState abstractState : pReachedSet) {
         if (abstractState.equals(pStartState)) {
           continue;
         }
         ARGState argState = (ARGState) abstractState;
-        abstractStateToLocation(argState)
-            .ifPresent(
-                a -> {
-                  if (a.equals(pBlockNode.getLast())) {
-                    blockEnds.add(argState);
-                  }
-                });
         if (argState.isTarget()) {
-          if (argState.getTargetInformation().isEmpty()) {
-            violations.add(argState);
-            continue;
-          }
-          for (TargetInformation targetInformation : argState.getTargetInformation()) {
-            if (targetInformation instanceof BlockTargetInformation) {
-              // only on abstraction locations we can find this information
-              abstractions.add(argState);
-            } else {
-              // specification violation otherwise
-              violations.add(argState);
-            }
-          }
+          violationsBuilder.add(argState);
+        } else if (pBlockNode.getLast().equals(AbstractStates.extractLocation(argState))) {
+          summariesBuilder.add(argState);
         }
       }
-      abstractionStates = abstractions.build();
-      violationStates = violations.build();
-      blockEndStates = blockEnds.build();
-      status = pStatus;
+      summaries = summariesBuilder.build();
+      violations = violationsBuilder.build();
     }
 
     public AlgorithmStatus getStatus() {
       return status;
     }
 
-    public ImmutableSet<ARGState> getAbstractionStates() {
-      return abstractionStates;
+    public ImmutableSet<ARGState> getSummaries() {
+      return summaries;
     }
 
-    public ImmutableSet<ARGState> getBlockEndStates() {
-      return blockEndStates;
-    }
-
-    public ImmutableSet<ARGState> getViolationStates() {
-      return violationStates;
+    public ImmutableSet<ARGState> getViolations() {
+      return violations;
     }
 
     @Override
     public String toString() {
       return "DssBlockAnalysisIntermediateResult{"
           + "abstractionStates="
-          + abstractionStates
+          + summaries
           + ", violationStates="
-          + violationStates
-          + ", blockEndStates="
-          + blockEndStates
+          + violations
           + ", status="
           + status
           + '}';
