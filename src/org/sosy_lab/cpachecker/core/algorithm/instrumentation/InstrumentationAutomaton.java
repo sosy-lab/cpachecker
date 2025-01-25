@@ -425,7 +425,7 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("[cond]"),
             new InstrumentationOperation(
-                    "if (!((pc_instr == pc)"
+                    "if (saved == 0 && !((pc_instr == pc)"
                     + (!liveVariablesAndTypes.isEmpty() ? " && " : "")
                     + liveVariablesAndTypes.entrySet().stream()
                     .map(
