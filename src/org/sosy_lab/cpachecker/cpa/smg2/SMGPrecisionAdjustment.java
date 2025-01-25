@@ -387,7 +387,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     if (checkAbstractListAt(location)) {
-      resultState = resultState.withBlockEnd();
+      resultState = resultState.withBlockEnd(location.getLocationNode());
     }
 
     return Optional.of(new PrecisionAdjustmentResult(resultState, pPrecision, Action.CONTINUE));

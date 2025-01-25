@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -245,8 +246,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
     // Now merge
     SMGMergeOperator mergeOp = new SMGMergeOperator(new SMGCPAStatistics());
-    stateLeft = stateLeft.withBlockEnd();
-    stateRight = stateRight.withBlockEnd();
+    stateLeft = stateLeft.withBlockEnd(CFANode.newDummyCFANode());
+    stateRight = stateRight.withBlockEnd(CFANode.newDummyCFANode());
     SMGState mergedState = (SMGState) mergeOp.merge(stateLeft, stateRight, null);
     assertThat(mergedState).isNotEqualTo(stateLeft);
     // merge returns right for failing
