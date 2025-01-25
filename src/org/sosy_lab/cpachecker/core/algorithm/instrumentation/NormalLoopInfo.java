@@ -20,6 +20,5 @@ import org.sosy_lab.cpachecker.core.algorithm.instrumentation.NormalLoopInfo;
  */
 public record NormalLoopInfo(
     int loopLocation, 
-    ImmutableMap<String, String> liveVariablesAndTypes, 
-    VariableBoundInfo boundInfo
+    ImmutableMap<String, String> liveVariablesAndTypes
 ) {}

@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAut
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.core.algorithm.instrumentation.LoopConditionChecker;
 
 /**
  * This algorithm instruments a CFA of program using intrumentation operator and instrumentation
@@ -93,6 +94,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       instrumentationProperty == InstrumentationProperty.TERMINATION ||
       instrumentationProperty == InstrumentationProperty.TERMINATION2
     ) {
+
       int index = 0;
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
       for (NormalLoopInfo info : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
@@ -103,7 +105,24 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         index += 1;
       }
       // Todo distance transition
-    } else {
+    } else if(
+      instrumentationProperty == InstrumentationProperty.DISTANCE
+    ){
+      LoopConditionChecker.VariableBoundInfo distanceVariableInfo = LoopConditionChecker.distanceCompatible(cfa);
+      mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
+      if (!(distanceVariableInfo == null)){
+        int index = 0;
+        for (NormalLoopInfo info : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
+          mapAutomataToLocations.put(
+              info.loopLocation(),
+              new InstrumentationAutomaton(
+                  instrumentationProperty, info.liveVariablesAndTypes(), index, distanceVariableInfo));
+          index += 1;
+        }
+      } else {
+        //Todo: throw exception
+      }
+    }else{
       mapNodesToLineNumbers = ImmutableMap.of(cfa.getMainFunction(), 0);
       mapAutomataToLocations.put(
           0, new InstrumentationAutomaton(instrumentationProperty, ImmutableMap.of(), 0));

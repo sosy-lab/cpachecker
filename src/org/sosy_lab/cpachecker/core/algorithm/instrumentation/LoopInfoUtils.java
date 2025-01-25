@@ -89,8 +89,7 @@ public class LoopInfoUtils {
         }
       }
       
-      // Get Bound Infos
-      VariableBoundInfo boundInfo = getBoundInfo(loop);
+
 
       liveVariables.removeAll(variablesDeclaredInsideLoop);
       liveVariables.removeIf(
@@ -126,7 +125,7 @@ public class LoopInfoUtils {
 
       for (Integer loopLocation : loopLocations) {
         allNormalLoopInfos.add(
-            new NormalLoopInfo(loopLocation, ImmutableMap.copyOf(liveVariablesAndTypes), boundInfo));
+            new NormalLoopInfo(loopLocation, ImmutableMap.copyOf(liveVariablesAndTypes)));
       }
     }
 
@@ -392,49 +391,12 @@ public class LoopInfoUtils {
  // TODO get bound variable
   
 
-  private static VariableBoundInfo getBoundInfo(Loop loop) {
-      CFAEdge loopHeadEdge = getFirstEdge(loop);
-      VariableBoundInfo boundInfo = isBinaryComparison(loopHeadEdge);
-      if(boundInfo.isBinary()){
-        boundInfo.setLoopType(NormalLoopType.STRUCTURED);
-      } else {
-        boundInfo.setLoopType(NormalLoopType.UNSTRUCTURED);
-      }
-      return boundInfo;
-  }
+  
 
-  private static CFAEdge getFirstEdge(Loop loop) {
-      // Todo: maybe stream is better?
-      CFANode firstLoopHead = loop.getLoopHeads().iterator().next();
-      return firstLoopHead.getLeavingEdge(0);
-  }
 
-  private static VariableBoundInfo isBinaryComparison(CFAEdge edge) {
-      if (edge instanceof AssumeEdge assumeEdge) {
-          AExpression expression = assumeEdge.getExpression();
-          if (expression instanceof CBinaryExpression binaryExpression) {
-              AExpression operand1 = binaryExpression.getOperand1();
-              AExpression operand2 = binaryExpression.getOperand2();
+  
 
-              VariableInfo leftInfo = hasSingleVariable(operand1);
-              VariableInfo rightInfo = hasSingleVariable(operand2);
-              VariableBoundInfo boundInfo = new VariableBoundInfo(leftInfo, rightInfo, NormalLoopType.NO_INFO);
-              return  boundInfo;
-          }
-      }
-      return null;
-  }
-
-  private static VariableInfo hasSingleVariable(AExpression operand) {
-      String VariableName = "";
-      // Todo: check for const and variables
-      if(operand instanceof CIdExpression singleOperand){
-        VariableName = singleOperand.getName();
-        VariableInfo info = new VariableInfo(true, VariableName);
-        return info;
-      }
-      return null;
-  }
+  
 
 
 }

@@ -78,7 +78,7 @@ public class InstrumentationAutomaton {
       InstrumentationProperty pInstrumentationProperty,
       ImmutableMap<String, String> pLiveVariablesAndTypes,
       int pIndex,
-      VariableBoundInfo boundInfo) {
+      LoopConditionChecker.VariableBoundInfo boundInfo) {
         this.liveVariablesAndTypes = pLiveVariablesAndTypes;
         if (pInstrumentationProperty == InstrumentationProperty.DISTANCE) {
             constructDistanceAutomaton(pIndex,boundInfo);
@@ -391,48 +391,46 @@ public class InstrumentationAutomaton {
                     + (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
             InstrumentationOrder.BEFORE,
             q2);
-    InstrumentationTransition t2 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("[cond]"),
-            new InstrumentationOperation(
-                "if("
-                + liveVariablesAndTypes.entrySet().stream()
-                        .map(
-                            (entry) ->
-                                "("
-                                    + getDereferencesForPointer(entry.getValue())
-                                    + entry.getKey()
-                                    + " == "
-                                    + getDereferencesForPointer(entry.getValue())
-                                    + entry.getKey()
-                                    + "_instr_"
-                                    + pIndex
-                                    + ")")
-                        .collect(Collectors.joining("&&"))
-                + ") { saved_"
-                    + pIndex
-                    + " =1; "
-                    + "} else { __VERIFIER_assert((saved_"
-                    + pIndex
-                    + " == 0)"
-                    + (!liveVariablesAndTypes.isEmpty() ? " || " : "")
-                    + liveVariablesAndTypes.entrySet().stream()
-                        .map(
-                            (entry) ->
-                                "("
-                                    + getDereferencesForPointer(entry.getValue())
-                                    + entry.getKey()
-                                    + " != "
-                                    + getDereferencesForPointer(entry.getValue())
-                                    + entry.getKey()
-                                    + "_instr_"
-                                    + pIndex
-                                    + ")")
-                        .collect(Collectors.joining("||"))
-                    + ");}"),
-            InstrumentationOrder.AFTER,
-            q3);
+            InstrumentationTransition t2 = new InstrumentationTransition(
+    q2,
+    new InstrumentationPattern("[cond]"),
+    new InstrumentationOperation(
+        "if ((saved_" + pIndex + " == 0) && (" + 
+        liveVariablesAndTypes.entrySet().stream()
+            .map(
+                (entry) ->
+                    "(" +
+                    getDereferencesForPointer(entry.getValue()) +
+                    entry.getKey() +
+                    " == " +
+                    getDereferencesForPointer(entry.getValue()) +
+                    entry.getKey() +
+                    "_instr_" + pIndex +
+                    ")")
+            .collect(Collectors.joining(" && ")) +
+        ")) { " +
+        "saved_" + pIndex + " = 1; " +
+        "} else { " +
+        "__VERIFIER_assert(" +
+        "(saved_" + pIndex + " == 0) || " +
+        liveVariablesAndTypes.entrySet().stream()
+            .map(
+                (entry) ->
+                    "(" +
+                    getDereferencesForPointer(entry.getValue()) +
+                    entry.getKey() +
+                    " != " +
+                    getDereferencesForPointer(entry.getValue()) +
+                    entry.getKey() +
+                    "_instr_" + pIndex +
+                    ")")
+            .collect(Collectors.joining(" || ")) +
+        "); }"),
+    InstrumentationOrder.AFTER,
+    q3
+);
+
+        
     InstrumentationTransition t3 =
         new InstrumentationTransition(
             q3,
@@ -444,62 +442,62 @@ public class InstrumentationAutomaton {
   }
 
   // TODO
-  private void constructDistanceAutomaton(int pIndex, VariableBoundInfo boundInfo) {
-    if(boundInfo.getLoopType() == NormalLoopType.STRUCTURED){
-        InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
-        InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
-        InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
-        this.initialState = q1;
+  private void constructDistanceAutomaton(int pIndex, LoopConditionChecker.VariableBoundInfo boundInfo) {
+    InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.LOOPHEAD, this);
+    InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
+    InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
+    this.initialState = q1;
 
-        InstrumentationTransition t1 =
-            new InstrumentationTransition(
-                q1,
-                new InstrumentationPattern("true"),
-                new InstrumentationOperation(
-                    "int saved_"
-                        + pIndex
-                        + " = 0; "
-                        + "int distance;"
-                        + (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
-                InstrumentationOrder.BEFORE,
-                q2);
-        InstrumentationTransition t2 =
-            new InstrumentationTransition(
-                q2,
-                new InstrumentationPattern("[cond]"),
-                new InstrumentationOperation(
-                    "if(__VERIFIER_nondet_int() && saved_"
-                        + pIndex
-                        + " == 0) { saved_"
-                        + pIndex
-                        + " =1; "
-                        + distanceCalculationString(boundInfo)
-                        + (!liveVariablesAndTypes.isEmpty() ? "; " : "")
-                        + "} else { __VERIFIER_assert((saved_"
-                        + pIndex
-                        + " == 0) ||"
-                        + distanceComparsonString(boundInfo)),
-                        //TODO close bracket
-                InstrumentationOrder.AFTER,
-                q3);
-        InstrumentationTransition t3 =
-            new InstrumentationTransition(
-                q3,
-                new InstrumentationPattern("true"),
-                new InstrumentationOperation(""),
-                InstrumentationOrder.AFTER,
-                q3);
-        this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
-    }
-    
-  }
-  // Todo
-  private String distanceCalculationString(VariableBoundInfo boundInfo){
-    return "";
-  }
-  private String distanceComparsonString(VariableBoundInfo boundInfo){
-    return "";
-  }
+    // Transition t1: Initialize saved and distance variables
+    InstrumentationTransition t1 =
+        new InstrumentationTransition(
+            q1,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation(
+                "int saved_" + pIndex + " = 0; " +
+                "int distance_" + pIndex + " = " +
+                distanceCalculationString(boundInfo) + ";"),
+            InstrumentationOrder.BEFORE,
+            q2);
+
+    // Transition t2: Check and assert distance property, then update saved
+    InstrumentationTransition t2 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("[cond]"),
+            new InstrumentationOperation(
+                "__VERIFIER_assert((saved_" + pIndex + " == 0) || " +
+                distanceComparisonString(boundInfo, pIndex) + ");" +
+                "if (saved_" + pIndex + " == 0) {" +
+                "  saved_" + pIndex + " = 1;" +
+                "}" +
+                "distance_" + pIndex + " = " + distanceCalculationString(boundInfo) + ";"),
+            InstrumentationOrder.AFTER,
+            q3);
+
+    // Transition t3: Self-loop for further iterations
+    InstrumentationTransition t3 =
+        new InstrumentationTransition(
+            q3,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation(""),
+            InstrumentationOrder.AFTER,
+            q3);
+
+    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
+}
+
+// Calculate the distance expression based on the variable bounds
+private String distanceCalculationString(LoopConditionChecker.VariableBoundInfo boundInfo) {
+    return "abs(" + boundInfo.getVar1() + " - " + boundInfo.getVar2() + ")";
+}
+
+// Create the distance comparison condition with pIndex
+private String distanceComparisonString(LoopConditionChecker.VariableBoundInfo boundInfo, int pIndex) {
+    return "distance_" + pIndex + " > abs(" + boundInfo.getVar1() + " - " + boundInfo.getVar2() + ")";
+}
+
+
 
 
 }

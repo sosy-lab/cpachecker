@@ -1,38 +1,28 @@
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 public class VariableBoundInfo {
     protected NormalLoopType loopType;
-    protected final VariableInfo leftVariable;
-    protected final VariableInfo rightVariable;
+    protected final CIdExpression leftVariable;
+    protected final CIdExpression rightVariable;
 
     public VariableBoundInfo(
-        VariableInfo leftInfo,VariableInfo rightInfo, NormalLoopType loopType
+        CIdExpression leftInfo,CIdExpression rightInfo
         ){
             this.leftVariable = leftInfo;
             this.rightVariable = rightInfo;
-            this.loopType = loopType;
     }
 
-    public void setLoopType(NormalLoopType loopType){
-        this.loopType = loopType;
-    }
 
-    public VariableInfo getRightInfo(){
+    public CIdExpression getRightInfo(){
         return this.rightVariable;
     }
     
-    public VariableInfo getLeftInfo(){
+    public CIdExpression getLeftInfo(){
         return this.leftVariable;
     }
 
-    public NormalLoopType getLoopType(){
-        return this.loopType;
-    }
-
-    public boolean isBinary(){
-        return !((this.leftVariable == null) || (this.rightVariable == null));
-    }
     
 }
 
