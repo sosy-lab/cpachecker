@@ -2549,7 +2549,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     Format format = new Format(pNumber.getExponentSize(), pNumber.getMantissaSize());
     long exponent = pNumber.getExponent().longValue() - format.bias();
     BigInteger significand = pNumber.getMantissa();
-    if (pNumber.getExponent().equals(BigInteger.ZERO)) {
+    if (!pNumber.getExponent().equals(BigInteger.ZERO)) {
       // If it's not a subnormal number, add the hidden bit to the significand
       significand = significand.setBit(format.sigBits);
     }
