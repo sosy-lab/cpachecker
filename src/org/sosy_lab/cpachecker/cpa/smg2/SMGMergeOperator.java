@@ -57,8 +57,12 @@ public class SMGMergeOperator implements MergeOperator {
 
       if (maybeMergedStateAndStatus.orElseThrow().getMergeStatus() == SMGMergeStatus.EQUAL) {
         // Don't merge equal states, as they are subsumed with the stop-operator
+        newSMGState.addLessOrEqualState(smgStateFromReached);
+        smgStateFromReached.addLessOrEqualState(newSMGState);
         return smgStateFromReached;
       }
+      // right-entails shows that smgStateFromReached < newState
+      // left-entails shows that newState < smgStateFromReached
 
       // Retain block-end status
       SMGState mergedState = maybeMergedStateAndStatus.orElseThrow().getMergedSMGState();
@@ -66,8 +70,8 @@ public class SMGMergeOperator implements MergeOperator {
         mergedState = mergedState.withBlockEnd(newSMGState.getBlockEnd());
       }
 
-      newSMGState.setMergedInto(mergedState);
-      smgStateFromReached.setMergedInto(mergedState);
+      newSMGState.addLessOrEqualState(mergedState);
+      smgStateFromReached.addLessOrEqualState(mergedState);
       return mergedState;
     }
 

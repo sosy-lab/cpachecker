@@ -176,11 +176,16 @@ public class SMGState
   // Remembers the location (block-end or not) to determine better merge locations
   private final Optional<CFANode> blockEnd;
 
-  // Remember merge info for quick lessOrEquals check
-  private Optional<SMGState> wasMergedInto = Optional.empty();
+  // Remember merge info for quick lessOrEquals check (only valid for this very state!)
+  private Set<SMGState> thisIsLessOrEqualTo = ImmutableSet.of();
 
-  public void setMergedInto(SMGState mergedState) {
-    wasMergedInto = Optional.of(mergedState);
+  /** All added states are either equal to this state or subsume this state. */
+  public void addLessOrEqualState(SMGState equalOrLargerState) {
+    thisIsLessOrEqualTo =
+        ImmutableSet.<SMGState>builder()
+            .addAll(thisIsLessOrEqualTo)
+            .add(equalOrLargerState)
+            .build();
   }
 
   // Constructor only for NEW/EMPTY SMGStates!
@@ -1457,9 +1462,11 @@ public class SMGState
   // therefore subsumed by the right state pOther)
   @Override
   public boolean isLessOrEqual(SMGState pOther) throws CPAException, InterruptedException {
-    if (this.wasMergedInto.isPresent() && wasMergedInto.orElseThrow() == pOther) {
+    if (thisIsLessOrEqualTo.contains(pOther)) {
+      // Apply info from recent merge
       return true;
     }
+
     // This state needs the same amount of variables as the other state
     if (getSize() != pOther.getSize()) {
       return false;
