@@ -26,6 +26,15 @@ public final class CLemmaFunctionCall extends CFunctionCallExpression implements
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
   }
 
+  public CLemmaFunctionCall(CFunctionCallExpression pFunctionCall) {
+    this(
+        pFunctionCall.getFileLocation(),
+        pFunctionCall.getExpressionType(),
+        pFunctionCall.getFunctionNameExpression(),
+        pFunctionCall.getParameterExpressions(),
+        pFunctionCall.getDeclaration());
+  }
+
   @Override
   public <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
