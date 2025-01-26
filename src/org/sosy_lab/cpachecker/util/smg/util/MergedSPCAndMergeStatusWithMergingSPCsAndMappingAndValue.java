@@ -9,19 +9,20 @@
 package org.sosy_lab.cpachecker.util.smg.util;
 
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
+import org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure;
 
 public class MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue {
 
   private final SMGValue value;
   private final MergedSPCAndMergeStatusWithMergingSPCsAndMapping
       mergedSPCAndMergeStatusWithMergingSPCsAndMapping;
-  private final boolean recoverableFailure;
+  private final SMGRecoverableFailure recoverableFailure;
 
   private MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue(
       SMGValue pSMGValue,
       MergedSPCAndMergeStatusWithMergingSPCsAndMapping
           pMergedSPCAndMergeStatusWithMergingSPCsAndMapping,
-      boolean pRecoverableFailure) {
+      SMGRecoverableFailure pRecoverableFailure) {
     value = pSMGValue;
     mergedSPCAndMergeStatusWithMergingSPCsAndMapping =
         pMergedSPCAndMergeStatusWithMergingSPCsAndMapping;
@@ -33,11 +34,13 @@ public class MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue {
       MergedSPCAndMergeStatusWithMergingSPCsAndMapping
           pMergedSPCAndMergeStatusWithMergingSPCsAndMapping) {
     return new MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue(
-        pSMGValue, pMergedSPCAndMergeStatusWithMergingSPCsAndMapping, false);
+        pSMGValue, pMergedSPCAndMergeStatusWithMergingSPCsAndMapping, null);
   }
 
-  public static MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue recoverableFailure() {
-    return new MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue(null, null, true);
+  public static MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue recoverableFailure(
+      SMGRecoverableFailure pRecoverableFailure) {
+    return new MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue(
+        null, null, pRecoverableFailure);
   }
 
   public SMGValue getSMGValue() {
@@ -51,6 +54,10 @@ public class MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue {
 
   /** If this is true, the other inputs are NULL! */
   public boolean isRecoverableFailure() {
+    return recoverableFailure != null;
+  }
+
+  public SMGRecoverableFailure getRecoverableFailure() {
     return recoverableFailure;
   }
 }
