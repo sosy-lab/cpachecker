@@ -8,8 +8,18 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-gcc -std='c11' -shared -fpic -msse2 -O3 -o 'libFloatingPoints.so' \
+# See README.md for instruction on how to run this file
+
+# Compile the library with gcc
+# The -I options are needed to set the include path for the JNI header.
+# We expect the user to set $JAVA_HOME to the right location before running this script.
+gcc -std='c11' \
+  -shared -fpic \
+  -O3 \
+  -o 'libFloatingPoints.so' \
  	-I"$JAVA_HOME/include/" \
 	-I"$JAVA_HOME/include/linux/" \
 	-I"$JAVA_HOME/include/darwin/" \
 	floatingPoints.c
+
+chmod 755 libFloatingPoints.so
