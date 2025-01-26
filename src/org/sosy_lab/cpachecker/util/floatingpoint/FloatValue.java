@@ -1190,17 +1190,17 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         // Return NaN if we're trying to multiply infinity by zero
         return nan(format);
       } else {
-        return (arg1.isNegative() ^ arg2.isNegative())
+        return (arg1.isNegative() != arg2.isNegative())
             ? negativeInfinity(format)
             : infinity(format);
       }
     } else if (arg1.isZero() || arg2.isZero()) {
       // (3) One of the arguments is zero (or negative zero)
-      return (arg1.isNegative() ^ arg2.isNegative()) ? negativeZero(format) : zero(format);
+      return (arg1.isNegative() != arg2.isNegative()) ? negativeZero(format) : zero(format);
     }
 
     // Calculate the sign of the result
-    boolean resultSign = arg1.sign ^ arg2.sign;
+    boolean resultSign = arg1.sign != arg2.sign;
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
     // needs to be increased by one.
@@ -1317,13 +1317,13 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         // Return NaN if we're trying to multiply infinity by zero
         return nan(format);
       } else {
-        return (arg1.isNegative() ^ arg2.isNegative())
+        return (arg1.isNegative() != arg2.isNegative())
             ? negativeInfinity(format)
             : infinity(format);
       }
     } else if (arg1.isZero() || arg2.isZero()) {
       // (3) One of the arguments is zero (or negative zero)
-      return (arg1.isNegative() ^ arg2.isNegative()) ? negativeZero(format) : zero(format);
+      return (arg1.isNegative() != arg2.isNegative()) ? negativeZero(format) : zero(format);
     }
 
     // We assume both arguments are normal
@@ -1331,7 +1331,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         arg1.exponent >= format.minExp() && arg2.exponent >= format.minExp());
 
     // Calculate the sign of the result
-    boolean resultSign = arg1.sign ^ arg2.sign;
+    boolean resultSign = arg1.sign != arg2.sign;
 
     // Calculate the exponent of the result by adding the exponents of the two arguments.
     // If the calculated exponent is out of range we can return infinity (or zero) immediately.
@@ -1435,7 +1435,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    */
   private FloatValue divideSlow(FloatValue pDivisor) {
     // Calculate the sign of the result
-    boolean resultSign = sign ^ pDivisor.sign;
+    boolean resultSign = sign != pDivisor.sign;
 
     // Handle special cases:
     if (isNan() || pDivisor.isNan()) {
@@ -1546,7 +1546,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   }
 
   private FloatValue divideNewton(FloatValue pDivisor) {
-    boolean resultSign = isNegative() ^ pDivisor.isNegative(); // Sign of the result
+    boolean resultSign = isNegative() != pDivisor.isNegative(); // Sign of the result
 
     // Handle special cases:
     if (isNan() || pDivisor.isNan()) {
@@ -1598,7 +1598,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     FloatValue r = x.multiply(n);
 
     // Set the sign bit and return the result
-    return r.withSign(sign ^ pDivisor.sign);
+    return r.withSign(sign != pDivisor.sign);
   }
 
   /**
