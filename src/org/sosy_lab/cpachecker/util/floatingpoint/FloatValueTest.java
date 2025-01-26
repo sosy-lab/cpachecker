@@ -789,21 +789,14 @@ public class FloatValueTest {
   public void fromStringTest() {
     for (BigFloat arg : unaryTestValues()) {
       try {
-        // Calculate result with the reference implementation
-        BigFloat resultReference = toBigFloat(toReferenceImpl(printBigFloat(arg)));
-
         // Calculate result with the tested implementation
         BigFloat resultTested =
-            toBigFloat(
-                FloatValue.fromString(floatTestOptions.format, printBigFloat(arg)));
+            toBigFloat(FloatValue.fromString(floatTestOptions.format, printBigFloat(arg)));
 
         // Calculate result with the reference implementation
-        if (!resultTested.equals(resultReference)) {
+        if (!resultTested.equals(arg)) {
           String testHeader = printTestHeader("fromString", arg);
-          expect
-              .withMessage(testHeader)
-              .that(printValue(resultTested))
-              .isEqualTo(printValue(resultReference));
+          expect.withMessage(testHeader).that(printValue(resultTested)).isEqualTo(printValue(arg));
         }
       } catch (Throwable t) {
         throw new RuntimeException(printTestHeader("fromString", arg), t);
