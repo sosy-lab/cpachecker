@@ -863,6 +863,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * #compareWithTotalOrder(FloatValue)} to get the result under "bitwise equality".
    */
   public boolean lessOrGreater(FloatValue pNumber) {
+    checkMatchingPrecision(pNumber);
     if (isNan() || pNumber.isNan()) {
       return false;
     }
@@ -937,6 +938,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * #compareWithTotalOrder(FloatValue)} to get the result under "bitwise equality".
    */
   public boolean lessThan(FloatValue pNumber) {
+    checkMatchingPrecision(pNumber);
     if (isNan() || pNumber.isNan()) {
       return false;
     }
