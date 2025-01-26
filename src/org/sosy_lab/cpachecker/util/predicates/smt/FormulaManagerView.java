@@ -1868,8 +1868,8 @@ public class FormulaManagerView {
     BooleanFormula nnf;
     try {
       nnf = applyTactic(input, Tactic.NNF);
-    } catch (SolverException pE) {
-      throw new AssertionError("Solver failed when applying tactic NNF", pE);
+    } catch (SolverException e) {
+      throw new AssertionError("Solver failed when applying tactic NNF", e);
     }
 
     BooleanFormula nnfNotTransformed =

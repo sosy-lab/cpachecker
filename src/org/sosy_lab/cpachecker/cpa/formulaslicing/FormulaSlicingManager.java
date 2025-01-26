@@ -195,8 +195,8 @@ public class FormulaSlicingManager implements StatisticsProvider {
     Set<BooleanFormula> lemmas;
     try {
       lemmas = rcnfManager.toLemmasInstantiated(pf.withFormula(transition), fmgr);
-    } catch (SolverException pE) {
-      throw new CPAException("Solver failed with exception", pE);
+    } catch (SolverException e) {
+      throw new CPAException("Solver failed with exception", e);
     }
 
     Set<BooleanFormula> finalLemmas = new HashSet<>();

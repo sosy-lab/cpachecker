@@ -603,8 +603,8 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
         conjuncts =
             Collections3.transformedImmutableSetCopy(
                 semiCNFConverter.toLemmasInstantiated(pPathFormula, fmgr), fmgr::uninstantiate);
-      } catch (SolverException pE) {
-        throw new CPAException("Solver failed with exception", pE);
+      } catch (SolverException e) {
+        throw new CPAException("Solver failed with exception", e);
       }
 
       final Map<String, BooleanFormula> formulaToRegion = new HashMap<>();

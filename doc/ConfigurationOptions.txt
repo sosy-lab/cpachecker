@@ -56,7 +56,6 @@ output.path = "output/"
 rootDirectory = "."
 
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 #
@@ -64,9 +63,9 @@ rootDirectory = "."
 
 # Further options for Bitwuzla in addition to the default options. Format: 
 # "option_name=value" with ’,’ to separate options. Option names and values
-# can be found in the Bitwuzla documentation
-# online:https://bitwuzla.github.io/docs/cpp/enums/option.html#_CPPv4N8bitwuzla6OptionEExample:
-# "PRODUCE_MODELS=2,SAT_SOLVER=kissat".
+# can be found in the Bitwuzla documentation online:
+# https://bitwuzla.github.io/docs/cpp/enums/option.html#_CPPv4N8bitwuzla6OptionE
+# Example: "PRODUCE_MODELS=2,SAT_SOLVER=kissat".
 solver.bitwuzla.furtherOptions = ""
 
 # The SAT solver used by Bitwuzla.
@@ -74,8 +73,8 @@ solver.bitwuzla.satSolver = CADICAL
   enum:     [LINGELING, CMS, CADICAL, KISSAT]
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with ’,’ to seperate options. Optionname and value can
-# be found in BtorOption or Boolector C Api.Example:
+# "Optionname=value" with ’,’ to separate options. Option names and values
+# can be found in BtorOption or Boolector C Api. Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
 
@@ -85,6 +84,10 @@ solver.boolector.satSolver = CADICAL
 
 # Counts all operations and interactions towards the SMT solver.
 solver.collectStatistics = false
+
+# Further options that will be passed to CVC5 in addition to the default
+# options. Format is 'key1=value1,key2=value2'
+solver.cvc5.furtherOptions = ""
 
 # apply additional validation checks for interpolation results
 solver.cvc5.validateInterpolants = false
@@ -206,7 +209,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+# SPDX-FileCopyrightText: 2014-2017 Universit� Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
