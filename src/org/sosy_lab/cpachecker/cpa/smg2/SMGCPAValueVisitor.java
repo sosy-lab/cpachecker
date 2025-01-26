@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -1287,6 +1288,11 @@ public class SMGCPAValueVisitor
     // TODO:
 
     return visitDefault(e);
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return List.of();
   }
 
   @Override

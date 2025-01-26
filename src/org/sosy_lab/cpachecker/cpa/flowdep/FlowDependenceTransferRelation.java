@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
@@ -764,6 +765,11 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
     @Override
     public Set<MemoryLocation> visit(CAddressOfLabelExpression pExp) throws CPATransferException {
       return pExp.accept(this);
+    }
+
+    @Override
+    public Set<MemoryLocation> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+      return Set.of();
     }
 
     @Override

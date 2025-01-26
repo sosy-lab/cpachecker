@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -71,6 +72,11 @@ class VarCExpressionVisitor extends DefaultCExpressionVisitor<Boolean, NoExcepti
   @Override
   public Boolean visit(CUnaryExpression exp) {
     return exp.getOperand().accept(this);
+  }
+
+  @Override
+  public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return null;
   }
 
   @Override

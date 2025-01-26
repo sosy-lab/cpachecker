@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
@@ -328,6 +329,11 @@ public class ExpressionSimplificationVisitor
     } else {
       return new CUnaryExpression(loc, exprType, op, unaryOperator);
     }
+  }
+
+  @Override
+  public CExpression visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return null;
   }
 
   @Override

@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -160,6 +161,11 @@ abstract class AbstractSlice implements Slice {
     @Override
     public CAstNode visit(CTypeDefDeclaration pDeclaration) {
       return collectDeclarationIfRelevant(pDeclaration, () -> super.visit(pDeclaration));
+    }
+
+    @Override
+    public CAstNode visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+      return null;
     }
   }
 }

@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -141,6 +142,11 @@ public abstract class ConcreteErrorPathAllocator<S extends AbstractState> {
     @Override
     public Boolean visit(CUnaryExpression pE) {
       return pE.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+      return null;
     }
   }
 }

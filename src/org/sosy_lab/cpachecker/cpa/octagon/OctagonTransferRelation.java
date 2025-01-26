@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -1671,6 +1672,12 @@ public class OctagonTransferRelation
       }
 
       return returnValues;
+    }
+
+    @Override
+    public Set<Pair<IOctagonCoefficients, OctagonState>> visit(
+        CLemmaFunctionCall pCLemmaFunctionCall) {
+      return Set.of();
     }
 
     @Override

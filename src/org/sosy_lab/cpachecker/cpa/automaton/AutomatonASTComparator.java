@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
@@ -253,6 +254,11 @@ class AutomatonASTComparator {
           CAddressOfLabelExpression.class,
           exp,
           compareField(exp, CAddressOfLabelExpression::getLabelName));
+    }
+
+    @Override
+    public ASTMatcher visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+      return null;
     }
 
     @Override

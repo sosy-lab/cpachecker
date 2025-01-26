@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
@@ -165,6 +166,11 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     }
 
     return value;
+  }
+
+  @Override
+  public Value visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return null;
   }
 
   @Override

@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -76,6 +77,11 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeE
   @Override
   public Formula visit(CUnaryExpression pE) throws UnrecognizedCodeException {
     return giveUpAndJustMakeVariable(pE);
+  }
+
+  @Override
+  public Formula visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return null;
   }
 
   @Override

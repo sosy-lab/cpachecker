@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -255,6 +256,11 @@ public final class ReachingDefUtils {
     public MemoryLocation visit(CUnaryExpression pIastUnaryExpression)
         throws UnsupportedCodeException {
       return pIastUnaryExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public MemoryLocation visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+      return null;
     }
 
     @Override

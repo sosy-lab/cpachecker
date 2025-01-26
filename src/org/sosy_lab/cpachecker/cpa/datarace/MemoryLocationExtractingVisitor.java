@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -102,6 +103,11 @@ public class MemoryLocationExtractingVisitor
   public Set<OverapproximatingMemoryLocation> visit(
       CAddressOfLabelExpression pAddressOfLabelExpression) {
     return ImmutableSet.of();
+  }
+
+  @Override
+  public Set<OverapproximatingMemoryLocation> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return Set.of();
   }
 
   @Override

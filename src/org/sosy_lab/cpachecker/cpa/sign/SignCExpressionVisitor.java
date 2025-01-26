@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -190,6 +191,11 @@ public class SignCExpressionVisitor
       default:
         throw new UnsupportedCodeException("Not supported", edgeOfExpr, pIastUnaryExpression);
     }
+  }
+
+  @Override
+  public Sign visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return null;
   }
 
   private static Sign evaluateUnaryExpression(UnaryOperator operator, Sign operand) {

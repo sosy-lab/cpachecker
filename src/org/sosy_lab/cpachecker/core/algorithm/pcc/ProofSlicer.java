@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -579,6 +580,11 @@ public class ProofSlicer {
     @Override
     public String visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
       throw new AssertionError();
+    }
+
+    @Override
+    public String visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+      return "";
     }
   }
 }

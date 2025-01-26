@@ -29,4 +29,6 @@ public interface CExpressionVisitor<R, X extends Exception> extends CLeftHandSid
   R visit(CImaginaryLiteralExpression PIastLiteralExpression) throws X;
 
   R visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws X;
+
+  R visit(CLemmaFunctionCall pCLemmaFunctionCall);
 }

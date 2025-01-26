@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -265,6 +266,11 @@ public class BDDVectorCExpressionVisitor
   @Override
   public Region[] visit(CImaginaryLiteralExpression pE) throws UnsupportedCodeException {
     return pE.getValue().accept(this);
+  }
+
+  @Override
+  public Region[] visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return new Region[0];
   }
 
   @Override

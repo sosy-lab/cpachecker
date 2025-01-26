@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -120,6 +121,11 @@ class CExpressionVisitorWithPointerAliasing
     @Override
     public Formula visit(CFunctionCallExpression e) throws UnrecognizedCodeException {
       return convert0(((CExpressionVisitorWithPointerAliasing) delegate).visit(e), e);
+    }
+
+    @Override
+    public Formula visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+      return null;
     }
   }
 
@@ -526,6 +532,11 @@ class CExpressionVisitorWithPointerAliasing
     } else {
       return visitDefault(e);
     }
+  }
+
+  @Override
+  public Expression visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return null;
   }
 
   /**

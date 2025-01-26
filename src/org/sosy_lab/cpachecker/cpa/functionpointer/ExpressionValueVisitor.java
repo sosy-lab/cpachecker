@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -142,5 +143,10 @@ class ExpressionValueVisitor
   @Override
   public FunctionPointerTarget visit(CImaginaryLiteralExpression pE) {
     return InvalidTarget.getInstance();
+  }
+
+  @Override
+  public FunctionPointerTarget visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return null;
   }
 }

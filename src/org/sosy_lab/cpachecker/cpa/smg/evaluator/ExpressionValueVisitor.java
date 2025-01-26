@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
@@ -272,6 +273,11 @@ class ExpressionValueVisitor
       default:
         return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
     }
+  }
+
+  @Override
+  public List<? extends SMGValueAndState> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return List.of();
   }
 
   @Override

@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
@@ -155,6 +156,11 @@ public class BDDCompressExpressionVisitor extends DefaultCExpressionVisitor<Regi
   @Override
   public Region[] visit(CIntegerLiteralExpression pE) {
     return intToRegions.get(pE.getValue());
+  }
+
+  @Override
+  public Region[] visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return new Region[0];
   }
 
   @Override

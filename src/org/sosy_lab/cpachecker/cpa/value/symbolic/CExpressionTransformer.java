@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -218,6 +219,11 @@ public class CExpressionTransformer extends ExpressionTransformer
   public SymbolicExpression visit(final CAddressOfLabelExpression pAddressOfLabelExpression)
       throws UnrecognizedCodeException {
     throw new AssertionError("Address of label expression used in symbolic expression");
+  }
+
+  @Override
+  public SymbolicExpression visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return null;
   }
 
   @Override

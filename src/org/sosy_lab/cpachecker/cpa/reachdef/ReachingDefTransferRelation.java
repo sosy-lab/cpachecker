@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -287,6 +288,11 @@ public class ReachingDefTransferRelation implements TransferRelation {
                   public Collection<CLeftHandSide> visit(CAddressOfLabelExpression pExp)
                       throws NoException {
                     return ImmutableList.of();
+                  }
+
+                  @Override
+                  public Collection<CLeftHandSide> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+                    return List.of();
                   }
 
                   @Override

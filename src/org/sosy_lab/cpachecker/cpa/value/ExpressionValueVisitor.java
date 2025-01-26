@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
@@ -265,6 +266,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     return UnknownValue.getInstance();
   }
 
+  @Override
+  public Value visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return null;
+  }
+
   protected static class MemoryLocationEvaluator
       extends DefaultCExpressionVisitor<MemoryLocation, UnrecognizedCodeException> {
 
@@ -430,6 +436,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     public MemoryLocation visit(CCastExpression pE) throws UnrecognizedCodeException {
       // TODO reinterpretations for ValueAnalysis
       return pE.getOperand().accept(this);
+    }
+
+    @Override
+    public MemoryLocation visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+      return null;
     }
   }
 

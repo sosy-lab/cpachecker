@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -249,6 +250,11 @@ public final class ExpressionSubstitution {
     public CExpression visit(CAddressOfLabelExpression pAddressOfLabelExpression)
         throws SubstitutionException {
       return substitution.substitute(pAddressOfLabelExpression);
+    }
+
+    @Override
+    public CExpression visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+      return null;
     }
   }
 

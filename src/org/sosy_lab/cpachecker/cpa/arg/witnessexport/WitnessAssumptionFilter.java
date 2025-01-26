@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -119,6 +120,11 @@ final class WitnessAssumptionFilter {
               case AMPER -> true;
               default -> visitDefault(pIastUnaryExpression);
             };
+          }
+
+          @Override
+          public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+            return null;
           }
 
           @Override

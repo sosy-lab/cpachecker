@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -136,6 +137,11 @@ public class SMGCPAAddressVisitor
     currentState = addressValueAndState.getState();
 
     return currentState.dereferencePointer(addressValue);
+  }
+
+  @Override
+  public List<SMGStateAndOptionalSMGObjectAndOffset> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return List.of();
   }
 
   @Override

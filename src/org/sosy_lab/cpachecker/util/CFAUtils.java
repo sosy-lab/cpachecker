@@ -89,6 +89,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -1090,6 +1091,11 @@ public class CFAUtils {
     @Override
     public Iterable<AAstNode> visit(CAddressOfLabelExpression pExp) {
       return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+      return null;
     }
 
     @Override

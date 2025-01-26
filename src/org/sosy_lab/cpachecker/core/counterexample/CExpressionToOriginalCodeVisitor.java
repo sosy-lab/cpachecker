@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -249,6 +250,11 @@ public class CExpressionToOriginalCodeVisitor implements CExpressionVisitor<Stri
       return substitute;
     }
     return pAddressOfLabelExpression.toASTString();
+  }
+
+  @Override
+  public String visit(CLemmaFunctionCall pCLemmaFunctionCall) {
+    return "";
   }
 
   public String parenthesize(String pInput) {
