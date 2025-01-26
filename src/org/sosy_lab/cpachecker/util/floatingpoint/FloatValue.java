@@ -1891,27 +1891,27 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
 
     FloatValue r = nan(format);
-    boolean done = false;
 
     for (Format p : intermediatePrecisions()) {
-      if (!done) {
-        Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
-        FloatValue x = withPrecision(precision);
+      Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
+      FloatValue x = withPrecision(precision);
 
-        // TODO: Call exp_ only once and *then* check if we're too close to a break point
-        FloatValue v1 = x.plus1Ulp().withPrecision(p).exp_();
-        FloatValue v2 = x.minus1Ulp().withPrecision(p).exp_();
+      // TODO: Call exp_ only once and *then* check if we're too close to a break point
+      FloatValue v1 = x.plus1Ulp().withPrecision(p).exp_();
+      FloatValue v2 = x.minus1Ulp().withPrecision(p).exp_();
 
-        if (equalModuloP(format, v1, v2) && isStable(v1.validPart())) {
-          done = true;
-          r = v1;
+      if (equalModuloP(format, v1, v2) && isStable(v1.validPart())) {
+        // Store the result
+        r = v1;
 
-          // Update statistics
-          if (pExpStats != null) {
-            Integer k = p.sigBits - format.sigBits;
-            pExpStats.put(k, pExpStats.getOrDefault(k, 0) + 1);
-          }
+        // Update statistics
+        if (pExpStats != null) {
+          Integer k = p.sigBits - format.sigBits;
+          pExpStats.put(k, pExpStats.getOrDefault(k, 0) + 1);
         }
+
+        // Exit the loop
+        break;
       }
     }
     return r.withPrecision(format);
@@ -2018,30 +2018,30 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
 
     FloatValue r = nan(format);
-    boolean done = false;
 
     for (Format p : intermediatePrecisions()) {
-      if (!done) {
-        Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
-        FloatValue x = withPrecision(precision);
+      Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
+      FloatValue x = withPrecision(precision);
 
-        // TODO: Call ln only once and *then* check if we're too close to a break point
-        FloatValue x1 = x.plus1Ulp().withPrecision(p);
-        FloatValue x2 = x.minus1Ulp().withPrecision(p);
+      // TODO: Call ln only once and *then* check if we're too close to a break point
+      FloatValue x1 = x.plus1Ulp().withPrecision(p);
+      FloatValue x2 = x.minus1Ulp().withPrecision(p);
 
-        FloatValue v1 = x1.ln_();
-        FloatValue v2 = x2.ln_();
+      FloatValue v1 = x1.ln_();
+      FloatValue v2 = x2.ln_();
 
-        if (equalModuloP(format, v1, v2) && isStable(v1.validPart())) {
-          done = true;
-          r = v1;
+      if (equalModuloP(format, v1, v2) && isStable(v1.validPart())) {
+        // Store the result
+        r = v1;
 
-          // Update statistics
-          if (pLnStats != null) {
-            Integer k = p.sigBits - format.sigBits;
-            pLnStats.put(k, pLnStats.getOrDefault(k, 0) + 1);
-          }
+        // Update statistics
+        if (pLnStats != null) {
+          Integer k = p.sigBits - format.sigBits;
+          pLnStats.put(k, pLnStats.getOrDefault(k, 0) + 1);
         }
+
+        // Exit the loop
+        break;
       }
     }
     return r.withPrecision(format);
@@ -2200,9 +2200,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     FloatValue arg2 = exp.withPrecision(precision);
 
     FloatValue r = nan(format);
-    boolean done = false;
-
-    while (!done && !arg2.isInfinite()) {
+    while (!arg2.isInfinite()) {
       // Rewrite a^x with a=b^2 and x=y/2 as b^y until we're left with an integer exponent
       Optional<FloatValue> val = arg1.sqrtExact();
       if (val.isEmpty()) {
@@ -2213,8 +2211,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       arg2 = arg2.withExponent(arg2.exponent + 1);
 
       if (arg2.isInteger()) {
-        done = true;
         r = arg1.powInt(arg2.toInteger().orElseThrow());
+        break;
       }
     }
     return r.withPrecision(format);
@@ -2222,46 +2220,46 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   private FloatValue pow_(FloatValue pExponent, @Nullable Map<Integer, Integer> pPowStats) {
     FloatValue r = nan(format);
-    boolean done = false;
 
     for (Format p : intermediatePrecisions()) {
-      if (!done) {
-        // a^x = exp(x * ln a)
-        Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
+      // a^x = exp(x * ln a)
+      Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
 
-        FloatValue a = this.withPrecision(p);
-        FloatValue x = pExponent.withPrecision(p);
+      FloatValue a = this.withPrecision(p);
+      FloatValue x = pExponent.withPrecision(p);
 
-        // The next call calculates ln with the current precision.
-        // TODO: Figure out why this is enough?
-        FloatValue lna = a.ln_();
-        FloatValue xlna = x.multiply(lna).withPrecision(precision);
+      // The next call calculates ln with the current precision.
+      // TODO: Figure out why this is enough?
+      FloatValue lna = a.ln_();
+      FloatValue xlna = x.multiply(lna).withPrecision(precision);
 
-        // Check if we call e^x with x close to zero
-        boolean nearZero = !xlna.abs().greaterThan(minNormal(precision));
+      // Check if we call e^x with x close to zero
+      boolean nearZero = !xlna.abs().greaterThan(minNormal(precision));
 
-        // Calculate a bound for the value of e^(x * ln a)
-        // TODO: Call exp only once and *then* check if we're too close to a break point
-        FloatValue xlna1 = xlna.plus1Ulp().withPrecision(p);
-        FloatValue xlna2 = xlna.minus1Ulp().withPrecision(p);
+      // Calculate a bound for the value of e^(x * ln a)
+      // TODO: Call exp only once and *then* check if we're too close to a break point
+      FloatValue xlna1 = xlna.plus1Ulp().withPrecision(p);
+      FloatValue xlna2 = xlna.minus1Ulp().withPrecision(p);
 
-        FloatValue exlna1 = nearZero ? xlna1.expMinus1() : xlna1.exp_();
-        FloatValue exlna2 = nearZero ? xlna2.expMinus1() : xlna2.exp_();
+      FloatValue exlna1 = nearZero ? xlna1.expMinus1() : xlna1.exp_();
+      FloatValue exlna2 = nearZero ? xlna2.expMinus1() : xlna2.exp_();
 
-        // Proceed if the result is stable in the original precision
-        // If the result was close to zero we have to use an extended format that allows larger
-        // exponents. Otherwise, the values are too small and will be flushed to zero.
-        Format p0 = format.withUnlimitedExponent();
+      // Proceed if the result is stable in the original precision
+      // If the result was close to zero we have to use an extended format that allows larger
+      // exponents. Otherwise, the values are too small and will be flushed to zero.
+      Format p0 = format.withUnlimitedExponent();
 
-        if (equalModuloP(nearZero ? p0 : format, exlna1, exlna2) && isStable(exlna1.validPart())) {
-          done = true;
-          r = nearZero ? one(p).add(exlna1) : exlna1;
+      if (equalModuloP(nearZero ? p0 : format, exlna1, exlna2) && isStable(exlna1.validPart())) {
+        // Store the result
+        r = nearZero ? one(p).add(exlna1) : exlna1;
 
-          // Update statistics
-          if (pPowStats != null) {
-            pPowStats.put(precision.sigBits, pPowStats.getOrDefault(0, precision.sigBits) + 1);
-          }
+        // Update statistics
+        if (pPowStats != null) {
+          pPowStats.put(precision.sigBits, pPowStats.getOrDefault(0, precision.sigBits) + 1);
         }
+
+        // Exit the loop
+        break;
       }
     }
     return r.withPrecision(format);
