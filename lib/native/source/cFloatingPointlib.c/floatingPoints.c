@@ -29,7 +29,7 @@ const char* EXCEPTION = "java/lang/IllegalArgumentException";
 
 const char* EX_TEXT = "Type invalid or not supported.";
 
-typedef struct {long long mantissa; long long exp_sig_pad; } t_ld_bits;
+typedef struct {unsigned long long mantissa; unsigned long long exp_sig_pad; } t_ld_bits;
 typedef union {t_ld_bits bitmask; long double ld_value; double d_value; float f_value; } t_ld;
 
 /**
@@ -40,6 +40,16 @@ void throwException(JNIEnv* env, const char* message) {
 	jthrowable ex = (*env)->FindClass(env, EXCEPTION);
 	(*env)->ThrowNew(env, ex, message);
 }
+
+#define FLOAT_SIGNIFICAND_WIDTH 23
+#define FLOAT_SIGN_AND_EXPONENT_BITMASK 0xFF800000L
+#define FLOAT_SIGNIFICAND_BITMASK 0x007FFFFFL
+
+#define DOUBLE_SIGNIFICAND_WIDTH 52
+#define DOUBLE_SIGN_AND_EXPONENT_BITMASK 0xFFF0000000000000L
+#define DOUBLE_SIGNIFICAND_BITMASK 0xFFFFFFFFFFFFFL
+
+#define LONGDOUBLE_SIGN_AND_EXPONENT_BITMASK 0xFFFFL
 
 /**
  * Utility function to get the floating point
@@ -57,14 +67,14 @@ t_ld transformWrapperFromJava(JNIEnv* env, jobject wrapper, jint type) {
 	t_ld fp_obj = { .ld_value = 0.0L };
 	switch (type) {
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-			fp_obj.bitmask.mantissa ^= mantissa + (exponent << 23);
+			fp_obj.bitmask.mantissa = mantissa + (exponent << FLOAT_SIGNIFICAND_WIDTH);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			fp_obj.bitmask.mantissa ^= mantissa + (exponent << 52);
+			fp_obj.bitmask.mantissa = mantissa + (exponent << DOUBLE_SIGNIFICAND_WIDTH);
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			fp_obj.bitmask.exp_sig_pad ^= exponent;
-			fp_obj.bitmask.mantissa ^= mantissa;
+			fp_obj.bitmask.exp_sig_pad = exponent;
+			fp_obj.bitmask.mantissa = mantissa;
 			break;
 		default:
 			throwException(env, EX_TEXT);
@@ -88,16 +98,16 @@ jobject transformWrapperToJava(JNIEnv* env, t_ld fp_obj, jint type) {
 
 	switch (type) {
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-			(*env)->CallVoidMethod(env, wrapper, setE, ((jlong)(((fp_obj.bitmask.mantissa & 0xFF800000L) >> 23) & 0x1FFL)));
-			(*env)->CallVoidMethod(env, wrapper, setM, ((jlong)fp_obj.bitmask.mantissa & 0x007FFFFFL));
+			(*env)->CallVoidMethod(env, wrapper, setE, (jlong) (((fp_obj.bitmask.mantissa & FLOAT_SIGN_AND_EXPONENT_BITMASK) >> FLOAT_SIGNIFICAND_WIDTH)));
+			(*env)->CallVoidMethod(env, wrapper, setM, (jlong) (fp_obj.bitmask.mantissa & FLOAT_SIGNIFICAND_BITMASK));
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			(*env)->CallVoidMethod(env, wrapper, setE, ((jlong)((fp_obj.bitmask.mantissa & 0xFFF0000000000000L) >> 52) & 0xFFFL));
-			(*env)->CallVoidMethod(env, wrapper, setM, ((jlong)fp_obj.bitmask.mantissa & 0xFFFFFFFFFFFFFL));
+			(*env)->CallVoidMethod(env, wrapper, setE, (jlong) ((fp_obj.bitmask.mantissa & DOUBLE_SIGN_AND_EXPONENT_BITMASK) >> DOUBLE_SIGNIFICAND_WIDTH));
+			(*env)->CallVoidMethod(env, wrapper, setM, (jlong) (fp_obj.bitmask.mantissa & DOUBLE_SIGNIFICAND_BITMASK));
 			break;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			(*env)->CallVoidMethod(env, wrapper, setE, ((jlong)fp_obj.bitmask.exp_sig_pad &0xFFFF));
-			(*env)->CallVoidMethod(env, wrapper, setM, ((jlong)fp_obj.bitmask.mantissa));
+			(*env)->CallVoidMethod(env, wrapper, setE, (jlong) (fp_obj.bitmask.exp_sig_pad & LONGDOUBLE_SIGN_AND_EXPONENT_BITMASK));
+			(*env)->CallVoidMethod(env, wrapper, setM, (jlong) fp_obj.bitmask.mantissa);
 			break;
 		default:
 			throwException(env, EX_TEXT);
