@@ -179,7 +179,7 @@ public class FloatValueTest {
     if (pValue instanceof MpfrFloat floatValue) {
       return floatValue.toBigFloat();
     } else if (pValue instanceof CFloatImpl floatValue) {
-      return floatValueToBigFloat(floatValue.getValue());
+      return toBigFloat(floatValue.getValue());
     } else {
       CFloatType toType = pValue.getType();
       if (pValue instanceof CFloatNative val && toType == CFloatType.LONG_DOUBLE) {
@@ -219,7 +219,7 @@ public class FloatValueTest {
    *
    * <p>Used in the implementation of {@link #toBigFloat(CFloat)}.
    */
-  private BigFloat floatValueToBigFloat(FloatValue pValue) {
+  private BigFloat toBigFloat(FloatValue pValue) {
     int sigBits = pValue.getFormat().sigBits();
     int expBits = pValue.getFormat().expBits();
     BinaryMathContext context = new BinaryMathContext(sigBits + 1, expBits);
@@ -794,7 +794,7 @@ public class FloatValueTest {
 
         // Calculate result with the tested implementation
         BigFloat resultTested =
-            floatValueToBigFloat(
+            toBigFloat(
                 FloatValue.fromString(floatTestOptions.format, printBigFloat(arg)));
 
         // Calculate result with the reference implementation
