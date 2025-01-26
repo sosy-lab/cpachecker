@@ -361,13 +361,14 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
     FloatingPointNumber number =
         FloatingPointNumber.of(
             signBit, exponent, mantissa, type.getExponentSize(), type.getMantissaSize());
-    if (type.equals(FloatingPointType.getSinglePrecisionFloatingPointType())
-        || type.equals(FloatingPointType.getDoublePrecisionFloatingPointType())) {
+    if (type.equals(FormulaType.getSinglePrecisionFloatingPointType())
+        || type.equals(FormulaType.getDoublePrecisionFloatingPointType())) {
       return wrap(type, numericFormulaManager.makeNumber(number.doubleValue()));
     } else {
       throw new UnsupportedOperationException(
           String.format(
-              "Unsupported floating point type `%s`. Currently only single and double precision are allowed.",
+              "Unsupported floating point type `%s`. Currently only single and double precision are"
+                  + " allowed.",
               type));
     }
   }
