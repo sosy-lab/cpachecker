@@ -19,8 +19,7 @@ public sealed interface CExpression extends CRightHandSide, AExpression
         CLeftHandSide,
         CLiteralExpression,
         CTypeIdExpression,
-        CUnaryExpression,
-        CFunctionCallExpression {
+        CUnaryExpression {
 
   <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X;
 
