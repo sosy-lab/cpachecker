@@ -300,6 +300,7 @@ public class SymbolicProgramConfiguration {
       if (thisType == null ^ otherType == null) {
         return Optional.empty();
       } else if (thisType != null
+          && otherType != null
           && !thisType.getCanonicalType().equals(otherType.getCanonicalType())) {
         return Optional.empty();
       }
@@ -367,6 +368,7 @@ public class SymbolicProgramConfiguration {
         if (thisType == null ^ otherType == null) {
           return Optional.empty();
         } else if (thisType != null
+            && otherType != null
             && !thisType.getCanonicalType().equals(otherType.getCanonicalType())) {
           return Optional.empty();
         }
