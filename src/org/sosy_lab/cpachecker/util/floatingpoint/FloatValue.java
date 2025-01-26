@@ -884,19 +884,22 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    */
   public boolean greaterThan(FloatValue pNumber) {
     checkMatchingPrecision(pNumber);
-    FloatValue arg1 = this;
-    FloatValue arg2 = pNumber;
 
-    if (arg1.isNan() || arg2.isNan()) {
+    if (isNan() || pNumber.isNan()) {
       return false;
-    } else if (arg1.isZero() && arg2.isZero()) {
+    } else if (isZero() && pNumber.isZero()) {
       return false;
     } else {
-      if (arg1.isNegative() && arg2.isNegative()) {
+      final FloatValue arg1;
+      final FloatValue arg2;
+
+      if (isNegative() && pNumber.isNegative()) {
         // If both values are negative, reverse the order
-        FloatValue tmp = arg1;
-        arg1 = arg2;
-        arg2 = tmp;
+        arg1 = pNumber;
+        arg2 = this;
+      } else {
+        arg1 = this;
+        arg2 = pNumber;
       }
 
       // Comparison is now component wise
