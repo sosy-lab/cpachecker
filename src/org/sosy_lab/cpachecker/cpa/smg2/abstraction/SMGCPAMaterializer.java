@@ -904,6 +904,7 @@ public class SMGCPAMaterializer {
     return currentState.writeValueWithoutChecks(newMemory, offset, sizeInBits, smgValueOfNewSym);
   }
 
+  // TODO: remove once not needed anymore
   /**
    * Returns true if the {@link Value} given is to be copied. Returns false if it is to be
    * replicated (either a new symbolic value with the same constraints is to be written to the
@@ -915,11 +916,13 @@ public class SMGCPAMaterializer {
    *     section that knows if this value is to be copied or replicated.
    * @return true for copy, false for replication.
    */
+  @SuppressWarnings("unused")
   private boolean isCopyValue(Value pValue, EqualityCache<Value> pReplicationCache) {
     // TODO: fix self references in the cache
     return pReplicationCache.isEqualityKnown(pValue, pValue);
   }
 
+  // TODO: remove once not needed anymore
   /**
    * Returns the prev list object of an 0+ SLL or ends with an exception.
    *
@@ -930,6 +933,7 @@ public class SMGCPAMaterializer {
    * @return The SMGValue of an PTE pointing towards the previous element (leftsided) of an 0+ SLL.
    * @throws SMGException never thrown.
    */
+  @SuppressWarnings("unused")
   private SMGValue getSLLPrevObjPointer(
       SMGState pState,
       SMGSinglyLinkedListSegment currZeroPlus,
