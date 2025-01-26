@@ -27,6 +27,7 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
@@ -71,7 +72,8 @@ public class FormulaLinearizationManager {
   }
 
   /** Annotate disjunctions with choice variables. */
-  public BooleanFormula annotateDisjunctions(BooleanFormula input) throws InterruptedException {
+  public BooleanFormula annotateDisjunctions(BooleanFormula input)
+      throws InterruptedException, SolverException {
     input = fmgr.applyTactic(input, Tactic.NNF);
     return bfmgr.transformRecursively(
         input,
@@ -126,7 +128,7 @@ public class FormulaLinearizationManager {
 
   /** Removes UFs and ITEs from the formula, effectively making it's semantics "concave". */
   public BooleanFormula convertToPolicy(BooleanFormula f, Model pModel)
-      throws InterruptedException {
+      throws InterruptedException, SolverException {
 
     statistics.ackermannizationTimer.start();
     f = fmgr.applyTactic(f, Tactic.NNF);

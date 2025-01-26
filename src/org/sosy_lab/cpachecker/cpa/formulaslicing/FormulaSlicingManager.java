@@ -183,7 +183,8 @@ public class FormulaSlicingManager implements StatisticsProvider {
   }
 
   /** Convert the input state to the set of instantiated lemmas in RCNF. */
-  private Set<BooleanFormula> toRcnf(SlicingIntermediateState iState) throws InterruptedException {
+  private Set<BooleanFormula> toRcnf(SlicingIntermediateState iState)
+      throws InterruptedException, CPAException {
     PathFormula pf = iState.getPathFormula();
     CFANode node = iState.getNode();
     SlicingAbstractedState abstractParent = iState.getAbstractParent();
@@ -191,8 +192,12 @@ public class FormulaSlicingManager implements StatisticsProvider {
     BooleanFormula transition =
         bfmgr.and(
             fmgr.simplify(pf.getFormula()), bfmgr.and(abstractParent.getInstantiatedAbstraction()));
-
-    Set<BooleanFormula> lemmas = rcnfManager.toLemmasInstantiated(pf.withFormula(transition), fmgr);
+    Set<BooleanFormula> lemmas;
+    try {
+      lemmas = rcnfManager.toLemmasInstantiated(pf.withFormula(transition), fmgr);
+    } catch (SolverException pE) {
+      throw new CPAException("Solver failed with exception", pE);
+    }
 
     Set<BooleanFormula> finalLemmas = new HashSet<>();
     for (BooleanFormula lemma : lemmas) {

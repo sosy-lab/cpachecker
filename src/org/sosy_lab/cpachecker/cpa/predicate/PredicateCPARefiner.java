@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis. When a counterexample
@@ -418,7 +419,14 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
       // add invariant precision increment if necessary
       List<BooleanFormula> precisionIncrement = new ArrayList<>();
       if (invariantsManager.addToPrecision()) {
-        precisionIncrement = addInvariants(abstractionStatesTrace);
+        try {
+          precisionIncrement = addInvariants(abstractionStatesTrace);
+        } catch (SolverException pE) {
+          logger.log(
+              Level.FINEST,
+              "Invariant generation failed, falling back to different refinement strategy",
+              pE);
+        }
       }
 
       if (usePathInvariants) {
@@ -464,7 +472,7 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
   }
 
   private List<BooleanFormula> addInvariants(final List<ARGState> abstractionStatesTrace)
-      throws InterruptedException {
+      throws InterruptedException, SolverException {
     List<BooleanFormula> precisionIncrement = new ArrayList<>();
     boolean invIsTriviallyTrue = true;
 
