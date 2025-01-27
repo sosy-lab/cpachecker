@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.variableclassification;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.Set;
@@ -200,6 +199,6 @@ class VariablesCollectingVisitor implements CExpressionVisitor<Set<String>, NoEx
 
   @Override
   public Set<String> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return ImmutableSet.of();
+    throw new UnsupportedOperationException();
   }
 }

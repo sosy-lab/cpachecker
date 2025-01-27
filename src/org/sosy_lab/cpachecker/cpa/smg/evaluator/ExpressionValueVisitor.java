@@ -277,7 +277,7 @@ class ExpressionValueVisitor
 
   @Override
   public List<? extends SMGValueAndState> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return List.of();
+    return ImmutableList.of();
   }
 
   @Override

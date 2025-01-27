@@ -127,7 +127,7 @@ final class CollectingRHSVisitor
 
   @Override
   public VarFieldDependencies visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override

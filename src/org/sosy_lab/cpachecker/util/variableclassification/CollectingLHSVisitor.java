@@ -96,7 +96,7 @@ final class CollectingLHSVisitor
 
   @Override
   public Pair<VariableOrField, VarFieldDependencies> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override

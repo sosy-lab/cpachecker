@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.modificationsrcd;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Set;
@@ -72,7 +73,7 @@ public class VariableIdentifierVisitor extends DefaultCExpressionVisitor<Set<Str
 
   @Override
   public Set<String> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return Set.of();
+    return ImmutableSet.of();
   }
 
   @Override
