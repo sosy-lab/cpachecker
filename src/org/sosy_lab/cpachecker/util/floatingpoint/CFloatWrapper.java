@@ -60,9 +60,10 @@ class CFloatWrapper {
    *
    * <p>For single- and double-precision values the leading bit of the mantissa (the so-called
    * "hidden bit") is not included in the value returned by this function. For "extended" precision
-   * values the entire mantissa is returned as the format does not use a "hidden" bit. See {@link
-   * org.sosy_lab.cpachecker.util.floatingpoint.FloatValue#significand} for more on the "hidden"
-   * bit.
+   * values the entire mantissa is returned as the format does not use a "hidden" bit.
+   *
+   * <p>"Hidden bit" refers to the leading bit of the significand. Since it is always <code>1</code>
+   * in normalized binary floating point numbers, it can be dropped to save space.
    */
   long getMantissa() {
     return mantissa;
@@ -73,9 +74,10 @@ class CFloatWrapper {
    *
    * <p>For single- and double-precision values the leading bit of the mantissa (the so-called
    * "hidden bit") must not be included in the argument. For "extended" precision values the entire
-   * mantissa must be used as there is no "hidden" bit in this format. See {@link
-   * org.sosy_lab.cpachecker.util.floatingpoint.FloatValue#significand} for more on the "hidden"
-   * bit.
+   * mantissa must be used as there is no "hidden" bit in this format.
+   *
+   * <p>"Hidden bit" refers to the leading bit of the significand. Since it is always <code>1</code>
+   * in normalized binary floating point numbers, it can be dropped to save space.
    */
   void setMantissa(long mantissa) {
     this.mantissa = mantissa;
