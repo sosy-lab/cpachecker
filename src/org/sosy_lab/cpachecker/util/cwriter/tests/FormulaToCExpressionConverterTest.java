@@ -218,7 +218,6 @@ public class FormulaToCExpressionConverterTest {
           switch (solverToUse()) {
             case MATHSAT5, PRINCESS -> "(((!x) || (!y)) && (x || y))";
             case Z3 -> "((x || y) && ((!x) || (!y)))";
-            case OPENSMT -> "(((!x) && y) || (x && (!y)))";
             case BITWUZLA -> "((!x) == y)";
             default -> "((x && (!y)) || ((!x) && y))";
           };
@@ -233,7 +232,6 @@ public class FormulaToCExpressionConverterTest {
           switch (solverToUse()) {
             case MATHSAT5, PRINCESS -> "((x && y) || ((!x) && (!y)))";
             case Z3 -> "((y || (!x)) && (x || (!y)))";
-            case OPENSMT -> "((x || (!y)) && ((!x) || y))";
             case BITWUZLA -> "((!(y&&(!x)))&&(!(x&&(!y))))";
             default -> "(((!x) || y) && (x || (!y)))";
           };
