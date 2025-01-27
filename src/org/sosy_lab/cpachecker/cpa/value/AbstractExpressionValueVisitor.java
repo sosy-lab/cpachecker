@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLongs;
@@ -945,38 +944,34 @@ public abstract class AbstractExpressionValueVisitor
                           : arg1.subtract(arg2)));
 
         } else if (BuiltinFloatFunctions.matchesFmax(calledFunctionName)) {
+          // TODO: Add a warning message for fmax(0.0,-0.0) and fmax(-0.0, 0.0)
+          // The value is undefined and we simply pick 0.0 in those cases, but gcc will always
+          // return the first argument.
           return handleBuiltinFunction2(
               calledFunctionName,
               parameterValues,
-              (FloatValue arg1, FloatValue arg2) -> {
-                // The return value of fmax(0.0,-0.0) and fmax(-0.0, 0.0) is not defined by the C11
-                // standard and may be either 0.0 or -0.0 depending on the implementation.
-                // We return UnknownValue for this case to be on the safe side.
-                Preconditions.checkArgument(
-                    !(arg1.isZero() && arg2.isZero() && (arg1.isNegative() != arg2.isNegative())));
-                return switch (arg1.compareWithTotalOrder(arg2)) {
-                  case -1 -> new NumericValue(arg2.isNan() ? arg1 : arg2);
-                  case +1 -> new NumericValue(arg1.isNan() ? arg2 : arg1);
-                  default -> Value.UnknownValue.getInstance();
-                };
-              });
+              (FloatValue arg1, FloatValue arg2) ->
+                  new NumericValue(
+                      switch (arg1.compareWithTotalOrder(arg2)) {
+                        case -1 -> arg2.isNan() ? arg1 : arg2;
+                        case +1 -> arg1.isNan() ? arg2 : arg1;
+                        default -> arg1;
+                      }));
 
         } else if (BuiltinFloatFunctions.matchesFmin(calledFunctionName)) {
+          // FIXME: Add a warning message for fmin(0.0,-0.0) and fmin(-0.0, 0.0)
+          // The value is undefined and we pick -0.0 in those cases, but gcc will return the first
+          // argument for `float` or `double` and the second for `long double`
           return handleBuiltinFunction2(
               calledFunctionName,
               parameterValues,
-              (FloatValue arg1, FloatValue arg2) -> {
-                // The return value of fmin(0.0,-0.0) and fmin(-0.0, 0.0) is not defined by the C11
-                // standard and may be either 0.0 or -0.0 depending on the implementation.
-                // We return UnknownValue for this case to be on the safe side.
-                Preconditions.checkArgument(
-                    !(arg1.isZero() && arg2.isZero() && (arg1.isNegative() != arg2.isNegative())));
-                return switch (arg1.compareWithTotalOrder(arg2)) {
-                  case -1 -> new NumericValue(arg1.isNan() ? arg2 : arg1);
-                  case +1 -> new NumericValue(arg2.isNan() ? arg1 : arg2);
-                  default -> Value.UnknownValue.getInstance();
-                };
-              });
+              (FloatValue arg1, FloatValue arg2) ->
+                  new NumericValue(
+                      switch (arg1.compareWithTotalOrder(arg2)) {
+                        case -1 -> arg1.isNan() ? arg2 : arg1;
+                        case +1 -> arg2.isNan() ? arg1 : arg2;
+                        default -> arg1;
+                      }));
 
         } else if (BuiltinFloatFunctions.matchesSignbit(calledFunctionName)) {
           return handleBuiltinFunction1(

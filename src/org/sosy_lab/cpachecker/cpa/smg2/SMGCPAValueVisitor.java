@@ -1541,9 +1541,6 @@ public class SMGCPAValueVisitor
   /**
    * Helper method to handle unary builtin function in {@link
    * AbstractExpressionValueVisitor#visit(CFunctionCallExpression)}
-   *
-   * <p>Returns {@link UnknownValue} if the calculation for the operation throws an {@link
-   * IllegalArgumentException}
    */
   private List<ValueAndSMGState> handleBuiltinFunction1(
       String pName,
@@ -1559,14 +1556,11 @@ public class SMGCPAValueVisitor
               BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName),
               (NumericValue) parameter);
 
-      try {
-        return ImmutableList.of(
-            ValueAndSMGState.of(new NumericValue(pOperation.apply(value)), pState));
-      } catch (IllegalArgumentException e) {
-        // Skip and return UnknownValue below
-      }
+      return ImmutableList.of(
+          ValueAndSMGState.of(new NumericValue(pOperation.apply(value)), pState));
+    } else {
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
     }
-    return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
   }
 
   /**
@@ -1588,14 +1582,11 @@ public class SMGCPAValueVisitor
       FloatValue value1 = castToFloat(machineModel, targetType, (NumericValue) parameter1);
       FloatValue value2 = castToFloat(machineModel, targetType, (NumericValue) parameter2);
 
-      try {
-        return ImmutableList.of(
-            ValueAndSMGState.of(new NumericValue(pOperation.apply(value1, value2)), pState));
-      } catch (IllegalArgumentException e) {
-        // Skip and return UnknownValue below
-      }
+      return ImmutableList.of(
+          ValueAndSMGState.of(new NumericValue(pOperation.apply(value1, value2)), pState));
+    } else {
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
     }
-    return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
   }
 
   /*
@@ -1769,41 +1760,34 @@ public class SMGCPAValueVisitor
                   arg1.lessOrEqual(arg2) ? FloatValue.zero(arg1.getFormat()) : arg1.subtract(arg2));
 
         } else if (BuiltinFloatFunctions.matchesFmax(calledFunctionName)) {
+          // TODO: Add a warning message for fmax(0.0,-0.0) and fmax(-0.0, 0.0)
+          // The value is undefined and we simply pick 0.0 in those cases, but gcc will always
+          // return the first argument.
           return handleBuiltinFunction2(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg1, FloatValue arg2) -> {
-                // The return value of fmax(0.0,-0.0) and fmax(-0.0, 0.0) is not
-                // defined by the C11
-                // standard and may be either 0.0 or -0.0 depending on the implementation.
-                // We return UnknownValue for this case to be on the safe side.
-                Preconditions.checkArgument(
-                    !(arg1.isZero() && arg2.isZero() && (arg1.isNegative() != arg2.isNegative())));
-                return switch (arg1.compareWithTotalOrder(arg2)) {
-                  case -1 -> arg2.isNan() ? arg1 : arg2;
-                  case +1 -> arg1.isNan() ? arg2 : arg1;
-                  default -> arg1;
-                };
-              });
+              (FloatValue arg1, FloatValue arg2) ->
+                  switch (arg1.compareWithTotalOrder(arg2)) {
+                    case -1 -> arg2.isNan() ? arg1 : arg2;
+                    case +1 -> arg1.isNan() ? arg2 : arg1;
+                    default -> arg1;
+                  });
 
         } else if (BuiltinFloatFunctions.matchesFmin(calledFunctionName)) {
+          // FIXME: Add a warning message for fmin(0.0,-0.0) and fmin(-0.0, 0.0)
+          // The value is undefined and we pick -0.0 in those cases, but gcc will return the first
+          // argument for `float` or `double` and the second for `long double`
           return handleBuiltinFunction2(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg1, FloatValue arg2) -> {
-                // The return value of fmin(0.0,-0.0) and fmin(-0.0, 0.0) is not defined by the C11
-                // standard and may be either 0.0 or -0.0 depending on the implementation.
-                // We return UnknownValue for this case to be on the safe side.
-                Preconditions.checkArgument(
-                    !(arg1.isZero() && arg2.isZero() && (arg1.isNegative() != arg2.isNegative())));
-                return switch (arg1.compareWithTotalOrder(arg2)) {
-                  case -1 -> arg1.isNan() ? arg2 : arg1;
-                  case +1 -> arg2.isNan() ? arg1 : arg2;
-                  default -> arg1;
-                };
-              });
+              (FloatValue arg1, FloatValue arg2) ->
+                  switch (arg1.compareWithTotalOrder(arg2)) {
+                    case -1 -> arg1.isNan() ? arg2 : arg1;
+                    case +1 -> arg2.isNan() ? arg1 : arg2;
+                    default -> arg1;
+                  });
 
         } else if (BuiltinFloatFunctions.matchesSignbit(calledFunctionName)) {
           return handleBuiltinFunction1(
