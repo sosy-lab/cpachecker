@@ -220,13 +220,31 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   /** Format, defines the precision of the value and the allowed exponent range. */
   private final Format format;
 
-  /** Sign of the value, `true` if negative */
+  /** Sign of the value, <code>true</code> if negative */
   private final boolean sign;
 
-  /** Exponent of the value. */
+  /**
+   * Exponent of the value.
+   *
+   * <p>The exponent is stored without the IEEE bias and can therefore be negative. Use {@link
+   * Format#minExp()} and {@link Format#maxExp()} to get the range of possible exponents. For zero
+   * and subnormal numbers the exponent will be <code>Format.minExp() - 1</code>, and for Infinity
+   * and NaN the exponent is always <code>Format.maxExp() + 1</code>.
+   */
   private final long exponent;
 
-  /** Significand of the value. */
+  /**
+   * Significand of the value.
+   *
+   * <p>For values that are not zero, subnormal, infinity or NaN the significand is stored with an
+   * additional hidden bit in its first place.
+   *
+   * <p>"Hidden bit" refers to the leading bit of the significand. Since it is always <code>1</code>
+   * in normalized binary floating point numbers, it can be dropped to save space. In our internal
+   * representation we always include the "hidden" bit as it simplifies calculations. However, when
+   * converting from/to other representations, as with {@link #fromDouble(double)} or {@link
+   * #toFloatingPointNumber()}, care must be taken to remove/add the hidden bit as needed.
+   */
   private final BigInteger significand;
 
   /**
@@ -2968,12 +2986,23 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
   }
 
-  /** Returns the exponent of this value */
+  /**
+   * Returns the exponent of this value
+   *
+   * <p>The exponent is not stored with the IEEE bias. See {@link #exponent} and {@link
+   * Format#bias()}.
+   */
   long getExponent() {
     return exponent;
   }
 
-  /** Returns the significand of this value */
+  /**
+   * Returns the significand of this value
+   *
+   * <p>For values that are not zero, subnormal, infinity or NaN, the significand includes an
+   * additional hidden bit in its first place. See {@link #significand} for more information about
+   * the "hidden" bit.
+   */
   BigInteger getSignificand() {
     return significand;
   }
