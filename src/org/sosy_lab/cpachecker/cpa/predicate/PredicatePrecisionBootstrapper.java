@@ -101,7 +101,7 @@ public final class PredicatePrecisionBootstrapper {
         secure = true,
         description =
             "when reading invariants from YML witness ignore the location context and only consider"
-                + " function context program)")
+                + " the function context of the program")
     private boolean ignoreLocationInfoInYMLWitness = false;
 
     @Option(
@@ -276,6 +276,7 @@ public final class PredicatePrecisionBootstrapper {
           MultimapBuilder.treeKeys().arrayListValues().build();
       BooleanFormula atomFormula;
       String function;
+      boolean containsFalsePredicate = false;
       for (Invariant invariant : transformer.generateInvariantsFromEntries(entries)) {
         function = invariant.getFunction();
 
@@ -309,6 +310,7 @@ public final class PredicatePrecisionBootstrapper {
           }
         } else {
           if (ExpressionTrees.getFalse().equals(invariant.getFormula())) {
+            containsFalsePredicate = true;
             if (options.applyGlobally() || function.isBlank()) {
               globalPredicates.add(abstractionManager.makeFalsePredicate());
             } else {
@@ -319,6 +321,12 @@ public final class PredicatePrecisionBootstrapper {
       }
       result = result.addGlobalPredicates(globalPredicates);
       result = result.addFunctionPredicates(functionPredicates.entries());
+      if (!containsFalsePredicate && !checkBlockFeasibility) {
+        logger.log(
+            Level.WARNING,
+            "We recommend to enable option cpa.predicate.checkBlockFeasibility "
+                + "when reusing precision from correctness witness.");
+      }
     } catch (InvalidConfigurationException | CPATransferException e) {
       logger.logUserException(
           Level.WARNING,

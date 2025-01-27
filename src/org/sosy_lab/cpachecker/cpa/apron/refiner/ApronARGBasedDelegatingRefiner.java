@@ -303,7 +303,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
 
       } else {
         ShutdownManager shutdown = ShutdownManager.createWithParent(shutdownNotifier);
-        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForApronFeasibilityCheck);
+        WalltimeLimit l = WalltimeLimit.create(timeForApronFeasibilityCheck);
         ResourceLimitChecker limits =
             new ResourceLimitChecker(shutdown, Collections.singletonList(l));
 

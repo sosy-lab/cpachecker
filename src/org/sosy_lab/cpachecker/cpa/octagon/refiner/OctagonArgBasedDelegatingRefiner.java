@@ -302,7 +302,7 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
 
       } else {
         ShutdownManager shutdown = ShutdownManager.createWithParent(shutdownNotifier);
-        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForOctagonFeasibilityCheck);
+        WalltimeLimit l = WalltimeLimit.create(timeForOctagonFeasibilityCheck);
         ResourceLimitChecker limits =
             new ResourceLimitChecker(shutdown, Collections.<ResourceLimit>singletonList(l));
 

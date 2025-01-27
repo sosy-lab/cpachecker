@@ -141,7 +141,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     ImmutableList.Builder<Callable<ParallelAnalysisResult>> analysesBuilder =
         ImmutableList.builder();
     for (AnnotatedValue<Path> p : configFiles) {
-      analysesBuilder.add(createParallelAnalysis(p, ++stats.noOfAlgorithmsUsed));
+      analysesBuilder.add(createParallelAnalysis(p));
     }
     analyses = analysesBuilder.build();
   }
@@ -241,7 +241,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private Callable<ParallelAnalysisResult> createParallelAnalysis(
-      final AnnotatedValue<Path> pSingleConfigFileName, final int analysisNumber)
+      final AnnotatedValue<Path> pSingleConfigFileName)
       throws InvalidConfigurationException, InterruptedException {
     final Path singleConfigFileName = pSingleConfigFileName.value();
     final boolean supplyReached;
@@ -254,7 +254,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     final ShutdownManager singleShutdownManager =
         ShutdownManager.createWithParent(shutdownManager.getNotifier());
 
-    final LogManager singleLogger = logger.withComponentName("Parallel analysis " + analysisNumber);
+    final LogManager singleLogger =
+        logger.withComponentName("Parallel analysis " + pSingleConfigFileName.value());
 
     if (pSingleConfigFileName.annotation().isPresent()) {
       switch (pSingleConfigFileName.annotation().orElseThrow()) {
@@ -457,7 +458,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       return ParallelAnalysisResult.of(currentReached, status, analysisName);
 
     } catch (InterruptedException e) {
-      singleLogger.log(Level.INFO, "Analysis was terminated");
+      singleLogger.logUserException(Level.INFO, e, "Analysis was terminated");
       return ParallelAnalysisResult.absent(analysisName);
     } finally {
       try {
@@ -563,7 +564,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     private final LogManager logger;
     private final List<StatisticsEntry> allAnalysesStats = new CopyOnWriteArrayList<>();
-    private int noOfAlgorithmsUsed = 0;
     private String successfulAnalysisName = null;
     private boolean writeUnsuccessfulAnalysisFiles;
 
@@ -587,7 +587,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-      out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
+      out.println("Number of algorithms used:        " + allAnalysesStats.size());
       if (successfulAnalysisName != null) {
         out.println("Successful analysis: " + successfulAnalysisName);
       }
