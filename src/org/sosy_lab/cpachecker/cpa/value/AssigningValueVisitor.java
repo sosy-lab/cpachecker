@@ -11,9 +11,12 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Preconditions;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -31,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -105,13 +109,14 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
       if (isEligibleForAssignment(leftValue)
           && rightValue.isExplicitlyKnown()
-          && isAssignable(lVarInBinaryExp)) {
+          && isAssignable(lVarInBinaryExp)
+          && isValidValue(lVarInBinaryExp, rightValue)) {
         assignConcreteValue(
             lVarInBinaryExp, leftValue, rightValue, pE.getOperand2().getExpressionType());
-
       } else if (isEligibleForAssignment(rightValue)
           && leftValue.isExplicitlyKnown()
-          && isAssignable(rVarInBinaryExp)) {
+          && isAssignable(rVarInBinaryExp)
+          && isValidValue(rVarInBinaryExp, leftValue)) {
         assignConcreteValue(
             rVarInBinaryExp, rightValue, leftValue, pE.getOperand1().getExpressionType());
       }
@@ -289,6 +294,26 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     }
 
     return false;
+  }
+
+  private boolean isValidValue(final CExpression pVarInBinaryExp, final Value pValue) {
+    Preconditions.checkNotNull(pVarInBinaryExp);
+    Preconditions.checkNotNull(pValue);
+    Preconditions.checkArgument(pValue.isExplicitlyKnown());
+
+    if (pValue instanceof NumericValue) {
+      if (pVarInBinaryExp.getExpressionType() instanceof CSimpleType) {
+        CSimpleType type = (CSimpleType) pVarInBinaryExp.getExpressionType();
+        if (type.getType().isIntegerType()
+            && !(((NumericValue) pValue).getNumber() instanceof Rational)) {
+          BigDecimal val = ((NumericValue) pValue).bigDecimalValue();
+
+          return val.compareTo(new BigDecimal(getMachineModel().getMaximalIntegerValue(type))) <= 0
+              && val.compareTo(new BigDecimal(getMachineModel().getMinimalIntegerValue(type))) >= 0;
+        }
+      }
+    }
+    return true;
   }
 
   /** returns an initialized, empty visitor */
