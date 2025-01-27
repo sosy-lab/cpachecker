@@ -105,7 +105,7 @@ public class DssBlockAnalyses {
    * @throws CPAException wrapper exception
    * @throws InterruptedException thread interrupted
    */
-  static DssBlockAnalysisIntermediateResult runAlgorithm(
+  static DssBlockAnalysisResult runAlgorithm(
       Algorithm pAlgorithm, ReachedSet pReachedSet, BlockNode pBlockNode)
       throws CPAException, InterruptedException {
 
@@ -118,16 +118,16 @@ public class DssBlockAnalyses {
       AbstractStates.getTargetStates(pReachedSet).forEach(pReachedSet::removeOnlyFromWaitlist);
     }
 
-    return new DssBlockAnalysisIntermediateResult(pReachedSet, startState, pBlockNode, status);
+    return new DssBlockAnalysisResult(pReachedSet, startState, pBlockNode, status);
   }
 
-  static class DssBlockAnalysisIntermediateResult {
+  static class DssBlockAnalysisResult {
 
     private final ImmutableSet<ARGState> summaries;
     private final ImmutableSet<ARGState> violations;
     private final AlgorithmStatus status;
 
-    private DssBlockAnalysisIntermediateResult(
+    private DssBlockAnalysisResult(
         ReachedSet pReachedSet,
         AbstractState pStartState,
         BlockNode pBlockNode,
@@ -166,7 +166,7 @@ public class DssBlockAnalyses {
 
     @Override
     public String toString() {
-      return "DssBlockAnalysisIntermediateResult{"
+      return "DssBlockAnalysisResult{"
           + "abstractionStates="
           + summaries
           + ", violationStates="
