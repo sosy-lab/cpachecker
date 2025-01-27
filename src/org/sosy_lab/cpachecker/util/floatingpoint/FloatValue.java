@@ -2552,8 +2552,9 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     Format format = new Format(pNumber.getExponentSize(), pNumber.getMantissaSize());
     long exponent = pNumber.getExponent().longValue() - format.bias();
     BigInteger significand = pNumber.getMantissa();
-    if (!pNumber.getExponent().equals(BigInteger.ZERO)) {
-      // If it's not a subnormal number, add the hidden bit to the significand
+    if (exponent >= format.minExp() && exponent <= format.maxExp()) {
+      // If the number is "normal" (= not zero, subnormal, inf or nan), add the hidden bit to the
+      // significand
       significand = significand.setBit(format.sigBits);
     }
     return new FloatValue(format, pNumber.getSign(), exponent, significand);
@@ -2585,13 +2586,14 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       long expBits = (rawBits & Format.FLOAT32_EXPONENT_MASK) >> Format.FLOAT32_SIG_BITS;
       long sigBits = rawBits & Format.FLOAT32_SIGNIFICAND_MASK;
 
-      // Add the hidden bit to the significand
-      if (expBits != 0) {
-        sigBits |= 1 << Format.FLOAT32_SIG_BITS;
-      }
-
       // Remove the bias from the exponent
       expBits = expBits - (int) Format.Float32.bias();
+
+      if (expBits >= Format.Float32.minExp() && expBits <= Format.Float32.maxExp()) {
+        // If the number is "normal" (= not zero, subnormal, inf or nan), add the hidden bit to the
+        // significand
+        sigBits |= 1 << Format.FLOAT32_SIG_BITS;
+      }
 
       return new FloatValue(Format.Float32, sign, expBits, BigInteger.valueOf(sigBits));
     }
@@ -2630,13 +2632,14 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       long expBits = (rawBits & Format.FLOAT64_EXPONENT_MASK) >> Format.FLOAT64_SIG_BITS;
       long sigBits = rawBits & Format.FLOAT64_SIGNIFICAND_MASK;
 
-      // Add the hidden bit to the significand
-      if (expBits != 0) {
-        sigBits |= 1L << Format.FLOAT64_SIG_BITS;
-      }
-
       // Remove the bias from the exponent
       expBits = expBits - Format.Float64.bias();
+
+      if (expBits >= Format.Float64.minExp() && expBits <= Format.Float64.maxExp()) {
+        // If the number is "normal" (= not zero, subnormal, inf or nan), add the hidden bit to the
+        // significand
+        sigBits |= 1L << Format.FLOAT64_SIG_BITS;
+      }
 
       return new FloatValue(Format.Float64, sign, expBits, BigInteger.valueOf(sigBits));
     }
