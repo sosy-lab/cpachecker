@@ -4178,7 +4178,6 @@ distributedSummaries.importDecomposition = no default value
 # If no file is provided, the block-summary analysis assumes the precondition
 # 'true' and the verification condition 'false'.
 distributedSummaries.knownConditions = []
-distributedSummaries.knownConditions = no default value
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'new' by block-summary analysis. For each message
