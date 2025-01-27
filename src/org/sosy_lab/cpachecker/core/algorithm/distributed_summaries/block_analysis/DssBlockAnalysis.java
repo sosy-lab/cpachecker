@@ -14,6 +14,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -327,7 +328,7 @@ public class DssBlockAnalysis {
     reachedSet.add(makeStartState(), makeStartPrecision());
 
     DssBlockAnalysisIntermediateResult result =
-        DssBlockAnalyses.runCpaAlgorithm(algorithm, reachedSet, block);
+        DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
 
     status = status.update(result.getStatus());
 
@@ -502,7 +503,7 @@ public class DssBlockAnalysis {
                 .setViolationCondition(violationCondition));
 
     DssBlockAnalysisIntermediateResult result =
-        DssBlockAnalyses.runCpaAlgorithm(algorithm, reachedSet, block);
+        DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
 
     status = status.update(result.getStatus());
 
@@ -532,7 +533,7 @@ public class DssBlockAnalysis {
                       AbstractStates.extractStateByType(abstractState, BlockState.class))
                   .setViolationCondition(violationCondition));
 
-      result = DssBlockAnalyses.runCpaAlgorithm(algorithm, reachedSet, block);
+      result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
       status = status.update(result.getStatus());
     }
     messages.addAll(
@@ -555,30 +556,14 @@ public class DssBlockAnalysis {
   private void prepareReachedSet() throws CPAException, InterruptedException {
     // simulate merge and stop for all states ending up at block#getStartNode
     reachedSet.clear();
+    ImmutableList.Builder<AbstractState> deserializedStates = ImmutableList.builder();
     for (DssMessage message : states.values()) {
       if (message == null) {
         continue;
       }
-      AbstractState value = dcpa.getDeserializeOperator().deserialize(message);
-      if (reachedSet.isEmpty()) {
-        reachedSet.add(value, makeStartPrecision());
-      } else {
-        // CPA algorithm
-        for (AbstractState abstractState : ImmutableSet.copyOf(reachedSet)) {
-          AbstractState merged =
-              cpa.getMergeOperator().merge(value, abstractState, makeStartPrecision());
-          if (!merged.equals(abstractState)) {
-            reachedSet.remove(abstractState);
-            reachedSet.add(merged, makeStartPrecision());
-          }
-        }
-        if (!cpa.getStopOperator()
-            .stop(value, reachedSet.getReached(block.getInitialLocation()), makeStartPrecision())) {
-          reachedSet.add(value, makeStartPrecision());
-        }
-      }
+      deserializedStates.add(dcpa.getDeserializeOperator().deserialize(message));
     }
-
+    DssBlockAnalyses.performCpaAlgorithmWithStates(reachedSet, cpa, deserializedStates.build());
     if (reachedSet.isEmpty()) {
       reachedSet.add(makeStartState(), makeStartPrecision());
     }
