@@ -1292,7 +1292,7 @@ public class SMGCPAValueVisitor
 
   @Override
   public List<ValueAndSMGState> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return List.of();
+    return ImmutableList.of();
   }
 
   @Override

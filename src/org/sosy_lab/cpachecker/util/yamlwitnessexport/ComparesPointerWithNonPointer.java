@@ -90,7 +90,7 @@ public class ComparesPointerWithNonPointer implements CExpressionVisitor<Boolean
 
   @Override
   public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return null;
+    return false;
   }
 
   @Override

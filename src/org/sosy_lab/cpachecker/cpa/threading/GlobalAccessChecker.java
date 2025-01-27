@@ -254,7 +254,7 @@ public class GlobalAccessChecker {
 
     @Override
     public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-      return null;
+      return false;
     }
 
     @Override

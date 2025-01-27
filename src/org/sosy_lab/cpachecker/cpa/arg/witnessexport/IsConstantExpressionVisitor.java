@@ -108,6 +108,6 @@ enum IsConstantExpressionVisitor implements CExpressionVisitor<Boolean, NoExcept
 
   @Override
   public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return null;
+    return false;
   }
 }

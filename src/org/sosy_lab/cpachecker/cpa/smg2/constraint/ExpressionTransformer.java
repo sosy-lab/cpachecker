@@ -341,7 +341,7 @@ public class ExpressionTransformer
 
   @Override
   public Collection<SymbolicExpressionAndSMGState> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return List.of();
+    return ImmutableList.of();
   }
 
   @Override

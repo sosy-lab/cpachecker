@@ -292,7 +292,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
                   @Override
                   public Collection<CLeftHandSide> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-                    return List.of();
+                    return ImmutableList.of();
                   }
 
                   @Override

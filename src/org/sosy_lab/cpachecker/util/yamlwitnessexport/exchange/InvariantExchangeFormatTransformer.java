@@ -123,7 +123,7 @@ public class InvariantExchangeFormatTransformer {
   public ExpressionTree<AExpression> parseLemmaEntry(LemmaEntry pLemmaEntry)
       throws InterruptedException {
     Optional<String> resultFunction = Optional.ofNullable(pLemmaEntry.getLocation().getFunction());
-    Set<String> lemmaString = Set.of(pLemmaEntry.getValue());
+    Set<String> lemmaString = ImmutableSet.of(pLemmaEntry.getValue());
 
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(pLemmaEntry.getLocation().getFunction());

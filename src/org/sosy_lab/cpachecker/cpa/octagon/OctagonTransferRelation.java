@@ -1677,7 +1677,7 @@ public class OctagonTransferRelation
     @Override
     public Set<Pair<IOctagonCoefficients, OctagonState>> visit(
         CLemmaFunctionCall pCLemmaFunctionCall) {
-      return Set.of();
+      return ImmutableSet.of();
     }
 
     @Override

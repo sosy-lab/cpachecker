@@ -766,7 +766,7 @@ public class LiveVariablesTransferRelation
 
     @Override
     public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-      return null;
+      return false;
     }
 
     @Override

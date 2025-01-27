@@ -106,6 +106,6 @@ public class ContainsCPAcheckerInternalVisitor implements CExpressionVisitor<Boo
 
   @Override
   public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return null;
+    return false;
   }
 }

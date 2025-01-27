@@ -74,7 +74,7 @@ class IsRelevantLhsVisitor extends DefaultCExpressionVisitor<Boolean, NoExceptio
 
   @Override
   public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return null;
+    return false;
   }
 
   @Override

@@ -146,7 +146,7 @@ public abstract class ConcreteErrorPathAllocator<S extends AbstractState> {
 
     @Override
     public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-      return null;
+      return false;
     }
   }
 }

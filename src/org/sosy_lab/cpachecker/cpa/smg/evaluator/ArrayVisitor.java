@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -54,7 +55,7 @@ class ArrayVisitor extends AddressVisitor
 
   @Override
   public List<SMGAddressAndState> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return List.of();
+    return ImmutableList.of();
   }
 
   @Override

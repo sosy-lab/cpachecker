@@ -107,7 +107,7 @@ public class MemoryLocationExtractingVisitor
 
   @Override
   public Set<OverapproximatingMemoryLocation> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return Set.of();
+    return ImmutableSet.of();
   }
 
   @Override

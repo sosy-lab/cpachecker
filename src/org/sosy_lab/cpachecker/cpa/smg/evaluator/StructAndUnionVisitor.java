@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -56,6 +57,6 @@ class StructAndUnionVisitor extends AddressVisitor
 
   @Override
   public List<SMGAddressAndState> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return List.of();
+    return ImmutableList.of();
   }
 }

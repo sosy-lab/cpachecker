@@ -1131,7 +1131,7 @@ public class ApronTransferRelation
 
     @Override
     public Set<Texpr0Node> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-      return Set.of();
+      return ImmutableSet.of();
     }
 
     @Override

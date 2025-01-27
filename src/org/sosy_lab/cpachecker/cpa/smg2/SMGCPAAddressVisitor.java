@@ -141,7 +141,7 @@ public class SMGCPAAddressVisitor
 
   @Override
   public List<SMGStateAndOptionalSMGObjectAndOffset> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return List.of();
+    return ImmutableList.of();
   }
 
   @Override

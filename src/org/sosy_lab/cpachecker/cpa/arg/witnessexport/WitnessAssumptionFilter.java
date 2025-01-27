@@ -124,7 +124,7 @@ final class WitnessAssumptionFilter {
 
           @Override
           public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-            return null;
+            return false;
           }
 
           @Override

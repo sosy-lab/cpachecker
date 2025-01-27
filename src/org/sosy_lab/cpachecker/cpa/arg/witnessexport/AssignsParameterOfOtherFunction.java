@@ -141,7 +141,7 @@ class AssignsParameterOfOtherFunction implements Predicate<AExpressionStatement>
 
           @Override
           public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-            return null;
+            return false;
           }
         });
   }

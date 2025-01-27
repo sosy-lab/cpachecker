@@ -769,7 +769,7 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
 
     @Override
     public Set<MemoryLocation> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-      return Set.of();
+      return ImmutableSet.of();
     }
 
     @Override
