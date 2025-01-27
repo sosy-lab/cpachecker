@@ -473,7 +473,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * @param pExponent Exponent, without the IEEE bias
    * @param pSignificand Significand, including the leading bit that is hidden in the IEEE format
    */
-  public FloatValue(Format pFormat, boolean pSign, long pExponent, BigInteger pSignificand) {
+  FloatValue(Format pFormat, boolean pSign, long pExponent, BigInteger pSignificand) {
     // Exponent range
     Preconditions.checkArgument(
         pExponent >= pFormat.minExp() - 1 && pExponent <= pFormat.maxExp() + 1,
