@@ -91,8 +91,20 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
     CExpression rVarInBinaryExp = pE.getOperand2();
 
-    Value leftValue = lVarInBinaryExp.accept(nonAssigningValueVisitor);
-    Value rightValue = rVarInBinaryExp.accept(nonAssigningValueVisitor);
+    Value leftValue =
+        castCValue(
+            lVarInBinaryExp.accept(nonAssigningValueVisitor),
+            pE.getCalculationType(),
+            getMachineModel(),
+            getLogger(),
+            pE.getFileLocation());
+    Value rightValue =
+        castCValue(
+            rVarInBinaryExp.accept(nonAssigningValueVisitor),
+            pE.getCalculationType(),
+            getMachineModel(),
+            getLogger(),
+            pE.getFileLocation());
 
     if (isEqualityAssumption(binaryOperator)) {
       if (leftValue.isExplicitlyKnown()) {
