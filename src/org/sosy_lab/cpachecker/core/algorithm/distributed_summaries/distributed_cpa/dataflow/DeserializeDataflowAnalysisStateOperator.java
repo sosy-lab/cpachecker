@@ -19,9 +19,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeParser;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.invariants.AbstractionStrategyFactories;
@@ -49,11 +49,11 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
   }
 
   @Override
-  public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
+  public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
     Optional<Object> abstractStateOptional = pMessage.getAbstractState(InvariantsCPA.class);
     if (abstractStateOptional.isEmpty()) {
       return invariantsCPA.getInitialState(
-          blockNode.getFirst(), StateSpacePartition.getDefaultPartition());
+          blockNode.getInitialLocation(), StateSpacePartition.getDefaultPartition());
     }
     String booleanFormulaString = (String) abstractStateOptional.orElseThrow();
     BooleanFormula<CompoundInterval> booleanFormula =
@@ -94,11 +94,11 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
     return deserializedInvariantsState;
   }
 
-  private Map<MemoryLocation, CType> extractVariableTypes(BlockSummaryMessage pMessage) {
+  private Map<MemoryLocation, CType> extractVariableTypes(DssMessage pMessage) {
     String variableTypesString = "";
-    if (pMessage instanceof BlockSummaryPostConditionMessage postConditionMessage) {
+    if (pMessage instanceof DssPostConditionMessage postConditionMessage) {
       variableTypesString = postConditionMessage.getVTypes();
-    } else if (pMessage instanceof BlockSummaryErrorConditionMessage errorConditionMessage) {
+    } else if (pMessage instanceof DssViolationConditionMessage errorConditionMessage) {
       variableTypesString = errorConditionMessage.getVTypes();
     }
 
@@ -115,11 +115,11 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
     return variableTypes;
   }
 
-  private AbstractionStrategyFactories extractAbstractionStrategy(BlockSummaryMessage pMessage) {
+  private AbstractionStrategyFactories extractAbstractionStrategy(DssMessage pMessage) {
     String strategyString = "";
-    if (pMessage instanceof BlockSummaryPostConditionMessage postMessage) {
+    if (pMessage instanceof DssPostConditionMessage postMessage) {
       strategyString = postMessage.getAbstractionStrategy();
-    } else if (pMessage instanceof BlockSummaryErrorConditionMessage errorMessage) {
+    } else if (pMessage instanceof DssViolationConditionMessage errorMessage) {
       strategyString = errorMessage.getAbstractionStrategy();
     }
     return AbstractionStrategyFactories.valueOf(strategyString);

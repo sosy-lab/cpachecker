@@ -49,12 +49,11 @@ public class DssPostConditionMessage extends DssMessage {
   }
 
   public String getAbstractionStrategy() {
-    return (String) Objects.requireNonNull(getPayload().get(BlockSummaryMessagePayload.STRATEGY));
+    return (String) Objects.requireNonNull(getPayload().get(DssMessagePayload.STRATEGY));
   }
 
   public String getVTypes() {
-    return (String)
-        Objects.requireNonNullElse(getPayload().get(BlockSummaryMessagePayload.VTYPES), "");
+    return (String) Objects.requireNonNullElse(getPayload().get(DssMessagePayload.VTYPES), "");
   }
 
   public PointerTargetSet getPointerTargetSet() {

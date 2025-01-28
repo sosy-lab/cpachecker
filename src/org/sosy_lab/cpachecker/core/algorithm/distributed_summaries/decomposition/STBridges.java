@@ -62,9 +62,7 @@ public class STBridges {
 
       // Process connections
       for (ImmutableList<CFANode> connection : connections) {
-        if (connection.size() == 1) {
-          continue;
-        } else {
+        if (connection.size() != 1) {
           ImmutableSet<CFANode> includes = ImmutableSet.copyOf(connection);
           ImmutableSet.Builder<CFAEdge> connectionEdges = ImmutableSet.builder();
           CFANode last = null;
