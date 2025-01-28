@@ -17,8 +17,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class BlockNodeWithoutGraphInformation {
   private final String id;
-  private final CFANode first;
-  private final CFANode last;
+  private final CFANode initialLocation;
+  private final CFANode finalLocation;
   private final ImmutableSet<CFANode> nodes;
   private final ImmutableSet<CFAEdge> edges;
   private final String code;
@@ -26,12 +26,12 @@ public class BlockNodeWithoutGraphInformation {
   public BlockNodeWithoutGraphInformation(
       @NonNull String pId,
       @NonNull CFANode pFirst,
-      @NonNull CFANode pLast,
+      @NonNull CFANode pFinalLocation,
       @NonNull ImmutableSet<CFANode> pNodes,
       @NonNull ImmutableSet<CFAEdge> pEdges) {
     id = pId;
-    first = pFirst;
-    last = pLast;
+    initialLocation = pFirst;
+    finalLocation = pFinalLocation;
     nodes = pNodes;
     edges = pEdges;
     code = getCodeRepresentation();
@@ -41,16 +41,16 @@ public class BlockNodeWithoutGraphInformation {
     return id;
   }
 
-  public CFANode getFirst() {
-    return first;
+  public CFANode getInitialLocation() {
+    return initialLocation;
   }
 
-  public CFANode getAbstractionLocation() {
-    return last;
+  public CFANode getViolationConditionLocation() {
+    return finalLocation;
   }
 
-  public CFANode getLast() {
-    return last;
+  public CFANode getFinalLocation() {
+    return finalLocation;
   }
 
   public ImmutableSet<CFANode> getNodes() {
@@ -114,10 +114,10 @@ public class BlockNodeWithoutGraphInformation {
         + id
         + ", "
         + "first="
-        + first
+        + initialLocation
         + ", "
         + "last="
-        + last
+        + finalLocation
         + ", "
         + "nodes="
         + nodes

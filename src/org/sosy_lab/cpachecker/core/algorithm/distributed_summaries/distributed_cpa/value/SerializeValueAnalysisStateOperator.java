@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class SerializeValueAnalysisStateOperator implements SerializeOperator {
 
   @Override
-  public BlockSummaryMessagePayload serialize(AbstractState pState) {
+  public DssMessagePayload serialize(AbstractState pState) {
     ValueAnalysisState valueState = (ValueAnalysisState) pState;
     StringBuilder stringBuilder = new StringBuilder();
     SerializeValueVisitor visitor = new SerializeValueVisitor();
@@ -42,8 +42,8 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
           serializedValueString.substring(0, serializedValueString.length() - 4);
     }
 
-    BlockSummaryMessagePayload.Builder payload =
-        BlockSummaryMessagePayload.builder()
+    DssMessagePayload.Builder payload =
+        DssMessagePayload.builder()
             .addEntry(ValueAnalysisCPA.class.getName(), serializedValueString);
 
     return payload.buildPayload();

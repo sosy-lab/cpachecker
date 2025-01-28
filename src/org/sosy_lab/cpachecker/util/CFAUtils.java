@@ -14,11 +14,13 @@ import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.graph.Traverser;
 import com.google.errorprone.annotations.DoNotCall;
@@ -110,7 +112,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.GhostEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -440,7 +441,7 @@ public class CFAUtils {
   public static AssumeEdge getComplimentaryAssumeEdge(AssumeEdge edge) {
     return Iterables.getOnlyElement(
         CFAUtils.leavingEdges(edge.getPredecessor())
-            .filter(e -> !e.equals(edge) && !(e instanceof GhostEdge))
+            .filter(e -> !e.equals(edge))
             .filter(AssumeEdge.class));
   }
 
@@ -507,6 +508,41 @@ public class CFAUtils {
 
   public static Map<Integer, CFANode> getMappingFromNodeIDsToCFANodes(CFA pCfa) {
     return Maps.uniqueIndex(pCfa.nodes(), CFANode::getNodeNumber);
+  }
+
+  /**
+   * This method returns true if the set of nodes is connected, i.e., there is a path between every
+   * pair of nodes in the set.
+   *
+   * <p>Currently this is quite inefficient, so use with caution and only for small sets of nodes.
+   *
+   * @param pCfaNodes the set of nodes
+   * @return true if the set of nodes is connected i.e. there is a path between every pair of nodes
+   *     in the set
+   */
+  public static boolean isConnected(Set<CFANode> pCfaNodes) {
+    if (pCfaNodes.isEmpty()) {
+      return true;
+    }
+
+    Multimap<Integer, CFANode> idsToNode = HashMultimap.create();
+    Integer currentId = 0;
+    for (CFANode node : pCfaNodes) {
+      Multimap<Integer, CFANode> newIdsToNode = HashMultimap.create(idsToNode);
+      newIdsToNode.put(currentId, node);
+      for (CFANode connectedNode :
+          FluentIterable.concat(CFAUtils.allPredecessorsOf(node), CFAUtils.allSuccessorsOf(node))) {
+        for (Integer id : idsToNode.keySet()) {
+          if (newIdsToNode.get(id).contains(connectedNode)) {
+            newIdsToNode.putAll(currentId, newIdsToNode.removeAll(id));
+          }
+        }
+      }
+      idsToNode = newIdsToNode;
+      currentId++;
+    }
+
+    return idsToNode.keySet().size() == 1;
   }
 
   /**

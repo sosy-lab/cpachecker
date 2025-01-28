@@ -21,9 +21,6 @@ from airium import Airium
 import networkx as nx
 import pydot
 
-from os import listdir
-from os.path import isfile, join
-
 ENCODING = "UTF-8"
 
 
@@ -92,12 +89,8 @@ def html_for_message(message, block_log: Dict[str, str]):
         receivers = successors
         senders = predecessors
         arrow = "&darr;"
-    elif direction == "ERROR_CONDITION":
+    elif direction == "VIOLATION_CONDITION":
         receivers = predecessors
-        senders = successors
-        arrow = "&uarr;"
-    elif direction == "ERROR_CONDITION_UNREACHABLE":
-        receivers = ["all"]
         senders = successors
         arrow = "&uarr;"
     elif direction == "FOUND_RESULT":
@@ -150,8 +143,7 @@ def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
         # row values
         type_to_klass = {
             "BLOCK_POSTCONDITION": "precondition",
-            "ERROR_CONDITION": "postcondition",
-            "ERROR_CONDITION_UNREACHABLE": "postcondition",
+            "VIOLATION_CONDITION": "postcondition",
         }
         for timestamp, messages in timestamp_to_message.items():
             with table.tr():
@@ -177,6 +169,8 @@ def visualize_blocks(
     for key in block_logs:
         code_parts = [c.replace('"', "'") for c in block_logs[key]["code"]]
         code = "\n".join(c for c in code_parts if c)
+        if len(code) > 1000:
+            code = code[:1000] + "..."
         label = key + ":\n" + code if code else key
         g.add_node(key, shape="box", label=f'"{label}"')
     for key in block_logs:
@@ -235,11 +229,11 @@ def visualize_messages(
     all_messages = []
     hash_code = None
     jsons = sorted(
-        [f for f in listdir(message_dir) if isfile(join(message_dir, f))],
-        key=lambda text: int(text[1:-5]),
+        [f.name for f in message_dir.iterdir() if f.is_file()],
+        key=lambda file_name: file_name[1:-5],
     )
     for message_json in jsons:
-        parsed_file = parse_jsons(join(message_dir, message_json))
+        parsed_file = parse_jsons(message_dir / message_json)
         if hash_code is None:
             hash_code = parsed_file["hashCode"]
         if hash_code == parsed_file["hashCode"]:

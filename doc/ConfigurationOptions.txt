@@ -1035,6 +1035,10 @@ counterexample.checker = CBMC
 # counterexample check, if available
 counterexample.checker.changeCEXInfo = false
 
+# counterexample check checks MemSafety sub-properties (valid-deref,
+# valid-free, valid-memtrack) additionally to the path.
+counterexample.checker.checkMemorySafetySubproperty = false
+
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = no default value
 
@@ -1430,6 +1434,9 @@ cpa.arg.exportTrueInvariants = false
 # export correctness witness in YAML format
 cpa.arg.exportYamlCorrectnessWitness = true
 
+# export witnesses for unknown verdicts
+cpa.arg.exportYamlWitnessesForUnknownVerdict = true
+
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
 
@@ -1710,7 +1717,9 @@ cpa.callstack.depth = 0
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
 
-# whether DCPAs should ignore forward callstack
+# Decided whether to compute the callstack for the forward analysis. This is
+# useful for analyses like Distributed Summary Synthesis that require the
+# CallstackCPA to be available but do not require it to be executed at times.
 cpa.callstack.ignoreForwardCallstackTransfers = false
 
 # Skip recursion if it happens only by going via a function pointer (this is
@@ -2239,6 +2248,10 @@ cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
   enum:     [DISABLE, INT2BV, BV2INT]
 
+# when reading invariants from YML witness ignore the location context and
+# only consider the function context of the program
+cpa.predicate.abstraction.initialPredicates.ignoreLocationInfoInYMLWitness = false
+
 # initial predicates are added as atomic predicates
 cpa.predicate.abstraction.initialPredicates.splitIntoAtoms = false
 
@@ -2328,8 +2341,8 @@ cpa.predicate.blk.alwaysAtFunctionHeads = false
 # force abstractions at each function calls/returns, regardless of threshold
 cpa.predicate.blk.alwaysAtFunctions = true
 
-# abstraction always at nodes with outgoing ghost edges
-cpa.predicate.blk.alwaysAtGhostEdges = false
+# Abstract at predefined locations given as a list of CFANode ids.
+cpa.predicate.blk.alwaysAtGivenNodes = {}
 
 # force abstractions at each join node, regardless of threshold
 cpa.predicate.blk.alwaysAtJoin = false
@@ -3212,6 +3225,13 @@ cpa.smg2.GCCZeroLengthArray = false
 # memory allocation of any kind.
 cpa.smg2.abortOnNonConcreteMemorySize = true
 
+# Periodically removes concrete values from the memory model and replaces
+# them with symbolic values. Only the newest concrete values above this
+# threshold are removed. For negative numbers this option is ignored. Note: 0
+# also removes the null value, reducing impacting null dereference or free
+# soundness. Currently only supported for given value 0.
+cpa.smg2.abstraction.abstractConcreteValuesAboveThreshold = -1
+
 # If heap values are to be abstracted based on CEGAR.
 cpa.smg2.abstraction.abstractHeapValues = false
 
@@ -3293,6 +3313,10 @@ cpa.smg2.cacheSubsets = false
 # Whether to use superset caching
 cpa.smg2.cacheSupersets = false
 
+# If this Option is enabled, C function atexit() will return a succeeding and
+# failing registration for each registration. Otherwise only succeeding.
+cpa.smg2.canAtexitFail = false
+
 # with this option enabled, memory addresses (pointers) are transformed into
 # a numeric assumption upon casting the pointer to a number. This assumption
 # can be returned to a proper pointer by casting it back. This enables
@@ -3304,6 +3328,11 @@ cpa.smg2.castMemoryAddressesToNumeric = false
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
 cpa.smg2.checkForMemLeaksAtEveryFrameDrop = true
+
+# Maximum amount of concrete assignments before the assigning is aborted. The
+# last offset is then once treated as option
+# overapproximateSymbolicOffsetsAsFallback specifies.
+cpa.smg2.concreteValueForSymbolicOffsetsAssignmentMaximum = 300
 
 # Crash on unknown value when creating constraints of any form.
 cpa.smg2.crashOnUnknownInConstraint = false
@@ -3743,7 +3772,7 @@ cpa.value.assignEqualityAssumptions = true
 
 # configure when to export loop invariants
 cpa.value.exportLoopInvariants = IF_TRUE
-  enum:     [ALWAYS, IF_NOT_FALSE, IF_TRUE]
+  enum:     [ALWAYS, IF_NOT_FALSE, IF_TRUE, IF_UNKNOWN]
 
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
@@ -3796,6 +3825,9 @@ cpa.value.invExport.exportBitops = true
 # + by + c = 0, ax + bx + c <= 0, ax + bx + c >= 0, or ax + by + cy + d = 0
 cpa.value.invExport.exportLinear = true
 
+# Enable invariants that relate (compare) two variables
+cpa.value.invExport.exportRelational = true
+
 # Enable invariants that use a shift operator, note that additionally
 # exportBitops must be enabled
 cpa.value.invExport.exportShiftops = true
@@ -3803,6 +3835,9 @@ cpa.value.invExport.exportShiftops = true
 # Enable to export invariants that include three variables, currently only
 # effective if exportLinear is enabled, too
 cpa.value.invExport.exportTernary = true
+
+# Enable to export invariants on single variables
+cpa.value.invExport.exportUnary = true
 
 # enable if loop invariant export should consider context
 cpa.value.invExport.invariantsContextSensitive = true
@@ -4131,44 +4166,39 @@ distributedSummaries.importDecomposition = no default value
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'known' by block-summary analysis. Each file must
-# contain a single, valid JSON BlockSummaryMessage. If at least one file is
-# provided, the block-summary analysis assumes these pre- and
-# verification-conditions. If no file is provided, the block-summary analysis
-# assumes the precondition 'true' and the verification condition 'false'.
+# contain a single, valid JSON DssMessage. If at least one file is provided,
+# the block-summary analysis assumes these pre- and verification-conditions.
+# If no file is provided, the block-summary analysis assumes the precondition
+# 'true' and the verification condition 'false'.
 distributedSummaries.knownConditions = []
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'new' by block-summary analysis. For each message
 # in this list, block-summary analysis will perform a new analysis run in the
 # order of occurrence. Each file must contain a single, valid JSON
-# BlockSummaryMessage. If at least one file is provided, the block-summary
-# analysis assumes these pre- and verification-conditions. If no file is
-# provided, the block-summary analysis assumes the precondition 'true' and
-# the verification condition 'false'.
+# DssMessage. If at least one file is provided, the block-summary analysis
+# assumes these pre- and verification-conditions. If no file is provided, the
+# block-summary analysis assumes the precondition 'true' and the verification
+# condition 'false'.
 distributedSummaries.newConditions = []
 
 # Where to write responses
 distributedSummaries.outputMessages = "messages/"
 
-# Change the queue type. ERRROR_CONDITION prioritizes the processing
-# ofErrorConditionMessages. DEFAULT does not differ between PostCondition and
-# ErrorCondition messages.
+# Change the queue type. VIOLATION_CONDITION prioritizes the processing of
+# ViolationConditionMessages. DEFAULT does not differ between PostCondition
+# and ViolationCondition messages.
 distributedSummaries.queue = DEFAULT
-  enum:     [ERROR_CONDITION, DEFAULT]
+  enum:     [VIOLATION_CONDITION, DEFAULT]
 
 # Whether to spawn a worker for only one block id
 distributedSummaries.spawnWorkerForId = ""
 
-# How workers should behave. Unlike DSS, INVARIANTS works with guessed
-# summaries.
-distributedSummaries.strategy = DSS
-  enum:     [DSS, INVARIANTS]
-
 # Configuration for forward analysis in computation of distributed summaries
 distributedSummaries.worker.forwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-forward.properties"
 
-# Destination directory for the logfiles of all BlockSummaryWorkers. The
-# logfiles have the same name as the ID of the worker.
+# Destination directory for the logfiles of all DssWorkers. The logfiles have
+# the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_summary/logfiles"
 
 # output file for visualizing message exchange

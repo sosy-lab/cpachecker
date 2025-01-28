@@ -11,11 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFADecomposer;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.util.CFAEdgeDFSTraversal;
 
-public class LinearBlockNodeDecomposition implements BlockSummaryCFADecomposer {
+public class LinearBlockNodeDecomposition implements DssBlockDecomposition {
 
   private final BlockNodeCFAVisitor visitor;
 

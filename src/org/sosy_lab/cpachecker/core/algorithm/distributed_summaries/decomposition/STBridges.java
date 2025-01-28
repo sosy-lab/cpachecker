@@ -138,8 +138,8 @@ public class STBridges {
 
   private static List<CFAEdge> findPathFromMainToExit(BlockNodeWithoutGraphInformation blockNode) {
     Deque<List<CFAEdge>> paths = new ArrayDeque<>();
-    CFANode mainFunction = blockNode.getFirst();
-    CFANode exitNode = blockNode.getLast();
+    CFANode mainFunction = blockNode.getInitialLocation();
+    CFANode exitNode = blockNode.getFinalLocation();
     for (CFAEdge leavingEdge : CFAUtils.leavingEdges(mainFunction)) {
 
       if (blockNode.getEdges().contains(leavingEdge)) {
@@ -175,7 +175,7 @@ public class STBridges {
    */
   public static BridgeComponents computeBridges(BlockNodeWithoutGraphInformation blockNode) {
     Map<CFANode, Integer> comp = new LinkedHashMap<>();
-    CFANode exitNode = blockNode.getLast();
+    CFANode exitNode = blockNode.getFinalLocation();
 
     for (CFANode node : blockNode.getNodes()) {
       comp.put(node, 0);
@@ -190,9 +190,9 @@ public class STBridges {
     int association = 1;
     while (comp.get(exitNode) == 0) {
       if (association == 1) {
-        nodeQueue.add(blockNode.getFirst());
-        putOrUpdate(bridgeComponents, association, blockNode.getFirst());
-        comp.put(blockNode.getFirst(), 1);
+        nodeQueue.add(blockNode.getInitialLocation());
+        putOrUpdate(bridgeComponents, association, blockNode.getInitialLocation());
+        comp.put(blockNode.getInitialLocation(), 1);
 
       } else {
         for (int i = path.size() - 1; i >= 0; i--) {

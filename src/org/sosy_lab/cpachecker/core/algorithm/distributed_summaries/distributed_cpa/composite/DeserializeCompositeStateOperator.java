@@ -14,10 +14,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -31,14 +31,14 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
       registered;
   private final CompositeCPA compositeCPA;
   private final ImmutableMap<Integer, CFANode> integerCFANodeMap;
-  private final BlockAnalysisStatistics stats;
+  private final DssBlockAnalysisStatistics stats;
 
   public DeserializeCompositeStateOperator(
       CompositeCPA pCompositeCPA,
       Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
           pRegistered,
       ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
-      BlockAnalysisStatistics pStats) {
+      DssBlockAnalysisStatistics pStats) {
     compositeCPA = pCompositeCPA;
     registered = pRegistered;
     integerCFANodeMap = pIntegerCFANodeMap;
@@ -46,7 +46,7 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
   }
 
   @Override
-  public CompositeState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
+  public CompositeState deserialize(DssMessage pMessage) throws InterruptedException {
     try {
       stats.getDeserializationCount().inc();
       stats.getDeserializationTime().start();

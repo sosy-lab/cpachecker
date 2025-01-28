@@ -130,7 +130,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     ShutdownManager loopGenerationShutdown = ShutdownManager.createWithParent(shutdownNotifier);
     ResourceLimitChecker limits = null;
     if (!timeForLoopGeneration.isEmpty()) {
-      WalltimeLimit l = WalltimeLimit.fromNowOn(timeForLoopGeneration);
+      WalltimeLimit l = WalltimeLimit.create(timeForLoopGeneration);
       limits = new ResourceLimitChecker(loopGenerationShutdown, Collections.singletonList(l));
       limits.start();
     }

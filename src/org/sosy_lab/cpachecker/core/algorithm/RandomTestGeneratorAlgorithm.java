@@ -48,7 +48,7 @@ public class RandomTestGeneratorAlgorithm implements Algorithm, StatisticsProvid
   private final Property specProp;
 
   private int numExportedTestCases = 0;
-  private StatInt testCaseLengths = new StatInt(StatKind.AVG, "Average test case length");
+  private final StatInt testCaseLengths = new StatInt(StatKind.AVG, "Average test case length");
 
   @Option(secure = true, description = "Random seed for random test-case generation")
   private long randomInputSeed = 0;

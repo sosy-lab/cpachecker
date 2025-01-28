@@ -37,7 +37,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--option">counterexample.export.compressWitness=true</option>
   <option name="--option">counterexample.export.graphml=witness.graphml</option>
   <option name="--option">cpa.arg.proofWitness=witness.graphml</option>
-  <option name="--option">termination.violation.witness=witness.graphml</option>
+  <option name="--option">cpa.smg2.enableMallocFail=false</option>
 
   <tasks name="MemSafety-Arrays">
     <includesfile>../programs/benchmarks/Arrays.set</includesfile>

@@ -15,7 +15,6 @@ import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.GhostEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -32,38 +31,43 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
     CFANode node = blockState.getLocationNode();
 
     // block end cannot be reached directly before processing the first edge
-    if (blockState.getType().equals(BlockStateType.INITIAL) && cfaEdge instanceof GhostEdge) {
+    if (blockState.getType().equals(BlockStateType.INITIAL)
+        && cfaEdge.getDescription().equals("<<ghost-edge>>")) {
       return ImmutableSet.of();
     }
 
-    final BlockState successor =
-        new BlockState(
-            cfaEdge.getSuccessor(),
-            blockState.getBlockNode(),
-            getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
-            blockState.getErrorCondition());
+    if (blockState.getType() == BlockStateType.FINAL
+        && !cfaEdge
+            .getSuccessor()
+            .equals(blockState.getBlockNode().getViolationConditionLocation())) {
+      return ImmutableList.of();
+    }
+
+    if (blockState.getType() == BlockStateType.ABSTRACTION) {
+      return ImmutableList.of();
+    }
 
     Set<CFAEdge> intersection =
         Sets.intersection(
             CFAUtils.leavingEdges(node).toSet(), blockState.getBlockNode().getEdges());
 
-    if (blockState.getType() == BlockStateType.FINAL
-        && !cfaEdge.getSuccessor().equals(blockState.getBlockNode().getAbstractionLocation())) {
-      return ImmutableList.of();
-    }
-
     if (intersection.contains(cfaEdge)) {
-      return ImmutableList.of(successor);
+      return ImmutableList.of(
+          new BlockState(
+              cfaEdge.getSuccessor(),
+              blockState.getBlockNode(),
+              getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
+              blockState.getErrorCondition()));
     }
 
     return ImmutableList.of();
   }
 
   private static BlockStateType getBlockStateTypeOfLocation(BlockNode pBlockNode, CFANode pNode) {
-    if (pNode.equals(pBlockNode.getLast())) {
+    if (pNode.equals(pBlockNode.getFinalLocation())) {
       return BlockStateType.FINAL;
     }
-    if (pNode.equals(pBlockNode.getAbstractionLocation())) {
+    if (pNode.equals(pBlockNode.getViolationConditionLocation())) {
       return BlockStateType.ABSTRACTION;
     }
     return BlockStateType.MID;

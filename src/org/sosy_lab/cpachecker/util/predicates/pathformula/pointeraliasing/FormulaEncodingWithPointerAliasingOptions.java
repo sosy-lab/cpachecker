@@ -183,6 +183,7 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
         || isSuccessfulZallocFunctionName(name)
         || isMemoryAllocationFunction(name)
         || isMemoryAllocationFunctionWithZeroing(name)
+        || isMemoryReallocFunction(name)
         || isMemoryFreeFunction(name);
   }
 
@@ -240,6 +241,10 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   boolean isMemoryFreeFunction(final String name) {
     return memoryFreeFunctionName.equals(name);
+  }
+
+  boolean isMemoryReallocFunction(final String name) {
+    return name.equals("realloc");
   }
 
   public boolean useQuantifiersOnArrays() {

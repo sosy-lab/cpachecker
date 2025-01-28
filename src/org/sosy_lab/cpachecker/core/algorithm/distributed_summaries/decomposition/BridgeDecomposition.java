@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class BridgeDecomposition implements BlockSummaryCFADecomposer {
+public class BridgeDecomposition implements DssBlockDecomposition {
 
   private int id = 1;
 
@@ -71,8 +71,8 @@ public class BridgeDecomposition implements BlockSummaryCFADecomposer {
   private List<BlockNodeWithoutGraphInformation> getMoreBlockNodes(
       String idPrefix, BlockNodeWithoutGraphInformation blockNode) {
     List<BlockNodeWithoutGraphInformation> newBlockNodes = new ArrayList<>();
-    CFANode startNode = blockNode.getFirst();
-    CFANode endNode = blockNode.getLast();
+    CFANode startNode = blockNode.getInitialLocation();
+    CFANode endNode = blockNode.getFinalLocation();
 
     for (CFAEdge leavingEdge : CFAUtils.leavingEdges(startNode)) {
       Set<CFANode> allNodesOfNewBlockNode = new HashSet<>();
@@ -91,7 +91,7 @@ public class BridgeDecomposition implements BlockSummaryCFADecomposer {
           new BlockNodeWithoutGraphInformation(
               idPrefix + id++,
               startNode,
-              blockNode.getLast(),
+              blockNode.getFinalLocation(),
               ImmutableSet.copyOf(allNodesOfNewBlockNode),
               ImmutableSet.copyOf(allEdgesOfNewBlockNode));
 
@@ -130,13 +130,13 @@ public class BridgeDecomposition implements BlockSummaryCFADecomposer {
   }
 
   private boolean shouldDecomposeBlockNode(BlockNodeWithoutGraphInformation blockNode) {
-    return blockNode.getFirst().getNumLeavingEdges() > 1
+    return blockNode.getInitialLocation().getNumLeavingEdges() > 1
         && !onlyOneLeavingEdgeIsPartOfBlockNode(blockNode);
   }
 
   private boolean onlyOneLeavingEdgeIsPartOfBlockNode(BlockNodeWithoutGraphInformation blockNode) {
     int counter = 0;
-    for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(blockNode.getFirst())) {
+    for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(blockNode.getInitialLocation())) {
       if (blockNode.getEdges().contains(leavingEdge)) {
         counter++;
       }
@@ -146,7 +146,7 @@ public class BridgeDecomposition implements BlockSummaryCFADecomposer {
 
   private boolean shouldComputeBridges(BlockNodeWithoutGraphInformation blockNode) {
     for (CFANode node : blockNode.getNodes()) {
-      if (node.getNumLeavingEdges() > 1 && !node.equals(blockNode.getFirst())) {
+      if (node.getNumLeavingEdges() > 1 && !node.equals(blockNode.getInitialLocation())) {
         return true;
       }
     }

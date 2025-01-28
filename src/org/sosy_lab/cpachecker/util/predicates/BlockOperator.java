@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.GhostEdge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -130,20 +129,22 @@ public class BlockOperator {
   @Option(secure = true, description = "abstraction always at function exit nodes.")
   private boolean alwaysAtFunctionExit = false;
 
-  @Option(secure = true, description = "abstraction always at nodes with outgoing ghost edges")
-  private boolean alwaysAtGhostEdges = false;
+  @Option(
+      secure = true,
+      description = "Abstract at predefined locations given as a list of CFANode ids.")
+  private ImmutableSet<Integer> alwaysAtGivenNodes = ImmutableSet.of();
 
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
   private ImmutableSet<CFANode> loopHeads = null;
 
-  public StatCounter numBlkEntryFunctionHeads = new StatCounter("");
-  public StatCounter numBlkFunctionHeads = new StatCounter("");
-  public StatCounter numBlkFunctions = new StatCounter("");
-  public StatCounter numBlkLoops = new StatCounter("");
-  public StatCounter numBlkJoins = new StatCounter("");
-  public StatCounter numBlkBranch = new StatCounter("");
-  public StatCounter numBlkThreshold = new StatCounter("");
-  public StatCounter numBlkExit = new StatCounter("");
+  public final StatCounter numBlkEntryFunctionHeads = new StatCounter("");
+  public final StatCounter numBlkFunctionHeads = new StatCounter("");
+  public final StatCounter numBlkFunctions = new StatCounter("");
+  public final StatCounter numBlkLoops = new StatCounter("");
+  public final StatCounter numBlkJoins = new StatCounter("");
+  public final StatCounter numBlkBranch = new StatCounter("");
+  public final StatCounter numBlkThreshold = new StatCounter("");
+  public final StatCounter numBlkExit = new StatCounter("");
 
   /**
    * Check whether an abstraction should be computed.
@@ -170,7 +171,7 @@ public class BlockOperator {
       return true;
     }
 
-    if (alwaysAtGhostEdges && !CFAUtils.allLeavingEdges(loc).filter(GhostEdge.class).isEmpty()) {
+    if (alwaysAtGivenNodes.contains(loc.getNodeNumber())) {
       return true;
     }
 

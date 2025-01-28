@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.VerificationConditionReportingState;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.ViolationConditionReportingState;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil.UniqueIndexProvider;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -49,7 +49,7 @@ public abstract sealed class PredicateAbstractState
         Partitionable,
         Serializable,
         Splitable,
-        VerificationConditionReportingState {
+        ViolationConditionReportingState {
 
   @Serial private static final long serialVersionUID = -265763837277453447L;
 
@@ -223,7 +223,7 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
-    public BooleanFormula getVerificationCondition(FormulaManagerView manager) {
+    public BooleanFormula getViolationCondition(FormulaManagerView manager) {
       return getFormulaApproximation(manager);
     }
   }
@@ -276,7 +276,7 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
-    public BooleanFormula getVerificationCondition(FormulaManagerView manager) {
+    public BooleanFormula getViolationCondition(FormulaManagerView manager) {
       return PredicateOperatorUtil.uninstantiate(
               getPathFormula(), manager, UniqueIndexProvider.withUUID())
           .booleanFormula();

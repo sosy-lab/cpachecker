@@ -36,9 +36,10 @@ SPDX-License-Identifier: Apache-2.0
         <exclude name="**/*.java" />
     </patternset>
 
-    <!-- error-prone config from https://errorprone.info/docs/installation#jdk-16 -->
+    <!-- error-prone config from https://errorprone.info/docs/installation#ant -->
     <property name="errorprone.options.required" value="
         -XDcompilePolicy=simple
+        --should-stop=ifError=FLOW
         -J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED
         -J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED
         -J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED
@@ -135,6 +136,9 @@ SPDX-License-Identifier: Apache-2.0
             <filterchain>
                 <replacetokens begintoken="=" endtoken="g">
                     <token key="warnin" value="=error"/>
+                </replacetokens>
+                <replacetokens begintoken="=" endtoken="o">
+                    <token key="inf" value="=ignore"/>
                 </replacetokens>
             </filterchain>
         </copy>

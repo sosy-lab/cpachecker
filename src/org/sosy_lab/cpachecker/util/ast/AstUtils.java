@@ -10,15 +10,28 @@ package org.sosy_lab.cpachecker.util.ast;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.io.Serial;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class AstUtils {
+
+  public static class BoundaryNodesComputationFailed extends Exception {
+    @Serial private static final long serialVersionUID = -1208781212;
+
+    public BoundaryNodesComputationFailed(String pMessage) {
+      super(pMessage);
+    }
+  }
+
   /**
    * This method computes the nodes which are at the boundary between a condition and the nodes
    * inside two branches starting from it. This can be used to find out after which node one of the
@@ -53,11 +66,30 @@ public class AstUtils {
   static Pair<ImmutableSet<CFANode>, ImmutableSet<CFANode>> computeNodesConditionBoundaryNodes(
       Set<CFAEdge> pEdgesCondition,
       Optional<Set<CFAEdge>> pEdgesFirstBranch,
-      Optional<Set<CFAEdge>> pEdgesSecondBranch) {
+      Optional<Set<CFAEdge>> pEdgesSecondBranch)
+      throws BoundaryNodesComputationFailed {
+
     final Set<CFANode> nodesBoundaryCondition =
         Sets.difference(
             transformedImmutableSetCopy(pEdgesCondition, CFAEdge::getSuccessor),
             transformedImmutableSetCopy(pEdgesCondition, CFAEdge::getPredecessor));
+
+    // Sometimes the FileLocations are correctly set but not as expected to identify the boundary
+    // nodes. For example in ../sv-benchmarks/c/float-newlib/double_req_bl_1210.c there are multiple
+    // function calls in the condition, the second of which introduces statement edges as part of
+    // the condition. The problem is that these statements do not have a FileLocation inside the
+    // condition, which is correct since some edges are part of a function call. This introduces a
+    // node which says it is exiting the condition, but in truth is merely calling a function. This
+    // is why we need to check if the edges are artificial intermediate edges.
+    if (FluentIterable.from(nodesBoundaryCondition)
+        .transformAndConcat(CFAUtils::allEnteringEdges)
+        .anyMatch(
+            pEdge ->
+                pEdge instanceof AssumeEdge && ((AssumeEdge) pEdge).isArtificialIntermediate())) {
+
+      throw new BoundaryNodesComputationFailed("Condition edges are not connected");
+    }
+
     final Set<CFANode> collectorNodesBetweenConditionAndSecondBranch;
     final Set<CFANode> collectorNodesBetweenConditionAndFirstBranch;
 

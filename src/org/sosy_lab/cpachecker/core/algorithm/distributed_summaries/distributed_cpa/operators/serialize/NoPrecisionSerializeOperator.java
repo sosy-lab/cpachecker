@@ -8,13 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class NoPrecisionSerializeOperator implements SerializePrecisionOperator {
 
   @Override
-  public BlockSummaryMessagePayload serializePrecision(Precision pPrecision) {
-    return BlockSummaryMessagePayload.empty();
+  public DssMessagePayload serializePrecision(Precision pPrecision) {
+    return DssMessagePayload.empty();
   }
 }

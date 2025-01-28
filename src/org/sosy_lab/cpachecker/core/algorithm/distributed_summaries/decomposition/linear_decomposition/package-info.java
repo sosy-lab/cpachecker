@@ -8,7 +8,7 @@
 
 /**
  * Implements a {@link
- * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFADecomposer}
+ * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition}
  * using the {@link org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor}
  */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition;

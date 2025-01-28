@@ -37,7 +37,7 @@ public final class JFieldDeclaration extends JVariableDeclaration {
   private static final JDeclaration UNRESOLVED_DECLARATION =
       new JFieldDeclaration(
           FileLocation.DUMMY,
-          JSimpleType.getUnspecified(),
+          JSimpleType.UNSPECIFIED,
           "_unresolved_",
           "_unresolved_",
           false,

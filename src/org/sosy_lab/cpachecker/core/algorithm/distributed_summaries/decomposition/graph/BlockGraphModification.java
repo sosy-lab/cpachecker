@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph.GHOST_EDGE_DESCRIPTION;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
@@ -29,11 +30,12 @@ import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.GhostEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -178,7 +180,7 @@ public class BlockGraphModification {
               }
               nodes.add(originalInstrumentedMapping.get(loopNode));
             }
-            loops.put(functionName, new Loop(heads.build(), nodes.build()));
+            loops.put(functionName, Loop.fromLoopHeadsAndNodes(heads.build(), nodes.build()));
           }
         }
         loopStructure = Optional.of(LoopStructure.of(loops.build()));
@@ -187,6 +189,10 @@ public class BlockGraphModification {
       loopStructure = Optional.empty();
     }
     return loopStructure;
+  }
+
+  private static CFAEdge insertGhostEdge(CFANode pPredecessor, CFANode pSuccessor) {
+    return new BlankEdge("", FileLocation.DUMMY, pPredecessor, pSuccessor, GHOST_EDGE_DESCRIPTION);
   }
 
   /**
@@ -233,7 +239,7 @@ public class BlockGraphModification {
     MappingInformation blockMapping =
         createMappingBetweenOriginalAndInstrumentedCFA(pOriginalCfa, pMutableCfa);
     ImmutableSet<CFANode> blockEnds =
-        transformedImmutableSetCopy(pBlockGraph.getNodes(), n -> n.getLast());
+        transformedImmutableSetCopy(pBlockGraph.getNodes(), n -> n.getFinalLocation());
     ImmutableSet.Builder<CFANode> unableToAbstract = ImmutableSet.builder();
     ImmutableMap.Builder<CFANode, CFAEdge> abstractions = ImmutableMap.builder();
     for (CFANode originalBlockEnd : blockEnds) {
@@ -243,7 +249,7 @@ public class BlockGraphModification {
           && !(mutableCfaBlockEnd instanceof CFATerminationNode)) {
         CFANode blockEndEdgeSuccessor = new CFANode(mutableCfaBlockEnd.getFunction());
         pMutableCfa.addNode(blockEndEdgeSuccessor);
-        GhostEdge blockEndEdge = new GhostEdge(mutableCfaBlockEnd, blockEndEdgeSuccessor);
+        CFAEdge blockEndEdge = insertGhostEdge(mutableCfaBlockEnd, blockEndEdgeSuccessor);
         mutableCfaBlockEnd.addLeavingEdge(blockEndEdge);
         blockEndEdgeSuccessor.addEnteringEdge(blockEndEdge);
         abstractions.put(originalBlockEnd, blockEndEdge);
@@ -287,8 +293,8 @@ public class BlockGraphModification {
           edgeBuilder.add(instrumentedEdge);
         }
       }
-      CFANode abstraction = originalInstrumentedNodes.get(block.getLast());
-      CFAEdge abstractionEdge = blockAbstractionEnds.get(block.getLast());
+      CFANode abstraction = originalInstrumentedNodes.get(block.getFinalLocation());
+      CFAEdge abstractionEdge = blockAbstractionEnds.get(block.getFinalLocation());
       if (abstractionEdge != null) {
         edgeBuilder.add(abstractionEdge);
         abstraction = abstractionEdge.getSuccessor();
@@ -297,8 +303,8 @@ public class BlockGraphModification {
       instrumentedBlocks.add(
           new BlockNode(
               block.getId(),
-              originalInstrumentedNodes.get(block.getFirst()),
-              originalInstrumentedNodes.get(block.getLast()),
+              originalInstrumentedNodes.get(block.getInitialLocation()),
+              originalInstrumentedNodes.get(block.getFinalLocation()),
               nodeBuilder.build(),
               edgeBuilder.build(),
               block.getPredecessorIds(),

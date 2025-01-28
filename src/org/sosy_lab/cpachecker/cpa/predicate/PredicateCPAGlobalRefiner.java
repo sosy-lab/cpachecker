@@ -59,7 +59,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * left to an instance of {@link GlobalRefinementStrategy}.
  */
 @Options(prefix = "cpa.predicate.refinement.global")
-public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
+final class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
 
   @Option(
       secure = true,
@@ -81,7 +81,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
   private final BooleanFormulaManager bfmgr;
   private final ARGCPA argCPA;
 
-  public PredicateCPAGlobalRefiner(
+  PredicateCPAGlobalRefiner(
       final LogManager pLogger,
       final FormulaManagerView pFmgr,
       final GlobalRefinementStrategy pStrategy,

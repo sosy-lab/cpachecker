@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.VerificationConditionReportingState;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.ViolationConditionReportingState;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
@@ -97,7 +97,7 @@ public final class ValueAnalysisState
         Graphable,
         LatticeAbstractState<ValueAnalysisState>,
         PseudoPartitionable,
-        VerificationConditionReportingState {
+        ViolationConditionReportingState {
 
   @Serial private static final long serialVersionUID = -3152134511524554358L;
 
@@ -1008,7 +1008,7 @@ public final class ValueAnalysisState
   }
 
   @Override
-  public BooleanFormula getVerificationCondition(FormulaManagerView manager) {
+  public BooleanFormula getViolationCondition(FormulaManagerView manager) {
     return getFormulaApproximation(manager);
   }
 

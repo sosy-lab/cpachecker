@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -84,8 +86,15 @@ public class DistributedValueAnalysisCPA
   }
 
   @Override
-  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition) {
-    return valueAnalysisCPA.getInitialState(
-        blockNode.getFirst(), StateSpacePartition.getDefaultPartition());
+  public ViolationConditionOperator getViolationConditionOperator() {
+    return new ViolationConditionOperator() {
+      @Override
+      public Optional<AbstractState> computeViolationCondition(
+          ARGPath pARGPath, Optional<ARGState> pPreviousCondition) {
+        return Optional.of(
+            valueAnalysisCPA.getInitialState(
+                blockNode.getInitialLocation(), StateSpacePartition.getDefaultPartition()));
+      }
+    };
   }
 }

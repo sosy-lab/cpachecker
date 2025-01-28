@@ -18,17 +18,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 /** Statistics for formula slicing. */
 class FormulaSlicingStatistics implements Statistics {
 
-  private final CachingPathFormulaManager cachingPathFormulaManager;
   private final Solver solver;
 
-  FormulaSlicingStatistics(CachingPathFormulaManager pFmgr, Solver pSolver) {
-    cachingPathFormulaManager = pFmgr;
+  FormulaSlicingStatistics(Solver pSolver) {
     solver = pSolver;
   }
 
@@ -49,9 +46,6 @@ class FormulaSlicingStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    printTimer(
-        out, propagation, "propagating formulas", cachingPathFormulaManager.pathFormulaCacheHits);
-
     printTimer(out, inductiveWeakening, "inductive weakening", cachedInductiveWeakenings);
 
     printTimer(out, solver.solverTime, "checking reachability", solver.cachedSatChecks);

@@ -20,19 +20,10 @@ the [style guide](StyleGuide.md),
 For JavaScript code read [`ReportTemplateStyleGuide.md`](ReportTemplateStyleGuide.md),
 and for Python code read [`PythonStyleGuide.md`](PythonStyleGuide.md).
 
-
-Getting the code
-----------------
-
-There are two possibilities to retrieve the source code:
-
-- The [main repository on GitLab](https://gitlab.com/sosy-lab/software/cpachecker/)
-
-- A read-only mirror at [GitHub](https://github.com/sosy-lab/cpachecker)
+How to checkout and build the source code on the command line is described in
+[the installation instructions](../INSTALL.md#install-cpachecker----source).
 
 For bug tracking, we use [GitLab](https://gitlab.com/sosy-lab/software/cpachecker/issues).
-
-For building the code on the command line, c.f. [`../INSTALL.md`](../INSTALL.md).
 
 
 Develop CPAchecker from within Eclipse
@@ -219,17 +210,14 @@ Releasing a New Version
 
 1. Add a tag in the repository with name `cpachecker-<version>`.
 
-1. Prepare for next development cycle by setting `version.base` in [`build.xml`](../build.xml)
-   to a new development version, which is the next possible version number
-   with the suffix `-svn`.
-   For example, if `3.0` was just released, the next possible feature release
-   is `3.1` and the new development version should be `3.1-svn`.
+1. Prepare for next development cycle by adding the suffix `-git`
+   to `version.base` in [`build.xml`](../build.xml).
 
 1. Publish the `.deb` package created in `dist-<version>/`
    in our [APT repository](https://apt.sosy-lab.org)
    using the [instructions](https://svn.sosy-lab.org/software/apt/README.md) there.
 
-1. Publish new CPAchecker version on Zenodo under https://doi.org/10.5281/zenodo.3816620:
+1. Publish new CPAchecker archive on [Zenodo](https://doi.org/10.5281/zenodo.3816620):
    - Assign new DOI and upload `CPAchecker-<version>-unix.zip` archive.
    - Update title to `CPAchecker Release <version> (image)`.
    - Set publication date.
@@ -237,12 +225,12 @@ Releasing a New Version
    - Update list of contributors according to [`Authors.md`](../Authors.md).
    - Set version field to `<version> (unix)`.
 
-1. Update homepage:
-   - Add release ZIP archives to `/html` in the repository.
-   - Put changelog of newest version into `/html/NEWS-<version>.txt`.
-   - Add links to `/html/download.php`.
-   - Move the old download links to `/html/download-oldversions.php`.
-   - Update section News on `/html/index.php`.
+1. Update homepage, which is hosted in [this repository](https://gitlab.com/sosy-lab/research/web/cpachecker):
+   - Add release ZIP archives.
+   - Put changelog of newest version into `NEWS-<version>.txt`.
+   - Add links to `download.php`.
+   - Move the old download links to `download-oldversions.php`.
+   - Update section News on `index.php`.
 
 1. Publish the Docker image by either building and pushing the image manually
    as described in [`build/Dockerfile.release`](../build/Dockerfile.release)
@@ -250,12 +238,18 @@ Releasing a New Version
    (https://gitlab.com/sosy-lab/software/cpachecker/pipeline_schedules).
    This needs to be done after updating the homepage.
 
+1. Publish new CPAchecker image on [Zenodo](https://doi.org/10.5281/zenodo.3816620):
+   - Store image in file with `podman save cpachecker:<version> | gzip -9 > cpachecker-<version>-image.tar.gz`.
+   - Add new version of the Zenodo record as described above with this TAR.
+   - All metadata are the same as for the archive,
+     except that title and version end in `(image)`.
+
 1. Send a mail with the release announcement to cpachecker-announce and
    cpachecker-users mailing lists.
 
 
-Version Numbering and Release Tagging from Release 3.0
-------------------------------------------------------
+Version Numbering and Release Tagging
+-------------------------------------
 
 We use the following schema to construct version numbers for CPAchecker releases
 (from version 3.0 onwards):
@@ -265,8 +259,9 @@ We use the following schema to construct version numbers for CPAchecker releases
   and an increase of `Y` indicates a minor change (e.g., added functionality).
 - `X.Y.Z` indicates a bug-fix release,
   where `Z` is increased (starting from `0`).
-- Extensions with hyphen are possible,
-  for example, `-dev` indicates unstable development versions that are not released.
-  Note that `X.Y-suffix` is ordered *before* `X.Y`.
+- Development versions have versions as produced by `git describe`,
+  i.e. `4.0-2-gabcdef` for commit `abcdef` if it is the second commit after version 4.0.
+  Note that this differs from semantic versioning and for CPAchecker versions before 4.0,
+  where development version `X.Y-svn-suffix` was ordered before `X.Y`.
 
 The tags in our repository are named `cpachecker-VERSION`, e.g., `cpachecker-3.0`.
