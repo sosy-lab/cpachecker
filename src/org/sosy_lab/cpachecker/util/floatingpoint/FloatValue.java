@@ -603,6 +603,17 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     return sign;
   }
 
+  /**
+   * True if the value is <code>subnormal</code>
+   *
+   * <p>Subnormal numbers that start with <code>0.</code> and can't be normalized as this would
+   * cause their exponent to drop below the supported range. The value zero is a special case, and
+   * we consider it neither normal nor subnormal.
+   */
+  public boolean isSubnormal() {
+    return (exponent == format.minExp() - 1) && !significand.equals(BigInteger.ZERO);
+  }
+
   /** True if the value is an integer, that is if there is no fractional part */
   public boolean isInteger() {
     BigInteger integerValue = toInteger().orElse(BigInteger.ZERO);
