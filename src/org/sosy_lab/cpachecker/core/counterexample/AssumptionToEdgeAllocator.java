@@ -1407,16 +1407,26 @@ public class AssumptionToEdgeAllocator {
      *
      * <p>Takes the bits of an integer and reinterprets them as a floating point value.
      */
-    private Number recastToFloat(Number pNumber) {
-      if (pNumber instanceof Integer intValue) {
-        return Float.intBitsToFloat(intValue);
-      } else if (pNumber instanceof Long longValue) {
-        return Double.longBitsToDouble(longValue);
-      } else if (pNumber instanceof BigInteger integerValue) {
-        // FIXME How to determine the needed precision?
-        return FloatValue.fromInteger(Format.Float64, integerValue);
+    private Number recastToFloat(Number pNumber, CType pType) {
+      Format precision = FloatValue.Format.fromCType(machineModel, pType);
+      BigInteger integerValue = new NumericValue(pNumber).bigIntegerValue();
+
+      Preconditions.checkArgument(
+          integerValue.bitLength() <= 1 + precision.expBits() + precision.sigBits(),
+          "Value `%s` has too many bits to be recast as `%s`.",
+          integerValue.toString(2),
+          pType);
+
+      if (precision.equals(FloatValue.Format.Float32)) {
+        return Float.intBitsToFloat(integerValue.intValue());
+      } else if (precision.equals(FloatValue.Format.Float64)) {
+        return Double.longBitsToDouble(integerValue.longValue());
       } else {
-        throw new IllegalArgumentException();
+        // FIXME: Add support for long double?
+        throw new IllegalArgumentException(
+            String.format(
+                "Can't reinterpret integer value `%s` as floating point number. Target format must be 32 or 64bit wide.",
+                integerValue.toString(2)));
       }
     }
 
@@ -1451,7 +1461,7 @@ public class AssumptionToEdgeAllocator {
             Object floatValue;
             if (numericValue.hasIntegerType()) {
               // Recast if we were given an integer, but the target type is float
-              floatValue = recastToFloat(pNumber);
+              floatValue = recastToFloat(pNumber, pSimpleType);
             } else if (numericValue.hasFloatType()) {
               floatValue = pNumber;
             } else {
