@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 
-public abstract class AbstractInformationRecord /* TODO create FormatRecord with just format? */ {
+public abstract class AbstractInformationRecord {
 
   @JsonProperty("type")
   @JsonInclude(JsonInclude.Include.NON_NULL)
