@@ -2162,6 +2162,15 @@ public class AssumptionToEdgeAllocator {
     public static ValueLiteral valueOf(
         FloatValue value, MachineModel pMachineModel, CSimpleType pType) {
 
+      Format targetFormat = FloatValue.Format.fromCType(pMachineModel, pType);
+      if (!targetFormat.equals(value.getFormat())
+          && value.withPrecision(targetFormat).withPrecision(value.getFormat()).equals(value)) {
+        // If the precision of the value doesn't match the type, convert it to the new precision if
+        // this can be done without rounding
+        // FIXME Find out why the precision doesn't match the type
+        value = value.withPrecision(targetFormat);
+      }
+
       CFloatLiteralExpression literal =
           new CFloatLiteralExpression(FileLocation.DUMMY, pMachineModel, pType, value);
       return new ExplicitValueLiteral(literal);
