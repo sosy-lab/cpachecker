@@ -437,8 +437,8 @@ class ASTTypeConverter {
   CStorageClass convertCStorageClass(final IASTDeclSpecifier d) {
     return switch (d.getStorageClass()) {
       case IASTDeclSpecifier.sc_unspecified,
-              IASTDeclSpecifier.sc_auto,
-              IASTDeclSpecifier.sc_register ->
+          IASTDeclSpecifier.sc_auto,
+          IASTDeclSpecifier.sc_register ->
           CStorageClass.AUTO;
       case IASTDeclSpecifier.sc_static -> CStorageClass.STATIC;
       case IASTDeclSpecifier.sc_extern -> CStorageClass.EXTERN;

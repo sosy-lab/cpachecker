@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class AlwaysProceed implements ProceedOperator {
@@ -16,12 +16,12 @@ public class AlwaysProceed implements ProceedOperator {
   AlwaysProceed() {}
 
   @Override
-  public BlockSummaryMessageProcessing processForward(AbstractState pState) {
-    return BlockSummaryMessageProcessing.proceed();
+  public DssMessageProcessing processForward(AbstractState pState) {
+    return DssMessageProcessing.proceed();
   }
 
   @Override
-  public BlockSummaryMessageProcessing processBackward(AbstractState pState) {
-    return BlockSummaryMessageProcessing.proceed();
+  public DssMessageProcessing processBackward(AbstractState pState) {
+    return DssMessageProcessing.proceed();
   }
 }

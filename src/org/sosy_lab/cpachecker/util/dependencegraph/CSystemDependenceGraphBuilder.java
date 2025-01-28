@@ -292,7 +292,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
           ShutdownManager pointerShutdownManager =
               ShutdownManager.createWithParent(shutdownNotifier);
           pointerShutdownNotifier = pointerShutdownManager.getNotifier();
-          ResourceLimit timeLimit = WalltimeLimit.fromNowOn(pointerAnalysisTime);
+          ResourceLimit timeLimit = WalltimeLimit.create(pointerAnalysisTime);
           pointerTimeChecker =
               new ResourceLimitChecker(pointerShutdownManager, ImmutableList.of(timeLimit));
           pointerTimeChecker.start();

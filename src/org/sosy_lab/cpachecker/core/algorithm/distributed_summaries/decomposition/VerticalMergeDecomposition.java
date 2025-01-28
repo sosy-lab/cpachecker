@@ -21,15 +21,15 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 
-public class VerticalMergeDecomposition implements BlockSummaryCFADecomposer {
+public class VerticalMergeDecomposition implements DssBlockDecomposition {
 
-  private final BlockSummaryCFADecomposer decomposer;
+  private final DssBlockDecomposition decomposer;
   private final long targetNumber;
   private final Comparator<BlockNodeWithoutGraphInformation> sort;
   private int id;
 
   public VerticalMergeDecomposition(
-      BlockSummaryCFADecomposer pDecomposition,
+      DssBlockDecomposition pDecomposition,
       long pTargetNumber,
       Comparator<BlockNodeWithoutGraphInformation> pSort) {
     decomposer = pDecomposition;
@@ -66,31 +66,32 @@ public class VerticalMergeDecomposition implements BlockSummaryCFADecomposer {
     Multimap<CFANode, BlockNodeWithoutGraphInformation> endingPoints = ArrayListMultimap.create();
     pNodes.forEach(
         n -> {
-          startingPoints.put(n.getFirst(), n);
-          endingPoints.put(n.getLast(), n);
+          startingPoints.put(n.getInitialLocation(), n);
+          endingPoints.put(n.getFinalLocation(), n);
         });
     Set<BlockNodeWithoutGraphInformation> removed = new LinkedHashSet<>();
     for (BlockNodeWithoutGraphInformation node : pNodes) {
       if (removed.contains(node)) {
         continue;
       }
-      Collection<BlockNodeWithoutGraphInformation> successors = startingPoints.get(node.getLast());
+      Collection<BlockNodeWithoutGraphInformation> successors =
+          startingPoints.get(node.getFinalLocation());
       if (successors.size() == 1) {
         BlockNodeWithoutGraphInformation uniqueSuccessor = Iterables.getOnlyElement(successors);
         Collection<BlockNodeWithoutGraphInformation> predecessors =
-            endingPoints.get(uniqueSuccessor.getFirst());
+            endingPoints.get(uniqueSuccessor.getInitialLocation());
         if (predecessors.size() == 1) {
           BlockNodeWithoutGraphInformation uniquePredecessor =
               Iterables.getOnlyElement(predecessors);
           assert uniquePredecessor == node; // same reference is correct here
           BlockNodeWithoutGraphInformation result =
               mergeBlocksVertically(uniquePredecessor, uniqueSuccessor);
-          startingPoints.remove(uniquePredecessor.getFirst(), uniquePredecessor);
-          startingPoints.remove(uniqueSuccessor.getFirst(), uniqueSuccessor);
-          endingPoints.remove(uniquePredecessor.getLast(), uniquePredecessor);
-          endingPoints.remove(uniqueSuccessor.getLast(), uniqueSuccessor);
-          startingPoints.put(result.getFirst(), result);
-          endingPoints.put(result.getLast(), result);
+          startingPoints.remove(uniquePredecessor.getInitialLocation(), uniquePredecessor);
+          startingPoints.remove(uniqueSuccessor.getInitialLocation(), uniqueSuccessor);
+          endingPoints.remove(uniquePredecessor.getFinalLocation(), uniquePredecessor);
+          endingPoints.remove(uniqueSuccessor.getFinalLocation(), uniqueSuccessor);
+          startingPoints.put(result.getInitialLocation(), result);
+          endingPoints.put(result.getFinalLocation(), result);
           removed.add(uniquePredecessor);
           removed.add(uniqueSuccessor);
           if (startingPoints.size() <= targetNumber) {
@@ -108,8 +109,8 @@ public class VerticalMergeDecomposition implements BlockSummaryCFADecomposer {
       BlockNodeWithoutGraphInformation pBlockNode1, BlockNodeWithoutGraphInformation pBlockNode2) {
     return new BlockNodeWithoutGraphInformation(
         "MV" + id++,
-        pBlockNode1.getFirst(),
-        pBlockNode2.getLast(),
+        pBlockNode1.getInitialLocation(),
+        pBlockNode2.getFinalLocation(),
         ImmutableSet.copyOf(Iterables.concat(pBlockNode1.getNodes(), pBlockNode2.getNodes())),
         ImmutableSet.copyOf(Iterables.concat(pBlockNode1.getEdges(), pBlockNode2.getEdges())));
   }

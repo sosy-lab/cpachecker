@@ -32,8 +32,6 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 @Options(prefix = "precision")
 public class ConfigurablePrecision extends VariableTrackingPrecision {
 
-  private static final long serialVersionUID = -7214782838688818781L;
-
   @Option(
       secure = true,
       name = "variableBlacklist",
@@ -91,7 +89,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       description = "If this option is used, variables that are irrelevantare also tracked.")
   private boolean trackIrrelevantVariables = true;
 
-  private final VariableClassification vc;
+  private final Optional<VariableClassification> vc;
   private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
   ConfigurablePrecision(
@@ -101,7 +99,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       throws InvalidConfigurationException {
     config.inject(this);
     this.cpaClass = cpaClass;
-    vc = pVc.orElse(null);
+    vc = pVc;
   }
 
   @Override
@@ -122,8 +120,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     } else {
       return !((pType instanceof CSimpleType
                   && ((CSimpleType) pType).getType().isFloatingPointType())
-              || (pType instanceof JSimpleType
-                  && ((JSimpleType) pType).getType().isFloatingPointType()))
+              || (pType instanceof JSimpleType && ((JSimpleType) pType).isFloatingPointType()))
           && isTracking(pVariable);
     }
   }
@@ -157,11 +154,13 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   private boolean isInTrackedVarClass(final String variableName) {
     // when there is no variable classification we cannot make any assumptions
     // about the tracking of variables and say that all variables are tracked
-    if (vc == null) {
+    if (vc.isEmpty()) {
       return true;
     }
 
-    final boolean varIsAddressed = vc.getAddressedVariables().contains(variableName);
+    VariableClassification varClass = vc.orElseThrow();
+
+    final boolean varIsAddressed = varClass.getAddressedVariables().contains(variableName);
 
     // addressed variables do not belong to a specific type, so they have to
     // be handled extra. We want the precision to be as strict as possible,
@@ -171,7 +170,8 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       return false;
 
       // If we don't track irrelevant variables, check whether this is the case
-    } else if (!trackIrrelevantVariables && !vc.getRelevantVariables().contains(variableName)) {
+    } else if (!trackIrrelevantVariables
+        && !varClass.getRelevantVariables().contains(variableName)) {
       return false;
 
       // in this case addressed variables can at most be included in the
@@ -179,17 +179,17 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       // the limiting factor
     } else {
 
-      final boolean varIsBoolean = vc.getIntBoolVars().contains(variableName);
+      final boolean varIsBoolean = varClass.getIntBoolVars().contains(variableName);
       if (trackBooleanVariables && varIsBoolean) {
         return true;
       }
 
-      final boolean varIsIntEqual = vc.getIntEqualVars().contains(variableName);
+      final boolean varIsIntEqual = varClass.getIntEqualVars().contains(variableName);
       if (trackIntEqualVariables && varIsIntEqual) {
         return true;
       }
 
-      final boolean varIsIntAdd = vc.getIntAddVars().contains(variableName);
+      final boolean varIsIntAdd = varClass.getIntAddVars().contains(variableName);
       if (trackIntAddVariables && varIsIntAdd) {
         return true;
       }
@@ -231,13 +231,14 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     if (!variableWhitelist.toString().isEmpty()) {
       return false;
     }
-    if (vc == null) {
+    if (vc.isEmpty()) {
       return true;
     }
 
-    boolean trackSomeIntBools = trackBooleanVariables && !vc.getIntBoolVars().isEmpty();
-    boolean trackSomeIntEquals = trackIntEqualVariables && !vc.getIntEqualVars().isEmpty();
-    boolean trackSomeIntAdds = trackIntAddVariables && !vc.getIntAddVars().isEmpty();
+    VariableClassification varClass = vc.orElseThrow();
+    boolean trackSomeIntBools = trackBooleanVariables && !varClass.getIntBoolVars().isEmpty();
+    boolean trackSomeIntEquals = trackIntEqualVariables && !varClass.getIntEqualVars().isEmpty();
+    boolean trackSomeIntAdds = trackIntAddVariables && !varClass.getIntAddVars().isEmpty();
 
     return !(trackSomeIntBools
         || trackSomeIntEquals
@@ -261,9 +262,9 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
           && trackIntAddVariables == precisionCompare.trackIntAddVariables
           && trackFloatVariables == precisionCompare.trackFloatVariables
           && trackAddressedVariables == precisionCompare.trackAddressedVariables
-          && ((vc != null) == (precisionCompare.vc != null))
-          && vc != null
-          && vc.equals(precisionCompare.vc)
+          && vc.isPresent() == precisionCompare.vc.isPresent()
+          && vc.isPresent()
+          && vc.orElseThrow().equals(precisionCompare.vc.orElseThrow())
           && cpaClass.equals(precisionCompare.cpaClass)) {
         return true;
       }

@@ -19,9 +19,12 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGRuntimeCheck;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 
 @Options(prefix = "cpa.smg2")
 public class SMGOptions {
+
+  private int actualConcreteValueForSymbolicOffsetsAssignmentMaximum = 0;
 
   @Option(
       secure = true,
@@ -107,6 +110,27 @@ public class SMGOptions {
 
   @Option(
       secure = true,
+      name = "concreteValueForSymbolicOffsetsAssignmentMaximum",
+      description =
+          "Maximum amount of concrete assignments before the assigning is aborted. The last offset"
+              + " is then once treated as option overapproximateSymbolicOffsetsAsFallback"
+              + " specifies.")
+  private int concreteValueForSymbolicOffsetsAssignmentMaximum = 300;
+
+  /* TODO:
+    @Option(
+        secure = true,
+        name = "overapproximateSymbolicOffsetsAsFallback",
+        description =
+            "If this Option is enabled, and concreteValueForSymbolicOffsetsAssignmentMaximum reaches"
+                + " its maximum, the one last not assigned offset of a memory region that is written"
+                + " or read with a symbolic offset is overapproximated as specified in"
+                + " findConcreteValuesForSymbolicOffsets. Otherwise, the analysis is aborted.")
+    private boolean overapproximateSymbolicOffsetsAsFallback = false;
+  */
+
+  @Option(
+      secure = true,
       name = "overapproximateValuesForSymbolicSize",
       description =
           "If this Option is enabled, all values of a memory region that is written to with a"
@@ -128,6 +152,25 @@ public class SMGOptions {
     Preconditions.checkArgument(
         !findConcreteValuesForSymbolicOffsets || !overapproximateSymbolicOffsets);
     return findConcreteValuesForSymbolicOffsets;
+  }
+
+  public int getConcreteValueForSymbolicOffsetsAssignmentMaximum() {
+    return concreteValueForSymbolicOffsetsAssignmentMaximum;
+  }
+
+  public void incConcreteValueForSymbolicOffsetsAssignmentMaximum() throws SMGException {
+    if (actualConcreteValueForSymbolicOffsetsAssignmentMaximum
+        > concreteValueForSymbolicOffsetsAssignmentMaximum) {
+      throw new SMGException(
+          "Exceeded maximum number of concrete symbolic assignments"
+              + " concreteValueForSymbolicOffsetsAssignmentMaximum = "
+              + concreteValueForSymbolicOffsetsAssignmentMaximum);
+    }
+    actualConcreteValueForSymbolicOffsetsAssignmentMaximum++;
+  }
+
+  public void decConcreteValueForSymbolicOffsetsAssignmentMaximum() {
+    actualConcreteValueForSymbolicOffsetsAssignmentMaximum--;
   }
 
   public enum UnknownFunctionHandling {
@@ -376,6 +419,14 @@ public class SMGOptions {
               + " that may not be accessed but freed is returned.")
   private boolean mallocZeroReturnsZero = false;
 
+  @Option(
+      secure = true,
+      name = "canAtexitFail",
+      description =
+          "If this Option is enabled, C function atexit() will return a succeeding and failing"
+              + " registration for each registration. Otherwise only succeeding.")
+  private boolean canAtexitFail = false;
+
   public enum SMGExportLevel {
     NEVER,
     LEAF,
@@ -385,6 +436,10 @@ public class SMGOptions {
 
   public SMGOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
+  }
+
+  public boolean canAtexitFail() {
+    return canAtexitFail;
   }
 
   private UnknownMemoryAllocationHandling getIgnoreUnknownMemoryAllocationSetting() {

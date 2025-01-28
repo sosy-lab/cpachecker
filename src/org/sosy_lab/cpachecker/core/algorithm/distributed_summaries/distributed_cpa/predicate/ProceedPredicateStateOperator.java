@@ -9,10 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import java.util.Objects;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessageFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -23,23 +21,18 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class ProceedPredicateStateOperator implements ProceedOperator {
 
   private final Solver solver;
-  private final BlockNode block;
-  private final BlockSummaryMessageFactory messageFactory;
 
-  public ProceedPredicateStateOperator(
-      BlockSummaryMessageFactory pMessageFactory, Solver pSolver, BlockNode pBlock) {
-    messageFactory = pMessageFactory;
+  public ProceedPredicateStateOperator(Solver pSolver) {
     solver = pSolver;
-    block = pBlock;
   }
 
   @Override
-  public BlockSummaryMessageProcessing processForward(AbstractState pState) {
-    return BlockSummaryMessageProcessing.proceed();
+  public DssMessageProcessing processForward(AbstractState pState) {
+    return DssMessageProcessing.proceed();
   }
 
   @Override
-  public BlockSummaryMessageProcessing processBackward(AbstractState pState)
+  public DssMessageProcessing processBackward(AbstractState pState)
       throws InterruptedException, SolverException {
     PredicateAbstractState predicateAbstractState =
         Objects.requireNonNull(
@@ -51,9 +44,8 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
       formula = predicateAbstractState.getPathFormula().getFormula();
     }
     if (solver.isUnsat(formula)) {
-      return BlockSummaryMessageProcessing.stopWith(
-          messageFactory.newErrorConditionUnreachableMessage(block.getId(), "unsat"));
+      return DssMessageProcessing.stop();
     }
-    return BlockSummaryMessageProcessing.proceed();
+    return DssMessageProcessing.proceed();
   }
 }

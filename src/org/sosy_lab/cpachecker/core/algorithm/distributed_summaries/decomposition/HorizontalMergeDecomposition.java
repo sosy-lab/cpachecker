@@ -20,9 +20,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 
-public class HorizontalMergeDecomposition implements BlockSummaryCFADecomposer {
+public class HorizontalMergeDecomposition implements DssBlockDecomposition {
 
-  private final BlockSummaryCFADecomposer decomposer;
+  private final DssBlockDecomposition decomposer;
   private final long targetNumber;
   private final Comparator<BlockNodeWithoutGraphInformation> sort;
   private int id;
@@ -30,7 +30,7 @@ public class HorizontalMergeDecomposition implements BlockSummaryCFADecomposer {
   private record BlockScope(CFANode start, CFANode last) {}
 
   public HorizontalMergeDecomposition(
-      BlockSummaryCFADecomposer pDecomposition,
+      DssBlockDecomposition pDecomposition,
       long pTargetNumber,
       Comparator<BlockNodeWithoutGraphInformation> pSort) {
     decomposer = pDecomposition;
@@ -63,7 +63,8 @@ public class HorizontalMergeDecomposition implements BlockSummaryCFADecomposer {
   Collection<BlockNodeWithoutGraphInformation> mergeHorizontally(
       Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
     Multimap<BlockScope, BlockNodeWithoutGraphInformation> blockScopes = ArrayListMultimap.create();
-    pNodes.forEach(n -> blockScopes.put(new BlockScope(n.getFirst(), n.getLast()), n));
+    pNodes.forEach(
+        n -> blockScopes.put(new BlockScope(n.getInitialLocation(), n.getFinalLocation()), n));
     for (BlockScope blockScope : ImmutableSet.copyOf(blockScopes.keySet())) {
       if (blockScopes.get(blockScope).size() <= 1) {
         continue;
@@ -83,7 +84,9 @@ public class HorizontalMergeDecomposition implements BlockSummaryCFADecomposer {
     Preconditions.checkArgument(
         pNodes.stream()
             .allMatch(
-                b -> b.getFirst().equals(pScope.start()) && b.getLast().equals(pScope.last())),
+                b ->
+                    b.getInitialLocation().equals(pScope.start())
+                        && b.getFinalLocation().equals(pScope.last())),
         "Some of the given nodes do not have the same scope.");
     return new BlockNodeWithoutGraphInformation(
         "MH" + id++,

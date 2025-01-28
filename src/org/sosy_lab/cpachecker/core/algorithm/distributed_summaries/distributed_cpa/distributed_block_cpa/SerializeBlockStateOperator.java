@@ -10,15 +10,15 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 
 public class SerializeBlockStateOperator implements SerializeOperator {
 
   @Override
-  public BlockSummaryMessagePayload serialize(AbstractState pState) {
+  public DssMessagePayload serialize(AbstractState pState) {
     Preconditions.checkArgument(pState instanceof BlockState);
-    return BlockSummaryMessagePayload.builder().buildPayload();
+    return DssMessagePayload.builder().buildPayload();
   }
 }

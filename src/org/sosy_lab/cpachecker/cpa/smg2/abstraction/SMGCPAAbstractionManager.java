@@ -110,6 +110,7 @@ public class SMGCPAAbstractionManager {
     statistics.startTotalListSearchTime();
 
     // Sort in DLL and SLL candidates and also order by nesting
+    // TODO: refactor and split getListCandidates()
     List<Set<SMGCandidate>> orderedListCandidatesByNesting = getListCandidates();
 
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
@@ -235,6 +236,7 @@ public class SMGCPAAbstractionManager {
     return true;
   }
 
+  // TODO: refactor and split
   List<Set<SMGCandidate>> getListCandidates() throws SMGException {
     equalityCache = EqualityCache.of();
     objectCache = EqualityCache.of();
@@ -303,12 +305,10 @@ public class SMGCPAAbstractionManager {
               foundChains.add(candidate);
             }
             alreadySeen.addAll(candidate.suspectedElements);
-            continue;
           }
         }
         // Incorrect or not usable next element, maybe a prev exists though,
         //   don't put current in seen list, and it will be found via the prev object
-        continue;
 
       } else {
         List<SMGHasValueEdge> valuesInHeapObj =
@@ -492,7 +492,8 @@ public class SMGCPAAbstractionManager {
         nextPointerTargetOffset,
         maybePfo,
         maybePrevPointerTargetOffset,
-        alreadySeenInChain);
+        alreadySeenInChain,
+        new HashSet<>());
   }
 
   private SMGCandidateOrRejectedObject lookThroughPrevAndThenSearchForList(
@@ -501,7 +502,8 @@ public class SMGCPAAbstractionManager {
       BigInteger nextPointerTargetOffset,
       Optional<BigInteger> maybePfo,
       Optional<BigInteger> maybePrevPointerTargetOffset,
-      Set<SMGObject> alreadySeenInChain) {
+      Set<SMGObject> alreadySeenInChain,
+      Set<SMGObject> alreadySeenLeftMost) {
     SMG smg = state.getMemoryModel().getSmg();
     int minimumLengthForLists = minimumLengthForListsForAbstraction - 1;
     // We count the currentObj as being the first valid candidate
@@ -519,6 +521,11 @@ public class SMGCPAAbstractionManager {
             maybePfo,
             maybePrevPointerTargetOffset,
             alreadySeenInChain);
+    if (alreadySeenLeftMost.contains(leftMostObj)) {
+      return SMGCandidateOrRejectedObject.ofRejectedObject(leftMostObj);
+    } else {
+      alreadySeenLeftMost.add(leftMostObj);
+    }
     Preconditions.checkArgument(state.getMemoryModel().isHeapObject(leftMostObj));
     // Leftmost might not be a list obj, but a following obj might be a list start.
     // If we find leftmost not to be a list obj, we exclude it from the overall list and start w
@@ -585,7 +592,8 @@ public class SMGCPAAbstractionManager {
             nextPointerTargetOffset,
             maybePfo,
             maybePrevPointerTargetOffset,
-            alreadySeenInChain);
+            alreadySeenInChain,
+            alreadySeenLeftMost);
       }
       // NONE case, add leftMostObj to seen, restart the chain w next
       return SMGCandidateOrRejectedObject.ofRejectedObject(leftMostObj);

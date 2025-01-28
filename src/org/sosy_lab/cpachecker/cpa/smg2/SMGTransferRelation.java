@@ -252,17 +252,18 @@ public class SMGTransferRelation
    * @param pSuccessors {@link SMGState}s to process.
    * @return a Collection of SMGStates that are processed. May include memory leak error states.
    */
-  private Set<SMGState> handleReturnEntryFunction(Collection<SMGState> pSuccessors, CFAEdge edge) {
-    return pSuccessors.stream()
-        .map(
-            pState -> {
-              if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
-                pState = pState.dropStackFrame();
-              }
-              // Pruning checks for memory leaks and updates the error state if one is found!
-              return pState.copyAndPruneUnreachable(edge);
-            })
-        .collect(ImmutableSet.toImmutableSet());
+  private Set<SMGState> handleReturnEntryFunction(Collection<SMGState> pSuccessors, CFAEdge edge)
+      throws SMGException {
+    ImmutableSet.Builder<SMGState> newSuccessors = ImmutableSet.builder();
+    for (SMGState s : pSuccessors) {
+      SMGState successor = s;
+      if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
+        successor = successor.dropStackFrame();
+      }
+      // Pruning checks for memory leaks and updates the error state if one is found!
+      newSuccessors.add(successor.copyAndPruneUnreachable(edge));
+    }
+    return newSuccessors.build();
   }
 
   private boolean isEntryFunction(CFAEdge pCfaEdge) {
@@ -1229,7 +1230,6 @@ public class SMGTransferRelation
                   addressToAssign,
                   leftHandSideType,
                   cfaEdge));
-          continue;
         }
         continue;
       }

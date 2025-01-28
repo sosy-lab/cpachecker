@@ -115,7 +115,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
                     floatVariables.add(declaration.getQualifiedName());
                   }
                 } else if ((type instanceof JSimpleType simpleType)
-                    && simpleType.getType().isFloatingPointType()) {
+                    && simpleType.isFloatingPointType()) {
                   floatVariables.add(declaration.getQualifiedName());
                 }
               }

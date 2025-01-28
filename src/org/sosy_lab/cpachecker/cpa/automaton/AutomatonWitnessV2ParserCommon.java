@@ -120,7 +120,6 @@ class AutomatonWitnessV2ParserCommon {
             numTargetWaypoints += waypoint.getType().equals(WaypointType.TARGET) ? 1 : 0;
             if (waypoint.getAction().equals(WaypointAction.AVOID)) {
               avoids.add(waypoint);
-              continue;
             } else if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
               segments.add(new PartitionedWaypoints(waypoint, avoids.build()));
               break;

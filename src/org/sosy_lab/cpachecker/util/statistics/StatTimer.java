@@ -36,6 +36,11 @@ public class StatTimer extends AbstractStatValue {
     return timer.getNumberOfIntervals();
   }
 
+  /** Same as {@link #getUpdateCount()}, for easier migration from {@link Timer}. */
+  public int getNumberOfIntervals() {
+    return timer.getNumberOfIntervals();
+  }
+
   @Override
   public String toString() {
     return timer.toString();

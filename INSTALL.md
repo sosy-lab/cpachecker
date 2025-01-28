@@ -85,7 +85,16 @@ Install CPAchecker -- Source
    ```
    As alternative, there is a read-only mirror on [GitHub](https://github.com/sosy-lab/cpachecker).
 
-5. Run `ant` in CPAchecker directory to build CPAchecker.  
+5. After checking out the code, we recommend to run the following commands in your checkout:
+   ```
+   # Fix gap in history before 2008-11-30
+   git replace 3984d34566964bbd470bda17bef9efd655e35480 02a7b8e0f03d2abf7ee5355b6aab9f59b608a923
+
+   # Ignore reformatting commits in git blame
+   git config blame.ignoreRevsFile .git-blame-ignore-revs
+   ```
+
+6. Run `ant` in CPAchecker directory to build CPAchecker.  
    When building CPAchecker for the first time, this will automatically
    download all needed libraries.
    If you experience problems, please check the following items:
