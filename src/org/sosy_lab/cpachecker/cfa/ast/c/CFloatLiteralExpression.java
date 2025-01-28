@@ -28,7 +28,11 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression
     super(pFileLocation, pType, pValue);
     // Make sure that the provided type matches the type of the float value
     Preconditions.checkArgument(
-        FloatValue.Format.fromCType(pMachineModel, pType).equals(pValue.getFormat()));
+        FloatValue.Format.fromCType(pMachineModel, pType).equals(pValue.getFormat()),
+        "Precision of the value (%s) does not match the target type of the literal (`%s` = %s)",
+        pValue.getFormat(),
+        pType,
+        FloatValue.Format.fromCType(pMachineModel, pType));
   }
 
   @Override
