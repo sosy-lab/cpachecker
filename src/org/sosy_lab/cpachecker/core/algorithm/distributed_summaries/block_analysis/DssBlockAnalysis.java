@@ -327,8 +327,7 @@ public class DssBlockAnalysis {
     reachedSet.clear();
     reachedSet.add(makeStartState(), makeStartPrecision());
 
-    DssBlockAnalysisResult result =
-        DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
+    DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
 
     status = status.update(result.getStatus());
 
@@ -502,8 +501,7 @@ public class DssBlockAnalysis {
                     AbstractStates.extractStateByType(abstractState, BlockState.class))
                 .setViolationCondition(violationCondition));
 
-    DssBlockAnalysisResult result =
-        DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
+    DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
 
     status = status.update(result.getStatus());
 
