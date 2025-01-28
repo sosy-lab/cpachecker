@@ -313,13 +313,18 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
   @Override
   public FloatingPointFormula makeNumber(double pN, FormulaType.FloatingPointType type) {
+    if (Double.isNaN(pN)) {
+      return makeNaN(type);
+    } else if (Double.isInfinite(pN)) {
+      return (pN < 0) ? makePlusInfinity(type) : makeMinusInfinity(type);
+    }
     return wrap(type, numericFormulaManager.makeNumber(pN));
   }
 
   @Override
   public FloatingPointFormula makeNumber(
       double n, FloatingPointType type, FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return wrap(type, numericFormulaManager.makeNumber(n));
+    return makeNumber(n, type);
   }
 
   @Override
@@ -363,7 +368,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
             signBit, exponent, mantissa, type.getExponentSize(), type.getMantissaSize());
     if (type.equals(FormulaType.getSinglePrecisionFloatingPointType())
         || type.equals(FormulaType.getDoublePrecisionFloatingPointType())) {
-      return wrap(type, numericFormulaManager.makeNumber(number.doubleValue()));
+      return makeNumber(number.doubleValue(), type);
     } else {
       throw new UnsupportedOperationException(
           String.format(
