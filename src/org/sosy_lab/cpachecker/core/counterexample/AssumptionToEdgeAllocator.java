@@ -1425,7 +1425,8 @@ public class AssumptionToEdgeAllocator {
         // FIXME: Add support for long double?
         throw new IllegalArgumentException(
             String.format(
-                "Can't reinterpret integer value `%s` as floating point number. Target format must be 32 or 64bit wide.",
+                "Can't reinterpret integer value `%s` as floating point number. Target format must"
+                    + " be 32 or 64bit wide.",
                 integerValue.toString(2)));
       }
     }
