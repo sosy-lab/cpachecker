@@ -1661,48 +1661,48 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     Format extendedPrecision = format.withUnlimitedExponent();
 
     // Use the absolute values of x and y for the calculation. The sign will be fixed later.
-    FloatValue arg1 = this.abs().withPrecision(extendedPrecision);
-    FloatValue arg2 = pNumber.abs().withPrecision(extendedPrecision);
+    FloatValue absoluteDividend = abs().withPrecision(extendedPrecision);
+    FloatValue absoluteDivisor = pNumber.abs().withPrecision(extendedPrecision);
 
     // Handle special cases
-    if (arg1.isNan() || arg2.isNan()) {
+    if (absoluteDividend.isNan() || absoluteDivisor.isNan()) {
       return nan(format);
-    } else if (arg1.isInfinite() || arg2.isZero()) {
+    } else if (absoluteDividend.isInfinite() || absoluteDivisor.isZero()) {
       return nan(format);
-    } else if (arg1.isZero() || arg2.isInfinite()) {
+    } else if (absoluteDividend.isZero() || absoluteDivisor.isInfinite()) {
       return this;
     }
 
-    // Shift arg2 to the left to match arg1
-    FloatValue divisor = arg2.withExponent(arg1.exponent);
-    if (arg1.lessThan(divisor)) {
-      divisor = arg2.withExponent(arg1.exponent - 1);
+    // Shift absoluteDivisor to the left to match absoluteDividend
+    FloatValue shiftedDivisor = absoluteDivisor.withExponent(absoluteDividend.exponent);
+    if (absoluteDividend.lessThan(shiftedDivisor)) {
+      shiftedDivisor = absoluteDivisor.withExponent(absoluteDividend.exponent - 1);
     }
 
     boolean isOdd = false; // Will be set after the division if the (truncated) quotient is odd
 
-    // Divide arg1 by arg2
-    while (divisor.greaterOrEqual(arg2)) {
+    // Divide absoluteDividend by absoluteDivisor
+    while (shiftedDivisor.greaterOrEqual(absoluteDivisor)) {
       isOdd = false;
-      if (arg1.greaterOrEqual(divisor)) {
-        arg1 = arg1.subtract(divisor);
+      if (absoluteDividend.greaterOrEqual(shiftedDivisor)) {
+        absoluteDividend = absoluteDividend.subtract(shiftedDivisor);
         isOdd = true;
       }
-      divisor = divisor.withExponent(divisor.exponent - 1);
+      shiftedDivisor = shiftedDivisor.withExponent(shiftedDivisor.exponent - 1);
     }
 
     // Correct by one to find the closest multiple
-    FloatValue nextValue = arg1.subtract(arg2).abs();
-    if (nextValue.lessThan(arg1) || (nextValue.equalTo(arg1) && isOdd)) {
+    FloatValue nextValue = absoluteDividend.subtract(absoluteDivisor).abs();
+    if (nextValue.lessThan(absoluteDividend) || (nextValue.equalTo(absoluteDividend) && isOdd)) {
       // This implements "round to nearest ties to even"
-      arg1 = arg1.subtract(arg2);
+      absoluteDividend = absoluteDividend.subtract(absoluteDivisor);
     }
 
     // Fix the sign if x was negative
     if (this.isNegative()) {
-      arg1 = arg1.negate();
+      absoluteDividend = absoluteDividend.negate();
     }
-    return arg1.withPrecision(format);
+    return absoluteDividend.withPrecision(format);
   }
 
   /** Square root */
