@@ -799,7 +799,8 @@ public class FloatValueTest {
 
   @Test
   public void constTest() {
-    // This test checks that test values are correctly convert to values in the implementation.
+    // This test doesn't test anything of the (actual) implementation. It tests the conversion from
+    // and to BigFloat in the test class.
     testOperator("const", 0, (CFloat a) -> a);
   }
 
