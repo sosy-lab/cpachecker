@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.TruthJUnit.assume;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -23,6 +24,7 @@ import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Random;
 import java.util.function.BinaryOperator;
@@ -1264,5 +1266,37 @@ public class FloatValueTest {
     String r2 = reference.toString();
 
     assertThat(r1).isEqualTo(r2);
+  }
+
+  @Test
+  public void parserValidTest() {
+    assume().that(floatTestOptions.format).isEqualTo(Format.Float64);
+
+    Map<String, FloatValue> testValues =
+        ImmutableMap.of(
+            "nan",
+            FloatValue.nan(floatTestOptions.format),
+            "inf",
+            FloatValue.infinity(floatTestOptions.format),
+            ".0",
+            FloatValue.zero(floatTestOptions.format),
+            "0.",
+            FloatValue.zero(floatTestOptions.format));
+
+    for (Entry<String, FloatValue> testValue : testValues.entrySet()) {
+      assertThat(FloatValue.fromString(floatTestOptions.format, testValue.getKey()))
+          .isEqualTo(testValue.getValue());
+    }
+  }
+
+  @Test
+  public void parserInvalidTest() {
+    assume().that(floatTestOptions.format).isEqualTo(Format.Float64);
+
+    for (String input : ImmutableList.of("+nan", "+inf", "NaN", "Inf", "infinity", "0", "0,0")) {
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> FloatValue.fromString(floatTestOptions.format, input));
+    }
   }
 }
