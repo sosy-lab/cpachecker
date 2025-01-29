@@ -1638,14 +1638,11 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * RoundingMode.TRUNCATE}.
    */
   public FloatValue modulo(FloatValue pNumber) {
-    FloatValue arg1 = this.abs();
-    FloatValue arg2 = pNumber.abs();
-
-    FloatValue r = arg1.remainder(arg2);
+    FloatValue r = abs().remainder(pNumber.abs());
 
     // Fix the rounding and truncate the result
     if (r.isNegative()) {
-      r = r.add(arg2);
+      r = r.add(pNumber.abs());
     }
     return r.copySign(this);
   }
