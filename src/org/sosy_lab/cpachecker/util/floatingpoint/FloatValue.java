@@ -1943,6 +1943,14 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         break;
       }
     }
+    if (r.isNan()) {
+      // If the result is NaN the precisions that were tried must have been too small. We could try
+      // again with larger precisions, but for now we simply throw an exception.
+      throw new UnsupportedOperationException(
+          String.format(
+              "Could not calculate exp(%s) due to an internal error. Please report this as a bug.",
+              this));
+    }
     return r.withPrecision(format);
   }
 
@@ -2044,6 +2052,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       return negativeInfinity(format);
     } else if (isOne()) {
       return zero(format);
+    } else if (isNan() || isNegative()) {
+      return nan(format);
     }
 
     FloatValue r = nan(format);
@@ -2073,18 +2083,24 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         break;
       }
     }
+    if (r.isNan()) {
+      // If the result is NaN the precisions that were tried must have been too small. We could try
+      // again with larger precisions, but for now we simply throw an exception.
+      throw new UnsupportedOperationException(
+          String.format(
+              "Could not calculate ln(%s) due to an internal error. Please report this as a bug.",
+              this));
+    }
     return r.withPrecision(format);
   }
 
   private FloatValue ln_() {
     if (isZero()) {
       return negativeInfinity(format);
-    } else if (isNan() || isNegative()) {
-      return nan(format);
-    } else if (isInfinite()) {
-      return infinity(format);
     } else if (isOne()) {
       return zero(format);
+    } else if (isInfinite()) {
+      return infinity(format);
     }
 
     // ln(x) = ln(a * 2^k) = ln a + ln 2^k = ln a + k * ln 2
@@ -2205,6 +2221,15 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         // for performance reasons. The more general check is more costly, however, so it is only
         // performed after the search in the main algorithm has failed.
         r = powExact(pExponent);
+      }
+      if (r.isNan()) {
+        // If the result is still NaN the precisions that were tried in the first phase must have
+        // been too small. We could try again with larger precisions, but for now we simply throw an
+        // exception.
+        throw new UnsupportedOperationException(
+            String.format(
+                "Could not calculate pow(%s,%s) due to an internal error. Please report this as a bug.",
+                this, pExponent));
       }
       return r;
     }
