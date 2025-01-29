@@ -202,8 +202,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   private String computeLineNumberBasedOnTransition(
       InstrumentationTransition pTransition, CFAEdge pEdge) {
     if (pTransition.getSource().isInitialAnnotation()) {
-      return Integer.toString(
-          1);
+      return Integer.toString(1);
     }
     try {
       // TODO: The location should be computed differently !
