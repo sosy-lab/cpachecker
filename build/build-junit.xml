@@ -24,7 +24,11 @@ SPDX-License-Identifier: Apache-2.0
     <!-- Can be overridden from including file. -->
     <property name="junit.dir" value="junit"/>
 
-    <!-- Option to enable running more expensive tests. Turned off by default. -->
+    <!-- Option to enable running more expensive tests. Turned off by default.
+         When enabled, the test-suite in FloatValueTest will be run on a larger set of generated
+         test values. It will also test additional floating point formats that are otherwise
+         skipped.
+         Running these tests will take several minutes. -->
     <property name="junit.enableExpensiveTests" value="false"/>
 
     <!-- Define property that contains the Ant version for getting the matching ant-junit version. -->
