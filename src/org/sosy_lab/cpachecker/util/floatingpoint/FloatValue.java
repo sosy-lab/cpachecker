@@ -569,7 +569,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     return new FloatValue(pFormat, true, pFormat.maxExp() + 1, BigInteger.ZERO);
   }
 
-  /** Rue if the value is NaN */
+  /** True if the value is NaN */
   public boolean isNan() {
     return (exponent == format.maxExp() + 1) && (significand.compareTo(BigInteger.ZERO) > 0);
   }
