@@ -653,7 +653,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   private void checkMatchingPrecision(FloatValue pNumber) {
     Preconditions.checkArgument(
         format.equals(pNumber.format),
-        "Format of the arguments is not the same. The first argument has format %s while the second has format %s.",
+        "Format of the arguments is not the same. The first argument has format %s while the second"
+            + " has format %s.",
         format,
         pNumber.format);
   }
@@ -2245,7 +2246,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         // exception.
         throw new UnsupportedOperationException(
             String.format(
-                "Could not calculate pow(%s,%s) due to an internal error. Please report this as a bug.",
+                "Could not calculate pow(%s,%s) due to an internal error. Please report this as a"
+                    + " bug.",
                 this, pExponent));
       }
       return r;
