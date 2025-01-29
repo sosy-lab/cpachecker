@@ -164,7 +164,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
       ShutdownManager conversionShutdownManager =
           ShutdownManager.createWithParent(shutdownNotifier);
       conversionShutdownNotifier = conversionShutdownManager.getNotifier();
-      ResourceLimit limit = WalltimeLimit.fromNowOn(adaptionLimit);
+      ResourceLimit limit = WalltimeLimit.create(adaptionLimit);
       limitChecker = new ResourceLimitChecker(conversionShutdownManager, ImmutableList.of(limit));
       limitChecker.start();
     } else {

@@ -194,6 +194,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
   private ImmutableMap<MemoryLocation, Type> extractVarsWithType(final CFA pCfa) {
     ImmutableMap.Builder<MemoryLocation, Type> builder = ImmutableMap.builder();
+
     for (AbstractSimpleDeclaration decl :
         FluentIterable.from(pCfa.edges())
             .filter(ADeclarationEdge.class)
@@ -203,6 +204,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                 Predicates.or(
                     Predicates.instanceOf(AVariableDeclaration.class),
                     Predicates.instanceOf(AParameterDeclaration.class)))) {
+
       builder.put(MemoryLocation.forDeclaration(decl), decl.getType());
     }
 
@@ -212,10 +214,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             .transform(FunctionCallEdge::getFunctionCallExpression)
             .transform(AFunctionCallExpression::getDeclaration)
             .transformAndConcat(AFunctionDeclaration::getParameters)) {
+
       builder.put(MemoryLocation.forDeclaration(decl), decl.getType());
     }
 
-    return builder.buildOrThrow();
+    return builder.buildKeepingLast();
   }
 
   @Override
@@ -417,24 +420,26 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     SingleBooleanVariableInvariant boolInv;
     Value val;
     for (Entry<MemoryLocation, List<ValueAndType>> varAndVals : pVarsWithVals.entrySet()) {
-      val = varAndVals.getValue().get(0).getValue();
-      if (val.isExplicitlyKnown() && val.isNumericValue()) {
-        Preconditions.checkState(varToType.containsKey(varAndVals.getKey()));
-        numInv =
-            new SingleNumericVariableInvariant(
-                varAndVals.getKey(), val.asNumericValue(), exportArithmetic);
-        for (ValueAndType valPlusType : varAndVals.getValue()) {
-          numInv.adaptToAdditionalValue(valPlusType.getValue());
+      if (!varAndVals.getKey().isReference()) {
+        val = varAndVals.getValue().get(0).getValue();
+        if (val.isExplicitlyKnown() && val.isNumericValue()) {
+          Preconditions.checkState(varToType.containsKey(varAndVals.getKey()));
+          numInv =
+              new SingleNumericVariableInvariant(
+                  varAndVals.getKey(), val.asNumericValue(), exportArithmetic);
+          for (ValueAndType valPlusType : varAndVals.getValue()) {
+            numInv.adaptToAdditionalValue(valPlusType.getValue());
+          }
+          pInvBuilder.add(numInv);
+          numNumericInvariants += numInv.getNumInvariants();
+        } else if (val instanceof BooleanValue) {
+          boolInv = new SingleBooleanVariableInvariant(varAndVals.getKey(), (BooleanValue) val);
+          for (ValueAndType valPlusType : varAndVals.getValue()) {
+            boolInv.adaptToAdditionalValue(valPlusType.getValue());
+          }
+          pInvBuilder.add(boolInv);
+          numBooleanInvariants += boolInv.getNumInvariants();
         }
-        pInvBuilder.add(numInv);
-        numNumericInvariants += numInv.getNumInvariants();
-      } else if (val instanceof BooleanValue) {
-        boolInv = new SingleBooleanVariableInvariant(varAndVals.getKey(), (BooleanValue) val);
-        for (ValueAndType valPlusType : varAndVals.getValue()) {
-          boolInv.adaptToAdditionalValue(valPlusType.getValue());
-        }
-        pInvBuilder.add(boolInv);
-        numBooleanInvariants += boolInv.getNumInvariants();
       }
     }
   }
@@ -2586,11 +2591,12 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         signed = pMachineModel.isSigned(commonType);
       }
 
-      commonType =
-          getCompareType(
-              commonType,
-              getCTypeFromValue(signed, coefficients[coefficients.length - 1], pMachineModel));
-      signed = pMachineModel.isSigned(commonType);
+      for (Number coefficient : coefficients) {
+        commonType =
+            getCompareType(commonType, getCTypeFromValue(signed, coefficient, pMachineModel));
+        signed = pMachineModel.isSigned(commonType);
+      }
+
       FormulaType<?> formulaType = pC2Formula.getFormulaTypeFromCType(commonType);
 
       for (int i = 0; i < vars.length; i++) {
