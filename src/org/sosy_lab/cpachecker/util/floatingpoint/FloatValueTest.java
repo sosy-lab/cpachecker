@@ -182,37 +182,53 @@ public class FloatValueTest {
       return floatValue.toBigFloat();
     } else if (pValue instanceof CFloatImpl floatValue) {
       return toBigFloat(floatValue.getValue());
-    } else {
-      CFloatType toType = pValue.getType();
-      if (pValue instanceof CFloatNative val && toType == CFloatType.LONG_DOUBLE) {
-        // Special case for "extended precision" with CFloatNative
-        BinaryMathContext context = new BinaryMathContext(64, 15);
-        if (val.isNan()) {
-          return val.isNegative()
-              ? BigFloat.NaN(context.precision).negate()
-              : BigFloat.NaN(context.precision);
-        }
-        if (val.isInfinity()) {
-          return val.isNegative()
-              ? BigFloat.negativeInfinity(context.precision)
-              : BigFloat.positiveInfinity(context.precision);
-        }
-        CFloatWrapper wrapper = val.getWrapper();
+    } else if (pValue instanceof JFloat floatValue) {
+      return new BigFloat(floatValue.toFloat(), BinaryMathContext.BINARY32);
+    } else if (pValue instanceof JDouble floatValue) {
+      return new BigFloat(floatValue.toDouble(), BinaryMathContext.BINARY64);
+    } else if (pValue instanceof CFloatNative val) {
+      CFloatWrapper wrapper = val.getWrapper();
 
-        long exponent = (wrapper.getExponent() & 0x7FFF) - Format.Float80.bias();
-        BigInteger significand = new BigInteger(Long.toUnsignedString(wrapper.getMantissa()));
+      switch (pValue.getType()) {
+        case SINGLE:
+          {
+            long exponent = wrapper.getExponent() << Format.Float32.sigBits();
+            long mantissa = wrapper.getMantissa();
+            return new BigFloat(
+                Float.intBitsToFloat((int) (exponent + mantissa)), BinaryMathContext.BINARY32);
+          }
+        case DOUBLE:
+          {
+            long exponent = wrapper.getExponent() << Format.Float64.sigBits();
+            long mantissa = wrapper.getMantissa();
+            return new BigFloat(
+                Double.longBitsToDouble(exponent + mantissa), BinaryMathContext.BINARY64);
+          }
+        case LONG_DOUBLE:
+          {
+            BinaryMathContext context = new BinaryMathContext(64, 15);
+            if (val.isNan()) {
+              return val.isNegative()
+                  ? BigFloat.NaN(context.precision).negate()
+                  : BigFloat.NaN(context.precision);
+            }
+            if (val.isInfinity()) {
+              return val.isNegative()
+                  ? BigFloat.negativeInfinity(context.precision)
+                  : BigFloat.positiveInfinity(context.precision);
+            }
 
-        return new BigFloat(val.isNegative(), significand, exponent, context);
-      } else {
-        // We have either a CFloatNative or a JFloat/JDouble and only need to support single and
-        // double precision
-        return switch (toType) {
-          case SINGLE -> new BigFloat(pValue.toFloat(), BinaryMathContext.BINARY32);
-          case DOUBLE -> new BigFloat(pValue.toDouble(), BinaryMathContext.BINARY64);
-          case LONG_DOUBLE -> throw new UnsupportedOperationException();
-          default -> throw new IllegalArgumentException();
-        };
+            long exponent = (wrapper.getExponent() & 0x7FFF) - Format.Float80.bias();
+            BigInteger significand = new BigInteger(Long.toUnsignedString(wrapper.getMantissa()));
+
+            return new BigFloat(val.isNegative(), significand, exponent, context);
+          }
+        default:
+          throw new UnsupportedOperationException();
       }
+    } else {
+      throw new UnsupportedOperationException(
+          String.format("Unsupported CFloat class \"%s\"", pValue.getClass().getSimpleName()));
     }
   }
 

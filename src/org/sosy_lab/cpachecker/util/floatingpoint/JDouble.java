@@ -108,12 +108,12 @@ class JDouble extends CFloat {
 
   @Override
   public CFloat ln() {
-    return new JDouble(Math.log(toDouble()));
+    return new JDouble(Math.log(value));
   }
 
   @Override
   public CFloat exp() {
-    return new JDouble(Math.exp(toDouble()));
+    return new JDouble(Math.exp(value));
   }
 
   @Override
@@ -287,5 +287,9 @@ class JDouble extends CFloat {
   @Override
   public int compareTo(CFloat other) {
     return Double.compare(value, ((JDouble) other).value);
+  }
+
+  public double toDouble() {
+    return value;
   }
 }

@@ -108,12 +108,12 @@ class JFloat extends CFloat {
 
   @Override
   public CFloat ln() {
-    return new JFloat((float) Math.log(toFloat()));
+    return new JFloat((float) Math.log(value));
   }
 
   @Override
   public CFloat exp() {
-    return new JFloat((float) Math.exp(toFloat()));
+    return new JFloat((float) Math.exp(value));
   }
 
   @Override
@@ -288,5 +288,9 @@ class JFloat extends CFloat {
   @Override
   public int compareTo(CFloat other) {
     return Float.compare(value, ((JFloat) other).value);
+  }
+
+  public float toFloat() {
+    return value;
   }
 }

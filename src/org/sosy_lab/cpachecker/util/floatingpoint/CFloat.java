@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
-import com.google.common.base.Preconditions;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
@@ -297,28 +296,6 @@ abstract class CFloat implements Comparable<CFloat> {
   @Override
   public abstract int compareTo(final CFloat other);
 
-  public final long getExponent() {
-    return getWrapper().getExponent();
-  }
-
-  public final long getMantissa() {
-    return getWrapper().getMantissa();
-  }
-
-  public Float toFloat() {
-    Preconditions.checkState(getType() == CFloatType.SINGLE);
-    long exponent = getExponent();
-    long mantissa = getMantissa();
-    return Float.intBitsToFloat((int) ((exponent << getMantissaLength()) + mantissa));
-  }
-
-  public Double toDouble() {
-    Preconditions.checkState(getType() == CFloatType.DOUBLE);
-    long exponent = getExponent();
-    long mantissa = getMantissa();
-    return Double.longBitsToDouble((exponent << getMantissaLength()) + mantissa);
-  }
-
   private static final int FLOAT32_EXP_BITS = 8;
   private static final int FLOAT32_SIG_BITS = 23;
 
@@ -326,31 +303,6 @@ abstract class CFloat implements Comparable<CFloat> {
   private static final int FLOAT64_SIG_BITS = 52;
 
   private static final int FLOAT_EXTENDED_EXP_BITS = 15;
-  private static final int FLOAT_EXTENDED_SIG_BITS = 63;
-
-  public final int getExponentLength() {
-    return switch (getType()) {
-      case SINGLE -> FLOAT32_EXP_BITS;
-      case DOUBLE -> FLOAT64_EXP_BITS;
-      case LONG_DOUBLE -> FLOAT_EXTENDED_EXP_BITS;
-      default ->
-          throw new IllegalArgumentException("Unimplemented floating point type: " + getType());
-    };
-  }
-
-  public final long getBias() {
-    return getExponentMask() / 2;
-  }
-
-  public final int getMantissaLength() {
-    return switch (getType()) {
-      case SINGLE -> FLOAT32_SIG_BITS;
-      case DOUBLE -> FLOAT64_SIG_BITS;
-      case LONG_DOUBLE -> FLOAT_EXTENDED_SIG_BITS;
-      default ->
-          throw new IllegalArgumentException("Unimplemented floating point type: " + getType());
-    };
-  }
 
   public final long getSignBitMask() {
     return switch (getType()) {
