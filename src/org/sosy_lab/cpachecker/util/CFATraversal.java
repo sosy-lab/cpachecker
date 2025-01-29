@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -197,6 +198,56 @@ public class CFATraversal {
    */
   public void traverseOnce(final CFANode startingNode, final CFATraversal.CFAVisitor visitor) {
     traverse(startingNode, new NodeCollectingCFAVisitor(visitor));
+  }
+
+  /**
+   * Traverse through the CFA according to the strategy represented by the current instance,
+   * starting at a given node and passing each encountered node and edge to a given visitor. The
+   * traversal works on edge level.
+   *
+   * @param startingNode The starting node.
+   * @param visitor The visitor to notify.
+   */
+  public void traverseEdgesOnce(final CFANode startingNode, final CFATraversal.CFAVisitor visitor) {
+
+    record CFANodeCFAEdgePair(CFANode successor, CFAEdge enteringEdge) {}
+
+    Deque<CFANodeCFAEdgePair> toProcess = new ArrayDeque<>();
+    Set<CFANode> discovered = new LinkedHashSet<>();
+
+    toProcess.addLast(new CFANodeCFAEdgePair(startingNode, null));
+
+    while (!toProcess.isEmpty()) {
+      CFANodeCFAEdgePair cfaNodeCFAEdgePair = toProcess.removeLast();
+      CFANode currentNode = cfaNodeCFAEdgePair.successor();
+      CFAEdge entering = cfaNodeCFAEdgePair.enteringEdge();
+      if (entering != null) {
+        TraversalProcess result = visitor.visitEdge(entering);
+        if (result == TraversalProcess.ABORT) {
+          return;
+        }
+        if (result == TraversalProcess.SKIP) {
+          continue;
+        }
+      }
+      if (discovered.contains(currentNode)) {
+        continue;
+      }
+      discovered.add(currentNode);
+      CFATraversal.TraversalProcess result = visitor.visitNode(currentNode);
+      if (result == TraversalProcess.ABORT) {
+        return;
+      }
+      if (result == TraversalProcess.SKIP) {
+        continue;
+      }
+      for (CFAEdge edge : edgeSupplier.apply(currentNode)) {
+        if (ignoreEdge.apply(edge)) {
+          continue;
+        }
+        toProcess.add(new CFANodeCFAEdgePair(edge.getSuccessor(), edge));
+      }
+    }
   }
 
   /**
