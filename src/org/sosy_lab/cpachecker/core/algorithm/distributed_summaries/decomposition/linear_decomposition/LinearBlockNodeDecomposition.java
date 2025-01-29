@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
-import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFAEdgeDFSTraversal;
 
 public class LinearBlockNodeDecomposition implements DssBlockDecomposition {
 
@@ -25,7 +25,7 @@ public class LinearBlockNodeDecomposition implements DssBlockDecomposition {
 
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
-    CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), visitor);
+    CFAEdgeDFSTraversal.dfs().traverseOnce(cfa.getMainFunction(), visitor);
     return BlockGraph.fromBlockNodesWithoutGraphInformation(cfa, visitor.getBlockNodes());
   }
 }

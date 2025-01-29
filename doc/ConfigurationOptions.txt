@@ -4195,7 +4195,7 @@ distributedSummaries.queue = DEFAULT
 distributedSummaries.spawnWorkerForId = ""
 
 # Configuration for forward analysis in computation of distributed summaries
-distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-synthesis/dss-block-analysis.properties"
+distributedSummaries.worker.forwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-forward.properties"
 
 # Destination directory for the logfiles of all DssWorkers. The logfiles have
 # the same name as the ID of the worker.
