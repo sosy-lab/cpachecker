@@ -203,7 +203,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       InstrumentationTransition pTransition, CFAEdge pEdge, CFA pCFA) {
     if (pTransition.getSource().isInitialAnnotation()) {
       return Integer.toString(
-          pCFA.getMainFunction().getFileLocation().getStartingLineInOrigin() + 1);
+          1);
     }
     try {
       // TODO: The location should be computed differently !
