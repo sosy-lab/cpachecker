@@ -463,6 +463,23 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         throw new IllegalArgumentException(String.format("`%s` is not a simple type", pType));
       }
     }
+
+    @Override
+    public String toString() {
+      int size = 1 + expBits + sigBits;
+      if (ImmutableList.of(
+              Format.Float8,
+              Format.Float16,
+              Format.Float32,
+              Format.Float64,
+              Format.Float128,
+              Format.Float256)
+          .contains(this)) {
+        return "Float" + size;
+      } else {
+        return "Float" + size + "(p=" + (1 + sigBits) + ")";
+      }
+    }
   }
 
   /**
@@ -635,7 +652,10 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    */
   private void checkMatchingPrecision(FloatValue pNumber) {
     Preconditions.checkArgument(
-        format.equals(pNumber.format), "Format of the arguments is not the same");
+        format.equals(pNumber.format),
+        "Format of the arguments is not the same. The first argument has format %s while the second has format %s.",
+        format,
+        pNumber.format);
   }
 
   /**
