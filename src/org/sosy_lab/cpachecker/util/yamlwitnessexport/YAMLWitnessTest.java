@@ -29,14 +29,15 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 
 public class YAMLWitnessTest {
 
+  private static final YAMLWitnessVersion WITNESS_VERSION = YAMLWitnessVersion.V2;
+
   private static final String TEST_DIR = "./test/programs/witnessValidation/";
 
   private static final String DEFAULT_CONFIG_PATH = "./config/default.properties";
 
   private static final String OUTPUT_DIR = "./output/";
 
-  // TODO also parametrize version
-  private static final String YML_WITNESS_FILE = "witness-2.0.yml";
+  private static final String YML_WITNESS_FILE = "witness-" + WITNESS_VERSION.toString() + ".yml";
 
   private static final String CORRECTNESS_WITNESS_PATH = OUTPUT_DIR + YML_WITNESS_FILE;
 
