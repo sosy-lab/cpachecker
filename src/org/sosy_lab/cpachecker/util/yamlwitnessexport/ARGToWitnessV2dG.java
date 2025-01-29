@@ -24,12 +24,14 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -40,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitness.CollectedARGStates.ARGStatePair;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
@@ -72,8 +75,9 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     // first create ghost variables and their respective ghost updates
     ImmutableList<GhostUpdateRecord> ghostUpdates =
         getGhostUpdates(statesCollector.lockUpdates, statesCollector.unlockUpdates);
+    ImmutableList<GhostVariableRecord> ghostVariables = getGhostVariables(ghostUpdates);
     GhostInstrumentationContentRecord record =
-        new GhostInstrumentationContentRecord(getGhostVariables(ghostUpdates), ghostUpdates);
+        new GhostInstrumentationContentRecord(ghostVariables, ghostUpdates);
 
     // second use collected states to generate invariants
     Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
@@ -83,13 +87,19 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     ImmutableList.Builder<AbstractInvariantEntry> invariantEntries = new ImmutableList.Builder<>();
     boolean translationAlwaysSuccessful = true;
 
+    ImmutableList<String> ghostVars =
+        FluentIterable.from(ghostVariables).transform(GhostVariableRecord::name).toList();
+
     // handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
       Collection<ARGState> argStates = loopInvariants.get(node);
       InvariantCreationResult loopInvariant =
           createInvariant(argStates, node, InvariantRecordType.LOOP_INVARIANT.getKeyword());
       if (loopInvariant != null) {
-        invariantEntries.add(loopInvariant.invariantEntry());
+        // add ghost variable information for all ARGStates
+        // TODO the ghostInvariant should only be created with ThreadingStates present?
+        invariantEntries.add(
+            createGhostInvariantEntry(loopInvariant, ImmutableList.copyOf(argStates), ghostVars));
         translationAlwaysSuccessful &= loopInvariant.translationSuccessful();
       }
     }
@@ -100,7 +110,11 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
       InvariantCreationResult locationInvariant =
           createInvariant(argStates, node, InvariantRecordType.LOCATION_INVARIANT.getKeyword());
       if (locationInvariant != null) {
-        invariantEntries.add(locationInvariant.invariantEntry());
+        // add ghost variable information for all ARGStates
+        // TODO the ghostInvariant should only be created with ThreadingStates present?
+        invariantEntries.add(
+            createGhostInvariantEntry(
+                locationInvariant, ImmutableList.copyOf(argStates), ghostVars));
         translationAlwaysSuccessful &= locationInvariant.translationSuccessful();
       }
     }
@@ -199,5 +213,100 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     String rLockId = symmetricDifference.iterator().next();
     Verify.verify(rLockId != null, "the updated lock cannot be null");
     return rLockId;
+  }
+
+  /** Adds the additional ghost variable information to the obtained invariant. */
+  private @NonNull InvariantEntry createGhostInvariantEntry(
+      @NonNull InvariantCreationResult pInvariantCreationResult,
+      @NonNull ImmutableList<ARGState> pARGStates,
+      @NonNull ImmutableList<String> pGhostVars) {
+
+    // TODO use ExpressionTree here instead of Strings
+    String ghostLhs =
+        createLeftHandSideGhostInvariant(ImmutableList.copyOf(pARGStates), pGhostVars);
+    InvariantEntry invariantEntry = pInvariantCreationResult.invariantEntry();
+    String ghostInvariant = createGhostInvariant(ghostLhs, invariantEntry.getValue());
+    return new InvariantEntry(
+        ghostInvariant,
+        invariantEntry.getType(),
+        invariantEntry.getFormat(),
+        invariantEntry.getLocation());
+  }
+
+  /** Creates an invariant where {@code pLeftHandSide} implies {@code pInvariant}. */
+  private @NonNull String createGhostInvariant(
+      @NonNull String pLeftHandSide, @NonNull String pInvariant) {
+
+    checkNotNull(pLeftHandSide);
+    checkNotNull(pInvariant);
+    StringBuilder rInvariant = new StringBuilder();
+    rInvariant
+        .append(BinaryLogicalOperator.LOGICAL_NOT.getOperator())
+        .append(wrap("(", pLeftHandSide, ")"))
+        .append(wrap(" ", BinaryOperator.BINARY_OR.getOperator()))
+        .append(pInvariant);
+    return rInvariant.toString();
+  }
+
+  /**
+   * Creates a DNF formula of KNF formulas where each KNF represents the assumptions over the ghost
+   * variables in an {@link ARGState}.
+   */
+  private @NonNull String createLeftHandSideGhostInvariant(
+      @NonNull ImmutableList<ARGState> pARGStates, @NonNull ImmutableList<String> pGhostVars) {
+
+    checkNotNull(pARGStates);
+    StringBuilder rInvariant = new StringBuilder();
+    for (int i = 0; i < pARGStates.size(); i++) {
+      ARGState argState = pARGStates.get(i);
+      Optional<ThreadingState> threadingState = ARGUtils.tryExtractThreadingState(argState);
+      if (threadingState.isPresent()) {
+        assert pGhostVars.containsAll(threadingState.orElseThrow().getLockIdsFromInputProgram())
+            : "ghost vars must contain all locks";
+        StringBuilder stateVars = new StringBuilder();
+        for (int j = 0; j < pGhostVars.size(); j++) {
+          String ghostVar = pGhostVars.get(j);
+          boolean locked =
+              threadingState.orElseThrow().getLockIdsFromInputProgram().contains(ghostVar);
+          stateVars
+              .append(ghostVar)
+              .append(wrap(" ", BinaryOperator.EQUALS.getOperator()))
+              .append(locked ? 1 : 0);
+          if (j != pGhostVars.size() - 1) {
+            stateVars.append(wrap(" ", BinaryLogicalOperator.LOGICAL_AND.getOperator()));
+          }
+        }
+        rInvariant.append(wrap("(", stateVars.toString(), ")"));
+        if (i != pARGStates.size() - 1) {
+          rInvariant.append(wrap(" ", BinaryLogicalOperator.LOGICAL_OR.getOperator()));
+        }
+      }
+    }
+    return rInvariant.toString();
+  }
+
+  // TODO using ExpressionTree should make this redundant
+  private String wrap(String pWrap, String pString) {
+    return pWrap + pString + pWrap;
+  }
+
+  private String wrap(String pPrefix, String pString, String pSuffix) {
+    return pPrefix + pString + pSuffix;
+  }
+
+  private enum BinaryLogicalOperator {
+    LOGICAL_AND("&&"),
+    LOGICAL_OR("||"),
+    LOGICAL_NOT("!");
+
+    private final String op;
+
+    BinaryLogicalOperator(String pOp) {
+      op = pOp;
+    }
+
+    public String getOperator() {
+      return op;
+    }
   }
 }

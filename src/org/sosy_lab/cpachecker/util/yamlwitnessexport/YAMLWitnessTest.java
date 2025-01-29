@@ -48,8 +48,10 @@ public class YAMLWitnessTest {
 
   @Test(timeout = 90000)
   public void max_true() throws Exception {
+    // define program and expected verdict
     String path = TEST_DIR + "max.c";
     ExpectedVerdict expectedVerdict = ExpectedVerdict.TRUE;
+
     // generate, parse and validate witness
     generateWitness(path, expectedVerdict);
     try (InputStream inputStream = createInputStream(expectedVerdict)) {
@@ -61,8 +63,10 @@ public class YAMLWitnessTest {
 
   @Test(timeout = 90000)
   public void minepump_spec1_product33_false() throws Exception {
+    // define program and expected verdict
     String path = TEST_DIR + "minepump_spec1_product33.cil.c";
     ExpectedVerdict expectedVerdict = ExpectedVerdict.FALSE;
+
     // generate, parse and validate yaml witness
     generateWitness(path, expectedVerdict);
     try (InputStream inputStream = createInputStream(expectedVerdict)) {
@@ -74,9 +78,9 @@ public class YAMLWitnessTest {
 
   private static void generateWitness(String pFilePath, ExpectedVerdict pExpectedVerdict)
       throws Exception {
-    // just use default config
-    Configuration generationConfig = createVerificationConfig();
 
+    // use default config with output enabled
+    Configuration generationConfig = createVerificationConfig();
     TestResults results = CPATestRunner.run(generationConfig, pFilePath);
     // trigger statistics so that the witness is written to the file
     results.getCheckerResult().writeOutputFiles();
