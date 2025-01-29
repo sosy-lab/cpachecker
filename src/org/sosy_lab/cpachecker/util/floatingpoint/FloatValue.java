@@ -2782,12 +2782,12 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    *
    * <pre>
    * signed-floating-constant ::=
-   *     [sign] floating-constant
+   *     [`-`]`nan`
+   *   | [`-`]`inf`
+   *   | [sign] floating-constant
    *
    * floating-constant ::=
-   *     `nan`
-   *   | `inf`
-   *   | decimal-floating-constant
+   *     decimal-floating-constant
    *   | hexadecimal-floating-constant
    *
    * decimal-floating-constant ::=
