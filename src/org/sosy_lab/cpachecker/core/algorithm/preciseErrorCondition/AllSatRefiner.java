@@ -30,6 +30,7 @@ public class AllSatRefiner implements Refiner {
   private final FormulaContext context;
   private PathFormula exclusionModelFormula;
   private Solver solver;
+  private int currentRefinementIteration = 0;
 
   public AllSatRefiner(FormulaContext pContext) throws InvalidConfigurationException {
     context = pContext;
@@ -43,7 +44,6 @@ public class AllSatRefiner implements Refiner {
       throws SolverException, InterruptedException, CPATransferException {
 
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
-    //context.setProverOptions(ProverOptions.GENERATE_ALL_SAT);
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
       BooleanFormula formula =
@@ -54,7 +54,7 @@ public class AllSatRefiner implements Refiner {
         AllSatCallback callback = new AllSatCallback();
 
         // extract relevant variables
-        List<BooleanFormula> importantPredicates = context.getSolver()
+        List<BooleanFormula> importantPredicates = solver
             .getFormulaManager()
             .extractVariables(formula)
             .values()
@@ -62,6 +62,10 @@ public class AllSatRefiner implements Refiner {
             .filter(BooleanFormula.class::isInstance) // Filter to Boolean formulas
             .map(BooleanFormula.class::cast)
             .collect(Collectors.toList());
+
+        context.getLogger().log(Level.INFO,
+            String.format("Iteration %d: Important Predicates:\n%s.",
+                currentRefinementIteration, importantPredicates));
 
         // invoke AllSAT
         List<BooleanFormula> assignments = prover.allSat(callback, importantPredicates);
@@ -76,6 +80,7 @@ public class AllSatRefiner implements Refiner {
       } else {
         context.getLogger()
             .log(Level.WARNING, "Counterexample is infeasible. Returning an empty formula.");
+        currentRefinementIteration++;
         return exclusionModelFormula; // empty
       }
     }

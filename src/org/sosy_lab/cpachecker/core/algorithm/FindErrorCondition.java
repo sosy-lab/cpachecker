@@ -151,7 +151,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
           for (CounterexampleInfo cex : counterExamples) {
             // Refinement
             PathFormula exclusionFormula = refiner.refine(cex);
-            System.out.printf("IGNORE. " + exclusionFormula.getLength());
+            System.out.printf("IGNORE " + exclusionFormula.getLength() + '\n');
           }
           // update initial state with the exclusion formula
           initialState =

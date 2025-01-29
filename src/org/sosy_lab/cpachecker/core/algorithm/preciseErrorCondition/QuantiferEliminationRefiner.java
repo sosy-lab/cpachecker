@@ -21,6 +21,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -49,9 +50,7 @@ public class QuantiferEliminationRefiner implements Refiner {
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     context = pContext;
     exclusionFormula = context.getManager().makeEmptyPathFormula();
-    solver = Solver.create(Configuration.builder().copyFrom(context.getConfiguration()).build(),
-        context.getLogger(),
-        context.getShutdownNotifier());
+    solver = pContext.getSolver();
     quantifierSolver = Solver.create(
         Configuration.builder().copyFrom(context.getConfiguration())
             .setOption("solver.solver", pQuantifierSolver.name())
@@ -116,6 +115,9 @@ public class QuantiferEliminationRefiner implements Refiner {
       Solver thisSolver,
       Solver otherSolver) {
     // formula translation between solvers, e.g. MATHSAT5 to Z3 or vice versa.
+    context.getLogger().log(Level.INFO,
+        String.format("Iteration %d: Translating Formula from %s to %s.",
+            currentRefinementIteration, solver.getSolverName(), otherSolver.getSolverName()));
     BooleanFormula translatedFormula = otherSolver.getFormulaManager().translateFrom(
         formula, thisSolver.getFormulaManager());
     context.getLogger().log(Level.INFO,
@@ -165,26 +167,37 @@ public class QuantiferEliminationRefiner implements Refiner {
     ).withContext(ssaBuilder.build(), cexFormula.getPointerTargetSet());
 
     context.getLogger().log(Level.INFO,
-        String.format("Iteration %d: Updated Exclusion Formula: %s \n", currentRefinementIteration,
+        String.format("Iteration %d: Updated Exclusion Formula: \n%s \n", currentRefinementIteration,
             exclusionFormula.getFormula()));
   }
 
   private String formatErrorCondition(BooleanFormula pFormula, Solver pSolver)
       throws InterruptedException {
+    FormulaToCExpressionConverter exprConverter = new FormulaToCExpressionConverter(pSolver.getFormulaManager());
+    String c_expr = exprConverter.formulaToCExpression(pFormula);
+
     FormulaToCVisitor visitor = new FormulaToCVisitor(pSolver.getFormulaManager(), id -> id);
-    BooleanFormula simplifiedFormula = pSolver.getFormulaManager().simplify(pFormula);
-    pSolver.getFormulaManager().visit(simplifiedFormula, visitor);
+    pSolver.getFormulaManager().visit(pFormula, visitor);
+    String visitedFormula = visitor.getString();
 
-    String rawFormula = visitor.getString();
-
+    context.getLogger().log(Level.INFO,
+        String.format("Iteration %d: Visited Formula: \n%s \n",
+            currentRefinementIteration,
+            visitedFormula));
     // Clean up nondet annotations
     for (Map.Entry<String, String> entry : variableMapping.entrySet()) {
       String ssaVariable = entry.getKey();
       String originalName = entry.getValue().replace("main::", "");
-      rawFormula = rawFormula.replace(ssaVariable, originalName);
+      visitedFormula = visitedFormula.replace(ssaVariable, originalName);
+      c_expr = c_expr.replace(ssaVariable, originalName);
     }
 
-    return rawFormula;
+    context.getLogger().log(Level.INFO,
+        String.format("Iteration %d: Converted To C Expression : \n%s \n",
+            currentRefinementIteration,
+            c_expr));
+
+    return visitedFormula;
   }
 
   private void setupSSAMap(PathFormula cexFormula) {
