@@ -174,7 +174,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                 matched = true;
               }
               newEdges.add(
-                  computeLineNumberBasedOnTransition(transition, edge, cfa)
+                  computeLineNumberBasedOnTransition(transition, edge)
                       + "|||"
                       + transition.getOperation().insertVariablesInsideOperation(matchedVariables));
             }
@@ -200,7 +200,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
    * the edge one line before the real operation and similarly for AFTER.
    */
   private String computeLineNumberBasedOnTransition(
-      InstrumentationTransition pTransition, CFAEdge pEdge, CFA pCFA) {
+      InstrumentationTransition pTransition, CFAEdge pEdge) {
     if (pTransition.getSource().isInitialAnnotation()) {
       return Integer.toString(
           pEdge.getPredecessor().getFunction().getFileLocation().getStartingLineInOrigin() + 1);
