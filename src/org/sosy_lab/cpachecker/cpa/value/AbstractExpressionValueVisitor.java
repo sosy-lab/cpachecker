@@ -997,10 +997,10 @@ public abstract class AbstractExpressionValueVisitor
                   fpClass = 1;
                 } else if (arg.isZero()) {
                   fpClass = 2;
-                } else if (arg.abs().lessThan(FloatValue.minNormal(arg.getFormat()))) {
-                  // Subnormal numbers
+                } else if (arg.isSubnormal()) {
                   fpClass = 3;
                 } else {
+                  // Normal number
                   fpClass = 4;
                 }
                 return new NumericValue(fpClass);
