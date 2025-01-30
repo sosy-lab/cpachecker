@@ -22,7 +22,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -32,8 +31,6 @@ public class CompositeRefiner implements Refiner {
   private PathFormula exclusionFormula;
   private final Map<RefinementStrategy, Refiner> refiners = new EnumMap<>(RefinementStrategy.class);
   private final Boolean parallelRefinement;
-  private final StatTimer refinementTimer =
-      new StatTimer("Total time for refinement.");
 
   public CompositeRefiner(
       FormulaContext pContext,
@@ -73,8 +70,8 @@ public class CompositeRefiner implements Refiner {
     context.getLogger().log(Level.INFO, "Sequential Refinement");
     for (Refiner refiner : refiners.values()) {
       try {
-        RefinerResult result = refineWith(refiner, pCounterexample);
-        exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
+        // update exclusion formula with result
+        exclusionFormula = refineWith(refiner, pCounterexample);
         return exclusionFormula;
       } catch (Exception e) {
         context.getLogger()
@@ -92,10 +89,8 @@ public class CompositeRefiner implements Refiner {
   private PathFormula singleRefinement(CounterexampleInfo pCounterexample) {
     context.getLogger().log(Level.INFO, "Single Refinement");
     try {
-      RefinerResult result =
-          refineWith(refiners.values().stream().toList().get(0), pCounterexample);
-
-      exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
+      // update exclusion formula with result
+      exclusionFormula = refineWith(refiners.values().stream().toList().get(0), pCounterexample);
       return exclusionFormula;
     } catch (Exception e) {
       context.getLogger().logfUserException(Level.SEVERE, e, "Error during refinement.");
@@ -110,13 +105,13 @@ public class CompositeRefiner implements Refiner {
     ExecutorService executor = Executors.newFixedThreadPool(refiners.size());
 
     try {
-      List<Callable<RefinerResult>> tasks = new ArrayList<>();
+      List<Callable<PathFormula>> tasks = new ArrayList<>();
       refiners.values().forEach(
           (pRefiner) -> tasks.add(() -> refineWith(pRefiner, pCounterexample)));
 
       // execute tasks with a timeout and return the first successful result
-      RefinerResult result = executor.invokeAny(tasks, TIMEOUT_SECONDS, TimeUnit.SECONDS);
-      exclusionFormula = result.getExclusionFormula(); // update exclusion formula with result
+      exclusionFormula = executor.invokeAny(tasks, TIMEOUT_SECONDS,
+          TimeUnit.SECONDS); // update exclusion formula with result
       executor.shutdown();
       return exclusionFormula;
 
@@ -138,7 +133,7 @@ public class CompositeRefiner implements Refiner {
     }
   }
 
-  private RefinerResult refineWith(
+  private PathFormula refineWith(
       Refiner refiner,
       CounterexampleInfo cex)
       throws SolverException, CPATransferException, InterruptedException,
@@ -148,28 +143,7 @@ public class CompositeRefiner implements Refiner {
     PathFormula result = refiner.refine(cex);
     context.getLogger()
         .log(Level.INFO, refiner.getClass().getSimpleName() + " completed successfully.");
-    return new RefinerResult(refiner.getClass().getSimpleName(), result);
+    return result;
   }
 
-  public PathFormula getExclusionFormula() {
-    return exclusionFormula;
-  }
-
-  private static class RefinerResult {
-    private final String refinerName;
-    private final PathFormula exclusionFormula;
-
-    public RefinerResult(String pRefinerName, PathFormula pExclusionFormula) {
-      this.refinerName = pRefinerName;
-      this.exclusionFormula = pExclusionFormula;
-    }
-
-    public String getRefinerName() {
-      return refinerName;
-    }
-
-    public PathFormula getExclusionFormula() {
-      return exclusionFormula;
-    }
-  }
 }

@@ -11,28 +11,35 @@ package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import java.util.logging.Level;
 import org.sosy_lab.common.Optionals;
+import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
-public class ReachabilityAnalyzer {
+public class Analyzer {
 
   private final ConfigurableProgramAnalysis cpa;
   private final FormulaContext context;
   private final int currentIteration;
 
-  public ReachabilityAnalyzer(
+  public Analyzer(
       ConfigurableProgramAnalysis pCPA,
       FormulaContext pContext,
       int pCurrentIteration) {
-    this.cpa = pCPA;
-    this.context = pContext;
+    cpa = pCPA;
+    context = pContext;
     currentIteration = pCurrentIteration;
   }
 
@@ -60,5 +67,36 @@ public class ReachabilityAnalyzer {
             .filter(AbstractStates::isTargetState)
             .filter(ARGState.class)
             .transform(ARGState::getCounterexampleInformation));
+  }
+
+  // Update the initial state with exclusion formulas for the next run
+  public AbstractState updateInitialStateWithExclusions(
+      AbstractState initialState,
+      PathFormula exclusionFormula) {
+    Builder<AbstractState> initialAbstractStates = ImmutableList.builder();
+    for (AbstractState abstractState : AbstractStates.asIterable(initialState)) {
+      if (abstractState instanceof ARGState) {
+        // TODO handle ARGState instances
+        continue;
+      }
+      if (abstractState instanceof CompositeState) {
+        // TODO handle CompositeState instances
+        continue;
+      }
+      if (abstractState instanceof PredicateAbstractState predicateState) {
+        PersistentMap<CFANode, Integer> locations =
+            predicateState.getAbstractionLocationsOnPath();
+        initialAbstractStates.add(PredicateAbstractState.mkAbstractionState(exclusionFormula,
+            predicateState.getAbstractionFormula(), locations));
+      } else {
+        initialAbstractStates.add(abstractState);
+      }
+    }
+    context.getLogger().log(Level.INFO,
+        String.format(
+            "Iteration %d: Updated initial state with the exclusion formula for next iteration.",
+            currentIteration));
+    context.getLogger().log(Level.FINE, String.format("Iteration %s: Updated initial state: ", initialState));
+    return new ARGState(new CompositeState(initialAbstractStates.build()), null);
   }
 }

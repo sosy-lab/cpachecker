@@ -35,8 +35,7 @@ public class AllSatRefiner implements Refiner {
   public AllSatRefiner(FormulaContext pContext) throws InvalidConfigurationException {
     context = pContext;
     exclusionModelFormula = context.getManager().makeEmptyPathFormula();
-    solver = Solver.create(context.getConfiguration(), context.getLogger(),
-        context.getShutdownNotifier());
+    solver = context.getSolver();
   }
 
   @Override
