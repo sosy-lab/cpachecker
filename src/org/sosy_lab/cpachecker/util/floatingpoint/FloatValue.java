@@ -1937,9 +1937,6 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       FloatValue v2 = x.minus1Ulp().withPrecision(p).exp_();
 
       if (equalModuloP(format, v1, v2) && isStable(v1.validPart())) {
-        // Store the result
-        r = v1;
-
         // Update statistics
         if (pExpStats != null) {
           Integer k = p.sigBits - format.sigBits;
@@ -1947,18 +1944,16 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         }
 
         // Exit the loop
-        break;
+        return v1.withPrecision(format);
       }
     }
-    if (r.isNan()) {
-      // If the result is NaN the precisions that were tried must have been too small. We could try
-      // again with larger precisions, but for now we simply throw an exception.
-      throw new UnsupportedOperationException(
-          String.format(
-              "Could not calculate exp(%s) due to an internal error. Please report this as a bug.",
-              this));
-    }
-    return r.withPrecision(format);
+
+    // If no result was found, the intermediate precision must have been too small. We throw an
+    // exception and ask the user to report the issue.
+    throw new UnsupportedOperationException(
+        String.format(
+            "Could not calculate exp(%s) due to an internal error. Please report this as a bug.",
+            this));
   }
 
   /**
@@ -2077,9 +2072,6 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       FloatValue v2 = x2.ln_();
 
       if (equalModuloP(format, v1, v2) && isStable(v1.validPart())) {
-        // Store the result
-        r = v1;
-
         // Update statistics
         if (pLnStats != null) {
           Integer k = p.sigBits - format.sigBits;
@@ -2087,18 +2079,15 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         }
 
         // Exit the loop
-        break;
+        return v1.withPrecision(format);
       }
     }
-    if (r.isNan()) {
-      // If the result is NaN the precisions that were tried must have been too small. We could try
-      // again with larger precisions, but for now we simply throw an exception.
-      throw new UnsupportedOperationException(
-          String.format(
-              "Could not calculate ln(%s) due to an internal error. Please report this as a bug.",
-              this));
-    }
-    return r.withPrecision(format);
+    // If no result was found, the intermediate precision must have been too small. We throw an
+    // exception and ask the user to report the issue.
+    throw new UnsupportedOperationException(
+        String.format(
+            "Could not calculate ln(%s) due to an internal error. Please report this as a bug.",
+            this));
   }
 
   private FloatValue ln_() {
