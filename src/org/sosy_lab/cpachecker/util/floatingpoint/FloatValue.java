@@ -466,19 +466,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     @Override
     public String toString() {
-      int size = 1 + expBits + sigBits;
-      if (ImmutableList.of(
-              Format.Float8,
-              Format.Float16,
-              Format.Float32,
-              Format.Float64,
-              Format.Float128,
-              Format.Float256)
-          .contains(this)) {
-        return "Float" + size;
-      } else {
-        return "Float" + size + "(p=" + (1 + sigBits) + ")";
-      }
+      return "Float" + (1 + expBits + sigBits) + "(p=" + (1 + sigBits) + ")";
     }
   }
 
