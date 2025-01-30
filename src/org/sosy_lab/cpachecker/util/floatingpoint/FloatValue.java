@@ -426,6 +426,14 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
 
     /**
+     * <code>True</code> if this format has at least as many bits for the exponent and the
+     * significand as the other format.
+     */
+    public boolean isGreaterOrEqual(Format pOther) {
+      return expBits >= pOther.expBits && sigBits >= pOther.sigBits;
+    }
+
+    /**
      * Compare two formats and returns the larger of the two
      *
      * <p>Used when implementing binary operations on FloatValue values, where a common format large
@@ -433,9 +441,9 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
      * the two formats are incomparable.
      */
     public Format matchWith(Format pOther) {
-      if (expBits >= pOther.expBits && sigBits >= pOther.sigBits) {
+      if (isGreaterOrEqual(pOther)) {
         return this;
-      } else if (expBits < pOther.expBits && sigBits < pOther.sigBits) {
+      } else if (pOther.isGreaterOrEqual(this)) {
         return pOther;
       } else {
         throw new IllegalArgumentException("Floating point formats are incomparable");
