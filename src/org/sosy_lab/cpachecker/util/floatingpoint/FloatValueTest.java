@@ -866,7 +866,7 @@ public class FloatValueTest {
   // Print statistics about the required bit width in ln, exp and pow
   @SuppressWarnings("unused")
   private static String printStatistics(Map<Integer, Integer> stats) {
-    int total = stats.values().stream().reduce(0, (acc, v) -> acc + v);
+    int total = stats.values().stream().mapToInt(v -> v).sum();
 
     ImmutableMap.Builder<Integer, Float> accum = ImmutableMap.builder();
     int sum = 0;
