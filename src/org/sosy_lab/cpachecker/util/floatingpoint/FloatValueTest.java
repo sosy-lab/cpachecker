@@ -255,11 +255,6 @@ public class FloatValueTest {
         pValue.isNegative(), pValue.getSignificand(), pValue.getExponent(), context);
   }
 
-  /** Convert a {@link CFloat} value to an Integer. */
-  private Integer toInteger(CFloat value) {
-    return toBigFloat(value).intValue();
-  }
-
   /** Construct a CFloatImpl from a BigFloat test value. */
   private CFloatImpl testValueToCFloatImpl(BigFloat value, Format format) {
     if (value.isNaN()) {
@@ -429,37 +424,34 @@ public class FloatValueTest {
   }
 
   /** Generate a list of special case integer values. */
-  private static Iterable<BigFloat> integerConstants(Format format) {
-    BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
-    return ImmutableList.of(
-        new BigFloat(Integer.MIN_VALUE, context),
-        new BigFloat(-1.0, context),
-        BigFloat.zero(context.precision),
-        new BigFloat(1.0, context),
-        new BigFloat(Integer.MAX_VALUE, context)
-            .nextDown(context.minExponent, context.maxExponent) // Avoid overflow issues
-        );
+  private static Iterable<Integer> integerConstants(Format format) {
+    int maxValue = Integer.MAX_VALUE;
+    int minValue = Integer.MIN_VALUE;
+    if (format.sigBits() + 1 < 32) {
+      maxValue = (1 << (format.sigBits() + 1)) - 1;
+      minValue = -maxValue;
+    }
+    return ImmutableList.of(minValue, -1, 0, 1, maxValue);
   }
 
   /** Generate n random integer values. */
-  private static Iterable<BigFloat> integerRandom(Format format, int n) {
-    ImmutableList.Builder<BigFloat> builder = ImmutableList.builder();
-    BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
-
-    long maxValue = FloatValue.maxValue(format).toInt().orElse(Integer.MAX_VALUE);
-    long minValue = FloatValue.maxValue(format).negate().toInt().orElse(Integer.MIN_VALUE);
-
+  private static Iterable<Integer> integerRandom(Format format, int n) {
+    ImmutableList.Builder<Integer> builder = ImmutableList.builder();
     Random random = new Random(0);
-
     for (int c = 0; c < n; c++) {
-      long r = random.nextLong(maxValue - minValue);
-      builder.add(new BigFloat(r + minValue, context));
+      int maxValue = Integer.MAX_VALUE;
+      int minValue = Integer.MIN_VALUE;
+      if (format.sigBits() + 1 < 32) {
+        maxValue = (1 << (format.sigBits() + 1)) - 1;
+        minValue = -maxValue;
+      }
+      builder.add(random.nextInt(minValue, maxValue));
     }
     return builder.build();
   }
 
   /** Generate integer test inputs that include both special cases and random values. */
-  private Iterable<BigFloat> integerTestValues() {
+  private Iterable<Integer> integerTestValues() {
     Format format = floatTestOptions.format;
     return FluentIterable.concat(
         integerConstants(format),
@@ -517,6 +509,10 @@ public class FloatValueTest {
 
   private String printTestHeader(String name, BigFloat arg1, BigFloat arg2) {
     return String.format("Testcase %s(%s, %s): ", name, printValue(arg1), printValue(arg2));
+  }
+
+  private String printTestHeader(String name, BigFloat arg1, Integer arg2) {
+    return String.format("Testcase %s(%s, %s): ", name, printValue(arg1), arg2);
   }
 
   /**
@@ -929,20 +925,32 @@ public class FloatValueTest {
 
   @Test
   public void powToIntegralTest() {
-    Iterable<BigFloat> integers = integerTestValues();
-    Iterable<BigFloat> positiveIntegers =
-        FluentIterable.from(integers).filter((BigFloat a) -> !a.sign());
+    // Native implementation does not support negative exponents and produces rounding errors
+    assume().that(floatTestOptions.reference).isNotEqualTo(ReferenceImpl.NATIVE);
 
-    // Native implementation does not support negative exponents
-    Iterable<BigFloat> expValues =
-        floatTestOptions.reference.equals(ReferenceImpl.NATIVE) ? positiveIntegers : integers;
+    for (BigFloat arg1 : binaryTestValues()) {
+      for (Integer arg2 : integerTestValues()) {
+        try { // Calculate result with the reference implementation
+          CFloat ref1 = toReferenceImpl(arg1);
+          BigFloat resultReference = toBigFloat(ref1.powToIntegral(arg2));
 
-    testOperator(
-        "powToInteger",
-        0,
-        (CFloat a, CFloat b) -> a.powToIntegral(toInteger(b)),
-        binaryTestValues(),
-        expValues);
+          // Calculate result with the tested implementation
+          CFloat tested1 = toTestedImpl(arg1);
+          BigFloat resultTested = toBigFloat(tested1.powToIntegral(arg2));
+
+          // Compare the two results
+          if (!resultTested.equals(resultReference)) {
+            String testHeader = printTestHeader("powToInteger", arg1, arg2);
+            expect
+                .withMessage(testHeader)
+                .that(printValue(resultTested))
+                .isEqualTo(printValue(resultReference));
+          }
+        } catch (Throwable t) {
+          throw new RuntimeException(printTestHeader("powToInteger", arg1, arg2), t);
+        }
+      }
+    }
   }
 
   @Test
