@@ -435,4 +435,9 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
     return new InvariantCreationResult(invariantEntry, invariantResult.backTranslationSuccessful());
   }
+
+  /** Returns {@code (!(pAntecedent) || (pConsequent))}. */
+  @NonNull String createImplication(@NonNull String pAntecedent, @NonNull String pConsequent) {
+    return "(!(" + pAntecedent + ") || (" + pConsequent + "))";
+  }
 }

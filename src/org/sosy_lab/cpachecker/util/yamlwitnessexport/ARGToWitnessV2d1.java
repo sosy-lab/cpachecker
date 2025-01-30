@@ -93,8 +93,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
           translationSuccessful &= stateOfTheOutputResult.backTranslationSuccessful();
 
           // Create a relation between the input and the output of the function
-          String implication = "(!(" + stateOfTheInput + ") || (" + stateOfTheOutput + "))";
-          ensuresClause.add(implication);
+          ensuresClause.add(createImplication(stateOfTheInput, stateOfTheOutput));
         }
       } else {
         // If we do not have an exit node then we do not have any ensures clause

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.BiMap;
@@ -109,7 +110,7 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     boolean translationAlwaysSuccessful = true;
 
     ImmutableSet<String> ghostVars =
-        FluentIterable.from(ghostVariables).transform(GhostVariableRecord::name).toSet();
+        transformedImmutableSetCopy(ghostVariables, GhostVariableRecord::name);
 
     // handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
@@ -243,30 +244,12 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     ExpressionTree<CBinaryExpression> ghostLhs =
         createLeftHandSideGhostInvariant(pARGStates, pGhostVars);
     InvariantEntry invariantEntry = pInvariantCreationResult.invariantEntry();
-    String ghostInvariant = createGhostInvariant(ghostLhs, invariantEntry.getValue());
+    String ghostInvariant = createImplication(ghostLhs.toString(), invariantEntry.getValue());
     return new InvariantEntry(
         ghostInvariant,
         invariantEntry.getType(),
         invariantEntry.getFormat(),
         invariantEntry.getLocation());
-  }
-
-  // TODO just create a general implication function here that returns !(lhs) || (rhs)
-  /** Creates an invariant where {@code pLeftHandSide} implies {@code pInvariant}. */
-  private @NonNull String createGhostInvariant(
-      @NonNull ExpressionTree<CBinaryExpression> pLeftHandSide, @NonNull String pInvariant) {
-
-    checkNotNull(pLeftHandSide);
-    checkNotNull(pInvariant);
-    return BinaryLogicalOperator.LOGICAL_NOT.getOperator()
-        + "("
-        + pLeftHandSide
-        + ")"
-        + " "
-        + BinaryLogicalOperator.LOGICAL_OR.getOperator()
-        + " ("
-        + pInvariant
-        + ")";
   }
 
   /**
@@ -301,7 +284,6 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
         }
       }
     }
-
     return Or.of(
         FluentIterable.from(expressions.keySet())
             .transform(
@@ -309,22 +291,5 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
                     And.of(
                         FluentIterable.from(expressions.get(state))
                             .transform(expression -> LeafExpression.of(expression)))));
-  }
-
-  // TODO this is also redundant when using ExpressionTree -> remove later
-  private enum BinaryLogicalOperator {
-    LOGICAL_AND("&&"),
-    LOGICAL_OR("||"),
-    LOGICAL_NOT("!");
-
-    private final String op;
-
-    BinaryLogicalOperator(String pOp) {
-      op = pOp;
-    }
-
-    public String getOperator() {
-      return op;
-    }
   }
 }
