@@ -243,9 +243,11 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
 
     for (AbstractionPredicate predicate : pPredicates) {
       BooleanFormula predicateTerm = predicate.getSymbolicAtom();
-
-      for (String varNameInPredicate : fmgr.extractVariableNames(predicateTerm)) {
-        if (varNameInPredicate.contains(PRIME_SUFFIX)) { // This predicate from precision has prime variable
+      List<String> varNameListInPredicate = new ArrayList<>(fmgr.extractVariableNames(predicateTerm));
+      if (varNameListInPredicate.size() != 2) continue;
+      for (int i = 0; i < 2; i++) {
+        String varNameInPredicate = varNameListInPredicate.get(i);
+        if (varNameInPredicate.contains(PRIME_SUFFIX) && varNameInPredicate.contains(varNameListInPredicate.get(1-i))) { // This predicate is transition predicate
           String varName = varNameInPredicate.replace(PRIME_SUFFIX, "");
           if (ssaMap.allVariables().contains(varName)) { // Path formula has the variable with prime value
             Map<String, Formula> pFVarNameToAtom = fmgr.extractVariables(pathFormula);

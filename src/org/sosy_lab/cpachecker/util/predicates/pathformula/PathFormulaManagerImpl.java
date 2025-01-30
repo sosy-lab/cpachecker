@@ -16,6 +16,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.io.Serial;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -561,18 +562,28 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public HashMap<String, Integer> extractVariablesWithTransition(PathFormula pPathFormula) {
     HashMap<String, Integer> variableWithTransition = new HashMap<>();
-    Set<String> allVarNameInPathFormula = new HashSet<>(fmgr.extractVariableNames(pPathFormula.getFormula()));
+    List<String> allVarNameInPathFormula = new ArrayList<>(fmgr.extractVariableNames(pPathFormula.getFormula()));
 
-    for (String var1 : allVarNameInPathFormula) {
+    for (int i = 0; i + 1 < allVarNameInPathFormula.size(); i++) {
+      String var1 = allVarNameInPathFormula.get(i);
       String varNameWithOutIndex = fmgr.splitIndexSeparator(var1)[0];
-      for (String var2 : allVarNameInPathFormula) {
-        if (!Objects.equals(var1, var2)
-            && var2.contains(varNameWithOutIndex)
-            && !variableWithTransition.containsKey(varNameWithOutIndex)) {
-          int minIndex = Math.min(
-              Integer.parseInt(fmgr.splitIndexSeparator(var1)[1]),
-              Integer.parseInt(fmgr.splitIndexSeparator(var2)[1]));
-          variableWithTransition.put(varNameWithOutIndex, minIndex);
+      for (int j = i + 1; j < allVarNameInPathFormula.size(); j++) {
+        String var2 = allVarNameInPathFormula.get(j);
+        if (var2.contains(varNameWithOutIndex)) {
+            if (!variableWithTransition.containsKey(varNameWithOutIndex)) {
+              int minIndex = Math.min(
+                Integer.parseInt(fmgr.splitIndexSeparator(var1)[1]),
+                Integer.parseInt(fmgr.splitIndexSeparator(var2)[1]));
+              variableWithTransition.put(varNameWithOutIndex, minIndex);
+            } else {
+              int minIndex = Math.min(
+                  variableWithTransition.get(varNameWithOutIndex),
+                  Integer.parseInt(fmgr.splitIndexSeparator(var1)[1]));
+              minIndex = Math.min(
+                  minIndex,
+                  Integer.parseInt(fmgr.splitIndexSeparator(var2)[1]));
+              variableWithTransition.put(varNameWithOutIndex, minIndex);
+            }
         }
       }
     }
