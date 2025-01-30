@@ -150,9 +150,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
             .allMatch(FunctionContractCreationResult::translationSuccessful);
 
     exportEntries(
-        ImmutableList.of(
-            new InvariantSetEntry(getMetadata(), entries.build())),
-        pOutputFile);
+        ImmutableList.of(new InvariantSetEntry(getMetadata(), entries.build())), pOutputFile);
 
     return new WitnessExportResult(translationAlwaysSuccessful);
   }

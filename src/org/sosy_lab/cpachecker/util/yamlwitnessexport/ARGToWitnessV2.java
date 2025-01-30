@@ -68,10 +68,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
       }
     }
 
-    exportEntries(
-        ImmutableList.of(
-            new InvariantSetEntry(getMetadata(), entries.build())),
-        pPath);
+    exportEntries(ImmutableList.of(new InvariantSetEntry(getMetadata(), entries.build())), pPath);
 
     return new WitnessExportResult(translationAlwaysSuccessful);
   }

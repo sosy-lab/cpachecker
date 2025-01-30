@@ -68,13 +68,18 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntr
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
-class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
+class ARGToYAMLWitness extends AbstractYAMLWitnessExporterWithVersion {
 
   private final Map<ARGState, CollectedARGStates> stateToStatesCollector = new HashMap<>();
 
   public ARGToYAMLWitness(
-      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger, YAMLWitnessVersion pWitnessVersion)
+      Configuration pConfig,
+      CFA pCfa,
+      Specification pSpecification,
+      LogManager pLogger,
+      YAMLWitnessVersion pWitnessVersion)
       throws InvalidConfigurationException {
+
     super(pConfig, pCfa, pSpecification, pLogger, pWitnessVersion);
   }
 

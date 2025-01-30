@@ -102,10 +102,10 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
 
     ImmutableMap.Builder<YAMLWitnessVersion, WitnessExportResult> witnessExportResults =
         ImmutableMap.builder();
-    for (YAMLWitnessVersion witnessVersion : ImmutableSet.copyOf(witnessVersions)) {
-      Path outputFile = pOutputFileTemplate.getPath(witnessVersion.toString());
+    for (YAMLWitnessVersion version : ImmutableSet.copyOf(witnessVersions)) {
+      Path outputFile = pOutputFileTemplate.getPath(version.toString());
       WitnessExportResult witnessExportResult =
-          switch (witnessVersion) {
+          switch (version) {
             case V2 -> argToWitnessV2.exportWitnesses(pRootState, outputFile);
             case V2d1 -> {
               logger.log(Level.INFO, "Exporting witnesses in Version 2.1 is currently WIP.");
@@ -116,7 +116,7 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
               yield argToWitnessV2dG.exportWitness(pRootState, outputFile);
             }
           };
-      witnessExportResults.put(witnessVersion, witnessExportResult);
+      witnessExportResults.put(version, witnessExportResult);
     }
 
     if (analyseWitnessQuality) {

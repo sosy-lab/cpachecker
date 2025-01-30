@@ -31,9 +31,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ProducerRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.TaskRecord;
 
 @Options(prefix = "witness.yamlexporter")
 abstract class AbstractYAMLWitnessExporter {
@@ -56,15 +53,11 @@ abstract class AbstractYAMLWitnessExporter {
   protected final CFA cfa;
 
   protected final LogManager logger;
-  private final Specification specification;
+  protected final Specification specification;
   protected final ObjectMapper mapper;
-  private final ProducerRecord producerRecord;
-
-  final YAMLWitnessVersion witnessVersion;
 
   protected AbstractYAMLWitnessExporter(
-      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger,
-      YAMLWitnessVersion pWitnessVersion)
+      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
 
     pConfig.inject(this, AbstractYAMLWitnessExporter.class);
@@ -78,14 +71,6 @@ abstract class AbstractYAMLWitnessExporter {
                 .disable(Feature.WRITE_DOC_START_MARKER, Feature.SPLIT_LINES)
                 .build());
     mapper.setSerializationInclusion(Include.NON_NULL);
-    producerRecord = ProducerRecord.getProducerRecord(pConfig);
-
-    witnessVersion = pWitnessVersion;
-  }
-
-  protected MetadataRecord getMetadata() throws IOException {
-    return MetadataRecord.createMetadataRecord(
-        producerRecord, TaskRecord.getTaskDescription(cfa, specification), witnessVersion);
   }
 
   protected Specification getSpecification() {

@@ -55,12 +55,12 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointAction;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
-public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
+public class CounterexampleToWitness extends AbstractYAMLWitnessExporterWithVersion {
 
   public CounterexampleToWitness(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
-    super(pConfig, pCfa, pSpecification, pLogger);
+    super(pConfig, pCfa, pSpecification, pLogger, YAMLWitnessVersion.V2);
   }
 
   /**
@@ -311,7 +311,6 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    *     violation
    */
   private WaypointRecord targetWaypoint(CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
-    Specification specification = getSpecification();
     Set<Property> properties = specification.getProperties();
 
     if (properties.size() != 1) {
@@ -444,9 +443,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     segments.add(SegmentRecord.ofOnlyElement(targetWaypoint(lastEdge, astCFARelation)));
 
     exportEntries(
-        ImmutableList.of(
-            new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments.build())),
-        pPath);
+        ImmutableList.of(new ViolationSequenceEntry(getMetadata(), segments.build())), pPath);
   }
 
   /**
@@ -462,13 +459,15 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    */
   public void export(CounterexampleInfo pCex, PathTemplate pOutputFileTemplate, int uniqueId)
       throws IOException {
-    for (YAMLWitnessVersion witnessVersion : witnessVersions) {
+    for (YAMLWitnessVersion version : witnessVersions) {
       Path outputFile = pOutputFileTemplate.getPath(uniqueId, YAMLWitnessVersion.V2.toString());
-      switch (witnessVersion) {
+      switch (version) {
         case V2 -> exportWitnessVersion2(pCex, outputFile);
         case V2d1 ->
             logger.log(Level.INFO, "There is currently no version 2.1 for Violation Witnesses.");
-        default -> throw new AssertionError("Unknown witness version: " + witnessVersion);
+        case V2dG ->
+            logger.log(Level.INFO, "There is currently no version 2.G for Violation Witnesses.");
+        default -> throw new AssertionError("Unknown witness version: " + version);
       }
     }
   }
