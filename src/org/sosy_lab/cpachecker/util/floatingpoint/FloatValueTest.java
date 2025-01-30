@@ -14,14 +14,15 @@ import static com.google.common.truth.TruthJUnit.assume;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multiset;
 import com.google.common.truth.Correspondence.BinaryPredicate;
 import com.google.common.truth.Expect;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -864,13 +865,13 @@ public class FloatValueTest {
 
   // Print statistics about the required bit width in ln, exp and pow
   @SuppressWarnings("unused")
-  private static String printStatistics(Map<Integer, Integer> stats) {
-    int total = stats.values().stream().mapToInt(v -> v).sum();
+  private static String printStatistics(Multiset<Integer> stats) {
+    int total = stats.entrySet().stream().mapToInt(e -> e.getCount()).sum();
 
     ImmutableMap.Builder<Integer, Float> accum = ImmutableMap.builder();
     int sum = 0;
-    for (Integer k : ImmutableList.sortedCopyOf(stats.keySet())) {
-      sum += stats.get(k);
+    for (Integer k : ImmutableList.sortedCopyOf(stats.elementSet())) {
+      sum += stats.count(k);
       accum.put(k, ((float) sum) / total);
     }
     ImmutableMap<Integer, Float> accumMap = accum.buildOrThrow();
@@ -885,34 +886,34 @@ public class FloatValueTest {
 
   @Test
   public void lnTest() {
-    Map<Integer, Integer> lnStats = new HashMap<>();
+    Multiset<Integer> lnStats = HashMultiset.create();
     testOperator(
         "ln",
         ulpError(),
         (CFloat a) -> (a instanceof CFloatImpl) ? ((CFloatImpl) a).lnWithStats(lnStats) : a.ln());
-    // printStatistics(lnStats);
+    // println(printStatistics(lnStats));
   }
 
   @Test
   public void expTest() {
-    Map<Integer, Integer> expStats = new HashMap<>();
+    Multiset<Integer> expStats = HashMultiset.create();
     testOperator(
         "exp",
         ulpError(),
         (CFloat a) ->
             (a instanceof CFloatImpl) ? ((CFloatImpl) a).expWithStats(expStats) : a.exp());
-    // printStatistics(expStats);
+    // println(printStatistics(expStats));
   }
 
   @Test
   public void powToTest() {
-    Map<Integer, Integer> powStats = new HashMap<>();
+    Multiset<Integer> powStats = HashMultiset.create();
     testOperator(
         "powTo",
         ulpError(),
         (CFloat a, CFloat b) ->
             (a instanceof CFloatImpl) ? ((CFloatImpl) a).powToWithStats(b, powStats) : a.powTo(b));
-    // printStatistics(powStats);
+    // println(printStatistics(powStats));
   }
 
   @Test

@@ -13,6 +13,7 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multiset;
 import com.google.errorprone.annotations.Immutable;
 import java.io.Serial;
 import java.io.Serializable;
@@ -1929,7 +1930,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    *
    * @param pExpStats Histogram with the number of extra bits used in all calls to exp()
    */
-  FloatValue expWithStats(@Nullable Map<Integer, Integer> pExpStats) {
+  FloatValue expWithStats(@Nullable Multiset<Integer> pExpStats) {
     if (isZero()) {
       return one(format);
     } else if (isNan()) {
@@ -1952,8 +1953,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       if (equalModuloP(format, v1, v2) && isStable(v1.validPart())) {
         // Update statistics
         if (pExpStats != null) {
-          Integer k = p.sigBits - format.sigBits;
-          pExpStats.put(k, pExpStats.getOrDefault(k, 0) + 1);
+          pExpStats.add(p.sigBits - format.sigBits);
         }
 
         // Exit the loop
@@ -2062,7 +2062,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    *
    * @param pLnStats Histogram with the number of extra bits used in all calls to ln()
    */
-  FloatValue lnWithStats(@Nullable Map<Integer, Integer> pLnStats) {
+  FloatValue lnWithStats(@Nullable Multiset<Integer> pLnStats) {
     if (isZero()) {
       return negativeInfinity(format);
     } else if (isOne()) {
@@ -2085,8 +2085,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       if (equalModuloP(format, v1, v2) && isStable(v1.validPart())) {
         // Update statistics
         if (pLnStats != null) {
-          Integer k = p.sigBits - format.sigBits;
-          pLnStats.put(k, pLnStats.getOrDefault(k, 0) + 1);
+          pLnStats.add(p.sigBits - format.sigBits);
         }
 
         // Exit the loop
@@ -2151,7 +2150,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    *
    * @param pPowStats Histogram with the number of extra bits used in all calls to pow()
    */
-  FloatValue powWithStats(FloatValue pExponent, @Nullable Map<Integer, Integer> pPowStats) {
+  FloatValue powWithStats(FloatValue pExponent, @Nullable Multiset<Integer> pPowStats) {
     checkMatchingPrecision(pExponent);
 
     // Handle special cases
@@ -2280,7 +2279,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     return r.withPrecision(format);
   }
 
-  private FloatValue pow_(FloatValue pExponent, @Nullable Map<Integer, Integer> pPowStats) {
+  private FloatValue pow_(FloatValue pExponent, @Nullable Multiset<Integer> pPowStats) {
     FloatValue r = nan(format);
 
     for (Format p : intermediatePrecisions()) {
@@ -2317,7 +2316,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
         // Update statistics
         if (pPowStats != null) {
-          pPowStats.put(precision.sigBits, pPowStats.getOrDefault(0, precision.sigBits) + 1);
+          pPowStats.add(precision.sigBits);
         }
 
         // Exit the loop

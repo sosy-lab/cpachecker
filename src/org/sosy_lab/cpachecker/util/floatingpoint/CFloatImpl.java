@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import com.google.common.collect.Multiset;
 import java.math.BigInteger;
-import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
@@ -152,7 +152,7 @@ class CFloatImpl extends CFloat {
   }
 
   /** See {@link FloatValue#lnWithStats} */
-  CFloat lnWithStats(Map<Integer, Integer> lnStats) {
+  CFloat lnWithStats(Multiset<Integer> lnStats) {
     return new CFloatImpl(delegate.lnWithStats(lnStats));
   }
 
@@ -162,7 +162,7 @@ class CFloatImpl extends CFloat {
   }
 
   /** See {@link FloatValue#expWithStats} */
-  CFloat expWithStats(Map<Integer, Integer> expStats) {
+  CFloat expWithStats(Multiset<Integer> expStats) {
     return new CFloatImpl(delegate.expWithStats(expStats));
   }
 
@@ -175,7 +175,7 @@ class CFloatImpl extends CFloat {
   }
 
   /** See {@link FloatValue#powWithStats} */
-  CFloat powToWithStats(CFloat pExponent, Map<Integer, Integer> powStats) {
+  CFloat powToWithStats(CFloat pExponent, Multiset<Integer> powStats) {
     if (pExponent instanceof CFloatImpl myExponent) {
       return new CFloatImpl(delegate.powWithStats(myExponent.delegate, powStats));
     }
