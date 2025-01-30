@@ -856,12 +856,10 @@ public class FloatValueTest {
   }
 
   private static int findClosest(Map<Integer, Float> accum, float p) {
-    for (Integer k : accum.keySet().stream().sorted().toList()) {
-      if (accum.get(k) >= p) {
-        return k;
-      }
-    }
-    throw new IllegalArgumentException();
+    return FluentIterable.from(accum.entrySet())
+        .firstMatch(entry -> entry.getValue() >= p)
+        .get()
+        .getKey();
   }
 
   // Print statistics about the required bit width in ln, exp and pow
