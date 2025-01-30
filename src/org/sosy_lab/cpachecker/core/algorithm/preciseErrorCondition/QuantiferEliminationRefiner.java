@@ -204,10 +204,10 @@ public class QuantiferEliminationRefiner implements Refiner {
       PathFormula cexFormula) {
     formatter.setupSSAMap(cexFormula);
     //update exclusion formula with the new quantified variables from this iteration.
-    exclusionFormula = context.getManager().makeAnd(
-        exclusionFormula,
-        solver.getFormulaManager().getBooleanFormulaManager().not(quantifierEliminationResult)
-    ).withContext(formatter.getSsaBuilder().build(), cexFormula.getPointerTargetSet());
+    exclusionFormula = context.getManager()
+        .makeAnd(exclusionFormula,
+        solver.getFormulaManager().getBooleanFormulaManager().not(quantifierEliminationResult))
+        .withContext(formatter.getSsaBuilder().build(), cexFormula.getPointerTargetSet());
 
     context.getLogger().log(Level.INFO,
         String.format("Iteration %d: Updated Exclusion Formula: \n%s \n",

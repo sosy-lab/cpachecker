@@ -100,8 +100,7 @@ public class ErrorConditionFormatter {
   public void setupSSAMap(PathFormula cexFormula) {
     for (String variable : cexFormula.getSsa().allVariables()) {
       if (!ssaBuilder.build().containsVariable(variable)) {
-        int index = cexFormula.getSsa().getIndex(variable);
-        ssaBuilder.setIndex(variable, cexFormula.getSsa().getType(variable), index);
+        ssaBuilder.setIndex(variable, cexFormula.getSsa().getType(variable), 1);
       }
     }
   }

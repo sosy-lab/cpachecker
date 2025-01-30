@@ -72,10 +72,10 @@ public class GenerateModelRefiner implements Refiner {
               currentRefinementIteration, nondetModel));
       formatter.setupSSAMap(cexFormula);
       // Update exclusion formula
-      exclusionModelFormula =
-          context.getManager()
+      exclusionModelFormula = context.getManager()
               .makeAnd(exclusionModelFormula, bmgr.not(nondetModel))
               .withContext(formatter.getSsaBuilder().build(), cexFormula.getPointerTargetSet());
+
       System.out.printf(nondetVariables.build() + "\n");
       context.getLogger().log(Level.INFO,
           String.format(

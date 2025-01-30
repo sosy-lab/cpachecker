@@ -116,7 +116,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
 
       // Initialize variables
       boolean foundNewCounterexamples;
-      Analyzer analyzer = new Analyzer(cpa, context, currentIteration);
+      Analyzer analyzer = new Analyzer(cpa, context);
       AbstractState initialState = analyzer.getInitialState();
       CompositeRefiner refiner =
           new CompositeRefiner(context, refiners, qSolver, parallelRefinement);
@@ -127,7 +127,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         foundNewCounterexamples = false;
 
         // Run reachability analysis
-        reachedSet = analyzer.updateReachedSet(reachedSet, initialState);
+        reachedSet = analyzer.updateReachedSet(reachedSet, initialState, currentIteration);
         status = algorithm.run(reachedSet);
 
         // Collect counterexamples
@@ -146,7 +146,8 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
             break;
           }
           // update initial state with the exclusion formula
-          initialState = analyzer.updateInitialStateWithExclusions(initialState, errorCondition);
+          initialState = analyzer.updateInitialStateWithExclusions(initialState, errorCondition,
+              currentIteration);
         }
 
       } while (foundNewCounterexamples && (++currentIteration < maxIterations

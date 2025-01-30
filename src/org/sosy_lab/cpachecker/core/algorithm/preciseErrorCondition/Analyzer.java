@@ -32,15 +32,12 @@ public class Analyzer {
 
   private final ConfigurableProgramAnalysis cpa;
   private final FormulaContext context;
-  private final int currentIteration;
 
   public Analyzer(
       ConfigurableProgramAnalysis pCPA,
-      FormulaContext pContext,
-      int pCurrentIteration) {
+      FormulaContext pContext) {
     cpa = pCPA;
     context = pContext;
-    currentIteration = pCurrentIteration;
   }
 
   public AbstractState getInitialState() throws InterruptedException {
@@ -48,7 +45,7 @@ public class Analyzer {
         StateSpacePartition.getDefaultPartition());
   }
 
-  public ReachedSet updateReachedSet(ReachedSet reachedSet, AbstractState initialState)
+  public ReachedSet updateReachedSet(ReachedSet reachedSet, AbstractState initialState, int currentIteration)
       throws InterruptedException {
     reachedSet.clear();
     reachedSet.add(initialState,
@@ -72,7 +69,8 @@ public class Analyzer {
   // Update the initial state with exclusion formulas for the next run
   public AbstractState updateInitialStateWithExclusions(
       AbstractState initialState,
-      PathFormula exclusionFormula) {
+      PathFormula exclusionFormula,
+      int currentIteration) {
     Builder<AbstractState> initialAbstractStates = ImmutableList.builder();
     for (AbstractState abstractState : AbstractStates.asIterable(initialState)) {
       if (abstractState instanceof ARGState) {
