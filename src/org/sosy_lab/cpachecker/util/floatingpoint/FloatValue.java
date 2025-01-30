@@ -1926,8 +1926,6 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       return one(format);
     }
 
-    FloatValue r = nan(format);
-
     for (Format p : intermediatePrecisions()) {
       Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
       FloatValue x = withPrecision(precision);
@@ -2057,8 +2055,6 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     } else if (isNan() || isNegative()) {
       return nan(format);
     }
-
-    FloatValue r = nan(format);
 
     for (Format p : intermediatePrecisions()) {
       Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
