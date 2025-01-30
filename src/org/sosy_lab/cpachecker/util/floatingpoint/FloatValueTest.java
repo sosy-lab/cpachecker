@@ -31,6 +31,7 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -877,18 +878,11 @@ public class FloatValueTest {
     ImmutableMap<Integer, Float> accumMap = accum.buildOrThrow();
 
     ImmutableList<Float> quantiles =
-        ImmutableList.of(0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f);
-    StringBuilder stdout = new StringBuilder();
-    for (Float p : quantiles) { // Header
-      String s = p.toString();
-      stdout.append(" ".repeat(7 - s.length()) + s);
-    }
-    stdout.append("\n");
-    for (Float p : quantiles) { // Values
-      String s = String.valueOf(findClosest(accumMap, p));
-      stdout.append(" ".repeat(7 - s.length()) + s);
-    }
-    return stdout.toString();
+        ImmutableList.of(0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f).reverse();
+
+    return quantiles.stream()
+        .map(p -> String.format("%s: %7s", p.toString(), findClosest(accumMap, p)))
+        .collect(Collectors.joining("\n"));
   }
 
   @Test
