@@ -16,7 +16,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public interface Refiner {
 
-  PathFormula refine(CounterexampleInfo pCounterexample)
+  PathFormula refine(CounterexampleInfo pCounterexample, PathFormula pExclusionFormula)
       throws CPATransferException, InterruptedException, InvalidConfigurationException,
              SolverException;
 

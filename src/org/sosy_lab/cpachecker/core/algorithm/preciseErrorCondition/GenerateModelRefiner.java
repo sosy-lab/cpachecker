@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -39,15 +40,18 @@ public class GenerateModelRefiner implements Refiner {
   }
 
   @Override
-  public PathFormula refine(CounterexampleInfo cex)
+  public PathFormula refine(CounterexampleInfo cex, PathFormula pExclusionModelFormula)
       throws SolverException, InterruptedException, CPATransferException {
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula nondetModel = bmgr.makeTrue();
     ImmutableSet.Builder<String> nondetVariables = ImmutableSet.builder();
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      PathFormula cexFormula =
-          context.getManager().makeFormulaForPath(cex.getTargetPath().getFullPath());
+      PathFormula cexFormula = pExclusionModelFormula;
+      for (CFAEdge cfaEdge : cex.getTargetPath().getFullPath()) {
+        cexFormula = context.getManager().makeAnd(cexFormula, cfaEdge);
+      }
+
       prover.push(cexFormula.getFormula());
 
       if (prover.isUnsat()) {

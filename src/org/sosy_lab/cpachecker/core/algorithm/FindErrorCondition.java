@@ -140,7 +140,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
               String.format("Iteration %d: Found Counterexamples", currentIteration));
           for (CounterexampleInfo cex : counterExamples) {
             // Refinement
-            errorCondition = refiner.refine(cex);
+            errorCondition = refiner.refine(cex, errorCondition);
           }
           if (errorCondition.equals(context.getManager().makeEmptyPathFormula())) {
             break;

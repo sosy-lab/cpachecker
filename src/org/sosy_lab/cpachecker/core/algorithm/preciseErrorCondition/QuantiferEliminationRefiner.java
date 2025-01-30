@@ -53,7 +53,7 @@ public class QuantiferEliminationRefiner implements Refiner {
   }
 
   @Override
-  public PathFormula refine(CounterexampleInfo cex)
+  public PathFormula refine(CounterexampleInfo cex, PathFormula pExclusionFormula)
       throws CPATransferException, InterruptedException, SolverException {
 
     context.getLogger().log(Level.INFO,
