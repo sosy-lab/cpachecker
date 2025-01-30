@@ -1690,28 +1690,29 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     boolean isOdd = false; // Will be set after the division if the (truncated) quotient is odd
 
-    // Divide absoluteDividend by absoluteDivisor
+    // Divide absoluteDividend by absoluteDivisor for the result
+    FloatValue result = absoluteDividend;
     while (shiftedDivisor.greaterOrEqual(absoluteDivisor)) {
       isOdd = false;
-      if (absoluteDividend.greaterOrEqual(shiftedDivisor)) {
-        absoluteDividend = absoluteDividend.subtract(shiftedDivisor);
+      if (result.greaterOrEqual(shiftedDivisor)) {
+        result = result.subtract(shiftedDivisor);
         isOdd = true;
       }
       shiftedDivisor = shiftedDivisor.withExponent(shiftedDivisor.exponent - 1);
     }
 
     // Correct by one to find the closest multiple
-    FloatValue nextValue = absoluteDividend.subtract(absoluteDivisor).abs();
-    if (nextValue.lessThan(absoluteDividend) || (nextValue.equalTo(absoluteDividend) && isOdd)) {
+    FloatValue nextValue = result.subtract(absoluteDivisor).abs();
+    if (nextValue.lessThan(result) || (nextValue.equalTo(result) && isOdd)) {
       // This implements "round to nearest ties to even"
-      absoluteDividend = absoluteDividend.subtract(absoluteDivisor);
+      result = result.subtract(absoluteDivisor);
     }
 
     // Fix the sign if x was negative
     if (this.isNegative()) {
-      absoluteDividend = absoluteDividend.negate();
+      result = result.negate();
     }
-    return absoluteDividend.withPrecision(format);
+    return result.withPrecision(format);
   }
 
   /** Square root */
