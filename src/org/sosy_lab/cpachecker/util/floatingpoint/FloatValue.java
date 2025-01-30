@@ -809,6 +809,13 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       return sign ? negativeInfinity(pTargetFormat) : infinity(pTargetFormat);
     } else if (isZero()) {
       return sign ? negativeZero(pTargetFormat) : zero(pTargetFormat);
+    } else if (!isSubnormal() && pTargetFormat.isGreaterOrEqual(format)) {
+      // Special case: The target format is larger and the value is not subnormal
+      return new FloatValue(
+          pTargetFormat,
+          sign,
+          exponent,
+          significand.shiftLeft(pTargetFormat.sigBits - format.sigBits));
     }
 
     long resultExponent = Math.max(exponent, format.minExp());
