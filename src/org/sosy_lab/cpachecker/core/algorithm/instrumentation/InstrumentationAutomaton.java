@@ -455,8 +455,7 @@ public class InstrumentationAutomaton {
             new InstrumentationPattern("true"),
             new InstrumentationOperation(
                 "int saved_" + pIndex + " = 0; " +
-                "int distance_" + pIndex + " = " +
-                distanceCalculationString(boundInfo) + ";"),
+                "int distance_" + pIndex + ";"),
             InstrumentationOrder.BEFORE,
             q2);
 

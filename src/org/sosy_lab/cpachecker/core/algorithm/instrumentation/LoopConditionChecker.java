@@ -10,17 +10,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 public class LoopConditionChecker {
 
-    public static VariableBoundInfo distanceCompatible(CFA cfa) {
-      if (cfa.getLoopStructure().isEmpty()) {
-        return null;
-      }
-  
-      Set<CFANode> loopHeads = cfa.getLoopStructure().orElseThrow().getAllLoopHeads();
-      if (loopHeads.size() != 1) {
-        throw new IllegalStateException("Supports only progams with one loop.");
-    }
+    public static VariableBoundInfo distanceCompatible(CFANode loopHead) {
+      
 
-      for (CFANode loopHead : loopHeads) {
+      
   
         CFAEdge firstLeavingEdge = loopHead.getLeavingEdge(0);
   
@@ -42,8 +35,8 @@ public class LoopConditionChecker {
             }
           }
         }
-      }
-      return null; // Keine gültige Schleifenbedingung gefunden
+      
+      return null; 
     }
   
     public static class VariableBoundInfo {

@@ -9,10 +9,24 @@
 int main() {
     int x;
     int y;
+    int a;
+    int b;
+    int c;
+    int f;
 
     while (x<y)
     {
         x++;
+        a = 5;
+        b = 10;
+        while(a<b<f){
+            a++;
+            for (int d = 0; d < c; d++)
+            {
+            
+            }
+            
+        }
         if (x==5)
         {
             x=3;

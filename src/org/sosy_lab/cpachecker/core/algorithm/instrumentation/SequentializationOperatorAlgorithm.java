@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -45,7 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAut
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.core.algorithm.instrumentation.LoopConditionChecker;
+import java.util.Optional;
 
 /**
  * This algorithm instruments a CFA of program using intrumentation operator and instrumentation
@@ -108,20 +110,37 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     } else if(
       instrumentationProperty == InstrumentationProperty.DISTANCE
     ){
-      LoopConditionChecker.VariableBoundInfo distanceVariableInfo = LoopConditionChecker.distanceCompatible(cfa);
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
-      if (!(distanceVariableInfo == null)){
-        int index = 0;
-        for (NormalLoopInfo info : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
-          mapAutomataToLocations.put(
-              info.loopLocation(),
-              new InstrumentationAutomaton(
-                  instrumentationProperty, info.liveVariablesAndTypes(), index, distanceVariableInfo));
-          index += 1;
-        }
-      } else {
-        //Todo: throw exception
+      int index = 0;
+      for (NormalLoopInfo info : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
+          Optional<CFANode> matchingNode = mapNodesToLineNumbers.entrySet()
+              .stream()
+              .filter(entry -> entry.getValue().equals(info.loopLocation()))
+              .map(Map.Entry::getKey)
+              .findFirst();
+
+          if (matchingNode.isPresent()) {
+              CFANode node = matchingNode.get();
+              
+              
+              LoopConditionChecker.VariableBoundInfo boundInfo = LoopConditionChecker.distanceCompatible(node);
+              
+              if (boundInfo != null) {
+                  mapAutomataToLocations.put(
+                      info.loopLocation(),
+                      new InstrumentationAutomaton(
+                          instrumentationProperty, info.liveVariablesAndTypes(), index, boundInfo));
+                  index++;
+              } else {
+                mapAutomataToLocations.put(
+                      info.loopLocation(),
+                      new InstrumentationAutomaton(
+                        InstrumentationProperty.TERMINATION2, info.liveVariablesAndTypes(), index));
+                  index++;
+              }
+          }
       }
+
     }else{
       mapNodesToLineNumbers = ImmutableMap.of(cfa.getMainFunction(), 0);
       mapAutomataToLocations.put(
