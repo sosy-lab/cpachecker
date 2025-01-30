@@ -1688,7 +1688,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       shiftedDivisor = absoluteDivisor.withExponent(absoluteDividend.exponent - 1);
     }
 
-    boolean isOdd = false; // Will be set after the division if the (truncated) quotient is odd
+    boolean isOdd = false; // Will be set after the division of the (truncated) quotient is odd
 
     // Divide absoluteDividend by absoluteDivisor for the result
     FloatValue result = absoluteDividend;
