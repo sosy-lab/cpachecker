@@ -62,7 +62,8 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.RemovingStructuresVisitor;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitness.CollectedARGStates.ARGStatePair;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitness.GhostARGStates.ARGStatePair;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
@@ -70,6 +71,8 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
   private final Map<ARGState, CollectedARGStates> stateToStatesCollector = new HashMap<>();
+
+  // TODO add witness version here
 
   public ARGToYAMLWitness(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
@@ -102,6 +105,16 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
    */
   record InvariantCreationResult(InvariantEntry invariantEntry, boolean translationSuccessful) {}
 
+  // TODO maybe this isn't the best idea because we lose information which invariant was not
+  // translated
+  //  successfully
+  /**
+   * A class to keep track of the result of the creation of invariants, in particular to inform the
+   * caller if all {@link InvariantEntry}s where translated successfully.
+   */
+  record InvariantCreationResults(
+      List<AbstractInvariantEntry> invariantEntries, boolean translationAlwaysSuccessful) {}
+
   /**
    * A class to keep track of the result of the creation of a function contract, in particular to
    * inform the caller about some internals of the translation and export.
@@ -126,12 +139,21 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
   /** A data structure for collecting the relevant information for a witness from an ARG */
   protected static class CollectedARGStates {
-    public Multimap<CFANode, ARGState> loopInvariants = HashMultimap.create();
-    public Multimap<CFANode, ARGState> functionCallInvariants = HashMultimap.create();
-    public Multimap<FunctionEntryNode, ARGState> functionContractRequires = HashMultimap.create();
-    public Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures =
+    public final Multimap<CFANode, ARGState> loopInvariants = HashMultimap.create();
+    public final Multimap<CFANode, ARGState> functionCallInvariants = HashMultimap.create();
+    public final Multimap<FunctionEntryNode, ARGState> functionContractRequires =
         HashMultimap.create();
+    public final Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures =
+        HashMultimap.create();
+    public final Optional<GhostARGStates> ghostStates;
 
+    public CollectedARGStates(boolean pGhosts) {
+      ghostStates = pGhosts ? Optional.of(new GhostARGStates()) : Optional.empty();
+    }
+  }
+
+  /** A data structure for collecting the relevant information for ghost witnesses from an ARG. */
+  protected static class GhostARGStates {
     /**
      * Maps {@link FileLocation}s (to prevent duplicates from cloned functions) to {@link ARGState}
      * pairs from {@link ThreadingCPA} that are connected through lock operations.
@@ -152,7 +174,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
    */
   private static class RelevantARGStateCollector {
 
-    private final CollectedARGStates collectedStates = new CollectedARGStates();
+    private final CollectedARGStates collectedStates;
 
     // TODO: This needs to be improved once we implement setjump/longjump
     /** The callstack of the order in which the function entry points where traversed */
@@ -162,6 +184,10 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     /** Enables the recovery of the callstack when an ARGState has multiple children */
     private final Map<ARGState, ListMultimap<AFunctionDeclaration, ARGState>> callStackRecovery =
         new HashMap<>();
+
+    public RelevantARGStateCollector(boolean pGhosts) {
+      collectedStates = new CollectedARGStates(pGhosts);
+    }
 
     protected void analyze(ARGState pSuccessor) {
       if (!pSuccessor.getParents().isEmpty()) {
@@ -199,12 +225,13 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
         }
       }
 
-      Optional<ThreadingState> child = ARGUtils.tryExtractThreadingState(pSuccessor);
-      if (child.isPresent()) {
+      if (collectedStates.ghostStates.isPresent()) {
+        GhostARGStates ghostStates = collectedStates.ghostStates.orElseThrow();
+        ThreadingState child = ARGUtils.tryExtractThreadingState(pSuccessor).orElseThrow();
         for (ARGState argParent : pSuccessor.getParents()) {
           ThreadingState parent = ARGUtils.tryExtractThreadingState(argParent).orElseThrow();
           ImmutableSet<String> parentLocks = parent.getLockIdsFromInputProgram();
-          ImmutableSet<String> childLocks = child.orElseThrow().getLockIdsFromInputProgram();
+          ImmutableSet<String> childLocks = child.getLockIdsFromInputProgram();
           // locks unequal -> a lock / unlock operation was performed between states
           if (!parentLocks.equals(childLocks)) {
             // we later need the edge for the location and function
@@ -216,13 +243,13 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
             int childLocksNum = childLocks.size();
             if (parentLocksNum + 1 == childLocksNum) {
               // more locks in child -> lock was locked
-              if (!collectedStates.lockUpdates.containsKey(location)) {
-                collectedStates.lockUpdates.put(location, pair);
+              if (!ghostStates.lockUpdates.containsKey(location)) {
+                ghostStates.lockUpdates.put(location, pair);
               }
             } else if (parentLocksNum == childLocksNum + 1) {
               // more locks in parent -> lock was unlocked
-              if (!collectedStates.unlockUpdates.containsKey(location)) {
-                collectedStates.unlockUpdates.put(location, pair);
+              if (!ghostStates.unlockUpdates.containsKey(location)) {
+                ghostStates.unlockUpdates.put(location, pair);
               }
             } else {
               throw new AssertionError("multiple global locks within one operation");
@@ -255,7 +282,10 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
    */
   CollectedARGStates getRelevantStates(ARGState pRootState) {
     if (!stateToStatesCollector.containsKey(pRootState)) {
-      RelevantARGStateCollector statesCollector = new RelevantARGStateCollector();
+      Optional<ThreadingState> threadingState = ARGUtils.tryExtractThreadingState(pRootState);
+      // threadingState -> use ghosts
+      RelevantARGStateCollector statesCollector =
+          new RelevantARGStateCollector(threadingState.isPresent());
       for (ARGState state :
           Traverser.forGraph(new ARGSuccessorFunction()).depthFirstPreOrder(pRootState)) {
         statesCollector.analyze(state);

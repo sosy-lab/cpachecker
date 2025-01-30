@@ -53,12 +53,14 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitness.CollectedARGStates.ARGStatePair;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitness.GhostARGStates.ARGStatePair;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostInstrumentationContentRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostInstrumentationEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostUpdateRecord;
@@ -83,6 +85,7 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
   public ARGToWitnessV2dG(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
+
     super(pConfig, pCfa, pSpecification, pLogger);
     binExpressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
   }
@@ -92,25 +95,64 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
           ReportingMethodNotImplementedException,
           InterruptedException,
           UnrecognizedCodeException {
+
     // collect the information about the states relevant for ghost variables
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 
-    // first create ghost variables and their respective ghost updates
-    ImmutableList<GhostUpdateRecord> ghostUpdates =
-        getGhostUpdates(statesCollector.lockUpdates, statesCollector.unlockUpdates);
-    ImmutableList<GhostVariableRecord> ghostVariables = getGhostVariables(ghostUpdates);
-    GhostInstrumentationContentRecord record =
-        new GhostInstrumentationContentRecord(ghostVariables, ghostUpdates);
+    InvariantCreationResults invariantCreationResults;
+    ImmutableList<AbstractEntry> witnessEntries;
+    MetadataRecord metadata = getMetadata(YAMLWitnessVersion.V2dG);
 
-    // second use collected states to generate invariants
-    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
-    Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
+    if (statesCollector.ghostStates.isEmpty()) {
+      // no ghosts -> just use obtained invariants without any ghost information
+      invariantCreationResults = createInvariantEntries(statesCollector, Optional.empty());
+      witnessEntries =
+          ImmutableList.of(
+              new InvariantSetEntry(metadata, invariantCreationResults.invariantEntries()));
+
+    } else {
+      // first create ghost variables and their respective ghost updates for ghost content
+      GhostARGStates ghostStates = statesCollector.ghostStates.orElseThrow();
+      ImmutableList<GhostUpdateRecord> ghostUpdates =
+          getGhostUpdates(ghostStates.lockUpdates, ghostStates.unlockUpdates);
+      ImmutableList<GhostVariableRecord> ghostVariables = getGhostVariables(ghostUpdates);
+      GhostInstrumentationContentRecord ghostContent =
+          new GhostInstrumentationContentRecord(ghostVariables, ghostUpdates);
+
+      // add ghost assumptions to obtained invariants
+      ImmutableSet<String> ghostVars =
+          transformedImmutableSetCopy(ghostVariables, GhostVariableRecord::name);
+      invariantCreationResults = createInvariantEntries(statesCollector, Optional.of(ghostVars));
+      witnessEntries =
+          ImmutableList.of(
+              new InvariantSetEntry(metadata, invariantCreationResults.invariantEntries()),
+              new GhostInstrumentationEntry(metadata, ghostContent));
+    }
+
+    // TODO add function contracts (V2.1) here later to combine the two?
+    exportEntries(witnessEntries, pPath);
+
+    return new WitnessExportResult(invariantCreationResults.translationAlwaysSuccessful());
+  }
+
+  /** Obtain invariants from the collected {@link ARGState}s with or without ghost variables. */
+  private InvariantCreationResults createInvariantEntries(
+      CollectedARGStates pCollectedStates, Optional<ImmutableSet<String>> pGhostVars)
+      throws ReportingMethodNotImplementedException,
+          InterruptedException,
+          UnrecognizedCodeException {
+
+    final boolean ghosts = pGhostVars.isPresent();
+    checkArgument(
+        ghosts == pCollectedStates.ghostStates.isPresent(),
+        "if ghost states were collected, ghost vars must be present");
+
+    // use collected states to generate invariants
+    Multimap<CFANode, ARGState> loopInvariants = pCollectedStates.loopInvariants;
+    Multimap<CFANode, ARGState> functionCallInvariants = pCollectedStates.functionCallInvariants;
 
     ImmutableList.Builder<AbstractInvariantEntry> invariantEntries = new ImmutableList.Builder<>();
     boolean translationAlwaysSuccessful = true;
-
-    ImmutableSet<String> ghostVars =
-        transformedImmutableSetCopy(ghostVariables, GhostVariableRecord::name);
 
     // handle the loop invariants
     for (CFANode node : loopInvariants.keySet()) {
@@ -118,9 +160,10 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
       InvariantCreationResult loopInvariant =
           createInvariant(argStates, node, InvariantRecordType.LOOP_INVARIANT.getKeyword());
       if (loopInvariant != null) {
-        // add ghost variable information for all ARGStates
-        // TODO the ghostInvariant should only be created with ThreadingStates present?
-        invariantEntries.add(createGhostInvariantEntry(loopInvariant, argStates, ghostVars));
+        invariantEntries.add(
+            ghosts
+                ? createGhostInvariant(loopInvariant, argStates, pGhostVars.orElseThrow())
+                : loopInvariant.invariantEntry());
         translationAlwaysSuccessful &= loopInvariant.translationSuccessful();
       }
     }
@@ -131,20 +174,15 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
       InvariantCreationResult locationInvariant =
           createInvariant(argStates, node, InvariantRecordType.LOCATION_INVARIANT.getKeyword());
       if (locationInvariant != null) {
-        // add ghost variable information for all ARGStates
-        // TODO the ghostInvariant should only be created with ThreadingStates present?
-        invariantEntries.add(createGhostInvariantEntry(locationInvariant, argStates, ghostVars));
+        invariantEntries.add(
+            ghosts
+                ? createGhostInvariant(locationInvariant, argStates, pGhostVars.orElseThrow())
+                : locationInvariant.invariantEntry());
         translationAlwaysSuccessful &= locationInvariant.translationSuccessful();
       }
     }
 
-    exportEntries(
-        ImmutableList.of(
-            new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2), invariantEntries.build()),
-            new GhostInstrumentationEntry(getMetadata(YAMLWitnessVersion.V2dG), record)),
-        pPath);
-
-    return new WitnessExportResult(translationAlwaysSuccessful);
+    return new InvariantCreationResults(invariantEntries.build(), translationAlwaysSuccessful);
   }
 
   /** Creates {@link GhostUpdateRecord}s from the collected {@link ARGState}. */
@@ -154,6 +192,7 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
 
     checkNotNull(pLockUpdates);
     checkNotNull(pUnlockUpdates);
+
     ImmutableList.Builder<GhostUpdateRecord> ghostUpdates = ImmutableList.builder();
     // handle ghost updates through locks
     for (ARGStatePair pair : pLockUpdates.values()) {
@@ -173,7 +212,9 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
 
     checkNotNull(pParent);
     checkNotNull(pChild);
+
     CFAEdge lockEdge = pParent.getEdgeToChild(pChild);
+    // TODO use assertion here, edge existed already when collectin ARGstates
     checkArgument(lockEdge != null, "no edge connects pParent and pChild");
     // ghost updates always commute with the lock statement -> can put it at end / start
     LocationRecord locationRecord =
@@ -195,6 +236,7 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
       @NonNull ImmutableList<GhostUpdateRecord> pGhostUpdates) {
 
     checkNotNull(pGhostUpdates);
+
     // extract ghost variable names from ghostUpdates
     ImmutableSet<String> ghostVarNames =
         FluentIterable.from(pGhostUpdates)
@@ -221,11 +263,13 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
   private @NonNull String getLockId(@NonNull ARGState pParent, @NonNull ARGState pChild) {
     checkNotNull(pParent);
     checkNotNull(pChild);
+
     ThreadingState parent = ARGUtils.tryExtractThreadingState(pParent).orElseThrow();
     ThreadingState child = ARGUtils.tryExtractThreadingState(pChild).orElseThrow();
     SetView<String> symmetricDifference =
         Sets.symmetricDifference(
             parent.getLockIdsFromInputProgram(), child.getLockIdsFromInputProgram());
+    // TODO use assertions here for performance, this was checked already when collecting ARGstates
     Verify.verify(
         symmetricDifference.size() == 1,
         "there must be exactly one lock update between pParent and pChild");
@@ -235,16 +279,18 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
   }
 
   /** Adds the additional ghost variable information to the obtained invariant. */
-  private @NonNull InvariantEntry createGhostInvariantEntry(
+  private @NonNull InvariantEntry createGhostInvariant(
       @NonNull InvariantCreationResult pInvariantCreationResult,
       @NonNull Collection<ARGState> pARGStates,
+      // TODO obtain the set of all locks from the ARGStates to not pass the param?
       @NonNull ImmutableSet<String> pGhostVars)
       throws UnrecognizedCodeException {
 
-    ExpressionTree<CBinaryExpression> ghostLhs =
-        createLeftHandSideGhostInvariant(pARGStates, pGhostVars);
+    ExpressionTree<CBinaryExpression> ghostAntecedent =
+        createGhostInvariantAntecedent(pARGStates, pGhostVars);
     InvariantEntry invariantEntry = pInvariantCreationResult.invariantEntry();
-    String ghostInvariant = createImplication(ghostLhs.toString(), invariantEntry.getValue());
+    String ghostInvariant =
+        createImplication(ghostAntecedent.toString(), invariantEntry.getValue());
     return new InvariantEntry(
         ghostInvariant,
         invariantEntry.getType(),
@@ -253,14 +299,15 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
   }
 
   /**
-   * Creates an {@link ExpressionTree} DNF formula of KNF formulas where each KNF represents the
+   * Creates an {@link ExpressionTree} DNF formula of CNF formulas where each CNF represents the
    * assumptions (as {@link CBinaryExpression}) over the ghost variables in an {@link ARGState}.
    */
-  private @NonNull ExpressionTree<CBinaryExpression> createLeftHandSideGhostInvariant(
+  private @NonNull ExpressionTree<CBinaryExpression> createGhostInvariantAntecedent(
       @NonNull Collection<ARGState> pARGStates, @NonNull ImmutableSet<String> pGhostVars)
       throws UnrecognizedCodeException {
 
     checkNotNull(pARGStates);
+    checkNotNull(pGhostVars);
 
     Multimap<ARGState, CBinaryExpression> expressions = HashMultimap.create();
     for (ARGState argState : pARGStates) {
