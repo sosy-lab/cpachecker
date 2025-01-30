@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
-import com.google.common.base.Verify;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -96,7 +95,7 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
           InterruptedException,
           UnrecognizedCodeException {
 
-    // collect the information about the states relevant for ghost variables
+    // collect ARGStates relevant for the witness
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 
     InvariantCreationResults invariantCreationResults;
@@ -185,7 +184,7 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     return new InvariantCreationResults(invariantEntries.build(), translationAlwaysSuccessful);
   }
 
-  /** Creates {@link GhostUpdateRecord}s from the collected {@link ARGState}. */
+  /** Creates {@link GhostUpdateRecord}s from the collected {@link ARGState}s. */
   private ImmutableList<GhostUpdateRecord> getGhostUpdates(
       @NonNull BiMap<FileLocation, ARGStatePair> pLockUpdates,
       @NonNull BiMap<FileLocation, ARGStatePair> pUnlockUpdates) {
@@ -214,8 +213,7 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     checkNotNull(pChild);
 
     CFAEdge lockEdge = pParent.getEdgeToChild(pChild);
-    // TODO use assertion here, edge existed already when collectin ARGstates
-    checkArgument(lockEdge != null, "no edge connects pParent and pChild");
+    assert lockEdge != null : "no edge connects pParent and pChild";
     // ghost updates always commute with the lock statement -> can put it at end / start
     LocationRecord locationRecord =
         LocationRecord.createLocationRecordAtStart(
@@ -269,12 +267,10 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
     SetView<String> symmetricDifference =
         Sets.symmetricDifference(
             parent.getLockIdsFromInputProgram(), child.getLockIdsFromInputProgram());
-    // TODO use assertions here for performance, this was checked already when collecting ARGstates
-    Verify.verify(
-        symmetricDifference.size() == 1,
-        "there must be exactly one lock update between pParent and pChild");
+    assert symmetricDifference.size() == 1
+        : "there must be exactly one lock update between pParent and pChild";
     String rLockId = symmetricDifference.iterator().next();
-    Verify.verify(rLockId != null, "the updated lock cannot be null");
+    assert rLockId != null : "the updated lock cannot be null";
     return rLockId;
   }
 
