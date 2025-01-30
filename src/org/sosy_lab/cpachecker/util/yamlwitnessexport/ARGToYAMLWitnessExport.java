@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.Repo
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitness.WitnessExportResult;
 
 public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
@@ -94,7 +95,10 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
    */
   public void export(
       ARGState pRootState, UnmodifiableReachedSet pReachedSet, PathTemplate pOutputFileTemplate)
-      throws InterruptedException, IOException, ReportingMethodNotImplementedException {
+      throws InterruptedException,
+          IOException,
+          ReportingMethodNotImplementedException,
+          UnrecognizedCodeException {
 
     ImmutableMap.Builder<YAMLWitnessVersion, WitnessExportResult> witnessExportResults =
         ImmutableMap.builder();

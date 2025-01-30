@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.ARGToAutomatonConverter;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -436,7 +437,9 @@ public class ARGStatistics implements Statistics {
           if (exportYamlCorrectnessWitness && argToWitnessWriter != null) {
             try {
               argToWitnessWriter.export(rootState, pReached, yamlWitnessOutputFileTemplate);
-            } catch (IOException | ReportingMethodNotImplementedException e) {
+            } catch (IOException
+                | UnrecognizedCodeException
+                | ReportingMethodNotImplementedException e) {
               logger.logUserException(
                   Level.WARNING,
                   e,

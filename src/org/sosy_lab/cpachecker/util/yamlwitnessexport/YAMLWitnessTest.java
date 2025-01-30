@@ -37,7 +37,7 @@ public class YAMLWitnessTest {
 
   private static final String OUTPUT_DIR = "./output/";
 
-  private static final String YML_WITNESS_FILE = "witness-" + WITNESS_VERSION.toString() + ".yml";
+  private static final String YML_WITNESS_FILE = "witness-" + WITNESS_VERSION + ".yml";
 
   private static final String CORRECTNESS_WITNESS_PATH = OUTPUT_DIR + YML_WITNESS_FILE;
 
