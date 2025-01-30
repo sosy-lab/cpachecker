@@ -871,7 +871,7 @@ public class FloatValueTest {
 
     ImmutableMap.Builder<Integer, Float> accum = ImmutableMap.builder();
     int sum = 0;
-    for (Integer k : stats.keySet().stream().sorted().toList()) {
+    for (Integer k : ImmutableList.sortedCopyOf(stats.keySet())) {
       sum += stats.get(k);
       accum.put(k, ((float) sum) / total);
     }
