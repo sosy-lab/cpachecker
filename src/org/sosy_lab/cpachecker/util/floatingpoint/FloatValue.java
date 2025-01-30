@@ -1950,7 +1950,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     // If no result was found, the intermediate precision must have been too small. We throw an
     // exception and ask the user to report the issue.
-    throw new UnsupportedOperationException(
+    throw new AssertionError(
         String.format(
             "Could not calculate exp(%s) due to an internal error. Please report this as a bug.",
             this));
@@ -2084,7 +2084,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
     // If no result was found, the intermediate precision must have been too small. We throw an
     // exception and ask the user to report the issue.
-    throw new UnsupportedOperationException(
+    throw new AssertionError(
         String.format(
             "Could not calculate ln(%s) due to an internal error. Please report this as a bug.",
             this));
@@ -2222,7 +2222,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         // If the result is still NaN the precisions that were tried in the first phase must have
         // been too small. We could try again with larger precisions, but for now we simply throw an
         // exception.
-        throw new UnsupportedOperationException(
+        throw new AssertionError(
             String.format(
                 "Could not calculate pow(%s,%s) due to an internal error. Please report this as a"
                     + " bug.",
