@@ -26,10 +26,12 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.Invar
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
 class ARGToWitnessV2 extends ARGToYAMLWitness {
+
   protected ARGToWitnessV2(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
-    super(pConfig, pCfa, pSpecification, pLogger);
+
+    super(pConfig, pCfa, pSpecification, pLogger, YAMLWitnessVersion.V2);
   }
 
   WitnessExportResult exportWitnesses(ARGState pRootState, Path pPath)
@@ -68,7 +70,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
 
     exportEntries(
         ImmutableList.of(
-            new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2), entries.build())),
+            new InvariantSetEntry(getMetadata(), entries.build())),
         pPath);
 
     return new WitnessExportResult(translationAlwaysSuccessful);

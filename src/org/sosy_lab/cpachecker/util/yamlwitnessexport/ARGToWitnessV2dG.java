@@ -86,7 +86,7 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
 
-    super(pConfig, pCfa, pSpecification, pLogger);
+    super(pConfig, pCfa, pSpecification, pLogger, YAMLWitnessVersion.V2dG);
     binExpressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
   }
 
@@ -101,7 +101,7 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
 
     InvariantCreationResults invariantCreationResults;
     ImmutableList<AbstractEntry> witnessEntries;
-    MetadataRecord metadata = getMetadata(YAMLWitnessVersion.V2dG);
+    MetadataRecord metadata = getMetadata();
 
     if (statesCollector.ghostStates.isEmpty()) {
       // no ghosts -> just use obtained invariants without any ghost information

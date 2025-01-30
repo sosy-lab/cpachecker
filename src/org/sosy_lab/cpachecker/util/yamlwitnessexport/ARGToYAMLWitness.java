@@ -72,12 +72,10 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
   private final Map<ARGState, CollectedARGStates> stateToStatesCollector = new HashMap<>();
 
-  // TODO add witness version here
-
   public ARGToYAMLWitness(
-      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
+      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger, YAMLWitnessVersion pWitnessVersion)
       throws InvalidConfigurationException {
-    super(pConfig, pCfa, pSpecification, pLogger);
+    super(pConfig, pCfa, pSpecification, pLogger, pWitnessVersion);
   }
 
   /**

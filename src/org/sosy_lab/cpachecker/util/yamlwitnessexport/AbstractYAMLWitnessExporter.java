@@ -60,9 +60,13 @@ abstract class AbstractYAMLWitnessExporter {
   protected final ObjectMapper mapper;
   private final ProducerRecord producerRecord;
 
+  final YAMLWitnessVersion witnessVersion;
+
   protected AbstractYAMLWitnessExporter(
-      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
+      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger,
+      YAMLWitnessVersion pWitnessVersion)
       throws InvalidConfigurationException {
+
     pConfig.inject(this, AbstractYAMLWitnessExporter.class);
     specification = pSpecification;
     logger = pLogger;
@@ -75,11 +79,13 @@ abstract class AbstractYAMLWitnessExporter {
                 .build());
     mapper.setSerializationInclusion(Include.NON_NULL);
     producerRecord = ProducerRecord.getProducerRecord(pConfig);
+
+    witnessVersion = pWitnessVersion;
   }
 
-  protected MetadataRecord getMetadata(YAMLWitnessVersion version) throws IOException {
+  protected MetadataRecord getMetadata() throws IOException {
     return MetadataRecord.createMetadataRecord(
-        producerRecord, TaskRecord.getTaskDescription(cfa, specification), version);
+        producerRecord, TaskRecord.getTaskDescription(cfa, specification), witnessVersion);
   }
 
   protected Specification getSpecification() {

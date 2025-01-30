@@ -33,10 +33,12 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 class ARGToWitnessV2d1 extends ARGToYAMLWitness {
+
   protected ARGToWitnessV2d1(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
-    super(pConfig, pCfa, pSpecification, pLogger);
+
+    super(pConfig, pCfa, pSpecification, pLogger, YAMLWitnessVersion.V2d1);
   }
 
   /**
@@ -149,7 +151,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
 
     exportEntries(
         ImmutableList.of(
-            new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2d1), entries.build())),
+            new InvariantSetEntry(getMetadata(), entries.build())),
         pOutputFile);
 
     return new WitnessExportResult(translationAlwaysSuccessful);
