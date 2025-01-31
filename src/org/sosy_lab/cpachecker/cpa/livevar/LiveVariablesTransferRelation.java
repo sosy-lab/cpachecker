@@ -116,6 +116,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
@@ -291,6 +292,13 @@ public class LiveVariablesTransferRelation
   protected LiveVariablesState handleAssumption(
       AssumeEdge cfaEdge, AExpression expression, boolean truthAssumption)
       throws CPATransferException {
+
+    // TODO: this is invalidly abstracting stack based memory. Ex:
+    //   int array[...] = {....};
+    //   int * var = array;
+    //   if (*var == 0) { // array is no longer live -> *var is invalid-deref
+    //  This is not trivial however, as we don't know that var is based on an array at this point.
+    //  It gets even more difficult for arbitrary pointer aliasing.
 
     // all variables in assumption become live
     BitSet out = state.getDataCopy();
@@ -488,18 +496,13 @@ public class LiveVariablesTransferRelation
     boolean isLhsLive =
         isLeftHandSideLive(lhs) || assignment instanceof AFunctionCallAssignmentStatement;
 
-    LhsPointerDereferenceVisitor lhsPointerDereferenceVisitor =
-        LhsPointerDereferenceVisitor.getInstance();
+    LhsPointerDereferenceVisitor lhsPointerDereferenceVisitor = new LhsPointerDereferenceVisitor();
     boolean lhsIsPointerDereference = false;
 
-    try {
-      if (lhs instanceof CLeftHandSide clhs) {
-        lhsIsPointerDereference = clhs.accept(lhsPointerDereferenceVisitor);
-      } else if (lhs instanceof JLeftHandSide jlhs) {
-        lhsIsPointerDereference = jlhs.accept(lhsPointerDereferenceVisitor);
-      }
-    } catch (Exception e) {
-      // Should never happen
+    if (lhs instanceof CLeftHandSide clhs) {
+      lhsIsPointerDereference = clhs.accept(lhsPointerDereferenceVisitor);
+    } else if (lhs instanceof JLeftHandSide jlhs) {
+      lhsIsPointerDereference = jlhs.accept(lhsPointerDereferenceVisitor);
     }
 
     if (!isLhsAlwaysLive && !isLhsLive && !lhsIsPointerDereference) {
@@ -648,27 +651,19 @@ public class LiveVariablesTransferRelation
     }
   }
 
-  public static class LhsPointerDereferenceVisitor extends AExpressionVisitor<Boolean, Exception>
-      implements CExpressionVisitor<Boolean, Exception> {
+  private static class LhsPointerDereferenceVisitor extends AExpressionVisitor<Boolean, NoException>
+      implements CExpressionVisitor<Boolean, NoException> {
 
-    // SINGELTON
-    private static final LhsPointerDereferenceVisitor lhsPointerDereferenceVisitor =
-        new LhsPointerDereferenceVisitor();
-
-    private LhsPointerDereferenceVisitor() {}
-
-    public static LhsPointerDereferenceVisitor getInstance() {
-      return lhsPointerDereferenceVisitor;
-    }
+    protected LhsPointerDereferenceVisitor() {}
 
     @Override
-    public Boolean visit(CBinaryExpression pIastBinaryExpression) throws Exception {
+    public Boolean visit(CBinaryExpression pIastBinaryExpression) throws NoException {
       return pIastBinaryExpression.getOperand1().accept(this)
           || pIastBinaryExpression.getOperand2().accept(this);
     }
 
     @Override
-    public Boolean visit(ABinaryExpression exp) throws Exception {
+    public Boolean visit(ABinaryExpression exp) throws NoException {
       if (exp.getOperand1() instanceof CExpression op1
           && exp.getOperand2() instanceof CExpression op2) {
         return op1.accept(this) || op2.accept(this);
@@ -680,12 +675,12 @@ public class LiveVariablesTransferRelation
     }
 
     @Override
-    public Boolean visit(CCastExpression pIastCastExpression) throws Exception {
+    public Boolean visit(CCastExpression pIastCastExpression) throws NoException {
       return pIastCastExpression.getOperand().accept(this);
     }
 
     @Override
-    public Boolean visit(ACastExpression exp) throws Exception {
+    public Boolean visit(ACastExpression exp) throws NoException {
       if (exp.getOperand() instanceof CExpression op) {
         return op.accept(this);
       } else if (exp.getOperand() instanceof JExpression op) {
@@ -695,52 +690,53 @@ public class LiveVariablesTransferRelation
     }
 
     @Override
-    public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression) throws Exception {
+    public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(ACharLiteralExpression exp) throws Exception {
+    public Boolean visit(ACharLiteralExpression exp) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws Exception {
+    public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(AFloatLiteralExpression exp) throws Exception {
+    public Boolean visit(AFloatLiteralExpression exp) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws Exception {
+    public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
+        throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(AIntegerLiteralExpression exp) throws Exception {
+    public Boolean visit(AIntegerLiteralExpression exp) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression) throws Exception {
+    public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(AStringLiteralExpression exp) throws Exception {
+    public Boolean visit(AStringLiteralExpression exp) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(CTypeIdExpression pIastTypeIdExpression) throws Exception {
+    public Boolean visit(CTypeIdExpression pIastTypeIdExpression) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(CUnaryExpression pIastUnaryExpression) throws Exception {
+    public Boolean visit(CUnaryExpression pIastUnaryExpression) throws NoException {
       if (pIastUnaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
         // TODO: is this correct in this context?
         //  This is not a deref, but we need to mark these variables anyway
@@ -750,107 +746,108 @@ public class LiveVariablesTransferRelation
     }
 
     @Override
-    public Boolean visit(AUnaryExpression exp) throws Exception {
+    public Boolean visit(AUnaryExpression exp) throws NoException {
       return exp instanceof JUnaryExpression jUnary
           ? jUnary.accept(this)
           : ((CUnaryExpression) exp).accept(this);
     }
 
     @Override
-    public Boolean visit(CImaginaryLiteralExpression PIastLiteralExpression) throws Exception {
+    public Boolean visit(CImaginaryLiteralExpression PIastLiteralExpression) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws Exception {
+    public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws NoException {
       // TODO: is this correct?
       return false;
     }
 
     @Override
-    public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws Exception {
+    public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression)
+        throws NoException {
       return true;
     }
 
     @Override
-    public Boolean visit(AArraySubscriptExpression exp) throws Exception {
+    public Boolean visit(AArraySubscriptExpression exp) throws NoException {
       return true;
     }
 
     @Override
-    public Boolean visit(CFieldReference pIastFieldReference) throws Exception {
+    public Boolean visit(CFieldReference pIastFieldReference) throws NoException {
       return true;
     }
 
     @Override
-    public Boolean visit(CIdExpression pIastIdExpression) throws Exception {
+    public Boolean visit(CIdExpression pIastIdExpression) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(AIdExpression exp) throws Exception {
+    public Boolean visit(AIdExpression exp) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(CPointerExpression pointerExpression) throws Exception {
+    public Boolean visit(CPointerExpression pointerExpression) throws NoException {
       return true;
     }
 
     @Override
-    public Boolean visit(CComplexCastExpression complexCastExpression) throws Exception {
+    public Boolean visit(CComplexCastExpression complexCastExpression) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(JBooleanLiteralExpression pJBooleanLiteralExpression) throws Exception {
+    public Boolean visit(JBooleanLiteralExpression pJBooleanLiteralExpression) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(JArrayCreationExpression pJArrayCreationExpression) throws Exception {
+    public Boolean visit(JArrayCreationExpression pJArrayCreationExpression) throws NoException {
       // TODO: Is this correct?
       return false;
     }
 
     @Override
-    public Boolean visit(JArrayInitializer pJArrayInitializer) throws Exception {
+    public Boolean visit(JArrayInitializer pJArrayInitializer) throws NoException {
       // TODO: Is this correct?
       return false;
     }
 
     @Override
-    public Boolean visit(JArrayLengthExpression pJArrayLengthExpression) throws Exception {
+    public Boolean visit(JArrayLengthExpression pJArrayLengthExpression) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(JVariableRunTimeType pJThisRunTimeType) throws Exception {
+    public Boolean visit(JVariableRunTimeType pJThisRunTimeType) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws Exception {
+    public Boolean visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(JNullLiteralExpression pJNullLiteralExpression) throws Exception {
+    public Boolean visit(JNullLiteralExpression pJNullLiteralExpression) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(JEnumConstantExpression pJEnumConstantExpression) throws Exception {
+    public Boolean visit(JEnumConstantExpression pJEnumConstantExpression) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(JThisExpression pThisExpression) throws Exception {
+    public Boolean visit(JThisExpression pThisExpression) throws NoException {
       return false;
     }
 
     @Override
-    public Boolean visit(JClassLiteralExpression pJClassLiteralExpression) throws Exception {
+    public Boolean visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
       return false;
     }
   }

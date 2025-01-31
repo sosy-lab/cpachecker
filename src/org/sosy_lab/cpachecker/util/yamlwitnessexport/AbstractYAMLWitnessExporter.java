@@ -82,6 +82,10 @@ abstract class AbstractYAMLWitnessExporter {
         producerRecord, TaskRecord.getTaskDescription(cfa, specification), version);
   }
 
+  protected Specification getSpecification() {
+    return specification;
+  }
+
   protected AstCfaRelation getASTStructure() {
     AstCfaRelation astCFARelation = cfa.getAstCfaRelation();
     return Verify.verifyNotNull(astCFARelation);

@@ -49,7 +49,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * be used in the precision adjustment.
  */
 @Options(prefix = "cpa.predicate")
-public class PredicateProvider {
+final class PredicateProvider {
 
   @Option(
       secure = true,

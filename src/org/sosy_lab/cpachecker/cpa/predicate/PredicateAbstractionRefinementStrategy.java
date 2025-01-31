@@ -174,23 +174,24 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   private final PredicateMapWriter precisionWriter;
 
   // statistics
-  private StatCounter numberOfRefinementsWithStrategy2 =
+  private final StatCounter numberOfRefinementsWithStrategy2 =
       new StatCounter("Number of refs with location-based cutoff");
-  private StatInt irrelevantPredsInItp =
+  private final StatInt irrelevantPredsInItp =
       new StatInt(StatKind.SUM, "Number of irrelevant preds in interpolants");
 
-  private StatTimer predicateCreation = new StatTimer(StatKind.SUM, "Predicate creation");
-  private StatTimer precisionUpdate = new StatTimer(StatKind.SUM, "Precision update");
-  protected StatTimer argUpdate = new StatTimer(StatKind.SUM, "ARG update");
-  private StatTimer itpSimplification = new StatTimer(StatKind.SUM, "Itp simplification with BDDs");
+  private final StatTimer predicateCreation = new StatTimer(StatKind.SUM, "Predicate creation");
+  private final StatTimer precisionUpdate = new StatTimer(StatKind.SUM, "Precision update");
+  protected final StatTimer argUpdate = new StatTimer(StatKind.SUM, "ARG update");
+  private final StatTimer itpSimplification =
+      new StatTimer(StatKind.SUM, "Itp simplification with BDDs");
 
-  private StatInt simplifyDeltaConjunctions = new StatInt(StatKind.SUM, "Conjunctions Delta");
-  private StatInt simplifyDeltaDisjunctions = new StatInt(StatKind.SUM, "Disjunctions Delta");
-  private StatInt simplifyDeltaNegations = new StatInt(StatKind.SUM, "Negations Delta");
-  private StatInt simplifyDeltaAtoms = new StatInt(StatKind.SUM, "Atoms Delta");
-  private StatInt simplifyDeltaVariables = new StatInt(StatKind.SUM, "Variables Delta");
-  private StatInt simplifyVariablesBefore = new StatInt(StatKind.SUM, "Variables Before");
-  private StatInt simplifyVariablesAfter = new StatInt(StatKind.SUM, "Variables After");
+  private final StatInt simplifyDeltaConjunctions = new StatInt(StatKind.SUM, "Conjunctions Delta");
+  private final StatInt simplifyDeltaDisjunctions = new StatInt(StatKind.SUM, "Disjunctions Delta");
+  private final StatInt simplifyDeltaNegations = new StatInt(StatKind.SUM, "Negations Delta");
+  private final StatInt simplifyDeltaAtoms = new StatInt(StatKind.SUM, "Atoms Delta");
+  private final StatInt simplifyDeltaVariables = new StatInt(StatKind.SUM, "Variables Delta");
+  private final StatInt simplifyVariablesBefore = new StatInt(StatKind.SUM, "Variables Before");
+  private final StatInt simplifyVariablesAfter = new StatInt(StatKind.SUM, "Variables After");
 
   private class Stats implements Statistics {
     @Override
@@ -225,7 +226,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     }
   }
 
-  public PredicateAbstractionRefinementStrategy(
+  protected PredicateAbstractionRefinementStrategy(
       final Configuration config,
       final LogManager pLogger,
       final PredicateAbstractionManager pPredAbsMgr,

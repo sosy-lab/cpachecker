@@ -9,12 +9,14 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -44,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
@@ -56,6 +59,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 
@@ -278,17 +282,27 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   /** Sees if any successor of the current edge fulfills {@link CheckEntersElement} */
   public static class CheckReachesElement implements AutomatonBoolExpr {
 
+    private final ImmutableSet<CFAEdge> incomingFrontierEdges;
+
     private final ASTElement elementToEnter;
 
     public CheckReachesElement(ASTElement pElement) {
       elementToEnter = pElement;
+      incomingFrontierEdges =
+          FluentIterable.from(
+                  Sets.difference(
+                      transformedImmutableSetCopy(pElement.edges(), CFAEdge::getPredecessor),
+                      transformedImmutableSetCopy(pElement.edges(), CFAEdge::getSuccessor)))
+              .transformAndConcat(CFAUtils::allLeavingEdges)
+              .filter(edge -> pElement.edges().contains(edge))
+              .toSet();
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
       if (CFAUtils.leavingEdges(edge.getSuccessor())
-          .anyMatch(e -> elementToEnter.edges().contains(e))) {
+          .anyMatch(e -> incomingFrontierEdges.contains(e))) {
         return CONST_TRUE;
       }
 
@@ -375,10 +389,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  /**
-   * Checks if the current edge begins or ends at the given line and the column lies between the
-   * starting column of the edge and the column at which the edge ends.
-   */
+  /** Checks if the current edge begins at the given line and column. */
   public static class CheckMatchesColumnAndLine implements AutomatonBoolExpr {
     private final int columnToReach;
     private final int lineNumber;
@@ -418,6 +429,70 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       return o instanceof CheckMatchesColumnAndLine c
           && columnToReach == c.columnToReach
           && lineNumber == c.lineNumber;
+    }
+  }
+
+  /**
+   * Checks if the closest full expression related to the current edge begins or ends at the given
+   * line and the column lies between the starting column of the edge and the column at which the
+   * edge ends.
+   *
+   * <p>The closest full expression is defined as in {@link
+   * CFAUtils#getClosestFullExpression(CCfaEdge,AstCfaRelation)}.
+   */
+  public static class CheckClosestFullExpressionMatchesColumnAndLine implements AutomatonBoolExpr {
+    private final int columnToReach;
+    private final int lineNumber;
+    private final AstCfaRelation astCfaRelation;
+
+    public CheckClosestFullExpressionMatchesColumnAndLine(
+        int pColumn, int pLineNumber, AstCfaRelation pAstCfaRelation) {
+      columnToReach = pColumn;
+      lineNumber = pLineNumber;
+      astCfaRelation = pAstCfaRelation;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      CFAEdge edge = pArgs.getCfaEdge();
+
+      if (!(edge instanceof CCfaEdge)) {
+        return CONST_FALSE;
+      }
+
+      Optional<FileLocation> optionalFullExpressionLocation =
+          CFAUtils.getClosestFullExpression((CCfaEdge) edge, astCfaRelation);
+      if (optionalFullExpressionLocation.isEmpty()) {
+        return CONST_FALSE;
+      }
+
+      FileLocation fullExpressionLocation = optionalFullExpressionLocation.orElseThrow();
+      int edgeNodeStartingColumn = fullExpressionLocation.getStartColumnInLine();
+
+      if (fullExpressionLocation.getStartingLineInOrigin() == lineNumber
+          && edgeNodeStartingColumn == columnToReach) {
+        return CONST_TRUE;
+      }
+
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCHES(line = " + lineNumber + ", column = " + columnToReach + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return columnToReach;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckClosestFullExpressionMatchesColumnAndLine c
+          && columnToReach == c.columnToReach
+          && lineNumber == c.lineNumber
+          && astCfaRelation.equals(c.astCfaRelation);
     }
   }
 
@@ -531,16 +606,45 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
           + edgeSuccessorMatch
           + ")";
     }
+  }
+
+  /** Checks if the given edge ends at any of the provided nodes */
+  class CheckEndsAtNodes implements AutomatonBoolExpr {
+
+    private final Set<CFANode> edgeSuccessorMatch;
+
+    public CheckEndsAtNodes(Set<CFANode> pEdgeSuccessorMatch) {
+      edgeSuccessorMatch = pEdgeSuccessorMatch;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+
+      // Sometimes it happens that there are multiple ways of getting to the same node.
+      // We only want the edges which went through the condition element. In particular this
+      // happens when there is no else branch in an if statement.
+      if (edgeSuccessorMatch.contains(edge.getSuccessor())) {
+        return CONST_TRUE;
+      }
+
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "CHECK_ENDS_AT(nodes=" + edgeSuccessorMatch + ")";
+    }
 
     @Override
     public int hashCode() {
-      return edgePredecessorMatch.hashCode() * 57 + edgeSuccessorMatch.hashCode();
+      return edgeSuccessorMatch.hashCode() * 51;
     }
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof CheckPassesThroughNodes checker
-          && edgePredecessorMatch.equals(checker.edgePredecessorMatch)
+      return o instanceof CheckEndsAtNodes checker
           && edgeSuccessorMatch == checker.edgeSuccessorMatch;
     }
   }

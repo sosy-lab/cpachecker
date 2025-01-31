@@ -28,8 +28,8 @@
         <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
     </rundefinition>
 
-    <rundefinition name="svcomp24">
-        <option name="--svcomp24--termination"/>
+    <rundefinition name="svcomp25">
+        <option name="--svcomp25--termination"/>
         <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
     </rundefinition>
 
@@ -44,6 +44,10 @@
     </tasks>
     <tasks name="Termination-BitVectors">
         <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
+        <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+    </tasks>
+    <tasks name="Termination-MainControlFlow">
+        <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
     </tasks>
     <tasks name="Termination-MainHeap">
@@ -65,8 +69,8 @@
         <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
     </tasks>
     <tasks name="SoftwareSystems-DeviceDriversLinux64-Termination">
-        <includesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
-        <propertyfile >../sv-benchmarks/c/properties/termination.prp</propertyfile>
+        <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+        <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
     </tasks>
 
     <columns>

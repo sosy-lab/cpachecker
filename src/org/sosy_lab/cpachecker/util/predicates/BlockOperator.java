@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
@@ -127,14 +128,14 @@ public class BlockOperator {
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
   private ImmutableSet<CFANode> loopHeads = null;
 
-  public StatCounter numBlkEntryFunctionHeads = new StatCounter("");
-  public StatCounter numBlkFunctionHeads = new StatCounter("");
-  public StatCounter numBlkFunctions = new StatCounter("");
-  public StatCounter numBlkLoops = new StatCounter("");
-  public StatCounter numBlkJoins = new StatCounter("");
-  public StatCounter numBlkBranch = new StatCounter("");
-  public StatCounter numBlkThreshold = new StatCounter("");
-  public StatCounter numBlkExit = new StatCounter("");
+  public final StatCounter numBlkEntryFunctionHeads = new StatCounter("");
+  public final StatCounter numBlkFunctionHeads = new StatCounter("");
+  public final StatCounter numBlkFunctions = new StatCounter("");
+  public final StatCounter numBlkLoops = new StatCounter("");
+  public final StatCounter numBlkJoins = new StatCounter("");
+  public final StatCounter numBlkBranch = new StatCounter("");
+  public final StatCounter numBlkThreshold = new StatCounter("");
+  public final StatCounter numBlkExit = new StatCounter("");
 
   /**
    * Check whether an abstraction should be computed.
@@ -290,11 +291,14 @@ public class BlockOperator {
     explicitAbstractionNodes = pNodes;
   }
 
-  public void setCFA(CFA cfa) {
+  public void setCFA(CFA cfa) throws CPAException {
     if (absOnLoop || alwaysAtLoops) {
-      if (cfa.getAllLoopHeads().isPresent()) {
-        loopHeads = cfa.getAllLoopHeads().orElseThrow();
+      if (!cfa.getAllLoopHeads().isPresent()) {
+        throw new CPAException(
+            "Block-ends at loop heads cannot be determined without loop-structure information in"
+                + " CFA.");
       }
+      loopHeads = cfa.getAllLoopHeads().orElseThrow();
     }
   }
 

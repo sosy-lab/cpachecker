@@ -9,9 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.LINE_JOINER;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
 import java.util.Collection;
@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
  * PredicateMapParser}.
  */
 @Options(prefix = "cpa.predicate")
-public class PredicateMapWriter {
+public final class PredicateMapWriter {
 
   @Option(
       secure = true,
@@ -87,7 +87,7 @@ public class PredicateMapWriter {
       predToString.put(pred, predString);
     }
 
-    LINE_JOINER.appendTo(sb, definitions);
+    Joiner.on('\n').appendTo(sb, definitions);
     sb.append("\n\n");
 
     writeSetOfPredicates(sb, "*", globalPredicates, predToString);

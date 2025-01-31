@@ -21,9 +21,9 @@ public abstract class GenericSinglePathRefiner
     extends WrappedConfigurableRefinementBlock<
         Pair<ExtendedARGPath, ExtendedARGPath>, Pair<ExtendedARGPath, ExtendedARGPath>> {
 
-  private StatTimer totalTimer = new StatTimer("Time for generic refiner");
-  private StatCounter numberOfRefinements = new StatCounter("Number of refinements");
-  private StatCounter numberOfRepeatedPath = new StatCounter("Number of repeated paths");
+  private final StatTimer totalTimer = new StatTimer("Time for generic refiner");
+  private final StatCounter numberOfRefinements = new StatCounter("Number of refinements");
+  private final StatCounter numberOfRepeatedPath = new StatCounter("Number of repeated paths");
 
   protected GenericSinglePathRefiner(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper) {

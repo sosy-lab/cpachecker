@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
@@ -555,10 +554,10 @@ public class ExpressionToFormulaVisitor
   private NumeralFormula<CompoundInterval> truncateShiftOperand(
       JType pExpressionType, NumeralFormula<CompoundInterval> pOperand) {
     if (pExpressionType instanceof JSimpleType simpleType) {
-      if (simpleType.getType() == JBasicType.INT) {
+      if (simpleType == JSimpleType.INT) {
         return compoundIntervalFormulaManager.binaryAnd(
             pOperand, asConstant(pExpressionType, 0x1F));
-      } else if (simpleType.getType() == JBasicType.LONG) {
+      } else if (simpleType == JSimpleType.LONG) {
         return compoundIntervalFormulaManager.binaryAnd(
             pOperand, asConstant(pExpressionType, 0x3F));
       }

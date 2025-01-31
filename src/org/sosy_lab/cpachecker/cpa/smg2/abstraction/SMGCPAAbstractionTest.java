@@ -6309,7 +6309,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       if (object.getSize().asNumericValue().bigIntegerValue().equals(pointerSizeInBits)) {
         assertThat(currentState.getMemoryModel().getSmg().isValid(object)).isTrue();
       } else if (object.isZero()) {
-        continue;
+        // nothing to check
       } else if (!(object instanceof SMGSinglyLinkedListSegment)) {
         normalObjectCounter++;
         assertThat(currentState.getMemoryModel().getSmg().isValid(object)).isFalse();

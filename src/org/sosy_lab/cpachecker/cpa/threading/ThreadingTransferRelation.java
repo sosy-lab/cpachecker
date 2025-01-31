@@ -130,7 +130,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final ImmutableSet<String> UNSUPPORTED_THREAD_FUNCTIONS =
       ImmutableSet.of(
           // https://gitlab.com/sosy-lab/software/cpachecker/-/issues/929
-          "pthread_cond_wait", "pthread_cond_timedwait");
+          "pthread_cond_wait",
+          "pthread_cond_timedwait",
+          // https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1193
+          "pthread_rwlock_rdlock",
+          "pthread_rwlock_wrlock",
+          "pthread_rwlock_timedrdlock",
+          "pthread_rwlock_timedwrlock");
 
   private static final ImmutableSet<String> THREAD_FUNCTIONS =
       ImmutableSet.of(
@@ -791,10 +797,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       }
     }
     if (witnessId.equals(witnessThreadId.getValue())) {
-      // corrent branch
+      // current branch
       return ts;
     } else {
-      // threadId does not match -> no successor
+      // threadId does not match -> should be no successor
+      // but keep continuining to avoid cutting off too much in some situations
+      // (cf. 7f01668b139817f88f08791695d9245e7f8ca841)
       return ts;
     }
   }

@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.util.smg.datastructures;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -20,7 +22,10 @@ import org.sosy_lab.common.collect.PersistentMap;
 /** A Multimap-implementation based on the {@link PathCopyingPersistentTreeMap}. */
 @Immutable(containerOf = {"K", "V"})
 public class PersistentMultimapWithPersistentValues<
-    K extends Comparable<? super K>, V extends Comparable<? super V>> {
+        K extends Comparable<? super K>, V extends Comparable<? super V>>
+    implements Serializable {
+
+  @Serial private static final long serialVersionUID = 3769127476143928809L;
 
   private final PersistentMap<K, PersistentSet<V>> delegate;
 

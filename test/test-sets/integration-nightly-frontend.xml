@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.17//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.17.dtd">
-<benchmark tool="cpachecker" timelimit="60 s" memlimit="3000 MB" cpuCores="1">
+<benchmark tool="cpachecker" timelimit="120 s" memlimit="3000 MB" cpuCores="1">
   <!-- Test the parser frontend of CPAchecker. -->
 
   <rundefinition>
@@ -27,6 +27,11 @@ SPDX-License-Identifier: Apache-2.0
       <include>../programs/simple/*.c</include>
       <include>../programs/simple/*/*.c</include>
       <option name="--preprocess"/>
+    </tasks>
+    <tasks name="multipleCFiles">
+      <include>../programs/simple/multipleCFiles/*.yml</include>
+      <include>../programs/simple/multipleCFiles/*/*.yml</include>
+      <option name="--preprocess"/> <!-- workaround for #1291 -->
     </tasks>
 
     <option name="--heap">2500m</option>
