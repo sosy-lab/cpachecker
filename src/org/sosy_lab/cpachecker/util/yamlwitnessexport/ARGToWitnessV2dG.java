@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostInstrumentationContentRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostInstrumentationEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ghost.GhostUpdateRecord;
@@ -100,14 +99,13 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
 
     InvariantCreationResults invariantCreationResults;
     ImmutableList<AbstractEntry> witnessEntries;
-    MetadataRecord metadata = getMetadata();
 
     if (statesCollector.ghostStates.isEmpty()) {
       // no ghosts -> just use obtained invariants without any ghost information
       invariantCreationResults = createInvariantEntries(statesCollector, Optional.empty());
       witnessEntries =
           ImmutableList.of(
-              new InvariantSetEntry(metadata, invariantCreationResults.invariantEntries()));
+              new InvariantSetEntry(getMetadata(), invariantCreationResults.invariantEntries()));
 
     } else {
       // first create ghost variables and their respective ghost updates for ghost content
@@ -124,8 +122,9 @@ class ARGToWitnessV2dG extends ARGToYAMLWitness {
       invariantCreationResults = createInvariantEntries(statesCollector, Optional.of(ghostVars));
       witnessEntries =
           ImmutableList.of(
-              new InvariantSetEntry(metadata, invariantCreationResults.invariantEntries()),
-              new GhostInstrumentationEntry(metadata, ghostContent));
+              // create multiple metadata so that UUIDs are unique
+              new InvariantSetEntry(getMetadata(), invariantCreationResults.invariantEntries()),
+              new GhostInstrumentationEntry(getMetadata(), ghostContent));
     }
 
     // TODO add function contracts (V2.1) here later to combine the two?
