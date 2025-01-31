@@ -205,9 +205,11 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporterWithVersion {
       boolean ghosts = collectedStates.ghostStates.isPresent();
       ImmutableSet<LocationState> locationStates =
           ghosts
-              ? ARGUtils.tryExtractThreadingState(pChild).orElseThrow().getAllLocationStates()
+              ? ARGUtils.tryExtractThreadingState(pChild).orElseThrow().getAllThreadLocationStates()
               : AbstractStates.asIterable(pChild).filter(LocationState.class).toSet();
 
+      // TODO for concurrent programs, check here if the CFANode is from a cloned function
+      //  same location implies same node
       for (LocationState state : locationStates) {
         CFANode node = state.getLocationNode();
         FluentIterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(node);
@@ -465,7 +467,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporterWithVersion {
         LocationRecord.createLocationRecordAtStart(
             fileLocation,
             node.getFunction().getFileLocation().getFileName().toString(),
-            node.getFunctionName());
+            node.getFunction().getOrigName());
 
     InvariantEntry invariantEntry =
         new InvariantEntry(

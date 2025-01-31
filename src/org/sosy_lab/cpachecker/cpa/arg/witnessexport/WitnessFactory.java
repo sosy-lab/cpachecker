@@ -806,7 +806,7 @@ class WitnessFactory implements EdgeAppender {
     if (threadingState != null) {
       for (String threadId : threadingState.getThreadIds()) {
         if (threadingState
-            .getThreadLocation(threadId)
+            .getLocationStateForThread(threadId)
             .getLocationNode()
             .equals(pEdge.getPredecessor())) {
           if (witnessOptions.exportThreadName()) {
@@ -870,7 +870,7 @@ class WitnessFactory implements EdgeAppender {
                             KeyDef.CREATETHREAD, Integer.toString(spawnedThreadId.orElseThrow()));
                     String calledFunctionName =
                         succThreadingState
-                            .getThreadLocation(threadId)
+                            .getLocationStateForThread(threadId)
                             .getLocationNode()
                             .getFunction()
                             .getOrigName();

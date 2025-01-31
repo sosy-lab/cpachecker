@@ -156,7 +156,7 @@ public class ThreadingState
 
   // TODO check if only active threads are in threads map
   /** Returns the set of {@link LocationState} for all threads. */
-  public ImmutableSet<LocationState> getAllLocationStates() {
+  public ImmutableSet<LocationState> getAllThreadLocationStates() {
     return FluentIterable.from(threads.values())
         .transform(ThreadState::getLocation)
         .transform(location -> (LocationState) location)
