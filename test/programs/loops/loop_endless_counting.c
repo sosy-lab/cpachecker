@@ -13,17 +13,50 @@ int main() {
     int b;
     int c;
     int f;
+    int g;
+    int h;
+    int i;
+    int j;
+    int k;
+    int l;
+    int m;
+    int n;
+    int o;
+    int p;
+    int q;
+    int r;
+    int s;
+    int t;
+    int u;
 
-    while (x<y)
+    while (1<y)
     {
-        x++;
+        y--;
         a = 5;
         b = 10;
         while(a<b<f){
             a++;
-            for (int d = 0; d < c; d++)
+            for (int d = 0; (d+1) < c; d++)
             {
-            
+                while (!(g<(5+6+7)))
+                {
+                    while((h*6)>=(i/4+5)){
+                        while((j+k)>(l)){
+                            while((m+n+9)<=(o)){
+                                while(p>q){
+                                    while(r==s){
+                                        while(t){
+                                            while(s+1){
+
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
             }
             
         }

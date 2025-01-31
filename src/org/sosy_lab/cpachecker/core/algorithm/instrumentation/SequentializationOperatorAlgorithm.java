@@ -53,21 +53,25 @@ import java.util.Optional;
  * This algorithm instruments a CFA of program using intrumentation operator and instrumentation
  * automaton.
  *
- * <p>Currently supported transformations are only no-overflow and termination to reachability.
+ * <p>
+ * Currently supported transformations are only no-overflow and termination to reachability.
  */
 @Options(prefix = "instrumentation")
 public class SequentializationOperatorAlgorithm implements Algorithm {
   private final CFA cfa;
   private final LogManager logger;
   private final CProgramScope cProgramScope;
-
+  private final RankingTransformationLogger rankingLogger;
+  // TODO: Add ALGORITHM
   @Option(
-      secure = true,
-      description =
-          "toggle the strategy to determine the hardcoded instrumentation automaton to be used\n"
-              + "TERMINATION: transform termination to reachability\n"
-              + "TERMINATION2: alternativly transform termination to reachability\n"
-              + "NOOVERFLOW: transform no-overflow to reachability")
+    secure = true,
+    description = "toggle the strategy to determine the hardcoded instrumentation automaton to be used\n"
+        + "TERMINATION: transform termination to reachability\n"
+        + "TERMINATION2: alternativly transform termination to reachability\n"
+        + "NOOVERFLOW: transform no-overflow to reachability\n"
+        + "DISTANCE: Both operands of the comparison operator have only one element (are atomic).\n"
+        + "DISTANCE2: Both operands may consist of more complex expressions using +, -, *, / with at most one included variable and any number of literals.\n"
+        + "DISTANCE3: Both operands may consist of more complex expressions using +, -, *, / with any number of included variables and any number of literals.")
   private InstrumentationProperty instrumentationProperty = InstrumentationProperty.TERMINATION;
 
   @Option(secure = true, description = "Where to write machine readable new edges.")
@@ -79,6 +83,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     pConfig.inject(this);
     cfa = pCfa;
     logger = pLogger;
+    rankingLogger = new RankingTransformationLogger();
     cProgramScope = new CProgramScope(pCfa, pLogger);
   }
 
@@ -87,15 +92,16 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     // Collect all the information about the new edges for the instrumented CFA
     Set<String> newEdges = new HashSet<>();
 
-    // For some properties we construct more automata to moreTERMIN effectively track variables within
+    // For some properties we construct more automata to moreTERMIN effectively track variables
+    // within
     // the scope. This map is used to map the automata to concrete line numbers in the code.
     Map<Integer, InstrumentationAutomaton> mapAutomataToLocations = new HashMap<>();
     Map<CFANode, Integer> mapNodesToLineNumbers;
+    if (!(InstrumentationAutomaton.isDistanceTransformation(instrumentationProperty))) {
+      rankingLogger.deleteLogFile();
+    }
 
-    if (
-      instrumentationProperty == InstrumentationProperty.TERMINATION ||
-      instrumentationProperty == InstrumentationProperty.TERMINATION2
-    ) {
+    if (InstrumentationAutomaton.isTermination2Reachability(instrumentationProperty)) {
 
       int index = 0;
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
@@ -103,48 +109,71 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         mapAutomataToLocations.put(
             info.loopLocation(),
             new InstrumentationAutomaton(
-                instrumentationProperty, info.liveVariablesAndTypes(), index));
+                instrumentationProperty,
+                info.liveVariablesAndTypes(),
+                index));
         index += 1;
       }
-      // Todo distance transition
-    } else if(
-      instrumentationProperty == InstrumentationProperty.DISTANCE
-    ){
+
+    } else if (InstrumentationAutomaton.isDistanceTransformation(instrumentationProperty)) {
+
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
       int index = 0;
+      int successfulTransformations = 0;
+      String fileName = "";
+      Map<CFANode, TransformedNodeInfo> distanceTransformedNodes = new HashMap<>();
+      Map<CFANode, TransformedNodeInfo> defaultTransformedNodes = new HashMap<>();
       for (NormalLoopInfo info : LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)) {
-          Optional<CFANode> matchingNode = mapNodesToLineNumbers.entrySet()
-              .stream()
-              .filter(entry -> entry.getValue().equals(info.loopLocation()))
-              .map(Map.Entry::getKey)
-              .findFirst();
+        Optional<CFANode> matchingNode =
+            mapNodesToLineNumbers.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().equals(info.loopLocation()))
+                .map(Map.Entry::getKey)
+                .findFirst();
 
-          if (matchingNode.isPresent()) {
-              CFANode node = matchingNode.get();
-              
-              
-              LoopConditionChecker.VariableBoundInfo boundInfo = LoopConditionChecker.distanceCompatible(node);
-              
-              if (boundInfo != null) {
-                  mapAutomataToLocations.put(
-                      info.loopLocation(),
-                      new InstrumentationAutomaton(
-                          instrumentationProperty, info.liveVariablesAndTypes(), index, boundInfo));
-                  index++;
-              } else {
-                mapAutomataToLocations.put(
-                      info.loopLocation(),
-                      new InstrumentationAutomaton(
-                        InstrumentationProperty.TERMINATION2, info.liveVariablesAndTypes(), index));
-                  index++;
-              }
+        if (matchingNode.isPresent()) {
+          CFANode node = matchingNode.get();
+          fileName = node.getFunction().getFileLocation().getFileName().getFileName().toString();
+          LoopConditionChecker.VariableBoundInfo boundInfo =
+              LoopConditionChecker.distanceCompatible(node, instrumentationProperty);
+          if (boundInfo != null) {
+            // Distance-Transformation durchführen
+            mapAutomataToLocations.put(
+                info.loopLocation(),
+                new InstrumentationAutomaton(
+                    instrumentationProperty,
+                    info.liveVariablesAndTypes(),
+                    index,
+                    boundInfo));
+            successfulTransformations++;
+            distanceTransformedNodes.put(node, new TransformedNodeInfo(index, info.loopLocation()));
+
+          } else {
+            // Default-Transformation durchführen
+            mapAutomataToLocations.put(
+                info.loopLocation(),
+                new InstrumentationAutomaton(
+                    InstrumentationProperty.TERMINATION2,
+                    info.liveVariablesAndTypes(),
+                    index));
+            defaultTransformedNodes.put(node, new TransformedNodeInfo(index, info.loopLocation()));
           }
+          index++;
+        }
       }
 
-    }else{
+      rankingLogger.logTransformationResults(
+          fileName,
+          instrumentationProperty,
+          successfulTransformations,
+          index + 1,
+          distanceTransformedNodes,
+          defaultTransformedNodes);
+
+    } else {
       mapNodesToLineNumbers = ImmutableMap.of(cfa.getMainFunction(), 0);
-      mapAutomataToLocations.put(
-          0, new InstrumentationAutomaton(instrumentationProperty, ImmutableMap.of(), 0));
+      mapAutomataToLocations
+          .put(0, new InstrumentationAutomaton(instrumentationProperty, ImmutableMap.of(), 0));
     }
     // MAIN INSTRUMENTATION OPERATOR ALGORITHM
     // Initialize the search
@@ -181,17 +210,17 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         boolean matched = false;
         for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
           CFAEdge edge = currentNode.getLeavingEdge(i);
-          for (InstrumentationTransition transition :
-              currentState.getAutomatonOfTheState().getTransitions(currentState)) {
+          for (InstrumentationTransition transition : currentState.getAutomatonOfTheState()
+              .getTransitions(currentState)) {
             ImmutableList<String> matchedVariables =
                 transition.getPattern().matchThePattern(edge, mapDecomposedOperationsCondition);
             if (matchedVariables != null) {
               if (canBeDecomposed(
-                      edge,
-                      transition,
-                      waitlist,
-                      mapDecomposedOperationsCondition,
-                      matchedVariables)
+                  edge,
+                  transition,
+                  waitlist,
+                  mapDecomposedOperationsCondition,
+                  matchedVariables)
                   || isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist)) {
                 matched = true;
               }
@@ -221,13 +250,13 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
    * INIT then the intended line number is 0. Moreover, if the order is BEFORE, we want to include
    * the edge one line before the real operation and similarly for AFTER.
    */
-  private String computeLineNumberBasedOnTransition(
-      InstrumentationTransition pTransition, CFAEdge pEdge) {
+  private String
+      computeLineNumberBasedOnTransition(InstrumentationTransition pTransition, CFAEdge pEdge) {
     if (pTransition.getSource().isInitialAnnotation()) {
       return "1";
     }
     try {
-      //TODO: The location should be computed differently !
+      // TODO: The location should be computed differently !
       int location;
       String fileLocation = pEdge.getFileLocation().toString();
       if (pTransition.getPattern().toString().equals("[!cond]")) {
@@ -287,7 +316,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
 
     AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
     if (astNode instanceof CFunctionCallAssignmentStatement) {
-      decomposeFunction(pCFAEdge,
+      decomposeFunction(
+          pCFAEdge,
           pTransition,
           pWaitlist,
           pDecomposedMap,
@@ -342,16 +372,16 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   /**
    * Decomposes a CFAEdge with function call.
    */
-  private void decomposeFunction(CFAEdge pCFAEdge,
-                                 InstrumentationTransition pTransition,
-                                 List<Pair<CFANode, InstrumentationState>> pWaitlist,
-                                 Map<CFANode, String> pDecomposedMap,
-                                 ImmutableList<String> pMatchedVariables,
-                                 CFunctionCallAssignmentStatement pCallAssignmentStatement) {
+  private void decomposeFunction(
+      CFAEdge pCFAEdge,
+      InstrumentationTransition pTransition,
+      List<Pair<CFANode, InstrumentationState>> pWaitlist,
+      Map<CFANode, String> pDecomposedMap,
+      ImmutableList<String> pMatchedVariables,
+      CFunctionCallAssignmentStatement pCallAssignmentStatement) {
     String condition = pMatchedVariables.size() != 3 ? "true" : pMatchedVariables.get(2);
-    List<CExpression> parameters = pCallAssignmentStatement
-        .getFunctionCallExpression()
-        .getParameterExpressions();
+    List<CExpression> parameters =
+        pCallAssignmentStatement.getFunctionCallExpression().getParameterExpressions();
 
     for (CExpression parameter : parameters.subList(1, parameters.size())) {
       CFANode node1 = CFANode.newDummyCFANode();
