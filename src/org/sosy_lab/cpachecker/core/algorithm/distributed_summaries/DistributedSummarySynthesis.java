@@ -249,7 +249,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     };
   }
 
-  private DssBlockDecomposition getDecomposer() throws InvalidConfigurationException, IOException {
+  private DssBlockDecomposition getDecomposer() throws IOException {
     if (importDecomposition != null) {
       return new ImportDecomposition(importDecomposition);
     }
