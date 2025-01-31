@@ -224,7 +224,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private String getActiveThread(final CFAEdge cfaEdge, final ThreadingState threadingState) {
     final Set<String> activeThreads = new HashSet<>();
     for (String id : threadingState.getThreadIds()) {
-      if (Iterables.contains(threadingState.getThreadLocation(id).getOutgoingEdges(), cfaEdge)) {
+      if (Iterables.contains(
+          threadingState.getLocationStateForThread(id).getOutgoingEdges(), cfaEdge)) {
         activeThreads.add(id);
       }
     }
@@ -348,7 +349,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         locationCPA
             .getTransferRelation()
             .getAbstractSuccessorsForEdge(
-                threadingState.getThreadLocation(activeThread), precision, cfaEdge);
+                threadingState.getLocationStateForThread(activeThread), precision, cfaEdge);
 
     // compute new stacks
     Collection<? extends AbstractState> newStacks =
@@ -416,7 +417,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // clean up exited threads.
     // this is done before applying any other step.
     for (String id : tmp.getThreadIds()) {
-      if (isLastNodeOfThread(tmp.getThreadLocation(id).getLocationNode())) {
+      if (isLastNodeOfThread(tmp.getLocationStateForThread(id).getLocationNode())) {
         tmp = removeThreadId(tmp, id);
       }
     }

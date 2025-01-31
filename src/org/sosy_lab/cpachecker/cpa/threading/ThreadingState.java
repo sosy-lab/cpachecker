@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.threading;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_JOIN;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.extractParamName;
@@ -153,8 +154,17 @@ public class ThreadingState
     return Preconditions.checkNotNull(threads.get(id).getCallstack());
   }
 
-  public LocationState getThreadLocation(String id) {
-    return (LocationState) Preconditions.checkNotNull(threads.get(id).getLocation());
+  // TODO check if only active threads are in threads map
+  /** Returns the set of {@link LocationState} for all threads. */
+  public ImmutableSet<LocationState> getAllLocationStates() {
+    return FluentIterable.from(threads.values())
+        .transform(ThreadState::getLocation)
+        .transform(location -> (LocationState) location)
+        .toSet();
+  }
+
+  public LocationState getLocationStateForThread(String id) {
+    return (LocationState) threads.get(id).getLocation();
   }
 
   Set<Integer> getThreadNums() {
@@ -375,7 +385,8 @@ public class ThreadingState
             // check whether other thread is running and has at least one outgoing edge,
             // then we have to wait for it.
             if (threads.containsKey(joiningThread)
-                && !isLastNodeOfThread(getThreadLocation(joiningThread).getLocationNode())) {
+                && !isLastNodeOfThread(
+                    getLocationStateForThread(joiningThread).getLocationNode())) {
               return true;
             }
           }
@@ -398,11 +409,14 @@ public class ThreadingState
     private final int num;
 
     ThreadState(AbstractState pLocation, AbstractState pCallstack, int pNum) {
+      checkNotNull(pLocation);
+      checkNotNull(pCallstack);
       location = pLocation;
       callstack = new CallstackStateEqualsWrapper((CallstackState) pCallstack);
       num = pNum;
     }
 
+    // TODO use LocationState here instead?
     public AbstractState getLocation() {
       return location;
     }

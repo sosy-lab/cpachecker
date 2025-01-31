@@ -109,8 +109,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporterWithVersion {
   record InvariantCreationResult(InvariantEntry invariantEntry, boolean translationSuccessful) {}
 
   // TODO maybe this isn't the best idea because we lose information which invariant was not
-  // translated
-  //  successfully
+  //  translated successfully
   /**
    * A class to keep track of the result of the creation of invariants, in particular to inform the
    * caller if all {@link InvariantEntry}s where translated successfully.
@@ -192,9 +191,10 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporterWithVersion {
       collectedStates = new CollectedARGStates(pGhosts);
     }
 
-    protected void analyze(ARGState pSuccessor) {
-      if (!pSuccessor.getParents().isEmpty()) {
-        ARGState parent = pSuccessor.getParents().stream().findFirst().orElseThrow();
+    // TODO improve overview here (separate functions)
+    protected void analyze(ARGState pChild) {
+      if (!pChild.getParents().isEmpty()) {
+        ARGState parent = pChild.getParents().stream().findFirst().orElseThrow();
         if (callStackRecovery.containsKey(parent)) {
           // Copy the saved callstack, since we want to return to the state we had before the
           // branching
@@ -202,46 +202,54 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporterWithVersion {
         }
       }
 
-      for (LocationState state :
-          AbstractStates.asIterable(pSuccessor).filter(LocationState.class)) {
+      boolean ghosts = collectedStates.ghostStates.isPresent();
+      ImmutableSet<LocationState> locationStates =
+          ghosts
+              ? ARGUtils.tryExtractThreadingState(pChild).orElseThrow().getAllLocationStates()
+              : AbstractStates.asIterable(pChild).filter(LocationState.class).toSet();
+
+      for (LocationState state : locationStates) {
         CFANode node = state.getLocationNode();
         FluentIterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(node);
         if (node.isLoopStart()) {
-          collectedStates.loopInvariants.put(node, pSuccessor);
+          collectedStates.loopInvariants.put(node, pChild);
         } else if (leavingEdges.size() == 1
             && leavingEdges.anyMatch(e -> e instanceof FunctionCallEdge)) {
-          collectedStates.functionCallInvariants.put(node, pSuccessor);
+          collectedStates.functionCallInvariants.put(node, pChild);
         } else if (node instanceof FunctionEntryNode functionEntryNode) {
-          functionEntryStatesCallStack.put(functionEntryNode.getFunctionDefinition(), pSuccessor);
-          collectedStates.functionContractRequires.put(functionEntryNode, pSuccessor);
-        } else if (node instanceof FunctionExitNode functionExitNode) {
+          functionEntryStatesCallStack.put(functionEntryNode.getFunctionDefinition(), pChild);
+          collectedStates.functionContractRequires.put(functionEntryNode, pChild);
+        } else if (node instanceof FunctionExitNode functionExitNode && /* TODO below */ !ghosts) {
           List<ARGState> functionEntryNodes = functionEntryStatesCallStack.get(node.getFunction());
+          // TODO using ghosts here lets this fail
+          //  (e.g. test/programs/witnessValidation/correctness-concurrency/mutex_no_loop.c)
           Verify.verify(!functionEntryNodes.isEmpty());
           collectedStates.functionContractEnsures.put(
               functionExitNode,
               new FunctionEntryExitPair(
-                  functionEntryNodes.remove(functionEntryNodes.size() - 1), pSuccessor));
+                  functionEntryNodes.remove(functionEntryNodes.size() - 1), pChild));
         }
 
-        if (pSuccessor.getChildren().size() > 1 && !callStackRecovery.containsKey(pSuccessor)) {
-          callStackRecovery.put(pSuccessor, ArrayListMultimap.create(functionEntryStatesCallStack));
+        if (pChild.getChildren().size() > 1 && !callStackRecovery.containsKey(pChild)) {
+          callStackRecovery.put(pChild, ArrayListMultimap.create(functionEntryStatesCallStack));
         }
       }
 
-      if (collectedStates.ghostStates.isPresent()) {
+      // collect ARGStates for ghost variable updates
+      if (ghosts) {
         GhostARGStates ghostStates = collectedStates.ghostStates.orElseThrow();
-        ThreadingState child = ARGUtils.tryExtractThreadingState(pSuccessor).orElseThrow();
-        for (ARGState argParent : pSuccessor.getParents()) {
+        ThreadingState child = ARGUtils.tryExtractThreadingState(pChild).orElseThrow();
+        for (ARGState argParent : pChild.getParents()) {
           ThreadingState parent = ARGUtils.tryExtractThreadingState(argParent).orElseThrow();
           ImmutableSet<String> parentLocks = parent.getLockIdsFromInputProgram();
           ImmutableSet<String> childLocks = child.getLockIdsFromInputProgram();
           // locks unequal -> a lock / unlock operation was performed between states
           if (!parentLocks.equals(childLocks)) {
             // we later need the edge for the location and function
-            CFAEdge edge = argParent.getEdgeToChild(pSuccessor);
+            CFAEdge edge = argParent.getEdgeToChild(pChild);
             assert edge != null : "no edge found connecting parent and child";
             FileLocation location = edge.getFileLocation();
-            ARGStatePair pair = new ARGStatePair(argParent, pSuccessor);
+            ARGStatePair pair = new ARGStatePair(argParent, pChild);
             int parentLocksNum = parentLocks.size();
             int childLocksNum = childLocks.size();
             if (parentLocksNum + 1 == childLocksNum) {
