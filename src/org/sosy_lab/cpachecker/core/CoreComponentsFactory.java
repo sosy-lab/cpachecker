@@ -373,9 +373,11 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.configurableComponents",
-      description = "Distribute predicate analysis to multiple workers")
-  private boolean useConfigurableComponents = false;
+      name = "algorithm.distributedSummarySynthesis",
+      description =
+          "Use distributed summary synthesis. This decomposes the input program into smaller units"
+              + " that are analyzed concurrently. See https://doi.org/10.1145/3660766 for details.")
+  private boolean useDistributedSummarySynthesis = false;
 
   @Option(
       secure = true,
@@ -702,7 +704,7 @@ public class CoreComponentsFactory {
         algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
       }
 
-      if (useConfigurableComponents) {
+      if (useDistributedSummarySynthesis) {
         algorithm =
             new DistributedSummarySynthesis(
                 config,

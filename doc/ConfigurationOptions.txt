@@ -260,8 +260,10 @@ analysis.algorithm.analysisWithEnabler = false
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
-# Distribute predicate analysis to multiple workers
-analysis.algorithm.configurableComponents = false
+# Use distributed summary synthesis. This decomposes the input program into
+# smaller units that are analyzed concurrently. See
+# https://doi.org/10.1145/3660766 for details.
+analysis.algorithm.distributedSummarySynthesis = false
 
 # for found property violation, perform fault localization with coverage
 analysis.algorithm.faultLocalization.by_coverage = false
