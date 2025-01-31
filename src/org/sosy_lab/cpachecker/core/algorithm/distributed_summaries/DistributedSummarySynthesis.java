@@ -230,9 +230,9 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     configuration.inject(blockOperator);
     try {
       blockOperator.setCFA(initialCFA);
-    } catch (CPAException pE) {
+    } catch (CPAException e) {
       // if blockOperator.setCFA throws a CPAexception, this is because of an invalid configuration
-      throw new InvalidConfigurationException("Initialization of block operator failed", pE);
+      throw new InvalidConfigurationException("Initialization of block operator failed", e);
     }
 
     if (Stream.concat(knownConditions.stream(), newConditions.stream())
