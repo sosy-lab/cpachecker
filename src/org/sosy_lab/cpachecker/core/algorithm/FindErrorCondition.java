@@ -120,7 +120,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       AbstractState initialState = analyzer.getInitialState();
       CompositeRefiner refiner =
           new CompositeRefiner(context, refiners, qSolver, parallelRefinement);
-      PathFormula errorCondition = context.getManager().makeEmptyPathFormula();
+      PathFormula errorCondition = context.getManager().makeEmptyPathFormula(); // initially empty
 
       do {
         logger.log(Level.INFO, "Iteration: " + currentIteration);
@@ -140,7 +140,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
               String.format("Iteration %d: Found Counterexamples", currentIteration));
           for (CounterexampleInfo cex : counterExamples) {
             // Refinement
-            errorCondition = refiner.refine(cex, errorCondition);
+            errorCondition = refiner.refine(cex);
           }
           if (errorCondition.equals(context.getManager().makeEmptyPathFormula())) {
             break;

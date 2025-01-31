@@ -40,14 +40,14 @@ public class GenerateModelRefiner implements Refiner {
   }
 
   @Override
-  public PathFormula refine(CounterexampleInfo cex, PathFormula pExclusionModelFormula)
+  public PathFormula refine(CounterexampleInfo cex)
       throws SolverException, InterruptedException, CPATransferException {
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula nondetModel = bmgr.makeTrue();
     ImmutableSet.Builder<String> nondetVariables = ImmutableSet.builder();
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      PathFormula cexFormula = pExclusionModelFormula;
+      PathFormula cexFormula = exclusionModelFormula;
       for (CFAEdge cfaEdge : cex.getTargetPath().getFullPath()) {
         cexFormula = context.getManager().makeAnd(cexFormula, cfaEdge);
       }

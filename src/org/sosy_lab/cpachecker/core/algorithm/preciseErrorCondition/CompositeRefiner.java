@@ -45,19 +45,19 @@ public class CompositeRefiner implements Refiner {
   }
 
   @Override
-  public PathFormula refine(CounterexampleInfo pCounterexample, PathFormula pExclusionFormula)
+  public PathFormula refine(CounterexampleInfo pCounterexample)
       throws CPATransferException, InterruptedException, InvalidConfigurationException,
              SolverException {
     if (refiners.size() == 1) {
       return singleRefinement(pCounterexample);
     }
-
-    if (parallelRefinement && refiners.size() >= 2) {
-      return parallelRefinement(pCounterexample);
-    }
     // sequential
     if (!parallelRefinement) {
       return sequentialRefinement(pCounterexample);
+    }
+    // parallel
+    if (refiners.size() >= 2) {
+      return parallelRefinement(pCounterexample);
     }
 
     // Fallback TODO better handling fallback
@@ -140,7 +140,7 @@ public class CompositeRefiner implements Refiner {
              InvalidConfigurationException {
     context.getLogger()
         .log(Level.INFO, "Starting refinement with " + refiner.getClass().getSimpleName());
-    PathFormula result = refiner.refine(cex, exclusionFormula);
+    PathFormula result = refiner.refine(cex);
     context.getLogger()
         .log(Level.INFO, refiner.getClass().getSimpleName() + " completed successfully.");
     return result;

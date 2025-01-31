@@ -39,7 +39,7 @@ public class AllSatRefiner implements Refiner {
   }
 
   @Override
-  public PathFormula refine(CounterexampleInfo cex, PathFormula pExclusionModelFormula)
+  public PathFormula refine(CounterexampleInfo cex)
       throws SolverException, InterruptedException, CPATransferException {
 
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
