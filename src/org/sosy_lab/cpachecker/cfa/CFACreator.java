@@ -17,6 +17,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -33,6 +34,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -352,6 +354,8 @@ public class CFACreator {
     private final List<Statistics> statisticsCollection;
     private final LogManager logger;
 
+    private @Nullable Thread exportThread;
+
     private CFACreatorStatistics(LogManager pLogger) {
       logger = pLogger;
       statisticsCollection = new ArrayList<>();
@@ -373,6 +377,11 @@ public class CFACreator {
       out.println("    Time for loop structure:  " + loopStructureTime);
       out.println("    Time for AST structure:   " + astStructureTime);
 
+      if (exportThread != null) {
+        // If export is still running we should wait such that statistics are correct
+        // and we don't kill the export once CPAchecker terminates.
+        Uninterruptibles.joinUninterruptibly(exportThread);
+      }
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
       }
@@ -1153,7 +1162,8 @@ public class CFACreator {
   private void exportCFAAsync(final CFA cfa) {
     // Execute asynchronously, this may take several seconds for large programs on slow disks.
     // This is safe because we don't modify the CFA from this point on.
-    Concurrency.newThread("CFA export thread", () -> exportCFA(cfa)).start();
+    stats.exportThread = Concurrency.newThread("CFA export thread", () -> exportCFA(cfa));
+    stats.exportThread.start();
   }
 
   private void exportCFA(final CFA cfa) {
