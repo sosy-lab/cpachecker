@@ -168,12 +168,11 @@ class ASTLiteralConverter {
     FloatValue value;
     try {
       // FloatValue.fromString allows some inputs that would not be legal in a C program.
-      // We check for these values and throw an exception manually.
-      Preconditions.checkArgument(
-          !(input.equals("nan")
-              || input.equals("inf")
-              || input.startsWith("+")
-              || input.startsWith("-")));
+      // Specifically, it will parse special values like "inf" or "nan" and allows a "+" or "-" sign
+      // in front of the number. This is not a problem as the Eclipse CDT parser follows the C
+      // standard and will not recognize such floating point literals.
+      // For all inputs that we do encounter in this function FloatValue.fromString behaves exactly
+      // as specified by the C standard.
       value = FloatValue.fromString(format, input);
     } catch (IllegalArgumentException e) {
       throw parseContext.parseError(
