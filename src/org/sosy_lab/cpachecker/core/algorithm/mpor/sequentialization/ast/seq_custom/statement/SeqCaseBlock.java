@@ -13,9 +13,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 
-/**
- * A case block follows a {@link SeqCaseClause} and has a list of {@link SeqCaseBlockStatement}s.
- */
+/** A case block follows a {@link SeqCaseLabel} and has a list of {@link SeqCaseBlockStatement}s. */
 public class SeqCaseBlock implements SeqStatement {
 
   /** The suffix that ends the case block. */

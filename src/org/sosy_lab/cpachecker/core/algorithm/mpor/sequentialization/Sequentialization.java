@@ -352,12 +352,12 @@ public class Sequentialization {
     ImmutableMap.Builder<Integer, ImmutableSet<Integer>> pcMapBuilder = ImmutableMap.builder();
     for (SeqCaseClause caseClause : pCaseClauses) {
       ImmutableSet.Builder<Integer> targetPcs = ImmutableSet.builder();
-      for (SeqCaseBlockStatement stmt : caseClause.caseBlock.statements) {
+      for (SeqCaseBlockStatement stmt : caseClause.block.statements) {
         if (stmt.getTargetPc().isPresent()) {
           targetPcs.add(stmt.getTargetPc().orElseThrow());
         }
       }
-      pcMapBuilder.put(caseClause.caseLabel.value, targetPcs.build());
+      pcMapBuilder.put(caseClause.label.value, targetPcs.build());
     }
     return pcMapBuilder.buildOrThrow();
   }
@@ -371,7 +371,7 @@ public class Sequentialization {
       int threadId = entry.getKey().id;
       for (SeqCaseClause caseClause : entry.getValue()) {
         if (!caseClause.isGlobal && caseClause.alwaysUpdatesPc()) {
-          rAssumptions.add(SeqUtil.createPORAssumption(threadId, caseClause.caseLabel.value));
+          rAssumptions.add(SeqUtil.createPORAssumption(threadId, caseClause.label.value));
         }
       }
     }
@@ -472,9 +472,9 @@ public class Sequentialization {
           pruned.put(
               thread,
               ImmutableList.of(
-                  threadExit.caseLabel.value == SeqUtil.INIT_PC
+                  threadExit.label.value == SeqUtil.INIT_PC
                       ? threadExit
-                      : threadExit.cloneWithCaseLabel(new SeqCaseLabel(SeqUtil.INIT_PC))));
+                      : threadExit.cloneWithLabel(new SeqCaseLabel(SeqUtil.INIT_PC))));
         } else {
           pruned.put(thread, pruneSingleThreadCaseClauses(caseClauses));
         }
@@ -486,7 +486,7 @@ public class Sequentialization {
 
   private SeqCaseClause getThreadExitCaseClause(ImmutableList<SeqCaseClause> pCaseClauses) {
     for (SeqCaseClause caseClause : pCaseClauses) {
-      for (SeqCaseBlockStatement statement : caseClause.caseBlock.statements) {
+      for (SeqCaseBlockStatement statement : caseClause.block.statements) {
         if (statement.getTargetPc().orElseThrow() == SeqUtil.EXIT_PC) {
           return caseClause;
         }
@@ -522,24 +522,24 @@ public class Sequentialization {
     for (SeqCaseClause caseClause : pCaseClauses) {
       if (!prunable.contains(caseClause)) {
         if (caseClause.isPrunable()) {
-          int pc = caseClause.caseLabel.value;
+          int pc = caseClause.label.value;
           SeqCaseClause nonBlank =
               findNonBlankCaseClause(caseLabelValueMap, caseClause, prunable, caseClause);
-          int nonBlankPc = nonBlank.caseLabel.value;
+          int nonBlankPc = nonBlank.label.value;
           if (!nonBlank.isPrunable()) {
             if (prunePcs.containsKey(nonBlankPc)) {
               // a nonBlank may be reachable through multiple blank paths
               // -> reference the first clone to prevent duplication of cases
               prunePcs.put(pc, prunePcs.get(nonBlankPc));
             } else {
-              prune1.add(nonBlank.cloneWithCaseLabel(caseClause.caseLabel));
+              prune1.add(nonBlank.cloneWithLabel(caseClause.label));
               newIds.add(nonBlank.id);
               prunePcs.put(nonBlankPc, pc);
             }
           } else {
             // non-blank still prunable -> path leads to thread exit node
-            assert nonBlank.caseBlock.statements.size() == 1;
-            int targetPc = nonBlank.caseBlock.statements.get(0).getTargetPc().orElseThrow();
+            assert nonBlank.block.statements.size() == 1;
+            int targetPc = nonBlank.block.statements.get(0).getTargetPc().orElseThrow();
             assert targetPc == SeqUtil.EXIT_PC;
             prunePcs.put(nonBlankPc, targetPc);
             // pcs not equal -> thread exit reachable through multiple paths -> add both to pruned
@@ -557,7 +557,7 @@ public class Sequentialization {
     ImmutableList.Builder<SeqCaseClause> prune2 = ImmutableList.builder();
     for (SeqCaseClause caseClause : prune1.build()) {
       ImmutableList.Builder<SeqCaseBlockStatement> newStmts = ImmutableList.builder();
-      for (SeqCaseBlockStatement stmt : caseClause.caseBlock.statements) {
+      for (SeqCaseBlockStatement stmt : caseClause.block.statements) {
         Optional<Integer> targetPc = stmt.getTargetPc();
         // if the statement targets a pruned pc, clone it with the new target pc
         if (targetPc.isPresent() && prunePcs.containsKey(targetPc.orElseThrow())) {
@@ -569,7 +569,7 @@ public class Sequentialization {
         }
       }
       prune2.add(
-          caseClause.cloneWithCaseBlock(new SeqCaseBlock(newStmts.build(), Terminator.CONTINUE)));
+          caseClause.cloneWithBlock(new SeqCaseBlock(newStmts.build(), Terminator.CONTINUE)));
     }
     ImmutableList<SeqCaseClause> rPrune = prune2.build();
     Verify.verify(!isPrunable(rPrune));
@@ -611,7 +611,7 @@ public class Sequentialization {
 
     ImmutableMap.Builder<Integer, SeqCaseClause> rOriginPcs = ImmutableMap.builder();
     for (SeqCaseClause caseClause : pCaseClauses) {
-      rOriginPcs.put(caseClause.caseLabel.value, caseClause);
+      rOriginPcs.put(caseClause.label.value, caseClause);
     }
     return rOriginPcs.buildOrThrow();
   }
@@ -627,20 +627,20 @@ public class Sequentialization {
       Set<SeqCaseClause> pPruned,
       SeqCaseClause pCurrent) {
 
-    for (SeqCaseBlockStatement stmt : pCurrent.caseBlock.statements) {
+    for (SeqCaseBlockStatement stmt : pCurrent.block.statements) {
       if (pCurrent.isPrunable()) {
         pPruned.add(pCurrent);
         SeqBlankStatement blank = (SeqBlankStatement) stmt;
         SeqCaseClause nextCaseClause = pCaseLabelValueMap.get(blank.getTargetPc().orElseThrow());
         if (nextCaseClause == null) {
           // this is only reachable if it is a threads exit (no successors)
-          assert pCurrent.caseBlock.statements.size() == 1;
-          int targetPc = pCurrent.caseBlock.statements.get(0).getTargetPc().orElseThrow();
+          assert pCurrent.block.statements.size() == 1;
+          int targetPc = pCurrent.block.statements.get(0).getTargetPc().orElseThrow();
           assert targetPc == SeqUtil.EXIT_PC;
           return pCurrent;
         }
         // do not visit exit nodes of the threads cfa
-        if (!nextCaseClause.caseBlock.statements.isEmpty()) {
+        if (!nextCaseClause.block.statements.isEmpty()) {
           return findNonBlankCaseClause(pCaseLabelValueMap, pInit, pPruned, nextCaseClause);
         }
       }

@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 /**
  * Represents a statement that simulates calls to {@code pthread_create} of the form:
  *
- * <p>{@code pc[i] = 0; }
+ * <p>{@code pc[i] = 0; pc[j] = n; } where thread {@code j} creates thread {@code i}.
  */
 public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 

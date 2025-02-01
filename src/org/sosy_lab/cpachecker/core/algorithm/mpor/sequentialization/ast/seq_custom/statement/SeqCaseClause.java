@@ -26,35 +26,35 @@ public class SeqCaseClause implements SeqStatement {
 
   public final boolean isGlobal;
 
-  public final SeqCaseLabel caseLabel;
+  /** The case label e.g. {@code case 42: ...} */
+  public final SeqCaseLabel label;
 
-  public final SeqCaseBlock caseBlock;
+  /** The case block e.g. {@code fib(42); break;} */
+  public final SeqCaseBlock block;
 
-  public SeqCaseClause(boolean pIsGlobal, int pCaseLabelValue, SeqCaseBlock pCaseBlock) {
-
+  public SeqCaseClause(boolean pIsGlobal, int pLabelValue, SeqCaseBlock pBlock) {
     id = createNewId();
     isGlobal = pIsGlobal;
-    caseLabel = new SeqCaseLabel(pCaseLabelValue);
-    caseBlock = pCaseBlock;
+    label = new SeqCaseLabel(pLabelValue);
+    block = pBlock;
   }
 
   /** Private constructor, only used during cloning process to keep the same id. */
-  private SeqCaseClause(
-      long pId, boolean pIsGlobal, SeqCaseLabel pCaseLabel, SeqCaseBlock pCaseBlock) {
+  private SeqCaseClause(long pId, boolean pIsGlobal, SeqCaseLabel pLabel, SeqCaseBlock pBlock) {
 
     id = pId;
     isGlobal = pIsGlobal;
-    caseLabel = pCaseLabel;
-    caseBlock = pCaseBlock;
+    label = pLabel;
+    block = pBlock;
   }
 
-  public SeqCaseClause cloneWithCaseLabel(SeqCaseLabel pCaseLabel) {
-    return new SeqCaseClause(id, isGlobal, pCaseLabel, caseBlock);
+  public SeqCaseClause cloneWithLabel(SeqCaseLabel pLabel) {
+    return new SeqCaseClause(id, isGlobal, pLabel, block);
   }
 
-  public SeqCaseClause cloneWithCaseBlock(SeqCaseBlock pCaseBlock) {
+  public SeqCaseClause cloneWithBlock(SeqCaseBlock pBlock) {
     // id is not imported at this stage of pruning case clauses
-    return new SeqCaseClause(isGlobal, caseLabel.value, pCaseBlock);
+    return new SeqCaseClause(isGlobal, label.value, pBlock);
   }
 
   private static long createNewId() {
@@ -66,7 +66,7 @@ public class SeqCaseClause implements SeqStatement {
    * pc.
    */
   public boolean isPrunable() {
-    for (SeqCaseBlockStatement stmt : caseBlock.statements) {
+    for (SeqCaseBlockStatement stmt : block.statements) {
       if (!(stmt instanceof SeqBlankStatement)) {
         return false;
       }
@@ -82,7 +82,7 @@ public class SeqCaseClause implements SeqStatement {
    * unlocked.
    */
   public boolean alwaysUpdatesPc() {
-    for (SeqCaseBlockStatement stmt : caseBlock.statements) {
+    for (SeqCaseBlockStatement stmt : block.statements) {
       if (!stmt.alwaysUpdatesPc()) {
         return false;
       }
@@ -92,6 +92,6 @@ public class SeqCaseClause implements SeqStatement {
 
   @Override
   public String toASTString() {
-    return caseLabel.toASTString() + SeqSyntax.SPACE + caseBlock.toASTString() + SeqSyntax.NEWLINE;
+    return label.toASTString() + SeqSyntax.SPACE + block.toASTString() + SeqSyntax.NEWLINE;
   }
 }
