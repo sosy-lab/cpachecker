@@ -8,26 +8,42 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.base.Throwables;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
-import java.io.File;
+import com.google.common.collect.SetMultimap;
+import com.google.common.io.MoreFiles;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.NavigableMap;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.logging.Level;
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @SuppressWarnings("all")
 @Options(prefix = "bmc.kinduction.reuse")
@@ -35,34 +51,172 @@ public class WitnessToInitialInvariantsConverter {
 
   private final Configuration config;
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
+  private final FormulaManagerView formulaManagerView;
+  private final PathFormulaManager pathFormulaManager;
+  private final CFA cfa;
 
-  public WitnessToInitialInvariantsConverter(final Configuration pConfig, final LogManager pLogger)
+  public WitnessToInitialInvariantsConverter(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pshutdownNotifier,
+      final FormulaManagerView pformulaManagerView,
+      final PathFormulaManager ppathFormulaManager,
+      final CFA pCFA)
       throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
+    shutdownNotifier = pshutdownNotifier;
+    formulaManagerView = pformulaManagerView;
+    pathFormulaManager = ppathFormulaManager;
+    cfa = pCFA;
     config.inject(this);
   }
 
-  public ImmutableSet<CandidateInvariant> WitnessParser(Path pfilename, Solver pSolver)
-      throws JsonParseException, JsonMappingException, IOException {
-    FormulaManagerView formulaManager = pSolver.getFormulaManager();
-    File yamlWitness = pfilename.toFile();
-    ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-    JavaType entryType =
-        mapper.getTypeFactory().constructCollectionType(List.class, InvariantSetEntry.class);
-    List<InvariantSetEntry> entries = mapper.readValue(yamlWitness, entryType);
-    ImmutableSet.Builder<CandidateInvariant> invariants = ImmutableSet.builder();
-    for (InvariantSetEntry e : entries) {
-      while (!e.content.isEmpty()) {
-        InvariantEntry i = (InvariantEntry) e.content.remove(0);
-        logger.log(Level.INFO, i.getLocation(), i.getValue(), pSolver, formulaManager);
-        //        invariants.add(SingleLocationFormulaInvariant.makeLocationInvariant(
-        //            i.getLocation(),
-        //            i.getValue(), // .getSymbolicAtom(),
-        //            formulaManager));
+  @Option(
+      secure = true,
+      description = "Matches function names to the ones in the witness",
+      name = "matchFunctionNames")
+  private boolean matchFunctionNames = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Matches witness invariants to near loopheads. If matchFunctionNames, then only unmatched"
+              + " leftovers",
+      name = "matchNearLoopheads")
+  private boolean matchNearLoopheads = false;
+
+  @Option(
+      secure = true,
+      description =
+          "How many Candidates should be generated out of invariant to nearest loophead pairings."
+              + " No effect when matchNearLoophead = false",
+      name = "NumberLoopheadMatches")
+  private int NumberLoopheadMatches = 3;
+
+  public ImmutableSet<CandidateInvariant> witnessConverter(Path pFileName) {
+
+    InputStream witness;
+    ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
+
+    try {
+      // parse file
+      witness = MoreFiles.asByteSource(pFileName).openStream();
+      List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(witness);
+      witness.close();
+      InvariantExchangeFormatTransformer transformer =
+          new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
+      Set<Invariant> invariantSet = transformer.generateInvariantsFromEntries(entries);
+      ImmutableSet.Builder<Invariant> leftoverInvariants = new ImmutableSet.Builder<>();
+      // match function names
+      if (matchFunctionNames) {
+        SetMultimap<String, CFANode> loopHeadsPerFunction = HashMultimap.create();
+        for (CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
+          loopHeadsPerFunction.put(loopHead.getFunctionName(), loopHead);
+        }
+
+        for (Invariant invariant : invariantSet) {
+          String name = invariant.getFunction();
+          Set<CFANode> loopHeadsWithSameName = loopHeadsPerFunction.removeAll(name);
+          // handle same function name on multiple functions
+          if (!loopHeadsWithSameName.isEmpty()) {
+            for (CFANode loopHead : loopHeadsWithSameName) {
+              candidates.add(
+                  SingleLocationFormulaInvariant.makeLocationInvariant(
+                      loopHead, toFormula(invariant.getFormula()), formulaManagerView));
+            }
+          } else {
+            leftoverInvariants.add(invariant);
+          }
+        }
       }
+      // match to nearest loopheads
+      if (matchNearLoopheads) {
+        NavigableMap<Integer, CFANode> loopHeadsOrderedByLine = new TreeMap<>();
+        for (CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
+          loopHeadsOrderedByLine.put(
+              loopHead.getFunction().getFileLocation().getStartingLineNumber(), loopHead);
+        }
+      }
+
+    } catch (IOException
+        | InvalidConfigurationException
+        | InterruptedException
+        | CPATransferException e) {
+      logger.logUserException(Level.INFO, e.getCause(), "Could not parse witness file");
+      return ImmutableSet.of();
     }
 
-    return invariants.build();
+    return candidates.build();
+  }
+
+  // from org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionBootstrapper
+  private BooleanFormula toFormula(ExpressionTree<AExpression> expressionTree)
+      throws CPATransferException, InterruptedException {
+    ToFormulaVisitor toFormulaVisitor =
+        new ToFormulaVisitor(formulaManagerView, pathFormulaManager, null);
+    try {
+      return expressionTree.accept(toFormulaVisitor);
+    } catch (ToFormulaException e) {
+      Throwables.throwIfInstanceOf(e.getCause(), CPATransferException.class);
+      Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
+      Throwables.throwIfUnchecked(e.getCause());
+      throw new UnexpectedCheckedException("expression tree to formula", e);
+    }
   }
 }
+// public ImmutableSet<CandidateInvariant> witnessParser(Path pfilename, Solver pSolver)
+// throws JsonParseException, JsonMappingException, IOException {
+// FormulaManagerView formulaManager = pSolver.getFormulaManager();
+// File yamlWitness = pfilename.toFile();
+// ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+// JavaType entryType =
+// mapper.getTypeFactory().constructCollectionType(List.class, InvariantSetEntry.class);
+// List<InvariantSetEntry> entries = mapper.readValue(yamlWitness, entryType);
+// ImmutableSet.Builder<CandidateInvariant> invariants = ImmutableSet.builder();
+//
+// NavigableMap<Integer, CFANode> loopHeadsOrderedByLine = new TreeMap<Integer, CFANode>();
+// for (CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
+// loopHeadsOrderedByLine.put(loopHead.getEnteringEdge(0).getLineNumber(), loopHead);
+// }
+//
+// for (InvariantSetEntry entry : entries) {
+// while (!entry.content.isEmpty()) {
+// InvariantEntry invariant = (InvariantEntry) entry.content.remove(0);
+// Integer line = invariant.getLocation().getLine();
+//
+// // find nearest loophead if exact match not found
+// if (!loopHeadsOrderedByLine.containsKey(line)) {
+// NavigableSet<Integer> lineSet = loopHeadsOrderedByLine.navigableKeySet();
+// Integer lowerLine = lineSet.lower(line);
+// Integer higherLine = lineSet.higher(line);
+// if (lowerLine == null && higherLine != null) {
+// if (line - lowerLine < higherLine - line) {
+// line = lowerLine;
+// } else {
+// line = higherLine;
+// }
+// } else {
+// if (lowerLine == null) {
+// line = higherLine;
+// } else {
+// line = lowerLine;
+// }
+// }
+// }
+// logger.log(Level.INFO, loopHeadsOrderedByLine.get(line), "Line", line);
+
+        // BooleanFormula booleanInvariant = formulaManager.parse(invariant.getValue());
+        //
+        // invariants.add(
+        // SingleLocationFormulaInvariant
+        // .makeLocationInvariant(
+        // loopHeadsOrderedByLine.get(line),
+        // invariant.getValue()));
+// }
+// }
+//
+// return invariants.build();
+// }
+// }

@@ -212,6 +212,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -774,11 +775,22 @@ bmc.invariantGeneratorHeadStartStrategy = NONE
 # Export auxiliary invariants used for induction.
 bmc.invariantsExport = no default value
 
-# get candidate invariants from a witness 2.0 invariant file
-bmc.kInductionInvariantWitnessFile = no default value
-
 # get candidate invariants from a predicate precision file
 bmc.kinduction.predicatePrecisionFile = no default value
+
+# How many Candidates should be generated out of invariant to nearest
+# loophead pairings. No effect when matchNearLoophead = false
+bmc.kinduction.reuse.NumberLoopheadMatches = 3
+
+# get candidate invariants from a witness 2.0 invariant file
+bmc.kinduction.reuse.invariantWitnessFile = no default value
+
+# Matches function names to the ones in the witness
+bmc.kinduction.reuse.matchFunctionNames = false
+
+# Matches witness invariants to near loopheads. If matchFunctionNames, then
+# only unmatched leftovers
+bmc.kinduction.reuse.matchNearLoopheads = false
 
 # which strategy to use to convert predicate precision to k-induction
 # invariant

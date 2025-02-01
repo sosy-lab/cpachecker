@@ -153,7 +153,7 @@ abstract class AbstractBMCAlgorithm
   @Option(
       secure = true,
       description = "get candidate invariants from a witness 2.0 invariant file",
-      name = "kInductionInvariantWitnessFile")
+      name = "kinduction.reuse.invariantWitnessFile")
   @FileOption(value = Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path initialWitnessInvariantsFile = null;
 
@@ -249,6 +249,7 @@ abstract class AbstractBMCAlgorithm
   private final ImmutableSet<CandidateInvariant> predicatePrecisionCandidates;
   private @Nullable PredicateToKInductionInvariantConverter predToKIndInv;
 
+  private ImmutableSet<CandidateInvariant> initialWitnessInvariants = null;
   private @Nullable WitnessToInitialInvariantsConverter witnessConverter;
 
   protected AbstractBMCAlgorithm(
@@ -387,17 +388,14 @@ abstract class AbstractBMCAlgorithm
       predicatePrecisionCandidates = ImmutableSet.of();
     }
 
-    ImmutableSet<CandidateInvariant> initialWitnessInvariants = null;
     if (initialWitnessInvariantsFile != null) {
       logger.log(Level.INFO, initialWitnessInvariantsFile, initialWitnessInvariants);
-      try {
-        witnessConverter = new WitnessToInitialInvariantsConverter(config, logger);
-        initialWitnessInvariants =
-            witnessConverter.WitnessParser(initialWitnessInvariantsFile, solver);
-
-      } catch (IOException e) {
-        logger.logUserException(Level.INFO, e, "Could not parse witness file");
-      }
+      witnessConverter =
+          new WitnessToInitialInvariantsConverter(
+              config, logger, shutdownNotifier, fmgr, pmgr, cfa);
+      initialWitnessInvariants = witnessConverter.witnessConverter(initialWitnessInvariantsFile);
+    } else {
+      initialWitnessInvariants = ImmutableSet.of();
     }
   }
 
@@ -434,6 +432,11 @@ abstract class AbstractBMCAlgorithm
     // suggest candidates from predicate precision file
     if (!predicatePrecisionCandidates.isEmpty()) {
       candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
+    }
+
+    // suggest candidates from Witness 2.0 file
+    if (!initialWitnessInvariants.isEmpty()) {
+      candidateGenerator.suggestCandidates(initialWitnessInvariants);
     }
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
