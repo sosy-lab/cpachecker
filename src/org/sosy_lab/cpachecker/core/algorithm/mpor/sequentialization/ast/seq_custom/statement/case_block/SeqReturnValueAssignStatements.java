@@ -61,7 +61,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
   public String toASTString() {
     ImmutableList.Builder<SeqCaseClause> caseClauses = ImmutableList.builder();
     for (FunctionReturnValueAssignment assignment : assigns) {
-      int caseLabelValue = assignment.returnPcStorage.value;
+      int caseLabelValue = assignment.returnPcWrite.value;
       SeqReturnValueAssignCaseBlockStatement assignmentStatement =
           new SeqReturnValueAssignCaseBlockStatement(assignment.statement);
       caseClauses.add(
@@ -132,7 +132,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
     @Override
     public SeqReturnValueAssignCaseBlockStatement cloneWithTargetPc(int pTargetPc) {
       throw new UnsupportedOperationException(
-          "SeqReturnValueAssignCaseBlockStatement do not have targetPcs");
+          this.getClass().getSimpleName() + " do not have targetPcs");
     }
 
     @Override

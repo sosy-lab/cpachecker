@@ -15,20 +15,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 
-// TODO also rename storage / retrieval to write / read -> more concise
 /**
- * Represents a {@code return_pc} storage, i.e. assigning the successor {@code pc} to the {@code
+ * Represents a {@code return_pc} write, i.e. assigning the successor {@code pc} to the {@code
  * return_pc}.
  *
  * <p>E.g. {@code __return_pc_{thread_id}_{func_name} = n;}
  */
-public class SeqReturnPcStorageStatement implements SeqCaseBlockStatement {
+public class SeqReturnPcWriteStatement implements SeqCaseBlockStatement {
 
   private final CIdExpression returnPcVar;
 
   private final int returnPc;
 
-  public SeqReturnPcStorageStatement(CIdExpression pReturnPcVar, int pReturnPc) {
+  public SeqReturnPcWriteStatement(CIdExpression pReturnPcVar, int pReturnPc) {
     returnPcVar = pReturnPcVar;
     returnPc = pReturnPc;
   }
@@ -52,8 +51,8 @@ public class SeqReturnPcStorageStatement implements SeqCaseBlockStatement {
 
   @NonNull
   @Override
-  public SeqReturnPcStorageStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqReturnPcStorageStatement(returnPcVar, pTargetPc);
+  public SeqReturnPcWriteStatement cloneWithTargetPc(int pTargetPc) {
+    return new SeqReturnPcWriteStatement(returnPcVar, pTargetPc);
   }
 
   @Override

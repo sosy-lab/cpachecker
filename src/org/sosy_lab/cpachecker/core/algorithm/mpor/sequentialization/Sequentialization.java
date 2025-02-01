@@ -74,8 +74,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionParameterAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcRetrieval;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcStorage;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcRead;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcWrite;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
@@ -728,7 +728,7 @@ public class Sequentialization {
       mapReturnValueAssignments(
           MPORThread pThread,
           ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
-          ImmutableMap<ThreadEdge, FunctionReturnPcStorage> pReturnPcStorages) {
+          ImmutableMap<ThreadEdge, FunctionReturnPcWrite> pReturnPcWrites) {
 
     ImmutableMap.Builder<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>> rRetStmts =
         ImmutableMap.builder();
@@ -752,7 +752,7 @@ public class Sequentialization {
                 assert aFuncDec instanceof CFunctionDeclaration;
                 FunctionReturnValueAssignment assign =
                     new FunctionReturnValueAssignment(
-                        pReturnPcStorages.get(bThreadEdge),
+                        pReturnPcWrites.get(bThreadEdge),
                         assignStmt.getLeftHandSide(),
                         returnStmtEdge.getExpression().orElseThrow());
                 assigns.add(assign);
@@ -771,23 +771,23 @@ public class Sequentialization {
   //  before pruning, we should assert that the pc assigned does not point to a blank statement
   /**
    * Maps {@link ThreadEdge}s whose {@link CFAEdge} is a {@link CFunctionSummaryEdge}s to {@link
-   * FunctionReturnPcStorage}s.
+   * FunctionReturnPcWrite}s.
    *
    * <p>E.g. a {@link CFunctionSummaryEdge} going from pc 5 to 10 for the function {@code fib} in
-   * thread 0 is mapped to the storage with the assignment {@code __return_pc_t0_fib = 10;}.
+   * thread 0 is mapped to the return pc write with the assignment {@code __return_pc_t0_fib = 10;}.
    */
-  private ImmutableMap<ThreadEdge, FunctionReturnPcStorage> mapReturnPcStorages(
+  private ImmutableMap<ThreadEdge, FunctionReturnPcWrite> mapReturnPcWrites(
       MPORThread pThread, ImmutableMap<CFunctionDeclaration, CIdExpression> pReturnPcVars) {
 
-    ImmutableMap.Builder<ThreadEdge, FunctionReturnPcStorage> rAssigns = ImmutableMap.builder();
+    ImmutableMap.Builder<ThreadEdge, FunctionReturnPcWrite> rAssigns = ImmutableMap.builder();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
         CFunctionDeclaration function = funcSummary.getFunctionEntry().getFunctionDefinition();
         CIdExpression returnPc = pReturnPcVars.get(function);
         assert returnPc != null;
-        FunctionReturnPcStorage returnPcStorage =
-            new FunctionReturnPcStorage(returnPc, threadEdge.getSuccessor().pc);
-        rAssigns.put(threadEdge, returnPcStorage);
+        FunctionReturnPcWrite returnPcWrite =
+            new FunctionReturnPcWrite(returnPc, threadEdge.getSuccessor().pc);
+        rAssigns.put(threadEdge, returnPcWrite);
       }
     }
     return rAssigns.buildOrThrow();
@@ -795,15 +795,15 @@ public class Sequentialization {
 
   /**
    * Maps {@link ThreadNode}s whose {@link CFANode} is a {@link FunctionExitNode} to {@link
-   * FunctionReturnPcRetrieval}s.
+   * FunctionReturnPcRead}s.
    *
    * <p>E.g. a {@link FunctionExitNode} for the function {@code fib} in thread 0 is mapped to the
    * assignment {@code pc[0] = __return_pc_t0_fib;}.
    */
-  private ImmutableMap<ThreadNode, FunctionReturnPcRetrieval> mapReturnPcRetrievals(
+  private ImmutableMap<ThreadNode, FunctionReturnPcRead> mapReturnPcReads(
       MPORThread pThread, ImmutableMap<CFunctionDeclaration, CIdExpression> pReturnPcVars) {
 
-    Map<ThreadNode, FunctionReturnPcRetrieval> rAssigns = new HashMap<>();
+    Map<ThreadNode, FunctionReturnPcRead> rAssigns = new HashMap<>();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
         Optional<FunctionExitNode> funcExitNode = funcSummary.getFunctionEntry().getExitNode();
@@ -812,9 +812,8 @@ public class Sequentialization {
           CIdExpression returnPc = pReturnPcVars.get(function);
           ThreadNode threadNode = pThread.cfa.getThreadNodeByCfaNode(funcExitNode.orElseThrow());
           if (!rAssigns.containsKey(threadNode)) {
-            FunctionReturnPcRetrieval returnPcRetrieval =
-                new FunctionReturnPcRetrieval(pThread.id, returnPc);
-            rAssigns.put(threadNode, returnPcRetrieval);
+            FunctionReturnPcRead returnPcRead = new FunctionReturnPcRead(pThread.id, returnPc);
+            rAssigns.put(threadNode, returnPcRead);
           }
         }
       }
@@ -1009,12 +1008,12 @@ public class Sequentialization {
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
       ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> pReturnPcVars) {
 
-    ImmutableMap<ThreadEdge, FunctionReturnPcStorage> returnPcStorages =
-        mapReturnPcStorages(pThread, pReturnPcVars.get(pThread));
+    ImmutableMap<ThreadEdge, FunctionReturnPcWrite> returnPcWrites =
+        mapReturnPcWrites(pThread, pReturnPcVars.get(pThread));
     return new FunctionVars(
         mapParameterAssignments(pThread, pSubEdges, pSubstitution),
-        mapReturnValueAssignments(pThread, pSubEdges, returnPcStorages),
-        returnPcStorages,
-        mapReturnPcRetrievals(pThread, pReturnPcVars.get(pThread)));
+        mapReturnValueAssignments(pThread, pSubEdges, returnPcWrites),
+        returnPcWrites,
+        mapReturnPcReads(pThread, pReturnPcVars.get(pThread)));
   }
 }

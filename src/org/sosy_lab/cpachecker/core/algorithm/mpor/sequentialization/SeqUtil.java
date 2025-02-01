@@ -63,14 +63,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqMutexUnlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqParameterAssignStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReachErrorStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcRetrievalStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcStorageStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcReadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcWriteStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadJoinStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionParameterAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcRetrieval;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcStorage;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcRead;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcWrite;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
@@ -118,10 +118,10 @@ public class SeqUtil {
 
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
       // handle all CFunctionReturnEdges: exiting function -> pc not relevant, assign return pc
-      assert pFuncVars.returnPcRetrievals.containsKey(pThreadNode);
-      FunctionReturnPcRetrieval retrieval = pFuncVars.returnPcRetrievals.get(pThreadNode);
-      assert retrieval != null;
-      stmts.add(new SeqReturnPcRetrievalStatement(retrieval.threadId, retrieval.returnPcVar));
+      assert pFuncVars.returnPcReads.containsKey(pThreadNode);
+      FunctionReturnPcRead read = pFuncVars.returnPcReads.get(pThreadNode);
+      assert read != null;
+      stmts.add(new SeqReturnPcReadStatement(read.threadId, read.returnPcVar));
 
     } else {
       // TODO create separate methods here to handle the different cases for better overview
@@ -154,10 +154,10 @@ public class SeqUtil {
           } else if (sub.cfaEdge instanceof CFunctionSummaryEdge) {
             // assert that both call and summary edge are present
             assert pThreadNode.leavingEdges().size() >= 2;
-            assert pFuncVars.returnPcStorages.containsKey(threadEdge);
-            FunctionReturnPcStorage storage = pFuncVars.returnPcStorages.get(threadEdge);
-            assert storage != null;
-            stmts.add(new SeqReturnPcStorageStatement(storage.returnPcVar, storage.value));
+            assert pFuncVars.returnPcWrites.containsKey(threadEdge);
+            FunctionReturnPcWrite write = pFuncVars.returnPcWrites.get(threadEdge);
+            assert write != null;
+            stmts.add(new SeqReturnPcWriteStatement(write.returnPcVar, write.value));
 
           } else if (sub.cfaEdge instanceof CFunctionCallEdge funcCall) {
             String funcName =
@@ -222,7 +222,7 @@ public class SeqUtil {
               stmts.add(new SeqBlankStatement(pThread.id, targetPc));
             } else {
               // just get the first element in the set for the RETURN_PC
-              CIdExpression returnPc = assigns.iterator().next().returnPcStorage.returnPcVar;
+              CIdExpression returnPc = assigns.iterator().next().returnPcWrite.returnPcVar;
               stmts.add(
                   new SeqReturnValueAssignStatements(returnPc, assigns, pThread.id, targetPc));
             }

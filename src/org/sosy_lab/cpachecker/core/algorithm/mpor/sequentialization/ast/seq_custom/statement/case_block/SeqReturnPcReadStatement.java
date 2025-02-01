@@ -15,18 +15,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 
 /**
- * Represents a {@code return_pc} retrieval, i.e. assigning the {@code return_pc} to the current
- * threads {@code pc}.
+ * Represents a {@code return_pc} read, i.e. assigning the {@code return_pc} to the current threads
+ * {@code pc}.
  *
- * <p>E.g. {@code pc[{thread_id}] = __return_pc_{thread_id}_{func_name};}
+ * <p>E.g. {@code pc[thread_id] = __return_pc_{thread_id}_{func_name};}
  */
-public class SeqReturnPcRetrievalStatement implements SeqCaseBlockStatement {
+public class SeqReturnPcReadStatement implements SeqCaseBlockStatement {
 
   public final int threadId;
 
   public final CIdExpression returnPcVar;
 
-  public SeqReturnPcRetrievalStatement(int pThreadId, CIdExpression pReturnPcVar) {
+  public SeqReturnPcReadStatement(int pThreadId, CIdExpression pReturnPcVar) {
     threadId = pThreadId;
     returnPcVar = pReturnPcVar;
   }
@@ -45,8 +45,9 @@ public class SeqReturnPcRetrievalStatement implements SeqCaseBlockStatement {
 
   @NonNull
   @Override
-  public SeqReturnPcRetrievalStatement cloneWithTargetPc(int pTargetPc) {
-    throw new UnsupportedOperationException("SeqReturnPcRetrievalStatement do not have targetPcs");
+  public SeqReturnPcReadStatement cloneWithTargetPc(int pTargetPc) {
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " do not have targetPcs");
   }
 
   @Override

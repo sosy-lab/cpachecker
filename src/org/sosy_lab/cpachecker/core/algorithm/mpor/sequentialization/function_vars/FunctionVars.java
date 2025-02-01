@@ -22,19 +22,19 @@ public class FunctionVars {
   public final ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
       returnValueAssignments;
 
-  public final ImmutableMap<ThreadEdge, FunctionReturnPcStorage> returnPcStorages;
+  public final ImmutableMap<ThreadEdge, FunctionReturnPcWrite> returnPcWrites;
 
-  public final ImmutableMap<ThreadNode, FunctionReturnPcRetrieval> returnPcRetrievals;
+  public final ImmutableMap<ThreadNode, FunctionReturnPcRead> returnPcReads;
 
   public FunctionVars(
       ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>> pParameterAssignments,
       ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>> pReturnValueAssignments,
-      ImmutableMap<ThreadEdge, FunctionReturnPcStorage> pReturnPcStorages,
-      ImmutableMap<ThreadNode, FunctionReturnPcRetrieval> pReturnPcRetrievals) {
+      ImmutableMap<ThreadEdge, FunctionReturnPcWrite> pReturnPcWrites,
+      ImmutableMap<ThreadNode, FunctionReturnPcRead> pReturnPcReads) {
 
     parameterAssignments = pParameterAssignments;
     returnValueAssignments = pReturnValueAssignments;
-    returnPcStorages = pReturnPcStorages;
-    returnPcRetrievals = pReturnPcRetrievals;
+    returnPcWrites = pReturnPcWrites;
+    returnPcReads = pReturnPcReads;
   }
 }

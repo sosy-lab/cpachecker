@@ -10,13 +10,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_v
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
-public class FunctionReturnPcRetrieval {
+public class FunctionReturnPcRead {
 
   public final int threadId;
 
   public final CIdExpression returnPcVar;
 
-  public FunctionReturnPcRetrieval(int pThreadId, CIdExpression pReturnPcVar) {
+  public FunctionReturnPcRead(int pThreadId, CIdExpression pReturnPcVar) {
     threadId = pThreadId;
     returnPcVar = pReturnPcVar;
   }

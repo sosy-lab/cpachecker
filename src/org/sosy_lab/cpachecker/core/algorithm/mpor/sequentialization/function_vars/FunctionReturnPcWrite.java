@@ -10,13 +10,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_v
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
-public class FunctionReturnPcStorage {
+public class FunctionReturnPcWrite {
 
   public final CIdExpression returnPcVar;
 
   public final int value;
 
-  public FunctionReturnPcStorage(CIdExpression pReturnPcVar, int pValue) {
+  public FunctionReturnPcWrite(CIdExpression pReturnPcVar, int pValue) {
     returnPcVar = pReturnPcVar;
     value = pValue;
   }

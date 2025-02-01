@@ -32,17 +32,19 @@ public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
 
   @Override
   public Optional<Integer> getTargetPc() {
-    throw new UnsupportedOperationException("SeqScalarPcAssumeStatement do not have a target pc");
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " do not have a target pc");
   }
 
   @NonNull
   @Override
   public SeqScalarPcAssumeStatement cloneWithTargetPc(int pTargetPc) {
-    throw new UnsupportedOperationException("SeqScalarPcAssumeStatement cannot be cloned");
+    throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be cloned");
   }
 
   @Override
   public boolean alwaysWritesPc() {
-    throw new UnsupportedOperationException("SeqScalarPcAssumeStatement are not part of POR");
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " are not part of POR");
   }
 }
