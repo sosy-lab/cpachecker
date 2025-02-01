@@ -583,6 +583,16 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     return new FloatValue(pFormat, true, pFormat.maxExp() + 1, BigInteger.ZERO);
   }
 
+  /**
+   * Positive or negative infinity
+   *
+   * <p>Returns negative infinity if <code>pSign</code> is <code>True</code> and positive infinity
+   * if it is <code>False</code>
+   */
+  public static FloatValue infinity(Format pFormat, boolean pSign) {
+    return pSign ? negativeInfinity(pFormat) : infinity(pFormat);
+  }
+
   /** True if the value is NaN */
   public boolean isNan() {
     return (exponent == format.maxExp() + 1) && (significand.compareTo(BigInteger.ZERO) > 0);
@@ -764,7 +774,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     if (pExponent > format.maxExp()) {
       // Exponent too large for the format
       // Return Infinity right away
-      return isNegative() ? negativeInfinity(format) : infinity(format);
+      return infinity(format, sign);
     } else if (pExponent < format.minExp()) {
       // Exponent too small
       int diff = (int) (pExponent - format.minExp());
@@ -807,7 +817,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     } else if (isNan()) {
       return sign ? nan(pTargetFormat).negate() : nan(pTargetFormat);
     } else if (isInfinite()) {
-      return sign ? negativeInfinity(pTargetFormat) : infinity(pTargetFormat);
+      return infinity(pTargetFormat, sign);
     } else if (isZero()) {
       return sign ? negativeZero(pTargetFormat) : zero(pTargetFormat);
     } else if (!isSubnormal() && pTargetFormat.isGreaterOrEqual(format)) {
@@ -832,7 +842,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Return infinity if the exponent is too large for the new encoding
     if (resultExponent > pTargetFormat.maxExp()) {
-      return sign ? negativeInfinity(pTargetFormat) : infinity(pTargetFormat);
+      return infinity(pTargetFormat, sign);
     }
     // Return zero if the exponent is below the subnormal range
     if (resultExponent < pTargetFormat.minExp() - (pTargetFormat.sigBits + 1)) {
@@ -866,7 +876,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Return infinity if this caused the exponent to leave the range
     if (resultExponent > pTargetFormat.maxExp()) {
-      return sign ? negativeInfinity(pTargetFormat) : infinity(pTargetFormat);
+      return infinity(pTargetFormat, sign);
     }
     return new FloatValue(pTargetFormat, sign, resultExponent, resultSignificand);
   }
@@ -1195,7 +1205,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
     // Return infinity if there is an overflow.
     if (resultExponent > format.maxExp()) {
-      return resultSign ? negativeInfinity(format) : infinity(format);
+      return infinity(format, resultSign);
     }
 
     // Otherwise return the number
@@ -1244,9 +1254,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         // Return NaN if we're trying to multiply infinity by zero
         return nan(format);
       } else {
-        return (arg1.isNegative() != arg2.isNegative())
-            ? negativeInfinity(format)
-            : infinity(format);
+        return infinity(format, arg1.isNegative() != arg2.isNegative());
       }
     } else if (arg1.isZero() || arg2.isZero()) {
       // (3) One of the arguments is zero (or negative zero)
@@ -1265,7 +1273,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     // If the calculated exponent is out of range we can return infinity (or zero) immediately.
     long resultExponent = exponent1 + exponent2;
     if (resultExponent > format.maxExp()) {
-      return resultSign ? negativeInfinity(format) : infinity(format);
+      return infinity(format, resultSign);
     }
     if (resultExponent < format.minExp() - format.sigBits - 2) {
       return resultSign ? negativeZero(format) : zero(format);
@@ -1327,7 +1335,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Return infinity if there is an overflow.
     if (resultExponent > format.maxExp()) {
-      return resultSign ? negativeInfinity(format) : infinity(format);
+      return infinity(format, resultSign);
     }
 
     // Otherwise return the number
@@ -1371,9 +1379,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         // Return NaN if we're trying to multiply infinity by zero
         return nan(format);
       } else {
-        return (arg1.isNegative() != arg2.isNegative())
-            ? negativeInfinity(format)
-            : infinity(format);
+        return infinity(format, arg1.isNegative() != arg2.isNegative());
       }
     } else if (arg1.isZero() || arg2.isZero()) {
       // (3) One of the arguments is zero (or negative zero)
@@ -1391,7 +1397,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     // If the calculated exponent is out of range we can return infinity (or zero) immediately.
     long resultExponent = arg1.exponent + arg2.exponent;
     if (resultExponent > format.maxExp()) {
-      return resultSign ? negativeInfinity(format) : infinity(format);
+      return infinity(format, resultSign);
     }
     if (resultExponent < format.minExp() - format.sigBits - 2) {
       return resultSign ? negativeZero(format) : zero(format);
@@ -1407,7 +1413,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Return infinity if there is an overflow.
     if (resultExponent > format.maxExp()) {
-      return resultSign ? negativeInfinity(format) : infinity(format);
+      return infinity(format, resultSign);
     }
 
     // Otherwise return the number
@@ -1507,11 +1513,11 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       if (pDivisor.isInfinite()) {
         return resultSign ? nan(format).negate() : nan(format);
       } else {
-        return resultSign ? negativeInfinity(format) : infinity(format);
+        return infinity(format, resultSign);
       }
     } else if (pDivisor.isZero()) {
       // (4) Divisor is zero (and dividend is finite)
-      return resultSign ? negativeInfinity(format) : infinity(format);
+      return infinity(format, resultSign);
     } else if (pDivisor.isInfinite()) {
       // (5) Divisor is infinite (and dividend is finite)
       return resultSign ? negativeZero(format) : zero(format);
@@ -1552,7 +1558,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     // If the exponent of the result is beyond the exponent range, skip the calculation and return
     // infinity immediately.
     if (resultExponent > format.maxExp()) {
-      return resultSign ? negativeInfinity(format) : infinity(format);
+      return infinity(format, resultSign);
     }
     // If it is below the subnormal range, return zero immediately.
     if (resultExponent < format.minExp() - (format.sigBits + 1)) {
@@ -1618,11 +1624,11 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       if (pDivisor.isInfinite()) {
         return resultSign ? nan(format).negate() : nan(format);
       } else {
-        return resultSign ? negativeInfinity(format) : infinity(format);
+        return infinity(format, resultSign);
       }
     } else if (pDivisor.isZero()) {
       // (4) Divisor is zero (and dividend is finite)
-      return resultSign ? negativeInfinity(format) : infinity(format);
+      return infinity(format, resultSign);
     } else if (pDivisor.isInfinite()) {
       // (5) Divisor is infinite (and dividend is finite)
       return resultSign ? negativeZero(format) : zero(format);
@@ -2167,7 +2173,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       // returns +∞ and raises FE_DIVBYZERO
       // pow(-0, exponent), where exponent is a negative odd integer
       // returns -∞ and raises FE_DIVBYZERO
-      return isNegative() ? negativeInfinity(format) : infinity(format);
+      return infinity(format, sign);
     } else if (isZero() && pExponent.isNegative()) {
       // pow(±0, -∞) returns +∞ and may raise FE_DIVBYZERO(until C23)
       // pow(±0, exponent), where exponent is negative, finite, and is an even integer or a
@@ -2367,7 +2373,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
     // Check if we need to round to infinity
     if (resultExponent > format.maxExp()) {
-      return isNegative() ? negativeInfinity(format) : infinity(format);
+      return infinity(format, sign);
     }
     return new FloatValue(format, sign, resultExponent, resultSignificand);
   }
@@ -2402,7 +2408,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Return infinity if there is an overflow.
     if (exponent > pFormat.maxExp()) {
-      return sign ? negativeInfinity(pFormat) : infinity(pFormat);
+      return infinity(pFormat, sign);
     }
 
     return new FloatValue(pFormat, sign, exponent, significand);
@@ -2641,7 +2647,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     if (Float.isNaN(pFloat)) {
       return sign ? nan(Format.Float32).negate() : nan(Format.Float32);
     } else if (Float.isInfinite(pFloat)) {
-      return sign ? negativeInfinity(Format.Float32) : infinity(Format.Float32);
+      return infinity(Format.Float32, sign);
     } else {
       // Get the exponent and the significand
       long expBits = (rawBits & Format.FLOAT32_EXPONENT_MASK) >> Format.FLOAT32_SIG_BITS;
@@ -2687,7 +2693,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     if (Double.isNaN(pDouble)) {
       return sign ? nan(Format.Float64).negate() : nan(Format.Float64);
     } else if (Double.isInfinite(pDouble)) {
-      return sign ? negativeInfinity(Format.Float64) : infinity(Format.Float64);
+      return infinity(Format.Float64, sign);
     } else {
       // Get the exponent and the significand
       long expBits = (rawBits & Format.FLOAT64_EXPONENT_MASK) >> Format.FLOAT64_SIG_BITS;
