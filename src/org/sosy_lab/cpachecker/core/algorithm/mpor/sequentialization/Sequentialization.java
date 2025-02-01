@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -188,11 +189,9 @@ public class Sequentialization {
 
     // create pruned (i.e. only non-blank) cases statements in main method
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
-        mapCaseClauses(pSubstitutions, subEdges, returnPcVars, threadVars);
-    assert validCaseClauses(caseClauses, pLogger);
+        initCaseClauses(pSubstitutions, subEdges, returnPcVars, threadVars, pLogger);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
-        pruneCaseClauses(caseClauses);
-    assert validCaseClauses(prunedCaseClauses, pLogger);
+        pruneCaseClauses(caseClauses, pLogger);
     // optional: include loop invariant assertions over thread variables
     Optional<ImmutableList<SeqLogicalAndExpression>> loopInvariants =
         pOptions.addLoopInvariants
@@ -318,11 +317,12 @@ public class Sequentialization {
   }
 
   /**
-   * Returns {@code true} if all targetPc (e.g. {@code pc[i] = 42;}) except {@code -1} in
-   * pCaseClauses are present as an originPc (e.g. {@code case 42:}), false otherwise. <br>
+   * Returns {@code pCaseClauses} as is if all targetPc (e.g. {@code pc[i] = 42;}) except {@code -1}
+   * are present as an originPc (e.g. {@code case 42:}), throws a {@link AssertionError} otherwise.
+   * <br>
    * Every sequentialization needs to fulfill this property, otherwise it is faulty.
    */
-  private boolean validCaseClauses(
+  private ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> validCaseClauses(
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses, LogManager pLogger) {
 
     for (ImmutableList<SeqCaseClause> caseClauses : pCaseClauses.values()) {
@@ -331,17 +331,18 @@ public class Sequentialization {
       // check if each targetPc is also present as an origin pc
       for (var pcEntry : pcMap.entrySet()) {
         for (int targetPc : pcEntry.getValue()) {
-          // exclude EXIT_PC, it is never present as a pc
+          // exclude EXIT_PC, it is never present as an origin pc
           if (targetPc != SeqUtil.EXIT_PC) {
             if (!pcMap.containsKey(targetPc)) {
               pLogger.log(Level.SEVERE, "targetPc %s does not exist as an origin pc", targetPc);
-              return false;
+              throw new AssertionError(
+                  "MPOR FAIL. Sequentialization could not be created due to an internal error.");
             }
           }
         }
       }
     }
-    return true;
+    return pCaseClauses;
   }
 
   /** Maps origin pcs n in {@code case n} to the set of target pcs m {@code pc[t_id] = m}. */
@@ -410,11 +411,12 @@ public class Sequentialization {
   }
 
   /** Maps threads to the case clauses they potentially execute. */
-  private ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> mapCaseClauses(
+  private ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> initCaseClauses(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
       ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> pReturnPcVars,
-      ThreadVars pThreadVars)
+      ThreadVars pThreadVars,
+      LogManager pLogger)
       throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rCaseClauses =
@@ -443,103 +445,161 @@ public class Sequentialization {
       }
       rCaseClauses.put(thread, caseClauses.build());
     }
-    return rCaseClauses.buildOrThrow();
+    return validCaseClauses(rCaseClauses.buildOrThrow(), pLogger);
   }
 
   /**
-   * Extracts {@link SeqCaseClause}s that are not {@link SeqBlankStatement}s from pCaseClauses and
-   * updates the {@code pc} accordingly.
+   * Prunes all {@link SeqCaseClause}s of {@link MPORThread}s so that no {@link SeqBlankStatement}s
+   * are present in the pruned version and updates {@code pc} accordingly.
+   *
+   * <p>This method ensures that all {@code pc} are valid i.e. there is no {@code pc} assignment
+   * that is not present in a threads simulation as a {@code case} label.
    */
   private ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pruneCaseClauses(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses)
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses, LogManager pLogger)
       throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> pruned = ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {
       ImmutableList<SeqCaseClause> caseClauses = entry.getValue();
-      ImmutableMap<Integer, SeqCaseClause> caseLabelValueMap =
-          mapCaseLabelValueToCaseClauses(caseClauses);
-      // map from case label pruned pcs to their new pcs after step 1 pruning
-      Map<Integer, Integer> prunePcs = new HashMap<>();
-      ImmutableList.Builder<SeqCaseClause> prune1 = ImmutableList.builder();
-
-      Set<SeqCaseClause> prunable = new HashSet<>();
-      Set<Long> newIds = new HashSet<>();
-
-      // step 1: recursively prune by executing chains of blank cases until a non-blank is found
-      for (SeqCaseClause caseClause : caseClauses) {
-        if (!prunable.contains(caseClause)) {
-          if (caseClause.isPrunable()) {
-            int pc = caseClause.caseLabel.value;
-            SeqCaseClause nonBlank =
-                findNonBlankCaseClause(caseLabelValueMap, caseClause, prunable, caseClause);
-            int nonBlankPc = nonBlank.caseLabel.value;
-            if (!nonBlank.isPrunable()) {
-              if (prunePcs.containsKey(nonBlankPc)) {
-                // a nonBlank may be reachable through multiple blank paths
-                // -> reference the first clone to prevent duplication of cases
-                prunePcs.put(pc, prunePcs.get(nonBlankPc));
-              } else {
-                prune1.add(nonBlank.cloneWithCaseLabel(caseClause.caseLabel));
-                newIds.add(nonBlank.id);
-                prunePcs.put(nonBlankPc, pc);
-              }
-            } else {
-              // non-blank still prunable -> path leads to thread exit node
-              assert nonBlank.caseBlock.statements.size() == 1;
-              int targetPc = nonBlank.caseBlock.statements.get(0).getTargetPc().orElseThrow();
-              assert targetPc == SeqUtil.EXIT_PC;
-              prunePcs.put(nonBlankPc, targetPc);
-              // pcs not equal -> thread exit reachable through multiple paths -> add both to pruned
-              if (pc != nonBlankPc) {
-                prunePcs.put(pc, targetPc);
-              }
-            }
-          } else if (!newIds.contains(caseClause.id)) {
-            prune1.add(caseClause);
-            newIds.add(caseClause.id);
-          }
+      if (isPrunable(caseClauses)) {
+        MPORThread thread = entry.getKey();
+        // if all case clauses are prunable then we want to include only the thread termination case
+        //  e.g. goblint-regression/13-privatized_66-mine-W-init_true.i (t_fun exits immediately)
+        if (allPrunable(caseClauses)) {
+          SeqCaseClause threadExit = getThreadExitCaseClause(caseClauses);
+          // ensure that the single thread exit case clause has label INIT_PC
+          pruned.put(
+              thread,
+              ImmutableList.of(
+                  threadExit.caseLabel.value == SeqUtil.INIT_PC
+                      ? threadExit
+                      : threadExit.cloneWithCaseLabel(new SeqCaseLabel(SeqUtil.INIT_PC))));
+        } else {
+          pruned.put(thread, pruneSingleThreadCaseClauses(caseClauses));
         }
       }
-      // step 2: ensure all targetPcs point to a valid pc after pruning
-      ImmutableList.Builder<SeqCaseClause> prune2 = ImmutableList.builder();
-      for (SeqCaseClause caseClause : prune1.build()) {
-        ImmutableList.Builder<SeqCaseBlockStatement> newStmts = ImmutableList.builder();
-        for (SeqCaseBlockStatement stmt : caseClause.caseBlock.statements) {
-          Optional<Integer> targetPc = stmt.getTargetPc();
-          // if the statement targets a pruned pc, clone it with the new target pc
-          if (targetPc.isPresent() && prunePcs.containsKey(targetPc.orElseThrow())) {
-            int newTargetPc = prunePcs.get(targetPc.orElseThrow());
-            newStmts.add(stmt.cloneWithTargetPc(newTargetPc));
-          } else {
-            // otherwise, add unchanged statement
-            newStmts.add(stmt);
-          }
-        }
-        prune2.add(
-            caseClause.cloneWithCaseBlock(new SeqCaseBlock(newStmts.build(), Terminator.CONTINUE)));
-      }
-      pruned.put(entry.getKey(), prune2.build());
     }
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> rPruned = pruned.buildOrThrow();
-    assert !isPrunable(rPruned);
-    return rPruned;
+    return validCaseClauses(rPruned, pLogger);
+  }
+
+  private SeqCaseClause getThreadExitCaseClause(ImmutableList<SeqCaseClause> pCaseClauses) {
+    for (SeqCaseClause caseClause : pCaseClauses) {
+      for (SeqCaseBlockStatement statement : caseClause.caseBlock.statements) {
+        if (statement.getTargetPc().orElseThrow() == SeqUtil.EXIT_PC) {
+          return caseClause;
+        }
+      }
+    }
+    throw new AssertionError("no thread exit found in pCaseClauses");
   }
 
   /**
-   * Returns {@code true} if any {@link SeqCaseClause} of any thread can be pruned, i.e. contains
-   * only blank statements, and {@code false} otherwise.
+   * Extracts {@link SeqCaseClause}s that are not {@link SeqBlankStatement}s from pCaseClauses and
+   * updates the {@code pc} accordingly.
+   *
+   * <p>This method ensures that the returned, pruned {@link SeqCaseClause} cannot be pruned
+   * further.
    */
-  private boolean isPrunable(ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
+  private ImmutableList<SeqCaseClause> pruneSingleThreadCaseClauses(
+      ImmutableList<SeqCaseClause> pCaseClauses) throws UnrecognizedCodeException {
 
-    for (ImmutableList<SeqCaseClause> caseClauses : pCaseClauses.values()) {
-      for (SeqCaseClause caseClause : caseClauses) {
+    // only prune if there is more than one case clause, otherwise there is no pc match. this can
+    // be the case with e.g. goblint-regression/13-privatized_66-mine-W-init_true where the thread
+    // exits immediately
+
+    ImmutableMap<Integer, SeqCaseClause> caseLabelValueMap =
+        mapCaseLabelValueToCaseClauses(pCaseClauses);
+    // map from case label pruned pcs to their new pcs after step 1 pruning
+    Map<Integer, Integer> prunePcs = new HashMap<>();
+    ImmutableList.Builder<SeqCaseClause> prune1 = ImmutableList.builder();
+
+    Set<SeqCaseClause> prunable = new HashSet<>();
+    Set<Long> newIds = new HashSet<>();
+
+    // step 1: recursively prune by executing chains of blank cases until a non-blank is found
+    for (SeqCaseClause caseClause : pCaseClauses) {
+      if (!prunable.contains(caseClause)) {
         if (caseClause.isPrunable()) {
-          return true;
+          int pc = caseClause.caseLabel.value;
+          SeqCaseClause nonBlank =
+              findNonBlankCaseClause(caseLabelValueMap, caseClause, prunable, caseClause);
+          int nonBlankPc = nonBlank.caseLabel.value;
+          if (!nonBlank.isPrunable()) {
+            if (prunePcs.containsKey(nonBlankPc)) {
+              // a nonBlank may be reachable through multiple blank paths
+              // -> reference the first clone to prevent duplication of cases
+              prunePcs.put(pc, prunePcs.get(nonBlankPc));
+            } else {
+              prune1.add(nonBlank.cloneWithCaseLabel(caseClause.caseLabel));
+              newIds.add(nonBlank.id);
+              prunePcs.put(nonBlankPc, pc);
+            }
+          } else {
+            // non-blank still prunable -> path leads to thread exit node
+            assert nonBlank.caseBlock.statements.size() == 1;
+            int targetPc = nonBlank.caseBlock.statements.get(0).getTargetPc().orElseThrow();
+            assert targetPc == SeqUtil.EXIT_PC;
+            prunePcs.put(nonBlankPc, targetPc);
+            // pcs not equal -> thread exit reachable through multiple paths -> add both to pruned
+            if (pc != nonBlankPc) {
+              prunePcs.put(pc, targetPc);
+            }
+          }
+        } else if (!newIds.contains(caseClause.id)) {
+          prune1.add(caseClause);
+          newIds.add(caseClause.id);
         }
       }
     }
+    // step 2: update targetPcs if they point to a pruned pc
+    ImmutableList.Builder<SeqCaseClause> prune2 = ImmutableList.builder();
+    for (SeqCaseClause caseClause : prune1.build()) {
+      ImmutableList.Builder<SeqCaseBlockStatement> newStmts = ImmutableList.builder();
+      for (SeqCaseBlockStatement stmt : caseClause.caseBlock.statements) {
+        Optional<Integer> targetPc = stmt.getTargetPc();
+        // if the statement targets a pruned pc, clone it with the new target pc
+        if (targetPc.isPresent() && prunePcs.containsKey(targetPc.orElseThrow())) {
+          int newTargetPc = prunePcs.get(targetPc.orElseThrow());
+          newStmts.add(stmt.cloneWithTargetPc(newTargetPc));
+        } else {
+          // otherwise, add unchanged statement
+          newStmts.add(stmt);
+        }
+      }
+      prune2.add(
+          caseClause.cloneWithCaseBlock(new SeqCaseBlock(newStmts.build(), Terminator.CONTINUE)));
+    }
+    ImmutableList<SeqCaseClause> rPrune = prune2.build();
+    Verify.verify(!isPrunable(rPrune));
+    return rPrune;
+  }
+
+  /**
+   * Returns {@code true} if any {@link SeqCaseClause} can be pruned, i.e. contains only blank
+   * statements, and {@code false} otherwise.
+   */
+  private boolean isPrunable(ImmutableList<SeqCaseClause> pCaseClauses) {
+    for (SeqCaseClause caseClause : pCaseClauses) {
+      if (caseClause.isPrunable()) {
+        return true;
+      }
+    }
     return false;
+  }
+
+  /**
+   * Returns {@code true} if all {@link SeqCaseClause}s can be pruned, i.e. contains only blank
+   * statements, and {@code false} otherwise.
+   */
+  private boolean allPrunable(ImmutableList<SeqCaseClause> pCaseClauses) {
+    for (SeqCaseClause caseClause : pCaseClauses) {
+      if (!caseClause.isPrunable()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -790,6 +850,7 @@ public class Sequentialization {
     return rVars.buildOrThrow();
   }
 
+  // TODO make sure to use consistent naming (not awaits but locks)
   private ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>>
       mapThreadAwaitsMutexVars(
           ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
@@ -862,6 +923,7 @@ public class Sequentialization {
     return rVars.buildOrThrow();
   }
 
+  // TODO this should be in SeqNameBuilder?
   // String Creators =============================================================================
 
   private String createNonVarDecString(MPORThread pThread) {
