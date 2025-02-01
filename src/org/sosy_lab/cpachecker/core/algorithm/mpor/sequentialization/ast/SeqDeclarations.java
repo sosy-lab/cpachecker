@@ -61,9 +61,8 @@ public class SeqDeclarations {
      */
     public static CVariableDeclaration buildReturnPcVarDec(int pThreadId, String pFuncName) {
       String varName = SeqNameBuilder.createReturnPcName(pThreadId, pFuncName);
-      // TODO initialize with -2 and assert that it is not -2 when assigning in the
-      //  sequentialization?
-      return buildVarDec(true, SeqSimpleType.INT, varName, SeqInitializer.INT_0);
+      // init -1 -> when initially reading before writing (to int >= 0) then -1 is faulty
+      return buildVarDec(true, SeqSimpleType.INT, varName, SeqInitializer.INT_MINUS_1);
     }
   }
 

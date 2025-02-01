@@ -505,10 +505,6 @@ public class Sequentialization {
   private ImmutableList<SeqCaseClause> pruneSingleThreadCaseClauses(
       ImmutableList<SeqCaseClause> pCaseClauses) throws UnrecognizedCodeException {
 
-    // only prune if there is more than one case clause, otherwise there is no pc match. this can
-    // be the case with e.g. goblint-regression/13-privatized_66-mine-W-init_true where the thread
-    // exits immediately
-
     ImmutableMap<Integer, SeqCaseClause> caseLabelValueMap =
         mapCaseLabelValueToCaseClauses(pCaseClauses);
     // map from case label pruned pcs to their new pcs after step 1 pruning
