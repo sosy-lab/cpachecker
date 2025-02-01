@@ -83,7 +83,7 @@ public class SeqCaseClause implements SeqStatement {
    */
   public boolean alwaysUpdatesPc() {
     for (SeqCaseBlockStatement stmt : block.statements) {
-      if (!stmt.alwaysUpdatesPc()) {
+      if (!stmt.alwaysWritesPc()) {
         return false;
       }
     }

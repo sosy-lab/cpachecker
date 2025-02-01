@@ -16,14 +16,31 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 
 public class SeqStatements {
 
-  public static CExpressionAssignmentStatement buildExprAssign(
-      CLeftHandSide pLhs, CExpression pRhs) {
-    return new CExpressionAssignmentStatement(FileLocation.DUMMY, pLhs, pRhs);
-  }
+  public static class SeqExpressionAssignmentStatement {
 
-  public static CExpressionAssignmentStatement buildPcUpdate(int pThreadId, int pTargetPc) {
-    return SeqExpressions.buildExprAssignStmt(
-        SeqExpressions.getPcExpression(pThreadId),
-        SeqIntegerLiteralExpression.buildIntLiteralExpr(pTargetPc));
+    /** Returns {@code pLeftHandSide = pRightHandSide;}. */
+    public static CExpressionAssignmentStatement build(
+        CLeftHandSide pLeftHandSide, CExpression pRightHandSide) {
+
+      return new CExpressionAssignmentStatement(FileLocation.DUMMY, pLeftHandSide, pRightHandSide);
+    }
+
+    /**
+     * Returns the {@link CExpressionAssignmentStatement} of {@code pc[pThreadId] = pTargetPc;} or
+     * {@code pc{pThreadId} = pTargetPc;} for scalarPc.
+     */
+    public static CExpressionAssignmentStatement buildPcWrite(int pThreadId, int pTargetPc) {
+      return buildPcWrite(pThreadId, SeqIntegerLiteralExpression.buildIntLiteralExpr(pTargetPc));
+    }
+
+    /**
+     * Returns the {@link CExpressionAssignmentStatement} of {@code pc[pThreadId] = pRightHandSide;}
+     * or {@code pc{pThreadId} = pRightHandSide;} for scalarPc.
+     */
+    public static CExpressionAssignmentStatement buildPcWrite(
+        int pThreadId, CExpression pRightHandSide) {
+
+      return build(SeqExpressions.getPcExpression(pThreadId), pRightHandSide);
+    }
   }
 }

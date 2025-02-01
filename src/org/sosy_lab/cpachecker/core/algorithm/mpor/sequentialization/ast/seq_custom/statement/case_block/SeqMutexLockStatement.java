@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
@@ -62,7 +62,9 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
     CExpressionAssignmentStatement setLocksFalse =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, threadLocksMutex, SeqIntegerLiteralExpression.INT_0);
-    CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(threadId, targetPc);
+
+    CExpressionAssignmentStatement pcWrite =
+        SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
 
     String elseStmts =
         SeqUtil.wrapInCurlyInwards(
@@ -70,7 +72,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
                 + SeqSyntax.SPACE
                 + setLocksFalse.toASTString()
                 + SeqSyntax.SPACE
-                + pcUpdate.toASTString());
+                + pcWrite.toASTString());
 
     return ifLocked.toASTString()
         + SeqSyntax.SPACE
@@ -93,7 +95,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public boolean alwaysUpdatesPc() {
+  public boolean alwaysWritesPc() {
     return false;
   }
 }

@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
@@ -75,10 +75,11 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
     CExpressionAssignmentStatement joinsFalse =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, threadJoins, SeqIntegerLiteralExpression.INT_0);
-    CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(threadId, targetPc);
+    CExpressionAssignmentStatement pcWrite =
+        SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
     String elseStmts =
         SeqUtil.wrapInCurlyInwards(
-            joinsFalse.toASTString() + SeqSyntax.SPACE + pcUpdate.toASTString());
+            joinsFalse.toASTString() + SeqSyntax.SPACE + pcWrite.toASTString());
     return ifJoinedThreadActive.toASTString()
         + SeqSyntax.SPACE
         + SeqUtil.wrapInCurlyInwards(joinsTrue.toASTString())
@@ -100,7 +101,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public boolean alwaysUpdatesPc() {
+  public boolean alwaysWritesPc() {
     return false;
   }
 }

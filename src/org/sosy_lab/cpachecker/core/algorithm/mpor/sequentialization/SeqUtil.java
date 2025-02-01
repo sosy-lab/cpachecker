@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalAndExpression;
@@ -258,7 +258,7 @@ public class SeqUtil {
                 assert pThreadVars.locked.containsKey(unlockedMutexT);
                 // assign 0 to locked variable
                 CExpressionAssignmentStatement lockedFalse =
-                    SeqStatements.buildExprAssign(
+                    SeqExpressionAssignmentStatement.build(
                         Objects.requireNonNull(pThreadVars.locked.get(unlockedMutexT)).idExpression,
                         SeqIntegerLiteralExpression.INT_0);
                 stmts.add(new SeqMutexUnlockStatement(lockedFalse, pThread.id, targetPc));
@@ -291,7 +291,7 @@ public class SeqUtil {
                 assert pThreadVars.atomicInUse.isPresent();
                 // assign 0 to ATOMIC_IN_USE variable
                 CExpressionAssignmentStatement atomicInUseFalse =
-                    SeqStatements.buildExprAssign(
+                    SeqExpressionAssignmentStatement.build(
                         Objects.requireNonNull(pThreadVars.atomicInUse.orElseThrow().idExpression),
                         SeqIntegerLiteralExpression.INT_0);
                 stmts.add(new SeqAtomicEndStatement(atomicInUseFalse, pThread.id, targetPc));

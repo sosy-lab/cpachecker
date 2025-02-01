@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -187,12 +186,7 @@ public class SeqExpressions {
 
   // Helper Functions ============================================================================
 
-  // TODO move to SeqStatements
-  public static CExpressionAssignmentStatement buildExprAssignStmt(
-      CLeftHandSide pLhs, CExpression pRhs) {
-    return new CExpressionAssignmentStatement(FileLocation.DUMMY, pLhs, pRhs);
-  }
-
+  // TODO this entire cross referencing is not really nice or safe with the arrayPc / scalarPc
   public static CLeftHandSide getPcExpression(int pThreadId) {
     if (SeqArraySubscriptExpression.areArrayPcSet()) {
       assert !SeqIdExpression.areScalarPcSet();

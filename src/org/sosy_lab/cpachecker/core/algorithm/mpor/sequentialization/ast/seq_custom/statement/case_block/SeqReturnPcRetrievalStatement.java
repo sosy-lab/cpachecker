@@ -12,8 +12,7 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 
 /**
  * Represents a {@code return_pc} retrieval, i.e. assigning the {@code return_pc} to the current
@@ -34,9 +33,9 @@ public class SeqReturnPcRetrievalStatement implements SeqCaseBlockStatement {
 
   @Override
   public String toASTString() {
-    CLeftHandSide pc = SeqExpressions.getPcExpression(threadId);
-    CExpressionAssignmentStatement assignment = SeqExpressions.buildExprAssignStmt(pc, returnPcVar);
-    return assignment.toASTString();
+    CExpressionAssignmentStatement pcWrite =
+        SeqExpressionAssignmentStatement.buildPcWrite(threadId, returnPcVar);
+    return pcWrite.toASTString();
   }
 
   @Override
@@ -51,7 +50,7 @@ public class SeqReturnPcRetrievalStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public boolean alwaysUpdatesPc() {
+  public boolean alwaysWritesPc() {
     return true;
   }
 }

@@ -19,5 +19,5 @@ public interface SeqCaseBlockStatement extends SeqStatement {
 
   @NonNull SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException;
 
-  boolean alwaysUpdatesPc();
+  boolean alwaysWritesPc();
 }

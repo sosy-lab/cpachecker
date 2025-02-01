@@ -8,6 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+
 public interface SeqASTNode {
+  /**
+   * It is generally preferred to lazily (i.e. inside this function implementation) initialize
+   * objects such as {@link CStatement}s even if they are only dependent on {@code final} variables.
+   */
   String toASTString();
 }

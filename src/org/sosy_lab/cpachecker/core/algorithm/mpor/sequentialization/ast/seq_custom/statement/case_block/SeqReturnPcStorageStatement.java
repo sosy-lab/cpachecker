@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 
+// TODO also rename storage / retrieval to write / read -> more concise
 /**
  * Represents a {@code return_pc} storage, i.e. assigning the successor {@code pc} to the {@code
  * return_pc}.
@@ -44,6 +45,7 @@ public class SeqReturnPcStorageStatement implements SeqCaseBlockStatement {
 
   @Override
   public Optional<Integer> getTargetPc() {
+    // TODO is this really valid? also where is the actual target pc?
     // the return_pc is treated as a targetPc because it must be a valid targetPc
     return Optional.of(returnPc);
   }
@@ -55,7 +57,7 @@ public class SeqReturnPcStorageStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public boolean alwaysUpdatesPc() {
+  public boolean alwaysWritesPc() {
     return true;
   }
 }

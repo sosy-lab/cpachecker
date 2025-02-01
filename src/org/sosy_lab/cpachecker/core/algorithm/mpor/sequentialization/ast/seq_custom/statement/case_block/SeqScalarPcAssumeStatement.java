@@ -12,6 +12,11 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 
+/**
+ * Only used with {@code scalarPc} when assuming that the next thread is still active, e.g.
+ *
+ * <p>{@code switch(next_thread) { case 0: assume(pc0 != -1); break; ... }}
+ */
 public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
 
   private final SeqStatement statement;
@@ -37,7 +42,7 @@ public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public boolean alwaysUpdatesPc() {
+  public boolean alwaysWritesPc() {
     throw new UnsupportedOperationException("SeqScalarPcAssumeStatement are not part of POR");
   }
 }

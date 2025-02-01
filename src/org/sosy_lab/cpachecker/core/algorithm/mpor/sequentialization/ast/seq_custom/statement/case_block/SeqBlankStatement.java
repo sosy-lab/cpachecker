@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 
 /**
  * Represents a blank case block which only has a {@code pc} update. All blank statements are later
@@ -32,8 +32,9 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   @Override
   public String toASTString() {
-    CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(threadId, targetPc);
-    return pcUpdate.toASTString();
+    CExpressionAssignmentStatement pcWrite =
+        SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
+    return pcWrite.toASTString();
   }
 
   @Override
@@ -48,7 +49,7 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public boolean alwaysUpdatesPc() {
+  public boolean alwaysWritesPc() {
     return true;
   }
 }

@@ -12,7 +12,7 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
@@ -35,10 +35,11 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
 
   @Override
   public String toASTString() {
-    CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(threadId, targetPc);
+    CExpressionAssignmentStatement pcWrite =
+        SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
     return controlFlowStatement.toASTString()
         + SeqSyntax.SPACE
-        + SeqUtil.wrapInCurlyInwards(pcUpdate.toASTString());
+        + SeqUtil.wrapInCurlyInwards(pcWrite.toASTString());
   }
 
   @Override
@@ -53,7 +54,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public boolean alwaysUpdatesPc() {
+  public boolean alwaysWritesPc() {
     return true;
   }
 }

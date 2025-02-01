@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
@@ -34,6 +34,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
   public SeqAtomicBeginStatement(
       CIdExpression pAtomicInUse, CIdExpression pThreadBeginsAtomic, int pThreadId, int pTargetPc) {
+
     atomicInUse = pAtomicInUse;
     threadBeginsAtomic = pThreadBeginsAtomic;
     threadId = pThreadId;
@@ -53,7 +54,9 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
     CExpressionAssignmentStatement setBeginsFalse =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, threadBeginsAtomic, SeqIntegerLiteralExpression.INT_0);
-    CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(threadId, targetPc);
+
+    CExpressionAssignmentStatement pcWrite =
+        SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
 
     String elseStmts =
         SeqUtil.wrapInCurlyInwards(
@@ -61,7 +64,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
                 + SeqSyntax.SPACE
                 + setBeginsFalse.toASTString()
                 + SeqSyntax.SPACE
-                + pcUpdate.toASTString());
+                + pcWrite.toASTString());
 
     return ifAtomicInUse.toASTString()
         + SeqSyntax.SPACE
@@ -84,7 +87,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public boolean alwaysUpdatesPc() {
+  public boolean alwaysWritesPc() {
     return false;
   }
 }

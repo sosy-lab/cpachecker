@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
@@ -72,11 +72,12 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
     }
     // TODO remove hardcoded int values?
     SeqSwitchStatement switchStatement = new SeqSwitchStatement(returnPc, caseClauses.build(), 5);
-    CExpressionAssignmentStatement pcUpdate = SeqStatements.buildPcUpdate(threadId, targetPc);
+    CExpressionAssignmentStatement pcWrite =
+        SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
     return SeqSyntax.NEWLINE
         + switchStatement.toASTString()
         + SeqSyntax.NEWLINE
-        + SeqUtil.prependTabsWithoutNewline(5, pcUpdate.toASTString());
+        + SeqUtil.prependTabsWithoutNewline(5, pcWrite.toASTString());
   }
 
   /** Returns {@code true} if any {@link CLeftHandSide} in pAssignments is a global variable. */
@@ -105,7 +106,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
   }
 
   @Override
-  public boolean alwaysUpdatesPc() {
+  public boolean alwaysWritesPc() {
     return true;
   }
 
@@ -135,7 +136,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
     }
 
     @Override
-    public boolean alwaysUpdatesPc() {
+    public boolean alwaysWritesPc() {
       return true;
     }
   }

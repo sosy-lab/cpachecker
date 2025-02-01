@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 /**
@@ -30,6 +30,9 @@ public class SeqParameterAssignStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
+  // TODO better make this encompass multiple statements i.e. assigns with a non-optional
+  //  targetPc. we can still create an inner class here with only one assignment then we can remove
+  //  the optional entirely.
   public SeqParameterAssignStatement(
       CExpressionAssignmentStatement pAssign,
       Optional<Integer> pThreadId,
@@ -47,9 +50,10 @@ public class SeqParameterAssignStatement implements SeqCaseBlockStatement {
   @Override
   public String toASTString() {
     if (threadId.isPresent() && targetPc.isPresent()) {
-      CExpressionAssignmentStatement pcUpdate =
-          SeqStatements.buildPcUpdate(threadId.orElseThrow(), targetPc.orElseThrow());
-      return assign.toASTString() + SeqSyntax.SPACE + pcUpdate.toASTString();
+      CExpressionAssignmentStatement pcWrite =
+          SeqExpressionAssignmentStatement.buildPcWrite(
+              threadId.orElseThrow(), targetPc.orElseThrow());
+      return assign.toASTString() + SeqSyntax.SPACE + pcWrite.toASTString();
     } else if (threadId.isEmpty() && targetPc.isEmpty()) {
       return assign.toASTString();
     } else {
@@ -70,7 +74,7 @@ public class SeqParameterAssignStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public boolean alwaysUpdatesPc() {
+  public boolean alwaysWritesPc() {
     return true;
   }
 }
