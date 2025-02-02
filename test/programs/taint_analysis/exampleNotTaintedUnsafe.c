@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// Variable is not tainted, but the assertion sais otherwise
+// Variable is not tainted, but the assertion says otherwise
 int main() {
     int x = 5;
     __VERIFIER_assert_taint(x,1);
