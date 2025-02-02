@@ -8,16 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
-import com.google.common.collect.Sets;
 import java.math.BigInteger;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
