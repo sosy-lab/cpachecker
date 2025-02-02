@@ -31,15 +31,9 @@ public class TaintAnalysisUtils {
    * @return the {@link CIdExpression} present
    */
   public static Set<CIdExpression> getAllVarsAsCExpr(CExpression pExpression) {
-
-    if (pExpression instanceof CBinaryExpression bin) {
-      return Sets.union(getAllVarsAsCExpr(bin.getOperand1()), getAllVarsAsCExpr(bin.getOperand2()));
-    } else if (pExpression instanceof CUnaryExpression) {
-      return getAllVarsAsCExpr(((CUnaryExpression) pExpression).getOperand());
-    } else if (pExpression instanceof CIdExpression) {
-      return new HashSet<>(Collections.singleton((CIdExpression) pExpression));
-    }
-    return new HashSet<>();
+    // Initialize and invoke the visitor
+    CollectCIdExpressionsVisitor visitor = new CollectCIdExpressionsVisitor();
+    return pExpression.accept(visitor);
   }
 
   public static CIdExpression getCidExpressionForCVarDec(CVariableDeclaration pDec) {
