@@ -21,8 +21,6 @@ public class TaintAnalysisTest {
   private TestResults runCPAchecker(String pProgramName) throws Exception {
     final Configuration config =
         TestDataTools.configurationForTest()
-//            .setOption("config", "config/predicateAnalysis--taintAnalysis.properties")
-//            .setOption("cpa", "cpa.composite.CompositeCPA")
             .setOption(
                 "CompositeCPA.cpas",
                 "cpa.location.LocationCPA, " +
@@ -30,7 +28,6 @@ public class TaintAnalysisTest {
                     "cpa.functionpointer.FunctionPointerCPA, " +
                     "cpa.predicate.PredicateCPA, " +
                     "cpa.taintanalysis.TaintAnalysisCPA")
-//            .setOption("specification", "config/specification/taintAnalysis.spc")
             .build();
 
     String testDir = "test/programs/taint_analysis/";
@@ -60,6 +57,18 @@ public class TaintAnalysisTest {
   @Test
   public void testExampleTaintedUnsafe() throws Exception {
     TestResults results = runCPAchecker("exampleTaintedUnsafe.c");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testExampleSanitizeTaintedVariableSafe() throws Exception {
+    TestResults results = runCPAchecker("exampleSanitizeTaintedVariableSafe.c");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testExampleSanitizeTaintedVariableUnsafe() throws Exception {
+    TestResults results = runCPAchecker("exampleSanitizeTaintedVariableUnsafe.c");
     results.assertIsUnsafe();
   }
 }
