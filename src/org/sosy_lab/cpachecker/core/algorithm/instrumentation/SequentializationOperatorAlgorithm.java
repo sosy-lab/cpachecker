@@ -117,6 +117,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
 
     } else if (InstrumentationAutomaton.isDistanceTransformation(instrumentationProperty)) {
 
+      InstrumentationProperty defaultProperty = InstrumentationProperty.TERMINATION2;
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
       int index = 0;
       int successfulTransformations = 0;
@@ -137,7 +138,6 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
           LoopConditionChecker.VariableBoundInfo boundInfo =
               LoopConditionChecker.distanceCompatible(node, instrumentationProperty);
           if (boundInfo != null) {
-            // Distance-Transformation durchführen
             mapAutomataToLocations.put(
                 info.loopLocation(),
                 new InstrumentationAutomaton(
@@ -149,13 +149,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
             distanceTransformedNodes.put(node, new TransformedNodeInfo(index, info.loopLocation()));
 
           } else {
-            // Default-Transformation durchführen
             mapAutomataToLocations.put(
                 info.loopLocation(),
-                new InstrumentationAutomaton(
-                    InstrumentationProperty.TERMINATION2,
-                    info.liveVariablesAndTypes(),
-                    index));
+                new InstrumentationAutomaton(defaultProperty, info.liveVariablesAndTypes(), index));
             defaultTransformedNodes.put(node, new TransformedNodeInfo(index, info.loopLocation()));
           }
           index++;
@@ -165,8 +161,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       rankingLogger.logTransformationResults(
           fileName,
           instrumentationProperty,
+          defaultProperty,
           successfulTransformations,
-          index + 1,
+          index,
           distanceTransformedNodes,
           defaultTransformedNodes);
 

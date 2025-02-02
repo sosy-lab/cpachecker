@@ -41,6 +41,7 @@ public class RankingTransformationLogger {
     public void logTransformationResults(
             String transformedFile,
             InstrumentationProperty property,
+            InstrumentationProperty defaultProperty,
             int successfulTransformations,
             int allTransformations,
             Map<CFANode, TransformedNodeInfo> distanceTransformedHeads,
@@ -49,6 +50,7 @@ public class RankingTransformationLogger {
         try (BufferedWriter writer = Files.newBufferedWriter(logFile, StandardOpenOption.APPEND)) {
             writer.write("Original File: " + transformedFile + "\n");
             writer.write("Used Algorithm: " + property + "\n");
+            writer.write("Used Default-Algorithm: " + defaultProperty + "\n");
             writer.write(
                     "Successful Transformations: "
                             + "("
