@@ -29,42 +29,8 @@ int main() {
     int t;
     int u;
 
-    while (1<y)
-    {
-        y--;
-        a = 5;
-        b = 10;
-        while(a<b<f){
-            a++;
-            for (int d = 0; (d+1) < c; d++)
-            {
-                while (!(g<(5+6+7)))
-                {
-                    while((h*6)>=(i/4+5)){
-                        while((j+k)>(l)){
-                            while((m+n+9)<=(o)){
-                                while(p>q){
-                                    while(r==s){
-                                        while(t){
-                                            while(s+1){
+    while ((i >= 0)) {
 
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                
-            }
-            
-        }
-        if (x==5)
-        {
-            x=3;
-        }
-        
     }
     
 

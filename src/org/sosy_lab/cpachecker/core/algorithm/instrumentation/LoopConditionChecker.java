@@ -44,58 +44,65 @@ public class LoopConditionChecker {
     CFAEdge firstLeavingEdge = loopHead.getLeavingEdge(0);
 
     if (firstLeavingEdge instanceof AssumeEdge assumeEdge) {
-      AExpression expression = assumeEdge.getExpression();
+      String rawExpression = firstLeavingEdge.getRawStatement();
       // ==================//
-      // Language C //
+      // Language C
       // ==================//
-      if (expression instanceof CBinaryExpression binaryExpression) {
-        BinaryOperator operator = binaryExpression.getOperator();
+      if (!(containsCLogicOperators(rawExpression))) {
+        AExpression expression = assumeEdge.getExpression();
+        if (expression instanceof CBinaryExpression binaryExpression) {
+          BinaryOperator operator = binaryExpression.getOperator();
 
-        if (operator == BinaryOperator.LESS_THAN
-            || operator == BinaryOperator.GREATER_THAN
-            || operator == BinaryOperator.LESS_EQUAL
-            || operator == BinaryOperator.GREATER_EQUAL) {
+          if (operator == BinaryOperator.LESS_THAN
+              || operator == BinaryOperator.GREATER_THAN
+              || operator == BinaryOperator.LESS_EQUAL
+              || operator == BinaryOperator.GREATER_EQUAL) {
 
-          CExpression operand1 = binaryExpression.getOperand1();
-          CExpression operand2 = binaryExpression.getOperand2();
+            CExpression operand1 = binaryExpression.getOperand1();
+            CExpression operand2 = binaryExpression.getOperand2();
 
-          String leftVar;
-          String rightVar;
-          if (hasBinaryExpressions) {
-            leftVar = extractCVariable(operand1, hasMultipleVariables);
-            rightVar = extractCVariable(operand2, hasMultipleVariables);
+            String leftVar;
+            String rightVar;
+            if (hasBinaryExpressions) {
+              leftVar = extractCVariable(operand1, hasMultipleVariables);
+              rightVar = extractCVariable(operand2, hasMultipleVariables);
 
-            if (leftVar != null && rightVar != null) {
-              return new VariableBoundInfo(leftVar, rightVar);
-            } else if (leftVar != null) {
-              rightVar = extractCConstant(operand2);
-              if (rightVar != null) {
+              if (leftVar != null && rightVar != null) {
                 return new VariableBoundInfo(leftVar, rightVar);
+              } else if (leftVar != null) {
+                rightVar = extractCConstant(operand2);
+                if (rightVar != null) {
+                  return new VariableBoundInfo(leftVar, rightVar);
+                }
+              } else if (rightVar != null) {
+                leftVar = extractCConstant(operand1);
+                if (leftVar != null) {
+                  return new VariableBoundInfo(leftVar, rightVar);
+                }
               }
-            } else if (rightVar != null) {
-              leftVar = extractCConstant(operand1);
-              if (leftVar != null) {
-                return new VariableBoundInfo(leftVar, rightVar);
+            } else {
+              if ((operand1 instanceof CIdExpression cVarExp1)
+                  && (operand2 instanceof CIdExpression cVarExp2)) {
+                return new VariableBoundInfo(cVarExp1.getName(), cVarExp2.getName());
+              } else if ((operand1 instanceof CLiteralExpression cVarExp1)
+                  && (operand2 instanceof CIdExpression cVarExp2)) {
+                return new VariableBoundInfo(extractCConstant(cVarExp1), cVarExp2.getName());
+              } else if ((operand1 instanceof CIdExpression cVarExp1)
+                  && (operand2 instanceof CLiteralExpression cVarExp2)) {
+                return new VariableBoundInfo(cVarExp1.getName(), extractCConstant(cVarExp2));
               }
             }
-          } else {
-            if ((operand1 instanceof CIdExpression cVarExp1)
-                && (operand2 instanceof CIdExpression cVarExp2)) {
-              return new VariableBoundInfo(cVarExp1.getName(), cVarExp2.getName());
-            } else if ((operand1 instanceof CLiteralExpression cVarExp1)
-                && (operand2 instanceof CIdExpression cVarExp2)) {
-              return new VariableBoundInfo(extractCConstant(cVarExp1), cVarExp2.getName());
-            } else if ((operand1 instanceof CIdExpression cVarExp1)
-                && (operand2 instanceof CLiteralExpression cVarExp2)) {
-              return new VariableBoundInfo(cVarExp1.getName(), extractCConstant(cVarExp2));
-            }
+
           }
 
         }
-
       }
     }
     return null;
+  }
+
+  private static boolean containsCLogicOperators(String rawExpression) {
+    return (rawExpression.contains("&&") || rawExpression.contains("||"));
   }
 
   private static String extractCConstant(CExpression expression) {
