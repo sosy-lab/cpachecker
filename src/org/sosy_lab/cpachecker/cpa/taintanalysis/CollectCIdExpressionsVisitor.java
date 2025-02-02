@@ -32,7 +32,7 @@ public class CollectCIdExpressionsVisitor
 
   @Override
   public Set<CIdExpression> visit(CBinaryExpression pIastBinaryExpression) {
-    Set<CIdExpression> result = new HashSet<>();
+    Set<CIdExpression> result = new HashSet<>(pIastBinaryExpression.getOperand1().accept(this));
     result.addAll(pIastBinaryExpression.getOperand1().accept(this));
     result.addAll(pIastBinaryExpression.getOperand2().accept(this));
     return result;
@@ -57,7 +57,8 @@ public class CollectCIdExpressionsVisitor
 
   @Override
   public Set<CIdExpression> visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
-    Set<CIdExpression> result = new HashSet<>();
+    Set<CIdExpression> result =
+        new HashSet<>(pIastArraySubscriptExpression.getArrayExpression().accept(this));
     result.addAll(pIastArraySubscriptExpression.getArrayExpression().accept(this));
     result.addAll(pIastArraySubscriptExpression.getSubscriptExpression().accept(this));
     return result;
