@@ -62,7 +62,6 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   private final LogManager logger;
   private final CProgramScope cProgramScope;
   private final RankingTransformationLogger rankingLogger;
-  // TODO: Add ALGORITHM
   @Option(
     secure = true,
     description = "toggle the strategy to determine the hardcoded instrumentation automaton to be used\n"
@@ -117,7 +116,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
 
     } else if (InstrumentationAutomaton.isDistanceTransformation(instrumentationProperty)) {
 
-      InstrumentationProperty defaultProperty = InstrumentationProperty.TERMINATION2;
+      InstrumentationProperty defaultProperty = InstrumentationProperty.TERMINATION;
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
       int index = 0;
       int successfulTransformations = 0;

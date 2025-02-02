@@ -15,7 +15,7 @@ int main() {
     int f;
     int g;
     int h;
-    int i;
+    float i;
     int j;
     int k;
     int l;
@@ -29,9 +29,7 @@ int main() {
     int t;
     int u;
 
-    while ((i >= 0)) {
 
-    }
     
 
     return 0;

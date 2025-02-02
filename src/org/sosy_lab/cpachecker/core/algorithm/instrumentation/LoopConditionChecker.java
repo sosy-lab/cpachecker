@@ -30,9 +30,6 @@ public class LoopConditionChecker {
       case DISTANCE3:
         return distanceCompatibleBase(loopHead, true, true);
 
-      default:
-        // TODO Throw exception
-        break;
     }
     return null;
   }
