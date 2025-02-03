@@ -2424,10 +2424,6 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     return new FloatValue(pFormat, sign, exponent, significand);
   }
 
-  public static FloatValue fromInteger(Format pFormat, int pNumber) {
-    return fromInteger(pFormat, BigInteger.valueOf(pNumber));
-  }
-
   public static FloatValue fromInteger(Format pFormat, long pNumber) {
     return fromInteger(pFormat, BigInteger.valueOf(pNumber));
   }
