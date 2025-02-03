@@ -720,18 +720,13 @@ public class FloatValueTest {
     }
   }
 
-  private void assertEqual1Ulp(CFloat r1, CFloat r2) {
-    assertThat(printValue(toBigFloat(r1))).isIn(errorRange(ulpError(), toBigFloat(r2)));
+  private void assertEqual1Ulp(FloatValue result, CFloat expected) {
+    assertThat(printValue(toBigFloat(result))).isIn(errorRange(ulpError(), toBigFloat(expected)));
   }
 
   /** Create a test value for the tested implementation. */
   private CFloat toTestedImpl(BigFloat value) {
     return testValueToCFloatImpl(value, floatTestOptions.format);
-  }
-
-  /** Create a test value for the tested implementation by parsing a String. */
-  private CFloat toTestedImpl(String repr) {
-    return new CFloatImpl(repr, floatTestOptions.format);
   }
 
   /** Convert Format to a matching native floating point type */
@@ -1119,10 +1114,10 @@ public class FloatValueTest {
     }*/
     String val = "1.0969e+01";
 
-    CFloat tested = toTestedImpl(val);
-    CFloat reference = toReferenceImpl(val);
+    FloatValue tested = FloatValue.fromString(floatTestOptions.format, val);
+    FloatValue r1 = tested.exp();
 
-    CFloat r1 = tested.exp();
+    CFloat reference = toReferenceImpl(val);
     CFloat r2 = reference.exp();
 
     assertEqual1Ulp(r1, r2);
@@ -1136,13 +1131,12 @@ public class FloatValueTest {
     String val1 = "1.3835058e+19";
     String val2 = "2.7670116e+19";
 
-    CFloat tested1 = toTestedImpl(val1);
-    CFloat tested2 = toTestedImpl(val2);
+    FloatValue tested1 = FloatValue.fromString(floatTestOptions.format, val1);
+    FloatValue tested2 = FloatValue.fromString(floatTestOptions.format, val2);
+    FloatValue r1 = tested1.multiply(tested2);
 
     CFloat reference1 = toReferenceImpl(val1);
     CFloat reference2 = toReferenceImpl(val2);
-
-    CFloat r1 = tested1.multiply(tested2);
     CFloat r2 = reference1.multiply(reference2);
 
     assertEqual1Ulp(r1, r2);
@@ -1153,10 +1147,10 @@ public class FloatValueTest {
     assume().that(floatTestOptions.format).isEqualTo(Format.Float32);
     String val = "2.0";
 
-    CFloat tested = toTestedImpl(val);
-    CFloat reference = toReferenceImpl(val);
+    FloatValue tested = FloatValue.fromString(floatTestOptions.format, val);
+    FloatValue r1 = tested.sqrt();
 
-    CFloat r1 = tested.sqrt();
+    CFloat reference = toReferenceImpl(val);
     CFloat r2 = reference.sqrt();
 
     assertEqual1Ulp(r1, r2);
@@ -1167,10 +1161,10 @@ public class FloatValueTest {
     assume().that(floatTestOptions.format).isEqualTo(Format.Float32);
     String val = String.valueOf(Math.E);
 
-    CFloat tested = toTestedImpl(val);
-    CFloat reference = toReferenceImpl(val);
+    FloatValue tested = FloatValue.fromString(floatTestOptions.format, val);
+    FloatValue r1 = tested.ln();
 
-    CFloat r1 = tested.ln();
+    CFloat reference = toReferenceImpl(val);
     CFloat r2 = reference.ln();
 
     assertEqual1Ulp(r1, r2);
@@ -1182,10 +1176,10 @@ public class FloatValueTest {
     // Calculate ln for the next closest value to 1
     String val = "1.00000011920929";
 
-    CFloat tested = toTestedImpl(val);
-    CFloat reference = toReferenceImpl(val);
+    FloatValue tested = FloatValue.fromString(floatTestOptions.format, val);
+    FloatValue r1 = tested.ln();
 
-    CFloat r1 = tested.ln();
+    CFloat reference = toReferenceImpl(val);
     CFloat r2 = reference.ln();
 
     assertEqual1Ulp(r1, r2);
@@ -1197,10 +1191,10 @@ public class FloatValueTest {
     // Example of a value that is not correctly rounded by logf
     String val = "1.10175121e+00";
 
-    CFloat tested = toTestedImpl(val);
-    CFloat reference = toReferenceImpl(val);
+    FloatValue tested = FloatValue.fromString(floatTestOptions.format, val);
+    FloatValue r1 = tested.ln();
 
-    CFloat r1 = tested.ln();
+    CFloat reference = toReferenceImpl(val);
     CFloat r2 = reference.ln();
 
     assertEqual1Ulp(r1, r2);
@@ -1215,7 +1209,7 @@ public class FloatValueTest {
     // This causes the rounding test to fail as it keeps looking for another 1 before rounding
     String val = "16777217.0";
 
-    CFloat tested = toTestedImpl(val);
+    FloatValue tested = FloatValue.fromString(floatTestOptions.format, val);
     CFloat reference = toReferenceImpl(val);
 
     assertEqual1Ulp(tested, reference);
@@ -1228,10 +1222,10 @@ public class FloatValueTest {
     // Taken from "Handbook of Floating-Point Arithmetic", chapter 12
     String val = "7.5417527749959590085206221024712557043923055744016892276704E-10";
 
-    CFloat tested = toTestedImpl(val);
-    CFloat reference = toReferenceImpl(val);
+    FloatValue tested = FloatValue.fromString(floatTestOptions.format, val);
+    FloatValue r1 = tested.exp();
 
-    CFloat r1 = tested.exp();
+    CFloat reference = toReferenceImpl(val);
     CFloat r2 = reference.exp();
 
     assertEqual1Ulp(r1, r2);
@@ -1243,10 +1237,10 @@ public class FloatValueTest {
     // Example of a value that is not correctly rounded by either Math.exp() or exp() from math.h
     String val = "-2.920024588250959e-01";
 
-    CFloat tested = toTestedImpl(val);
-    CFloat reference = toReferenceImpl(val);
+    FloatValue tested = FloatValue.fromString(floatTestOptions.format, val);
+    FloatValue r1 = tested.exp();
 
-    CFloat r1 = tested.exp();
+    CFloat reference = toReferenceImpl(val);
     CFloat r2 = reference.exp();
 
     assertEqual1Ulp(r1, r2);
@@ -1259,13 +1253,12 @@ public class FloatValueTest {
     String val1 = "3.5355339059327379e-01";
     String val2 = "-2.2021710233624257e+00";
 
-    CFloat tested1 = toTestedImpl(val1);
-    CFloat tested2 = toTestedImpl(val2);
+    FloatValue tested1 = FloatValue.fromString(floatTestOptions.format, val1);
+    FloatValue tested2 = FloatValue.fromString(floatTestOptions.format, val2);
+    FloatValue r1 = tested1.pow(tested2);
 
     CFloat reference1 = toReferenceImpl(val1);
     CFloat reference2 = toReferenceImpl(val2);
-
-    CFloat r1 = tested1.powTo(tested2);
     CFloat r2 = reference1.powTo(reference2);
 
     assertEqual1Ulp(r1, r2);
@@ -1276,10 +1269,10 @@ public class FloatValueTest {
     assume().that(floatTestOptions.format).isEqualTo(Format.Float64);
     String val = "1.000001";
 
-    CFloat tested = toTestedImpl(val);
-    CFloat reference = toReferenceImpl(val);
-
+    FloatValue tested = FloatValue.fromString(floatTestOptions.format, val);
     String r1 = tested.toString();
+
+    CFloat reference = toReferenceImpl(val);
     String r2 = reference.toString();
 
     assertThat(r1).isEqualTo(r2);
