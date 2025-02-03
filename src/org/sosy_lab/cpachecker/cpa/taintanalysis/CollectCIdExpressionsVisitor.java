@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
+import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -32,10 +33,9 @@ public class CollectCIdExpressionsVisitor
 
   @Override
   public Set<CIdExpression> visit(CBinaryExpression pIastBinaryExpression) {
-    Set<CIdExpression> result = new HashSet<>(pIastBinaryExpression.getOperand1().accept(this));
-    result.addAll(pIastBinaryExpression.getOperand1().accept(this));
-    result.addAll(pIastBinaryExpression.getOperand2().accept(this));
-    return result;
+    return Sets.union(
+        pIastBinaryExpression.getOperand1().accept(this),
+        pIastBinaryExpression.getOperand2().accept(this));
   }
 
   @Override
@@ -57,11 +57,9 @@ public class CollectCIdExpressionsVisitor
 
   @Override
   public Set<CIdExpression> visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
-    Set<CIdExpression> result =
-        new HashSet<>(pIastArraySubscriptExpression.getArrayExpression().accept(this));
-    result.addAll(pIastArraySubscriptExpression.getArrayExpression().accept(this));
-    result.addAll(pIastArraySubscriptExpression.getSubscriptExpression().accept(this));
-    return result;
+    return Sets.union(
+        pIastArraySubscriptExpression.getArrayExpression().accept(this),
+        pIastArraySubscriptExpression.getSubscriptExpression().accept(this));
   }
 
   @Override
