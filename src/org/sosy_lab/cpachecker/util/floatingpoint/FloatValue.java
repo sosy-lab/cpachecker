@@ -589,7 +589,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * <p>Returns negative infinity if <code>pSign</code> is <code>True</code> and positive infinity
    * if it is <code>False</code>
    */
-  public static FloatValue signedInfinity(Format pFormat, boolean pSign) {
+  private static FloatValue signedInfinity(Format pFormat, boolean pSign) {
     return pSign ? negativeInfinity(pFormat) : infinity(pFormat);
   }
 
@@ -599,7 +599,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * <p>Returns <code>-0.0</code> if <code>pSign</code> is <code>True</code> and <code>0.0</code> if
    * it is <code>False</code>
    */
-  public static FloatValue signedZero(Format pFormat, boolean pSign) {
+  private static FloatValue signedZero(Format pFormat, boolean pSign) {
     return pSign ? negativeZero(pFormat) : zero(pFormat);
   }
 
