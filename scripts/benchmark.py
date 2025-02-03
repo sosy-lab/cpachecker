@@ -114,7 +114,8 @@ class Benchmark(VcloudBenchmarkBase):
             if result.returncode != 0:
                 sys.exit(
                     f"Error: Failed to check the Git status of the repository. "
-                    f"Git output:\n{result.stderr}")
+                    f"Git output:\n{result.stderr}"
+                )
             if result.stdout.strip():
                 sys.exit(
                     "Error: Only revisions in the CPAchecker repository are supported when "
@@ -131,7 +132,8 @@ class Benchmark(VcloudBenchmarkBase):
             if branch_result.returncode != 0:
                 sys.exit(
                     f"Error: Failed to determine the current Git branch. "
-                    f"Git output:\n{branch_result.stderr}")
+                    f"Git output:\n{branch_result.stderr}"
+                )
 
             upstream_check = subprocess.run(
                 ["git", "rev-parse", "HEAD", "HEAD@{u}"],
@@ -147,7 +149,9 @@ class Benchmark(VcloudBenchmarkBase):
                     "but ensure this revision is accessible in your repository."
                 )
             else:
-                local_commit, upstream_commit = upstream_check.stdout.strip().splitlines()
+                local_commit, upstream_commit = (
+                    upstream_check.stdout.strip().splitlines()
+                )
                 if local_commit != upstream_commit:
                     logging.warning(
                         "Warning: Current branch and upstream branch differ. "
