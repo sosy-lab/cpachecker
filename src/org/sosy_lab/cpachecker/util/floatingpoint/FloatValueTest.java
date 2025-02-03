@@ -801,11 +801,11 @@ public class FloatValueTest {
   public void fromStringTest() {
     for (BigFloat arg : unaryTestValues()) {
       try {
-        // Calculate result with the tested implementation
+        // Read the String with FloatValue.fromString
         BigFloat resultTested =
             toBigFloat(FloatValue.fromString(floatTestOptions.format, printBigFloat(arg)));
 
-        // Calculate result with the reference implementation
+        // Compare the result to the original value
         if (!resultTested.equals(arg)) {
           String testHeader = printTestHeader("fromString", arg);
           expect.withMessage(testHeader).that(printValue(resultTested)).isEqualTo(printValue(arg));
