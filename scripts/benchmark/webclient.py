@@ -91,6 +91,7 @@ HASH_CODE_CACHE_PATH = os.path.join(
 
 VALID_RUN_ID = re.compile("^[A-Za-z0-9-]+$")
 
+DEFAULT_TOOL_NAME = "CPAchecker"
 
 class WebClientError(Exception):
     def _init_(self, value):
@@ -434,7 +435,7 @@ class WebInterface:
         version_information = self._request_tool_information(revision)
         self._revision = version_information.get("commitHash", revision)
         self._tool_version = version_information.get("toolVersion", self._revision)
-        self._tool_name = version_information.get("toolName", "CPAchecker")
+        self._tool_name = version_information.get("toolName", DEFAULT_TOOL_NAME)
 
         if "commitHash" not in version_information:
             logging.warning(
