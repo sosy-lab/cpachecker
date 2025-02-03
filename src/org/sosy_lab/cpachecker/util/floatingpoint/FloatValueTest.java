@@ -821,6 +821,36 @@ public class FloatValueTest {
   }
 
   @Test
+  public void fromStringRoundedTest() {
+    // Similar to fromStringTest, but here we read a floating point number that has too many digits
+    // for the format and needs to be rounded
+    assume().that(floatTestOptions.format).isEqualTo(Format.Float32);
+    assume().that(floatTestOptions.reference).isEqualTo(ReferenceImpl.MPFR);
+
+    for (BigFloat arg : unaryTestValues()) {
+      try {
+        // Parse the String with MPFR (= the reference implementation for this test)
+        BigFloat resultReference = new BigFloat(printBigFloat(arg), BinaryMathContext.BINARY16);
+
+        // Parse the String with FloatValue.fromString
+        BigFloat resultTested =
+            toBigFloat(FloatValue.fromString(Format.Float16, printBigFloat(arg)));
+
+        // Compare both values
+        if (!resultTested.equals(resultReference)) {
+          String testHeader = printTestHeader("fromStringRounded", Format.Float32, arg);
+          expect
+              .withMessage(testHeader)
+              .that(printValue(Format.Float16, resultTested))
+              .isEqualTo(printValue(Format.Float16, resultReference));
+        }
+      } catch (Throwable t) {
+        throw new RuntimeException(printTestHeader("fromStringRounded", Format.Float32, arg), t);
+      }
+    }
+  }
+
+  @Test
   public void toStringTest() {
     testStringFunction("toString", (CFloat a) -> a.toString());
   }
