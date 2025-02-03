@@ -533,7 +533,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   /** Positive infinity. */
   public static FloatValue infinity(Format pFormat) {
-    return new FloatValue(pFormat, false, pFormat.maxExp() + 1, BigInteger.ZERO);
+    return signedInfinity(pFormat, false);
   }
 
   /** Largest value that can be represented in this format */
@@ -580,7 +580,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   /** Negative infinity */
   public static FloatValue negativeInfinity(Format pFormat) {
-    return new FloatValue(pFormat, true, pFormat.maxExp() + 1, BigInteger.ZERO);
+    return signedInfinity(pFormat, true);
   }
 
   /**
@@ -590,7 +590,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * if it is <code>False</code>
    */
   private static FloatValue signedInfinity(Format pFormat, boolean pSign) {
-    return new FloatValue(pFormat, pSign, pFormat.minExp() - 1, BigInteger.ZERO);
+    return new FloatValue(pFormat, pSign, pFormat.maxExp() + 1, BigInteger.ZERO);
   }
 
   /**
