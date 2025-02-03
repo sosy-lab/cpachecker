@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.util.logging.Level;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -19,16 +20,8 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
 public class TaintAnalysisTest {
 
   private TestResults runCPAchecker(String pProgramName) throws Exception {
-    final Configuration config =
-        TestDataTools.configurationForTest()
-            .setOption(
-                "CompositeCPA.cpas",
-                "cpa.location.LocationCPA, "
-                    + "cpa.callstack.CallstackCPA, "
-                    + "cpa.functionpointer.FunctionPointerCPA, "
-                    + "cpa.predicate.PredicateCPA, "
-                    + "cpa.taintanalysis.TaintAnalysisCPA")
-            .build();
+    String fileName = "config/predicateAnalysis--taintAnalysis.properties";
+    Configuration config = TestDataTools.configurationForTest().loadFromFile(fileName).build();
 
     String testDir = "test/programs/taint_analysis/";
     Path programPath = Path.of(testDir, pProgramName);
