@@ -1303,7 +1303,24 @@ public class FloatValueTest {
   public void parserInvalidTest() {
     assume().that(floatTestOptions.format).isEqualTo(Format.Float32);
 
-    for (String input : ImmutableList.of("+nan", "+inf", "NaN", "Inf", "infinity", "0", "0,0")) {
+    for (String input :
+        ImmutableList.of(
+            "+nan", // Only "nan" and "-nan" are valid. The same goes for "inf" and "-inf"
+            "+inf",
+            "-+inf",
+            "NaN",
+            "Inf",
+            "infinity",
+            "0", // No plain integers. We need a decimal point and/or an exponent
+            "00",
+            "0,0", // No commas. We use the "C" locale.
+            ",0",
+            "0,",
+            "0.0f", // No "f" and "l" suffixes
+            "0x0.1f", // Hexadecimal floats must have an exponent...
+            "0x0.1e43", // that starts with a "p", and not "e"...
+            "0x0.1pab" // and is a decimal number
+            )) {
       assertThrows(
           IllegalArgumentException.class,
           () -> FloatValue.fromString(floatTestOptions.format, input));
