@@ -1280,7 +1280,7 @@ public class FloatValueTest {
 
   @Test
   public void parserValidTest() {
-    assume().that(floatTestOptions.format).isEqualTo(Format.Float64);
+    assume().that(floatTestOptions.format).isEqualTo(Format.Float32);
 
     Map<String, FloatValue> testValues =
         ImmutableMap.of(
@@ -1301,7 +1301,7 @@ public class FloatValueTest {
 
   @Test
   public void parserInvalidTest() {
-    assume().that(floatTestOptions.format).isEqualTo(Format.Float64);
+    assume().that(floatTestOptions.format).isEqualTo(Format.Float32);
 
     for (String input : ImmutableList.of("+nan", "+inf", "NaN", "Inf", "infinity", "0", "0,0")) {
       assertThrows(
