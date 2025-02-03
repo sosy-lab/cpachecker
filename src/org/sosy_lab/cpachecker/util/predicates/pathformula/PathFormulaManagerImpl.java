@@ -563,30 +563,39 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   public HashMap<String, Integer> extractVariablesWithTransition(PathFormula pPathFormula) {
     HashMap<String, Integer> variableWithTransition = new HashMap<>();
     List<String> allVarNameInPathFormula = new ArrayList<>(fmgr.extractVariableNames(pPathFormula.getFormula()));
-
-    for (int i = 0; i + 1 < allVarNameInPathFormula.size(); i++) {
-      String var1 = allVarNameInPathFormula.get(i);
-      String varNameWithOutIndex = fmgr.splitIndexSeparator(var1)[0];
-      for (int j = i + 1; j < allVarNameInPathFormula.size(); j++) {
-        String var2 = allVarNameInPathFormula.get(j);
-        if (var2.contains(varNameWithOutIndex)) {
-            if (!variableWithTransition.containsKey(varNameWithOutIndex)) {
-              int minIndex = Math.min(
-                Integer.parseInt(fmgr.splitIndexSeparator(var1)[1]),
-                Integer.parseInt(fmgr.splitIndexSeparator(var2)[1]));
-              variableWithTransition.put(varNameWithOutIndex, minIndex);
-            } else {
-              int minIndex = Math.min(
-                  variableWithTransition.get(varNameWithOutIndex),
-                  Integer.parseInt(fmgr.splitIndexSeparator(var1)[1]));
-              minIndex = Math.min(
-                  minIndex,
-                  Integer.parseInt(fmgr.splitIndexSeparator(var2)[1]));
-              variableWithTransition.put(varNameWithOutIndex, minIndex);
-            }
-        }
+    SSAMap ssaMap = pPathFormula.getSsa();
+    for (String varNameWithIdx : allVarNameInPathFormula) {
+      String varName = fmgr.splitIndexSeparator(varNameWithIdx)[0];
+      int idx = Integer.parseInt(fmgr.splitIndexSeparator(varNameWithIdx)[1]);
+      if (idx < ssaMap.getIndex(varName)) {
+        variableWithTransition.put(varName, idx);
       }
     }
+
+//    for (int i = 0; i + 1 < allVarNameInPathFormula.size(); i++) {
+//      String var1 = allVarNameInPathFormula.get(i);
+//      String varNameWithOutIndex = fmgr.splitIndexSeparator(var1)[0];
+//      for (int j = i + 1; j < allVarNameInPathFormula.size(); j++) {
+//        String var2 = allVarNameInPathFormula.get(j);
+//        if (var2.contains(varNameWithOutIndex)) {
+//            if (!variableWithTransition.containsKey(varNameWithOutIndex)) {
+//              int minIndex = Math.min(
+//                Integer.parseInt(fmgr.splitIndexSeparator(var1)[1]),
+//                Integer.parseInt(fmgr.splitIndexSeparator(var2)[1]));
+//              variableWithTransition.put(varNameWithOutIndex, minIndex);
+//            } else {
+//              int minIndex = Math.min(
+//                  variableWithTransition.get(varNameWithOutIndex),
+//                  Integer.parseInt(fmgr.splitIndexSeparator(var1)[1]));
+//              minIndex = Math.min(
+//                  minIndex,
+//                  Integer.parseInt(fmgr.splitIndexSeparator(var2)[1]));
+//              variableWithTransition.put(varNameWithOutIndex, minIndex);
+//            }
+//        }
+//      }
+//    }
+    System.out.println("mapping min index" + variableWithTransition);
     return variableWithTransition;
   }
 }

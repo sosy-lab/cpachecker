@@ -158,6 +158,53 @@ public final class SSAMap implements Serializable {
       return this;
     }
 
+    /**
+     * Remove checking for idx >=0 and idx >= old_idx, only use with TPA. For quickly instantiate transition predicate.
+     *
+     * @param name
+     * @param type
+     * @param idx
+     * @return
+     */
+    @CanIgnoreReturnValue
+    public SSAMapBuilder setIndexTPA(String name, CType type, int idx) {
+//      Preconditions.checkArgument(
+//          idx > 0, "Non-positive index %s for variable %s with type %s", idx, name, type);
+
+      int oldIdx = getIndex(name);
+//      Preconditions.checkArgument(
+//          idx >= oldIdx,
+//          "Non-monotonic SSAMap update for variable %s with type %s from %s to %s",
+//          name,
+//          type,
+//          oldIdx,
+//          idx);
+
+      type = type.getCanonicalType();
+      assert !(type instanceof CFunctionType) : "Variable " + name + " has function type " + type;
+      if (TypeHandlerWithPointerAliasing.isByteArrayAccessName(name)) {
+        // Type needs to be overwritten
+        type = CNumericTypes.CHAR;
+      }
+
+      CType oldType = varTypes.get(name);
+      if (oldType != null) {
+        TYPE_CONFLICT_CHECKER.resolveConflict(name, oldType, type);
+      } else {
+        varTypes = varTypes.putAndCopy(name, type);
+      }
+
+      if (idx > oldIdx || idx == ssa.defaultValue) {
+        vars = vars.putAndCopy(name, idx);
+        if (oldIdx != ssa.defaultValue) {
+          varsHashCode -= mapEntryHashCode(name, oldIdx);
+        }
+        varsHashCode += mapEntryHashCode(name, idx);
+      }
+
+      return this;
+    }
+
     public void mergeFreshValueProviderWith(final FreshValueProvider fvp) {
       freshValueProvider = freshValueProvider.merge(fvp);
     }

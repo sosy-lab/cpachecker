@@ -1631,13 +1631,13 @@ public class FormulaManagerView {
   }
 
   /**
-   * Remove Index separator from variable's name. x@2 -> x
+   * Remove Index separator from variable's name. x@2 -> [x, 2]
    * @param varName
    * @return
    */
   public String[] splitIndexSeparator(String varName) {
     if (!varName.contains(Character.toString(INDEX_SEPARATOR))) {
-      throw new IllegalArgumentException("Variable name " + varName + "does not contain index separator! ");
+      throw new IllegalArgumentException("Variable name " + varName + "does not contain index separator to split! ");
     }
     return varName.split(Character.toString(INDEX_SEPARATOR), 2);
   }

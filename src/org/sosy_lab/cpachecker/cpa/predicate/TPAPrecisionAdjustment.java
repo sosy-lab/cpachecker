@@ -183,7 +183,7 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
         abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
       }
 
-      pathFormula = addPrimeVariableToPathFormula(additionalPredicates, pathFormula);
+      pathFormula = addPrimeVariableToPathFormula_v2(additionalPredicates, pathFormula);
 
       // compute a new abstraction with a precision based on `preds`
       newAbstractionFormula =
@@ -303,6 +303,59 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
             if (defaultPredicate != null) {
               resultPathFormula =
                   pathFormulaManager.makeAndWithInstantiatedFormula(resultPathFormula, defaultPredicate, ssaMap);
+            }
+          }
+          break; // One predicate should only have one prime
+        }
+      }
+    }
+    return resultPathFormula;
+  }
+
+  /**
+   * If the precision or set of predicates contain variable with suffix "_prime". The function will add predicates with prime variables to path formula.
+   * Example: (x_prime < x), new predicate (x@-1 < x@<ssaIndex>)
+   * If the path formula contain predicate with variable transition (x@1 = x@0 + 1) and that variable has prime in precision. Predicate (x@0 < x@1) is added.
+   *
+   * @param pPredicates
+   * @param pPathFormula
+   * @return
+   */
+  private PathFormula addPrimeVariableToPathFormula_v2(
+      Set<AbstractionPredicate> pPredicates,
+      PathFormula pPathFormula
+  ) {
+    PathFormula resultPathFormula = pPathFormula;
+    SSAMap ssaMap = pPathFormula.getSsa();
+    HashMap<String, Integer> varNameToMinIdx = pathFormulaManager.extractVariablesWithTransition(pPathFormula);
+    final String PRIME_SUFFIX = FormulaManagerView.PRIME_SUFFIX;
+    final String PRIME_DEFAULT_IDX = Integer.toString(SSAMap.PRIME_DEFAULT_IDX);
+
+    for (AbstractionPredicate predicate : pPredicates) {
+      BooleanFormula predicateTerm = predicate.getSymbolicAtom();
+      List<String> varNameListInPredicate = new ArrayList<>(fmgr.extractVariableNames(predicateTerm));
+      if (varNameListInPredicate.size() != 2) continue;
+      for (int i = 0; i < 2; i++) {
+        String varNameInPredicate = varNameListInPredicate.get(i);
+        if (varNameInPredicate.contains(PRIME_SUFFIX) && varNameInPredicate.contains(varNameListInPredicate.get(1-i))) { // This predicate is transition predicate
+          String varName = varNameInPredicate.replace(PRIME_SUFFIX, "");
+          if (ssaMap.allVariables().contains(varName)) { // Path formula has the variable with prime value
+
+            SSAMapBuilder builder = ssaMap.builder();
+            builder.setIndexTPA(varName + PRIME_SUFFIX, builder.getType(varName), Integer.parseInt(PRIME_DEFAULT_IDX));
+            ssaMap = builder.build();
+            BooleanFormula defaultPredicate = fmgr.instantiate(predicateTerm, ssaMap);
+            resultPathFormula =
+                  pathFormulaManager.makeAndWithInstantiatedFormula(resultPathFormula, defaultPredicate, ssaMap);
+
+            if (varNameToMinIdx.get(varName) != null) {
+              builder = ssaMap.builder();
+              builder.setIndex(varName + PRIME_SUFFIX, builder.getType(varName), varNameToMinIdx.get(varName));
+              ssaMap = builder.build();
+              BooleanFormula constrainPredicate = fmgr.instantiate(predicateTerm, ssaMap);
+              resultPathFormula =
+                  pathFormulaManager.makeAndWithInstantiatedFormula(resultPathFormula,
+                      constrainPredicate, ssaMap);
             }
           }
           break; // One predicate should only have one prime
