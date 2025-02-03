@@ -23,11 +23,11 @@ public class TaintAnalysisTest {
         TestDataTools.configurationForTest()
             .setOption(
                 "CompositeCPA.cpas",
-                "cpa.location.LocationCPA, " +
-                    "cpa.callstack.CallstackCPA, " +
-                    "cpa.functionpointer.FunctionPointerCPA, " +
-                    "cpa.predicate.PredicateCPA, " +
-                    "cpa.taintanalysis.TaintAnalysisCPA")
+                "cpa.location.LocationCPA, "
+                    + "cpa.callstack.CallstackCPA, "
+                    + "cpa.functionpointer.FunctionPointerCPA, "
+                    + "cpa.predicate.PredicateCPA, "
+                    + "cpa.taintanalysis.TaintAnalysisCPA")
             .build();
 
     String testDir = "test/programs/taint_analysis/";
