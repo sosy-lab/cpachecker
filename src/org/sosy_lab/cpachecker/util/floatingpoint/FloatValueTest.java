@@ -501,20 +501,21 @@ public class FloatValueTest {
     return String.format("%s %s %s", sign, exponent, significand);
   }
 
-  private String printValue(BigFloat value) {
-    return String.format("%s [%s]", toBits(floatTestOptions.format, value), printBigFloat(value));
+  private static String printValue(Format fmt, BigFloat value) {
+    return String.format("%s [%s]", toBits(fmt, value), printBigFloat(value));
   }
 
-  private String printTestHeader(String name, BigFloat arg) {
-    return String.format("Testcase %s(%s): ", name, printValue(arg));
+  private static String printTestHeader(String name, Format fmt, BigFloat arg) {
+    return String.format("Testcase %s(%s): ", name, printValue(fmt, arg));
   }
 
-  private String printTestHeader(String name, BigFloat arg1, BigFloat arg2) {
-    return String.format("Testcase %s(%s, %s): ", name, printValue(arg1), printValue(arg2));
+  private static String printTestHeader(String name, Format fmt, BigFloat arg1, BigFloat arg2) {
+    return String.format(
+        "Testcase %s(%s, %s): ", name, printValue(fmt, arg1), printValue(fmt, arg2));
   }
 
-  private String printTestHeader(String name, BigFloat arg1, Integer arg2) {
-    return String.format("Testcase %s(%s, %s): ", name, printValue(arg1), arg2);
+  private static String printTestHeader(String name, Format fmt, BigFloat arg1, Integer arg2) {
+    return String.format("Testcase %s(%s, %s): ", name, printValue(fmt, arg1), arg2);
   }
 
   /**
@@ -536,17 +537,16 @@ public class FloatValueTest {
   }
 
   /** Returns a list of all float values in the error range. */
-  private List<String> errorRange(int pDistance, BigFloat pValue) {
+  private static List<String> errorRange(int pDistance, Format fmt, BigFloat pValue) {
     if (pDistance == 0 || pValue.isNaN()) {
-      return ImmutableList.of(printValue(pValue));
+      return ImmutableList.of(printValue(fmt, pValue));
     }
     if (pDistance == 1) {
-      BigFloat minus1Ulp =
-          pValue.nextDown(floatTestOptions.format.minExp(), floatTestOptions.format.maxExp());
-      BigFloat plus1Ulp =
-          pValue.nextUp(floatTestOptions.format.minExp(), floatTestOptions.format.maxExp());
+      BigFloat minus1Ulp = pValue.nextDown(fmt.minExp(), fmt.maxExp());
+      BigFloat plus1Ulp = pValue.nextUp(fmt.minExp(), fmt.maxExp());
 
-      return ImmutableList.of(printValue(minus1Ulp), printValue(pValue), printValue(plus1Ulp));
+      return ImmutableList.of(
+          printValue(fmt, minus1Ulp), printValue(fmt, pValue), printValue(fmt, plus1Ulp));
     }
     throw new IllegalArgumentException();
   }
@@ -566,21 +566,21 @@ public class FloatValueTest {
 
         // Compare the two results
         if (!resultTested.equals(resultReference)) {
-          String testHeader = printTestHeader(name, arg);
+          String testHeader = printTestHeader(name, floatTestOptions.format, arg);
           if (ulps == 0) {
             expect
                 .withMessage(testHeader)
-                .that(printValue(resultTested))
-                .isEqualTo(printValue(resultReference));
+                .that(printValue(floatTestOptions.format, resultTested))
+                .isEqualTo(printValue(floatTestOptions.format, resultReference));
           } else {
             expect
                 .withMessage(testHeader)
-                .that(printValue(resultTested))
-                .isIn(errorRange(ulps, resultReference));
+                .that(printValue(floatTestOptions.format, resultTested))
+                .isIn(errorRange(ulps, floatTestOptions.format, resultReference));
           }
         }
       } catch (Throwable t) {
-        throw new RuntimeException(printTestHeader(name, arg), t);
+        throw new RuntimeException(printTestHeader(name, floatTestOptions.format, arg), t);
       }
     }
   }
@@ -609,21 +609,21 @@ public class FloatValueTest {
 
           // Compare the two results
           if (!resultTested.equals(resultReference)) {
-            String testHeader = printTestHeader(name, arg1, arg2);
+            String testHeader = printTestHeader(name, floatTestOptions.format, arg1, arg2);
             if (ulps == 0) {
               expect
                   .withMessage(testHeader)
-                  .that(printValue(resultTested))
-                  .isEqualTo(printValue(resultReference));
+                  .that(printValue(floatTestOptions.format, resultTested))
+                  .isEqualTo(printValue(floatTestOptions.format, resultReference));
             } else {
               expect
                   .withMessage(testHeader)
-                  .that(printValue(resultTested))
-                  .isIn(errorRange(ulps, resultReference));
+                  .that(printValue(floatTestOptions.format, resultTested))
+                  .isIn(errorRange(ulps, floatTestOptions.format, resultReference));
             }
           }
         } catch (Throwable t) {
-          throw new RuntimeException(printTestHeader(name, arg1, arg2), t);
+          throw new RuntimeException(printTestHeader(name, floatTestOptions.format, arg1, arg2), t);
         }
       }
     }
@@ -642,11 +642,11 @@ public class FloatValueTest {
 
         // Compare the two results
         if (resultTested != resultReference) {
-          String testHeader = printTestHeader(name, arg);
+          String testHeader = printTestHeader(name, floatTestOptions.format, arg);
           expect.withMessage(testHeader).that(resultTested).isEqualTo(resultReference);
         }
       } catch (Throwable t) {
-        throw new RuntimeException(printTestHeader(name, arg), t);
+        throw new RuntimeException(printTestHeader(name, floatTestOptions.format, arg), t);
       }
     }
   }
@@ -667,11 +667,11 @@ public class FloatValueTest {
 
           // Compare the two results
           if (resultTested != resultReference) {
-            String testHeader = printTestHeader(name, arg1, arg2);
+            String testHeader = printTestHeader(name, floatTestOptions.format, arg1, arg2);
             expect.withMessage(testHeader).that(resultTested).isEqualTo(resultReference);
           }
         } catch (Throwable t) {
-          throw new RuntimeException(printTestHeader(name, arg1, arg2), t);
+          throw new RuntimeException(printTestHeader(name, floatTestOptions.format, arg1, arg2), t);
         }
       }
     }
@@ -690,11 +690,11 @@ public class FloatValueTest {
 
         // Compare the two results
         if (!Objects.equals(resultsTested, resultReference)) {
-          String testHeader = printTestHeader(name, arg);
+          String testHeader = printTestHeader(name, floatTestOptions.format, arg);
           expect.withMessage(testHeader).that(resultsTested).isEqualTo(resultReference);
         }
       } catch (Throwable t) {
-        throw new RuntimeException(printTestHeader(name, arg), t);
+        throw new RuntimeException(printTestHeader(name, floatTestOptions.format, arg), t);
       }
     }
   }
@@ -712,17 +712,18 @@ public class FloatValueTest {
 
         // Compare the two results
         if (!Objects.equals(resultTested, resultReference)) {
-          String testHeader = printTestHeader(name, arg);
+          String testHeader = printTestHeader(name, floatTestOptions.format, arg);
           expect.withMessage(testHeader).that(resultTested).isEqualTo(resultReference);
         }
       } catch (Throwable t) {
-        throw new RuntimeException(printTestHeader(name, arg), t);
+        throw new RuntimeException(printTestHeader(name, floatTestOptions.format, arg), t);
       }
     }
   }
 
   private void assertEqual1Ulp(FloatValue result, CFloat expected) {
-    assertThat(printValue(toBigFloat(result))).isIn(errorRange(ulpError(), toBigFloat(expected)));
+    assertThat(printValue(result.getFormat(), toBigFloat(result)))
+        .isIn(errorRange(ulpError(), result.getFormat(), toBigFloat(expected)));
   }
 
   /** Create a test value for the tested implementation. */
@@ -807,11 +808,14 @@ public class FloatValueTest {
 
         // Compare the result to the original value
         if (!resultTested.equals(arg)) {
-          String testHeader = printTestHeader("fromString", arg);
-          expect.withMessage(testHeader).that(printValue(resultTested)).isEqualTo(printValue(arg));
+          String testHeader = printTestHeader("fromString", floatTestOptions.format, arg);
+          expect
+              .withMessage(testHeader)
+              .that(printValue(floatTestOptions.format, resultTested))
+              .isEqualTo(printValue(floatTestOptions.format, arg));
         }
       } catch (Throwable t) {
-        throw new RuntimeException(printTestHeader("fromString", arg), t);
+        throw new RuntimeException(printTestHeader("fromString", floatTestOptions.format, arg), t);
       }
     }
   }
@@ -928,14 +932,16 @@ public class FloatValueTest {
 
           // Compare the two results
           if (!resultTested.equals(resultReference)) {
-            String testHeader = printTestHeader("powToInteger", arg1, arg2);
+            String testHeader =
+                printTestHeader("powToInteger", floatTestOptions.format, arg1, arg2);
             expect
                 .withMessage(testHeader)
-                .that(printValue(resultTested))
-                .isEqualTo(printValue(resultReference));
+                .that(printValue(floatTestOptions.format, resultTested))
+                .isEqualTo(printValue(floatTestOptions.format, resultReference));
           }
         } catch (Throwable t) {
-          throw new RuntimeException(printTestHeader("powToInteger", arg1, arg2), t);
+          throw new RuntimeException(
+              printTestHeader("powToInteger", floatTestOptions.format, arg1, arg2), t);
         }
       }
     }
