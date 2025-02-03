@@ -599,7 +599,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * <p>Returns <code>-0.0</code> if <code>pSign</code> is <code>True</code> and <code>0.0</code> if
    * it is <code>False</code>
    */
-  public static FloatValue zero(Format pFormat, boolean pSign) {
+  public static FloatValue signedZero(Format pFormat, boolean pSign) {
     return pSign ? negativeZero(pFormat) : zero(pFormat);
   }
 
@@ -829,7 +829,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     } else if (isInfinite()) {
       return infinity(pTargetFormat, sign);
     } else if (isZero()) {
-      return zero(pTargetFormat, sign);
+      return signedZero(pTargetFormat, sign);
     } else if (!isSubnormal() && pTargetFormat.isGreaterOrEqual(format)) {
       // Special case: The target format is larger and the value is not subnormal
       return new FloatValue(
@@ -856,7 +856,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
     // Return zero if the exponent is below the subnormal range
     if (resultExponent < pTargetFormat.minExp() - (pTargetFormat.sigBits + 1)) {
-      return zero(pTargetFormat, sign);
+      return signedZero(pTargetFormat, sign);
     }
 
     // Extend the significand with 3 grs bits
@@ -1135,7 +1135,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       return arg1;
     } else if (arg1.isZero() && arg2.isZero()) {
       // (4) Both arguments are zero (or negative zero)
-      return zero(format, arg1.isNegative() && arg2.isNegative());
+      return signedZero(format, arg1.isNegative() && arg2.isNegative());
     } else if (arg1.isZero() || arg2.isZero()) {
       // (5) Only one of the arguments is zero (or negative zero)
       return arg1.isZero() ? arg2 : arg1;
@@ -1211,7 +1211,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Check if the result is zero
     if (resultSignificand.equals(BigInteger.ZERO)) {
-      return zero(format, resultSign);
+      return signedZero(format, resultSign);
     }
     // Return infinity if there is an overflow.
     if (resultExponent > format.maxExp()) {
@@ -1268,7 +1268,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       }
     } else if (arg1.isZero() || arg2.isZero()) {
       // (3) One of the arguments is zero (or negative zero)
-      return zero(format, arg1.isNegative() != arg2.isNegative());
+      return signedZero(format, arg1.isNegative() != arg2.isNegative());
     }
 
     // Calculate the sign of the result
@@ -1286,7 +1286,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       return infinity(format, resultSign);
     }
     if (resultExponent < format.minExp() - format.sigBits - 2) {
-      return zero(format, resultSign);
+      return signedZero(format, resultSign);
     }
 
     // Multiply the significands
@@ -1393,7 +1393,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       }
     } else if (arg1.isZero() || arg2.isZero()) {
       // (3) One of the arguments is zero (or negative zero)
-      return zero(format, arg1.isNegative() != arg2.isNegative());
+      return signedZero(format, arg1.isNegative() != arg2.isNegative());
     }
 
     // We assume both arguments are normal
@@ -1410,7 +1410,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       return infinity(format, resultSign);
     }
     if (resultExponent < format.minExp() - format.sigBits - 2) {
-      return zero(format, resultSign);
+      return signedZero(format, resultSign);
     }
 
     // Multiply the significands
@@ -1516,7 +1516,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       if (pDivisor.isZero()) {
         return resultSign ? nan(format).negate() : nan(format);
       } else {
-        return zero(format, resultSign);
+        return signedZero(format, resultSign);
       }
     } else if (isInfinite()) {
       // (3) Dividend is infinite
@@ -1530,7 +1530,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       return infinity(format, resultSign);
     } else if (pDivisor.isInfinite()) {
       // (5) Divisor is infinite (and dividend is finite)
-      return zero(format, resultSign);
+      return signedZero(format, resultSign);
     }
 
     // Get the exponents without the IEEE bias. Note that for subnormal numbers the stored exponent
@@ -1572,7 +1572,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
     // If it is below the subnormal range, return zero immediately.
     if (resultExponent < format.minExp() - (format.sigBits + 1)) {
-      return zero(format, resultSign);
+      return signedZero(format, resultSign);
     }
 
     // Divide the significands
@@ -1627,7 +1627,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       if (pDivisor.isZero()) {
         return resultSign ? nan(format).negate() : nan(format);
       } else {
-        return zero(format, resultSign);
+        return signedZero(format, resultSign);
       }
     } else if (isInfinite()) {
       // (3) Dividend is infinite
@@ -1641,7 +1641,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       return infinity(format, resultSign);
     } else if (pDivisor.isInfinite()) {
       // (5) Divisor is infinite (and dividend is finite)
-      return zero(format, resultSign);
+      return signedZero(format, resultSign);
     }
 
     // Extract exponents and significand bits
@@ -1757,7 +1757,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   private FloatValue sqrtNewton() {
     if (isZero()) {
-      return zero(format, sign);
+      return signedZero(format, sign);
     } else if (isNan() || isNegative()) {
       return nan(format);
     } else if (isInfinite()) {
@@ -1839,7 +1839,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Return zero if we lost all our bits
     if (resultSignificand.equals(BigInteger.ZERO)) {
-      return zero(format, sign);
+      return signedZero(format, sign);
     }
 
     return new FloatValue(
@@ -2379,7 +2379,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Check if the result is zero
     if (resultSignificand.equals(BigInteger.ZERO)) {
-      return zero(format, sign);
+      return signedZero(format, sign);
     }
     // Check if we need to round to infinity
     if (resultExponent > format.maxExp()) {
@@ -2936,7 +2936,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Return zero if the significand is all zeroes
     if (digits.matches("0+")) {
-      return zero(pFormat, sign);
+      return signedZero(pFormat, sign);
     }
 
     // Convert the value to a binary float representation
