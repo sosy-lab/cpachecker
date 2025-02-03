@@ -263,7 +263,7 @@ public class FloatValueTest {
       return new CFloatImpl(
           value.sign() ? FloatValue.nan(format).negate() : FloatValue.nan(format));
     } else if (value.isInfinite()) {
-      return new CFloatImpl(FloatValue.infinity(format, value.sign()));
+      return new CFloatImpl(FloatValue.signedInfinity(format, value.sign()));
     } else {
       long exp = value.exponent(format.minExp(), format.maxExp());
       BigInteger sig = value.significand(format.minExp(), format.maxExp());
