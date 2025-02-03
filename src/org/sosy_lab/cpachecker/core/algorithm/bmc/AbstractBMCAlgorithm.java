@@ -389,7 +389,6 @@ abstract class AbstractBMCAlgorithm
     }
 
     if (initialWitnessInvariantsFile != null) {
-      logger.log(Level.INFO, initialWitnessInvariantsFile, initialWitnessInvariants);
       witnessConverter =
           new WitnessToInitialInvariantsConverter(
               config, logger, shutdownNotifier, fmgr, pmgr, cfa);

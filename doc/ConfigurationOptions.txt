@@ -778,10 +778,6 @@ bmc.invariantsExport = no default value
 # get candidate invariants from a predicate precision file
 bmc.kinduction.predicatePrecisionFile = no default value
 
-# How many Candidates should be generated out of invariant to nearest
-# loophead pairings. No effect when matchNearLoophead = false
-bmc.kinduction.reuse.NumberLoopheadMatches = 3
-
 # get candidate invariants from a witness 2.0 invariant file
 bmc.kinduction.reuse.invariantWitnessFile = no default value
 
@@ -791,6 +787,10 @@ bmc.kinduction.reuse.matchFunctionNames = false
 # Matches witness invariants to near loopheads. If matchFunctionNames, then
 # only unmatched leftovers
 bmc.kinduction.reuse.matchNearLoopheads = false
+
+# How many Candidates should be generated out of invariant to nearest
+# loophead pairings. No effect when matchNearLoophead = false
+bmc.kinduction.reuse.numberLoopheadMatches = 3
 
 # which strategy to use to convert predicate precision to k-induction
 # invariant

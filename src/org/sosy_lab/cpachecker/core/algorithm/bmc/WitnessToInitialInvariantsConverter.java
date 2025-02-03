@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchange
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-@SuppressWarnings("all")
 @Options(prefix = "bmc.kinduction.reuse")
 public class WitnessToInitialInvariantsConverter {
 
@@ -92,8 +91,8 @@ public class WitnessToInitialInvariantsConverter {
       description =
           "How many Candidates should be generated out of invariant to nearest loophead pairings."
               + " No effect when matchNearLoophead = false",
-      name = "NumberLoopheadMatches")
-  private int NumberLoopheadMatches = 3;
+      name = "numberLoopheadMatches")
+  private int numberLoopheadMatches = 3;
 
   public ImmutableSet<CandidateInvariant> witnessConverter(Path pFileName) {
 
@@ -108,35 +107,90 @@ public class WitnessToInitialInvariantsConverter {
       InvariantExchangeFormatTransformer transformer =
           new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
       Set<Invariant> invariantSet = transformer.generateInvariantsFromEntries(entries);
-      ImmutableSet.Builder<Invariant> leftoverInvariants = new ImmutableSet.Builder<>();
+      ImmutableSet.Builder<Invariant> leftoverInvariantsBuilder = new ImmutableSet.Builder<>();
+
+      SetMultimap<String, CFANode> loopHeadsPerFunction = HashMultimap.create();
+      for (CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
+        loopHeadsPerFunction.put(loopHead.getFunctionName(), loopHead);
+      }
+
+      ImmutableSet<Invariant> leftoverInvariants = null;
       // match function names
       if (matchFunctionNames) {
-        SetMultimap<String, CFANode> loopHeadsPerFunction = HashMultimap.create();
-        for (CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
-          loopHeadsPerFunction.put(loopHead.getFunctionName(), loopHead);
-        }
-
         for (Invariant invariant : invariantSet) {
           String name = invariant.getFunction();
-          Set<CFANode> loopHeadsWithSameName = loopHeadsPerFunction.removeAll(name);
+          Set<CFANode> loopHeadsWithSameName = loopHeadsPerFunction.get(name);
           // handle same function name on multiple functions
-          if (!loopHeadsWithSameName.isEmpty()) {
+          CFANode candidate = null;
+          if (loopHeadsWithSameName.size() > 1) {
+            Integer minimumDistance = Integer.MAX_VALUE;
+
             for (CFANode loopHead : loopHeadsWithSameName) {
-              candidates.add(
-                  SingleLocationFormulaInvariant.makeLocationInvariant(
-                      loopHead, toFormula(invariant.getFormula()), formulaManagerView));
+              int distance =
+                  Math.abs(
+                      loopHead.getFunction().getFileLocation().getStartingLineNumber()
+                          - invariant.getLine());
+              if (distance < minimumDistance) {
+                minimumDistance = distance;
+                candidate = loopHead;
+              }
             }
+
+          } else if (loopHeadsWithSameName.size() == 1) {
+            candidate = loopHeadsWithSameName.iterator().next();
           } else {
-            leftoverInvariants.add(invariant);
+            leftoverInvariantsBuilder.add(invariant);
+          }
+          if (candidate != null) {
+            loopHeadsPerFunction.remove(name, candidate);
+            candidates.add(
+                SingleLocationFormulaInvariant.makeLocationInvariant(
+                    candidate, toFormula(invariant.getFormula()), formulaManagerView));
           }
         }
+        leftoverInvariants = leftoverInvariantsBuilder.build();
+      } else {
+        leftoverInvariants = (ImmutableSet<Invariant>) invariantSet;
       }
+
       // match to nearest loopheads
-      if (matchNearLoopheads) {
+      if (matchNearLoopheads && numberLoopheadMatches > 0 && !leftoverInvariants.isEmpty()) {
         NavigableMap<Integer, CFANode> loopHeadsOrderedByLine = new TreeMap<>();
-        for (CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
+        for (CFANode loopHead : loopHeadsPerFunction.values()) {
           loopHeadsOrderedByLine.put(
               loopHead.getFunction().getFileLocation().getStartingLineNumber(), loopHead);
+        }
+        for (Invariant invariant : leftoverInvariants) {
+          int line = invariant.getLine();
+          int candidatesToGenerate = Math.min(numberLoopheadMatches, loopHeadsOrderedByLine.size());
+          Integer nextHigher = loopHeadsOrderedByLine.ceilingKey(line);
+          Integer nextLower = loopHeadsOrderedByLine.floorKey(line);
+          Integer nextCanditateLine = null;
+          for (int i = 0; i < candidatesToGenerate; i++) {
+            if (nextHigher == null && nextLower == null) {
+              i = candidatesToGenerate;
+              nextCanditateLine = null;
+            } else if (nextHigher == null) {
+              nextCanditateLine = nextLower;
+              nextLower = loopHeadsOrderedByLine.floorKey(nextCanditateLine - 1);
+            } else if (nextLower == null) {
+              nextCanditateLine = nextHigher;
+              nextHigher = loopHeadsOrderedByLine.ceilingKey(nextCanditateLine + 1);
+            } else if (line - nextLower <= nextHigher - line) {
+              nextCanditateLine = nextLower;
+              nextLower = loopHeadsOrderedByLine.floorKey(nextCanditateLine - 1);
+            } else {
+              nextCanditateLine = nextHigher;
+              nextHigher = loopHeadsOrderedByLine.ceilingKey(nextCanditateLine + 1);
+            }
+            if (nextCanditateLine != null) {
+              candidates.add(
+                  SingleLocationFormulaInvariant.makeLocationInvariant(
+                      loopHeadsOrderedByLine.get(nextCanditateLine),
+                      toFormula(invariant.getFormula()),
+                      formulaManagerView));
+            }
+          }
         }
       }
 
