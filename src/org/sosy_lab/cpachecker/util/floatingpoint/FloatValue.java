@@ -565,12 +565,12 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   /** Positive zero */
   public static FloatValue zero(Format pFormat) {
-    return new FloatValue(pFormat, false, pFormat.minExp() - 1, BigInteger.ZERO);
+    return signedZero(pFormat, false);
   }
 
   /** Negative zero */
   public static FloatValue negativeZero(Format pFormat) {
-    return new FloatValue(pFormat, true, pFormat.minExp() - 1, BigInteger.ZERO);
+    return signedZero(pFormat, true);
   }
 
   /** Constant -1.0 */
@@ -590,7 +590,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * if it is <code>False</code>
    */
   private static FloatValue signedInfinity(Format pFormat, boolean pSign) {
-    return pSign ? negativeInfinity(pFormat) : infinity(pFormat);
+    return new FloatValue(pFormat, pSign, pFormat.minExp() - 1, BigInteger.ZERO);
   }
 
   /**
@@ -600,7 +600,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * it is <code>False</code>
    */
   private static FloatValue signedZero(Format pFormat, boolean pSign) {
-    return pSign ? negativeZero(pFormat) : zero(pFormat);
+    return new FloatValue(pFormat, pSign, pFormat.minExp() - 1, BigInteger.ZERO);
   }
 
   /** True if the value is NaN */
