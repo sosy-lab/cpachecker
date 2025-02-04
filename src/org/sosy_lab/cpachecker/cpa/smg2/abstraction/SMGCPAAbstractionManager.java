@@ -541,13 +541,7 @@ public class SMGCPAAbstractionManager {
       Set<SMGObject> alreadySeenInChain,
       Set<SMGObject> alreadySeenLeftMost) {
     SMG smg = state.getMemoryModel().getSmg();
-    int minimumLengthForLists = minimumLengthForListsForAbstraction - 1;
-    // We count the currentObj as being the first valid candidate
-    if (currentObj instanceof SMGSinglyLinkedListSegment) {
-      // minimumLengthForLists = minimumLengthForListsForAbstraction - sllHeapObj.getMinLength() +
-      // 1;
-      minimumLengthForLists = 0;
-    }
+
     // Also collect all list segments to the left, as otherwise we might use the prev
     // pointer instead as the next pointer (as we might be at the end of the list for next
     // or the list might be longer than the threshold for prev but not for next)
@@ -565,6 +559,10 @@ public class SMGCPAAbstractionManager {
       alreadySeenLeftMost.add(leftMostObj);
     }
     Preconditions.checkArgument(state.getMemoryModel().isHeapObject(leftMostObj));
+    int minimumLengthForLists = minimumLengthForListsForAbstraction - leftMostObj.getMinLength();
+    if (leftMostObj instanceof SMGSinglyLinkedListSegment) {
+      minimumLengthForLists = 1;
+    }
     // Leftmost might not be a list obj, but a following obj might be a list start.
     // If we find leftmost not to be a list obj, we exclude it from the overall list and start w
     // next
@@ -730,11 +728,10 @@ public class SMGCPAAbstractionManager {
         }
 
         // potentialNextObj is a valid list segment
-        int reduce = 1;
+        remainingMinLength = remainingMinLength - potentialNextObj.getMinLength();
         if (potentialNextObj instanceof SMGSinglyLinkedListSegment) {
-          reduce = remainingMinLength;
+          remainingMinLength = 0;
         }
-        remainingMinLength = remainingMinLength - reduce;
         alreadySeenInChain.add(potentialNextObj);
 
         // Next checking
