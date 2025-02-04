@@ -1094,7 +1094,7 @@ class WebInterface:
 
                     logging.info("Deleting run collection %s", run_collection_id)
                     server_reply, _ = self._request(
-                        "DELETE", "runs/collection/" + run_collection_id
+                        "DELETE", f"runs/collection/{run_collection_id}"
                     )
                     logging.info(server_reply.decode("utf-8"))
                 except HTTPError as e:
