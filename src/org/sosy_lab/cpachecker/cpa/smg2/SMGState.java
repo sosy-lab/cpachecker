@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
+import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.EQUAL;
+import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.LEFT_ENTAIL;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Equivalence.Wrapper;
@@ -2045,7 +2047,8 @@ public class SMGState
           objectCache,
           thisPointerValueAlreadyVisited,
           treatSymbolicsAsEqualWEqualConstrains,
-          allowAbstractedSelfPointers);
+          allowAbstractedSelfPointers,
+          trueEqualityCheck);
 
     } else {
       if (trueEqualityCheck) {
@@ -2115,7 +2118,8 @@ public class SMGState
           objectCache,
           thisPointerValueAlreadyVisited,
           treatSymbolicsAsEqualWEqualConstrains,
-          allowAbstractedSelfPointers);
+          allowAbstractedSelfPointers,
+          trueEqualityCheck);
     }
 
     // return false;
@@ -2133,7 +2137,8 @@ public class SMGState
       EqualityCache<SMGObject> objectCache,
       Set<Value> thisPointerValueAlreadyVisited,
       boolean treatSymbolicsAsEqualWEqualConstrains,
-      boolean allowAbstractedSelfPointers) {
+      boolean allowAbstractedSelfPointers,
+      boolean trueEqualityCheck) {
     // Compare concrete (this) to abstracted (other)
     // We allow only allow abstracted lists to subsume concrete, not the other way around.
     // Also, we only allow more abstract states to subsume less abstract states
@@ -2303,7 +2308,7 @@ public class SMGState
           thisPointerValueAlreadyVisited,
           treatSymbolicsAsEqualWEqualConstrains,
           allowAbstractedSelfPointers,
-          false);
+          trueEqualityCheck);
 
     } else if (otherSLL.getMinLength() == 1) {
       // Assume them to be equal from here on, this way we don't check them multiple times
@@ -2320,9 +2325,17 @@ public class SMGState
           thisPointerValueAlreadyVisited,
           treatSymbolicsAsEqualWEqualConstrains,
           allowAbstractedSelfPointers,
-          false);
+          trueEqualityCheck);
     } else {
-      throw new RuntimeException("fix me in <=");
+      Optional<MergedSPCAndMergeStatus> mergeRes;
+      try {
+        mergeRes = this.memoryModel.merge(otherState.memoryModel, machineModel);
+      } catch (SMGException pE) {
+        return false;
+      }
+      return mergeRes.isPresent()
+          && (mergeRes.orElseThrow().getMergeStatus() == EQUAL
+              || (!trueEqualityCheck && mergeRes.orElseThrow().getMergeStatus() == LEFT_ENTAIL));
     }
   }
 
@@ -2336,7 +2349,8 @@ public class SMGState
       EqualityCache<SMGObject> objectCache,
       Set<Value> thisPointerValueAlreadyVisited,
       boolean treatSymbolicsAsEqualWEqualConstrains,
-      boolean allowAbstractedSelfPointers) {
+      boolean allowAbstractedSelfPointers,
+      boolean trueEqualityCheck) {
     if (thisSLL.getNextOffset().compareTo(otherSLL.getNextOffset()) != 0
         && thisSLL.getHeadOffset().compareTo(otherSLL.getHeadOffset()) != 0) {
       return false;
@@ -2349,10 +2363,10 @@ public class SMGState
       }
     }
 
-    if (thisSLL.getMinLength() >= otherSLL.getMinLength()) {
+    if ((!trueEqualityCheck && thisSLL.getMinLength() >= otherSLL.getMinLength())
+        || (trueEqualityCheck && thisSLL.getMinLength() == otherSLL.getMinLength())) {
       // This is a look through case (either one subsumses the other by being larger,
       //   or potentially larger with 0+, or a 0+ is at some point found in the list later on)
-      // FIXME: missing cases
 
       // Check that the values are equal and that the next and back pointers are as well
       // If we check 2 lists that are connected, the exemption list will exclude
@@ -2368,7 +2382,7 @@ public class SMGState
           thisPointerValueAlreadyVisited,
           treatSymbolicsAsEqualWEqualConstrains,
           allowAbstractedSelfPointers,
-          false);
+          trueEqualityCheck);
 
     } else if (exemptOffsetsPerObject.containsKey(thisSLL)
         && exemptOffsetsPerObject.containsKey(otherSLL)) {
@@ -2394,7 +2408,7 @@ public class SMGState
             thisPointerValueAlreadyVisited,
             treatSymbolicsAsEqualWEqualConstrains,
             allowAbstractedSelfPointers,
-            true);
+            trueEqualityCheck);
       }
     }
     return false;
@@ -6861,12 +6875,12 @@ public class SMGState
       // in 2 calls to this
       return this;
     }
+
     // When the equality cache is empty, identical values were found.
     // If it has values, those are equal but not identical.
     // (right = root, left = next)
     // (order in the cache is important, as we carry over the values/pointers of the next element
     //   and want to easily check them later on)
-
     Map<SMGObject, Integer> ptrsTowardsNextObj =
         memoryModel.getSmg().getAllSourcesForPointersPointingTowardsWithNumOfOccurrences(nextObj);
     Preconditions.checkState(
@@ -7690,6 +7704,10 @@ public class SMGState
 
     private EqualityCache() {
       primitiveCache = HashMultimap.create();
+    }
+
+    public boolean isEmpty() {
+      return primitiveCache.isEmpty();
     }
 
     private EqualityCache(SetMultimap<V, V> newPrimitiveCache) {
