@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
-import org.sosy_lab.cpachecker.cpa.automaton.instruments.InvertingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 
@@ -131,6 +130,12 @@ public class ControlAutomatonCPA
               + " TOP.")
   private boolean topOnFinalSelfLoopingState = false;
 
+  @Option(
+    secure = true,
+    name = "invertTransferRelation",
+    description = "Whether the TransferRelation should be inverted or not")
+  private boolean invertTransferRelation = false;
+
   private final Automaton automaton;
   private final AutomatonState topState;
   private final AutomatonState bottomState;
@@ -140,17 +145,18 @@ public class ControlAutomatonCPA
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  private final Configuration config;
 
   protected ControlAutomatonCPA(
       @OptionalAnnotation Automaton pAutomaton,
       Configuration pConfig,
       LogManager pLogger,
       CFA pCFA,
-      ShutdownNotifier pShutdownNotifier,
-      InvertingTransferRelation pInvertingTransferRelation)
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
     pConfig.inject(this, ControlAutomatonCPA.class);
+    config = pConfig;
 
     cfa = pCFA;
     logger = pLogger;
@@ -304,7 +310,11 @@ public class ControlAutomatonCPA
 
   @Override
   public AutomatonTransferRelation getTransferRelation() {
-    return new AutomatonTransferRelation(this, logger, cfa.getMachineModel(), stats);
+    AutomatonTransferRelation transferRelation = new AutomatonTransferRelation(this, logger, cfa.getMachineModel(), stats);
+    if(invertTransferRelation){
+      return (AutomatonTransferRelation) transferRelation.invert();
+    }
+    return transferRelation;
   }
 
   public AutomatonState getBottomState() {
@@ -345,6 +355,6 @@ public class ControlAutomatonCPA
 
   @Override
   public ControlAutomatonCPA invert() throws CPATransferException, InvalidConfigurationException, InterruptedException{
-    return new ControlAutomatonCPA(automaton, null, logger, cfa, shutdownNotifier, new InvertingTransferRelation(this.getTransferRelation()));
+    return new ControlAutomatonCPA(automaton, Configuration.builder().copyFrom(config).setOption("cpa.automaton.invertTransferRelation", "true").build(), logger, cfa, shutdownNotifier);
   }
 }

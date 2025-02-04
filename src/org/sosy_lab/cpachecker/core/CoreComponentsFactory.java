@@ -523,7 +523,7 @@ public class CoreComponentsFactory {
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else {
       if (useViolationWitness) {
-        // TODO: cpa = new ViolationWitnessInstrumentation(cpa, config, logger, shutdownNotifier, cfa, specification)
+        algorithm = new ViolationWitnessAlgorithm(config, logger, cfa, specification, cpa);
       }
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 

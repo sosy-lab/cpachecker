@@ -316,6 +316,9 @@ analysis.algorithm.undefinedFunctionCollector = false
 # run the parallel BAM algortihm.
 analysis.algorithm.useParallelBAM = false
 
+# use a Violation Witness for Validation
+analysis.algorithm.violationwitness = false
+
 # If not already done by the analysis, store a found counterexample in the
 # ARG for later re-use. Does nothing if no ARGCPA is used
 analysis.alwaysStoreCounterexamples = false
@@ -1565,6 +1568,9 @@ cpa.automaton.extraIterationsLimit = -1
 # file with automaton specification for ObserverAutomatonCPA and
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
+
+# Whether the TransferRelation should be inverted or not
+cpa.automaton.invertTransferRelation = false
 
 # Merge two automata states if one of them is TOP.
 cpa.automaton.mergeOnTop = false

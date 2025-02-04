@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.InvertableState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -45,7 +46,8 @@ public class AutomatonState
         Targetable,
         Serializable,
         AbstractStateWithAssumptions,
-        Graphable {
+        Graphable,
+        InvertableState<AutomatonState> {
 
   @Serial private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
@@ -507,5 +509,14 @@ public class AutomatonState
 
   public void setMatches(int pMatches) {
     matches = pMatches;
+  }
+
+  @Override
+  public AutomatonState flip() {
+    AutomatonTargetInformation ptargetInformation = new AutomatonTargetInformation(automaton, null);
+    if(targetInformation!=null){
+      ptargetInformation = null;
+    }
+    return new AutomatonState(vars, internalState, automaton, assumptions, candidateInvariants, areDefaultCandidateInvariants, matches, failedMatches, ptargetInformation, !treatErrorAsTarget);
   }
 }

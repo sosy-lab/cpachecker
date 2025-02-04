@@ -41,6 +41,8 @@
                     "--option",
                     "witness.checkProgramHash=false",
                     "--option",
+                    "algorithm.violationwitness=true",
+                    "--option",
                     "cpa.predicate.memoryAllocationsAlwaysSucceed=true",
                     "--timelimit",
                     "900s",
@@ -48,7 +50,7 @@
                     "--spec",
                     "sv-comp-reachability",
                     "--witness",
-                    "/home/tim/codetests/basicviolationwitness.yml",
+                    "/home/tim/codetests/violationwitness.yml",
                     "/home/tim/codetests/counterto5.c"
                     ]
         },
@@ -65,7 +67,7 @@
                     "900s",
                     "--32",
                     "--stats",
-                    "/home/tim/codetests/counterto5.c"
+                    "/home/tim/cpachecker/test/programs/policyiteration/loop.c"
                     ]
         },
         {

@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.cpa.automaton.instruments.InvertingTransferRelation;
 
 public class ObserverAutomatonCPA extends ControlAutomatonCPA {
 
@@ -24,11 +23,10 @@ public class ObserverAutomatonCPA extends ControlAutomatonCPA {
       @OptionalAnnotation Automaton pAutomaton,
       Configuration pConfig,
       LogManager pLogger,
-      CFA cfa,
-      ShutdownNotifier pShutdownNotifier,
-      @OptionalAnnotation InvertingTransferRelation pInvertingTransferRelation)
+      CFA cfa, 
+      ShutdownNotifier shutdownNotifier)
       throws InvalidConfigurationException {
-    super(pAutomaton, pConfig, pLogger, cfa, pShutdownNotifier, pInvertingTransferRelation);
+    super(pAutomaton, pConfig, pLogger, cfa, shutdownNotifier);
     super.getAutomaton().assertObserverAutomaton();
   }
 

@@ -128,7 +128,7 @@ public final class CompositeCPA
   private final CFA cfa;
   private final Supplier<MergeOperator> mergeSupplier;
 
-  private CompositeCPA(
+  public CompositeCPA(
       Configuration config, CFA pCfa, ImmutableList<ConfigurableProgramAnalysis> cpas)
       throws InvalidConfigurationException {
     config.inject(this);
