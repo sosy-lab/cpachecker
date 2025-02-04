@@ -1097,6 +1097,15 @@ class WebInterface:
                         "DELETE", f"runs/collection/{run_collection_id}"
                     )
                     logging.info(server_reply.decode("utf-8"))
+
+                    with self._unfinished_runs_lock:
+                        for runId, future in self._unfinished_runs.items():
+                            future.set_exception(
+                                UserAbortError(
+                                    "Run was canceled because user requested shutdown."
+                                )
+                            )
+
                 except HTTPError as e:
                     logging.info(
                         "Stopping of run collection %s failed: %s", run_collection_id, e
