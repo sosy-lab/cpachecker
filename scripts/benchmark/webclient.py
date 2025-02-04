@@ -1101,7 +1101,8 @@ class WebInterface:
                     logging.info(
                         "Stopping of run collection %s failed: %s", run_collection_id, e
                     )
-            self._run_collection_ids = []
+            self._run_collection_ids.clear()
+            self._unfinished_runs.clear()
         elif self._unfinished_runs:
             logging.info("Stopping tasks on server...")
             stop_executor = ThreadPoolExecutor(max_workers=5 * self.thread_count)
