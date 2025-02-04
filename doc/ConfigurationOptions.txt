@@ -1719,11 +1719,6 @@ cpa.callstack.depth = 0
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
 
-# Decided whether to compute the callstack for the forward analysis. This is
-# useful for analyses like Distributed Summary Synthesis that require the
-# CallstackCPA to be available but do not require it to be executed at times.
-cpa.callstack.ignoreForwardCallstackTransfers = false
-
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
 # recursions.

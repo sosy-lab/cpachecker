@@ -102,7 +102,7 @@ public class DssAnalysisWorker extends DssWorker {
   }
 
   public Collection<DssMessage> runInitialAnalysis()
-      throws CPAException, SolverException, InterruptedException {
+      throws CPAException, SolverException, InterruptedException, InvalidConfigurationException {
     return dssBlockAnalysis.runInitialAnalysis();
   }
 

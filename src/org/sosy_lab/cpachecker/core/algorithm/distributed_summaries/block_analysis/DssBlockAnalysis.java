@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -33,6 +34,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
@@ -59,6 +61,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -162,13 +166,15 @@ public class DssBlockAnalysis {
   }
 
   private Collection<DssMessage> reportBlockPostConditions(
-      Set<ARGState> blockEnds, boolean allowTop) throws InterruptedException {
+      Set<ARGState> blockEnds, boolean allowTop) throws InterruptedException,
+                                                        InvalidConfigurationException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     if (blockEnds.size() == 1) {
       ARGState blockEndState = Iterables.getOnlyElement(blockEnds);
       if (dcpa.isTop(blockEndState) && !allowTop) {
         return ImmutableSet.of();
       }
+      blockEndState = resetCallstack(blockEndState);
       DssMessagePayload serialized =
           dcpa.serialize(blockEndState, reachedSet.getPrecision(blockEndState));
       messages.add(
@@ -229,7 +235,7 @@ public class DssBlockAnalysis {
       return ImmutableSet.of();
     }
     DssMessagePayload serialized =
-        dcpa.serialize(blockEndState, reachedSet.getPrecision(Iterables.get(blockEnds, 0)));
+        dcpa.serialize(resetCallstack(blockEndState), reachedSet.getPrecision(Iterables.get(blockEnds, 0)));
     messages.add(
         messageFactory.newBlockPostCondition(
             block.getId(),
@@ -323,7 +329,7 @@ public class DssBlockAnalysis {
   }
 
   public Collection<DssMessage> runInitialAnalysis()
-      throws CPAException, InterruptedException, SolverException {
+      throws CPAException, InterruptedException, SolverException, InvalidConfigurationException {
     reachedSet.clear();
     reachedSet.add(makeStartState(), makeStartPrecision());
 
@@ -411,7 +417,7 @@ public class DssBlockAnalysis {
    * @return All violations and/or abstractions that occurred while running the forward analysis.
    */
   public Collection<DssMessage> runAnalysis(DssPostConditionMessage pReceived)
-      throws SolverException, InterruptedException, CPAException {
+      throws SolverException, InterruptedException, CPAException, InvalidConfigurationException {
     logger.log(Level.INFO, "Running forward analysis with new precondition");
     // check if message is meant for this block
     // if we do not have messages from all predecessors we under-approximate, so we abort!
@@ -480,7 +486,7 @@ public class DssBlockAnalysis {
    */
   public Collection<DssMessage> runAnalysisUnderCondition(
       DssViolationConditionMessage pViolationCondition, boolean put)
-      throws CPAException, InterruptedException, SolverException {
+      throws CPAException, InterruptedException, SolverException, InvalidConfigurationException {
     logger.log(Level.INFO, "Running forward analysis with respect to error condition");
     // merge all states into the reached set
     AbstractState violationCondition =
@@ -543,6 +549,31 @@ public class DssBlockAnalysis {
             false));
     return messages.build();
   }
+
+  private ARGState resetCallstack(AbstractState state)
+      throws InvalidConfigurationException {
+    Preconditions.checkState(
+        state instanceof ARGState, "Expected ARGState but got %s", state);
+    ARGState argState = (ARGState) state;
+    Preconditions.checkState(
+        argState.getWrappedState() instanceof CompositeState,
+        "Expected CompositeState but got %s",
+        argState.getWrappedState());
+    ImmutableList.Builder<AbstractState> reset = ImmutableList.builder();
+    for (AbstractState wrappedState :
+        ((CompositeState) argState.getWrappedState()).getWrappedStates()) {
+      if (wrappedState instanceof CallstackState) {
+        CFANode cfaNode = AbstractStates.extractLocation(wrappedState);
+        Preconditions.checkNotNull(cfaNode, "Expected CFANode but got null");
+        reset.add(
+            CPAs.retrieveCPAOrFail(cpa, CallstackCPA.class, getClass())
+                .getInitialState(cfaNode, StateSpacePartition.getDefaultPartition()));
+      } else {
+        reset.add(wrappedState);
+      }
+    }
+    return new ARGState(new CompositeState(reset.build()), null);
+}
 
   /**
    * Prepare the reached set for next analysis by merging all received BPC messages into a non-empty
