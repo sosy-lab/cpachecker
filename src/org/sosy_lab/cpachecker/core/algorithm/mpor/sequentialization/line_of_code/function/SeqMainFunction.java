@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqScalarPcAssumeStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -163,40 +164,43 @@ public class SeqMainFunction implements SeqFunction {
   }
 
   @Override
-  public String toASTString() {
-    String declarations = buildDeclarationsString(numThreads.getDeclaration(), pcDeclarations);
-    String assertions = buildLoopInvariantsString(loopInvariants);
-    String assumptions = buildAssumptionsString(threadAssumptions, porAssumptions);
-    String switches = buildSwitchStatementsString(caseClauses);
-    return getSignature()
-        + SeqSyntax.SPACE
-        + SeqSyntax.CURLY_BRACKET_LEFT
-        + SeqSyntax.NEWLINE
-        + SeqUtil.prependTabsWithNewline(1, declarations)
-        + (assignPrevThread.isPresent()
-            ? SeqUtil.prependTabsWithNewline(1, SeqVariableDeclaration.PREV_THREAD.toASTString())
-            : SeqSyntax.EMPTY_STRING)
-        + SeqUtil.prependTabsWithNewline(1, SeqVariableDeclaration.NEXT_THREAD.toASTString())
-        + SeqSyntax.NEWLINE
-        + SeqUtil.prependTabsWithNewline(1, SeqUtil.appendOpeningCurly(whileTrue.toASTString()))
-        + assertions
-        + SeqUtil.prependTabsWithNewline(2, assignNextThread.toASTString())
-        + SeqUtil.prependTabsWithNewline(2, assumeNextThread.toASTString() + SeqSyntax.SEMICOLON)
-        + ((assumeNextThreadPc instanceof SeqSwitchStatement)
-            ? assumeNextThreadPc.toASTString() + SeqSyntax.NEWLINE
-            : SeqUtil.prependTabsWithNewline(2, assumeNextThreadPc.toASTString()))
-        + SeqSyntax.NEWLINE
-        + assumptions
-        + (assignPrevThread.isPresent()
-            ? SeqSyntax.NEWLINE
-                + SeqUtil.prependTabsWithNewline(2, assignPrevThread.orElseThrow().toASTString())
-                + SeqSyntax.NEWLINE
-            : SeqSyntax.NEWLINE)
-        + switches
-        + SeqUtil.prependTabsWithNewline(2, SeqSyntax.CURLY_BRACKET_RIGHT)
-        + SeqUtil.prependTabsWithNewline(1, SeqSyntax.CURLY_BRACKET_RIGHT)
-        + SeqUtil.prependTabsWithNewline(1, Sequentialization.outputReachErrorDummy)
-        + SeqSyntax.CURLY_BRACKET_RIGHT;
+  public ImmutableList<LineOfCode> buildBody() {
+    ImmutableList.Builder<LineOfCode> rDefinition = ImmutableList.builder();
+    // declare main() local variables NUM_THREADS, pc, next_thread and optionally prev_thread
+    rDefinition.addAll(buildVarDeclarations(numThreads.getDeclaration(), pcDeclarations));
+    if (assignPrevThread.isPresent()) {
+      rDefinition.add(LineOfCode.of(1, SeqVariableDeclaration.PREV_THREAD.toASTString()));
+    }
+    rDefinition.add(LineOfCode.of(1, SeqVariableDeclaration.NEXT_THREAD.toASTString()));
+    rDefinition.add(LineOfCode.empty());
+    // --- loop starts here ---
+    rDefinition.add(LineOfCode.of(1, SeqUtil.appendOpeningCurly(whileTrue.toASTString())));
+    // optional: add loop invariants at loop head
+    rDefinition.addAll(buildLoopInvariants(loopInvariants));
+    rDefinition.add(LineOfCode.of(2, assignNextThread.toASTString()));
+    rDefinition.add(LineOfCode.of(2, assumeNextThread.toASTString() + SeqSyntax.SEMICOLON));
+    // add assumption over pc depending on array vs. scalar pc
+    if (assumeNextThreadPc instanceof SeqSwitchStatement) {
+      rDefinition.add(LineOfCode.of(0, assumeNextThreadPc.toASTString()));
+    } else {
+      rDefinition.add(LineOfCode.of(2, assumeNextThreadPc.toASTString()));
+    }
+    rDefinition.add(LineOfCode.empty());
+    // add all assumptions over thread variables
+    rDefinition.addAll(buildAssumptions(threadAssumptions, porAssumptions));
+    if (assignPrevThread.isPresent()) {
+      rDefinition.add(LineOfCode.empty());
+      rDefinition.add(LineOfCode.of(2, assignPrevThread.orElseThrow().toASTString()));
+    }
+    rDefinition.add(LineOfCode.empty());
+    // add all switch statements
+    rDefinition.addAll(buildSwitchStatements(caseClauses));
+    rDefinition.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
+    rDefinition.add(LineOfCode.of(1, SeqSyntax.CURLY_BRACKET_RIGHT));
+    // --- loop ends here ---
+    // end of main function, only reachable if thread simulation finished incorrectly -> error
+    rDefinition.add(LineOfCode.of(1, Sequentialization.outputReachErrorDummy));
+    return rDefinition.build();
   }
 
   @Override
@@ -214,61 +218,60 @@ public class SeqMainFunction implements SeqFunction {
     return ImmutableList.of();
   }
 
-  private String buildDeclarationsString(
+  private ImmutableList<LineOfCode> buildVarDeclarations(
       CSimpleDeclaration pNumThreads, ImmutableList<CVariableDeclaration> pPcDeclarations) {
 
-    StringBuilder rDeclarations = new StringBuilder();
-    rDeclarations.append(pNumThreads.toASTString()).append(SeqSyntax.NEWLINE);
-    for (CVariableDeclaration varDec : pPcDeclarations) {
-      rDeclarations.append(SeqUtil.prependTabsWithNewline(1, varDec.toASTString()));
+    ImmutableList.Builder<LineOfCode> rVarDeclarations = ImmutableList.builder();
+    rVarDeclarations.add(LineOfCode.of(1, pNumThreads.toASTString()));
+    for (CVariableDeclaration varDeclaration : pPcDeclarations) {
+      rVarDeclarations.add(LineOfCode.of(1, varDeclaration.toASTString()));
     }
-    return rDeclarations.toString();
+    return rVarDeclarations.build();
   }
 
-  private String buildLoopInvariantsString(
+  private ImmutableList<LineOfCode> buildLoopInvariants(
       Optional<ImmutableList<SeqLogicalAndExpression>> pLoopInvariants) {
 
-    StringBuilder rLoopInvariants = new StringBuilder();
+    ImmutableList.Builder<LineOfCode> rLoopInvariants = ImmutableList.builder();
     if (pLoopInvariants.isPresent()) {
       for (SeqLogicalAndExpression assertion : pLoopInvariants.orElseThrow()) {
-        SeqControlFlowStatement ifStmt =
+        SeqControlFlowStatement ifStatement =
             new SeqControlFlowStatement(assertion, SeqControlFlowStatementType.IF);
-        rLoopInvariants.append(
-            SeqUtil.prependTabsWithNewline(2, SeqUtil.appendOpeningCurly(ifStmt.toASTString())));
-        rLoopInvariants.append(
-            SeqUtil.prependTabsWithNewline(
-                3, SeqUtil.appendClosingCurly(Sequentialization.outputReachErrorDummy)));
+        rLoopInvariants.add(
+            LineOfCode.of(2, SeqUtil.appendOpeningCurly(ifStatement.toASTString())));
+        rLoopInvariants.add(
+            LineOfCode.of(3, SeqUtil.appendClosingCurly(Sequentialization.outputReachErrorDummy)));
       }
-      rLoopInvariants.append(SeqSyntax.NEWLINE);
+      rLoopInvariants.add(LineOfCode.empty());
     }
-    return rLoopInvariants.toString();
+    return rLoopInvariants.build();
   }
 
-  private String buildAssumptionsString(
+  private ImmutableList<LineOfCode> buildAssumptions(
       ImmutableList<SeqFunctionCallExpression> pThreadAssumptions,
       Optional<ImmutableList<SeqFunctionCallExpression>> pPORAssumptions) {
 
-    StringBuilder rAssumptions = new StringBuilder();
+    ImmutableList.Builder<LineOfCode> rAssumptions = ImmutableList.builder();
     for (SeqFunctionCallExpression assumption : pThreadAssumptions) {
-      String assumeStmt = assumption.toASTString() + SeqSyntax.SEMICOLON;
-      rAssumptions.append(SeqUtil.prependTabsWithNewline(2, assumeStmt));
+      String assumeStatement = assumption.toASTString() + SeqSyntax.SEMICOLON;
+      rAssumptions.add(LineOfCode.of(2, assumeStatement));
     }
     if (pPORAssumptions.isPresent()) {
       if (!pPORAssumptions.orElseThrow().isEmpty()) {
-        rAssumptions.append(SeqSyntax.NEWLINE);
+        rAssumptions.add(LineOfCode.empty());
       }
       for (SeqFunctionCallExpression assumption : pPORAssumptions.orElseThrow()) {
-        String assumeStmt = assumption.toASTString() + SeqSyntax.SEMICOLON;
-        rAssumptions.append(SeqUtil.prependTabsWithNewline(2, assumeStmt));
+        String assumeStatement = assumption.toASTString() + SeqSyntax.SEMICOLON;
+        rAssumptions.add(LineOfCode.of(2, assumeStatement));
       }
     }
-    return rAssumptions.toString();
+    return rAssumptions.build();
   }
 
-  private String buildSwitchStatementsString(
+  private ImmutableList<LineOfCode> buildSwitchStatements(
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
-    StringBuilder rSwitches = new StringBuilder();
+    ImmutableList.Builder<LineOfCode> rSwitches = ImmutableList.builder();
     int i = 0;
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
@@ -279,28 +282,31 @@ public class SeqMainFunction implements SeqFunction {
             SeqBinaryExpression.buildBinaryExpression(
                 SeqIdExpression.NEXT_THREAD, threadId, BinaryOperator.EQUALS);
         // first switch case: use "if", otherwise "else if"
-        SeqControlFlowStatementType stmtType =
+        SeqControlFlowStatementType statementType =
             i == 0 ? SeqControlFlowStatementType.IF : SeqControlFlowStatementType.ELSE_IF;
-        SeqControlFlowStatement stmt = new SeqControlFlowStatement(nextThreadEquals, stmtType);
-        rSwitches.append(
-            SeqUtil.prependTabsWithoutNewline(
+        SeqControlFlowStatement statement =
+            new SeqControlFlowStatement(nextThreadEquals, statementType);
+        rSwitches.add(
+            LineOfCode.of(
                 2,
                 i == 0
-                    ? SeqUtil.appendOpeningCurly(stmt.toASTString())
-                    : SeqUtil.wrapInCurlyOutwards(stmt.toASTString())));
+                    ? SeqUtil.appendOpeningCurly(statement.toASTString())
+                    : SeqUtil.wrapInCurlyOutwards(statement.toASTString())));
       } catch (UnrecognizedCodeException e) {
         throw new RuntimeException(e);
       }
-      rSwitches.append(SeqSyntax.NEWLINE);
       CExpression pcExpr = SeqExpressions.getPcExpression(thread.id);
       SeqSwitchStatement switchCaseExpr = new SeqSwitchStatement(pcExpr, entry.getValue(), 3);
-      rSwitches.append(switchCaseExpr.toASTString());
+      // TODO the switchCaseExpr should also be a LOC list
+      rSwitches.add(LineOfCode.of(0, switchCaseExpr.toASTString()));
 
-      // append 2 newlines, except for last switch case (1 only)
-      rSwitches.append(SeqUtil.repeat(SeqSyntax.NEWLINE, i == caseClauses.size() - 1 ? 1 : 2));
+      // append additional newlines between switch cases
+      if (i != caseClauses.size() - 1) {
+        rSwitches.add(LineOfCode.empty());
+      }
       i++;
     }
-    return rSwitches.toString();
+    return rSwitches.build();
   }
 
   /** Returns the expression {@code 0 <= next_thread && next_thread < NUM_THREADS} */

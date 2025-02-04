@@ -50,12 +50,12 @@ public class SeqSwitchStatement implements SeqStatement {
             + SeqSyntax.COLON
             + SeqSyntax.SPACE
             + Sequentialization.outputReachErrorDummy;
-    return SeqUtil.repeat(SeqSyntax.TAB, tabs)
+    return SeqUtil.buildTab(tabs)
         + SeqUtil.appendOpeningCurly(switchExpression.toASTString())
         + SeqSyntax.NEWLINE
         + casesString
         + SeqUtil.prependTabsWithNewline(tabs + 1, defaultCaseClause)
-        + SeqUtil.repeat(SeqSyntax.TAB, tabs)
+        + SeqUtil.buildTab(tabs)
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 }

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDecl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqStringLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqVoidType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
 public class SeqReachErrorFunction implements SeqFunction {
@@ -41,13 +42,10 @@ public class SeqReachErrorFunction implements SeqFunction {
   }
 
   @Override
-  public String toASTString() {
-    return getSignature()
-        + SeqSyntax.SPACE
-        + SeqSyntax.CURLY_BRACKET_LEFT
-        + SeqSyntax.NEWLINE
-        + SeqUtil.prependTabsWithNewline(1, assertFailCall.toASTString() + SeqSyntax.SEMICOLON)
-        + SeqSyntax.CURLY_BRACKET_RIGHT;
+  public ImmutableList<LineOfCode> buildBody() {
+    ImmutableList.Builder<LineOfCode> rDefinition = ImmutableList.builder();
+    rDefinition.add(LineOfCode.of(1, assertFailCall.toASTString() + SeqSyntax.SEMICOLON));
+    return rDefinition.build();
   }
 
   @Override

@@ -313,6 +313,7 @@ public class SeqUtil {
         new SeqCaseBlock(stmts.build(), Terminator.CONTINUE));
   }
 
+  // TODO merge all these functions into SeqStringBuilder
   /** Returns ""pString"" */
   public static String wrapInQuotationMarks(String pString) {
     return SeqSyntax.QUOTATION_MARK + pString + SeqSyntax.QUOTATION_MARK;
@@ -353,7 +354,12 @@ public class SeqUtil {
 
   /** Returns pString with the specified amount of tabs as prefix. */
   public static String prependTabsWithoutNewline(int pTabs, String pString) {
-    return repeat(SeqSyntax.TAB, pTabs) + pString;
+    return buildTab(pTabs) + pString;
+  }
+
+  // TODO move this to whereever TAB_SIZE is and make the var private
+  public static String buildTab(int pTabs) {
+    return repeat(SeqSyntax.SPACE, pTabs * Sequentialization.TAB_SIZE);
   }
 
   public static String repeat(String pString, int pAmount) {

@@ -60,7 +60,7 @@ public class SubstituteBuilder {
             // TODO what about structs?
             CDeclaration dec = decl.getDeclaration();
             if (dec instanceof CVariableDeclaration) {
-              CVariableDeclaration varDec = substitution.getVarDecSub(dec);
+              CVariableDeclaration varDec = substitution.getVarDeclarationSubstitute(dec);
               substitute = new SubstituteEdge(substituteDeclarationEdge(decl, varDec));
             }
 

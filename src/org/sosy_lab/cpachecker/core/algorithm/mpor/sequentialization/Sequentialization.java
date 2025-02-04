@@ -64,9 +64,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalOrExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqAssumeFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqMainFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
@@ -78,6 +75,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_va
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcWrite;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionVars;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqMainFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
@@ -98,8 +99,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class Sequentialization {
 
-  // TODO create LineOfCode class with multiple constructors where we define tab amount, semicolon
-  //  curly left / right brackets, newlines, etc.
   public static final int TAB_SIZE = 2;
 
   public static final String inputReachErrorDummy =
@@ -119,74 +118,74 @@ public class Sequentialization {
     threadCount = pThreadCount;
   }
 
-  /** Generates and returns the sequentialized program. */
-  public String generateProgram(
+  /** Generates and returns the sequentialized program that contains dummy reach_error calls. */
+  public String initProgram(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
       MPOROptions pOptions,
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    StringBuilder rProgram = new StringBuilder();
+    ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
     ImmutableSet<MPORThread> threads = pSubstitutions.keySet();
 
     // add all original program declarations that are not substituted
-    rProgram.append(SeqComment.UNCHANGED_DECLARATIONS);
+    rProgram.add(LineOfCode.of(0, SeqComment.UNCHANGED_DECLARATIONS));
     for (MPORThread thread : threads) {
-      rProgram.append(createNonVarDecString(thread));
+      rProgram.addAll(createNonVarDeclarations(thread));
     }
-    rProgram.append(SeqSyntax.NEWLINE);
+    rProgram.add(LineOfCode.empty());
 
     // add all var substitute declarations in the order global - local - params - return_pc
     MPORThread mainThread = MPORAlgorithm.getMainThread(threads);
-    rProgram.append(createGlobalVarString(Objects.requireNonNull(pSubstitutions.get(mainThread))));
+    rProgram.addAll(
+        createGlobalVarDeclarations(Objects.requireNonNull(pSubstitutions.get(mainThread))));
     for (var entry : pSubstitutions.entrySet()) {
-      rProgram.append(createLocalVarString(entry.getKey().id, entry.getValue()));
+      rProgram.addAll(createLocalVarDeclarations(entry.getKey().id, entry.getValue()));
     }
     for (var entry : pSubstitutions.entrySet()) {
-      rProgram.append(createParamVarString(entry.getKey().id, entry.getValue()));
+      rProgram.addAll(createParameterVarDeclarations(entry.getKey().id, entry.getValue()));
     }
-    rProgram.append(SeqComment.RETURN_PCS);
+    rProgram.add(LineOfCode.of(0, SeqComment.RETURN_PCS));
     ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> returnPcVars =
         mapReturnPcVars(threads);
     for (ImmutableMap<CFunctionDeclaration, CIdExpression> map : returnPcVars.values()) {
       for (CIdExpression returnPc : map.values()) {
-        rProgram.append(returnPc.getDeclaration().toASTString()).append(SeqSyntax.NEWLINE);
+        rProgram.add(LineOfCode.of(0, returnPc.getDeclaration().toASTString()));
       }
     }
-    rProgram.append(SeqSyntax.NEWLINE);
+    rProgram.add(LineOfCode.empty());
 
     // add thread simulation vars
-    rProgram.append(SeqComment.THREAD_SIMULATION);
+    rProgram.add(LineOfCode.of(0, SeqComment.THREAD_SIMULATION));
     ImmutableMap<ThreadEdge, SubstituteEdge> subEdges =
         SubstituteBuilder.substituteEdges(pSubstitutions);
     ThreadVars threadVars = buildThreadVars(threads, subEdges);
     for (CIdExpression threadVar : threadVars.getIdExpressions()) {
       assert threadVar.getDeclaration() instanceof CVariableDeclaration;
-      CVariableDeclaration varDec = (CVariableDeclaration) threadVar.getDeclaration();
-      rProgram.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
+      CVariableDeclaration varDeclaration = (CVariableDeclaration) threadVar.getDeclaration();
+      rProgram.add(LineOfCode.of(0, varDeclaration.toASTString()));
     }
-    rProgram.append(SeqSyntax.NEWLINE);
+    rProgram.add(LineOfCode.empty());
 
     // add all custom function declarations
-    rProgram.append(SeqComment.CUSTOM_FUNCTION_DECLARATIONS);
+    rProgram.add(LineOfCode.of(0, SeqComment.CUSTOM_FUNCTION_DECLARATIONS));
     // reach_error, abort, assert, nondet_int may be duplicate depending on the input program
-    rProgram.append(SeqFunctionDeclaration.ASSERT_FAIL.toASTString()).append(SeqSyntax.NEWLINE);
-    rProgram
-        .append(SeqFunctionDeclaration.VERIFIER_NONDET_INT.toASTString())
-        .append(SeqSyntax.NEWLINE);
-    rProgram.append(SeqFunctionDeclaration.ABORT.toASTString()).append(SeqSyntax.NEWLINE);
-    rProgram.append(SeqFunctionDeclaration.REACH_ERROR.toASTString()).append(SeqSyntax.NEWLINE);
-    rProgram.append(SeqFunctionDeclaration.ASSUME.toASTString()).append(SeqSyntax.NEWLINE);
+    rProgram.add(LineOfCode.of(0, SeqFunctionDeclaration.ASSERT_FAIL.toASTString()));
+    rProgram.add(LineOfCode.of(0, SeqFunctionDeclaration.VERIFIER_NONDET_INT.toASTString()));
+    rProgram.add(LineOfCode.of(0, SeqFunctionDeclaration.ABORT.toASTString()));
+    rProgram.add(LineOfCode.of(0, SeqFunctionDeclaration.REACH_ERROR.toASTString()));
+    rProgram.add(LineOfCode.of(0, SeqFunctionDeclaration.ASSUME.toASTString()));
     // main should always be duplicate
-    rProgram
-        .append(SeqFunctionDeclaration.MAIN.toASTString())
-        .append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
+    rProgram.add(LineOfCode.of(0, SeqFunctionDeclaration.MAIN.toASTString()));
+    rProgram.add(LineOfCode.empty());
 
-    // add non main() methods
+    // add non main() function definitions
     SeqReachErrorFunction reachError = new SeqReachErrorFunction();
     SeqAssumeFunction assume = new SeqAssumeFunction();
-    rProgram.append(reachError.toASTString()).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
-    rProgram.append(assume.toASTString()).append(SeqUtil.repeat(SeqSyntax.NEWLINE, 2));
+    rProgram.addAll(reachError.buildDefinition());
+    rProgram.add(LineOfCode.empty());
+    rProgram.addAll(assume.buildDefinition());
+    rProgram.add(LineOfCode.empty());
 
     // create pruned (i.e. only non-blank) cases statements in main method
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
@@ -209,9 +208,9 @@ public class Sequentialization {
             createThreadSimulationAssumptions(pSubstitutions.keySet(), threadVars),
             porAssumptions,
             prunedCaseClauses);
-    rProgram.append(mainMethod.toASTString());
+    rProgram.addAll(mainMethod.buildDefinition());
 
-    return rProgram.toString();
+    return LineOfCode.toString(rProgram.build());
   }
 
   // TODO problem: methods such as pthread_cancel allow the termination of another thread.
@@ -919,56 +918,74 @@ public class Sequentialization {
     return rVars.buildOrThrow();
   }
 
-  // TODO this should be in SeqNameBuilder?
-  // String Creators =============================================================================
+  // LOC Creators =============================================================================
 
-  private String createNonVarDecString(MPORThread pThread) {
-    StringBuilder rDecs = new StringBuilder();
+  /**
+   * Creates {@link LineOfCode}s for all non-variable declarations (e.g. function and struct
+   * declarations) for the given thread.
+   */
+  private ImmutableList<LineOfCode> createNonVarDeclarations(MPORThread pThread) {
+    ImmutableList.Builder<LineOfCode> rNonVarDeclarations = ImmutableList.builder();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       if (threadEdge.cfaEdge instanceof CDeclarationEdge decEdge) {
         CDeclaration dec = decEdge.getDeclaration();
         if (!(dec instanceof CVariableDeclaration)) {
           assert pThread.isMain(); // test if only main thread declares non-vars, e.g. functions
-          rDecs.append(threadEdge.cfaEdge.getCode()).append(SeqSyntax.NEWLINE);
+          rNonVarDeclarations.add(LineOfCode.of(0, threadEdge.cfaEdge.getCode()));
         }
       }
     }
-    return rDecs.toString();
+    return rNonVarDeclarations.build();
   }
 
-  private String createGlobalVarString(CSimpleDeclarationSubstitution pSubstitution) {
-    StringBuilder rDecs = new StringBuilder();
-    rDecs.append(SeqComment.GLOBAL_VARIABLES);
+  /**
+   * Creates {@link LineOfCode}s for all global variable declarations for based on the substitutions
+   * of the main thread.
+   */
+  private ImmutableList<LineOfCode> createGlobalVarDeclarations(
+      CSimpleDeclarationSubstitution pSubstitution) {
+    ImmutableList.Builder<LineOfCode> rGlobalVarDeclarations = ImmutableList.builder();
+    rGlobalVarDeclarations.add(LineOfCode.of(0, SeqComment.GLOBAL_VARIABLE_DECLARATIONS));
     assert pSubstitution.globalVarSubs != null;
     for (CIdExpression globalVar : pSubstitution.globalVarSubs.values()) {
-      rDecs.append(globalVar.getDeclaration().toASTString()).append(SeqSyntax.NEWLINE);
+      rGlobalVarDeclarations.add(LineOfCode.of(0, globalVar.getDeclaration().toASTString()));
     }
-    rDecs.append(SeqSyntax.NEWLINE);
-    return rDecs.toString();
+    rGlobalVarDeclarations.add(LineOfCode.empty());
+    return rGlobalVarDeclarations.build();
   }
 
-  private String createLocalVarString(int pThreadId, CSimpleDeclarationSubstitution pSubstitution) {
-    StringBuilder rDecs = new StringBuilder();
-    rDecs.append(SeqComment.createLocalVarsComment(pThreadId));
+  /**
+   * Creates {@link LineOfCode}s for all local variable declarations for the given thread id based
+   * on the given main thread.
+   */
+  private ImmutableList<LineOfCode> createLocalVarDeclarations(
+      int pThreadId, CSimpleDeclarationSubstitution pSubstitution) {
+
+    ImmutableList.Builder<LineOfCode> rLocalVarDeclarations = ImmutableList.builder();
+    rLocalVarDeclarations.add(
+        LineOfCode.of(0, SeqComment.createLocalVarDeclarationsComment(pThreadId)));
     for (CIdExpression localVar : pSubstitution.localVarSubs.values()) {
-      CVariableDeclaration varDec = pSubstitution.castIdExprDec(localVar.getDeclaration());
-      if (!SeqUtil.isConstCPAcheckerTMP(varDec)) {
-        rDecs.append(varDec.toASTString()).append(SeqSyntax.NEWLINE);
+      CVariableDeclaration varDeclaration =
+          pSubstitution.castToVarDeclaration(localVar.getDeclaration());
+      if (!SeqUtil.isConstCPAcheckerTMP(varDeclaration)) {
+        rLocalVarDeclarations.add(LineOfCode.of(0, varDeclaration.toASTString()));
       }
     }
-    rDecs.append(SeqSyntax.NEWLINE);
-    return rDecs.toString();
+    rLocalVarDeclarations.add(LineOfCode.empty());
+    return rLocalVarDeclarations.build();
   }
 
-  private String createParamVarString(int pThreadId, CSimpleDeclarationSubstitution pSubstitution) {
-    StringBuilder rDecs = new StringBuilder();
-    rDecs.append(SeqComment.createParamVarsComment(pThreadId));
+  private ImmutableList<LineOfCode> createParameterVarDeclarations(
+      int pThreadId, CSimpleDeclarationSubstitution pSubstitution) {
+    ImmutableList.Builder<LineOfCode> rParameterVarDeclarations = ImmutableList.builder();
+    rParameterVarDeclarations.add(
+        LineOfCode.of(0, SeqComment.createParameterVarDeclarationsComment(pThreadId)));
     assert pSubstitution.paramSubs != null;
     for (CIdExpression param : pSubstitution.paramSubs.values()) {
-      rDecs.append(param.getDeclaration().toASTString()).append(SeqSyntax.NEWLINE);
+      rParameterVarDeclarations.add(LineOfCode.of(0, param.getDeclaration().toASTString()));
     }
-    rDecs.append(SeqSyntax.NEWLINE);
-    return rDecs.toString();
+    rParameterVarDeclarations.add(LineOfCode.empty());
+    return rParameterVarDeclarations.build();
   }
 
   // Helpers for better Overview =================================================================

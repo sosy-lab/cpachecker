@@ -13,35 +13,32 @@ public class SeqComment {
   private static final String COMMENT_SINGLE = "//";
 
   public static final String UNCHANGED_DECLARATIONS =
-      COMMENT_SINGLE + " unchanged input program declarations" + SeqSyntax.NEWLINE;
+      COMMENT_SINGLE + " unchanged input program declarations";
 
-  public static final String GLOBAL_VARIABLES =
-      COMMENT_SINGLE + " global variable substitutes" + SeqSyntax.NEWLINE;
+  public static final String GLOBAL_VARIABLE_DECLARATIONS =
+      COMMENT_SINGLE + " global variable substitutes";
 
   public static final String RETURN_PCS =
       COMMENT_SINGLE
-          + " thread local function return pc storing calling contexts"
-          + SeqSyntax.NEWLINE;
+          + " thread local function return pc storing calling contexts";
 
   public static final String THREAD_SIMULATION =
-      COMMENT_SINGLE + " (p)thread simulation variables" + SeqSyntax.NEWLINE;
+      COMMENT_SINGLE + " (p)thread simulation variables";
 
   public static final String CUSTOM_FUNCTION_DECLARATIONS =
-      COMMENT_SINGLE + " custom function declarations" + SeqSyntax.NEWLINE;
+      COMMENT_SINGLE + " custom function declarations";
 
-  public static String createLocalVarsComment(int threadId) {
+  public static String createLocalVarDeclarationsComment(int threadId) {
     return COMMENT_SINGLE
         + " thread "
         + threadId
-        + " local variable substitutes"
-        + SeqSyntax.NEWLINE;
+        + " local variable substitutes";
   }
 
-  public static String createParamVarsComment(int threadId) {
+  public static String createParameterVarDeclarationsComment(int threadId) {
     return COMMENT_SINGLE
         + " thread "
         + threadId
-        + " parameter declarations storing function arguments"
-        + SeqSyntax.NEWLINE;
+        + " parameter declarations storing function arguments";
   }
 }

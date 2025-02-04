@@ -6,17 +6,21 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.SeqASTNode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
-public interface SeqFunction extends SeqASTNode {
+// TODO make this abstract and make default methods final so they cant be overridden
+public interface SeqFunction {
+
+  ImmutableList<LineOfCode> buildBody();
 
   CType getReturnType();
 
@@ -28,7 +32,7 @@ public interface SeqFunction extends SeqASTNode {
    * Basically {@link CFunctionDeclaration#toASTString()} with parameter names but without the
    * suffix {@code ;}.
    */
-  default String getSignature() {
+  default String buildSignature() {
     StringBuilder parameters = new StringBuilder();
     for (int i = 0; i < getParameters().size(); i++) {
       CParameterDeclaration param = getParameters().get(i);
@@ -44,5 +48,13 @@ public interface SeqFunction extends SeqASTNode {
         + SeqSyntax.BRACKET_LEFT
         + parameters
         + SeqSyntax.BRACKET_RIGHT;
+  }
+
+  default ImmutableList<LineOfCode> buildDefinition() {
+    ImmutableList.Builder<LineOfCode> rDefinition = ImmutableList.builder();
+    rDefinition.add(LineOfCode.of(0, SeqUtil.appendOpeningCurly(buildSignature())));
+    rDefinition.addAll(buildBody());
+    rDefinition.add(LineOfCode.of(0, SeqSyntax.CURLY_BRACKET_RIGHT));
+    return rDefinition.build();
   }
 }

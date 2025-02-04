@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.function;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -48,15 +49,12 @@ public class SeqAssumeFunction implements SeqFunction {
   }
 
   @Override
-  public String toASTString() {
-    return getSignature()
-        + SeqSyntax.SPACE
-        + SeqSyntax.CURLY_BRACKET_LEFT
-        + SeqSyntax.NEWLINE
-        + SeqUtil.prependTabsWithNewline(1, SeqUtil.appendOpeningCurly(ifCond.toASTString()))
-        + SeqUtil.prependTabsWithNewline(2, abortCall.toASTString() + SeqSyntax.SEMICOLON)
-        + SeqUtil.prependTabsWithNewline(1, SeqSyntax.CURLY_BRACKET_RIGHT)
-        + SeqSyntax.CURLY_BRACKET_RIGHT;
+  public ImmutableList<LineOfCode> buildBody() {
+    ImmutableList.Builder<LineOfCode> rDefinition = ImmutableList.builder();
+    rDefinition.add(LineOfCode.of(1, SeqUtil.appendOpeningCurly(ifCond.toASTString())));
+    rDefinition.add(LineOfCode.of(2, abortCall.toASTString() + SeqSyntax.SEMICOLON));
+    rDefinition.add(LineOfCode.of(1, SeqSyntax.CURLY_BRACKET_RIGHT));
+    return rDefinition.build();
   }
 
   @Override

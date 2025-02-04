@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 
+// TODO try around with Visitors, this should make all of this redundant
 public class CSimpleDeclarationSubstitution implements Substitution {
 
   /**
@@ -76,7 +77,7 @@ public class CSimpleDeclarationSubstitution implements Substitution {
 
     if (pExpression instanceof CIdExpression idExpr) {
       if (isSubstitutable(idExpr.getDeclaration())) {
-        return getVarSub(idExpr.getDeclaration());
+        return getVarSubstitute(idExpr.getDeclaration());
       }
 
     } else if (pExpression instanceof CBinaryExpression binExpr) {
@@ -191,7 +192,7 @@ public class CSimpleDeclarationSubstitution implements Substitution {
   }
 
   /** Returns the global, local or param {@link CIdExpression} substitute of pDec. */
-  private CIdExpression getVarSub(CSimpleDeclaration pSimpleDec) {
+  private CIdExpression getVarSubstitute(CSimpleDeclaration pSimpleDec) {
     if (pSimpleDec instanceof CVariableDeclaration varDec) {
       if (localVarSubs.containsKey(varDec)) {
         return localVarSubs.get(varDec);
@@ -214,15 +215,16 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     throw new IllegalArgumentException("pSimpleDec must be CVariable- or CParameterDeclaration");
   }
 
-  public CVariableDeclaration getVarDecSub(CSimpleDeclaration pSimpleDec) {
-    CIdExpression idExpr = getVarSub(pSimpleDec);
+  public CVariableDeclaration getVarDeclarationSubstitute(CSimpleDeclaration pSimpleDeclaration) {
+    CIdExpression idExpr = getVarSubstitute(pSimpleDeclaration);
     return (CVariableDeclaration) idExpr.getDeclaration();
   }
 
-  public CVariableDeclaration castIdExprDec(CSimpleDeclaration pSimpleDec) {
+  public CVariableDeclaration castToVarDeclaration(CSimpleDeclaration pSimpleDeclaration) {
     checkArgument(
-        pSimpleDec instanceof CVariableDeclaration, "pSimpleDec must be CVariableDeclaration");
-    return (CVariableDeclaration) pSimpleDec;
+        pSimpleDeclaration instanceof CVariableDeclaration,
+        "pSimpleDeclaration must be CVariableDeclaration");
+    return (CVariableDeclaration) pSimpleDeclaration;
   }
 
   private boolean isSubstitutable(CSimpleDeclaration pSimpleDec) {
