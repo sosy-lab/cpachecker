@@ -3275,7 +3275,7 @@ cpa.smg2.abstraction.listAbstractionMaximumIncreaseLengthThreshold = 6
 
 # The minimum list segments directly following each other with the same value
 # needed to abstract them.Minimum is 2.
-cpa.smg2.abstraction.listAbstractionMinimumLengthThreshold = 4
+cpa.smg2.abstraction.listAbstractionMinimumLengthThreshold = 3
 
 # restrict liveness abstractions to nodes with more than one entering and/or
 # leaving edge
@@ -3418,7 +3418,7 @@ cpa.smg2.memoryArrayAllocationFunctionsNumParameter = 0
 cpa.smg2.memoryErrors = true
 
 # which merge operator to use for the SMGCPA
-cpa.smg2.merge = "SEP"
+cpa.smg2.merge = "JOIN"
   allowed values: [SEP, JOIN]
 
 # Whether to perform SAT checks only for the last added constraint
