@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.EQUAL;
+import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.LEFT_ENTAIL;
+
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -37,42 +40,56 @@ public class SMGMergeOperator implements MergeOperator {
     SMGState newSMGState = (SMGState) newState;
     SMGState smgStateFromReached = (SMGState) stateFromReached;
 
-    // A merge w/o nested lists is expensive but most of the time not needed
-    Set<SMGSinglyLinkedListSegment> abstrObjs1 =
-        newSMGState.getMemoryModel().getSmg().getAllValidAbstractedObjects();
-    Set<SMGSinglyLinkedListSegment> abstrObjs2 =
-        smgStateFromReached.getMemoryModel().getSmg().getAllValidAbstractedObjects();
-    if (abstrObjs1.isEmpty() && abstrObjs2.isEmpty()) {
-      return smgStateFromReached;
-    }
+    if (!newSMGState.mergeAtBlockEnd()
+        || (newSMGState.createdAtBlockEnd() && smgStateFromReached.createdAtBlockEnd())) {
 
-    totalMergeTimer.start();
-    statistics.incrementMergeAttempts();
-    Optional<MergedSMGStateAndMergeStatus> maybeMergedStateAndStatus =
-        newSMGState.merge(smgStateFromReached);
-    totalMergeTimer.stop();
-
-    if (maybeMergedStateAndStatus.isPresent()) {
-      statistics.incrementNumberOfSuccessfulMerges();
-
-      if (maybeMergedStateAndStatus.orElseThrow().getMergeStatus() == SMGMergeStatus.EQUAL) {
-        // Don't merge equal states, as they are subsumed with the stop-operator
-        newSMGState.addLessOrEqualState(smgStateFromReached);
-        smgStateFromReached.addLessOrEqualState(newSMGState);
+      // A merge w/o nested lists is expensive but most of the time not needed
+      Set<SMGSinglyLinkedListSegment> abstrObjs1 =
+          newSMGState.getMemoryModel().getSmg().getAllValidAbstractedObjects();
+      Set<SMGSinglyLinkedListSegment> abstrObjs2 =
+          smgStateFromReached.getMemoryModel().getSmg().getAllValidAbstractedObjects();
+      if (abstrObjs1.isEmpty() && abstrObjs2.isEmpty()) {
         return smgStateFromReached;
       }
-      // right-entails shows that smgStateFromReached < newState
-      // left-entails shows that newState < smgStateFromReached
 
-      // Retain block-end status
-      SMGState mergedState = maybeMergedStateAndStatus.orElseThrow().getMergedSMGState();
-      if (newSMGState.createdAtBlockEnd() && smgStateFromReached.createdAtBlockEnd()) {
-        mergedState = mergedState.withBlockEnd(newSMGState.getBlockEnd());
+      totalMergeTimer.start();
+      statistics.incrementMergeAttempts();
+
+      Optional<MergedSMGStateAndMergeStatus> maybeMergedStateAndStatus =
+          newSMGState.merge(smgStateFromReached);
+
+      totalMergeTimer.stop();
+
+      if (maybeMergedStateAndStatus.isPresent()) {
+        statistics.incrementNumberOfSuccessfulMerges();
+        MergedSMGStateAndMergeStatus mergedStateAndStatus = maybeMergedStateAndStatus.orElseThrow();
+        SMGMergeStatus mergeStatus = mergedStateAndStatus.getMergeStatus();
+
+        // right-entails shows that smgStateFromReached < newState
+        // left-entails shows that newState < smgStateFromReached
+        if (mergeStatus == EQUAL) {
+          // Don't merge equal states, as they are subsumed with the stop-operator
+          assert newSMGState.isLessOrEqual(smgStateFromReached);
+          newSMGState.addLessOrEqualState(smgStateFromReached);
+          smgStateFromReached.addLessOrEqualState(newSMGState);
+          return smgStateFromReached;
+        } else if (mergeStatus == LEFT_ENTAIL) {
+          // Don't merge left-entail states, as they are subsumed with the stop-operator
+          assert newSMGState.isLessOrEqual(smgStateFromReached);
+          newSMGState.addLessOrEqualState(smgStateFromReached);
+          return smgStateFromReached;
+        }
+
+        // Retain block-end status
+        SMGState mergedState = mergedStateAndStatus.getMergedSMGState();
+        if (newSMGState.createdAtBlockEnd() && smgStateFromReached.createdAtBlockEnd()) {
+          mergedState = mergedState.withBlockEnd(newSMGState.getBlockEnd());
+        }
+
+        newSMGState.addLessOrEqualState(mergedState);
+        smgStateFromReached.addLessOrEqualState(mergedState);
+        return mergedState;
       }
-
-      newSMGState.addLessOrEqualState(mergedState);
-      smgStateFromReached.addLessOrEqualState(mergedState);
-      return mergedState;
     }
 
     return smgStateFromReached;
