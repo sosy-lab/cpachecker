@@ -328,7 +328,7 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
-        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
+        WalltimeLimit l = WalltimeLimit.create(timeForInvariantGeneration);
         limits = new ResourceLimitChecker(invariantShutdown, Collections.singletonList(l));
         limits.start();
       } else {
@@ -423,7 +423,7 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
-        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
+        WalltimeLimit l = WalltimeLimit.create(timeForInvariantGeneration);
         limits = new ResourceLimitChecker(invariantShutdown, Collections.singletonList(l));
         limits.start();
       } else {

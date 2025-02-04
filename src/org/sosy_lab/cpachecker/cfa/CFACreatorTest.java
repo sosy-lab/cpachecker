@@ -331,8 +331,7 @@ public class CFACreatorTest {
     List<JParameterDeclaration> jParameterDeclarations = new ArrayList<>(parameters.size());
     for (String parameter : parameters) {
       jParameterDeclarations.add(
-          new JParameterDeclaration(
-              FileLocation.DUMMY, JSimpleType.getInt(), parameter, "stub", false));
+          new JParameterDeclaration(FileLocation.DUMMY, JSimpleType.INT, parameter, "stub", false));
     }
     if (!parametersSubString.isEmpty()) {
       name.append("_").append(parametersSubString);

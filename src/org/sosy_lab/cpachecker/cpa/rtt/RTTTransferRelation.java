@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JNullType;
@@ -91,9 +90,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
     JVariableDeclaration decl = (JVariableDeclaration) declaration;
 
-    if (decl.getType() instanceof JSimpleType) {
-      JBasicType simpleType = ((JSimpleType) decl.getType()).getType();
-
+    if (decl.getType() instanceof JSimpleType simpleType) {
       switch (simpleType) {
         case BOOLEAN:
         case BYTE:
