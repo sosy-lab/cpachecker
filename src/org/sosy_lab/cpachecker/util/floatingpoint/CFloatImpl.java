@@ -87,8 +87,8 @@ class CFloatImpl extends CFloat {
         || Format.Float64.equals(format)
         || Format.Float80.equals(format)) {
       long signBit = floatValue.isNegative() ? getSignBitMask() : 0;
-      long exponent = floatValue.getExponent() + floatValue.getFormat().bias();
-      BigInteger mantissa = floatValue.getSignificand();
+      long exponent = floatValue.getExponentWithoutBias() + floatValue.getFormat().bias();
+      BigInteger mantissa = floatValue.getSignificandWithoutHiddenBit();
       if (!format.equals(Format.Float80)) {
         mantissa = mantissa.clearBit(format.sigBits());
       }

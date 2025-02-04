@@ -3050,7 +3050,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * <p>The exponent is not stored with the IEEE bias. See {@link #exponent} and {@link
    * Format#bias()}.
    */
-  long getExponent() {
+  long getExponentWithoutBias() {
     return exponent;
   }
 
@@ -3061,7 +3061,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * additional hidden bit in its first place. See {@link #significand} for more information about
    * the "hidden" bit.
    */
-  BigInteger getSignificand() {
+  BigInteger getSignificandWithoutHiddenBit() {
     return significand;
   }
 }

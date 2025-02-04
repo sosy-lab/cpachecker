@@ -254,7 +254,10 @@ public class FloatValueTest {
           : BigFloat.positiveInfinity(context.precision);
     }
     return new BigFloat(
-        pValue.isNegative(), pValue.getSignificand(), pValue.getExponent(), context);
+        pValue.isNegative(),
+        pValue.getSignificandWithoutHiddenBit(),
+        pValue.getExponentWithoutBias(),
+        context);
   }
 
   /** Construct a CFloatImpl from a BigFloat test value. */
