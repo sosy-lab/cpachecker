@@ -35,12 +35,6 @@ public class MergedSPCAndMergeStatusWithMergingSPCsAndMapping {
       ImmutableMap<SMGNode, SMGNode> pMapping1,
       ImmutableMap<SMGNode, SMGNode> pMapping2,
       SMGRecoverableFailure pRecoverableFailure) {
-    checkNotNull(pMergedSPC);
-    checkNotNull(pMergeStatus);
-    checkNotNull(pMergingSpc1);
-    checkNotNull(pMergingSpc2);
-    checkNotNull(pMapping1);
-    checkNotNull(pMapping2);
     mergedSPC = pMergedSPC;
     mergeStatus = pMergeStatus;
     mergingSpc1 = pMergingSpc1;
