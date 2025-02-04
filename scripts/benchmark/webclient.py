@@ -1079,7 +1079,7 @@ class WebInterface:
         self.active = False
         self._result_downloader.shutdown()
 
-        if self._run_collection_ids is not None and self._unfinished_runs:
+        if self._run_collection_ids and self._unfinished_runs:
             for run_collection_id in self._run_collection_ids:
                 try:
                     state, _ = self._request(
