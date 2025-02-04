@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_cod
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqAssumeFunction implements SeqFunction {
+public class SeqAssumeFunction extends SeqFunction {
 
   private static final CFunctionCallExpression abortCall =
       new CFunctionCallExpression(

@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqType
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
-public class SeqReachErrorFunction implements SeqFunction {
+public class SeqReachErrorFunction extends SeqFunction {
 
   private final CFunctionCallExpression assertFailCall;
 

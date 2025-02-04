@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqT
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqMainFunction implements SeqFunction {
+public class SeqMainFunction extends SeqFunction {
 
   private static final SeqControlFlowStatement whileTrue =
       new SeqControlFlowStatement(

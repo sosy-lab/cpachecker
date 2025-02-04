@@ -17,22 +17,21 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
 
-// TODO make this abstract and make default methods final so they cant be overridden
-public interface SeqFunction {
+public abstract class SeqFunction {
 
-  ImmutableList<LineOfCode> buildBody();
+  abstract ImmutableList<LineOfCode> buildBody();
 
-  CType getReturnType();
+  abstract CType getReturnType();
 
-  CIdExpression getFunctionName();
+  abstract CIdExpression getFunctionName();
 
-  ImmutableList<CParameterDeclaration> getParameters();
+  abstract ImmutableList<CParameterDeclaration> getParameters();
 
   /**
    * Basically {@link CFunctionDeclaration#toASTString()} with parameter names but without the
    * suffix {@code ;}.
    */
-  default String buildSignature() {
+  private String buildSignature() {
     StringBuilder parameters = new StringBuilder();
     for (int i = 0; i < getParameters().size(); i++) {
       CParameterDeclaration param = getParameters().get(i);
@@ -50,7 +49,7 @@ public interface SeqFunction {
         + SeqSyntax.BRACKET_RIGHT;
   }
 
-  default ImmutableList<LineOfCode> buildDefinition() {
+  public final ImmutableList<LineOfCode> buildDefinition() {
     ImmutableList.Builder<LineOfCode> rDefinition = ImmutableList.builder();
     rDefinition.add(LineOfCode.of(0, SeqUtil.appendOpeningCurly(buildSignature())));
     rDefinition.addAll(buildBody());
