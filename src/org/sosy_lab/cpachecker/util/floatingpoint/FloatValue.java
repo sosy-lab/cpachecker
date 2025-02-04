@@ -2812,20 +2812,14 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
 
     // Build the final value
-    Format precision = pFormat.withUnlimitedExponent();
-    significand = numerator.divide(divisor);
-    BigInteger remainder1 = numerator.subtract(significand.multiply(divisor));
-    BigInteger remainder2 = divisor.subtract(remainder1);
-    FloatValue floatValue = fromInteger(precision, significand);
-    floatValue = floatValue.withExponent(floatValue.exponent + exponent);
-    boolean isEven = significand.mod(BigInteger.TWO).equals(BigInteger.ZERO);
-    if (remainder1.compareTo(remainder2) > 0
-        || (remainder1.compareTo(remainder2) == 0 && !isEven)) { // Round up
-      floatValue = floatValue.plus1Ulp();
-    }
+    Format precision = pFormat.intermediatePrecision(); // TODO Check that this is enough
+    FloatValue floatNumerator = fromInteger(precision, numerator);
+    FloatValue floatDivisor = fromInteger(precision, divisor);
 
-    FloatValue roundedResult = floatValue.withPrecision(pFormat);
-    return pSign ? roundedResult.negate() : roundedResult;
+    FloatValue quotient = floatNumerator.divide(floatDivisor);
+    FloatValue rounded = quotient.withExponent(quotient.exponent + exponent).withPrecision(pFormat);
+
+    return pSign ? rounded.negate() : rounded;
   }
 
   /**
