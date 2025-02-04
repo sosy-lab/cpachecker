@@ -348,15 +348,15 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
             resultPathFormula =
                   pathFormulaManager.makeAndWithInstantiatedFormula(resultPathFormula, defaultPredicate, ssaMap);
 
-            if (varNameToMinIdx.get(varName) != null) {
-              builder = ssaMap.builder();
-              builder.setIndex(varName + PRIME_SUFFIX, builder.getType(varName), varNameToMinIdx.get(varName));
-              ssaMap = builder.build();
-              BooleanFormula constrainPredicate = fmgr.instantiate(predicateTerm, ssaMap);
-              resultPathFormula =
-                  pathFormulaManager.makeAndWithInstantiatedFormula(resultPathFormula,
-                      constrainPredicate, ssaMap);
-            }
+//            if (varNameToMinIdx.get(varName) != null) {
+//              builder = ssaMap.builder();
+//              builder.setIndex(varName + PRIME_SUFFIX, builder.getType(varName), varNameToMinIdx.get(varName));
+//              ssaMap = builder.build();
+//              BooleanFormula constrainPredicate = fmgr.instantiate(predicateTerm, ssaMap);
+//              resultPathFormula =
+//                  pathFormulaManager.makeAndWithInstantiatedFormula(resultPathFormula,
+//                      constrainPredicate, ssaMap);
+//            }
           }
           break; // One predicate should only have one prime
         }

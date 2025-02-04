@@ -1642,6 +1642,15 @@ public class FormulaManagerView {
     return varName.split(Character.toString(INDEX_SEPARATOR), 2);
   }
 
+  public List<BooleanFormula> createTransitionFormulas(String varName) {
+    List<BooleanFormula> formulaList = new ArrayList<>();
+    BitvectorFormula var = makeVariable(FormulaType.getBitvectorTypeWithSize(32), varName);
+    BitvectorFormula varPrime = makeVariable(FormulaType.getBitvectorTypeWithSize(32), varName + PRIME_SUFFIX);
+    formulaList.add(makeGreaterOrEqual(var, varPrime, false));
+    formulaList.add(makeLessThan(var, varPrime, false));
+    return formulaList;
+  }
+
   /**
    * For an equality {@code x = y} where {@code x} and {@code y} are not boolean, return a list
    * {@code x<=y, x>=y}.

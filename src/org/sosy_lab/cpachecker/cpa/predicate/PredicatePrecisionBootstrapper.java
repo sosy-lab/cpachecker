@@ -9,8 +9,10 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder;
 import java.io.IOException;
@@ -76,6 +78,13 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       secure = true,
       description = "always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
+
+  @Option(
+      secure = true,
+      name = "abstraction.generateTransitionPredicates",
+      description = "generate transition predicates for all variables in CFA and set as precision"
+  )
+  private boolean generateInitialTransitionPredicates = false;
 
   @Options(prefix = "cpa.predicate.abstraction.initialPredicates")
   public static class InitialPredicatesOptions {
@@ -207,6 +216,10 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
           logger.logUserException(Level.WARNING, e, "Could not read predicate map");
         }
       }
+    }
+
+    if (generateInitialTransitionPredicates) {
+      result = result.mergeWith(createInitialPrecisionWithTransitionPredicates());
     }
 
     return result;
@@ -361,5 +374,34 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
+  }
+
+  private PredicatePrecision createInitialPrecisionWithTransitionPredicates() {
+    Set<String> relevantVariables = cfa.getVarClassification().get().getRelevantVariables();
+    Set<String> functions = cfa.getAllFunctionNames();
+    List<AbstractionPredicate> globalPredicates = new ArrayList<>();
+    ListMultimap<String, AbstractionPredicate> functionPredicates = ArrayListMultimap.create();
+    ListMultimap<CFANode, AbstractionPredicate> localPredicates = ArrayListMultimap.create();
+
+    for (String varName : relevantVariables) {
+      String functionName = null;
+      for (String function : functions) {
+        if (varName.contains(function)) {
+          functionName = function;
+          break;
+        }
+      }
+      if (functionName != null) {
+        List<BooleanFormula> transitionFormulas = formulaManagerView.createTransitionFormulas(varName);
+        for (BooleanFormula f : transitionFormulas) {
+          AbstractionPredicate transitionPredicate = abstractionManager.makePredicate(f);
+          functionPredicates.put(functionName, transitionPredicate);
+        }
+      } else {
+        logger.log(Level.INFO, "Skipping an unrelevant variable when creating initial transition predicates.");
+      }
+    }
+    return new PredicatePrecision(
+        ImmutableSetMultimap.of(), localPredicates, functionPredicates, globalPredicates);
   }
 }
