@@ -36,22 +36,31 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGExportLevel;
+import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAMaterializer;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstantSymbolicExpressionLocator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGHasValueEdgesAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -399,6 +408,7 @@ public class SymbolicProgramConfiguration {
     // 3. For each program variable:
     //      Perform joinSubSMG() for the region of the var and all 3 SMGs
     //      Abort for bottom join/merge status
+    // TODO: BFS compatibility over all first
     for (Entry<String, SMGObject> entry : thisSPC.globalVariableMapping.entrySet()) {
       String thisVarName = entry.getKey();
       SMGObject thisGlobalObj = entry.getValue();
@@ -807,8 +817,31 @@ public class SymbolicProgramConfiguration {
     if (res.isEmpty() || !res.orElseThrow().isRecoverableFailure()) {
       return res;
     }
-    SMGRecoverableFailure failureType = res.orElseThrow().getRecoverableFailure();
 
+    // Subsequent parts of the paper are handled in the following method
+    return handleRecoverableFailure(
+        pSpc1, pSpc2, v1, v2, pNewSpc, mapping1, mapping2, initialJoinStatus, nestingDiff, res);
+  }
+
+  /**
+   * Handles recoverable failures. Will try to insert a 0+ object for recoverable failures and will
+   * try to extend the list by materializing for other types of failure.
+   */
+  @Nonnull
+  private static Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue>
+      handleRecoverableFailure(
+          SymbolicProgramConfiguration pSpc1,
+          SymbolicProgramConfiguration pSpc2,
+          SMGValue v1,
+          SMGValue v2,
+          SymbolicProgramConfiguration pNewSpc,
+          ImmutableMap<SMGNode, SMGNode> mapping1,
+          ImmutableMap<SMGNode, SMGNode> mapping2,
+          SMGMergeStatus initialJoinStatus,
+          int nestingDiff,
+          Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> res)
+          throws SMGException {
+    SMGRecoverableFailure failureType = res.orElseThrow().getRecoverableFailure();
     // 6. Let targetObj1/2 be the target of the PTEs of v1 and v2
     SMGPointsToEdge pte1 = pSpc1.smg.getPTEdge(v1).orElseThrow();
     SMGPointsToEdge pte2 = pSpc2.smg.getPTEdge(v2).orElseThrow();
@@ -817,42 +850,135 @@ public class SymbolicProgramConfiguration {
 
     // 7. If targetObj1 is an abstracted obj, insertLeftLLsAndJoin().
     //      If bottom, return bottom, if not recoverable failure, return result.
-    if (t1 instanceof SMGSinglyLinkedListSegment && failureType == DELAYED_MERGE) {
+    if (t1 instanceof SMGSinglyLinkedListSegment && (failureType == DELAYED_MERGE)) {
       res =
           insertLeftLLAndJoin(
               pSpc1, pSpc2, v1, v2, pNewSpc, mapping1, mapping2, initialJoinStatus, nestingDiff);
       if (res.isEmpty() || !res.orElseThrow().isRecoverableFailure()) {
         return res;
       }
+      failureType = res.orElseThrow().getRecoverableFailure();
     }
-    failureType = res.orElseThrow().getRecoverableFailure();
 
     // 8. If targetObj2 is an abstracted obj, insertRightLLsAndJoin().
     //      If bottom, return bottom, else return result.
-    if (t2 instanceof SMGSinglyLinkedListSegment && failureType == DELAYED_MERGE) {
+    if (t2 instanceof SMGSinglyLinkedListSegment && (failureType == DELAYED_MERGE)) {
       res =
           insertRightLLAndJoin(
               pSpc1, pSpc2, v1, v2, pNewSpc, mapping1, mapping2, initialJoinStatus, nestingDiff);
+      if (res.isEmpty() || res.orElseThrow().getRecoverableFailure() == DELAYED_MERGE) {
+        return Optional.empty();
+      }
+      failureType = res.orElseThrow().getRecoverableFailure();
     }
 
-    if (res.isEmpty() || res.orElseThrow().getRecoverableFailure() == DELAYED_MERGE) {
+    if (failureType == DELAYED_MERGE) {
       return Optional.empty();
     }
-    failureType = res.orElseThrow().getRecoverableFailure();
 
     // Against the papers algorithm we also return recoverable failure below here. This allows us to
     // join lists with differing length here or in previously merged abstract list segments.
-    if (failureType == LEFT_LIST_LONGER) {
-      // Extend the right list with a 0+
-      // TODO:
+    if (t2 instanceof SMGSinglyLinkedListSegment sll2 && failureType == LEFT_LIST_LONGER) {
+      // Extend the right list with a 0+ from another abstracted element right
+      // res = insertRightLLIntoRightAndJoin();
 
+      // TODO: if this works, make materialization work on SPC level
+      Optional<SymbolicProgramConfiguration> maybeNewSPC2 =
+          getMaterializedListAndSPC(pSpc2, v2, sll2);
+
+      if (maybeNewSPC2.isEmpty()) {
+        return Optional.empty();
+      }
+
+      // Multiple extensions are possible, but happen 1 element further now.
+      res =
+          mergeValues(
+              pSpc1,
+              maybeNewSPC2.orElseThrow(),
+              v1,
+              v2,
+              pNewSpc,
+              mapping1,
+              mapping2,
+              initialJoinStatus,
+              nestingDiff);
+
+      if (res.isEmpty()) {
+        return Optional.empty();
+      } else if (res.orElseThrow().isRecoverableFailure()) {
+        // Either delayed merge or suddenly we want to extend the other side?
+        // Or the extension failed here, and has to be done earlier.
+        throw new RuntimeException("investigate merge error for list extensions");
+      }
     }
-    if (failureType == RIGHT_LIST_LONGER) {
-      // Extend the left list with a 0+
-      // TODO:
 
+    if (t1 instanceof SMGSinglyLinkedListSegment sll1 && failureType == RIGHT_LIST_LONGER) {
+      // Extend the left list with a 0+ from another abstracted element also left
+      // res = insertLeftLLIntoLeftAndJoin(pSpc1, pSpc2, v1, t1, v2, t2, pNewSpc, mapping1,
+      // mapping2, initialJoinStatus, nestingDiff);
+
+      // TODO: if this works, make materialization work on SPC level
+      Optional<SymbolicProgramConfiguration> maybeNewSPC1 =
+          getMaterializedListAndSPC(pSpc1, v1, sll1);
+
+      if (maybeNewSPC1.isEmpty()) {
+        return Optional.empty();
+      }
+
+      // Multiple extensions are possible, but happen 1 element further now.
+      res =
+          mergeValues(
+              maybeNewSPC1.orElseThrow(),
+              pSpc2,
+              v1,
+              v2,
+              pNewSpc,
+              mapping1,
+              mapping2,
+              initialJoinStatus,
+              nestingDiff);
+
+      if (res.isEmpty()) {
+        return Optional.empty();
+      } else if (res.orElseThrow().isRecoverableFailure()) {
+        // Either delayed merge or suddenly we want to extend the other side?
+        // Or the extension failed here, and has to be done earlier.
+        throw new RuntimeException("investigate merge error for list extensions");
+      }
     }
     return res;
+  }
+
+  // TODO: this is a dummy, lower mat to SPC level.
+  @Nonnull
+  private static Optional<SymbolicProgramConfiguration> getMaterializedListAndSPC(
+      SymbolicProgramConfiguration pSpc, SMGValue v, SMGSinglyLinkedListSegment sll)
+      throws SMGException {
+    try {
+      List<SMGValueAndSMGState> matList =
+          new SMGCPAMaterializer(LogManager.createTestLogManager(), new SMGCPAStatistics())
+              .handleMaterialisation(
+                  v,
+                  sll,
+                  SMGState.of(
+                          MachineModel.LINUX32,
+                          new LogManagerWithoutDuplicates(LogManager.createTestLogManager()),
+                          new SMGOptions(Configuration.defaultConfiguration()),
+                          new SMGCPAExpressionEvaluator(
+                              MachineModel.LINUX32,
+                              new LogManagerWithoutDuplicates(LogManager.createTestLogManager()),
+                              new SMGCPAExportOptions(null, SMGExportLevel.NEVER),
+                              new SMGOptions(Configuration.defaultConfiguration()),
+                              null),
+                          new SMGCPAStatistics())
+                      .copyAndReplaceMemoryModel(pSpc));
+      if (matList.size() != 1) {
+        return Optional.empty();
+      }
+      return Optional.of(matList.get(0).getSMGState().getMemoryModel());
+    } catch (InvalidConfigurationException pE) {
+      throw new RuntimeException(pE);
+    }
   }
 
   private static boolean areMappedValuesInSPC(
@@ -876,8 +1002,13 @@ public class SymbolicProgramConfiguration {
       SMGObject obj1,
       SMGObject obj2) {
     // 1. If o1 = # or o2 = #, return ⊥.
-    if (obj1.isZero() || obj2.isZero()) {
-      return Optional.empty();
+    if (obj1.isZero() && obj2.isZero()) {
+      // Should not be possible, but better safe than sorry
+      return Optional.of(SMGMergeStatusOrRecoverableFailure.of(initialJoinStatus));
+    } else if (obj1.isZero()) {
+      return Optional.of(SMGMergeStatusOrRecoverableFailure.of(RIGHT_LIST_LONGER));
+    } else if (obj2.isZero()) {
+      return Optional.of(SMGMergeStatusOrRecoverableFailure.of(LEFT_LIST_LONGER));
     }
     SMGNode m1o1 = mapping1.get(obj1);
     SMGNode m2o2 = mapping2.get(obj2);
@@ -892,7 +1023,8 @@ public class SymbolicProgramConfiguration {
       for (Entry<SMGNode, SMGNode> nodes : mapping2.entrySet()) {
         if (nodes.getValue() instanceof SMGObject m2o2Iter && m1o1.equals(m2o2Iter)) {
           assert spc2.isHeapObject((SMGObject) nodes.getKey());
-          return Optional.empty();
+          // Suspect that the right list is longer and might find the correct mapping later
+          return Optional.of(SMGMergeStatusOrRecoverableFailure.of(RIGHT_LIST_LONGER));
         }
       }
     }
@@ -991,19 +1123,19 @@ public class SymbolicProgramConfiguration {
     return Optional.of(SMGMergeStatusOrRecoverableFailure.of(status));
   }
 
-  /*
-   * Tries to save a failing merge by inserting a 0+ in between list segments.
-   * The left (v1) value points towards an abstracted objects, while the right does not.
-   * We insert a 0+ element before the objects pointed to by right (v2) and merge
-   * based on the 2 abstracted objects.
-   * aNext is the next or last pointer of the linked-list, depending on 2.
+  /**
+   * "Skips" the left (v1) target by inserting a fictitious 0+ element on the right hand side SMG
+   * (between v2 and its target). You could also say we extend the right list. Tries to save a
+   * failing merge by inserting a 0+ in between list segments. The left (v1) value points towards an
+   * abstracted objects. We insert a 0+ element before the objects pointed to by right (v2) and
+   * merge based on the 2 abstracted objects, "skipping" the target of v1. Traversal direction and
+   * aNext is based on the specifier of v1, using the next or last offset of the linked-list left to
+   * find the next pointer.
    *
-   * The value (pointer) a points to the new copy of the linked-list d1 called d.
-   * JoinValues() in 10. merges the sub-SMG from the next or prev pointer of the linked-list to the
-   * value a2. This ensures that the new linked-list is inserted,
-   * but the rest is merged normally, skipping the linked-list in a sense.
-   *
-   * statusUpdate is either SMGMergeStatus.RIGHT_ENTAIL or LEFT_ENTAIL, depending on left or right.
+   * <p>The value (pointer) a points to the new copy of the linked-list d1 called d. JoinValues() in
+   * 10. merges the sub-SMG from the next or prev pointer of the linked-list to the value a2. This
+   * ensures that the new linked-list is inserted, but the rest is merged normally, skipping the
+   * linked-list in a sense.
    */
   private static Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue>
       insertLeftLLAndJoin(
@@ -1117,9 +1249,8 @@ public class SymbolicProgramConfiguration {
       if (maybeRes.isEmpty() || maybeRes.orElseThrow().getRecoverableFailure() == DELAYED_MERGE) {
         return Optional.empty();
       } else if (maybeRes.orElseThrow().isRecoverableFailure()) {
-        // Investigate this, most likely the list of the right hand side is longer than the one on
-        // the left
-        throw new RuntimeException("Recoverable failure exception when merging");
+        // Hand the extension request back, extend and then possibly restart this method
+        return maybeRes;
       }
       MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue res = maybeRes.orElseThrow();
       // If res = bottom, return bottom.
@@ -1465,9 +1596,8 @@ public class SymbolicProgramConfiguration {
     if (maybeRes.isEmpty() || maybeRes.orElseThrow().getRecoverableFailure() == DELAYED_MERGE) {
       return maybeRes;
     } else if (maybeRes.orElseThrow().isRecoverableFailure()) {
-      // Investigate this, most likely the list of the left hand side is longer than the one on the
-      // right
-      throw new RuntimeException("Recoverable failure exception when merging");
+      // Hand the extension request back, extend and then possibly restart this method
+      return maybeRes;
     }
     // Else new value a' for the value returned.
     MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue res = maybeRes.orElseThrow();
@@ -1844,7 +1974,9 @@ public class SymbolicProgramConfiguration {
     // TODO: We could also have stack objs due to alloca(), if we hit this, implement it.
     Preconditions.checkState(spc1.heapObjects.contains(o1) && spc2.heapObjects.contains(o2));
     assert o.getMinLength() == Integer.min(o1.getMinLength(), o2.getMinLength());
-    newSPC = newSPC.copyAndAddHeapObject(o);
+    if (!newSPC.heapObjects.contains(o)) {
+      newSPC = newSPC.copyAndAddHeapObject(o);
+    }
     if (!pSpc1.smg.isValid(o1)) {
       newSPC = newSPC.invalidateSMGObject(o, false);
     }
@@ -1852,7 +1984,9 @@ public class SymbolicProgramConfiguration {
     // to o.
     //     Remove m1(o1) together with all nodes and edges of G that are reachable via m1(o1) only,
     //     and remove the items of m1 whose target nodes were removed.
-    if (mapping1.containsKey(o1)) {
+    boolean mapO1 = true;
+    boolean mapO2 = true;
+    if (mapping1.containsKey(o1) && mapping1.get(o1) != o) {
       SMGObject oldTarget1 = (SMGObject) mapping1.get(o1);
       // Replace pointers in SMG
       newSPC = newSPC.replaceAllPointersTowardsWith(oldTarget1, o);
@@ -1882,10 +2016,13 @@ public class SymbolicProgramConfiguration {
 
       mapping1 = newMapping1.buildOrThrow();
       Preconditions.checkArgument(!mapping1.containsKey(o1));
+    } else if (mapping1.containsKey(o1)) {
+      mapO1 = false;
     }
+
     //     If m2(o2) exists, do the same.
     //     This performs a delayed join (C.6)
-    if (mapping2.containsKey(o2)) {
+    if (mapping2.containsKey(o2) && mapping2.get(o2) != o) {
       SMGObject oldTarget2 = (SMGObject) mapping2.get(o2);
       newSPC = newSPC.replaceAllPointersTowardsWith(oldTarget2, o);
       Preconditions.checkState(
@@ -1914,11 +2051,21 @@ public class SymbolicProgramConfiguration {
 
       mapping2 = newMapping2.buildOrThrow();
       Preconditions.checkArgument(!mapping2.containsKey(o2));
+    } else if (mapping2.containsKey(o2)) {
+      mapO2 = false;
     }
 
     // 12. Extend mapping
-    mapping1 = ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping1).put(o1, o).buildOrThrow();
-    mapping2 = ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping2).put(o2, o).buildOrThrow();
+    if (mapO1) {
+      mapping1 =
+          ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping1).put(o1, o).buildOrThrow();
+    }
+    if (mapO2) {
+      mapping2 =
+          ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping2).put(o2, o).buildOrThrow();
+    }
+    assert mapping1.get(o1) == o;
+    assert mapping2.get(o2) == o;
 
     // 13. Let (G, m1 , m2 , a) := mapTargetAddress(G1 , G2 , G, m1 , m2 , a1 , a2 ).
     MergedSPCWithMappingsAndAddressValue resMapTargetAddress =
@@ -1938,7 +2085,10 @@ public class SymbolicProgramConfiguration {
     if (maybeRes.isEmpty()) {
       return Optional.empty();
     } else if (maybeRes.orElseThrow().isRecoverableFailure()) {
-      throw new RuntimeException("Fix me");
+      SMGRecoverableFailure recFailure = maybeRes.orElseThrow().getRecoverableFailure();
+      Preconditions.checkArgument(recFailure != DELAYED_MERGE);
+      return Optional.of(
+          MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.recoverableFailure(recFailure));
     }
     MergedSPCAndMergeStatusWithMergingSPCsAndMapping res = maybeRes.orElseThrow();
     newSPC = res.getMergedSPC();
@@ -2218,14 +2368,18 @@ public class SymbolicProgramConfiguration {
     // TODO: this merging of values could be a Symbolic Expression of (0 OR other value)
     hves1 =
         updatedSPC1.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj1, PersistentSet.of());
-    Set<SMGHasValueEdge> hves1NotZeros =
-        hves1.stream().filter(h -> !h.hasValue().isZero()).collect(ImmutableSet.toImmutableSet());
+    Set<SMGHasValueEdge> hves1NotZerosNotPointers =
+        hves1.stream()
+            .filter(h -> !spc1.smg.isPointer(h.hasValue()))
+            .collect(ImmutableSet.toImmutableSet());
     hves2 =
         updatedSPC2.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj2, PersistentSet.of());
-    Set<SMGHasValueEdge> hves2NotZeros =
-        hves2.stream().filter(h -> !h.hasValue().isZero()).collect(ImmutableSet.toImmutableSet());
+    Set<SMGHasValueEdge> hves2NotZerosNotPointers =
+        hves2.stream()
+            .filter(h -> !spc2.smg.isPointer(h.hasValue()))
+            .collect(ImmutableSet.toImmutableSet());
     // Extend obj2 with new values where modified obj2 has a 0 edge but modified obj1 does not
-    for (SMGHasValueEdge hve1NotZero : hves1NotZeros) {
+    for (SMGHasValueEdge hve1NotZero : hves1NotZerosNotPointers) {
       BigInteger offset1 = hve1NotZero.getOffset();
       BigInteger size1 = hve1NotZero.getSizeInBits();
       List<SMGHasValueEdge> maybeHve2 =
@@ -2249,7 +2403,7 @@ public class SymbolicProgramConfiguration {
       }
     }
     // Extend obj1 with new values where modified obj1 has a 0 edge but modified obj2 does not
-    for (SMGHasValueEdge hve2NotZero : hves2NotZeros) {
+    for (SMGHasValueEdge hve2NotZero : hves2NotZerosNotPointers) {
       BigInteger offset2 = hve2NotZero.getOffset();
       BigInteger size2 = hve2NotZero.getSizeInBits();
       List<SMGHasValueEdge> maybeHve1 =
@@ -2274,7 +2428,39 @@ public class SymbolicProgramConfiguration {
       }
     }
 
+    // Every field that was a pointer before, is a pointer now
+    assert assertMergeFields(spc1, updatedSPC1, obj1);
+
+    assert assertMergeFields(spc2, updatedSPC2, obj1);
+
     return Optional.of(MergingSPCsAndMergeStatus.of(updatedSPC1, updatedSPC2, status));
+  }
+
+  private static boolean assertMergeFields(
+      SymbolicProgramConfiguration originalSPC,
+      SymbolicProgramConfiguration updatedSPC,
+      SMGObject objectMerged) {
+    for (SMGHasValueEdge oldPointerHves :
+        originalSPC.smg.getHasValueEdgesByPredicate(
+            objectMerged, h -> originalSPC.smg.isPointer(h.hasValue()))) {
+      Optional<SMGHasValueEdge> maybeNewHVE =
+          updatedSPC.smg.getHasValueEdgeByPredicate(
+              objectMerged,
+              h ->
+                  h.getOffset().equals(oldPointerHves.getOffset())
+                      && h.getSizeInBits().equals(oldPointerHves.getSizeInBits()));
+      if (oldPointerHves.hasValue().isZero()) {
+        if (maybeNewHVE.isEmpty() || !maybeNewHVE.orElseThrow().hasValue().isZero()) {
+          return false;
+        }
+      } else {
+        if (maybeNewHVE.isEmpty()
+            || !updatedSPC.smg.isPointer(maybeNewHVE.orElseThrow().hasValue())) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   /**
@@ -3914,10 +4100,6 @@ public class SymbolicProgramConfiguration {
     // Now we create a points-to-edge from this value to the target object at the
     // specified offset, overriding any existing from this value
     SMGPointsToEdge pointsToEdge = new SMGPointsToEdge(target, offsetInBits, specifier);
-    if (target instanceof SMGSinglyLinkedListSegment) {
-      Preconditions.checkArgument(
-          ((SMGSinglyLinkedListSegment) target).getMinLength() >= nestingLevel);
-    }
     Preconditions.checkArgument(nestingLevel >= 0);
     return spc.copyAndReplaceSMG(spc.getSmg().copyAndAddPTEdge(pointsToEdge, smgAddress));
   }
