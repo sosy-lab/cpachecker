@@ -67,6 +67,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
       caseClauses.add(
           new SeqCaseClause(
               anyGlobalAssign(assigns),
+              false,
               caseLabelValue,
               new SeqCaseBlock(ImmutableList.of(assignmentStatement), Terminator.BREAK)));
     }

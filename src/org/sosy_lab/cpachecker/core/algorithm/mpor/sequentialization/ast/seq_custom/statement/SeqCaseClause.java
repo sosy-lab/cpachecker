@@ -26,35 +26,41 @@ public class SeqCaseClause implements SeqStatement {
 
   public final boolean isGlobal;
 
+  public final boolean isLoopStart;
+
   /** The case label e.g. {@code case 42: ...} */
   public final SeqCaseLabel label;
 
   /** The case block e.g. {@code fib(42); break;} */
   public final SeqCaseBlock block;
 
-  public SeqCaseClause(boolean pIsGlobal, int pLabelValue, SeqCaseBlock pBlock) {
+  public SeqCaseClause(
+      boolean pIsGlobal, boolean pIsLoopStart, int pLabelValue, SeqCaseBlock pBlock) {
     id = createNewId();
     isGlobal = pIsGlobal;
+    isLoopStart = pIsLoopStart;
     label = new SeqCaseLabel(pLabelValue);
     block = pBlock;
   }
 
   /** Private constructor, only used during cloning process to keep the same id. */
-  private SeqCaseClause(long pId, boolean pIsGlobal, SeqCaseLabel pLabel, SeqCaseBlock pBlock) {
+  private SeqCaseClause(
+      long pId, boolean pIsGlobal, boolean pIsLoopStart, SeqCaseLabel pLabel, SeqCaseBlock pBlock) {
 
     id = pId;
     isGlobal = pIsGlobal;
+    isLoopStart = pIsLoopStart;
     label = pLabel;
     block = pBlock;
   }
 
   public SeqCaseClause cloneWithLabel(SeqCaseLabel pLabel) {
-    return new SeqCaseClause(id, isGlobal, pLabel, block);
+    return new SeqCaseClause(id, isGlobal, isLoopStart, pLabel, block);
   }
 
   public SeqCaseClause cloneWithBlock(SeqCaseBlock pBlock) {
     // id is not imported at this stage of pruning case clauses
-    return new SeqCaseClause(isGlobal, label.value, pBlock);
+    return new SeqCaseClause(isGlobal, isLoopStart, label.value, pBlock);
   }
 
   private static long createNewId() {

@@ -110,8 +110,9 @@ public class SubstituteBuilder {
    *
    * @param pOriginal the variable declaration to substitute
    */
-  private static CVariableDeclaration substituteVarDec(
+  private static CVariableDeclaration substituteVarDeclaration(
       CVariableDeclaration pOriginal, String pName) {
+
     return new CVariableDeclaration(
         pOriginal.getFileLocation(),
         pOriginal.isGlobal(),
@@ -128,7 +129,7 @@ public class SubstituteBuilder {
    *
    * @param pOriginal the variable declaration to substitute
    */
-  private static CVariableDeclaration substituteVarDec(
+  private static CVariableDeclaration substituteVarDeclaration(
       CVariableDeclaration pOriginal, CInitializerExpression pInitExpr) {
     return new CVariableDeclaration(
         pOriginal.getFileLocation(),
@@ -244,7 +245,8 @@ public class SubstituteBuilder {
     for (CFunctionDeclaration funcDec : pThread.cfa.calledFuncs) {
       for (CParameterDeclaration paramDec : funcDec.getParameters()) {
         String varName = SeqNameUtil.buildParameterName(paramDec, pThread.id);
-        CVariableDeclaration varDec = substituteVarDec(paramDec.asVariableDeclaration(), varName);
+        CVariableDeclaration varDec =
+            substituteVarDeclaration(paramDec.asVariableDeclaration(), varName);
         rThreadSubs.put(paramDec, SeqIdExpression.buildIdExpr(varDec));
       }
     }
@@ -266,7 +268,7 @@ public class SubstituteBuilder {
         ImmutableMap.builder();
     for (CVariableDeclaration varDec : pVarDeclarations) {
       String substituteName = SeqNameUtil.buildVarName(varDec, pThreadId);
-      CVariableDeclaration substitute = substituteVarDec(varDec, substituteName);
+      CVariableDeclaration substitute = substituteVarDeclaration(varDec, substituteName);
       dummyVarSubsB.put(varDec, SeqIdExpression.buildIdExpr(substitute));
     }
     ImmutableMap<CVariableDeclaration, CIdExpression> dummyLocalVarSubs =
@@ -290,7 +292,7 @@ public class SubstituteBuilder {
       if (initializer instanceof CInitializerExpression initExpr) {
         CInitializerExpression initExprSub =
             substituteInitExpr(initExpr, dummySubstitution.substitute(initExpr.getExpression()));
-        CVariableDeclaration finalSub = substituteVarDec(varDeclaration, initExprSub);
+        CVariableDeclaration finalSub = substituteVarDeclaration(varDeclaration, initExprSub);
         rFinalSubs.put(entry.getKey(), SeqIdExpression.buildIdExpr(finalSub));
         continue;
       }

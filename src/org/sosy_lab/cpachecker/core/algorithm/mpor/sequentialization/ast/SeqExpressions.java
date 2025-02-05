@@ -134,7 +134,8 @@ public class SeqExpressions {
      */
     public static CIdExpression buildIntIdExpr(String pVarName, CInitializer pInitializer) {
       CVariableDeclaration varDec =
-          SeqVariableDeclaration.buildVarDec(true, SeqSimpleType.INT, pVarName, pInitializer);
+          SeqVariableDeclaration.buildVarDeclaration(
+              true, SeqSimpleType.INT, pVarName, pInitializer);
       return new CIdExpression(FileLocation.DUMMY, varDec);
     }
 
@@ -168,7 +169,7 @@ public class SeqExpressions {
         rExpr.add(
             new CIdExpression(
                 FileLocation.DUMMY,
-                SeqVariableDeclaration.buildVarDec(
+                SeqVariableDeclaration.buildVarDeclaration(
                     false, SeqSimpleType.INT, SeqToken.pc + i, initializer)));
       }
       scalarPc = rExpr.build();

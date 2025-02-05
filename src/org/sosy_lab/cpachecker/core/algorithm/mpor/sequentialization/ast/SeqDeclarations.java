@@ -32,16 +32,19 @@ public class SeqDeclarations {
   public static class SeqVariableDeclaration {
 
     protected static final CVariableDeclaration DUMMY_PC =
-        buildVarDec(false, SeqArrayType.INT_ARRAY, SeqToken.pc, SeqInitializerList.EMPTY_LIST);
+        buildVarDeclaration(
+            false, SeqArrayType.INT_ARRAY, SeqToken.pc, SeqInitializerList.EMPTY_LIST);
 
     public static final CVariableDeclaration PREV_THREAD =
-        buildVarDec(false, SeqSimpleType.INT, SeqToken.prev_thread, SeqInitializer.INT_MINUS_1);
+        buildVarDeclaration(
+            false, SeqSimpleType.INT, SeqToken.prev_thread, SeqInitializer.INT_MINUS_1);
 
     public static final CVariableDeclaration NEXT_THREAD =
-        buildVarDec(false, SeqSimpleType.INT, SeqToken.next_thread, SeqInitializer.INT_MINUS_1);
+        buildVarDeclaration(
+            false, SeqSimpleType.INT, SeqToken.next_thread, SeqInitializer.INT_MINUS_1);
 
     // TODO SubstituteBuilder.substituteVarDec also uses CVariableDeclaration constructor
-    public static CVariableDeclaration buildVarDec(
+    public static CVariableDeclaration buildVarDeclaration(
         boolean pIsGlobal, CType pCType, String pName, CInitializer pInitializer) {
 
       return new CVariableDeclaration(
@@ -59,10 +62,12 @@ public class SeqDeclarations {
      * Creates a {@link CVariableDeclaration} of the form {@code int
      * __return_pc_t{pThreadId}_{pFuncName};}.
      */
-    public static CVariableDeclaration buildReturnPcVarDec(int pThreadId, String pFuncName) {
+    public static CVariableDeclaration buildReturnPcVarDeclaration(
+        int pThreadId, String pFuncName) {
+
       String varName = SeqNameUtil.buildReturnPcName(pThreadId, pFuncName);
       // init -1 -> when initially reading before writing (to int >= 0) then -1 is faulty
-      return buildVarDec(true, SeqSimpleType.INT, varName, SeqInitializer.INT_MINUS_1);
+      return buildVarDeclaration(true, SeqSimpleType.INT, varName, SeqInitializer.INT_MINUS_1);
     }
   }
 

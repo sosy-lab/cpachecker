@@ -93,12 +93,13 @@ public class SeqUtil {
    * while loop. Returns {@link Optional#empty()} if pThreadNode has no leaving edges i.e. its pc is
    * -1.
    */
-  public static Optional<SeqCaseClause> createCaseFromThreadNode(
+  public static Optional<SeqCaseClause> buildCaseClauseFromThreadNode(
       final MPORThread pThread,
       final ImmutableSet<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
+      // TODO group Function and Thread Vars into SeqVars
       FunctionVars pFuncVars,
       ThreadVars pThreadVars)
       throws UnrecognizedCodeException {
@@ -122,6 +123,7 @@ public class SeqUtil {
 
     } else {
       // TODO create separate methods here to handle the different cases for better overview
+      //  (or at least buildStatementFromEdge function)
       boolean firstEdge = true;
       for (ThreadEdge threadEdge : pThreadNode.leavingEdges()) {
 
@@ -301,6 +303,7 @@ public class SeqUtil {
     return Optional.of(
         new SeqCaseClause(
             anyGlobalAccess(threadEdges.build()),
+            pThreadNode.cfaNode.isLoopStart(),
             originPc,
             new SeqCaseBlock(stmts.build(), Terminator.CONTINUE)));
   }

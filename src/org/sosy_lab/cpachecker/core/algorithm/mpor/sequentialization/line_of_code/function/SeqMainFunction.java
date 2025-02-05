@@ -87,6 +87,8 @@ public class SeqMainFunction extends SeqFunction {
   // optional: sequentialization errors at loop head
   private final Optional<ImmutableList<SeqLogicalAndExpression>> loopInvariants;
 
+  // TODO best put pc expressions (array and scalar) here as they are local to main()
+
   public SeqMainFunction(
       int pNumThreads,
       MPOROptions pOptions,
@@ -98,7 +100,7 @@ public class SeqMainFunction extends SeqFunction {
 
     numThreads =
         SeqIdExpression.buildIdExpr(
-            SeqVariableDeclaration.buildVarDec(
+            SeqVariableDeclaration.buildVarDeclaration(
                 false,
                 SeqSimpleType.CONST_INT,
                 SeqToken.NUM_THREADS,
@@ -142,7 +144,7 @@ public class SeqMainFunction extends SeqFunction {
       // declare scalar int for each thread: pc0 = 0; pc1 = -1; ...
       for (int i = 0; i < pNumThreads; i++) {
         rDeclarations.add(
-            SeqVariableDeclaration.buildVarDec(
+            SeqVariableDeclaration.buildVarDeclaration(
                 false,
                 SeqSimpleType.INT,
                 SeqExpressions.getPcExpression(i).toASTString(),
@@ -157,7 +159,7 @@ public class SeqMainFunction extends SeqFunction {
       CInitializerList initializerList =
           new CInitializerList(FileLocation.DUMMY, initializers.build());
       rDeclarations.add(
-          SeqVariableDeclaration.buildVarDec(
+          SeqVariableDeclaration.buildVarDeclaration(
               false, SeqArrayType.INT_ARRAY, SeqToken.pc, initializerList));
     }
     return rDeclarations.build();
@@ -344,6 +346,7 @@ public class SeqMainFunction extends SeqFunction {
                                 BinaryOperator.NOT_EQUALS)))));
         assumeCaseClauses.add(
             new SeqCaseClause(
+                false,
                 false,
                 i,
                 new SeqCaseBlock(

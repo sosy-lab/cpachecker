@@ -294,6 +294,7 @@ public class Sequentialization {
     rProgram.addAll(assume.buildDefinition());
     rProgram.add(LineOfCode.empty());
 
+    // TODO the case clauses should be multimaps
     // create pruned (i.e. only non-blank) cases statements in main method
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
         initCaseClauses(substitutions, subEdges, returnPcVars, threadVars, logger);
@@ -535,9 +536,9 @@ public class Sequentialization {
       Set<ThreadNode> coveredNodes = new HashSet<>();
 
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
-        if (!coveredNodes.contains(threadNode)) {
+        if (coveredNodes.add(threadNode)) {
           Optional<SeqCaseClause> caseClause =
-              SeqUtil.createCaseFromThreadNode(
+              SeqUtil.buildCaseClauseFromThreadNode(
                   thread,
                   pSubstitutions.keySet(),
                   coveredNodes,
@@ -574,6 +575,7 @@ public class Sequentialization {
         // if all case clauses are prunable then we want to include only the thread termination case
         //  e.g. goblint-regression/13-privatized_66-mine-W-init_true.i (t_fun exits immediately)
         if (allPrunable(caseClauses)) {
+          // TODO we should check that there are not multiple thread exits when all are prunable
           SeqCaseClause threadExit = getThreadExitCaseClause(caseClauses);
           // ensure that the single thread exit case clause has label INIT_PC
           pruned.put(
@@ -617,13 +619,13 @@ public class Sequentialization {
     // map from case label pruned pcs to their new pcs after step 1 pruning
     Map<Integer, Integer> prunePcs = new HashMap<>();
     ImmutableList.Builder<SeqCaseClause> prune1 = ImmutableList.builder();
-
+    // TODO add comment here why we need to track prunable case clauses?
     Set<SeqCaseClause> prunable = new HashSet<>();
     Set<Long> newIds = new HashSet<>();
 
     // step 1: recursively prune by executing chains of blank cases until a non-blank is found
     for (SeqCaseClause caseClause : pCaseClauses) {
-      if (!prunable.contains(caseClause)) {
+      if (prunable.add(caseClause)) {
         if (caseClause.isPrunable()) {
           int pc = caseClause.label.value;
           SeqCaseClause nonBlank =
@@ -770,7 +772,7 @@ public class Sequentialization {
       ImmutableMap.Builder<CFunctionDeclaration, CIdExpression> returnPc = ImmutableMap.builder();
       for (CFunctionDeclaration function : thread.cfa.calledFuncs) {
         CVariableDeclaration varDec =
-            SeqVariableDeclaration.buildReturnPcVarDec(thread.id, function.getName());
+            SeqVariableDeclaration.buildReturnPcVarDeclaration(thread.id, function.getName());
         returnPc.put(function, SeqIdExpression.buildIdExpr(varDec));
       }
       rVars.put(thread, returnPc.buildOrThrow());
