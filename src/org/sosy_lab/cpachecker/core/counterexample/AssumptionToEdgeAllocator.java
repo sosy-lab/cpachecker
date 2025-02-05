@@ -1454,7 +1454,8 @@ public class AssumptionToEdgeAllocator {
             } else {
               throw new IllegalArgumentException(
                   String.format(
-                      "Value has unexpected type: Can't convert value `%s` from `%s` to an integer type.",
+                      "Value has unexpected type: Can't convert value `%s` from `%s` to an integer"
+                          + " type.",
                       pNumber, pNumber.getClass().getSimpleName()));
             }
             return handleIntegerNumbers(integerValue, pSimpleType);
@@ -1471,7 +1472,8 @@ public class AssumptionToEdgeAllocator {
             } else {
               throw new IllegalArgumentException(
                   String.format(
-                      "Value has unexpected type: Can't convert value `%s` from `%s` to a floating point type.",
+                      "Value has unexpected type: Can't convert value `%s` from `%s` to a floating"
+                          + " point type.",
                       pNumber, pNumber.getClass().getSimpleName()));
             }
             return handleFloatingPointNumbers(floatValue, pSimpleType);
