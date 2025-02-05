@@ -12,9 +12,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class ThreadVars {
@@ -52,8 +52,7 @@ public class ThreadVars {
       atomicInUse = Optional.empty();
     } else {
       CIdExpression var =
-          SeqIdExpression.buildIntIdExpr(
-              SeqNameBuilder.buildAtomicInUseName(), SeqInitializer.INT_0);
+          SeqIdExpression.buildIntIdExpr(SeqNameUtil.buildAtomicInUseName(), SeqInitializer.INT_0);
       atomicInUse = Optional.of(new AtomicInUse(var));
     }
   }

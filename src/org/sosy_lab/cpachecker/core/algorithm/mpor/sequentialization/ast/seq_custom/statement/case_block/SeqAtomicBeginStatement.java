@@ -13,12 +13,12 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 
 public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
@@ -59,7 +59,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
         SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
 
     String elseStmts =
-        SeqUtil.wrapInCurlyInwards(
+        SeqStringUtil.wrapInCurlyInwards(
             setAtomicInUseTrue.toASTString()
                 + SeqSyntax.SPACE
                 + setBeginsFalse.toASTString()
@@ -68,7 +68,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
     return ifAtomicInUse.toASTString()
         + SeqSyntax.SPACE
-        + SeqUtil.wrapInCurlyInwards(setBeginsTrue.toASTString())
+        + SeqStringUtil.wrapInCurlyInwards(setBeginsTrue.toASTString())
         + SeqSyntax.SPACE
         + elseNotLocked.toASTString()
         + SeqSyntax.SPACE

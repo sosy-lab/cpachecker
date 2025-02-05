@@ -2,19 +2,18 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 
-// TODO also move into string package?
-public class SeqNameBuilder {
+public class SeqNameUtil {
 
   private static int varId = 0;
 
@@ -27,7 +26,8 @@ public class SeqNameBuilder {
     return SeqToken.__MPOR_SEQ__ + SeqToken.THREAD + pThreadId + SeqSyntax.UNDERSCORE;
   }
 
-  public static String createFuncName(String pFuncName) {
+  /** Returns {@code "__MPOR_SEQ__{pFuncName}"}. */
+  public static String buildFuncName(String pFuncName) {
     return SeqToken.__MPOR_SEQ__ + pFuncName;
   }
 
@@ -35,7 +35,7 @@ public class SeqNameBuilder {
    * Returns a var name of the form {@code GLOBAL_{varId}_{pVarDec.getName()}} for global variables
    * and {@code LOCAL_THREAD{threadId}_{varId}_{varName}} for thread local variables.
    */
-  public static String createVarName(CVariableDeclaration pVarDec, int pThreadId) {
+  public static String buildVarName(CVariableDeclaration pVarDec, int pThreadId) {
     String prefix =
         pVarDec.isGlobal()
             ? SeqToken.GLOBAL
@@ -46,7 +46,7 @@ public class SeqNameBuilder {
   /**
    * Returns a var name of the form {@code PARAM_THREAD{pThreadId}_{varId}_{pParamDec.getName()}}.
    */
-  public static String createParamName(CParameterDeclaration pParamDec, int pThreadId) {
+  public static String buildParameterName(CParameterDeclaration pParamDec, int pThreadId) {
     return SeqToken.PARAM
         + SeqSyntax.UNDERSCORE
         + SeqToken.THREAD
@@ -56,7 +56,7 @@ public class SeqNameBuilder {
   }
 
   /** Returns a var name of the form {@code __MPOR_SEQ__THREAD{pThreadId}_RETURN_PC_{pFuncName}}. */
-  public static String createReturnPcName(int pThreadId, String pFuncName) {
+  public static String buildReturnPcName(int pThreadId, String pFuncName) {
     return buildThreadPrefix(pThreadId) + SeqToken.RETURN_PC + SeqSyntax.UNDERSCORE + pFuncName;
   }
 
@@ -95,7 +95,7 @@ public class SeqNameBuilder {
     return buildThreadPrefix(pThreadId) + SeqToken.BEGINS + SeqSyntax.UNDERSCORE + SeqToken.ATOMIC;
   }
 
-  public static String createQualifiedName(String pVarName) {
+  public static String buildQualifiedName(String pVarName) {
     // TODO the qualified names are not relevant in the seq, so we just use dummy::
     return SeqToken.dummy + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
   }

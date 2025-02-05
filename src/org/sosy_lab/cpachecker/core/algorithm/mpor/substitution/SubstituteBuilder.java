@@ -32,8 +32,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
@@ -234,7 +234,7 @@ public class SubstituteBuilder {
     ImmutableMap.Builder<CParameterDeclaration, CIdExpression> rThreadSubs = ImmutableMap.builder();
     for (CFunctionDeclaration funcDec : pThread.cfa.calledFuncs) {
       for (CParameterDeclaration paramDec : funcDec.getParameters()) {
-        String varName = SeqNameBuilder.createParamName(paramDec, pThread.id);
+        String varName = SeqNameUtil.buildParameterName(paramDec, pThread.id);
         CVariableDeclaration varDec = substituteVarDec(paramDec.asVariableDeclaration(), varName);
         rThreadSubs.put(paramDec, SeqIdExpression.buildIdExpr(varDec));
       }
@@ -256,7 +256,7 @@ public class SubstituteBuilder {
     ImmutableMap.Builder<CVariableDeclaration, CIdExpression> dummyVarSubsB =
         ImmutableMap.builder();
     for (CVariableDeclaration varDec : pVarDecs) {
-      String substituteName = SeqNameBuilder.createVarName(varDec, pThreadId);
+      String substituteName = SeqNameUtil.buildVarName(varDec, pThreadId);
       CVariableDeclaration substitute = substituteVarDec(varDec, substituteName);
       dummyVarSubsB.put(varDec, SeqIdExpression.buildIdExpr(substitute));
     }

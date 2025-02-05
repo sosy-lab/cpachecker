@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 
 /** Represents a conditional case block statement with {@code if} and {@code else if} statements. */
 public class SeqAssumeStatement implements SeqCaseBlockStatement {
@@ -39,7 +39,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
         SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
     return controlFlowStatement.toASTString()
         + SeqSyntax.SPACE
-        + SeqUtil.wrapInCurlyInwards(pcWrite.toASTString());
+        + SeqStringUtil.wrapInCurlyInwards(pcWrite.toASTString());
   }
 
   @Override

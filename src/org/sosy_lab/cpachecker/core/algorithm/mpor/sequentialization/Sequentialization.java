@@ -79,9 +79,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_cod
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqReachErrorFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqComment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqNameUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqComment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.ThreadBeginsAtomic;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.ThreadJoinsThread;
@@ -98,8 +100,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 @SuppressWarnings("unused")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class Sequentialization {
-
-  public static final int TAB_SIZE = 2;
 
   public static final String inputReachErrorDummy =
       buildReachErrorCall(SeqToken.__FILE_NAME_PLACEHOLDER__, -1, SeqToken.__PRETTY_FUNCTION__)
@@ -136,15 +136,25 @@ public class Sequentialization {
     rProgram.add(LineOfCode.empty());
 
     // add all var substitute declarations in the order global - local - params - return_pc
+    // global var substitutes
+    rProgram.add(LineOfCode.of(0, SeqComment.GLOBAL_VAR_DECLARATIONS));
     MPORThread mainThread = MPORAlgorithm.getMainThread(threads);
     rProgram.addAll(
         createGlobalVarDeclarations(Objects.requireNonNull(pSubstitutions.get(mainThread))));
-    for (var entry : pSubstitutions.entrySet()) {
-      rProgram.addAll(createLocalVarDeclarations(entry.getKey().id, entry.getValue()));
+    rProgram.add(LineOfCode.empty());
+    // local var substitutes
+    rProgram.add(LineOfCode.of(0, SeqComment.LOCAL_VAR_DECLARATIONS));
+    for (CSimpleDeclarationSubstitution substitution : pSubstitutions.values()) {
+      rProgram.addAll(createLocalVarDeclarations(substitution));
     }
-    for (var entry : pSubstitutions.entrySet()) {
-      rProgram.addAll(createParameterVarDeclarations(entry.getKey().id, entry.getValue()));
+    rProgram.add(LineOfCode.empty());
+    // parameter variables storing function arguments
+    rProgram.add(LineOfCode.of(0, SeqComment.PARAMETER_VAR_SUBSTITUTES));
+    for (CSimpleDeclarationSubstitution substitution : pSubstitutions.values()) {
+      rProgram.addAll(createParameterVarDeclarations(substitution));
     }
+    rProgram.add(LineOfCode.empty());
+    // ghost return pcs storing calling contexts
     rProgram.add(LineOfCode.of(0, SeqComment.RETURN_PCS));
     ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> returnPcVars =
         mapReturnPcVars(threads);
@@ -835,7 +845,7 @@ public class Sequentialization {
         if (PthreadFuncType.callsPthreadFunc(sub.cfaEdge, PthreadFuncType.PTHREAD_MUTEX_INIT)) {
           CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(threadEdge.cfaEdge);
           CIdExpression subPthreadMutexT = PthreadUtil.extractPthreadMutexT(sub.cfaEdge);
-          String varName = SeqNameBuilder.buildMutexLockedName(subPthreadMutexT.getName());
+          String varName = SeqNameUtil.buildMutexLockedName(subPthreadMutexT.getName());
           CIdExpression mutexLocked = SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0);
           rVars.put(pthreadMutexT, new MutexLocked(mutexLocked));
         }
@@ -863,7 +873,7 @@ public class Sequentialization {
           // multiple lock calls within one thread to the same mutex are possible -> only need one
           if (!awaitVars.containsKey(pthreadMutexT)) {
             String varName =
-                SeqNameBuilder.buildThreadLocksMutexName(thread.id, pthreadMutexT.getName());
+                SeqNameUtil.buildThreadLocksMutexName(thread.id, pthreadMutexT.getName());
             CIdExpression awaits = SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0);
             awaitVars.put(pthreadMutexT, new ThreadLocksMutex(awaits));
           }
@@ -889,7 +899,7 @@ public class Sequentialization {
 
           // multiple join calls within one thread to the same thread are possible -> only need one
           if (!targetThreads.containsKey(targetThread)) {
-            String varName = SeqNameBuilder.buildThreadJoinsThreadName(thread.id, targetThread.id);
+            String varName = SeqNameUtil.buildThreadJoinsThreadName(thread.id, targetThread.id);
             CIdExpression joins = SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0);
             targetThreads.put(targetThread, new ThreadJoinsThread(joins));
           }
@@ -908,7 +918,7 @@ public class Sequentialization {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
         if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.__VERIFIER_ATOMIC_BEGIN)) {
-          String varName = SeqNameBuilder.buildThreadBeginsAtomicName(thread.id);
+          String varName = SeqNameUtil.buildThreadBeginsAtomicName(thread.id);
           CIdExpression begin = SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0);
           rVars.put(thread, new ThreadBeginsAtomic(begin));
           break; // only need one call to atomic_begin -> break inner loop
@@ -944,13 +954,12 @@ public class Sequentialization {
    */
   private ImmutableList<LineOfCode> createGlobalVarDeclarations(
       CSimpleDeclarationSubstitution pSubstitution) {
+
     ImmutableList.Builder<LineOfCode> rGlobalVarDeclarations = ImmutableList.builder();
-    rGlobalVarDeclarations.add(LineOfCode.of(0, SeqComment.GLOBAL_VARIABLE_DECLARATIONS));
     assert pSubstitution.globalVarSubs != null;
     for (CIdExpression globalVar : pSubstitution.globalVarSubs.values()) {
       rGlobalVarDeclarations.add(LineOfCode.of(0, globalVar.getDeclaration().toASTString()));
     }
-    rGlobalVarDeclarations.add(LineOfCode.empty());
     return rGlobalVarDeclarations.build();
   }
 
@@ -959,11 +968,9 @@ public class Sequentialization {
    * on the given main thread.
    */
   private ImmutableList<LineOfCode> createLocalVarDeclarations(
-      int pThreadId, CSimpleDeclarationSubstitution pSubstitution) {
+      CSimpleDeclarationSubstitution pSubstitution) {
 
     ImmutableList.Builder<LineOfCode> rLocalVarDeclarations = ImmutableList.builder();
-    rLocalVarDeclarations.add(
-        LineOfCode.of(0, SeqComment.createLocalVarDeclarationsComment(pThreadId)));
     for (CIdExpression localVar : pSubstitution.localVarSubs.values()) {
       CVariableDeclaration varDeclaration =
           pSubstitution.castToVarDeclaration(localVar.getDeclaration());
@@ -971,20 +978,17 @@ public class Sequentialization {
         rLocalVarDeclarations.add(LineOfCode.of(0, varDeclaration.toASTString()));
       }
     }
-    rLocalVarDeclarations.add(LineOfCode.empty());
     return rLocalVarDeclarations.build();
   }
 
   private ImmutableList<LineOfCode> createParameterVarDeclarations(
-      int pThreadId, CSimpleDeclarationSubstitution pSubstitution) {
+      CSimpleDeclarationSubstitution pSubstitution) {
+
     ImmutableList.Builder<LineOfCode> rParameterVarDeclarations = ImmutableList.builder();
-    rParameterVarDeclarations.add(
-        LineOfCode.of(0, SeqComment.createParameterVarDeclarationsComment(pThreadId)));
     assert pSubstitution.paramSubs != null;
     for (CIdExpression param : pSubstitution.paramSubs.values()) {
       rParameterVarDeclarations.add(LineOfCode.of(0, param.getDeclaration().toASTString()));
     }
-    rParameterVarDeclarations.add(LineOfCode.empty());
     return rParameterVarDeclarations.build();
   }
 
@@ -997,10 +1001,12 @@ public class Sequentialization {
   public static CFunctionCallExpression buildReachErrorCall(
       String pFile, int pLine, String pFunction) {
     CStringLiteralExpression file =
-        SeqStringLiteralExpression.buildStringLiteralExpr(SeqUtil.wrapInQuotationMarks(pFile));
+        SeqStringLiteralExpression.buildStringLiteralExpr(
+            SeqStringUtil.wrapInQuotationMarks(pFile));
     CIntegerLiteralExpression line = SeqIntegerLiteralExpression.buildIntLiteralExpr(pLine);
     CStringLiteralExpression function =
-        SeqStringLiteralExpression.buildStringLiteralExpr(SeqUtil.wrapInQuotationMarks(pFunction));
+        SeqStringLiteralExpression.buildStringLiteralExpr(
+            SeqStringUtil.wrapInQuotationMarks(pFunction));
     return new CFunctionCallExpression(
         FileLocation.DUMMY,
         SeqVoidType.VOID,

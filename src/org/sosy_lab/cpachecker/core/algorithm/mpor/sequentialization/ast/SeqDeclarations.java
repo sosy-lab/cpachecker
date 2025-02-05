@@ -18,14 +18,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqNameBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializerList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqNameUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 
 public class SeqDeclarations {
 
@@ -51,7 +51,7 @@ public class SeqDeclarations {
           pCType,
           pName,
           pName,
-          SeqNameBuilder.createQualifiedName(pName),
+          SeqNameUtil.buildQualifiedName(pName),
           pInitializer);
     }
 
@@ -60,7 +60,7 @@ public class SeqDeclarations {
      * __return_pc_t{pThreadId}_{pFuncName};}.
      */
     public static CVariableDeclaration buildReturnPcVarDec(int pThreadId, String pFuncName) {
-      String varName = SeqNameBuilder.createReturnPcName(pThreadId, pFuncName);
+      String varName = SeqNameUtil.buildReturnPcName(pThreadId, pFuncName);
       // init -1 -> when initially reading before writing (to int >= 0) then -1 is faulty
       return buildVarDec(true, SeqSimpleType.INT, varName, SeqInitializer.INT_MINUS_1);
     }
@@ -132,7 +132,7 @@ public class SeqDeclarations {
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             SeqFunctionType.ASSUME,
-            SeqNameBuilder.createFuncName(SeqToken.assume),
+            SeqNameUtil.buildFuncName(SeqToken.assume),
             ImmutableList.of(SeqParameterDeclaration.COND),
             ImmutableSet.of());
 

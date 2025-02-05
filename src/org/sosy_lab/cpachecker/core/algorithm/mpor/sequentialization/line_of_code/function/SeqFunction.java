@@ -13,9 +13,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 
 public abstract class SeqFunction {
 
@@ -51,7 +51,7 @@ public abstract class SeqFunction {
 
   public final ImmutableList<LineOfCode> buildDefinition() {
     ImmutableList.Builder<LineOfCode> rDefinition = ImmutableList.builder();
-    rDefinition.add(LineOfCode.of(0, SeqUtil.appendOpeningCurly(buildSignature())));
+    rDefinition.add(LineOfCode.of(0, SeqStringUtil.appendOpeningCurly(buildSignature())));
     rDefinition.addAll(buildBody());
     rDefinition.add(LineOfCode.of(0, SeqSyntax.CURLY_BRACKET_RIGHT));
     return rDefinition.build();

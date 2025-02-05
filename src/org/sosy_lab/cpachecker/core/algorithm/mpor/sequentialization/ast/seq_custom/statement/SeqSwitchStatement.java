@@ -10,11 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 
 /**
  * Represents the entirety of a switch statement.
@@ -43,19 +43,20 @@ public class SeqSwitchStatement implements SeqStatement {
   public String toASTString() {
     StringBuilder casesString = new StringBuilder(SeqSyntax.EMPTY_STRING);
     for (SeqCaseClause caseClause : caseClauses) {
-      casesString.append(SeqUtil.prependTabsWithoutNewline(tabs + 1, caseClause.toASTString()));
+      casesString.append(
+          SeqStringUtil.prependTabsWithoutNewline(tabs + 1, caseClause.toASTString()));
     }
     String defaultCaseClause =
         SeqToken._default
             + SeqSyntax.COLON
             + SeqSyntax.SPACE
             + Sequentialization.outputReachErrorDummy;
-    return SeqUtil.buildTab(tabs)
-        + SeqUtil.appendOpeningCurly(switchExpression.toASTString())
+    return SeqStringUtil.buildTab(tabs)
+        + SeqStringUtil.appendOpeningCurly(switchExpression.toASTString())
         + SeqSyntax.NEWLINE
         + casesString
-        + SeqUtil.prependTabsWithNewline(tabs + 1, defaultCaseClause)
-        + SeqUtil.buildTab(tabs)
+        + SeqStringUtil.prependTabsWithNewline(tabs + 1, defaultCaseClause)
+        + SeqStringUtil.buildTab(tabs)
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 }

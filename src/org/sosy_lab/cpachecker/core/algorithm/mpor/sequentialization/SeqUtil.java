@@ -73,8 +73,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_va
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcWrite;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionVars;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.ThreadVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -311,59 +310,6 @@ public class SeqUtil {
         anyGlobalAccess(threadEdges.build()),
         originPc,
         new SeqCaseBlock(stmts.build(), Terminator.CONTINUE));
-  }
-
-  // TODO merge all these functions into SeqStringBuilder
-  /** Returns ""pString"" */
-  public static String wrapInQuotationMarks(String pString) {
-    return SeqSyntax.QUOTATION_MARK + pString + SeqSyntax.QUOTATION_MARK;
-  }
-
-  /** Returns "{ pString }" */
-  public static String wrapInCurlyInwards(String pString) {
-    return SeqSyntax.CURLY_BRACKET_LEFT
-        + SeqSyntax.SPACE
-        + pString
-        + SeqSyntax.SPACE
-        + SeqSyntax.CURLY_BRACKET_RIGHT;
-  }
-
-  /** Returns "} pExpression {" */
-  public static String wrapInCurlyOutwards(String pString) {
-    return SeqSyntax.CURLY_BRACKET_RIGHT
-        + SeqSyntax.SPACE
-        + pString
-        + SeqSyntax.SPACE
-        + SeqSyntax.CURLY_BRACKET_LEFT;
-  }
-
-  /** Returns "pString {" */
-  public static String appendOpeningCurly(String pString) {
-    return pString + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT;
-  }
-
-  /** Returns "pString }" */
-  public static String appendClosingCurly(String pString) {
-    return pString + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_RIGHT;
-  }
-
-  /** Returns pString with the specified amount of tabs as prefix and a new line \n as suffix. */
-  public static String prependTabsWithNewline(int pTabs, String pString) {
-    return prependTabsWithoutNewline(pTabs, pString) + SeqSyntax.NEWLINE;
-  }
-
-  /** Returns pString with the specified amount of tabs as prefix. */
-  public static String prependTabsWithoutNewline(int pTabs, String pString) {
-    return buildTab(pTabs) + pString;
-  }
-
-  // TODO move this to whereever TAB_SIZE is and make the var private
-  public static String buildTab(int pTabs) {
-    return repeat(SeqSyntax.SPACE, pTabs * Sequentialization.TAB_SIZE);
-  }
-
-  public static String repeat(String pString, int pAmount) {
-    return pString.repeat(Math.max(0, pAmount));
   }
 
   // Helpers =====================================================================================

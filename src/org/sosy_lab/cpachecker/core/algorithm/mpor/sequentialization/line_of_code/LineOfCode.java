@@ -11,9 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_co
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 
 public class LineOfCode {
 
@@ -40,9 +39,7 @@ public class LineOfCode {
 
   @Override
   public String toString() {
-    return SeqUtil.buildTab(tabs)
-        + code
-        + SeqSyntax.NEWLINE;
+    return SeqStringUtil.buildTab(tabs) + code + SeqSyntax.NEWLINE;
   }
 
   public static String toString(ImmutableList<LineOfCode> pLinesOfCode) {

@@ -13,12 +13,12 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 
 /**
  * Represents a statement that simulates calls to {@code pthread_mutex_lock} of the form:
@@ -67,7 +67,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
         SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
 
     String elseStmts =
-        SeqUtil.wrapInCurlyInwards(
+        SeqStringUtil.wrapInCurlyInwards(
             setLockedTrue.toASTString()
                 + SeqSyntax.SPACE
                 + setLocksFalse.toASTString()
@@ -76,7 +76,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
 
     return ifLocked.toASTString()
         + SeqSyntax.SPACE
-        + SeqUtil.wrapInCurlyInwards(setLocksTrue.toASTString())
+        + SeqStringUtil.wrapInCurlyInwards(setLocksTrue.toASTString())
         + SeqSyntax.SPACE
         + elseNotLocked.toASTString()
         + SeqSyntax.SPACE

@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqParameterDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
@@ -25,7 +24,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqType
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqAssumeFunction extends SeqFunction {
@@ -51,7 +51,7 @@ public class SeqAssumeFunction extends SeqFunction {
   @Override
   public ImmutableList<LineOfCode> buildBody() {
     ImmutableList.Builder<LineOfCode> rDefinition = ImmutableList.builder();
-    rDefinition.add(LineOfCode.of(1, SeqUtil.appendOpeningCurly(ifCond.toASTString())));
+    rDefinition.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(ifCond.toASTString())));
     rDefinition.add(LineOfCode.of(2, abortCall.toASTString() + SeqSyntax.SEMICOLON));
     rDefinition.add(LineOfCode.of(1, SeqSyntax.CURLY_BRACKET_RIGHT));
     return rDefinition.build();

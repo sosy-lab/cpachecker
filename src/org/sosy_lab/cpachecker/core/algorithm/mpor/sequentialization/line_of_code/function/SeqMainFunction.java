@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
@@ -53,8 +52,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqScalarPcAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -174,7 +174,7 @@ public class SeqMainFunction extends SeqFunction {
     rDefinition.add(LineOfCode.of(1, SeqVariableDeclaration.NEXT_THREAD.toASTString()));
     rDefinition.add(LineOfCode.empty());
     // --- loop starts here ---
-    rDefinition.add(LineOfCode.of(1, SeqUtil.appendOpeningCurly(whileTrue.toASTString())));
+    rDefinition.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(whileTrue.toASTString())));
     // optional: add loop invariants at loop head
     rDefinition.addAll(buildLoopInvariants(loopInvariants));
     rDefinition.add(LineOfCode.of(2, assignNextThread.toASTString()));
@@ -238,9 +238,10 @@ public class SeqMainFunction extends SeqFunction {
         SeqControlFlowStatement ifStatement =
             new SeqControlFlowStatement(assertion, SeqControlFlowStatementType.IF);
         rLoopInvariants.add(
-            LineOfCode.of(2, SeqUtil.appendOpeningCurly(ifStatement.toASTString())));
+            LineOfCode.of(2, SeqStringUtil.appendOpeningCurly(ifStatement.toASTString())));
         rLoopInvariants.add(
-            LineOfCode.of(3, SeqUtil.appendClosingCurly(Sequentialization.outputReachErrorDummy)));
+            LineOfCode.of(
+                3, SeqStringUtil.appendClosingCurly(Sequentialization.outputReachErrorDummy)));
       }
       rLoopInvariants.add(LineOfCode.empty());
     }
@@ -290,8 +291,8 @@ public class SeqMainFunction extends SeqFunction {
             LineOfCode.of(
                 2,
                 i == 0
-                    ? SeqUtil.appendOpeningCurly(statement.toASTString())
-                    : SeqUtil.wrapInCurlyOutwards(statement.toASTString())));
+                    ? SeqStringUtil.appendOpeningCurly(statement.toASTString())
+                    : SeqStringUtil.wrapInCurlyOutwards(statement.toASTString())));
       } catch (UnrecognizedCodeException e) {
         throw new RuntimeException(e);
       }
