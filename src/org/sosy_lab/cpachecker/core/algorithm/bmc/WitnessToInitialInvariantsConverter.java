@@ -96,14 +96,11 @@ public class WitnessToInitialInvariantsConverter {
 
   public ImmutableSet<CandidateInvariant> witnessConverter(Path pFileName) {
 
-    InputStream witness;
     ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
 
-    try {
+    try (InputStream witness = MoreFiles.asByteSource(pFileName).openStream(); ) {
       // parse file
-      witness = MoreFiles.asByteSource(pFileName).openStream();
       List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(witness);
-      witness.close();
       InvariantExchangeFormatTransformer transformer =
           new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
       Set<Invariant> invariantSet = transformer.generateInvariantsFromEntries(entries);
@@ -193,12 +190,11 @@ public class WitnessToInitialInvariantsConverter {
           }
         }
       }
-
     } catch (IOException
         | InvalidConfigurationException
         | InterruptedException
         | CPATransferException e) {
-      logger.logUserException(Level.INFO, e.getCause(), "Could not parse witness file");
+      logger.logUserException(Level.INFO, e, "Could not parse witness file");
       return ImmutableSet.of();
     }
 
@@ -206,6 +202,7 @@ public class WitnessToInitialInvariantsConverter {
   }
 
   // from org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionBootstrapper
+  // maybe integrate with original by making it public static?
   private BooleanFormula toFormula(ExpressionTree<AExpression> expressionTree)
       throws CPATransferException, InterruptedException {
     ToFormulaVisitor toFormulaVisitor =
