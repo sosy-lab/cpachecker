@@ -24,7 +24,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
   private static final SeqControlFlowStatement elseNotLocked = new SeqControlFlowStatement();
 
-  private final CIdExpression atomicInUse;
+  private final CIdExpression atomicLocked;
 
   private final CIdExpression threadBeginsAtomic;
 
@@ -33,9 +33,12 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
   private final int targetPc;
 
   public SeqAtomicBeginStatement(
-      CIdExpression pAtomicInUse, CIdExpression pThreadBeginsAtomic, int pThreadId, int pTargetPc) {
+      CIdExpression pAtomicLocked,
+      CIdExpression pThreadBeginsAtomic,
+      int pThreadId,
+      int pTargetPc) {
 
-    atomicInUse = pAtomicInUse;
+    atomicLocked = pAtomicLocked;
     threadBeginsAtomic = pThreadBeginsAtomic;
     threadId = pThreadId;
     targetPc = pTargetPc;
@@ -43,14 +46,14 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
   @Override
   public String toASTString() {
-    SeqControlFlowStatement ifAtomicInUse =
-        new SeqControlFlowStatement(atomicInUse, SeqControlFlowStatementType.IF);
+    SeqControlFlowStatement ifAtomicLocked =
+        new SeqControlFlowStatement(atomicLocked, SeqControlFlowStatementType.IF);
     CExpressionAssignmentStatement setBeginsTrue =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, threadBeginsAtomic, SeqIntegerLiteralExpression.INT_1);
-    CExpressionAssignmentStatement setAtomicInUseTrue =
+    CExpressionAssignmentStatement setAtomicLockedTrue =
         new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, atomicInUse, SeqIntegerLiteralExpression.INT_1);
+            FileLocation.DUMMY, atomicLocked, SeqIntegerLiteralExpression.INT_1);
     CExpressionAssignmentStatement setBeginsFalse =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, threadBeginsAtomic, SeqIntegerLiteralExpression.INT_0);
@@ -60,13 +63,13 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
     String elseStmts =
         SeqStringUtil.wrapInCurlyInwards(
-            setAtomicInUseTrue.toASTString()
+            setAtomicLockedTrue.toASTString()
                 + SeqSyntax.SPACE
                 + setBeginsFalse.toASTString()
                 + SeqSyntax.SPACE
                 + pcWrite.toASTString());
 
-    return ifAtomicInUse.toASTString()
+    return ifAtomicLocked.toASTString()
         + SeqSyntax.SPACE
         + SeqStringUtil.wrapInCurlyInwards(setBeginsTrue.toASTString())
         + SeqSyntax.SPACE
@@ -83,7 +86,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
   @NonNull
   @Override
   public SeqAtomicBeginStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqAtomicBeginStatement(atomicInUse, threadBeginsAtomic, threadId, pTargetPc);
+    return new SeqAtomicBeginStatement(atomicLocked, threadBeginsAtomic, threadId, pTargetPc);
   }
 
   @Override

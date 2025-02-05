@@ -276,24 +276,24 @@ public class SeqUtil {
                 break;
 
               case __VERIFIER_ATOMIC_BEGIN:
-                assert pThreadVars.atomicInUse.isPresent();
-                CIdExpression atomicInUse =
-                    Objects.requireNonNull(pThreadVars.atomicInUse.orElseThrow().idExpression);
+                assert pThreadVars.atomicLocked.isPresent();
+                CIdExpression atomicLocked =
+                    Objects.requireNonNull(pThreadVars.atomicLocked.orElseThrow().idExpression);
                 assert pThreadVars.begins.containsKey(pThread);
                 CIdExpression beginsVar =
                     Objects.requireNonNull(pThreadVars.begins.get(pThread)).idExpression;
                 stmts.add(
-                    new SeqAtomicBeginStatement(atomicInUse, beginsVar, pThread.id, targetPc));
+                    new SeqAtomicBeginStatement(atomicLocked, beginsVar, pThread.id, targetPc));
                 break;
 
               case __VERIFIER_ATOMIC_END:
-                assert pThreadVars.atomicInUse.isPresent();
-                // assign 0 to ATOMIC_IN_USE variable
-                CExpressionAssignmentStatement atomicInUseFalse =
+                assert pThreadVars.atomicLocked.isPresent();
+                // assign 0 to ATOMIC_LOCKED variable
+                CExpressionAssignmentStatement atomicLockedFalse =
                     SeqExpressionAssignmentStatement.build(
-                        Objects.requireNonNull(pThreadVars.atomicInUse.orElseThrow().idExpression),
+                        Objects.requireNonNull(pThreadVars.atomicLocked.orElseThrow().idExpression),
                         SeqIntegerLiteralExpression.INT_0);
-                stmts.add(new SeqAtomicEndStatement(atomicInUseFalse, pThread.id, targetPc));
+                stmts.add(new SeqAtomicEndStatement(atomicLockedFalse, pThread.id, targetPc));
                 break;
 
               default:

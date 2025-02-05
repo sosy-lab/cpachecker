@@ -95,7 +95,5 @@ public class SeqToken {
 
   public static final String THREAD = "THREAD";
 
-  public static final String USE = "USE";
-
   public static final String __VERIFIER_nondet_int = "__VERIFIER_nondet_int";
 }

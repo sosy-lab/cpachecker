@@ -13,12 +13,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
-/** A simple wrapper for {@link CIdExpression}s of {@code ATOMIC_IN_USE} variables. */
-public class AtomicInUse {
+/** A simple wrapper for {@link CIdExpression}s of {@code ATOMIC_LOCKED} variables. */
+public class AtomicLocked {
 
   public final CIdExpression idExpression;
 
-  public AtomicInUse(@NonNull CIdExpression pIdExpression) {
+  public AtomicLocked(@NonNull CIdExpression pIdExpression) {
     checkNotNull(pIdExpression);
     idExpression = pIdExpression;
   }

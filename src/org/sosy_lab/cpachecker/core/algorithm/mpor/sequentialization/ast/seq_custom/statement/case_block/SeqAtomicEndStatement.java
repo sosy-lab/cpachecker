@@ -16,16 +16,16 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard
 
 public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
 
-  private final CExpressionAssignmentStatement atomicInUseFalse;
+  private final CExpressionAssignmentStatement atomicLockedFalse;
 
   private final int threadId;
 
   private final int targetPc;
 
   public SeqAtomicEndStatement(
-      CExpressionAssignmentStatement pAtomicInUseFalse, int pThreadId, int pTargetPc) {
+      CExpressionAssignmentStatement pAtomicLockedFalse, int pThreadId, int pTargetPc) {
 
-    atomicInUseFalse = pAtomicInUseFalse;
+    atomicLockedFalse = pAtomicLockedFalse;
     threadId = pThreadId;
     targetPc = pTargetPc;
   }
@@ -34,7 +34,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
   public String toASTString() {
     CExpressionAssignmentStatement pcWrite =
         SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
-    return atomicInUseFalse.toASTString() + SeqSyntax.SPACE + pcWrite.toASTString();
+    return atomicLockedFalse.toASTString() + SeqSyntax.SPACE + pcWrite.toASTString();
   }
 
   @Override
@@ -45,7 +45,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
   @NonNull
   @Override
   public SeqMutexUnlockStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqMutexUnlockStatement(atomicInUseFalse, threadId, pTargetPc);
+    return new SeqMutexUnlockStatement(atomicLockedFalse, threadId, pTargetPc);
   }
 
   @Override

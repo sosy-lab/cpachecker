@@ -306,19 +306,19 @@ public class Sequentialization {
         rAssumptions.add(assumeCall);
       }
     }
-    // add atomic assumptions: assume(!(atomic_in_use && ti_begins_atomic) || next_thread != i);
+    // add atomic assumptions: assume(!(atomic_locked && ti_begins_atomic) || next_thread != i);
     for (var entry : pThreadVars.begins.entrySet()) {
-      assert pThreadVars.atomicInUse.isPresent();
+      assert pThreadVars.atomicLocked.isPresent();
       MPORThread thread = entry.getKey();
       ThreadBeginsAtomic begins = entry.getValue();
-      SeqLogicalNotExpression notAtomicInUseAndBegins =
+      SeqLogicalNotExpression notAtomicLockedAndBegins =
           new SeqLogicalNotExpression(
               new SeqLogicalAndExpression(
-                  pThreadVars.atomicInUse.orElseThrow().idExpression, begins.idExpression));
+                  pThreadVars.atomicLocked.orElseThrow().idExpression, begins.idExpression));
       CToSeqExpression nextThreadNotId =
           new CToSeqExpression(nextThreadNotIdExpressions.get(thread.id));
       SeqLogicalOrExpression assumption =
-          new SeqLogicalOrExpression(notAtomicInUseAndBegins, nextThreadNotId);
+          new SeqLogicalOrExpression(notAtomicLockedAndBegins, nextThreadNotId);
       SeqFunctionCallExpression assumeCall =
           new SeqFunctionCallExpression(SeqIdExpression.ASSUME, ImmutableList.of(assumption));
       rAssumptions.add(assumeCall);

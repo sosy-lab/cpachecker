@@ -31,7 +31,7 @@ public class ThreadVars {
   /** Each thread joining a thread is mapped to a {@code {thread}_JOINS_{threads}} variable. */
   public final ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>> joins;
 
-  public final Optional<AtomicInUse> atomicInUse;
+  public final Optional<AtomicLocked> atomicLocked;
 
   /**
    * Each thread beginning an atomic section is mapped to a {@code {thread}_BEGINS_ATOMIC} variable.
@@ -49,11 +49,11 @@ public class ThreadVars {
     joins = pJoins;
     begins = pBegins;
     if (begins.isEmpty()) {
-      atomicInUse = Optional.empty();
+      atomicLocked = Optional.empty();
     } else {
       CIdExpression var =
-          SeqIdExpression.buildIntIdExpr(SeqNameUtil.buildAtomicInUseName(), SeqInitializer.INT_0);
-      atomicInUse = Optional.of(new AtomicInUse(var));
+          SeqIdExpression.buildIntIdExpr(SeqNameUtil.buildAtomicLockedName(), SeqInitializer.INT_0);
+      atomicLocked = Optional.of(new AtomicLocked(var));
     }
   }
 
@@ -73,12 +73,12 @@ public class ThreadVars {
         rIdExpressions.add(var.idExpression);
       }
     }
-    if (atomicInUse.isPresent()) {
+    if (atomicLocked.isPresent()) {
       assert !begins.isEmpty();
-      rIdExpressions.add(atomicInUse.orElseThrow().idExpression);
+      rIdExpressions.add(atomicLocked.orElseThrow().idExpression);
     }
     for (ThreadBeginsAtomic var : begins.values()) {
-      assert atomicInUse.isPresent();
+      assert atomicLocked.isPresent();
       rIdExpressions.add(var.idExpression);
     }
     return rIdExpressions.build();

@@ -81,13 +81,8 @@ public class SeqNameUtil {
         + pTargetId;
   }
 
-  public static String buildAtomicInUseName() {
-    return SeqToken.__MPOR_SEQ__
-        + SeqToken.ATOMIC
-        + SeqSyntax.UNDERSCORE
-        + SeqToken.IN
-        + SeqSyntax.UNDERSCORE
-        + SeqToken.USE;
+  public static String buildAtomicLockedName() {
+    return SeqToken.__MPOR_SEQ__ + SeqToken.ATOMIC + SeqSyntax.UNDERSCORE + SeqToken.LOCKED;
   }
 
   /** Returns a var name of the form {@code __MPOR_SEQ__THREAD{pThreadId}_BEGINS_ATOMIC} */
