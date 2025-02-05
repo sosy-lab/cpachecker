@@ -13,6 +13,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.time.Year;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -102,6 +104,40 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class Sequentialization {
 
+  private static final ImmutableList<LineOfCode> licenseHeader =
+      ImmutableList.of(
+          LineOfCode.of(0, "// This file is part of CPAchecker,"),
+          LineOfCode.of(0, "// a tool for configurable software verification:"),
+          LineOfCode.of(0, "// https://cpachecker.sosy-lab.org"),
+          LineOfCode.of(0, "//"),
+          LineOfCode.of(
+              0,
+              "// SPDX-"
+                  + "FileCopyrightText: "
+                  + Year.now(ZoneId.systemDefault()).getValue()
+                  + " Dirk Beyer <https://www.sosy-lab.org>"),
+          LineOfCode.of(0, "//"),
+          LineOfCode.of(0, "// SPDX-License-Identifier: " + "Apache-2.0"),
+          LineOfCode.empty());
+
+  private static final ImmutableList<LineOfCode> mporHeader =
+      ImmutableList.of(
+          LineOfCode.of(
+              0,
+              "// This sequentialization (transformation of a concurrent program into an"
+                  + " equivalent"),
+          LineOfCode.of(
+              0,
+              "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker."),
+          LineOfCode.of(0, "//"),
+          LineOfCode.of(
+              0,
+              "// Assertion fails from the function "
+                  + SeqToken.__SEQUENTIALIZATION_ERROR__
+                  + " mark faulty sequentializations."),
+          LineOfCode.of(0, "// All other assertion fails are induced by faulty input programs"),
+          LineOfCode.empty());
+
   public static final String inputReachErrorDummy =
       buildReachErrorCall(SeqToken.__FILE_NAME_PLACEHOLDER__, -1, SeqToken.__PRETTY_FUNCTION__)
               .toASTString()
@@ -113,21 +149,81 @@ public class Sequentialization {
               .toASTString()
           + SeqSyntax.SEMICOLON;
 
-  protected final int threadCount;
+  private final ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> substitutions;
 
-  public Sequentialization(int pThreadCount) {
-    threadCount = pThreadCount;
+  private final MPOROptions options;
+
+  private final String inputFileName;
+
+  private final String outputFileName;
+
+  private final LogManager logger;
+
+  public Sequentialization(
+      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
+      MPOROptions pOptions,
+      String pInputFileName,
+      String pOutputFileName,
+      LogManager pLogger) {
+
+    substitutions = pSubstitutions;
+    options = pOptions;
+    logger = pLogger;
+    inputFileName = pInputFileName;
+    outputFileName = pOutputFileName;
+  }
+
+  @Override
+  public String toString() {
+    try {
+      ImmutableList<LineOfCode> initProgram = initProgram();
+      return LineOfCodeUtil.buildString(finalProgram(initProgram));
+    } catch (UnrecognizedCodeException pE) {
+      throw new RuntimeException(pE);
+    }
+  }
+
+  /**
+   * Adds the license and sequentialization comments at the top of pInitProgram and replaces the
+   * file name and line in {@code reach_error("__FILE_NAME_PLACEHOLDER__", -1,
+   * "__SEQUENTIALIZATION_ERROR__");} with pOutputFileName and the actual line.
+   */
+  private ImmutableList<LineOfCode> finalProgram(ImmutableList<LineOfCode> pInitProgram) {
+    // consider license and seq comment header for line numbers
+    int currentLine = licenseHeader.size() + mporHeader.size();
+    ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
+    rProgram.addAll(licenseHeader);
+    rProgram.addAll(mporHeader);
+    // replace dummy line numbers (-1) with actual line numbers in the seq
+    for (LineOfCode lineOfCode : pInitProgram) {
+      String code = lineOfCode.code;
+      if (code.contains(inputReachErrorDummy)) {
+        CFunctionCallExpression reachErrorCall =
+            buildReachErrorCall(inputFileName, currentLine, SeqToken.__PRETTY_FUNCTION__);
+        rProgram.add(
+            lineOfCode.copyWithCode(
+                code.replace(
+                    inputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON)));
+      } else if (code.contains(outputReachErrorDummy)) {
+        CFunctionCallExpression reachErrorCall =
+            buildReachErrorCall(outputFileName, currentLine, SeqToken.__SEQUENTIALIZATION_ERROR__);
+        rProgram.add(
+            lineOfCode.copyWithCode(
+                code.replace(
+                    outputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON)));
+      } else {
+        rProgram.add(lineOfCode);
+      }
+      currentLine++;
+    }
+    return rProgram.build();
   }
 
   /** Generates and returns the sequentialized program that contains dummy reach_error calls. */
-  public String initProgram(
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
-      MPOROptions pOptions,
-      LogManager pLogger)
-      throws UnrecognizedCodeException {
+  private ImmutableList<LineOfCode> initProgram() throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
-    ImmutableSet<MPORThread> threads = pSubstitutions.keySet();
+    ImmutableSet<MPORThread> threads = substitutions.keySet();
 
     // add all original program declarations that are not substituted
     rProgram.add(LineOfCode.of(0, SeqComment.UNCHANGED_DECLARATIONS));
@@ -141,17 +237,17 @@ public class Sequentialization {
     rProgram.add(LineOfCode.of(0, SeqComment.GLOBAL_VAR_DECLARATIONS));
     MPORThread mainThread = MPORAlgorithm.getMainThread(threads);
     rProgram.addAll(
-        createGlobalVarDeclarations(Objects.requireNonNull(pSubstitutions.get(mainThread))));
+        createGlobalVarDeclarations(Objects.requireNonNull(substitutions.get(mainThread))));
     rProgram.add(LineOfCode.empty());
     // local var substitutes
     rProgram.add(LineOfCode.of(0, SeqComment.LOCAL_VAR_DECLARATIONS));
-    for (CSimpleDeclarationSubstitution substitution : pSubstitutions.values()) {
+    for (CSimpleDeclarationSubstitution substitution : substitutions.values()) {
       rProgram.addAll(createLocalVarDeclarations(substitution));
     }
     rProgram.add(LineOfCode.empty());
     // parameter variables storing function arguments
     rProgram.add(LineOfCode.of(0, SeqComment.PARAMETER_VAR_SUBSTITUTES));
-    for (CSimpleDeclarationSubstitution substitution : pSubstitutions.values()) {
+    for (CSimpleDeclarationSubstitution substitution : substitutions.values()) {
       rProgram.addAll(createParameterVarDeclarations(substitution));
     }
     rProgram.add(LineOfCode.empty());
@@ -169,7 +265,7 @@ public class Sequentialization {
     // add thread simulation vars
     rProgram.add(LineOfCode.of(0, SeqComment.THREAD_SIMULATION));
     ImmutableMap<ThreadEdge, SubstituteEdge> subEdges =
-        SubstituteBuilder.substituteEdges(pSubstitutions);
+        SubstituteBuilder.substituteEdges(substitutions);
     ThreadVars threadVars = buildThreadVars(threads, subEdges);
     for (CIdExpression threadVar : threadVars.getIdExpressions()) {
       assert threadVar.getDeclaration() instanceof CVariableDeclaration;
@@ -200,28 +296,28 @@ public class Sequentialization {
 
     // create pruned (i.e. only non-blank) cases statements in main method
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
-        initCaseClauses(pSubstitutions, subEdges, returnPcVars, threadVars, pLogger);
+        initCaseClauses(substitutions, subEdges, returnPcVars, threadVars, logger);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
-        pruneCaseClauses(caseClauses, pLogger);
+        pruneCaseClauses(caseClauses, logger);
     // optional: include loop invariant assertions over thread variables
     Optional<ImmutableList<SeqLogicalAndExpression>> loopInvariants =
-        pOptions.addLoopInvariants
-            ? Optional.of(createLoopInvariants(pSubstitutions.keySet(), threadVars))
+        options.addLoopInvariants
+            ? Optional.of(createLoopInvariants(substitutions.keySet(), threadVars))
             : Optional.empty();
     // optional: include POR assumptions
     Optional<ImmutableList<SeqFunctionCallExpression>> porAssumptions =
-        pOptions.addPOR ? Optional.of(createPORAssumptions(prunedCaseClauses)) : Optional.empty();
+        options.addPOR ? Optional.of(createPORAssumptions(prunedCaseClauses)) : Optional.empty();
     SeqMainFunction mainMethod =
         new SeqMainFunction(
-            threadCount,
-            pOptions,
+            substitutions.size(),
+            options,
             loopInvariants,
-            createThreadSimulationAssumptions(pSubstitutions.keySet(), threadVars),
+            createThreadSimulationAssumptions(substitutions.keySet(), threadVars),
             porAssumptions,
             prunedCaseClauses);
     rProgram.addAll(mainMethod.buildDefinition());
 
-    return LineOfCodeUtil.buildString(rProgram.build());
+    return rProgram.build();
   }
 
   // TODO problem: methods such as pthread_cancel allow the termination of another thread.
@@ -711,10 +807,9 @@ public class Sequentialization {
         // for each parameter, assign the param substitute to the param expression in funcCall
         for (int i = 0; i < paramDecs.size(); i++) {
           CParameterDeclaration paramDec = paramDecs.get(i);
-          assert pSub.parameterSubstitutes != null;
           CExpression paramExpr =
               funcCall.getFunctionCallExpression().getParameterExpressions().get(i);
-          CIdExpression paramSub = pSub.parameterSubstitutes.get(paramDec);
+          CIdExpression paramSub = pSub.parameterSubstitutes.orElseThrow().get(paramDec);
           assert paramSub != null;
           FunctionParameterAssignment parameterAssignment =
               new FunctionParameterAssignment(
@@ -957,8 +1052,7 @@ public class Sequentialization {
       CSimpleDeclarationSubstitution pSubstitution) {
 
     ImmutableList.Builder<LineOfCode> rGlobalVarDeclarations = ImmutableList.builder();
-    assert pSubstitution.globalVarSubstitutes != null;
-    for (CIdExpression globalVar : pSubstitution.globalVarSubstitutes.values()) {
+    for (CIdExpression globalVar : pSubstitution.globalVarSubstitutes.orElseThrow().values()) {
       rGlobalVarDeclarations.add(LineOfCode.of(0, globalVar.getDeclaration().toASTString()));
     }
     return rGlobalVarDeclarations.build();
@@ -986,8 +1080,7 @@ public class Sequentialization {
       CSimpleDeclarationSubstitution pSubstitution) {
 
     ImmutableList.Builder<LineOfCode> rParameterVarDeclarations = ImmutableList.builder();
-    assert pSubstitution.parameterSubstitutes != null;
-    for (CIdExpression param : pSubstitution.parameterSubstitutes.values()) {
+    for (CIdExpression param : pSubstitution.parameterSubstitutes.orElseThrow().values()) {
       rParameterVarDeclarations.add(LineOfCode.of(0, param.getDeclaration().toASTString()));
     }
     return rParameterVarDeclarations.build();

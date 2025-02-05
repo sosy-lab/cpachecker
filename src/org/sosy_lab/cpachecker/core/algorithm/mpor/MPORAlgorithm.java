@@ -8,17 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
-
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Path;
-import java.time.Year;
-import java.time.ZoneId;
 import java.util.Optional;
-import javax.xml.parsers.DocumentBuilderFactory;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -28,7 +22,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -42,15 +35,11 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqArraySubscriptExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter.FileExtension;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
@@ -63,7 +52,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 
@@ -106,93 +94,23 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final MPOROptions options;
 
-  private static final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-
-  private static final String licenseHeader =
-      "// This file is part of CPAchecker,\n"
-          + "// a tool for configurable software verification:\n"
-          + "// https://cpachecker.sosy-lab.org\n"
-          + "//\n"
-          + "// SPDX-"
-          + "FileCopyrightText: "
-          + Year.now(ZoneId.systemDefault()).getValue()
-          + " Dirk Beyer <https://www.sosy-lab.org>\n"
-          + "//\n"
-          + "// SPDX-License-Identifier:"
-          + "Apache-2.0\n\n";
-
-  private static final String seqHeader =
-      "// This sequentialization (transformation of a concurrent program into an equivalent \n"
-          + "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker. \n"
-          + "// \n"
-          + "// Assertion fails from the function "
-          + SeqToken.__SEQUENTIALIZATION_ERROR__
-          + " mark faulty sequentializations. \n"
-          + "// All other assertion fails are induced by faulty input programs.\n\n";
-
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException {
+    // TODO adjust for multiple input files (also in .yml file)
     Path inputFilePath = inputCfa.getFileNames().get(0);
-    String seqName = createSeqName(inputFilePath);
-    SequentializationWriter writer = new SequentializationWriter(logger, seqName, inputFilePath);
-    String initSeq = buildInitSeq();
-    String finalSeq =
-        buildFinalSeq(
-            inputFilePath.getFileName().toString(), seqName + FileExtension.I.suffix, initSeq);
-    writer.write(finalSeq);
+    String inputFileName = inputFilePath.getFileName().toString();
+    String outputFileName = SeqNameUtil.buildOutputFileName(inputFilePath);
+    Sequentialization sequentialization = buildSequentialization(inputFileName, outputFileName);
+    String outputProgram = sequentialization.toString();
+    SequentializationWriter sequentializationWriter =
+        new SequentializationWriter(logger, outputFileName, inputFilePath);
+    sequentializationWriter.write(outputProgram);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  /** Returns the initial sequentialization, i.e. we adjust it in later stages */
-  public String buildInitSeq() throws UnrecognizedCodeException {
-    return seq.initProgram(substitutions, options, logger);
-  }
-
-  /**
-   * Adds the license and sequentialization comments at the top of pInitProgram and replaces the
-   * file name and line in {@code reach_error("__FILE_NAME_PLACEHOLDER__", -1,
-   * "__SEQUENTIALIZATION_ERROR__");} with pOutputFileName and the actual line.
-   */
-  public String buildFinalSeq(String pInputFileName, String pOutputFileName, String pInitProgram) {
-    // consider license and seq comment header for line numbers
-    String header = licenseHeader + seqHeader;
-    int currentLine = SeqStringUtil.countLines(header);
-    StringBuilder rFinal = new StringBuilder();
-    rFinal.append(header);
-    // replace dummy line numbers (-1) with actual line numbers in the seq
-    for (String line : SeqStringUtil.splitOnNewline(pInitProgram)) {
-      if (line.contains(Sequentialization.inputReachErrorDummy)) {
-        CFunctionCallExpression reachErrorCall =
-            Sequentialization.buildReachErrorCall(
-                pInputFileName, currentLine, SeqToken.__PRETTY_FUNCTION__);
-        rFinal.append(
-            line.replace(
-                Sequentialization.inputReachErrorDummy,
-                reachErrorCall.toASTString() + SeqSyntax.SEMICOLON));
-      } else if (line.contains(Sequentialization.outputReachErrorDummy)) {
-        CFunctionCallExpression reachErrorCall =
-            Sequentialization.buildReachErrorCall(
-                pOutputFileName, currentLine, SeqToken.__SEQUENTIALIZATION_ERROR__);
-        rFinal.append(
-            line.replace(
-                Sequentialization.outputReachErrorDummy,
-                reachErrorCall.toASTString() + SeqSyntax.SEMICOLON));
-      } else {
-        rFinal.append(line);
-      }
-      rFinal.append(SeqSyntax.NEWLINE);
-      currentLine++;
-    }
-    return rFinal.toString();
-  }
-
-  private String createSeqName(Path pInputFilePath) {
-    return SeqToken.__MPOR_SEQ__ + getFileNameWithoutExtension(pInputFilePath);
-  }
-
-  private String getFileNameWithoutExtension(Path pInputFilePath) {
-    String fileName = pInputFilePath.getFileName().toString();
-    return fileName.contains(".") ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
+  /** Creates a {@link Sequentialization} based on this instance, necessary for test purposes. */
+  public Sequentialization buildSequentialization(String pInputFileName, String pOutputFileName) {
+    return new Sequentialization(substitutions, options, pInputFileName, pOutputFileName, logger);
   }
 
   private final ConfigurableProgramAnalysis cpa;
@@ -208,8 +126,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private final GlobalAccessChecker gac;
 
   private final PredicateTransferRelation ptr;
-
-  private final Sequentialization seq;
 
   /**
    * A map from {@link CFunctionCallEdge} Predecessors to Return Nodes. Needs to be initialized
@@ -268,12 +184,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
     substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads);
-
-    seq = new Sequentialization(threads.size());
   }
 
   public static MPORAlgorithm testInstance(
       MPOROptions pOptions, LogManager pLogManager, CFA pInputCfa) {
+
     return new MPORAlgorithm(pOptions, pLogManager, pInputCfa);
   }
 
@@ -302,8 +217,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
     substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads);
-
-    seq = new Sequentialization(threads.size());
   }
 
   // Variable Initializers =======================================================================

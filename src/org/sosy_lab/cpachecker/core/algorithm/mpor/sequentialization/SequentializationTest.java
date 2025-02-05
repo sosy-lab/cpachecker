@@ -97,18 +97,19 @@ public class SequentializationTest {
 
     // create mpor algorithm and generate seq
     MPORAlgorithm algorithm = MPORAlgorithm.testInstance(pOptions, logger, inputCfa);
-    String initSeq = algorithm.buildInitSeq();
-    String testProgram = "test.i";
-    String finalSeq =
-        algorithm.buildFinalSeq(testProgram, SeqToken.__MPOR_SEQ__ + testProgram, initSeq);
+    String inputFileName = "test.i";
+    String sequentialization =
+        algorithm
+            .buildSequentialization(inputFileName, SeqToken.__MPOR_SEQ__ + inputFileName)
+            .toString();
 
     // test that seq can be parsed and cfa created -> code compiles
     CFACreator creator = new CFACreator(Configuration.builder().build(), logger, shutdownNotifier);
-    CFA seqCfa = creator.parseSourceAndCreateCFA(finalSeq);
+    CFA seqCfa = creator.parseSourceAndCreateCFA(sequentialization);
     assertThat(seqCfa != null).isTrue();
 
     // "anti" test: just remove the last 100 chars from the seq, it probably won't compile
-    String faultySeq = finalSeq.substring(0, finalSeq.length() - 100);
+    String faultySeq = sequentialization.substring(0, sequentialization.length() - 100);
 
     // test that we get an exception while parsing the new "faulty" program
     boolean fail = false;

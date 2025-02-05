@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -91,7 +90,8 @@ public class SeqUtil {
   // TODO create CaseBuilder class
   /**
    * Returns a {@link SeqCaseClause} which represents case statements in the sequentializations
-   * while loop. Returns {@link Optional#empty()} if pThreadNode has no leaving edges i.e. its pc is -1.
+   * while loop. Returns {@link Optional#empty()} if pThreadNode has no leaving edges i.e. its pc is
+   * -1.
    */
   public static Optional<SeqCaseClause> createCaseFromThreadNode(
       final MPORThread pThread,
@@ -298,10 +298,11 @@ public class SeqUtil {
         }
       }
     }
-    return Optional.of(new SeqCaseClause(
-        anyGlobalAccess(threadEdges.build()),
-        originPc,
-        new SeqCaseBlock(stmts.build(), Terminator.CONTINUE)));
+    return Optional.of(
+        new SeqCaseClause(
+            anyGlobalAccess(threadEdges.build()),
+            originPc,
+            new SeqCaseBlock(stmts.build(), Terminator.CONTINUE)));
   }
 
   // Helpers =====================================================================================

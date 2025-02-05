@@ -40,7 +40,8 @@ public final class MPORUtil {
    * @param pCurrentNode in recursive functions that search the leaving CFAEdges of the current
    *     node, the previous node of the analyzed node should be used here
    * @param pPrevFuncReturnNode the previous FunctionReturnNode
-   * @return the previous or new FunctionReturnNode or {@link Optional#empty()} if pCurrentNode exits a function
+   * @return the previous or new FunctionReturnNode or {@link Optional#empty()} if pCurrentNode
+   *     exits a function
    */
   public static Optional<CFANode> updateFuncReturnNode(
       ImmutableMap<CFANode, CFANode> pFunctionCallMap,

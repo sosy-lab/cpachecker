@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 
+import java.nio.file.Path;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
@@ -93,5 +94,14 @@ public class SeqNameUtil {
   public static String buildQualifiedName(String pVarName) {
     // TODO the qualified names are not relevant in the seq, so we just use dummy::
     return SeqToken.dummy + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
+  }
+
+  public static String buildOutputFileName(Path pInputFilePath) {
+    return SeqToken.__MPOR_SEQ__ + getFileNameWithoutExtension(pInputFilePath);
+  }
+
+  private static String getFileNameWithoutExtension(Path pInputFilePath) {
+    String fileName = pInputFilePath.getFileName().toString();
+    return fileName.contains(".") ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
   }
 }

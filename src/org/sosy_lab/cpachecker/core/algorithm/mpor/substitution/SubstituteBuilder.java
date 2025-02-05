@@ -219,11 +219,20 @@ public class SubstituteBuilder {
     ImmutableMap<CVariableDeclaration, CIdExpression> globalVarSubstitutes =
         getVarSubstitutes(Optional.empty(), Optional.empty(), 0, pGlobalVars);
     for (MPORThread thread : pThreads) {
-      ImmutableMap<CParameterDeclaration, CIdExpression> parameterSubstitutes = getParameterSubstitutes(thread);
+      ImmutableMap<CParameterDeclaration, CIdExpression> parameterSubstitutes =
+          getParameterSubstitutes(thread);
       ImmutableMap<CVariableDeclaration, CIdExpression> localVarSubstitutes =
-          getVarSubstitutes(Optional.of(globalVarSubstitutes), Optional.of(parameterSubstitutes), thread.id, thread.localVars);
+          getVarSubstitutes(
+              Optional.of(globalVarSubstitutes),
+              Optional.of(parameterSubstitutes),
+              thread.id,
+              thread.localVars);
       rDeclarationSubstitutions.put(
-          thread, new CSimpleDeclarationSubstitution(Optional.of(globalVarSubstitutes), localVarSubstitutes, Optional.of(parameterSubstitutes)));
+          thread,
+          new CSimpleDeclarationSubstitution(
+              Optional.of(globalVarSubstitutes),
+              localVarSubstitutes,
+              Optional.of(parameterSubstitutes)));
     }
     return rDeclarationSubstitutions.buildOrThrow();
   }
@@ -265,7 +274,8 @@ public class SubstituteBuilder {
 
     // create dummy substitution
     CSimpleDeclarationSubstitution dummySubstitution =
-        new CSimpleDeclarationSubstitution(pGlobalVarSubstitutes, dummyLocalVarSubs, pParameterSubstitutes);
+        new CSimpleDeclarationSubstitution(
+            pGlobalVarSubstitutes, dummyLocalVarSubs, pParameterSubstitutes);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
     ImmutableMap.Builder<CVariableDeclaration, CIdExpression> rFinalSubs = ImmutableMap.builder();
