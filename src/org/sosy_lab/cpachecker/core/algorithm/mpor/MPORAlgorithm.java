@@ -42,11 +42,13 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqArraySubscriptExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter.FileExtension;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
@@ -106,9 +108,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private static final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
-  /** Matches both Windows (\r\n) and Unix-like (\n) newline conventions. */
-  private static final Splitter newlineSplitter = Splitter.onPattern("\\r?\\n");
-
   private static final String licenseHeader =
       "// This file is part of CPAchecker,\n"
           + "// a tool for configurable software verification:\n"
@@ -157,11 +156,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   public String buildFinalSeq(String pInputFileName, String pOutputFileName, String pInitProgram) {
     // consider license and seq comment header for line numbers
     String header = licenseHeader + seqHeader;
-    int currentLine = countLines(header);
+    int currentLine = SeqStringUtil.countLines(header);
     StringBuilder rFinal = new StringBuilder();
     rFinal.append(header);
     // replace dummy line numbers (-1) with actual line numbers in the seq
-    for (String line : newlineSplitter.split(pInitProgram)) {
+    for (String line : SeqStringUtil.splitOnNewline(pInitProgram)) {
       if (line.contains(Sequentialization.inputReachErrorDummy)) {
         CFunctionCallExpression reachErrorCall =
             Sequentialization.buildReachErrorCall(
@@ -185,14 +184,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       currentLine++;
     }
     return rFinal.toString();
-  }
-
-  /** Returns the number of lines, i.e. the amount of \n + 1 in pString. */
-  private int countLines(String pString) {
-    if (isNullOrEmpty(pString)) {
-      return 0;
-    }
-    return newlineSplitter.splitToList(pString).size();
   }
 
   private String createSeqName(Path pInputFilePath) {

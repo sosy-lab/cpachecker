@@ -21,9 +21,8 @@ public class LineOfCode {
   public final String code;
 
   private LineOfCode(int pTabs, String pCode) {
-    // pCode == "" -> pTabs == 0
-    checkArgument(
-        !pCode.equals(SeqSyntax.EMPTY_STRING) || pTabs == 0, "if pCode is empty, pTabs must be 0");
+    // pCode.isEmpty() -> pTabs == 0
+    checkArgument(!pCode.isEmpty() || pTabs == 0, "if pCode is empty, pTabs must be 0");
     tabs = pTabs;
     code = pCode;
   }
@@ -40,13 +39,5 @@ public class LineOfCode {
   @Override
   public String toString() {
     return SeqStringUtil.buildTab(tabs) + code + SeqSyntax.NEWLINE;
-  }
-
-  public static String toString(ImmutableList<LineOfCode> pLinesOfCode) {
-    StringBuilder rString = new StringBuilder();
-    for (LineOfCode lineOfCode : pLinesOfCode) {
-      rString.append(lineOfCode.toString());
-    }
-    return rString.toString();
   }
 }

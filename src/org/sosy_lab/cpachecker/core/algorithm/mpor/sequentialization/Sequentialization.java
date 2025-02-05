@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_va
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqReachErrorFunction;
@@ -220,7 +221,7 @@ public class Sequentialization {
             prunedCaseClauses);
     rProgram.addAll(mainMethod.buildDefinition());
 
-    return LineOfCode.toString(rProgram.build());
+    return LineOfCodeUtil.buildString(rProgram.build());
   }
 
   // TODO problem: methods such as pthread_cancel allow the termination of another thread.
@@ -439,7 +440,7 @@ public class Sequentialization {
 
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
         if (!coveredNodes.contains(threadNode)) {
-          SeqCaseClause caseClause =
+          Optional<SeqCaseClause> caseClause =
               SeqUtil.createCaseFromThreadNode(
                   thread,
                   pSubstitutions.keySet(),
@@ -448,8 +449,8 @@ public class Sequentialization {
                   pSubEdges,
                   buildFunctionVars(thread, substitution, pSubEdges, pReturnPcVars),
                   pThreadVars);
-          if (caseClause != null) {
-            caseClauses.add(caseClause);
+          if (caseClause.isPresent()) {
+            caseClauses.add(caseClause.orElseThrow());
           }
         }
       }
@@ -687,7 +688,7 @@ public class Sequentialization {
    *
    * <p>E.g. {@code func(&paramA, paramB);} in thread 0 is linked to {@code __t0_0_paramA = &paramA
    * ;} and {@code __t0_1_paramB = paramB ;}. Both substitution vars are declared in {@link
-   * CSimpleDeclarationSubstitution#paramSubs}.
+   * CSimpleDeclarationSubstitution#parameterSubstitutes}.
    */
   private ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
       mapParameterAssignments(
@@ -710,10 +711,10 @@ public class Sequentialization {
         // for each parameter, assign the param substitute to the param expression in funcCall
         for (int i = 0; i < paramDecs.size(); i++) {
           CParameterDeclaration paramDec = paramDecs.get(i);
-          assert pSub.paramSubs != null;
+          assert pSub.parameterSubstitutes != null;
           CExpression paramExpr =
               funcCall.getFunctionCallExpression().getParameterExpressions().get(i);
-          CIdExpression paramSub = pSub.paramSubs.get(paramDec);
+          CIdExpression paramSub = pSub.parameterSubstitutes.get(paramDec);
           assert paramSub != null;
           FunctionParameterAssignment parameterAssignment =
               new FunctionParameterAssignment(
@@ -956,8 +957,8 @@ public class Sequentialization {
       CSimpleDeclarationSubstitution pSubstitution) {
 
     ImmutableList.Builder<LineOfCode> rGlobalVarDeclarations = ImmutableList.builder();
-    assert pSubstitution.globalVarSubs != null;
-    for (CIdExpression globalVar : pSubstitution.globalVarSubs.values()) {
+    assert pSubstitution.globalVarSubstitutes != null;
+    for (CIdExpression globalVar : pSubstitution.globalVarSubstitutes.values()) {
       rGlobalVarDeclarations.add(LineOfCode.of(0, globalVar.getDeclaration().toASTString()));
     }
     return rGlobalVarDeclarations.build();
@@ -971,7 +972,7 @@ public class Sequentialization {
       CSimpleDeclarationSubstitution pSubstitution) {
 
     ImmutableList.Builder<LineOfCode> rLocalVarDeclarations = ImmutableList.builder();
-    for (CIdExpression localVar : pSubstitution.localVarSubs.values()) {
+    for (CIdExpression localVar : pSubstitution.localVarSubstitutes.values()) {
       CVariableDeclaration varDeclaration =
           pSubstitution.castToVarDeclaration(localVar.getDeclaration());
       if (!SeqUtil.isConstCPAcheckerTMP(varDeclaration)) {
@@ -985,8 +986,8 @@ public class Sequentialization {
       CSimpleDeclarationSubstitution pSubstitution) {
 
     ImmutableList.Builder<LineOfCode> rParameterVarDeclarations = ImmutableList.builder();
-    assert pSubstitution.paramSubs != null;
-    for (CIdExpression param : pSubstitution.paramSubs.values()) {
+    assert pSubstitution.parameterSubstitutes != null;
+    for (CIdExpression param : pSubstitution.parameterSubstitutes.values()) {
       rParameterVarDeclarations.add(LineOfCode.of(0, param.getDeclaration().toASTString()));
     }
     return rParameterVarDeclarations.build();

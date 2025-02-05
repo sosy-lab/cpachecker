@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -43,28 +42,28 @@ import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 public class CSimpleDeclarationSubstitution implements Substitution {
 
   /**
-   * The map of global variable declarations to their substitutes. {@code null} if this instance
-   * serves as a dummy.
+   * The map of global variable declarations to their substitutes. {@link Optional#empty()} if this
+   * instance serves as a dummy.
    */
-  @Nullable public final ImmutableMap<CVariableDeclaration, CIdExpression> globalVarSubs;
+  public final Optional<ImmutableMap<CVariableDeclaration, CIdExpression>> globalVarSubstitutes;
 
   /** The map of thread local variable declarations to their substitutes. */
-  public final ImmutableMap<CVariableDeclaration, CIdExpression> localVarSubs;
+  public final ImmutableMap<CVariableDeclaration, CIdExpression> localVarSubstitutes;
 
   /**
-   * The map of parameter to variable declaration substitutes. {@code null} if this instance serves
-   * as a dummy.
+   * The map of parameter to variable declaration substitutes. {@link Optional#empty()} if this
+   * instance serves as a dummy.
    */
-  @Nullable public final ImmutableMap<CParameterDeclaration, CIdExpression> paramSubs;
+  public final Optional<ImmutableMap<CParameterDeclaration, CIdExpression>> parameterSubstitutes;
 
   public CSimpleDeclarationSubstitution(
-      @Nullable ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalVarSubs,
-      ImmutableMap<CVariableDeclaration, CIdExpression> pLocalVarSubs,
-      @Nullable ImmutableMap<CParameterDeclaration, CIdExpression> pParamSubs) {
+      Optional<ImmutableMap<CVariableDeclaration, CIdExpression>> pGlobalVarSubstitutes,
+      ImmutableMap<CVariableDeclaration, CIdExpression> pLocalVarSubstitutes,
+      Optional<ImmutableMap<CParameterDeclaration, CIdExpression>> pParameterSubstitutes) {
 
-    globalVarSubs = pGlobalVarSubs;
-    localVarSubs = pLocalVarSubs;
-    paramSubs = pParamSubs;
+    globalVarSubstitutes = pGlobalVarSubstitutes;
+    localVarSubstitutes = pLocalVarSubstitutes;
+    parameterSubstitutes = pParameterSubstitutes;
   }
 
   // TODO take a look at ExpressionSubstitution.applySubstitution()
@@ -193,24 +192,24 @@ public class CSimpleDeclarationSubstitution implements Substitution {
 
   /** Returns the global, local or param {@link CIdExpression} substitute of pDec. */
   private CIdExpression getVarSubstitute(CSimpleDeclaration pSimpleDec) {
-    if (pSimpleDec instanceof CVariableDeclaration varDec) {
-      if (localVarSubs.containsKey(varDec)) {
-        return localVarSubs.get(varDec);
+    if (pSimpleDec instanceof CVariableDeclaration varDeclaration) {
+      if (localVarSubstitutes.containsKey(varDeclaration)) {
+        return localVarSubstitutes.get(varDeclaration);
       } else {
-        assert globalVarSubs != null;
+        assert globalVarSubstitutes.isPresent();
         checkArgument(
-            globalVarSubs.containsKey(varDec),
+            globalVarSubstitutes.orElseThrow().containsKey(varDeclaration),
             "no substitute found for " + "%s",
             pSimpleDec.toASTString());
-        return globalVarSubs.get(varDec);
+        return globalVarSubstitutes.orElseThrow().get(varDeclaration);
       }
     } else if (pSimpleDec instanceof CParameterDeclaration paramDec) {
-      assert paramSubs != null;
+      assert parameterSubstitutes.isPresent();
       checkArgument(
-          paramSubs.containsKey(paramDec),
+          parameterSubstitutes.orElseThrow().containsKey(paramDec),
           "no substitute found for " + "%s",
           pSimpleDec.toASTString());
-      return paramSubs.get(paramDec);
+      return parameterSubstitutes.orElseThrow().get(paramDec);
     }
     throw new IllegalArgumentException("pSimpleDec must be CVariable- or CParameterDeclaration");
   }

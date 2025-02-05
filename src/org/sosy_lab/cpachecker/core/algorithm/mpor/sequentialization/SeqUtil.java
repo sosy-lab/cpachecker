@@ -91,10 +91,9 @@ public class SeqUtil {
   // TODO create CaseBuilder class
   /**
    * Returns a {@link SeqCaseClause} which represents case statements in the sequentializations
-   * while loop. Returns null if pThreadNode has no leaving edges i.e. its pc is -1.
+   * while loop. Returns {@link Optional#empty()} if pThreadNode has no leaving edges i.e. its pc is -1.
    */
-  @Nullable
-  public static SeqCaseClause createCaseFromThreadNode(
+  public static Optional<SeqCaseClause> createCaseFromThreadNode(
       final MPORThread pThread,
       final ImmutableSet<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
@@ -113,13 +112,12 @@ public class SeqUtil {
     // no edges -> exit node of thread reached -> no case because no edges with code
     if (pThreadNode.leavingEdges().isEmpty()) {
       assert pThreadNode.pc == EXIT_PC;
-      return null;
+      return Optional.empty();
 
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
       // handle all CFunctionReturnEdges: exiting function -> pc not relevant, assign return pc
       assert pFuncVars.returnPcReads.containsKey(pThreadNode);
-      FunctionReturnPcRead read = pFuncVars.returnPcReads.get(pThreadNode);
-      assert read != null;
+      FunctionReturnPcRead read = Objects.requireNonNull(pFuncVars.returnPcReads.get(pThreadNode));
       stmts.add(new SeqReturnPcReadStatement(read.threadId, read.returnPcVar));
 
     } else {
@@ -129,8 +127,7 @@ public class SeqUtil {
 
         threadEdges.add(threadEdge);
         CFAEdge edge = threadEdge.cfaEdge;
-        SubstituteEdge sub = pSubEdges.get(threadEdge);
-        assert sub != null;
+        SubstituteEdge sub = Objects.requireNonNull(pSubEdges.get(threadEdge));
         int targetPc = threadEdge.getSuccessor().pc;
         CFANode successor = threadEdge.getSuccessor().cfaNode;
 
@@ -154,8 +151,8 @@ public class SeqUtil {
             // assert that both call and summary edge are present
             assert pThreadNode.leavingEdges().size() >= 2;
             assert pFuncVars.returnPcWrites.containsKey(threadEdge);
-            FunctionReturnPcWrite write = pFuncVars.returnPcWrites.get(threadEdge);
-            assert write != null;
+            FunctionReturnPcWrite write =
+                Objects.requireNonNull(pFuncVars.returnPcWrites.get(threadEdge));
             stmts.add(new SeqReturnPcWriteStatement(write.returnPcVar, write.value));
 
           } else if (sub.cfaEdge instanceof CFunctionCallEdge funcCall) {
@@ -168,8 +165,7 @@ public class SeqUtil {
             assert pThreadNode.leavingEdges().size() >= 2;
             assert pFuncVars.parameterAssignments.containsKey(threadEdge);
             ImmutableList<FunctionParameterAssignment> assigns =
-                pFuncVars.parameterAssignments.get(threadEdge);
-            assert assigns != null;
+                Objects.requireNonNull(pFuncVars.parameterAssignments.get(threadEdge));
             if (assigns.isEmpty()) {
               stmts.add(new SeqBlankStatement(pThread.id, targetPc));
             } else {
@@ -201,22 +197,18 @@ public class SeqUtil {
             pCoveredNodes.add(successorA);
             pCoveredNodes.add(successorB);
             // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
-            SubstituteEdge subA = pSubEdges.get(statementA);
-            SubstituteEdge subB = pSubEdges.get(statementB);
-            assert subA != null && subB != null;
+            SubstituteEdge subA = Objects.requireNonNull(pSubEdges.get(statementA));
+            SubstituteEdge subB = Objects.requireNonNull(pSubEdges.get(statementB));
             int newTargetPc = statementB.getSuccessor().pc;
             stmts.add(
                 new SeqConstCpaCheckerTmpStatement(decEdge, subA, subB, pThread.id, newTargetPc));
 
           } else if (sub.cfaEdge instanceof CReturnStatementEdge) {
-            assert sub.cfaEdge.getSuccessor() != null;
-            assert pFuncVars.returnValueAssignments.containsKey(threadEdge);
             // TODO add support and test for pthread_join(id, &start_routine_return)
             //  where start_routine_return is assigned the return value of the threads start routine
             // returning from non-start-routine function: assign return value to return vars
             ImmutableSet<FunctionReturnValueAssignment> assigns =
-                pFuncVars.returnValueAssignments.get(threadEdge);
-            assert assigns != null;
+                Objects.requireNonNull(pFuncVars.returnValueAssignments.get(threadEdge));
             if (assigns.isEmpty()) { // -> function does not return anything, i.e. return;
               stmts.add(new SeqBlankStatement(pThread.id, targetPc));
             } else {
@@ -306,10 +298,10 @@ public class SeqUtil {
         }
       }
     }
-    return new SeqCaseClause(
+    return Optional.of(new SeqCaseClause(
         anyGlobalAccess(threadEdges.build()),
         originPc,
-        new SeqCaseBlock(stmts.build(), Terminator.CONTINUE));
+        new SeqCaseBlock(stmts.build(), Terminator.CONTINUE)));
   }
 
   // Helpers =====================================================================================

@@ -8,12 +8,18 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
+import com.google.common.base.Splitter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 
 public class SeqStringUtil {
 
   /** The amount of spaces in a tab, adjust as desired. */
   private static final int TAB_SIZE = 2;
+
+  /** Matches both Windows (\r\n) and Unix-like (\n) newline conventions. */
+  private static final Splitter newlineSplitter = Splitter.onPattern("\\r?\\n");
 
   /** Returns ""pString"" */
   public static String wrapInQuotationMarks(String pString) {
@@ -29,7 +35,7 @@ public class SeqStringUtil {
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 
-  /** Returns "} pExpression {" */
+  /** Returns "} pString {" */
   public static String wrapInCurlyOutwards(String pString) {
     return SeqSyntax.CURLY_BRACKET_RIGHT
         + SeqSyntax.SPACE
@@ -64,5 +70,17 @@ public class SeqStringUtil {
 
   public static String repeat(String pString, int pAmount) {
     return pString.repeat(Math.max(0, pAmount));
+  }
+
+  public static Iterable<String> splitOnNewline(String pString) {
+    return newlineSplitter.split(pString);
+  }
+
+  /** Returns the number of lines, i.e. the amount of \n + 1 in pString. */
+  public static int countLines(String pString) {
+    if (isNullOrEmpty(pString)) {
+      return 0;
+    }
+    return newlineSplitter.splitToList(pString).size();
   }
 }
