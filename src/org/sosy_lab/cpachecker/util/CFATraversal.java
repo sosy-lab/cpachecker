@@ -59,10 +59,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  */
 public class CFATraversal {
 
-  static final Function<CFANode, Iterable<CFAEdge>> FORWARD_EDGE_SUPPLIER =
+  private static final Function<CFANode, Iterable<CFAEdge>> FORWARD_EDGE_SUPPLIER =
       CFAUtils::allLeavingEdges;
 
-  static final Function<CFANode, Iterable<CFAEdge>> BACKWARD_EDGE_SUPPLIER =
+  private static final Function<CFANode, Iterable<CFAEdge>> BACKWARD_EDGE_SUPPLIER =
       CFAUtils::allEnteringEdges;
 
   // function providing the outgoing edges for a CFANode
@@ -83,11 +83,7 @@ public class CFATraversal {
     ignoreEdge = pIgnoreEdge;
   }
 
-  /**
-   * Returns a default instance of this class, which iterates forward through the CFA, visiting all
-   * nodes in a DFS-like strategy. For every visited node, all outgoing edges are visited
-   * immediately. Hence, edges are not visited in a DFS-like strategy.
-   */
+  /** Returns a default instance of this class, which iterates forward through the CFA. */
   public static CFATraversal dfs() {
     return new CFATraversal(FORWARD_EDGE_SUPPLIER, CFAEdge::getSuccessor, Predicates.alwaysFalse());
   }
@@ -149,6 +145,8 @@ public class CFATraversal {
   /**
    * Traverse through the CFA according to the strategy represented by the current instance,
    * starting at a given node and passing each encountered node and edge to a given visitor.
+   * Outgoing CFA edges are visited immediately after the node they originate from. Therefore, they
+   * are not visited in depth-first order.
    *
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
@@ -193,6 +191,9 @@ public class CFATraversal {
    * <p>Each node will be visited only once. This method does the same as wrapping the given visitor
    * in a {@link NodeCollectingCFAVisitor} and calling {@link #traverse(CFANode, CFAVisitor)}.
    *
+   * <p>Outgoing CFA edges are visited immediately after the node they originate from. Therefore,
+   * they are not visited in depth-first order.
+   *
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
    */
@@ -202,8 +203,9 @@ public class CFATraversal {
 
   /**
    * Traverse through the CFA according to the strategy represented by the current instance,
-   * starting at a given node and passing each encountered node and edge to a given visitor. The
-   * traversal works on edge level.
+   * starting at a given node and passing each encountered node and edge to a given visitor. Unlike
+   * {@link #traverse(CFANode, CFAVisitor)} and {@link #traverseOnce(CFANode, CFAVisitor)}, this
+   * method visits the CFA edges in depth-first order and not only the CFA nodes.
    *
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
