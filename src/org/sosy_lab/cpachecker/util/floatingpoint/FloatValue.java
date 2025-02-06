@@ -3040,7 +3040,12 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     } else {
       String bits = significand.toString(2);
       bits = "0".repeat(format.sigBits + 1 - bits.length()) + bits;
-      return "%s%s.%se%d".formatted(sign ? "-" : "", bits.charAt(0), bits.substring(1), exponent);
+      return "%s%s.%se%d"
+          .formatted(
+              sign ? "-" : "",
+              bits.charAt(0),
+              bits.substring(1),
+              Math.max(format.minExp(), exponent));
     }
   }
 
