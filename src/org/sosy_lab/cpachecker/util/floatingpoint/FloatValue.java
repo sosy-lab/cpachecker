@@ -475,7 +475,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     @Override
     public String toString() {
-      return "Float" + (1 + expBits + sigBits) + "(p=" + (1 + sigBits) + ")";
+      return "Float" + (1 + expBits + sigBits) + "(p=" + sigBits + ")";
     }
   }
 
