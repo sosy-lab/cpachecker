@@ -34,6 +34,8 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -54,8 +56,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -372,6 +377,68 @@ public class CParserUtils {
       result = And.of(clauses);
     }
     return result;
+  }
+
+  private static CLemmaFunctionCall extractFunctionCall(
+      String functionCall, CParser parser, Scope scope) throws InterruptedException {
+    Pattern fp = Pattern.compile("LEMMA_FUNC");
+    Matcher fm = fp.matcher(functionCall);
+    if (fm.find()) {
+      functionCall = fm.replaceAll("");
+      functionCall = functionCall.substring(1, functionCall.length() - 1);
+    }
+
+    // Parse CLemmaFunctionCall
+    CStatement s;
+    try {
+      s = parseSingleStatement(functionCall, parser, scope);
+    } catch (InvalidAutomatonException pE) {
+      throw new RuntimeException("Not a valid statement: " + functionCall);
+    }
+    // if s not instance of CFunctionCallStatement throw exception
+    CFunctionCallExpression fExp = ((CFunctionCallStatement) s).getFunctionCallExpression();
+    return new CLemmaFunctionCall(fExp);
+  }
+
+  public static ExpressionTree<AExpression> parseLemmaStatement(
+      String lAssumeCode, CParser parser, Scope scope, ParserTools parserTools)
+      throws InterruptedException {
+
+    // Prepare String
+    String lString = lAssumeCode;
+    Map<Object, Object> replacements = new HashMap<>();
+    Pattern lp = Pattern.compile("LEMMA_FUNC(.*)");
+    Matcher lm = lp.matcher(lString);
+
+    // Extract the function calls from the string and map them to temporary variables
+    while (lm.find()) {
+      String tmp = "lemma_tmp_" + replacements.size();
+      String functionCall = lm.group();
+      CLemmaFunctionCall lFuncCall = extractFunctionCall(functionCall, parser, scope);
+      replacements.put(tmp, lFuncCall);
+      lString = lm.replaceFirst(tmp);
+      lm = lp.matcher(lString);
+    }
+
+    ExpressionTree<AExpression> tmpTree;
+    try {
+      tmpTree = parseStatement(lString, Optional.empty(), parser, scope, parserTools);
+    } catch (InvalidAutomatonException pE) {
+      throw new RuntimeException("Not a valid statement: " + lString);
+    }
+
+    /*
+    // Parse the String containing a replacement for the function call into a CExpression
+    CExpression exp;
+    try {
+      exp = ((CExpressionStatement) parseSingleStatement(lString, parser, scope)).getExpression();
+    } catch (InvalidAutomatonException pE) {
+      throw new RuntimeException("Not a valid statement: " + lString);
+    }
+    // Build an ExpressionTree from the CExpression
+     */
+
+    return tmpTree;
   }
 
   private static String tryFixACSL(

@@ -125,14 +125,12 @@ public class InvariantExchangeFormatTransformer {
     Optional<String> resultFunction = Optional.ofNullable(pLemmaEntry.getLocation().getFunction());
     Set<String> lemmaString = ImmutableSet.of(pLemmaEntry.getValue());
 
-    Deque<String> callStack = new ArrayDeque<>();
-    callStack.push(pLemmaEntry.getLocation().getFunction());
-
     Scope scope =
         switch (cfa.getLanguage()) {
           case C -> new CProgramScope(cfa, logger);
           default -> DummyScope.getInstance();
         };
+    CParserUtils.parseLemmaStatement(pLemmaEntry.getValue(), cparser, scope, parserTools);
     return CParserUtils.parseStatementsAsExpressionTree(
         lemmaString, resultFunction, cparser, scope, parserTools);
   }

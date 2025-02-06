@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
@@ -43,6 +44,18 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
           ((CFunctionCallStatement) pStatement).getFunctionCallExpression();
       return of(new CLemmaFunctionCall(exp));
     }
+    if (pStatement instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallExpression exp =
+          ((CFunctionCallAssignmentStatement) pStatement).getFunctionCallExpression();
+      CLemmaFunctionCall functionCall = new CLemmaFunctionCall(exp);
+      CBinaryExpression binaryExpression =
+          pBinaryExpressionBuilder.buildBinaryExpressionUnchecked(
+              ((CFunctionCallAssignmentStatement) pStatement).getLeftHandSide(),
+              functionCall,
+              BinaryOperator.EQUALS);
+      return of(binaryExpression);
+    }
+
     return ExpressionTrees.getTrue();
   }
 
