@@ -13,7 +13,6 @@ import json
 import sys
 import webbrowser
 from pathlib import Path
-from datetime import datetime
 
 from typing import Dict
 
@@ -29,8 +28,8 @@ def create_arg_parser():
     parser = argparse.ArgumentParser(description="Transforms Worker logs to HTML.")
     parser.add_argument(
         "--messages-json",
-        help="Path to JSON file that contains messages sent during distributed block analysis.",
-        default="output/block_analysis/block_analysis.json",
+        help="Path to directory containing JSON files sent during distributed block analysis.",
+        default="output/block_analysis/block_analysis",
     )
     parser.add_argument(
         "--block-structure-json",
@@ -56,7 +55,7 @@ def parse_args(argv):
         raise ValueError(f"Path {args.block_structure_json} does not exist.")
 
     args.messages_json = Path(args.messages_json)
-    if not args.messages_json.exists():
+    if not args.messages_json.is_dir():
         raise ValueError(f"Path {args.messages_json} does not exist.")
 
     args.output = Path(args.output)
@@ -85,16 +84,13 @@ def html_for_message(message, block_log: Dict[str, str]):
     arrow = "-"
     senders = ["all"]
     receivers = ["all"]
+    msg_id = message["filename"]
     if direction == "BLOCK_POSTCONDITION":
         receivers = successors
         senders = predecessors
         arrow = "&darr;"
-    elif direction == "ERROR_CONDITION":
+    elif direction == "VIOLATION_CONDITION":
         receivers = predecessors
-        senders = successors
-        arrow = "&uarr;"
-    elif direction == "ERROR_CONDITION_UNREACHABLE":
-        receivers = ["all"]
         senders = successors
         arrow = "&uarr;"
     elif direction == "FOUND_RESULT":
@@ -102,17 +98,18 @@ def html_for_message(message, block_log: Dict[str, str]):
 
     code = "\n".join([x for x in infos["code"] if x])
 
-    with div.div(title=code):
+    with div.div(title=f"{message['from']}:\n{code}"):
         with div.p():
             with div.span():
                 div(arrow)
             with div.span():
-                sender = "self"
                 if senders:
                     sender = ", ".join(senders)
                 else:
-                    sender = "None"
-                div(f"React to message from <strong>{sender}</strong>:")
+                    sender = "Self"
+                div(
+                    f"React to message from <strong>{sender}</strong> (ID: {msg_id[1:-5]}):"
+                )
         with div.p():
             if receivers:
                 receiver = ", ".join(receivers)
@@ -127,7 +124,7 @@ def html_for_message(message, block_log: Dict[str, str]):
 def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
     first_timestamp = int(all_messages[0]["timestamp"])
     timestamp_to_message = {}
-    sorted_keys = sorted(block_logs.keys(), key=lambda x: int(x[1::]))
+    sorted_keys = sorted(block_logs.keys())
     index_dict = {}
     for index in enumerate(sorted_keys):
         index_dict[index[1]] = index[0]
@@ -146,8 +143,7 @@ def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
         # row values
         type_to_klass = {
             "BLOCK_POSTCONDITION": "precondition",
-            "ERROR_CONDITION": "postcondition",
-            "ERROR_CONDITION_UNREACHABLE": "postcondition",
+            "VIOLATION_CONDITION": "postcondition",
         }
         for timestamp, messages in timestamp_to_message.items():
             with table.tr():
@@ -171,7 +167,10 @@ def visualize_blocks(
     g = nx.DiGraph()
     block_logs = parse_jsons(block_structure_file)
     for key in block_logs:
-        code = "\n".join(c for c in block_logs[key]["code"] if c)
+        code_parts = [c.replace('"', "'") for c in block_logs[key]["code"]]
+        code = "\n".join(c for c in code_parts if c)
+        if len(code) > 1000:
+            code = code[:1000] + "..."
         label = key + ":\n" + code if code else key
         g.add_node(key, shape="box", label=f'"{label}"')
     for key in block_logs:
@@ -201,10 +200,8 @@ def export_messages_table(
         message_table_css_file = Path(__file__).parent / "table.css"
 
     for message in all_messages:
-        # 2022-03-10 14:44:07.0318755
-        message["timestamp"] = int(
-            datetime.strptime(message["timestamp"], "%Y-%m-%d %H:%M:%S.%f").timestamp()
-        )
+        message["timestamp"] = int(message["timestamp"])
+
     all_messages = sorted(
         all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::])
     )
@@ -226,17 +223,29 @@ def export_messages_table(
     return output_file
 
 
-def visualize_messages(messages_file: Path, output_path: Path):
-    block_logs = parse_jsons(messages_file)
+def visualize_messages(
+    message_dir: Path, block_structure_json: Path, output_path: Path
+):
     all_messages = []
-    for key in block_logs:
-        if "messages" in block_logs[key]:
-            all_messages += block_logs[key]["messages"]
+    hash_code = None
+    jsons = sorted(
+        [f.name for f in message_dir.iterdir() if f.is_file()],
+        key=lambda file_name: file_name[1:-5],
+    )
+    for message_json in jsons:
+        parsed_file = parse_jsons(message_dir / message_json)
+        if hash_code is None:
+            hash_code = parsed_file["hashCode"]
+        if hash_code == parsed_file["hashCode"]:
+            parsed_file["filename"] = str(message_json)
+            all_messages.append(parsed_file)
     if not all_messages:
         return
 
     export_filename = export_messages_table(
-        all_messages=all_messages, block_logs=block_logs, output_path=output_path
+        all_messages=all_messages,
+        block_logs=parse_jsons(block_structure_json),
+        output_path=output_path,
     )
     webbrowser.open(str(export_filename))
 
@@ -251,7 +260,11 @@ def main(argv=None):
         block_structure_file=args.block_structure_json, output_path=output_path
     )
 
-    visualize_messages(messages_file=args.messages_json, output_path=output_path)
+    visualize_messages(
+        message_dir=args.messages_json,
+        block_structure_json=args.block_structure_json,
+        output_path=output_path,
+    )
 
 
 if __name__ == "__main__":
