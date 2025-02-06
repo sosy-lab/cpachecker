@@ -166,17 +166,17 @@ public class DssBlockAnalysis {
   }
 
   private Collection<DssMessage> reportBlockPostConditions(
-      Set<ARGState> blockEnds, boolean allowTop) throws InterruptedException,
-                                                        InvalidConfigurationException {
+      Set<ARGState> blockEnds, boolean allowTop)
+      throws InterruptedException, InvalidConfigurationException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     if (blockEnds.size() == 1) {
       ARGState blockEndState = Iterables.getOnlyElement(blockEnds);
       if (dcpa.isTop(blockEndState) && !allowTop) {
         return ImmutableSet.of();
       }
+      Precision precision = reachedSet.getPrecision(blockEndState);
       blockEndState = resetCallstack(blockEndState);
-      DssMessagePayload serialized =
-          dcpa.serialize(blockEndState, reachedSet.getPrecision(blockEndState));
+      DssMessagePayload serialized = dcpa.serialize(blockEndState, precision);
       messages.add(
           messageFactory.newBlockPostCondition(
               block.getId(),
@@ -235,7 +235,8 @@ public class DssBlockAnalysis {
       return ImmutableSet.of();
     }
     DssMessagePayload serialized =
-        dcpa.serialize(resetCallstack(blockEndState), reachedSet.getPrecision(Iterables.get(blockEnds, 0)));
+        dcpa.serialize(
+            resetCallstack(blockEndState), reachedSet.getPrecision(Iterables.get(blockEnds, 0)));
     messages.add(
         messageFactory.newBlockPostCondition(
             block.getId(),
@@ -550,10 +551,8 @@ public class DssBlockAnalysis {
     return messages.build();
   }
 
-  private ARGState resetCallstack(AbstractState state)
-      throws InvalidConfigurationException {
-    Preconditions.checkState(
-        state instanceof ARGState, "Expected ARGState but got %s", state);
+  private ARGState resetCallstack(AbstractState state) throws InvalidConfigurationException {
+    Preconditions.checkState(state instanceof ARGState, "Expected ARGState but got %s", state);
     ARGState argState = (ARGState) state;
     Preconditions.checkState(
         argState.getWrappedState() instanceof CompositeState,
@@ -563,7 +562,7 @@ public class DssBlockAnalysis {
     for (AbstractState wrappedState :
         ((CompositeState) argState.getWrappedState()).getWrappedStates()) {
       if (wrappedState instanceof CallstackState) {
-        CFANode cfaNode = AbstractStates.extractLocation(wrappedState);
+        CFANode cfaNode = AbstractStates.extractLocation(argState);
         Preconditions.checkNotNull(cfaNode, "Expected CFANode but got null");
         reset.add(
             CPAs.retrieveCPAOrFail(cpa, CallstackCPA.class, getClass())
@@ -573,7 +572,7 @@ public class DssBlockAnalysis {
       }
     }
     return new ARGState(new CompositeState(reset.build()), null);
-}
+  }
 
   /**
    * Prepare the reached set for next analysis by merging all received BPC messages into a non-empty
