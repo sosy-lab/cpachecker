@@ -57,10 +57,6 @@ public class BlockGraph {
     root = pRoot;
   }
 
-  public static boolean isGhostEdge(CFAEdge pEdge) {
-    return pEdge.getDescription().equals(GHOST_EDGE_DESCRIPTION);
-  }
-
   public BlockNode getRoot() {
     return root;
   }
