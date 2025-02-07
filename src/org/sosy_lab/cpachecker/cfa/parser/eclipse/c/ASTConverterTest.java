@@ -197,22 +197,44 @@ public class ASTConverterTest {
     record TestCase(String input, String expected, CType type) {}
     ImmutableList<TestCase> input_output =
         ImmutableList.of(
-            new TestCase("0xfp00", "1.5000000000000000e+01", CNumericTypes.DOUBLE),
+            // Decimal floating point literal
+            // The exponent may have a sign and floating point numbers may be followed by an "f" or
+            // "l" suffix to mark them as "float" or "long double" precision
             new TestCase("5e2", "5.00000000e+02", CNumericTypes.FLOAT),
             new TestCase("5e2f", "5.00000000e+02", CNumericTypes.FLOAT),
             new TestCase("5e+2", "5.00000000e+02", CNumericTypes.FLOAT),
             new TestCase("5e+2f", "5.00000000e+02", CNumericTypes.FLOAT),
+
+            // Hexadecimal floating point literals
+            // For hexadecimal floating point literals the exponent starts with a "p" and must
+            // always be included. The literal is prefixed by "0x" to mark it as hexadecimal, and
+            // may be followed by an "f" or "l" suffix, just as for decimal floating point literals
+            new TestCase("0xfp00", "1.5000000000000000e+01", CNumericTypes.DOUBLE),
             new TestCase("0x5e2p0", "1.50600000e+03", CNumericTypes.FLOAT),
             new TestCase("0x5e2p0f", "1.50600000e+03", CNumericTypes.FLOAT),
             new TestCase("0x5e2fp0", "2.41110000e+04", CNumericTypes.FLOAT),
             new TestCase("0x5ep2", "3.76000000e+02", CNumericTypes.FLOAT),
             new TestCase("0x5ep-2", "2.35000000e+01", CNumericTypes.FLOAT),
-            new TestCase("3.41E+38", "3.4100000000000000e+38", CNumericTypes.DOUBLE),
-            new TestCase("308e-2f", "3.07999992e+00", CNumericTypes.FLOAT),
-            new TestCase("308.0L", "3.08000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
             new TestCase("0x308p-2F", "1.94000000e+02", CNumericTypes.FLOAT),
             new TestCase("0x30ap0l", "7.78000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
+
+            // 3.41E+38 is too large for a float, but can be represented as a double
+            new TestCase("3.41E+38", "inf", CNumericTypes.FLOAT),
+            new TestCase("3.41E+38", "3.4100000000000000e+38", CNumericTypes.DOUBLE),
+
+            // Some decimal fractions like "3.08" don't have a precise representation as (binary)
+            // floating point values. In this case the parser will return the floating point value
+            // that lies closes to the real decimal fraction.
+            new TestCase("308e-2f", "3.07999992e+00", CNumericTypes.FLOAT),
+            new TestCase("308.0L", "3.08000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
+
+            // When printing a floating point number, leading zeroes are dropped, and the number of
+            // decimals that are printed after the comma depends on the precision of the type
             new TestCase("0000.000e+0", "0.00000000e+00", CNumericTypes.FLOAT),
+
+            // Try some "partial" inputs where we don't use the exponent or skip the zeroes before
+            // or after the decimal point. Note that for hexadecimal floating point literals the
+            // exponent must always be included.
             new TestCase("1.0", "1.00000000e+00", CNumericTypes.FLOAT),
             new TestCase(".0", "0.00000000e+00", CNumericTypes.FLOAT),
             new TestCase(".0e0", "0.00000000e+00", CNumericTypes.FLOAT),
