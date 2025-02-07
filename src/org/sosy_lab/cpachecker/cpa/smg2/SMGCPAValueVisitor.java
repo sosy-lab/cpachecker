@@ -1554,7 +1554,7 @@ public class SMGCPAValueVisitor
       String pName,
       List<Value> pArguments,
       SMGState pState,
-      Function<FloatValue, Number> pOperation) {
+      Function<FloatValue, Value> pOperation) {
     final Value parameter = Iterables.getOnlyElement(pArguments);
     if (parameter.isExplicitlyKnown()) {
       // Cast the argument to match the function type
@@ -1564,8 +1564,7 @@ public class SMGCPAValueVisitor
               BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pName),
               (NumericValue) parameter);
 
-      return ImmutableList.of(
-          ValueAndSMGState.of(new NumericValue(pOperation.apply(value)), pState));
+      return ImmutableList.of(ValueAndSMGState.of(pOperation.apply(value), pState));
     } else {
       return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
     }
@@ -1579,7 +1578,7 @@ public class SMGCPAValueVisitor
       String pName,
       List<Value> pArguments,
       SMGState pState,
-      BiFunction<FloatValue, FloatValue, Number> pOperation) {
+      BiFunction<FloatValue, FloatValue, Value> pOperation) {
     checkArgument(pArguments.size() == 2);
     Value parameter1 = pArguments.get(0);
     Value parameter2 = pArguments.get(1);
@@ -1590,8 +1589,7 @@ public class SMGCPAValueVisitor
       FloatValue value1 = castToFloat(machineModel, targetType, (NumericValue) parameter1);
       FloatValue value2 = castToFloat(machineModel, targetType, (NumericValue) parameter2);
 
-      return ImmutableList.of(
-          ValueAndSMGState.of(new NumericValue(pOperation.apply(value1, value2)), pState));
+      return ImmutableList.of(ValueAndSMGState.of(pOperation.apply(value1, value2), pState));
     } else {
       return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
     }
@@ -1659,7 +1657,10 @@ public class SMGCPAValueVisitor
 
         } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
           return handleBuiltinFunction1(
-              calledFunctionName, parameterValues, currentState, FloatValue::abs);
+              calledFunctionName,
+              parameterValues,
+              currentState,
+              (FloatValue arg) -> new NumericValue(arg.abs()));
 
         } else if (BuiltinFloatFunctions.matchesHugeVal(calledFunctionName)
             || BuiltinFloatFunctions.matchesInfinity(calledFunctionName)) {
@@ -1686,78 +1687,92 @@ public class SMGCPAValueVisitor
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg) -> arg.isNan() ? 1 : 0);
+              (FloatValue arg) -> new NumericValue(arg.isNan() ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesIsInfinity(calledFunctionName)) {
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg) -> arg.isInfinite() ? 1 : 0);
+              (FloatValue arg) -> new NumericValue(arg.isInfinite() ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesIsInfinitySign(calledFunctionName)) {
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg) -> arg.isInfinite() ? (arg.isNegative() ? -1 : 1) : 0);
+              (FloatValue arg) ->
+                  new NumericValue(arg.isInfinite() ? (arg.isNegative() ? -1 : 1) : 0));
 
         } else if (BuiltinFloatFunctions.matchesFinite(calledFunctionName)) {
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg) -> (arg.isInfinite() || arg.isNan()) ? 0 : 1);
+              (FloatValue arg) -> new NumericValue((arg.isInfinite() || arg.isNan()) ? 0 : 1));
 
         } else if (BuiltinFloatFunctions.matchesFloor(calledFunctionName)) {
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg) -> arg.round(FloatValue.RoundingMode.FLOOR));
+              (FloatValue arg) -> new NumericValue(arg.round(FloatValue.RoundingMode.FLOOR)));
 
         } else if (BuiltinFloatFunctions.matchesCeil(calledFunctionName)) {
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg) -> arg.round(FloatValue.RoundingMode.CEILING));
+              (FloatValue arg) -> new NumericValue(arg.round(FloatValue.RoundingMode.CEILING)));
 
         } else if (BuiltinFloatFunctions.matchesRound(calledFunctionName)) {
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg) -> arg.round(FloatValue.RoundingMode.NEAREST_AWAY));
+              (FloatValue arg) ->
+                  new NumericValue(arg.round(FloatValue.RoundingMode.NEAREST_AWAY)));
 
         } else if (BuiltinFloatFunctions.matchesLround(calledFunctionName)) {
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg) ->
-                  roundFloatToInteger(
-                      machineModel,
-                      CNumericTypes.LONG_INT,
-                      arg.round(FloatValue.RoundingMode.NEAREST_AWAY)));
+              (FloatValue arg) -> {
+                try {
+                  return new NumericValue(
+                      roundFloatToInteger(
+                          machineModel,
+                          CNumericTypes.LONG_INT,
+                          arg.round(FloatValue.RoundingMode.NEAREST_AWAY)));
+                } catch (IllegalArgumentException e) {
+                  return Value.UnknownValue.getInstance();
+                }
+              });
 
         } else if (BuiltinFloatFunctions.matchesLlround(calledFunctionName)) {
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg) ->
-                  roundFloatToInteger(
-                      machineModel,
-                      CNumericTypes.LONG_LONG_INT,
-                      arg.round(FloatValue.RoundingMode.NEAREST_AWAY)));
+              (FloatValue arg) -> {
+                try {
+                  return new NumericValue(
+                      roundFloatToInteger(
+                          machineModel,
+                          CNumericTypes.LONG_LONG_INT,
+                          arg.round(FloatValue.RoundingMode.NEAREST_AWAY)));
+                } catch (IllegalArgumentException e) {
+                  return Value.UnknownValue.getInstance();
+                }
+              });
 
         } else if (BuiltinFloatFunctions.matchesTrunc(calledFunctionName)) {
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg) -> arg.round(FloatValue.RoundingMode.TRUNCATE));
+              (FloatValue arg) -> new NumericValue(arg.round(FloatValue.RoundingMode.TRUNCATE)));
 
         } else if (BuiltinFloatFunctions.matchesFdim(calledFunctionName)) {
           return handleBuiltinFunction2(
@@ -1765,7 +1780,10 @@ public class SMGCPAValueVisitor
               parameterValues,
               currentState,
               (FloatValue arg1, FloatValue arg2) ->
-                  arg1.lessOrEqual(arg2) ? FloatValue.zero(arg1.getFormat()) : arg1.subtract(arg2));
+                  new NumericValue(
+                      arg1.lessOrEqual(arg2)
+                          ? FloatValue.zero(arg1.getFormat())
+                          : arg1.subtract(arg2)));
 
         } else if (BuiltinFloatFunctions.matchesFmax(calledFunctionName)) {
           // TODO: Add a warning message for fmax(0.0,-0.0) and fmax(-0.0, 0.0)
@@ -1776,11 +1794,12 @@ public class SMGCPAValueVisitor
               parameterValues,
               currentState,
               (FloatValue arg1, FloatValue arg2) ->
-                  switch (arg1.compareWithTotalOrder(arg2)) {
-                    case -1 -> arg2.isNan() ? arg1 : arg2;
-                    case +1 -> arg1.isNan() ? arg2 : arg1;
-                    default -> arg1;
-                  });
+                  new NumericValue(
+                      switch (arg1.compareWithTotalOrder(arg2)) {
+                        case -1 -> arg2.isNan() ? arg1 : arg2;
+                        case +1 -> arg1.isNan() ? arg2 : arg1;
+                        default -> arg1;
+                      }));
 
         } else if (BuiltinFloatFunctions.matchesFmin(calledFunctionName)) {
           // FIXME: Add a warning message for fmin(0.0,-0.0) and fmin(-0.0, 0.0)
@@ -1791,25 +1810,26 @@ public class SMGCPAValueVisitor
               parameterValues,
               currentState,
               (FloatValue arg1, FloatValue arg2) ->
-                  switch (arg1.compareWithTotalOrder(arg2)) {
-                    case -1 -> arg1.isNan() ? arg2 : arg1;
-                    case +1 -> arg2.isNan() ? arg1 : arg2;
-                    default -> arg1;
-                  });
+                  new NumericValue(
+                      switch (arg1.compareWithTotalOrder(arg2)) {
+                        case -1 -> arg1.isNan() ? arg2 : arg1;
+                        case +1 -> arg2.isNan() ? arg1 : arg2;
+                        default -> arg1;
+                      }));
 
         } else if (BuiltinFloatFunctions.matchesSignbit(calledFunctionName)) {
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg) -> arg.isNegative() ? 1 : 0);
+              (FloatValue arg) -> new NumericValue(arg.isNegative() ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesCopysign(calledFunctionName)) {
           return handleBuiltinFunction2(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg1, FloatValue arg2) -> arg1.copySign(arg2));
+              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.copySign(arg2)));
 
         } else if (BuiltinFloatFunctions.matchesFloatClassify(calledFunctionName)) {
           return handleBuiltinFunction1(
@@ -1830,7 +1850,7 @@ public class SMGCPAValueVisitor
                 } else {
                   fpClass = 4;
                 }
-                return fpClass;
+                return new NumericValue(fpClass);
               });
 
         } else if (BuiltinFloatFunctions.matchesModf(calledFunctionName)) {
@@ -1868,56 +1888,61 @@ public class SMGCPAValueVisitor
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg1, FloatValue arg2) -> arg1.remainder(arg2));
+              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.remainder(arg2)));
 
         } else if (BuiltinFloatFunctions.matchesFmod(calledFunctionName)) {
           return handleBuiltinFunction2(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg1, FloatValue arg2) -> arg1.modulo(arg2));
+              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.modulo(arg2)));
 
         } else if (BuiltinFloatFunctions.matchesIsgreater(calledFunctionName)) {
           return handleBuiltinFunction2(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg1, FloatValue arg2) -> arg1.greaterThan(arg2) ? 1 : 0);
+              (FloatValue arg1, FloatValue arg2) ->
+                  new NumericValue(arg1.greaterThan(arg2) ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesIsgreaterequal(calledFunctionName)) {
           return handleBuiltinFunction2(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg1, FloatValue arg2) -> arg1.greaterOrEqual(arg2) ? 1 : 0);
+              (FloatValue arg1, FloatValue arg2) ->
+                  new NumericValue(arg1.greaterOrEqual(arg2) ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesIsless(calledFunctionName)) {
           return handleBuiltinFunction2(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg1, FloatValue arg2) -> arg1.lessThan(arg2) ? 1 : 0);
+              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.lessThan(arg2) ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesIslessequal(calledFunctionName)) {
           return handleBuiltinFunction2(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg1, FloatValue arg2) -> arg1.lessOrEqual(arg2) ? 1 : 0);
+              (FloatValue arg1, FloatValue arg2) ->
+                  new NumericValue(arg1.lessOrEqual(arg2) ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesIslessgreater(calledFunctionName)) {
           return handleBuiltinFunction2(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg1, FloatValue arg2) -> arg1.lessOrGreater(arg2) ? 1 : 0);
+              (FloatValue arg1, FloatValue arg2) ->
+                  new NumericValue(arg1.lessOrGreater(arg2) ? 1 : 0));
 
         } else if (BuiltinFloatFunctions.matchesIsunordered(calledFunctionName)) {
           return handleBuiltinFunction2(
               calledFunctionName,
               parameterValues,
               currentState,
-              (FloatValue arg1, FloatValue arg2) -> (arg1.isNan() || arg2.isNan()) ? 1 : 0);
+              (FloatValue arg1, FloatValue arg2) ->
+                  new NumericValue((arg1.isNan() || arg2.isNan()) ? 1 : 0));
         }
       }
       // This checks and uses builtins and also unknown functions based on the options
