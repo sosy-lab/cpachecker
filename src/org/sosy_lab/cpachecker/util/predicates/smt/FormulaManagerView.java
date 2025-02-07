@@ -1646,8 +1646,8 @@ public class FormulaManagerView {
     List<BooleanFormula> formulaList = new ArrayList<>();
     BitvectorFormula var = makeVariable(FormulaType.getBitvectorTypeWithSize(32), varName);
     BitvectorFormula varPrime = makeVariable(FormulaType.getBitvectorTypeWithSize(32), varName + PRIME_SUFFIX);
-    formulaList.add(makeGreaterOrEqual(var, varPrime, false));
-    formulaList.add(makeLessThan(var, varPrime, false));
+    formulaList.add(makeGreaterOrEqual(var, varPrime, true));
+    formulaList.add(makeLessThan(var, varPrime, true));
     return formulaList;
   }
 
@@ -2333,5 +2333,8 @@ public class FormulaManagerView {
 
   public static void usingTPA() {
     FormulaManagerView.useTPA = true;
+  }
+  public static boolean isUsingTPA() {
+    return useTPA;
   }
 }

@@ -12,6 +12,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -30,8 +32,10 @@ public class AbstractionFormulaTPA extends AbstractionFormula implements Seriali
   final transient Region region; // Null after de-serializing from proof
   private final transient BooleanFormula formula;
   private final BooleanFormula instantiatedFormula;
-
   private final PathFormula blockFormula;
+
+  private final List<AbstractionPredicate> transitionPredicateList = new ArrayList<>();
+  private SSAMap blockFormulaSsaMap;
 
 //  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 //  private final transient int id = idGenerator.getFreshId();
@@ -58,6 +62,22 @@ public class AbstractionFormulaTPA extends AbstractionFormula implements Seriali
     idsOfStoredAbstractionReused = ImmutableSet.copyOf(pIdOfStoredAbstractionReused);
 
     printNewAbstractFormula(mgr, pRegion, pFormula, pInstantiatedFormula, pBlockFormula, pIdOfStoredAbstractionReused);
+  }
+
+  public void addTransitionPredicates(List<AbstractionPredicate> pTransitionPredicate) {
+    transitionPredicateList.addAll(pTransitionPredicate);
+  }
+
+  public boolean isContainTransitionPredicate() {
+    return !transitionPredicateList.isEmpty();
+  }
+
+  public SSAMap getBlockFormulaSsaMap() {
+    return blockFormulaSsaMap;
+  }
+
+  public void setBlockFormulaSsaMap(SSAMap pBlockFormulaSsaMap) {
+    blockFormulaSsaMap = pBlockFormulaSsaMap;
   }
 
   private void printNewAbstractFormula(

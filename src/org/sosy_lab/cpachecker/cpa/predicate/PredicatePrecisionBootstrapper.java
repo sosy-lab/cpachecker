@@ -219,7 +219,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     }
 
     if (generateInitialTransitionPredicates) {
-      result = result.mergeWith(createInitialPrecisionWithTransitionPredicates());
+//      result = result.mergeWith(createInitialPrecisionWithTransitionPredicates());
+      createInitialTransitionPredicates();
     }
 
     return result;
@@ -403,5 +404,16 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     }
     return new PredicatePrecision(
         ImmutableSetMultimap.of(), localPredicates, functionPredicates, globalPredicates);
+  }
+
+  private void createInitialTransitionPredicates() {
+    Set<String> relevantVariables = cfa.getVarClassification().get().getRelevantVariables();
+    for (String varName : relevantVariables) {
+      List<BooleanFormula> transitionFormulas = formulaManagerView.createTransitionFormulas(varName);
+      for (BooleanFormula f : transitionFormulas) {
+        AbstractionPredicate transitionPredicate = abstractionManager.makePredicate(f);
+        abstractionManager.putTransitionPredicatesToMap(varName, transitionPredicate);
+      }
+    }
   }
 }

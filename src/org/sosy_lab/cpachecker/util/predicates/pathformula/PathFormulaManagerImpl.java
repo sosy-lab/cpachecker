@@ -565,10 +565,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     List<String> allVarNameInPathFormula = new ArrayList<>(fmgr.extractVariableNames(pPathFormula.getFormula()));
     SSAMap ssaMap = pPathFormula.getSsa();
     for (String varNameWithIdx : allVarNameInPathFormula) {
-      String varName = fmgr.splitIndexSeparator(varNameWithIdx)[0];
-      int idx = Integer.parseInt(fmgr.splitIndexSeparator(varNameWithIdx)[1]);
-      if (idx < ssaMap.getIndex(varName)) {
-        variableWithTransition.put(varName, idx);
+      String[] splitedName = fmgr.splitIndexSeparator(varNameWithIdx);
+      String varName = splitedName[0];
+      if (splitedName[1].isEmpty()) {
+        continue;
+      } else {
+        int idx = Integer.parseInt(splitedName[1]);
+        if (idx < ssaMap.getIndex(varName)) {
+          variableWithTransition.put(varName, idx);
+        }
       }
     }
 
@@ -595,7 +600,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 //        }
 //      }
 //    }
-    System.out.println("mapping min index" + variableWithTransition);
     return variableWithTransition;
   }
 }

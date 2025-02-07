@@ -17,6 +17,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.Writer;
@@ -38,6 +39,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
@@ -58,6 +60,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
@@ -466,10 +469,8 @@ public class PredicateAbstractionManager {
     logger.log(Level.ALL, "Predicates:", pPredicates);
 
     final BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
-    System.out.println("Instantiated formual when buiilding abstraction: " + absFormula.toString());
     final BooleanFormula symbFormula = getFormulaFromPathFormula(pathFormula);
     BooleanFormula primaryFormula = bfmgr.and(absFormula, symbFormula);
-    System.out.println("Primary formual when buiilding abstraction: " + primaryFormula.toString());
     final SSAMap ssa = pathFormula.getSsa();
 
     // Try to reuse stored abstractions
@@ -485,7 +486,7 @@ public class PredicateAbstractionManager {
     }
 
     // Shortcut if the precision is empty
-    if (pPredicates.isEmpty() && (options.getAbstractionType() != AbstractionType.ELIMINATION)) {
+    if (amgr.getVarNameToTransitionPredicates().isEmpty() && pPredicates.isEmpty() && (options.getAbstractionType() != AbstractionType.ELIMINATION)) {
       logger.log(Level.FINEST, "Abstraction", currentAbstractionId, "with empty precision is true");
       stats.numSymbolicAbstractions.incrementAndGet();
       return makeTrueAbstractionFormulaTPA(pathFormula);
@@ -602,7 +603,8 @@ public class PredicateAbstractionManager {
       abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
     }
 
-    AbstractionFormulaTPA result = makeAbstractionFormulaTPA(abs, ssa, pathFormula);
+    List<AbstractionPredicate> satTransitionPredicates = getSatTransitionPredicates(pathFormula, ssa, abstractionFormula);
+    AbstractionFormulaTPA result = makeAbstractionFormulaTPA(abs, ssa, pathFormula, satTransitionPredicates);
 
     if (options.isUseCache()) {
       abstractionCache.put(absKey, result);
@@ -924,6 +926,59 @@ public class PredicateAbstractionManager {
     return region;
   }
 
+  private List<AbstractionPredicate> getSatTransitionPredicates(PathFormula pPathFormula,
+                                                                SSAMap ssaMap,
+                                                                AbstractionFormula pAbstractionFormula) {
+    List<AbstractionPredicate> satTransitionPredicateList = new ArrayList<>(amgr.getVarNameToTransitionPredicates().size());
+    HashMap<String, Integer> varNameToMinIdx = pfmgr.extractVariablesWithTransition(pPathFormula);
+    AbstractionFormulaTPA abstractionFormulaTPA;
+    boolean absFormulaContainTransPreds = false;
+
+    if (pAbstractionFormula instanceof AbstractionFormulaTPA) {
+      abstractionFormulaTPA = (AbstractionFormulaTPA) pAbstractionFormula;
+      absFormulaContainTransPreds = abstractionFormulaTPA.isContainTransitionPredicate();
+    }
+
+    if (FormulaManagerView.isUsingTPA() && !amgr.getVarNameToTransitionPredicates().isEmpty() && !absFormulaContainTransPreds) {
+      Set<String> varNamesWithIdx = fmgr.extractVariableNames(pPathFormula.getFormula());
+      Set<String> varNames = varNamesWithIdx.stream().map(s -> fmgr.splitIndexSeparator(s)[0]).collect(
+          Collectors.toSet());
+      ListMultimap<String, AbstractionPredicate> varNameToTransPredsMap = amgr.getVarNameToTransitionPredicates();
+      for (String varName : varNames) {
+        if (!varNameToTransPredsMap.containsKey(varName)) continue;
+        List<AbstractionPredicate> transPredList = varNameToTransPredsMap.get(varName);
+        SSAMapBuilder builder = ssaMap.builder();
+        if (varNameToMinIdx.get(varName) != null) {
+          builder.setIndexTPA(varName + FormulaManagerView.PRIME_SUFFIX, builder.getType(varName), varNameToMinIdx.get(varName));
+          ssaMap = builder.build();
+        } else {
+          builder.setIndexTPA(varName + FormulaManagerView.PRIME_SUFFIX, builder.getType(varName), ssaMap.getIndex(varName));
+          ssaMap = builder.build();
+        }
+
+        for (int i = 0; i < transPredList.size(); i++ ) {
+          AbstractionPredicate transPred = transPredList.get(i);
+          BooleanFormula transitionSymbAtom = transPred.getSymbolicAtom();
+          BooleanFormula conj = fmgr.makeAnd(pPathFormula.getFormula(), fmgr.instantiate(transitionSymbAtom, ssaMap));
+          try {
+            boolean isUnsat = solver.isUnsat(conj);
+            if (isUnsat && i == transPredList.size() - 2) {
+              satTransitionPredicateList.add(transPredList.get(i + 1));
+              break;
+            } else if (!isUnsat) {
+              satTransitionPredicateList.add(transPred);
+              break;
+            }
+          } catch (SolverException | InterruptedException pE) {
+            logger.log(Level.INFO, "Error when checking satisfiability of conjunction between path formula and transition predicates");
+            throw new RuntimeException(pE);
+          }
+        }
+      }
+    }
+    return satTransitionPredicateList;
+  }
+
   /**
    * Actually compute an abstraction of a formula, without fancy caching etc.
    *
@@ -944,7 +999,6 @@ public class PredicateAbstractionManager {
     try (ProverEnvironment thmProver =
         solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
       thmProver.push(f);
-
       if (remainingPredicates.isEmpty()) {
         stats.numSatCheckAbstractions.incrementAndGet();
 
@@ -1443,16 +1497,36 @@ public class PredicateAbstractionManager {
         fmgr, abs, symbolicAbs, instantiatedSymbolicAbs, blockFormula, noAbstractionReuse);
   }
 
-  AbstractionFormulaTPA makeAbstractionFormulaTPA(Region abs, SSAMap ssaMap, PathFormula blockFormula)
+  AbstractionFormulaTPA makeAbstractionFormulaTPA(Region abs, SSAMap ssaMap, PathFormula blockFormula,
+                                                  List<AbstractionPredicate> satTransitionPredicates)
       throws InterruptedException {
-    BooleanFormula symbolicAbs = amgr.convertRegionToFormula(abs);
-    BooleanFormula instantiatedSymbolicAbs = fmgr.instantiate(symbolicAbs, ssaMap);
+    BooleanFormula transitionsFormula;
+    BooleanFormula symbolicAbs;
+    if (!satTransitionPredicates.isEmpty()) {
+      transitionsFormula = bfmgr.and(satTransitionPredicates.stream().map(p -> p.getSymbolicAtom()).collect(Collectors.toList()));
+      symbolicAbs = fmgr.makeAnd(amgr.convertRegionToFormula(abs), transitionsFormula);
+      abs = rmgr.makeAnd(abs, amgr.convertFormulaToRegion(transitionsFormula));
 
+      BooleanFormula instantiatedSymbolicAbs = fmgr.instantiate(symbolicAbs, ssaMap);
+      if (options.isSimplifyAbstractionFormula()) {
+        symbolicAbs = fmgr.simplify(symbolicAbs);
+        instantiatedSymbolicAbs = fmgr.simplify(instantiatedSymbolicAbs);
+      }
+
+      AbstractionFormulaTPA newAbstractionFormula = new AbstractionFormulaTPA(
+          fmgr, abs, symbolicAbs, instantiatedSymbolicAbs, blockFormula, noAbstractionReuse);
+      newAbstractionFormula.addTransitionPredicates(satTransitionPredicates);
+      newAbstractionFormula.setBlockFormulaSsaMap(ssaMap);
+
+      return newAbstractionFormula;
+    }
+
+    symbolicAbs = amgr.convertRegionToFormula(abs);
+    BooleanFormula instantiatedSymbolicAbs = fmgr.instantiate(symbolicAbs, ssaMap);
     if (options.isSimplifyAbstractionFormula()) {
       symbolicAbs = fmgr.simplify(symbolicAbs);
       instantiatedSymbolicAbs = fmgr.simplify(instantiatedSymbolicAbs);
     }
-
     return new AbstractionFormulaTPA(
         fmgr, abs, symbolicAbs, instantiatedSymbolicAbs, blockFormula, noAbstractionReuse);
   }

@@ -12,11 +12,15 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -69,6 +73,9 @@ public final class AbstractionManager {
   private final LogManager logger;
   private final RegionManager rmgr;
   private final FormulaManagerView fmgr;
+
+  private final List<AbstractionPredicate> transitionPredicates = new ArrayList<>();
+  private final ListMultimap<String, AbstractionPredicate> varNameToTransitionPredicates = ArrayListMultimap.create();
 
   // Here we keep the mapping abstract predicate variable -> predicate
   private final Map<Region, AbstractionPredicate> absVarToPredicate = new HashMap<>();
@@ -392,5 +399,21 @@ public final class AbstractionManager {
       // TODO this may run into a ConcurrentModificationException
       return Joiner.on('\n').join(absVarToPredicate.values());
     }
+  }
+
+  public void appendTransitionPredicate(AbstractionPredicate pred) {
+    this.transitionPredicates.add(pred);
+  }
+
+  public List<AbstractionPredicate> getTransitionPredicates() {
+    return this.transitionPredicates;
+  }
+
+  public ListMultimap<String, AbstractionPredicate> getVarNameToTransitionPredicates() {
+    return varNameToTransitionPredicates;
+  }
+
+  public void putTransitionPredicatesToMap(String varName, AbstractionPredicate pred) {
+    this.varNameToTransitionPredicates.put(varName, pred);
   }
 }
