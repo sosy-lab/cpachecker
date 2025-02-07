@@ -1398,7 +1398,12 @@ public class AssumptionToEdgeAllocator {
       } else if (precision.equals(FloatValue.Format.Float64)) {
         return Double.doubleToRawLongBits(floatingPointValue.doubleValue());
       } else {
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException(
+            String.format(
+                "Unsupported precision. Can't recast float value `%s` to an integer type. The value"
+                    + "has precision `%s` and is %d bit wide. However, we only support 32 and 64bit"
+                    + "integer values.",
+                floatingPointValue, precision, 1 + precision.expBits() + precision.sigBits()));
       }
     }
 
@@ -1479,10 +1484,10 @@ public class AssumptionToEdgeAllocator {
             return handleFloatingPointNumbers(floatValue, pSimpleType);
 
           default:
-            throw new UnsupportedOperationException();
+            throw new AssertionError(String.format("Value has unknown type `%s`", basicType));
         }
       }
-      throw new IllegalArgumentException();
+      throw new AssertionError("Values must implement the Number interface.");
     }
 
     private ValueLiterals createUnknownValueLiterals() {
@@ -1525,7 +1530,7 @@ public class AssumptionToEdgeAllocator {
         BigInteger beforeCast = new NumericValue(pNumber).getIntegerValue();
         return handlePotentialIntegerOverflow(beforeCast, pType);
       }
-      throw new UnsupportedOperationException();
+      throw new AssertionError("Values must implement the Number interface.");
     }
 
     /**

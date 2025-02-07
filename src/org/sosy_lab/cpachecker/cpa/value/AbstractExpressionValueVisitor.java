@@ -2165,7 +2165,11 @@ public abstract class AbstractExpressionValueVisitor
             target = FloatValue.Format.Float128;
           } else {
             // Unsupported target format
-            throw new IllegalArgumentException();
+            throw new AssertionError(
+                String.format(
+                    "Unsupported target format. Value `%s` with bit width %d can't be cast to type"
+                        + "`%s`",
+                    numericValue, size, st.getType()));
           }
 
           Number result;
@@ -2193,7 +2197,11 @@ public abstract class AbstractExpressionValueVisitor
             result = num.divide(den);
           } else {
             // Unsupported value type
-            throw new IllegalArgumentException();
+            throw new AssertionError(
+                String.format(
+                    "Unsupported type. Value `%s` has type `%s`, but only integers, floating points"
+                        + "and rationals are allowed.",
+                    numericValue, numericValue.getNumber().getClass().getSimpleName()));
           }
 
           return new NumericValue(result);

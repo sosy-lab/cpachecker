@@ -1441,7 +1441,11 @@ public class SMGCPAValueVisitor
             target = FloatValue.Format.Float128;
           } else {
             // Unsupported target format
-            throw new IllegalArgumentException();
+            throw new AssertionError(
+                String.format(
+                    "Unsupported target format. Value `%s` with bitwidth %d can't be cast to type"
+                        + "`%s`",
+                    numericValue, size, st.getType()));
           }
 
           Number result;
@@ -1469,7 +1473,11 @@ public class SMGCPAValueVisitor
             result = num.divide(den);
           } else {
             // Unsupported value type
-            throw new IllegalArgumentException();
+            throw new AssertionError(
+                String.format(
+                    "Unsupported type. Value `%s` has type `%s`, but only integers, floating points"
+                        + "and rationals are allowed.",
+                    numericValue, numericValue.getNumber().getClass().getSimpleName()));
           }
 
           return new NumericValue(result);

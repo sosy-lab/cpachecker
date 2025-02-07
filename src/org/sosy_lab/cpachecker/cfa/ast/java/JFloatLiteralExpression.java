@@ -32,7 +32,11 @@ public final class JFloatLiteralExpression extends AFloatLiteralExpression
     } else if (pValue.getFormat().equals(FloatValue.Format.Float64)) {
       return JSimpleType.DOUBLE;
     } else {
-      throw new IllegalArgumentException();
+      throw new IllegalArgumentException(
+          String.format(
+              "Unsupported precision. The value `%s` has precision `%s`, but only Float32 and"
+                  + "Float64 are supported in Java.",
+              pValue, pValue.getFormat()));
     }
   }
 
