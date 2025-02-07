@@ -70,6 +70,7 @@ def parse_jsons(json_file: Path):
         print(f"WARNING: Decoding error while parsing {json_file}: {e}")
         return {}
 
+
 def html_for_message(message, block_log: Dict[str, str]):
     div = Airium()
 
