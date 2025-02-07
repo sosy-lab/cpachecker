@@ -86,6 +86,7 @@ import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
@@ -101,9 +102,6 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class SMGCPAValueVisitor
     extends DefaultCExpressionVisitor<List<ValueAndSMGState>, CPATransferException>
     implements CRightHandSideVisitor<List<ValueAndSMGState>, CPATransferException> {
-
-  /** length of type INT in Java (in bit). Needed to determine if a C type fits into a Java type. */
-  private static final int SIZE_OF_JAVA_INT = 32;
 
   /**
    * length of type LONG in Java (in bit). Needed to determine if a C type fits into a Java type.
@@ -1535,17 +1533,6 @@ public class SMGCPAValueVisitor
     return pValue.floatingPointValue(precision);
   }
 
-  /** Round a float value to an integer with the given C type */
-  private Number roundFloatToInteger(MachineModel pMachineModel, CType pType, FloatValue pValue) {
-    int sizeOfType =
-        pMachineModel.getSizeof(pType).intValue() * pMachineModel.getSizeofCharInBits();
-    return switch (sizeOfType) {
-      case SIZE_OF_JAVA_INT -> pValue.integerValue();
-      case SIZE_OF_JAVA_LONG -> pValue.longValue();
-      default -> throw new IllegalArgumentException();
-    };
-  }
-
   /**
    * Helper method to handle unary builtin function in {@link
    * AbstractExpressionValueVisitor#visit(CFunctionCallExpression)}
@@ -1739,15 +1726,12 @@ public class SMGCPAValueVisitor
               parameterValues,
               currentState,
               (FloatValue arg) -> {
-                try {
-                  return new NumericValue(
-                      roundFloatToInteger(
-                          machineModel,
-                          CNumericTypes.LONG_INT,
-                          arg.round(FloatValue.RoundingMode.NEAREST_AWAY)));
-                } catch (IllegalArgumentException e) {
-                  return Value.UnknownValue.getInstance();
-                }
+                FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
+                return switch (machineModel.getSizeofLongInt()) {
+                  case Integer.BYTES -> new NumericValue(value.integerValue());
+                  case Long.BYTES -> new NumericValue(value.longValue());
+                  default -> Value.UnknownValue.getInstance();
+                };
               });
 
         } else if (BuiltinFloatFunctions.matchesLlround(calledFunctionName)) {
@@ -1756,15 +1740,12 @@ public class SMGCPAValueVisitor
               parameterValues,
               currentState,
               (FloatValue arg) -> {
-                try {
-                  return new NumericValue(
-                      roundFloatToInteger(
-                          machineModel,
-                          CNumericTypes.LONG_LONG_INT,
-                          arg.round(FloatValue.RoundingMode.NEAREST_AWAY)));
-                } catch (IllegalArgumentException e) {
-                  return Value.UnknownValue.getInstance();
-                }
+                FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
+                return switch (machineModel.getSizeofLongLongInt()) {
+                  case Integer.BYTES -> new NumericValue(value.integerValue());
+                  case Long.BYTES -> new NumericValue(value.longValue());
+                  default -> Value.UnknownValue.getInstance();
+                };
               });
 
         } else if (BuiltinFloatFunctions.matchesTrunc(calledFunctionName)) {
