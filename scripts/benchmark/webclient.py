@@ -93,6 +93,7 @@ VALID_RUN_ID = re.compile("^[A-Za-z0-9-]+$")
 
 DEFAULT_TOOL_NAME = "CPAchecker"
 
+
 class WebClientError(Exception):
     def _init_(self, value):
         self.value = value
