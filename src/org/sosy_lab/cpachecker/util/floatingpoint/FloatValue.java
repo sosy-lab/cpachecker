@@ -1849,7 +1849,22 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         resultSignificand);
   }
 
-  /** The minimal distance between two floating point values with the same exponent. */
+  /**
+   * Returns 1 ULP for this value.
+   *
+   * <p>ULP stands for "Unit in the last place" and is the minimal distance between two floating
+   * point values of the same exponent. It can be calculated by copying the exponent of the value
+   * and then replacing the significand by all zeroes, except for the last bit, which is set to one.
+   * For instance, for the value <code>1.01001 * 2^7</code> 1 ULP is equivalent to <code>
+   * 0.00001 * 2^7 = 1.00000 * 2^2</code>.
+   *
+   * <p>For normalized floating point numbers 1 ULP can be calculated as <code>2^k-p+1</code> where
+   * <code>k</code> is the exponent of the number and <code>p</code> is the precision of the format
+   * (including the 'hidden' bit). When the number is subnormal, 1 ULP is always equivalent to the
+   * minimal number support by the format.
+   *
+   * <p>@See <a href="https://en.wikipedia.org/wiki/Unit_in_the_last_place">Wikipedia</a>
+   */
   private FloatValue oneUlp() {
     if (exponent < format.minExp()) {
       return sign ? minValue(format).negate() : minValue(format);
@@ -1858,12 +1873,20 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
   }
 
-  /** Returns the next larger floating point number. */
+  /**
+   * Add 1 ULP to the value to get the next larger floating point number.
+   *
+   * <p>See {@link #oneUlp} for the definition of "ULP"
+   */
   private FloatValue plus1Ulp() {
     return add(oneUlp());
   }
 
-  /** Returns the next smaller floating point number. */
+  /**
+   * Subtract 1 ULP from the value to get the next smaller floating point number.
+   *
+   * <p>See {@link #oneUlp} for the definition of "ULP"
+   */
   private FloatValue minus1Ulp() {
     return add(oneUlp().negate());
   }
