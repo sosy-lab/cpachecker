@@ -51,6 +51,11 @@ import org.sosy_lab.java_smt.api.FloatingPointNumber;
  * rounding down to the precision of the final result. See the <b>Background</b> section at the
  * bottom for more information on how correct rounding can be guaranteed.
  *
+ * <p>We use {@link RoundingMode#NEAREST_EVEN} as the rounding mode in all operations and currently
+ * don't support any other rounding modes. This is with the exception of {@link
+ * #round(RoundingMode)}, which can be used with any of the {@link RoundingMode RoundingModes} to
+ * convert floating point values to integers.
+ *
  * <h3>Comparison operators</h3>
  *
  * There are different ways to compare floating point values and the right choice often depends on
