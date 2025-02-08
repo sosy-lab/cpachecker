@@ -1465,7 +1465,14 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     return this.multiply(this);
   }
 
-  /** The power function a^x for integer exponents x */
+  /**
+   * The power function a^x for integer exponents x
+   *
+   * <p>Note that <code>a.powInt(x)</code> is not the same as multiplying <code>a</code> by itself
+   * <code>x</code> times. We calculate the result of the real-valued function <code>a^x</code> and
+   * then round it down to floating point precision. This means we don't suffer from the same
+   * accumulated rounding errors that one would get with the naive approach.
+   */
   public FloatValue powInt(BigInteger exp) {
     return withPrecision(format.intermediatePrecision()).powFast(exp).withPrecision(format);
   }
