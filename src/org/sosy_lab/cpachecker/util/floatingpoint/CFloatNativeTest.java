@@ -13,7 +13,7 @@ import static com.google.common.truth.Truth.assertThat;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 
-public class CFloatTest {
+public class CFloatNativeTest {
 
   /**
    * Following are test cases as provided by a x86_64 amd architecture with a 64-bit linux (ubuntu),
