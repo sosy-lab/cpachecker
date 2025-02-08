@@ -1366,4 +1366,21 @@ public class FloatValueTest {
           () -> FloatValue.fromString(floatTestOptions.format, input));
     }
   }
+
+  @Test
+  public void divisionBugTest() {
+    assume().that(floatTestOptions.format).isEqualTo(Format.Float16);
+    String val1 = "6.2042e-02";
+    String val2 = "1.9456e+04";
+
+    FloatValue tested1 = FloatValue.fromString(floatTestOptions.format, val1);
+    FloatValue tested2 = FloatValue.fromString(floatTestOptions.format, val2);
+    FloatValue r1 = tested1.divide(tested2);
+
+    CFloat reference1 = toReferenceImpl(val1);
+    CFloat reference2 = toReferenceImpl(val2);
+    CFloat r2 = reference1.divideBy(reference2);
+
+    assertEqual1Ulp(r1, r2);
+  }
 }

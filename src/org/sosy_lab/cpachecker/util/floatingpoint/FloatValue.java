@@ -1497,14 +1497,11 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   /** Division */
   public FloatValue divide(FloatValue pDivisor) {
     checkMatchingPrecision(pDivisor);
-    // TODO: Replace with precision.intermediatePrecision()
-    //   Currently this does not seem to work as we get incorrectly rounded results for Float8
-    Format precision = /*precision.intermediatePrecision();*/
-        new Format(Format.Float256.expBits, 2 * (1 + format.sigBits) + 2);
+    Format precision = format.intermediatePrecision();
     FloatValue arg1 = this.withPrecision(precision);
     FloatValue arg2 = pDivisor.withPrecision(precision);
 
-    return arg1.divideNewton(arg2).withPrecision(format);
+    return arg1.divideSlow(arg2).withPrecision(format);
   }
 
   /**
