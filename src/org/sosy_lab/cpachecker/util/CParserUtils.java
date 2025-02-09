@@ -58,13 +58,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.LemmaParserVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -395,35 +395,11 @@ public class CParserUtils {
     return new CLemmaFunctionCall(fExp);
   }
 
-  private static CBinaryExpression replaceFirstOperand(
-      CBinaryExpression exp, CIdExpression op1, Map<Object, Object> replacements) {
-    String key = op1.getName();
-    return new CBinaryExpression(
-        exp.getFileLocation(),
-        exp.getExpressionType(),
-        exp.getCalculationType(),
-        (CExpression) replacements.get(key),
-        exp.getOperand2(),
-        exp.getOperator());
-  }
-
-  private static CBinaryExpression replaceSecondOperand(
-      CBinaryExpression exp, CIdExpression op2, Map<Object, Object> replacements) {
-    String key = op2.getName();
-    return new CBinaryExpression(
-        exp.getFileLocation(),
-        exp.getExpressionType(),
-        exp.getCalculationType(),
-        exp.getOperand1(),
-        (CExpression) replacements.get(key),
-        exp.getOperator());
-  }
-
   public static CExpression parseLemmaStatement(String lAssumeCode, CParser parser, Scope scope)
       throws InterruptedException {
 
     String lString = lAssumeCode;
-    Map<Object, Object> replacements = new HashMap<>();
+    Map<String, CLemmaFunctionCall> replacements = new HashMap<>();
     Pattern lp = Pattern.compile("LEMMA_FUNC\\((?<function>.*)\\)");
     Matcher lm = lp.matcher(lString);
     String tmp = "lemma_tmp_";
@@ -444,18 +420,7 @@ public class CParserUtils {
       throw new RuntimeException("Not a valid statement: " + lString);
     }
 
-    if (exp instanceof CBinaryExpression) {
-      Pattern p = Pattern.compile(tmp);
-      CExpression op1 = ((CBinaryExpression) exp).getOperand1();
-      CExpression op2 = ((CBinaryExpression) exp).getOperand2();
-
-      if (op1 instanceof CIdExpression && p.matcher(((CIdExpression) op1).getName()).find()) {
-        exp = replaceFirstOperand((CBinaryExpression) exp, (CIdExpression) op1, replacements);
-      }
-      if (op2 instanceof CIdExpression && p.matcher(((CIdExpression) op2).getName()).find()) {
-        exp = replaceSecondOperand((CBinaryExpression) exp, (CIdExpression) op2, replacements);
-      }
-    }
+    exp = exp.accept(new LemmaParserVisitor(replacements));
     return exp;
   }
 
