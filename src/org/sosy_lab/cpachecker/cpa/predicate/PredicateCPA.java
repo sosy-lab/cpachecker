@@ -21,7 +21,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -216,8 +215,7 @@ public class PredicateCPA
             predAbsManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
-    ImmutableSet<ExpressionTree<AExpression>> initialLemmas =
-        precisionBootstraper.prepareInitialLemmas();
+    ImmutableSet<CExpression> initialLemmas = precisionBootstraper.prepareInitialLemmas();
     logger.log(Level.FINEST, "Initial lemmas are", initialLemmas);
 
     PredicateProvider predicateProvider =

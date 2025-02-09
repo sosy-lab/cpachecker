@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
@@ -120,19 +121,14 @@ public class InvariantExchangeFormatTransformer {
     return createExpressionTreeFromString(resultFunction, invariantString, line, callStack, scope);
   }
 
-  public ExpressionTree<AExpression> parseLemmaEntry(LemmaEntry pLemmaEntry)
-      throws InterruptedException {
-    Optional<String> resultFunction = Optional.ofNullable(pLemmaEntry.getLocation().getFunction());
-    Set<String> lemmaString = ImmutableSet.of(pLemmaEntry.getValue());
+  public CExpression parseLemmaEntry(LemmaEntry pLemmaEntry) throws InterruptedException {
 
     Scope scope =
         switch (cfa.getLanguage()) {
           case C -> new CProgramScope(cfa, logger);
           default -> DummyScope.getInstance();
         };
-    CParserUtils.parseLemmaStatement(pLemmaEntry.getValue(), cparser, scope);
-    return CParserUtils.parseStatementsAsExpressionTree(
-        lemmaString, resultFunction, cparser, scope, parserTools);
+    return CParserUtils.parseLemmaStatement(pLemmaEntry.getValue(), cparser, scope);
   }
 
   /**

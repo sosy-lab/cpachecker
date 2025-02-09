@@ -36,6 +36,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
@@ -232,7 +233,7 @@ public final class PredicatePrecisionBootstrapper {
     return result;
   }
 
-  public ImmutableSet<ExpressionTree<AExpression>> prepareInitialLemmas()
+  public ImmutableSet<CExpression> prepareInitialLemmas()
       throws InterruptedException, InvalidConfigurationException {
     List<LemmaEntry> lemmaSet = new ArrayList<>();
 
@@ -254,12 +255,11 @@ public final class PredicatePrecisionBootstrapper {
     InvariantExchangeFormatTransformer transformer =
         new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
 
-    ImmutableSet.Builder<ExpressionTree<AExpression>> lemmas = new ImmutableSet.Builder<>();
+    ImmutableSet.Builder<CExpression> lemmas = new ImmutableSet.Builder<>();
     for (LemmaEntry e : lemmaSet) {
       lemmas.add(transformer.parseLemmaEntry(e));
     }
-    ImmutableSet<ExpressionTree<AExpression>> eTree = lemmas.build();
-    return eTree;
+    return lemmas.build();
   }
 
   private PredicatePrecision parseInvariantFromYMLCorrectnessWitnessNonLocally(
