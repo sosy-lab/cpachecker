@@ -24,8 +24,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -90,6 +92,7 @@ import org.sosy_lab.cpachecker.util.smg.util.MergedSPCWithMappingsAndAddressValu
 import org.sosy_lab.cpachecker.util.smg.util.MergingSPCsAndMergeStatus;
 import org.sosy_lab.cpachecker.util.smg.util.SMGAndHasValueEdges;
 import org.sosy_lab.cpachecker.util.smg.util.SMGAndSMGValues;
+import org.sosy_lab.cpachecker.util.smg.util.SMGObjectMergeTriple;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -293,6 +296,7 @@ public class SymbolicProgramConfiguration {
     SymbolicProgramConfiguration mergedSPC = of(thisSMG.getSizeOfPointer());
     ImmutableMap<SMGNode, SMGNode> mapping1 = ImmutableMap.of();
     ImmutableMap<SMGNode, SMGNode> mapping2 = ImmutableMap.of();
+    Deque<SMGObjectMergeTriple> objectsToBeMerged = new ArrayDeque<>();
 
     // 2. For each program variable:
     //      create a fresh region with a matching label/mapping to the 2 SPCs given
@@ -309,6 +313,10 @@ public class SymbolicProgramConfiguration {
           || thisSMG.smg.isValid(thisGlobalObj) != otherSMG.smg.isValid(otherGlobalObj)) {
         return Optional.empty();
       }
+      if (thisSMG.isObjectExternallyAllocated(thisGlobalObj)
+          != otherSMG.isObjectExternallyAllocated(otherGlobalObj)) {
+        return Optional.empty();
+      }
       CType thisType = thisSMG.variableToTypeMap.get(thisVarName);
       CType otherType = otherSMG.variableToTypeMap.get(thisVarName);
       if (thisType == null ^ otherType == null) {
@@ -318,7 +326,8 @@ public class SymbolicProgramConfiguration {
           && !thisType.getCanonicalType().equals(otherType.getCanonicalType())) {
         return Optional.empty();
       }
-      SMGObject newObject = SMGObject.of(0, thisGlobalObj.getSize(), BigInteger.ZERO, thisVarName);
+      SMGObject newObject =
+          SMGObject.of(0, thisGlobalObj.getSize(), thisGlobalObj.getOffset(), thisVarName);
       mergedSPC = mergedSPC.copyAndAddGlobalObject(newObject, thisVarName, thisType);
       mapping1 =
           ImmutableMap.<SMGNode, SMGNode>builder()
@@ -330,6 +339,16 @@ public class SymbolicProgramConfiguration {
               .putAll(mapping2)
               .put(otherGlobalObj, newObject)
               .buildOrThrow();
+      addObjectsToBeMerged(
+          thisSMG,
+          thisGlobalObj,
+          otherSMG,
+          otherGlobalObj,
+          newObject,
+          thisVarName,
+          objectsToBeMerged,
+          true,
+          thisSMG.isObjectExternallyAllocated(thisGlobalObj));
     }
 
     Iterator<StackFrame> thisStackFrames = thisSMG.stackVariableMapping.iterator();
@@ -360,6 +379,16 @@ public class SymbolicProgramConfiguration {
       Optional<SMGObject> maybeOtherReturnObj = otherFrame.getReturnObject();
       if (maybeOtherReturnObj.isPresent() && maybeThisReturnObj.isPresent()) {
         Preconditions.checkArgument(mergedSPC.hasReturnObjectForCurrentStackFrame());
+        addObjectsToBeMerged(
+            thisSMG,
+            maybeThisReturnObj.orElseThrow(),
+            otherSMG,
+            maybeOtherReturnObj.orElseThrow(),
+            mergedSPC.getReturnObjectForCurrentStackFrame().orElseThrow(),
+            thisFunDef.getQualifiedName() + "::__CPAchecker_internal_return_object",
+            objectsToBeMerged,
+            false,
+            false);
       } else if (maybeOtherReturnObj.isPresent() || maybeThisReturnObj.isPresent()) {
         return Optional.empty();
       }
@@ -399,6 +428,16 @@ public class SymbolicProgramConfiguration {
                 .putAll(mapping2)
                 .put(otherObj, newObject)
                 .buildOrThrow();
+        addObjectsToBeMerged(
+            thisSMG,
+            thisObj,
+            otherSMG,
+            otherObj,
+            newObject,
+            otherVarName,
+            objectsToBeMerged,
+            false,
+            thisSMG.isObjectExternallyAllocated(thisObj));
       }
     }
 
@@ -408,12 +447,10 @@ public class SymbolicProgramConfiguration {
     // 3. For each program variable:
     //      Perform joinSubSMG() for the region of the var and all 3 SMGs
     //      Abort for bottom join/merge status
-    // TODO: BFS compatibility over all first
-    for (Entry<String, SMGObject> entry : thisSPC.globalVariableMapping.entrySet()) {
-      String thisVarName = entry.getKey();
-      SMGObject thisGlobalObj = entry.getValue();
-      SMGObject otherGlobalObj = otherSPC.globalVariableMapping.get(thisVarName);
-      SMGObject newGlobalObj = mergedSPC.globalVariableMapping.get(thisVarName);
+    for (SMGObjectMergeTriple objects : objectsToBeMerged) {
+      SMGObject thisGlobalObj = objects.getLeftVariableObject();
+      SMGObject otherGlobalObj = objects.getRightVariableObject();
+      SMGObject newGlobalObj = objects.getMergeObject();
 
       Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMapping> maybeMergeResult =
           mergeSubSMGs(
@@ -437,78 +474,6 @@ public class SymbolicProgramConfiguration {
       mergedSPC = mergeResult.getMergedSPC();
       mapping1 = mergeResult.getMapping1();
       mapping2 = mergeResult.getMapping2();
-    }
-
-    thisStackFrames = thisSPC.stackVariableMapping.iterator();
-    otherStackFrames = otherSPC.stackVariableMapping.iterator();
-    Iterator<StackFrame> newStackFrames = mergedSPC.stackVariableMapping.iterator();
-    while (otherStackFrames.hasNext()) {
-      StackFrame thisFrame = thisStackFrames.next();
-      StackFrame otherFrame = otherStackFrames.next();
-      StackFrame newFrame = newStackFrames.next();
-
-      Map<String, SMGObject> thisVariables = thisFrame.getVariables();
-      Map<String, SMGObject> newVariables = newFrame.getVariables();
-      for (Entry<String, SMGObject> otherEntry : otherFrame.getVariables().entrySet()) {
-        String otherVarName = otherEntry.getKey();
-        SMGObject otherObj = otherEntry.getValue();
-        SMGObject thisObj = thisVariables.get(otherVarName);
-        SMGObject newObj = newVariables.get(otherVarName);
-
-        Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMapping> maybeMergeResult =
-            mergeSubSMGs(
-                thisSPC,
-                otherSPC,
-                thisObj,
-                otherObj,
-                mergedSPC,
-                newObj,
-                mergeStatus,
-                mapping1,
-                mapping2,
-                0);
-        if (maybeMergeResult.isEmpty() || maybeMergeResult.orElseThrow().isRecoverableFailure()) {
-          return Optional.empty();
-        }
-        MergedSPCAndMergeStatusWithMergingSPCsAndMapping mergeResult =
-            maybeMergeResult.orElseThrow();
-        thisSPC = mergeResult.getMergingSPC1();
-        otherSPC = mergeResult.getMergingSPC2();
-        mergeStatus = mergeResult.getMergeStatus();
-        mergedSPC = mergeResult.getMergedSPC();
-        mapping1 = mergeResult.getMapping1();
-        mapping2 = mergeResult.getMapping2();
-      }
-
-      if (thisFrame.getReturnObject().isPresent()) {
-        SMGObject otherObj = otherFrame.getReturnObject().orElseThrow();
-        SMGObject thisObj = thisFrame.getReturnObject().orElseThrow();
-        SMGObject newObj = newFrame.getReturnObject().orElseThrow();
-
-        Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMapping> maybeMergeResult =
-            mergeSubSMGs(
-                thisSPC,
-                otherSPC,
-                thisObj,
-                otherObj,
-                mergedSPC,
-                newObj,
-                mergeStatus,
-                mapping1,
-                mapping2,
-                0);
-        if (maybeMergeResult.isEmpty() || maybeMergeResult.orElseThrow().isRecoverableFailure()) {
-          return Optional.empty();
-        }
-        MergedSPCAndMergeStatusWithMergingSPCsAndMapping mergeResult =
-            maybeMergeResult.orElseThrow();
-        thisSPC = mergeResult.getMergingSPC1();
-        otherSPC = mergeResult.getMergingSPC2();
-        mergeStatus = mergeResult.getMergeStatus();
-        mergedSPC = mergeResult.getMergedSPC();
-        mapping1 = mergeResult.getMapping1();
-        mapping2 = mergeResult.getMapping2();
-      }
     }
 
     // 4. If there is a cycle consisting of only 0+ in the new SPC/SMG, return bottom
@@ -546,6 +511,50 @@ public class SymbolicProgramConfiguration {
     assert !mapping2.containsKey(SMGValue.zeroValue());
     assert !mapping2.containsKey(SMGObject.nullInstance());
     return Optional.of(MergedSPCAndMergeStatus.of(mergedSPC, mergeStatus));
+  }
+
+  private static void addObjectsToBeMerged(
+      SymbolicProgramConfiguration thisSPC,
+      SMGObject pThisObj,
+      SymbolicProgramConfiguration otherSPC,
+      SMGObject pOtherObj,
+      SMGObject pNewObject,
+      String varName,
+      Deque<SMGObjectMergeTriple> mergePrioQueue,
+      boolean isGlobalVariable,
+      boolean isExternallyAllocated) {
+
+    Set<SMGHasValueEdge> hves2 =
+        otherSPC
+            .smg
+            .getSMGObjectsWithSMGHasValueEdges()
+            .getOrDefault(pOtherObj, PersistentSet.of());
+    Set<SMGHasValueEdge> hves1 =
+        thisSPC.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(pThisObj, PersistentSet.of());
+
+    // One value 0, the other is not, or non-pointers are priority
+    // (the first leads to failure most of the time, the second might, but is always cheap)
+    boolean prio =
+        hves1.stream()
+            .anyMatch(
+                hve1 ->
+                    hves2.stream()
+                        .anyMatch(
+                            hve2 ->
+                                hve1.getOffset().equals(hve2.getOffset())
+                                    && hve1.getSizeInBits().equals(hve2.getSizeInBits())
+                                    && ((hve1.hasValue().isZero() ^ hve2.hasValue().isZero())
+                                        || (!thisSPC.getSmg().isPointer(hve1.hasValue())
+                                            && !otherSPC.getSmg().isPointer(hve2.hasValue())))));
+    if (prio) {
+      mergePrioQueue.addFirst(
+          SMGObjectMergeTriple.of(
+              varName, pThisObj, pOtherObj, pNewObject, isGlobalVariable, isExternallyAllocated));
+    } else {
+      mergePrioQueue.addLast(
+          SMGObjectMergeTriple.of(
+              varName, pThisObj, pOtherObj, pNewObject, isGlobalVariable, isExternallyAllocated));
+    }
   }
 
   private static Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMapping> mergeSubSMGs(
