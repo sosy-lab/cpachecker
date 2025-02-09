@@ -130,7 +130,7 @@ public class InvariantExchangeFormatTransformer {
           case C -> new CProgramScope(cfa, logger);
           default -> DummyScope.getInstance();
         };
-    CParserUtils.parseLemmaStatement(pLemmaEntry.getValue(), cparser, scope, parserTools);
+    CParserUtils.parseLemmaStatement(pLemmaEntry.getValue(), cparser, scope);
     return CParserUtils.parseStatementsAsExpressionTree(
         lemmaString, resultFunction, cparser, scope, parserTools);
   }

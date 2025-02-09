@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
@@ -381,12 +382,6 @@ public class CParserUtils {
 
   private static CLemmaFunctionCall extractFunctionCall(
       String functionCall, CParser parser, Scope scope) throws InterruptedException {
-    Pattern fp = Pattern.compile("LEMMA_FUNC");
-    Matcher fm = fp.matcher(functionCall);
-    if (fm.find()) {
-      functionCall = fm.replaceAll("");
-      functionCall = functionCall.substring(1, functionCall.length() - 1);
-    }
 
     // Parse CLemmaFunctionCall
     CStatement s;
@@ -400,45 +395,68 @@ public class CParserUtils {
     return new CLemmaFunctionCall(fExp);
   }
 
-  public static ExpressionTree<AExpression> parseLemmaStatement(
-      String lAssumeCode, CParser parser, Scope scope, ParserTools parserTools)
+  private static CBinaryExpression replaceFirstOperand(
+      CBinaryExpression exp, CIdExpression op1, Map<Object, Object> replacements) {
+    String key = op1.getName();
+    return new CBinaryExpression(
+        exp.getFileLocation(),
+        exp.getExpressionType(),
+        exp.getCalculationType(),
+        (CExpression) replacements.get(key),
+        exp.getOperand2(),
+        exp.getOperator());
+  }
+
+  private static CBinaryExpression replaceSecondOperand(
+      CBinaryExpression exp, CIdExpression op2, Map<Object, Object> replacements) {
+    String key = op2.getName();
+    return new CBinaryExpression(
+        exp.getFileLocation(),
+        exp.getExpressionType(),
+        exp.getCalculationType(),
+        exp.getOperand1(),
+        (CExpression) replacements.get(key),
+        exp.getOperator());
+  }
+
+  public static CExpression parseLemmaStatement(String lAssumeCode, CParser parser, Scope scope)
       throws InterruptedException {
 
-    // Prepare String
     String lString = lAssumeCode;
     Map<Object, Object> replacements = new HashMap<>();
-    Pattern lp = Pattern.compile("LEMMA_FUNC(.*)");
+    Pattern lp = Pattern.compile("LEMMA_FUNC\\((?<function>.*)\\)");
     Matcher lm = lp.matcher(lString);
+    String tmp = "lemma_tmp_";
 
-    // Extract the function calls from the string and map them to temporary variables
     while (lm.find()) {
-      String tmp = "lemma_tmp_" + replacements.size();
-      String functionCall = lm.group();
+      String functionCall = lm.group("function");
       CLemmaFunctionCall lFuncCall = extractFunctionCall(functionCall, parser, scope);
-      replacements.put(tmp, lFuncCall);
-      lString = lm.replaceFirst(tmp);
+      String key = tmp + replacements.size();
+      replacements.put(key, lFuncCall);
+      lString = lm.replaceFirst(key);
       lm = lp.matcher(lString);
     }
 
-    ExpressionTree<AExpression> tmpTree;
-    try {
-      tmpTree = parseStatement(lString, Optional.empty(), parser, scope, parserTools);
-    } catch (InvalidAutomatonException pE) {
-      throw new RuntimeException("Not a valid statement: " + lString);
-    }
-
-    /*
-    // Parse the String containing a replacement for the function call into a CExpression
     CExpression exp;
     try {
       exp = ((CExpressionStatement) parseSingleStatement(lString, parser, scope)).getExpression();
     } catch (InvalidAutomatonException pE) {
       throw new RuntimeException("Not a valid statement: " + lString);
     }
-    // Build an ExpressionTree from the CExpression
-     */
 
-    return tmpTree;
+    if (exp instanceof CBinaryExpression) {
+      Pattern p = Pattern.compile(tmp);
+      CExpression op1 = ((CBinaryExpression) exp).getOperand1();
+      CExpression op2 = ((CBinaryExpression) exp).getOperand2();
+
+      if (op1 instanceof CIdExpression && p.matcher(((CIdExpression) op1).getName()).find()) {
+        exp = replaceFirstOperand((CBinaryExpression) exp, (CIdExpression) op1, replacements);
+      }
+      if (op2 instanceof CIdExpression && p.matcher(((CIdExpression) op2).getName()).find()) {
+        exp = replaceSecondOperand((CBinaryExpression) exp, (CIdExpression) op2, replacements);
+      }
+    }
+    return exp;
   }
 
   private static String tryFixACSL(
