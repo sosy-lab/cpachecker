@@ -933,6 +933,7 @@ public class PredicateAbstractionManager {
 
   public List<AbstractionPredicate> getSatTransitionPredicates(PathFormula pPathFormula) {
     List<AbstractionPredicate> satTransitionPredicateList = new ArrayList<>(amgr.getVarNameToTransitionPredicates().size());
+    List<AbstractionPredicate> unsatTransitionPredicateList = new ArrayList<>(amgr.getVarNameToTransitionPredicates().size());
     HashMap<String, Integer> varNameToMinIdx = pfmgr.extractVariablesWithTransition(pPathFormula);
     SSAMap ssaMap = pPathFormula.getSsa();
 
@@ -942,8 +943,12 @@ public class PredicateAbstractionManager {
           Collectors.toSet());
       ListMultimap<String, AbstractionPredicate> varNameToTransPredsMap = amgr.getVarNameToTransitionPredicates();
       for (String varName : varNames) {
+
         if (!varNameToTransPredsMap.containsKey(varName)) continue;
+
         List<AbstractionPredicate> transPredList = varNameToTransPredsMap.get(varName);
+        unsatTransitionPredicateList.addAll(transPredList);
+
         SSAMapBuilder builder = ssaMap.builder();
         if (varNameToMinIdx.get(varName) != null) {
           builder.setIndexTPA(varName + FormulaManagerView.PRIME_SUFFIX, builder.getType(varName), varNameToMinIdx.get(varName));
@@ -955,15 +960,21 @@ public class PredicateAbstractionManager {
 
         for (int i = 0; i < transPredList.size(); i++ ) {
           AbstractionPredicate transPred = transPredList.get(i);
+
           BooleanFormula transitionSymbAtom = transPred.getSymbolicAtom();
           BooleanFormula conj = fmgr.makeAnd(pPathFormula.getFormula(), fmgr.instantiate(transitionSymbAtom, ssaMap));
+
           try {
             boolean isUnsat = solver.isUnsat(conj);
             if (isUnsat && i == transPredList.size() - 2) {
-              satTransitionPredicateList.add(transPredList.get(i + 1));
+              // The last generated transition predicate in list is sat
+              AbstractionPredicate satTransPred = transPredList.get(i + 1);
+              satTransitionPredicateList.add(satTransPred);
+              unsatTransitionPredicateList.remove(satTransPred);
               break;
             } else if (!isUnsat) {
               satTransitionPredicateList.add(transPred);
+              unsatTransitionPredicateList.remove(transPred);
               break;
             }
           } catch (SolverException | InterruptedException pE) {

@@ -13,11 +13,13 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -186,6 +188,7 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
       if (formulaManager.getOptions().isAddTransitionPredicatesToPrecision()
       && !formulaManager.getAmgr().getVarNameToTransitionPredicates().isEmpty()) {
         List<AbstractionPredicate> satTransitionPredicates = formulaManager.getSatTransitionPredicates(pathFormula);
+        additionalPredicates = removeUnsatTransitionPredicates(additionalPredicates, satTransitionPredicates);
         pathFormula = addGeneratedTransitionPredicateToPathFormula(satTransitionPredicates, pathFormula);
       } else {
         pathFormula = addTransitionPredicateToPathFormula(additionalPredicates, pathFormula);
@@ -225,6 +228,21 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
             element.getPreviousAbstractionState());
     return Optional.of(
         new PrecisionAdjustmentResult(state, precision, PrecisionAdjustmentResult.Action.CONTINUE));
+  }
+
+  private Set<AbstractionPredicate> removeUnsatTransitionPredicates(
+      Set<AbstractionPredicate> pAdditionalPredicates,
+      List<AbstractionPredicate> pSatTransitionPredicates) {
+    Set<AbstractionPredicate> resultSet = new HashSet<>(pAdditionalPredicates);
+    Set<AbstractionPredicate> transPredList =
+        new HashSet<>(formulaManager.getAmgr().getVarNameToTransitionPredicates().values());
+
+    for (AbstractionPredicate pred : pAdditionalPredicates) {
+      if (!pSatTransitionPredicates.contains(pred) && transPredList.contains(pred)) {
+        resultSet.remove(pred);
+      }
+    }
+    return resultSet;
   }
 
   /**
