@@ -395,10 +395,9 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
         }
       }
       if (functionName != null) {
-        List<BooleanFormula> transitionFormulas = formulaManagerView.createTransitionFormulas(varName);
-        for (BooleanFormula f : transitionFormulas) {
-          AbstractionPredicate transitionPredicate = abstractionManager.makePredicate(f);
-          functionPredicates.put(functionName, transitionPredicate);
+        List<AbstractionPredicate> transitionPredicates = abstractionManager.getVarNameToTransitionPredicates().get(varName);
+        for (AbstractionPredicate predicate : transitionPredicates) {
+          functionPredicates.put(functionName, predicate);
         }
       } else {
         logger.log(Level.INFO, "Skipping an unrelevant variable when creating initial transition predicates.");

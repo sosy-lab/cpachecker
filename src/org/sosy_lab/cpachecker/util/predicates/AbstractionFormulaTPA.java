@@ -61,7 +61,7 @@ public class AbstractionFormulaTPA extends AbstractionFormula implements Seriali
     blockFormula = checkNotNull(pBlockFormula);
     idsOfStoredAbstractionReused = ImmutableSet.copyOf(pIdOfStoredAbstractionReused);
 
-    printNewAbstractFormula(mgr, pRegion, pFormula, pInstantiatedFormula, pBlockFormula, pIdOfStoredAbstractionReused);
+//    printNewAbstractFormula(mgr, pRegion, pFormula, pInstantiatedFormula, pBlockFormula, pIdOfStoredAbstractionReused);
   }
 
   public void addTransitionPredicates(List<AbstractionPredicate> pTransitionPredicate) {
