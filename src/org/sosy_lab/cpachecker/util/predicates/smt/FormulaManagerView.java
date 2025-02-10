@@ -1242,9 +1242,10 @@ public class FormulaManagerView {
   }
 
   /**
-   * Uninstantiate a given formula. (remove the SSA indices from its free variables and UFs)
+   * Uninstantiate a given formula. This function also take ssa map which mapping prime variables to the min Idx in the block formula.
+   * If a prime variable is mapped, that variable with min Idx will be added PRIME_SUFFIX on top of remove ssa idx
    *
-   * @param pSSAMap
+   * @param pSSAMap ssa map of the block formula
    * @param f Input formula
    * @return Uninstantiated formula
    */
@@ -1470,7 +1471,6 @@ public class FormulaManagerView {
 
   /**
    * Return BooleanFormula instead of Option<BooleanFormula>. Strip negation from formula. (not A) to (A)
-   * @param f
    * @return Remove "not" from the input formula. That means it has opposite value of input.
    */
   public BooleanFormula stripNegation2(BooleanFormula f) {
@@ -1492,7 +1492,7 @@ public class FormulaManagerView {
   /**
    * Check if formula is not formula.
    * @param f Formula needs to check
-   * @return True if formuala is "not" formula, else return false
+   * @return True if the input formula is "not" formula, else return false
    */
   public Boolean isNotFormula(BooleanFormula f) {
     return booleanFormulaManager.visit(
@@ -1512,8 +1512,6 @@ public class FormulaManagerView {
 
   /**
    * Name of the function (UF name / "LT" / etc...).
-   * @param f
-   * @return
    */
   public String extractFunctionDeclarationName(BooleanFormula f) {
     return booleanFormulaManager.visit(
@@ -1561,8 +1559,6 @@ public class FormulaManagerView {
 
   /**
    * Type of the function (LT / GT / UF / etc...).
-   * @param f
-   * @return
    */
   public FunctionDeclarationKind extractFunctionDeclarationKind(BooleanFormula f) {
     return booleanFormulaManager.visit(
@@ -1632,8 +1628,8 @@ public class FormulaManagerView {
 
   /**
    * Remove Index separator from variable's name. x@2 -> [x, 2]
-   * @param varName
-   * @return
+   * @param varName the name of variable with index
+   * @return An array of string contain the variable name at idx 0 and the string value of idx at idx 1
    */
   public String[] splitIndexSeparator(String varName) {
     if (!varName.contains(Character.toString(INDEX_SEPARATOR))) {
