@@ -120,7 +120,6 @@ public class SMGJoinSPC extends SMGAbstractJoin {
             ImmutableBiMap.of(),
             PathCopyingPersistentTreeMap.of(),
             PathCopyingPersistentTreeMap.of(),
-            PathCopyingPersistentTreeMap.of(),
             ImmutableSet.of(),
             PathCopyingPersistentTreeMap.of());
   }

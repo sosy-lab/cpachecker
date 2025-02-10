@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -546,81 +545,7 @@ public class SMGCPAExpressionEvaluator {
    */
   public ValueAndSMGState getPointerFromNumeric(Value numericPointer, SMGState state) {
     Preconditions.checkArgument(numericPointer.isNumericValue());
-    if (numericPointer.asNumericValue().bigIntegerValue() != null) {
-      return getPointerFromNumeric(numericPointer.asNumericValue().bigIntegerValue(), state);
-    } else {
-      return ValueAndSMGState.ofUnknownValue(state);
-    }
-  }
-
-  /**
-   * @param numericPointer {@link BigInteger} to be transformed into a pointer.
-   * @param state current {@link SMGState}
-   * @return {@link ValueAndSMGState} with a potential new state and a pointer value NOT wrapped in
-   *     a {@link AddressExpression}.
-   */
-  private ValueAndSMGState getPointerFromNumeric(BigInteger numericPointer, SMGState state) {
-    // TODO: replace currentMemoryAssumptionMax with a better data structure
-    SMGObject bestObj = null;
-    if (numericPointer.compareTo(BigInteger.ZERO) <= 0) {
-      // negative or 0 -> invalid
-      return ValueAndSMGState.of(new NumericValue(0), state);
-    }
-    // bestDifFound = min dif to any boundary of memory!
-    @Nullable BigInteger bestDifFound = null;
-    // bestDifToMemBeginning is dif to current best mem region 0 offset, this can be negative!
-    BigInteger bestDifToMemBeginning = null;
-    for (Entry<SMGObject, BigInteger> entry :
-        state.getMemoryModel().getNumericAssumptionForMemoryRegionMap().entrySet()) {
-      // Search for the closest entry
-      BigInteger memoryRegionStart = entry.getValue();
-      SMGObject object = entry.getKey();
-      Value objSize = object.getSize();
-      if (!objSize.isNumericValue()) {
-        continue;
-      }
-      BigInteger memoryRegionEnd =
-          memoryRegionStart.add(object.getSize().asNumericValue().bigIntegerValue());
-      BigInteger difToZero = memoryRegionStart.subtract(numericPointer);
-      BigInteger difToEnd = memoryRegionEnd.subtract(numericPointer);
-      if (bestObj == null) {
-        bestObj = entry.getKey();
-        bestDifToMemBeginning = difToZero;
-        bestDifFound = difToZero;
-        if (bestDifFound.abs().compareTo(difToEnd.abs()) > 0) {
-          bestDifFound = difToEnd;
-        }
-        if (numericPointer.compareTo(memoryRegionStart) >= 0
-            && numericPointer.compareTo(memoryRegionEnd) < 0) {
-          // Inside mem region
-          break;
-        }
-
-      } else if (numericPointer.compareTo(memoryRegionStart) < 0) {
-        // smaller than obj
-        if (bestDifFound == null || difToZero.abs().compareTo(bestDifFound.abs()) < 0) {
-          bestDifFound = difToZero;
-          bestDifToMemBeginning = difToZero;
-          bestObj = object;
-        }
-
-      } else if (numericPointer.compareTo(memoryRegionEnd) > 0) {
-        // bigger than obj
-        if (bestDifFound == null || difToEnd.abs().compareTo(bestDifFound.abs()) < 0) {
-          bestDifFound = difToEnd;
-          bestDifToMemBeginning = difToZero;
-          bestObj = object;
-        }
-
-      } else {
-        // is inside object
-        bestObj = object;
-        bestDifToMemBeginning = difToZero;
-        break;
-      }
-    }
-    return searchOrCreatePointer(
-        bestObj, CPointerType.POINTER_TO_VOID, new NumericValue(bestDifToMemBeginning), state);
+    return ValueAndSMGState.ofUnknownValue(state);
   }
 
   /**

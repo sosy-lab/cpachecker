@@ -791,27 +791,11 @@ public class SMGCPAValueVisitor
         return ValueAndSMGState.of(
             AddressExpression.withZeroOffset(value, targetType), currentState);
 
-      } else if (value.isNumericValue() && options.isCastMemoryAddressesToNumeric()) {
-        logger.logf(Level.FINE, "Numeric Value '%s' interpreted as memory address.", value);
-        return evaluator.getPointerFromNumeric(value, currentState);
-
       } else if (options.trackPredicates() && value instanceof SymbolicValue) {
         return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
 
       } else {
         return ValueAndSMGState.of(UnknownValue.getInstance(), currentState);
-      }
-    }
-
-    // Interpret address as numeric, try to calculate the operation based on the numeric
-    // A pointer deref on a numeric (or a cast) should return it to an address expr or pointer
-    if (targetType instanceof CSimpleType && !((CSimpleType) targetType).hasComplexSpecifier()) {
-      if (((value instanceof AddressExpression) || evaluator.isPointerValue(value, currentState))
-          && options.isCastMemoryAddressesToNumeric()) {
-
-        logger.logf(Level.FINE, "Memory address '%s' interpreted as numeric value.", value);
-        return ValueAndSMGState.of(
-            currentState.transformAddressIntoNumericValue(value).orElseThrow(), currentState);
       }
     }
 

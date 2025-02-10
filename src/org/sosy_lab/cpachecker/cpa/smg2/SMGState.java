@@ -7513,53 +7513,6 @@ public class SMGState
     return memoryModel.getSmg().isPointer(maybeEdge.orElseThrow().hasValue());
   }
 
-  /**
-   * Searches for a numeric address assumption and returns it if possible. The assumption has all
-   * possible offsets already added. As in C standard.
-   *
-   * @param addressValue the pointer {@link Value} or {@link AddressExpression}
-   * @return Optional, either a {@link BigInteger} as numeric address (pointer in Bytes) or empty.
-   */
-  public Optional<Value> transformAddressIntoNumericValue(Value addressValue) throws SMGException {
-    Value offset;
-    SMGObject target;
-    if (addressValue instanceof AddressExpression addressExpr) {
-      if (addressExpr.getOffset().isNumericValue()) {
-        offset = addressExpr.getOffset();
-      } else {
-        return Optional.empty();
-      }
-      SMGPointsToEdge ptEdge =
-          memoryModel
-              .getSmg()
-              .getPTEdge(
-                  memoryModel.getSMGValueFromValue(addressExpr.getMemoryAddress()).orElseThrow())
-              .orElseThrow();
-      target = ptEdge.pointsTo();
-      offset = evaluator.addBitOffsetValues(offset, ptEdge.getOffset());
-
-    } else if (memoryModel.isPointer(addressValue)) {
-      SMGPointsToEdge ptEdge =
-          memoryModel
-              .getSmg()
-              .getPTEdge(memoryModel.getSMGValueFromValue(addressValue).orElseThrow())
-              .orElseThrow();
-      target = ptEdge.pointsTo();
-      offset = ptEdge.getOffset();
-    } else {
-      return Optional.empty();
-    }
-    if (!offset.isNumericValue()) {
-      throw new SMGException(
-          "Symbolic pointer offsets can not be used to assume a numerical offset.");
-    }
-    return Optional.of(
-        new NumericValue(
-            memoryModel
-                .getNumericAssumptionForMemoryRegion(target)
-                .add(offset.asNumericValue().bigIntegerValue())));
-  }
-
   public boolean isSMGObjectAStackVariable(SMGObject obj) {
     if (memoryModel.isHeapObject(obj)) {
       return false;

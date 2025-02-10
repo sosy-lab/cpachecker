@@ -106,10 +106,6 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public class SymbolicProgramConfiguration {
 
-  // Buffer in between numeric memory assumptions. See currentMemoryAssumptionMax for more info.
-  // TODO: make this changeable in an option
-  private BigInteger NUMERIC_MEMORY_BUFFER = BigInteger.valueOf(512);
-
   /** The SMG modelling this memory image. */
   private final SMG smg;
 
@@ -129,13 +125,6 @@ public class SymbolicProgramConfiguration {
 
   /* (SMG)Objects on the heap. */
   private final PersistentSet<SMGObject> heapObjects;
-
-  /*
-   * To be able to cast addresses to numbers etc., we assume some value for them and calculate
-   * changes based on it. Each memory section gets a unique number when created.
-   */
-  private final PersistentMap<SMGObject, BigInteger> memoryAddressAssumptionsMap;
-  private BigInteger currentMemoryAssumptionMax = BigInteger.ZERO;
 
   /* Map of (SMG)Objects externally allocated.
    * The bool denotes validity, true = valid, false = invalid i.e. after free()
@@ -174,7 +163,6 @@ public class SymbolicProgramConfiguration {
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
       ImmutableBiMap<Equivalence.Wrapper<Value>, SMGValue> pValueMapping,
       PersistentMap<String, CType> pVariableToTypeMap,
-      PersistentMap<SMGObject, BigInteger> pMemoryAddressAssumptionMap,
       PersistentMap<SMGObject, Boolean> pMallocZeroMemory) {
     globalVariableMapping = pGlobalVariableMapping;
     stackVariableMapping = pStackVariableMapping;
@@ -184,7 +172,6 @@ public class SymbolicProgramConfiguration {
     heapObjects = pHeapObjects;
     valueMapping = pValueMapping;
     variableToTypeMap = pVariableToTypeMap;
-    memoryAddressAssumptionsMap = pMemoryAddressAssumptionMap;
     mallocZeroMemory = pMallocZeroMemory;
     readBlacklist = ImmutableSet.of();
     valueToTypeMap =
@@ -203,7 +190,6 @@ public class SymbolicProgramConfiguration {
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
       ImmutableBiMap<Equivalence.Wrapper<Value>, SMGValue> pValueMapping,
       PersistentMap<String, CType> pVariableToTypeMap,
-      PersistentMap<SMGObject, BigInteger> pMemoryAddressAssumptionMap,
       PersistentMap<SMGObject, Boolean> pMallocZeroMemory,
       Set<SMGObject> pReadBlacklist,
       PersistentMap<SMGValue, CType> pValueToTypeMap) {
@@ -215,7 +201,6 @@ public class SymbolicProgramConfiguration {
     heapObjects = pHeapObjects;
     valueMapping = pValueMapping;
     variableToTypeMap = pVariableToTypeMap;
-    memoryAddressAssumptionsMap = pMemoryAddressAssumptionMap;
     mallocZeroMemory = pMallocZeroMemory;
     readBlacklist = pReadBlacklist;
     valueToTypeMap = pValueToTypeMap;
@@ -243,14 +228,6 @@ public class SymbolicProgramConfiguration {
       return Optional.empty();
     }
 
-    if (!NUMERIC_MEMORY_BUFFER.equals(pOther.NUMERIC_MEMORY_BUFFER)) {
-      return Optional.empty();
-    }
-
-    if (!currentMemoryAssumptionMax.equals(pOther.currentMemoryAssumptionMax)) {
-      return Optional.empty();
-    }
-
     if (!variableToTypeMap.equals(pOther.variableToTypeMap)) {
       return Optional.empty();
     }
@@ -275,7 +252,6 @@ public class SymbolicProgramConfiguration {
                 mergedSMGWithMergedStackAndValues.externalObjectAllocation,
                 mergedSMGWithMergedStackAndValues.valueMapping,
                 variableToTypeMap,
-                memoryAddressAssumptionsMap,
                 mallocZeroMemory,
                 newReadBlackList,
                 mergedSMGWithMergedStackAndValues.valueToTypeMap),
@@ -1680,7 +1656,6 @@ public class SymbolicProgramConfiguration {
         newExternalObjectAllocation,
         newSPC.valueMapping,
         newSPC.variableToTypeMap,
-        newSPC.memoryAddressAssumptionsMap.removeAndCopy(pOldObject),
         newSPC.mallocZeroMemory,
         newSPC.readBlacklist,
         newSPC.valueToTypeMap);
@@ -2604,7 +2579,6 @@ public class SymbolicProgramConfiguration {
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
       ImmutableBiMap<Equivalence.Wrapper<Value>, SMGValue> pValueMapping,
       PersistentMap<String, CType> pVariableToTypeMap,
-      PersistentMap<SMGObject, BigInteger> pMemoryAddressAssumptionMap,
       PersistentMap<SMGObject, Boolean> pMallocZeroMemory,
       Set<SMGObject> pReadBlacklist,
       PersistentMap<SMGValue, CType> pValueToTypeMap) {
@@ -2617,7 +2591,6 @@ public class SymbolicProgramConfiguration {
         pExternalObjectAllocation,
         pValueMapping,
         pVariableToTypeMap,
-        pMemoryAddressAssumptionMap,
         pMallocZeroMemory,
         pReadBlacklist,
         pValueToTypeMap);
@@ -2630,10 +2603,6 @@ public class SymbolicProgramConfiguration {
    * @return The newly created {@link SymbolicProgramConfiguration}.
    */
   public static SymbolicProgramConfiguration of(BigInteger sizeOfPtr) {
-    PersistentMap<SMGObject, BigInteger> newMemoryAddressAssumptionsMap =
-        PathCopyingPersistentTreeMap.of();
-    newMemoryAddressAssumptionsMap =
-        newMemoryAddressAssumptionsMap.putAndCopy(SMGObject.nullInstance(), BigInteger.ZERO);
     return new SymbolicProgramConfiguration(
         new SMG(sizeOfPtr),
         PathCopyingPersistentTreeMap.of(),
@@ -2649,7 +2618,6 @@ public class SymbolicProgramConfiguration {
             valueWrapper.wrap(new NumericValue(0.0)),
             SMGValue.zeroDoubleValue()),
         PathCopyingPersistentTreeMap.of(),
-        newMemoryAddressAssumptionsMap,
         PathCopyingPersistentTreeMap.of());
   }
 
@@ -2674,7 +2642,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -2691,7 +2658,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         pNewValueMappings,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -2709,7 +2675,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -2721,49 +2686,6 @@ public class SymbolicProgramConfiguration {
    */
   public PersistentMap<String, SMGObject> getGlobalVariableToSmgObjectMap() {
     return globalVariableMapping;
-  }
-
-  /**
-   * Returns the numerically assumed address for a memory region as in C. (in Bytes!)
-   *
-   * @param memoryRegion Some memory region as {@link SMGObject}.
-   * @return memory address in Bytes.
-   */
-  public BigInteger getNumericAssumptionForMemoryRegion(SMGObject memoryRegion) {
-    Preconditions.checkArgument(memoryAddressAssumptionsMap.containsKey(memoryRegion));
-    return memoryAddressAssumptionsMap.get(memoryRegion);
-  }
-
-  /**
-   * Returns the map for memory regions to their numeric address assumption. This map is immutable.
-   *
-   * @return map for memory regions to their numeric address assumption.
-   */
-  public PersistentMap<SMGObject, BigInteger> getNumericAssumptionForMemoryRegionMap() {
-    return memoryAddressAssumptionsMap;
-  }
-
-  /**
-   * Adds a new entry in the numeric address assumptions map for the object given. Will return the
-   * old map for a known object.
-   *
-   * @param newObject the new memory region
-   * @return a new, immutable map with the numeric assumption added.
-   */
-  private PersistentMap<SMGObject, BigInteger> calculateNewNumericAddressMapForNewSMGObject(
-      SMGObject newObject) {
-    if (memoryAddressAssumptionsMap.containsKey(newObject)
-        || !newObject.getSize().isNumericValue()) {
-      return memoryAddressAssumptionsMap;
-    }
-    // Add buffer
-    currentMemoryAssumptionMax = currentMemoryAssumptionMax.add(NUMERIC_MEMORY_BUFFER);
-    PersistentMap<SMGObject, BigInteger> newMap =
-        memoryAddressAssumptionsMap.putAndCopy(newObject, currentMemoryAssumptionMax);
-    currentMemoryAssumptionMax =
-        currentMemoryAssumptionMax.add(
-            newObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.valueOf(8)));
-    return newMap;
   }
 
   /** Returns the SMG that models the memory used in this {@link SymbolicProgramConfiguration}. */
@@ -2836,7 +2758,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap.putAndCopy(pVarName, type),
-        calculateNewNumericAddressMapForNewSMGObject(pNewObject),
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -2901,7 +2822,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap.putAndCopy(pVarName, type),
-        calculateNewNumericAddressMapForNewSMGObject(pNewObject),
         mallocZeroMemory,
         newReadBlacklist,
         valueToTypeMap);
@@ -2937,7 +2857,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap.putAndCopy(pVarName, type),
-        calculateNewNumericAddressMapForNewSMGObject(pNewObject),
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -2976,7 +2895,6 @@ public class SymbolicProgramConfiguration {
           externalObjectAllocation,
           valueMapping,
           variableToTypeMap,
-          memoryAddressAssumptionsMap,
           mallocZeroMemory,
           readBlacklist,
           valueToTypeMap);
@@ -2991,7 +2909,6 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap.putAndCopy(
             pFunctionDefinition.getQualifiedName() + "::__retval__", returnType),
-        calculateNewNumericAddressMapForNewSMGObject(returnObj.orElseThrow()),
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -3008,7 +2925,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -3055,7 +2971,6 @@ public class SymbolicProgramConfiguration {
           externalObjectAllocation,
           valueMapping,
           variableToTypeMap.removeAndCopy(pIdentifier),
-          memoryAddressAssumptionsMap.removeAndCopy(objToRemove),
           mallocZeroMemory,
           readBlacklist,
           newValueToTypeMap);
@@ -3082,7 +2997,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        calculateNewNumericAddressMapForNewSMGObject(pObject),
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -3116,7 +3030,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -3208,7 +3121,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory);
   }
 
@@ -3257,15 +3169,12 @@ public class SymbolicProgramConfiguration {
     PersistentMap<String, CType> newVariableToTypeMap = variableToTypeMap;
     // Get all SMGObjects referenced by other stack frames
     Set<SMGObject> validObjects = getObjectsValidInOtherStackFrames();
-    PersistentMap<SMGObject, BigInteger> newMemoryAddressAssumptionsMap =
-        memoryAddressAssumptionsMap;
     for (SMGObject object : frame.getAllObjects()) {
       // Don't invalidate objects that are referenced by another stack frame!
       // Pointers from may be given as array argument, then we have the object, but don't own it,
       // hence no heap objs.
       if (!validObjects.contains(object) && !isHeapObject(object)) {
         newSmg = newSmg.copyAndInvalidateObject(object, false);
-        newMemoryAddressAssumptionsMap = newMemoryAddressAssumptionsMap.removeAndCopy(object);
       }
     }
     for (String varName : frame.getVariables().keySet()) {
@@ -3283,7 +3192,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         newVariableToTypeMap,
-        newMemoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -3309,7 +3217,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -3341,11 +3248,9 @@ public class SymbolicProgramConfiguration {
     SMG newSmg = smg.copyAndRemoveObjects(unreachableObjects);
     // copy into return collection
     PersistentSet<SMGObject> newHeapObjects = heapObjects;
-    PersistentMap<SMGObject, BigInteger> newMemoryAddressAssumptionsMap =
-        memoryAddressAssumptionsMap;
+
     for (SMGObject smgObject : unreachableObjects) {
       newHeapObjects = newHeapObjects.removeAndCopy(smgObject);
-      newMemoryAddressAssumptionsMap = newMemoryAddressAssumptionsMap.removeAndCopy(smgObject);
     }
     assert newSmg.getObjects().size() == smg.getObjects().size();
     // TODO: remove types of values deleted
@@ -3359,7 +3264,6 @@ public class SymbolicProgramConfiguration {
             externalObjectAllocation,
             valueMapping,
             variableToTypeMap,
-            newMemoryAddressAssumptionsMap,
             mallocZeroMemory,
             readBlacklist,
             valueToTypeMap),
@@ -3386,11 +3290,9 @@ public class SymbolicProgramConfiguration {
     SMG newSMG = newSMGAndRemovedObjects.getSMG();
 
     PersistentSet<SMGObject> newHeapObject = heapObjects;
-    PersistentMap<SMGObject, BigInteger> newMemoryAddressAssumptionsMap =
-        memoryAddressAssumptionsMap;
+
     for (SMGObject toRemove : newSMGAndRemovedObjects.getSMGObjects()) {
       newHeapObject = newHeapObject.removeAndCopy(toRemove);
-      newMemoryAddressAssumptionsMap = newMemoryAddressAssumptionsMap.removeAndCopy(root);
     }
 
     SymbolicProgramConfiguration newSPC =
@@ -3403,7 +3305,6 @@ public class SymbolicProgramConfiguration {
             externalObjectAllocation,
             valueMapping,
             variableToTypeMap,
-            newMemoryAddressAssumptionsMap,
             mallocZeroMemory,
             readBlacklist,
             valueToTypeMap);
@@ -3609,7 +3510,6 @@ public class SymbolicProgramConfiguration {
           externalObjectAllocation,
           valueMapping,
           variableToTypeMap,
-          memoryAddressAssumptionsMap,
           mallocZeroMemory,
           readBlacklist,
           valueToTypeMap);
@@ -3623,7 +3523,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         builder.putAll(valueMapping).put(valueWrapper.wrap(value), smgValue).buildOrThrow(),
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap.putAndCopy(smgValue, valueType));
@@ -3647,7 +3546,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation.putAndCopy(pObject, false),
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -3669,7 +3567,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation.putAndCopy(pObject, true),
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -3758,7 +3655,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation.putAndCopy(pObject, true),
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -3781,53 +3677,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
-        mallocZeroMemory,
-        readBlacklist,
-        valueToTypeMap);
-  }
-
-  /**
-   * Replaces the memory to numeric address assumption map with a new map with the entered object
-   * added.
-   *
-   * @param pNewObject a new memory region.
-   * @return a new SPC with a new memoryAddressAssumptionsMap that has the entered memory region
-   *     added.
-   */
-  private SymbolicProgramConfiguration copyAndReplaceNumericMemoryAssumption(SMGObject pNewObject) {
-    return of(
-        smg,
-        globalVariableMapping,
-        atExitStack,
-        stackVariableMapping,
-        heapObjects,
-        externalObjectAllocation,
-        valueMapping,
-        variableToTypeMap,
-        calculateNewNumericAddressMapForNewSMGObject(pNewObject),
-        mallocZeroMemory,
-        readBlacklist,
-        valueToTypeMap);
-  }
-
-  /**
-   * Removes the memory to numeric address assumption in the map and returns a fresh copy.
-   *
-   * @param pNewObject memory region to delete.
-   * @return a new SPC with a new memoryAddressAssumptionsMap that has the entered region deleted.
-   */
-  private SymbolicProgramConfiguration copyAndRemoveNumericAddressAssumption(SMGObject pNewObject) {
-    return of(
-        smg,
-        globalVariableMapping,
-        atExitStack,
-        stackVariableMapping,
-        heapObjects,
-        externalObjectAllocation,
-        valueMapping,
-        variableToTypeMap,
-        memoryAddressAssumptionsMap.removeAndCopy(pNewObject),
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -3840,8 +3689,7 @@ public class SymbolicProgramConfiguration {
    * @return a copy of the SPC + the object added.
    */
   public SymbolicProgramConfiguration copyAndAddStackObject(SMGObject newObject) {
-    return copyAndReplaceSMG(getSmg().copyAndAddObject(newObject))
-        .copyAndReplaceNumericMemoryAssumption(newObject);
+    return copyAndReplaceSMG(getSmg().copyAndAddObject(newObject));
   }
 
   /**
@@ -4266,7 +4114,7 @@ public class SymbolicProgramConfiguration {
     }
     SMG newSMG = newSPC.getSmg().copyAndInvalidateObject(pObject, deleteDanglingPointers);
     assert newSMG.checkSMGSanity();
-    return newSPC.copyAndReplaceSMG(newSMG).copyAndRemoveNumericAddressAssumption(pObject);
+    return newSPC.copyAndReplaceSMG(newSMG);
   }
 
   /**
@@ -4430,7 +4278,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -4449,7 +4296,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -4466,7 +4312,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -4486,7 +4331,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap.removeAndCopy(obj),
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -4506,7 +4350,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap.removeAndCopy(obj),
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -4532,7 +4375,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -4557,7 +4399,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -4581,7 +4422,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -4609,7 +4449,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -4626,7 +4465,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -4643,7 +4481,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -4666,7 +4503,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -4691,7 +4527,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap);
@@ -4725,7 +4560,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory.putAndCopy(memory, true),
         readBlacklist,
         valueToTypeMap);
@@ -4747,7 +4581,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap,
         mallocZeroMemory.removeAndCopy(memory),
         readBlacklist,
         valueToTypeMap);
