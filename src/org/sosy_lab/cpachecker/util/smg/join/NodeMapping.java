@@ -18,6 +18,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
+@SuppressWarnings("unused")
 public class NodeMapping {
 
   private final Map<SMGObject, SMGObject> objectMap = new HashMap<>();
