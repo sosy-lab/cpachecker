@@ -42,7 +42,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
@@ -2330,7 +2329,7 @@ public class SMGState
       Optional<MergedSPCAndMergeStatus> mergeRes;
       try {
         mergeRes = this.memoryModel.merge(otherState.memoryModel, machineModel);
-      } catch (SMGException pE) {
+      } catch (SMGException e) {
         return false;
       }
       return mergeRes.isPresent()
@@ -4540,7 +4539,6 @@ public class SMGState
    * check if there are options to handle symbolic values, if yes, will use those, e.g.
    * overapproximate or find concrete values.
    */
-  @NonNull
   public List<ValueAndSMGState> handleSymbolicOffsetForReadOperation(
       SMGObject object,
       Value readOffsetInBits,
@@ -4575,7 +4573,6 @@ public class SMGState
     }
   }
 
-  @NonNull
   private List<ValueAndSMGState> assignConcreteValuesForSymbolicValuesAndRead(
       SMGObject object,
       Value offsetValueInBits,
@@ -4619,7 +4616,6 @@ public class SMGState
    * check if there are options to handle symbolic values, if yes, will use those, e.g.
    * overapproximate or find concrete values.
    */
-  @NonNull
   private List<SMGState> handleSymbolicOffsetForWriteOperation(
       SMGObject object,
       Value writeOffsetInBits,
@@ -4661,7 +4657,6 @@ public class SMGState
     }
   }
 
-  @NonNull
   private List<SMGState> assignConcreteValuesForSymbolicValuesAndWrite(
       SMGObject object,
       Value writeOffsetInBits,
@@ -4793,7 +4788,6 @@ public class SMGState
     return results.build();
   }
 
-  @NonNull
   private SMGStateAndOptionalSMGObjectAndOffset
       reEvaluateTargetObjectAndOffsetAfterConcreteAssignment(
           CExpression lValueExpr, @Nullable CFAEdge edge, SMGState assignedState)
@@ -4849,9 +4843,8 @@ public class SMGState
     return valuesAndStates;
   }
 
-  @NonNull
   private ValueAndSMGState reEvaluateValueToWriteAfterConcreteAssignment(
-      CRightHandSide rValueExpr, @NonNull CFAEdge edge, SMGState currentAssignedState)
+      CRightHandSide rValueExpr, CFAEdge edge, SMGState currentAssignedState)
       throws SMGException, SMGSolverException {
     SMGCPAValueVisitor vv =
         new SMGCPAValueVisitor(evaluator, currentAssignedState, edge, logger, options);
@@ -4872,7 +4865,6 @@ public class SMGState
     return possibleValues.get(0);
   }
 
-  @NonNull
   private List<SMGState> findAssignmentsWithSolverAndReplaceSymbolicValues(
       SMGObject object,
       Value offsetInBits,

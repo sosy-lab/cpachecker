@@ -961,8 +961,8 @@ public class SymbolicProgramConfiguration {
         return Optional.empty();
       }
       return Optional.of(matList.get(0).getSMGState().getMemoryModel());
-    } catch (InvalidConfigurationException pE) {
-      throw new RuntimeException(pE);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
     }
   }
 

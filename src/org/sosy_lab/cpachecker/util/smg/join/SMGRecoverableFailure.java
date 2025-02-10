@@ -11,5 +11,5 @@ package org.sosy_lab.cpachecker.util.smg.join;
 public enum SMGRecoverableFailure {
   LEFT_LIST_LONGER,
   RIGHT_LIST_LONGER,
-  DELAYED_MERGE;
+  DELAYED_MERGE
 }
