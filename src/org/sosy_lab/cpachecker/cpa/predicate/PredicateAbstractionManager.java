@@ -933,7 +933,6 @@ public class PredicateAbstractionManager {
 
   public List<AbstractionPredicate> getSatTransitionPredicates(PathFormula pPathFormula) {
     List<AbstractionPredicate> satTransitionPredicateList = new ArrayList<>(amgr.getVarNameToTransitionPredicates().size());
-    List<AbstractionPredicate> unsatTransitionPredicateList = new ArrayList<>(amgr.getVarNameToTransitionPredicates().size());
     HashMap<String, Integer> varNameToMinIdx = pfmgr.extractVariablesWithTransition(pPathFormula);
     SSAMap ssaMap = pPathFormula.getSsa();
 
@@ -947,7 +946,6 @@ public class PredicateAbstractionManager {
         if (!varNameToTransPredsMap.containsKey(varName)) continue;
 
         List<AbstractionPredicate> transPredList = varNameToTransPredsMap.get(varName);
-        unsatTransitionPredicateList.addAll(transPredList);
 
         SSAMapBuilder builder = ssaMap.builder();
         if (varNameToMinIdx.get(varName) != null) {
@@ -970,11 +968,9 @@ public class PredicateAbstractionManager {
               // The last generated transition predicate in list is sat
               AbstractionPredicate satTransPred = transPredList.get(i + 1);
               satTransitionPredicateList.add(satTransPred);
-              unsatTransitionPredicateList.remove(satTransPred);
               break;
             } else if (!isUnsat) {
               satTransitionPredicateList.add(transPred);
-              unsatTransitionPredicateList.remove(transPred);
               break;
             }
           } catch (SolverException | InterruptedException pE) {

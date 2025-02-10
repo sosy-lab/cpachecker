@@ -37,13 +37,9 @@ public class AbstractionFormulaTPA extends AbstractionFormula implements Seriali
   private final List<AbstractionPredicate> transitionPredicateList = new ArrayList<>();
   private SSAMap blockFormulaSsaMap;
 
-//  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
-//  private final transient int id = idGenerator.getFreshId();
   private final transient FormulaManagerView fMgr;
   private final transient ImmutableSet<Integer> idsOfStoredAbstractionReused;
 
-  // AbstractionFormulaTPA's fields
-//  private final BooleanFormula tpaFormula;
   public AbstractionFormulaTPA(
       FormulaManagerView mgr,
       Region pRegion,
@@ -61,7 +57,6 @@ public class AbstractionFormulaTPA extends AbstractionFormula implements Seriali
     blockFormula = checkNotNull(pBlockFormula);
     idsOfStoredAbstractionReused = ImmutableSet.copyOf(pIdOfStoredAbstractionReused);
 
-//    printNewAbstractFormula(mgr, pRegion, pFormula, pInstantiatedFormula, pBlockFormula, pIdOfStoredAbstractionReused);
   }
 
   public void addTransitionPredicates(List<AbstractionPredicate> pTransitionPredicate) {
@@ -78,22 +73,6 @@ public class AbstractionFormulaTPA extends AbstractionFormula implements Seriali
 
   public void setBlockFormulaSsaMap(SSAMap pBlockFormulaSsaMap) {
     blockFormulaSsaMap = pBlockFormulaSsaMap;
-  }
-
-  private void printNewAbstractFormula(
-      FormulaManagerView mgr,
-      Region pRegion,
-      BooleanFormula pFormula,
-      BooleanFormula pInstantiatedFormula,
-      PathFormula pBlockFormula,
-      Set<Integer> pIdOfStoredAbstractionReused) {
-    BooleanFormula formulaWithPrimeVariable = null;
-    System.out.println("CREATING NEW TPA ABSTRACT FORMULA");
-    System.out.println("Region: " + pRegion.toString());
-    System.out.println("Formula: " + pFormula.toString());
-    System.out.println("Instantiated Formula: " + pInstantiatedFormula.toString());
-    System.out.println("Block Formula: " + pBlockFormula);
-    System.out.println("=============================================================================");
   }
 
   /**

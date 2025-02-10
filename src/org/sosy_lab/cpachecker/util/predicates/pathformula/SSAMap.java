@@ -160,12 +160,8 @@ public final class SSAMap implements Serializable {
 
     /**
      * Remove checking for idx >=0 and idx >= old_idx, only use with TPA. For quickly instantiate transition predicate.
-     *
-     * @param name
-     * @param type
-     * @param idx
-     * @return
      */
+    @SuppressWarnings("CheckReturnValue")
     @CanIgnoreReturnValue
     public SSAMapBuilder setIndexTPA(String name, CType type, int idx) {
 //      Preconditions.checkArgument(

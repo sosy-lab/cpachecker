@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -1546,7 +1547,8 @@ public class FormulaManagerView {
           @Override
           public List<String> visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
             String removedBracket = pAtom.toString().replaceAll("[()]", "");
-            String[] splited = removedBracket.split("\\s+");
+            Pattern pattern = Pattern.compile("\\s+");
+            Iterable<String> splited = Splitter.on(pattern).split(removedBracket);
             for (String s : splited) {
               if (!s.equals(decl.getName())) {
                 variableStringList.add(s);

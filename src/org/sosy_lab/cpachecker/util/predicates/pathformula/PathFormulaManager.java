@@ -227,8 +227,8 @@ public interface PathFormulaManager {
 
   /**
    * Check if the path formula has a variable with more than one ssa index. Such as formula "x_1 = x_0 + 1" or in multiple predicates
-   * @param pPathFormula
    * @return Map variable to it min ssa index
    */
+  @SuppressWarnings("NonApiType")
   HashMap<String, Integer> extractVariablesWithTransition(PathFormula pPathFormula);
 }

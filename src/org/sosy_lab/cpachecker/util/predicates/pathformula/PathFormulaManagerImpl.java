@@ -395,9 +395,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   /**
    * This skips instantiate step since the pOtherFormula should already have ssa index
-   * @param pPathFormula
-   * @param pOtherFormula
-   * @return
    */
   @Override
   public PathFormula makeAndWithInstantiatedFormula(PathFormula pPathFormula,
@@ -560,6 +557,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  @SuppressWarnings("NonApiType")
   public HashMap<String, Integer> extractVariablesWithTransition(PathFormula pPathFormula) {
     HashMap<String, Integer> variableWithTransition = new HashMap<>();
     List<String> allVarNameInPathFormula = new ArrayList<>(fmgr.extractVariableNames(pPathFormula.getFormula()));
