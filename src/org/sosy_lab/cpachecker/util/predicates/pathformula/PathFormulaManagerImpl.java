@@ -576,30 +576,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         }
       }
     }
-
-//    for (int i = 0; i + 1 < allVarNameInPathFormula.size(); i++) {
-//      String var1 = allVarNameInPathFormula.get(i);
-//      String varNameWithOutIndex = fmgr.splitIndexSeparator(var1)[0];
-//      for (int j = i + 1; j < allVarNameInPathFormula.size(); j++) {
-//        String var2 = allVarNameInPathFormula.get(j);
-//        if (var2.contains(varNameWithOutIndex)) {
-//            if (!variableWithTransition.containsKey(varNameWithOutIndex)) {
-//              int minIndex = Math.min(
-//                Integer.parseInt(fmgr.splitIndexSeparator(var1)[1]),
-//                Integer.parseInt(fmgr.splitIndexSeparator(var2)[1]));
-//              variableWithTransition.put(varNameWithOutIndex, minIndex);
-//            } else {
-//              int minIndex = Math.min(
-//                  variableWithTransition.get(varNameWithOutIndex),
-//                  Integer.parseInt(fmgr.splitIndexSeparator(var1)[1]));
-//              minIndex = Math.min(
-//                  minIndex,
-//                  Integer.parseInt(fmgr.splitIndexSeparator(var2)[1]));
-//              variableWithTransition.put(varNameWithOutIndex, minIndex);
-//            }
-//        }
-//      }
-//    }
     return variableWithTransition;
   }
 }

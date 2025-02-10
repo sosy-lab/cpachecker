@@ -219,8 +219,10 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     }
 
     if (generateInitialTransitionPredicates) {
-//      result = result.mergeWith(createInitialPrecisionWithTransitionPredicates());
       createInitialTransitionPredicates();
+      if (predicateAbstractionManager.getOptions().isAddTransitionPredicatesToPrecision()) {
+        result = result.mergeWith(createInitialPrecisionWithTransitionPredicates());
+      }
     }
 
     return result;

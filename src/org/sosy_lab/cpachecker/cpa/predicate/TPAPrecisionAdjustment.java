@@ -183,7 +183,14 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
         abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
       }
 
-      pathFormula = addPrimeVariableToPathFormula_v2(additionalPredicates, pathFormula);
+      if (formulaManager.getOptions().isAddTransitionPredicatesToPrecision()
+      && !formulaManager.getAmgr().getVarNameToTransitionPredicates().isEmpty()) {
+        List<AbstractionPredicate> satTransitionPredicates = formulaManager.getSatTransitionPredicates(pathFormula);
+        pathFormula = addGeneratedTransitionPredicateToPathFormula(satTransitionPredicates, pathFormula);
+      } else {
+        pathFormula = addTransitionPredicateToPathFormula(additionalPredicates, pathFormula);
+      }
+
 
       // compute a new abstraction with a precision based on `preds`
       newAbstractionFormula =
@@ -321,7 +328,7 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
    * @param pPathFormula
    * @return
    */
-  private PathFormula addPrimeVariableToPathFormula_v2(
+  private PathFormula addTransitionPredicateToPathFormula(
       Set<AbstractionPredicate> pPredicates,
       PathFormula pPathFormula
   ) {
@@ -359,6 +366,46 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
             }
           }
           break; // One predicate should only have one prime
+        }
+      }
+    }
+    return resultPathFormula;
+  }
+
+  private PathFormula addGeneratedTransitionPredicateToPathFormula(
+      List<AbstractionPredicate> satTransitionPredicates,
+      PathFormula pPathFormula
+  ) {
+    PathFormula resultPathFormula = pPathFormula;
+    SSAMap ssaMap = pPathFormula.getSsa();
+    HashMap<String, Integer> varNameToMinIdx = pathFormulaManager.extractVariablesWithTransition(pPathFormula);
+    final String PRIME_SUFFIX = FormulaManagerView.PRIME_SUFFIX;
+    final String PRIME_DEFAULT_IDX = Integer.toString(SSAMap.PRIME_DEFAULT_IDX);
+
+    for (AbstractionPredicate predicate : satTransitionPredicates) {
+      BooleanFormula predicateTerm = predicate.getSymbolicAtom();
+      Set<String> varNames = fmgr.extractVariableNames(predicateTerm);
+      for (String varName : varNames) {
+        if (!varName.contains(PRIME_SUFFIX)) {
+          SSAMapBuilder builder = ssaMap.builder();
+          if (varNameToMinIdx.get(varName) != null) {
+            builder.setIndexTPA(varName + PRIME_SUFFIX, builder.getType(varName), varNameToMinIdx.get(varName));
+            ssaMap = builder.build();
+            resultPathFormula =
+                pathFormulaManager.makeAndWithInstantiatedFormula(
+                    resultPathFormula,
+                    fmgr.instantiate(predicateTerm, ssaMap),
+                    ssaMap);
+          } else {
+            builder.setIndexTPA(varName + PRIME_SUFFIX, builder.getType(varName), ssaMap.getIndex(varName));
+            ssaMap = builder.build();
+            resultPathFormula =
+                pathFormulaManager.makeAndWithInstantiatedFormula(
+                    resultPathFormula,
+                    fmgr.instantiate(predicateTerm, ssaMap),
+                    ssaMap);
+          }
+          break;
         }
       }
     }

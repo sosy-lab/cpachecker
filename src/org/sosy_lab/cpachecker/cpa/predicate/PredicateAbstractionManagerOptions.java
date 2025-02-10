@@ -76,6 +76,13 @@ public class PredicateAbstractionManagerOptions {
           "Simplify the abstraction formula that is stored to represent the state space. Helpful"
               + " when debugging (formulas get smaller).")
   private boolean simplifyAbstractionFormula = false;
+  @Option(
+      secure = true,
+      name = "abstraction.addTransitionPredicatesToPrecision",
+      description =
+          "Add the predicate transition to precision instead of store and process separately from precision."
+              + " Require option to generate.")
+  private boolean addTransitionPredicatesToPrecision = false;
 
   public PredicateAbstractionManagerOptions(Configuration config)
       throws InvalidConfigurationException {
@@ -120,5 +127,8 @@ public class PredicateAbstractionManagerOptions {
 
   boolean isSimplifyAbstractionFormula() {
     return simplifyAbstractionFormula;
+  }
+  boolean isAddTransitionPredicatesToPrecision() {
+    return addTransitionPredicatesToPrecision;
   }
 }

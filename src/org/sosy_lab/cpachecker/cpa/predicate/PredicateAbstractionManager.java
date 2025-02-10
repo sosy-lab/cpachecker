@@ -603,7 +603,12 @@ public class PredicateAbstractionManager {
       abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
     }
 
-    List<AbstractionPredicate> satTransitionPredicates = getSatTransitionPredicates(pathFormula, ssa, abstractionFormula);
+    List<AbstractionPredicate> satTransitionPredicates = new ArrayList<>();
+    // If this option is true, the transition predicates are already in precision and also path formula
+    // and handled in computeAbstraction.
+    if (!options.isAddTransitionPredicatesToPrecision()) {
+        satTransitionPredicates = getSatTransitionPredicates(pathFormula);
+    }
     AbstractionFormulaTPA result = makeAbstractionFormulaTPA(abs, ssa, pathFormula, satTransitionPredicates);
 
     if (options.isUseCache()) {
@@ -926,20 +931,12 @@ public class PredicateAbstractionManager {
     return region;
   }
 
-  private List<AbstractionPredicate> getSatTransitionPredicates(PathFormula pPathFormula,
-                                                                SSAMap ssaMap,
-                                                                AbstractionFormula pAbstractionFormula) {
+  public List<AbstractionPredicate> getSatTransitionPredicates(PathFormula pPathFormula) {
     List<AbstractionPredicate> satTransitionPredicateList = new ArrayList<>(amgr.getVarNameToTransitionPredicates().size());
     HashMap<String, Integer> varNameToMinIdx = pfmgr.extractVariablesWithTransition(pPathFormula);
-    AbstractionFormulaTPA abstractionFormulaTPA;
-    boolean absFormulaContainTransPreds = false;
+    SSAMap ssaMap = pPathFormula.getSsa();
 
-    if (pAbstractionFormula instanceof AbstractionFormulaTPA) {
-      abstractionFormulaTPA = (AbstractionFormulaTPA) pAbstractionFormula;
-      absFormulaContainTransPreds = abstractionFormulaTPA.isContainTransitionPredicate();
-    }
-
-    if (FormulaManagerView.isUsingTPA() && !amgr.getVarNameToTransitionPredicates().isEmpty() && !absFormulaContainTransPreds) {
+    if (FormulaManagerView.isUsingTPA() && !amgr.getVarNameToTransitionPredicates().isEmpty()) {
       Set<String> varNamesWithIdx = fmgr.extractVariableNames(pPathFormula.getFormula());
       Set<String> varNames = varNamesWithIdx.stream().map(s -> fmgr.splitIndexSeparator(s)[0]).collect(
           Collectors.toSet());
@@ -1583,5 +1580,12 @@ public class PredicateAbstractionManager {
    */
   public Set<AbstractionPredicate> extractPredicates(Region pRegion) {
     return amgr.extractPredicates(pRegion);
+  }
+
+  public PredicateAbstractionManagerOptions getOptions() {
+    return options;
+  }
+  public AbstractionManager getAmgr() {
+    return amgr;
   }
 }
