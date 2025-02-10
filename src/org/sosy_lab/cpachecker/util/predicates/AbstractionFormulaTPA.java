@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,9 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * TODO: Add documentation
  */
 public class AbstractionFormulaTPA extends AbstractionFormula implements Serializable {
+
+  @Serial
+  private static final long serialVersionUID = -7756517128231447938L;
 
   // Fields from AbstractionFormula
   private @Nullable

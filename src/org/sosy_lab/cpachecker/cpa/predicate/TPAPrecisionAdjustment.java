@@ -15,11 +15,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -40,14 +38,12 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
   private final LogManager logger;
   private final BlockOperator blk;
-  private final TPAPredicateAbstractionManager formulaManager;
+  private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView fmgr;
 
@@ -61,7 +57,7 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       BlockOperator pBlk,
-      TPAPredicateAbstractionManager pPredAbsManager,
+      PredicateAbstractionManager pPredAbsManager,
       PredicateCPAInvariantsManager pInvariantSupplier,
       PredicateProvider pPredicateProvider,
       PredicateStatistics pPredicateStatistics) {
@@ -250,101 +246,9 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
    * Example: (x_prime < x), new predicate (x@-1 < x@<ssaIndex>)
    * If the path formula contain predicate with variable transition (x@1 = x@0 + 1) and that variable has prime in precision. Predicate (x@0 < x@1) is added.
    *
-   * @param pPredicates
-   * @param pPathFormula
-   * @return
-   */
-  private PathFormula addPrimeVariableToPathFormula(
-      Set<AbstractionPredicate> pPredicates,
-      PathFormula pPathFormula
-      ) {
-    PathFormula resultPathFormula = pPathFormula;
-    SSAMap ssaMap = pPathFormula.getSsa();
-    BooleanFormula pathFormula = pPathFormula.getFormula();
-    HashMap<String, Integer> varNameToMinIdx = pathFormulaManager.extractVariablesWithTransition(pPathFormula);
-    final String INDEX_SEPARATOR = Character.toString(FormulaManagerView.INDEX_SEPARATOR);
-    final String PRIME_SUFFIX = FormulaManagerView.PRIME_SUFFIX;
-    final String PRIME_DEFAULT_IDX = Integer.toString(SSAMap.PRIME_DEFAULT_IDX);
-
-    for (AbstractionPredicate predicate : pPredicates) {
-      BooleanFormula predicateTerm = predicate.getSymbolicAtom();
-      List<String> varNameListInPredicate = new ArrayList<>(fmgr.extractVariableNames(predicateTerm));
-      if (varNameListInPredicate.size() != 2) continue;
-      for (int i = 0; i < 2; i++) {
-        String varNameInPredicate = varNameListInPredicate.get(i);
-        if (varNameInPredicate.contains(PRIME_SUFFIX) && varNameInPredicate.contains(varNameListInPredicate.get(1-i))) { // This predicate is transition predicate
-          String varName = varNameInPredicate.replace(PRIME_SUFFIX, "");
-          if (ssaMap.allVariables().contains(varName)) { // Path formula has the variable with prime value
-            Map<String, Formula> pFVarNameToAtom = fmgr.extractVariables(pathFormula);
-            // Extract or create new corresponding formula atom from path formula
-            Set<String> varNameInPathFormula = fmgr.extractVariableNames(pathFormula);
-            Formula varMaxIdx =  pFVarNameToAtom.get(varName + INDEX_SEPARATOR + ssaMap.getIndex(varName));
-            Formula varMinIdx = pFVarNameToAtom.get(varName + INDEX_SEPARATOR + varNameToMinIdx.get(varName));
-            Formula varPrime;
-            if (varNameInPathFormula.contains(varName + INDEX_SEPARATOR + PRIME_DEFAULT_IDX)) { // Pathformula already has default predicate with prime
-              varPrime = pFVarNameToAtom.get(varName + INDEX_SEPARATOR + PRIME_DEFAULT_IDX);
-            } else {
-              varPrime = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(32), varName, -1);
-            }
-
-            // Find the order of variables in the predicate
-            List<String> varStringListWithOrder = new ArrayList<>();
-            varStringListWithOrder = fmgr.extractVariableOrderToList(predicateTerm, varStringListWithOrder);
-            List<Formula> defaultPredicateAtomList = new ArrayList<>();
-            List<Formula> constrainPredicateAtomList = new ArrayList<>();
-            // Add variable to atom list in correct order
-            if (varStringListWithOrder.get(0).equals(varName + PRIME_SUFFIX)) {
-              defaultPredicateAtomList.add(varPrime);
-              defaultPredicateAtomList.add(varMaxIdx);
-              if (varMinIdx != null) {
-                constrainPredicateAtomList.add(varMinIdx);
-                constrainPredicateAtomList.add(varMaxIdx);
-              }
-            } else {
-              defaultPredicateAtomList.add(varMaxIdx);
-              defaultPredicateAtomList.add(varPrime);
-              if (varMinIdx != null) {
-                constrainPredicateAtomList.add(varMaxIdx);
-                constrainPredicateAtomList.add(varMinIdx);
-              }
-            }
-
-            // Add prime variable's index to ssaMap
-            if (varMinIdx != null) {
-              SSAMapBuilder builder = ssaMap.builder();
-              builder.setIndex(varName + PRIME_SUFFIX, builder.getType(varName), varNameToMinIdx.get(varName));
-              ssaMap = builder.build();
-            }
-
-            BooleanFormula defaultPredicate = fmgr.replaceVariableInFormula(predicateTerm, defaultPredicateAtomList);
-
-            if (!constrainPredicateAtomList.isEmpty()) {
-              BooleanFormula constrainPredicate = fmgr.replaceVariableInFormula(predicateTerm, constrainPredicateAtomList);
-              resultPathFormula =
-                  pathFormulaManager.makeAndWithInstantiatedFormula(resultPathFormula,
-                      constrainPredicate, ssaMap);
-            }
-
-            if (defaultPredicate != null) {
-              resultPathFormula =
-                  pathFormulaManager.makeAndWithInstantiatedFormula(resultPathFormula, defaultPredicate, ssaMap);
-            }
-          }
-          break; // One predicate should only have one prime
-        }
-      }
-    }
-    return resultPathFormula;
-  }
-
-  /**
-   * If the precision or set of predicates contain variable with suffix "_prime". The function will add predicates with prime variables to path formula.
-   * Example: (x_prime < x), new predicate (x@-1 < x@<ssaIndex>)
-   * If the path formula contain predicate with variable transition (x@1 = x@0 + 1) and that variable has prime in precision. Predicate (x@0 < x@1) is added.
-   *
-   * @param pPredicates
-   * @param pPathFormula
-   * @return
+   * @param pPredicates Predicates that are going to be used for abstraction
+   * @param pPathFormula The path formula to this current location
+   * @return New path formula with transition predicates
    */
   private PathFormula addTransitionPredicateToPathFormula(
       Set<AbstractionPredicate> pPredicates,
@@ -398,7 +302,6 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
     SSAMap ssaMap = pPathFormula.getSsa();
     HashMap<String, Integer> varNameToMinIdx = pathFormulaManager.extractVariablesWithTransition(pPathFormula);
     final String PRIME_SUFFIX = FormulaManagerView.PRIME_SUFFIX;
-    final String PRIME_DEFAULT_IDX = Integer.toString(SSAMap.PRIME_DEFAULT_IDX);
 
     for (AbstractionPredicate predicate : satTransitionPredicates) {
       BooleanFormula predicateTerm = predicate.getSymbolicAtom();

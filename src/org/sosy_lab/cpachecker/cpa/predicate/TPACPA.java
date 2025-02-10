@@ -66,7 +66,7 @@ public class TPACPA extends PredicateCPA
 
   @Override
   public PredicateTransferRelation getTransferRelation() {
-    return new TPATransferRelation(
+    return new PredicateTransferRelation(
         logger,
         getDirection(),
         getFormulaManager(),
@@ -104,9 +104,9 @@ public class TPACPA extends PredicateCPA
   }
 
   @Override
-  public TPAPredicateAbstractionManager getPredicateManager() {
+  public PredicateAbstractionManager getPredicateManager() {
 
-    return new TPAPredicateAbstractionManager(
+    return new PredicateAbstractionManager(
         getAbstractionManager(),
         getPathFormulaManager(),
         getSolver(),
