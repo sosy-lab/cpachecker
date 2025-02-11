@@ -12,6 +12,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
+import com.google.common.primitives.UnsignedInteger;
+import com.google.common.primitives.UnsignedLong;
+import com.google.common.util.concurrent.AtomicDouble;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -40,7 +43,9 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTran
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -121,16 +126,12 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
       if (isEligibleForAssignment(leftValue)
           && rightValue.isExplicitlyKnown()
-          && isAssignable(lVarInBinaryExp)
-          && isValidValue(lVarInBinaryExp, rightValue)) {
-        assignConcreteValue(
-            lVarInBinaryExp, leftValue, rightValue, pE.getOperand2().getExpressionType());
+          && isAssignable(lVarInBinaryExp)) {
+        assignConcreteValue(lVarInBinaryExp, leftValue, rightValue, pE.getCalculationType());
       } else if (isEligibleForAssignment(rightValue)
           && leftValue.isExplicitlyKnown()
-          && isAssignable(rVarInBinaryExp)
-          && isValidValue(rVarInBinaryExp, leftValue)) {
-        assignConcreteValue(
-            rVarInBinaryExp, rightValue, leftValue, pE.getOperand1().getExpressionType());
+          && isAssignable(rVarInBinaryExp)) {
+        assignConcreteValue(rVarInBinaryExp, rightValue, leftValue, pE.getCalculationType());
       }
     }
 
@@ -173,8 +174,171 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     checkState(
         !(pOldValue instanceof SymbolicValue),
         "Symbolic values should never be replaced by a concrete value");
+    Preconditions.checkArgument(isValueInRangeOfType(pValueType, pNewValue));
 
-    assignableState.assignConstant(getMemoryLocation(pVarInBinaryExp), pNewValue, pValueType);
+    Value pInvertedCastValue =
+        invertCast(pVarInBinaryExp.getExpressionType(), pValueType, pNewValue);
+    if (pInvertedCastValue.isExplicitlyKnown()) {
+      assignableState.assignConstant(
+          getMemoryLocation(pVarInBinaryExp),
+          pInvertedCastValue,
+          pVarInBinaryExp.getExpressionType());
+    }
+  }
+
+  private Value invertCast(final CType pOriginalType, final CType pCastType, final Value pValue) {
+    Preconditions.checkArgument(pValue.isExplicitlyKnown());
+
+    if (pOriginalType.getCanonicalType().equals(pCastType.getCanonicalType())) {
+      return pValue;
+    }
+
+    if (pOriginalType.getCanonicalType() instanceof CSimpleType
+        && pCastType.getCanonicalType() instanceof CSimpleType) {
+      CSimpleType origType = (CSimpleType) pOriginalType.getCanonicalType();
+      CSimpleType castType = (CSimpleType) pCastType.getCanonicalType();
+
+      if (origType.getType().isFloatingPointType()) { // orig type floating point
+        Preconditions.checkArgument(castType.getType().isFloatingPointType());
+        if (getMachineModel().getSizeof(castType) == getMachineModel().getSizeof(origType)) {
+          return pValue;
+        } else { // potential precision loss, be conservative
+          return UnknownValue.getInstance();
+        }
+      } else if (castType.getType().isFloatingPointType()) { // cast type floating point,
+        Preconditions.checkArgument(pValue instanceof NumericValue); // but orig type not
+        NumericValue numVal = (NumericValue) pValue;
+
+        Number number = numVal.getNumber();
+        if (number.equals(Float.NaN)
+            || number.equals(Double.NaN)
+            || NegativeNaN.VALUE.equals(number)
+            || number.equals(Double.POSITIVE_INFINITY)
+            || number.equals(Double.NEGATIVE_INFINITY)
+            || number.equals(Float.POSITIVE_INFINITY)
+            || number.equals(Float.NEGATIVE_INFINITY)) { // NaN, -NaN, +/-infinity
+          return UnknownValue.getInstance(); // no integer value exists
+        } else {
+          NumericValue resVal;
+          if (numVal.getNumber() instanceof Rational) {
+            if (((Rational) numVal.getNumber()).isIntegral()) {
+              resVal = new NumericValue(((Rational) numVal.getNumber()).getNum());
+            } else { // Rational always normalized,
+              // thus, denominator cannot be a divisor of nominator
+              return UnknownValue.getInstance(); // no integer value exists
+            }
+          } else {
+            try {
+              resVal = new NumericValue(numVal.bigDecimalValue().toBigIntegerExact());
+            } catch (ArithmeticException e) {
+              return UnknownValue.getInstance(); // no integer value exists
+            }
+          }
+
+          // TODO what about precision loss, in particular interesting for return null might need to
+          // become unknown (at least at some points)
+          // getMachineModel().
+          return invertCastFromInteger(origType, castType, resVal, false);
+        }
+
+      } else { // both integer type
+        Preconditions.checkArgument(
+            getMachineModel().getSizeof(castType) >= getMachineModel().getSizeof(origType));
+
+        if (pValue.isNumericValue()) {
+          return invertCastFromInteger(
+              origType,
+              castType,
+              pValue.asNumericValue(),
+              !getMachineModel().isSigned(castType) && getMachineModel().isSigned(origType));
+        } else {
+          return UnknownValue.getInstance();
+        }
+      }
+    }
+    return pValue; // TODO behaves as before, might be unsound, better unknown?
+  }
+
+  private Value invertCastFromInteger(
+      final CSimpleType pTargetTypeOfValue,
+      final CSimpleType pCastType,
+      final NumericValue pValue,
+      final boolean invertToUnsignedConversion) {
+    Preconditions.checkArgument(pTargetTypeOfValue.getType().isIntegerType());
+    Preconditions.checkArgument(!(pValue.getNumber() instanceof Rational));
+
+    Number num = pValue.getNumber();
+    if (num instanceof Double
+        || num instanceof Float
+        || num instanceof AtomicDouble
+        || num instanceof BigDecimal
+        || num instanceof NegativeNaN
+        || num instanceof Rational) {
+      return UnknownValue.getInstance();
+    }
+
+    if (isValueInRangeOfType(pTargetTypeOfValue, pValue)) {
+      return pValue;
+    } else if (!getMachineModel().isSigned(pTargetTypeOfValue)
+        && pValue.bigDecimalValue().compareTo(BigDecimal.valueOf(0)) < 0) {
+      if (pCastType.getType().isFloatingPointType()
+          || getMachineModel().getSizeof(pTargetTypeOfValue)
+              != getMachineModel().getSizeof(pCastType)) {
+        return UnknownValue.getInstance();
+      } else {
+        // getMachineModel().getSizeof(pTargetTypeOfValue) ==
+        // getMachineModel().getSizeof(pCastType))
+
+        BigInteger toAdd;
+        if (num instanceof BigInteger) {
+          toAdd = (BigInteger) num;
+        } else if (num instanceof UnsignedInteger) {
+          toAdd = ((UnsignedInteger) num).bigIntegerValue();
+        } else if (num instanceof UnsignedLong) {
+          toAdd = ((UnsignedLong) num).bigIntegerValue();
+        } else {
+          toAdd = BigInteger.valueOf(num.longValue());
+        }
+
+        return invertCastFromInteger(
+            pTargetTypeOfValue,
+            pCastType,
+            new NumericValue(
+                getMachineModel().getMaximalIntegerValue(pTargetTypeOfValue).add(toAdd)),
+            false);
+      }
+    } else if (invertToUnsignedConversion) {
+      checkState(getMachineModel().isSigned(pTargetTypeOfValue));
+      checkState(!getMachineModel().isSigned(pCastType));
+
+      if (pCastType.getType().isFloatingPointType()
+          || getMachineModel().getSizeof(pTargetTypeOfValue)
+              > getMachineModel().getSizeof(pCastType)) {
+        return UnknownValue.getInstance();
+      } else {
+        // getMachineModel().getSizeof(pTargetTypeOfValue) <=
+        // getMachineModel().getSizeof(pCastType))
+
+        BigInteger toAdd;
+        if (num instanceof BigInteger) {
+          toAdd = (BigInteger) num;
+        } else if (num instanceof UnsignedInteger) {
+          toAdd = ((UnsignedInteger) num).bigIntegerValue();
+        } else if (num instanceof UnsignedLong) {
+          toAdd = ((UnsignedLong) num).bigIntegerValue();
+        } else {
+          toAdd = BigInteger.valueOf(num.longValue());
+        }
+
+        return invertCastFromInteger(
+            pTargetTypeOfValue,
+            pCastType,
+            new NumericValue(toAdd.subtract(getMachineModel().getMaximalIntegerValue(pCastType))),
+            false);
+      }
+    } else {
+      return UnknownValue.getInstance();
+    }
   }
 
   private static boolean assumingUnknownToBeZero(Value value1, Value value2) {
@@ -308,14 +472,14 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     return false;
   }
 
-  private boolean isValidValue(final CExpression pVarInBinaryExp, final Value pValue) {
-    Preconditions.checkNotNull(pVarInBinaryExp);
+  private boolean isValueInRangeOfType(final CType pExpectedTypeOfValue, final Value pValue) {
+    Preconditions.checkNotNull(pExpectedTypeOfValue);
     Preconditions.checkNotNull(pValue);
     Preconditions.checkArgument(pValue.isExplicitlyKnown());
 
     if (pValue instanceof NumericValue) {
-      if (pVarInBinaryExp.getExpressionType() instanceof CSimpleType) {
-        CSimpleType type = (CSimpleType) pVarInBinaryExp.getExpressionType();
+      if (pExpectedTypeOfValue instanceof CSimpleType) {
+        CSimpleType type = (CSimpleType) pExpectedTypeOfValue;
         if (type.getType().isIntegerType()
             && !(((NumericValue) pValue).getNumber() instanceof Rational)) {
           BigDecimal val = ((NumericValue) pValue).bigDecimalValue();
