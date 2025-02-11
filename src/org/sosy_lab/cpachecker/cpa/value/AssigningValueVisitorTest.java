@@ -14,8 +14,8 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -28,10 +28,12 @@ import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class AssigningValueVisitorTest {
 
-  private LogManagerWithoutDuplicates logger; // TODO
+  private LogManagerWithoutDuplicates logger =
+      new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
 
   private AssigningValueVisitor createVisitor(final MachineModel pMachine)
       throws InvalidConfigurationException {
@@ -45,7 +47,7 @@ public class AssigningValueVisitorTest {
         valState,
         pMachine,
         logger,
-        new ValueTransferOptions(Configuration.defaultConfiguration()));
+        new ValueTransferOptions(TestDataTools.configurationForTest().build()));
   }
 
   @Test
