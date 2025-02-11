@@ -2259,6 +2259,14 @@ cpa.predicate.abstractions.export = true
 # file that consists of one abstraction formula for each abstraction state
 cpa.predicate.abstractions.file = "abstractions.txt"
 
+# Add the predicate transition to precision instead of store and process
+# separately from precision. Require option to generate.
+cpa.predicate.abstraction.addTransitionPredicatesToPrecision = false
+
+# generate transition predicates for all variables in CFA and set as
+# precision
+cpa.predicate.abstraction.generateTransitionPredicates = false
+
 # Add constraints for the range of the return-value of a nondet-method. For
 # example the assignment 'X=nondet_int()' produces the constraint
 # 'MIN<=X<=MAX', where MIN and MAX are computed from the type of the method

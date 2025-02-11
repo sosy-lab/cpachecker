@@ -938,7 +938,7 @@ public class PredicateAbstractionManager {
 
     if (FormulaManagerView.isUsingTPA() && !amgr.getVarNameToTransitionPredicates().isEmpty()) {
       Set<String> varNamesWithIdx = fmgr.extractVariableNames(pPathFormula.getFormula());
-      Set<String> varNames = transformedImmutableSetCopy(varNamesWithIdx, s->fmgr.splitIndexSeparator(s).get(0));
+      Set<String> varNames = transformedImmutableSetCopy(varNamesWithIdx, s -> fmgr.splitIndexSeparator(s).get(0));
       ListMultimap<String, AbstractionPredicate> varNameToTransPredsMap = amgr.getVarNameToTransitionPredicates();
       for (String varName : varNames) {
 
@@ -1507,7 +1507,7 @@ public class PredicateAbstractionManager {
       throws InterruptedException {
     BooleanFormula symbolicAbs;
     if (!satTransitionPredicates.isEmpty()) {
-      BooleanFormula transitionsFormula = bfmgr.and(transformedImmutableListCopy(satTransitionPredicates, p->p.getSymbolicAtom()));
+      BooleanFormula transitionsFormula = bfmgr.and(transformedImmutableListCopy(satTransitionPredicates, p -> p.getSymbolicAtom()));
       symbolicAbs = fmgr.makeAnd(amgr.convertRegionToFormula(abs), transitionsFormula);
       abs = rmgr.makeAnd(abs, amgr.convertFormulaToRegion(transitionsFormula));
 
