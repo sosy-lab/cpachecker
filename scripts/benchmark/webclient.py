@@ -433,24 +433,24 @@ class WebInterface:
         self._hash_code_cache = {}
         self._group_id = str(random.randint(0, 1000000))  # noqa: S311
         self._read_hash_code_cache()
-        version_information = self._request_tool_information(revision)
-        self._revision = version_information.get("commitHash", revision)
-        self._tool_version = version_information.get("toolVersion", self._revision)
-        self._tool_name = version_information.get("toolName", DEFAULT_TOOL_NAME)
+        tool_information = self._request_tool_information(revision)
+        self._revision = tool_information.get("commitHash", revision)
+        self._tool_version = tool_information.get("toolVersion", self._revision)
+        self._tool_name = tool_information.get("toolName", DEFAULT_TOOL_NAME)
 
-        if "commitHash" not in version_information:
+        if "commitHash" not in tool_information:
             logging.warning(
                 "Could not retrieve commit hash. Using fallback value: %s",
                 revision,
             )
 
-        if "toolVersion" not in version_information:
+        if "toolVersion" not in tool_information:
             logging.warning(
                 "Could not retrieve the tool version. Using fallback value: %s",
                 self._revision,
             )
 
-        if "toolName" not in version_information:
+        if "toolName" not in tool_information:
             logging.warning(
                 "Could not retrieve the tool name. Using fallback value: %s",
                 "CPAchecker",
