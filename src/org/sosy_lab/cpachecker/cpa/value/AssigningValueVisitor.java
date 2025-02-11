@@ -259,21 +259,31 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     return pValue; // TODO behaves as before, might be unsound, better unknown?
   }
 
-  private Value invertCastFromInteger(
+  Value invertCastFromInteger(
       final CSimpleType pTargetTypeOfValue,
       final CSimpleType pCastType,
       final NumericValue pValue,
       final boolean invertToUnsignedConversion) {
     Preconditions.checkArgument(pTargetTypeOfValue.getType().isIntegerType());
     Preconditions.checkArgument(!(pValue.getNumber() instanceof Rational));
+    Preconditions.checkArgument(
+        !invertToUnsignedConversion
+            || (pCastType.getType().isIntegerType()
+                && !getMachineModel().isSigned(pCastType)
+                && getMachineModel().isSigned(pTargetTypeOfValue)));
 
     Number num = pValue.getNumber();
     if (num instanceof Double
         || num instanceof Float
         || num instanceof AtomicDouble
         || num instanceof BigDecimal
-        || num instanceof NegativeNaN
-        || num instanceof Rational) {
+        || num instanceof NegativeNaN) {
+      return UnknownValue.getInstance();
+    }
+
+    if (pCastType.getType().isIntegerType()
+        && getMachineModel().getSizeof(pTargetTypeOfValue)
+            > getMachineModel().getSizeof(pCastType)) {
       return UnknownValue.getInstance();
     }
 
@@ -281,6 +291,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
       return pValue;
     } else if (!getMachineModel().isSigned(pTargetTypeOfValue)
         && pValue.bigDecimalValue().compareTo(BigDecimal.valueOf(0)) < 0) {
+      // invert conversion to signed type
       if (pCastType.getType().isFloatingPointType()
           || getMachineModel().getSizeof(pTargetTypeOfValue)
               != getMachineModel().getSizeof(pCastType)) {
@@ -304,38 +315,38 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
             pTargetTypeOfValue,
             pCastType,
             new NumericValue(
-                getMachineModel().getMaximalIntegerValue(pTargetTypeOfValue).add(toAdd)),
+                BigInteger.ONE
+                    .shiftLeft(getMachineModel().getSizeofInBits(pTargetTypeOfValue))
+                    .add(toAdd)),
             false);
       }
     } else if (invertToUnsignedConversion) {
+      // invert conversion to unsigned type
       checkState(getMachineModel().isSigned(pTargetTypeOfValue));
       checkState(!getMachineModel().isSigned(pCastType));
+      checkState(!pCastType.getType().isFloatingPointType());
+      checkState(
+          getMachineModel().getSizeof(pTargetTypeOfValue)
+              <= getMachineModel().getSizeof(pCastType));
 
-      if (pCastType.getType().isFloatingPointType()
-          || getMachineModel().getSizeof(pTargetTypeOfValue)
-              > getMachineModel().getSizeof(pCastType)) {
-        return UnknownValue.getInstance();
+      BigInteger toAdd;
+      if (num instanceof BigInteger) {
+        toAdd = (BigInteger) num;
+      } else if (num instanceof UnsignedInteger) {
+        toAdd = ((UnsignedInteger) num).bigIntegerValue();
+      } else if (num instanceof UnsignedLong) {
+        toAdd = ((UnsignedLong) num).bigIntegerValue();
       } else {
-        // getMachineModel().getSizeof(pTargetTypeOfValue) <=
-        // getMachineModel().getSizeof(pCastType))
-
-        BigInteger toAdd;
-        if (num instanceof BigInteger) {
-          toAdd = (BigInteger) num;
-        } else if (num instanceof UnsignedInteger) {
-          toAdd = ((UnsignedInteger) num).bigIntegerValue();
-        } else if (num instanceof UnsignedLong) {
-          toAdd = ((UnsignedLong) num).bigIntegerValue();
-        } else {
-          toAdd = BigInteger.valueOf(num.longValue());
-        }
-
-        return invertCastFromInteger(
-            pTargetTypeOfValue,
-            pCastType,
-            new NumericValue(toAdd.subtract(getMachineModel().getMaximalIntegerValue(pCastType))),
-            false);
+        toAdd = BigInteger.valueOf(num.longValue());
       }
+
+      return invertCastFromInteger(
+          pTargetTypeOfValue,
+          pCastType,
+          new NumericValue(
+              toAdd.subtract(
+                  BigInteger.ONE.shiftLeft(getMachineModel().getSizeofInBits(pCastType)))),
+          false);
     } else {
       return UnknownValue.getInstance();
     }
@@ -472,7 +483,18 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     return false;
   }
 
-  private boolean isValueInRangeOfType(final CType pExpectedTypeOfValue, final Value pValue) {
+  /**
+   * Determines for integer types whether the given value is within the bounds of the type. Note
+   * that this does not mean that the value is necessary a valid value of the type.
+   *
+   * @param pExpectedTypeOfValue - the type defining the range of values
+   * @param pValue - an explicitly known value
+   * @return false - if <code>pValue</code> is a numeric value, which is not a rational, and <code>
+   *     pExpectedTypeOfValue</code> is a CSimpleType representing an integer type and <code>pValue
+   *     </code> is smaller than the minimum value or larger than the maximum value representable by
+   *     <code>pExpectedTypeOfValue</code> true - otherwise
+   */
+  boolean isValueInRangeOfType(final CType pExpectedTypeOfValue, final Value pValue) {
     Preconditions.checkNotNull(pExpectedTypeOfValue);
     Preconditions.checkNotNull(pValue);
     Preconditions.checkArgument(pValue.isExplicitlyKnown());
