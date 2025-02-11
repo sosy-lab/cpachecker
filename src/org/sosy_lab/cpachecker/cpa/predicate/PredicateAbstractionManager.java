@@ -10,11 +10,12 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.equalTo;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -42,7 +43,6 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
@@ -320,7 +320,7 @@ public class PredicateAbstractionManager {
     Pair<BooleanFormula, ImmutableSet<BooleanFormula>> absKey = null;
     if (options.isUseCache()) {
       ImmutableSet<BooleanFormula> instantiatedPreds =
-          Collections3.transformedImmutableSetCopy(
+          transformedImmutableSetCopy(
               remainingPredicates, pred -> instantiator.apply(pred.getSymbolicAtom()));
       absKey = Pair.of(f, instantiatedPreds);
       AbstractionFormula result = abstractionCache.get(absKey);
@@ -514,7 +514,7 @@ public class PredicateAbstractionManager {
     Pair<BooleanFormula, ImmutableSet<BooleanFormula>> absKey = null;
     if (options.isUseCache()) {
       ImmutableSet<BooleanFormula> instantiatedPreds =
-          Collections3.transformedImmutableSetCopy(
+          transformedImmutableSetCopy(
               remainingPredicates, pred -> instantiator.apply(pred.getSymbolicAtom()));
       absKey = Pair.of(f, instantiatedPreds);
       AbstractionFormula result = abstractionCache.get(absKey);
@@ -938,9 +938,7 @@ public class PredicateAbstractionManager {
 
     if (FormulaManagerView.isUsingTPA() && !amgr.getVarNameToTransitionPredicates().isEmpty()) {
       Set<String> varNamesWithIdx = fmgr.extractVariableNames(pPathFormula.getFormula());
-      Set<String> varNames = varNamesWithIdx.stream()
-          .map(s -> fmgr.splitIndexSeparator(s).get(0))
-          .collect(ImmutableSet.toImmutableSet());
+      Set<String> varNames = transformedImmutableSetCopy(varNamesWithIdx, s->fmgr.splitIndexSeparator(s).get(0));
       ListMultimap<String, AbstractionPredicate> varNameToTransPredsMap = amgr.getVarNameToTransitionPredicates();
       for (String varName : varNames) {
 
@@ -1509,9 +1507,7 @@ public class PredicateAbstractionManager {
       throws InterruptedException {
     BooleanFormula symbolicAbs;
     if (!satTransitionPredicates.isEmpty()) {
-      BooleanFormula transitionsFormula = bfmgr.and(satTransitionPredicates.stream()
-          .map(p -> p.getSymbolicAtom())
-          .collect(ImmutableList.toImmutableList()));
+      BooleanFormula transitionsFormula = bfmgr.and(transformedImmutableListCopy(satTransitionPredicates, p->p.getSymbolicAtom()));
       symbolicAbs = fmgr.makeAnd(amgr.convertRegionToFormula(abs), transitionsFormula);
       abs = rmgr.makeAnd(abs, amgr.convertFormulaToRegion(transitionsFormula));
 
@@ -1556,7 +1552,7 @@ public class PredicateAbstractionManager {
     Set<BooleanFormula> atoms = fmgr.extractAtoms(pFormula, options.isSplitItpAtoms());
 
     ImmutableSet<AbstractionPredicate> preds =
-        Collections3.transformedImmutableSetCopy(
+        transformedImmutableSetCopy(
             atoms, atom -> amgr.makePredicate(fmgr.uninstantiate(atom)));
 
     amgr.reorderPredicates();

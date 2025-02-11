@@ -40,8 +40,6 @@ public class TPACPA extends PredicateCPA
     return AutomaticCPAFactory.forType(TPACPA.class).withOptions(BlockOperator.class);
   }
 
-  private final PredicateCPAInvariantsManager invariantsManager;
-
   protected TPACPA(
       Configuration config,
       LogManager logger,
@@ -56,7 +54,6 @@ public class TPACPA extends PredicateCPA
 
     logger.log(Level.INFO, "TPA-CPA is initialized");
     config.inject(this, TPACPA.class);
-    invariantsManager = super.getInvariantsManager();
   }
 
   @Override
@@ -117,7 +114,7 @@ public class TPACPA extends PredicateCPA
         shutdownNotifier,
         getAbstractionStats(),
         getInvariantsManager().appendToAbstractionFormula()
-        ? invariantsManager
+        ? getInvariantsManager()
         : TrivialInvariantSupplier.INSTANCE);
   }
 
@@ -129,7 +126,7 @@ public class TPACPA extends PredicateCPA
         getPathFormulaManager(),
         getBlk(),
         getPredicateManager(),
-        invariantsManager,
+        getInvariantsManager(),
         getPredicateProvider(),
         getStatistics());
   }
