@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import java.io.PrintStream;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -230,5 +229,5 @@ public interface PathFormulaManager {
    * @return Map variable to it min ssa index
    */
   @SuppressWarnings("NonApiType")
-  HashMap<String, Integer> extractVariablesWithTransition(PathFormula pPathFormula);
+  Map<String, Integer> extractVariablesWithTransition(PathFormula pPathFormula);
 }

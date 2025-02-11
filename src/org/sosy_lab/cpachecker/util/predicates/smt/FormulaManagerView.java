@@ -1260,12 +1260,14 @@ public class FormulaManagerView {
               if (name.charAt(name.length() - 1) != INDEX_SEPARATOR) {
                 Pair<String, OptionalInt> parsedName = parseName(name);
                 if (parsedName.getSecond().isPresent()) {
-                  int index = parsedName.getSecond().getAsInt();
+                  int index = parsedName.getSecond().orElseThrow();
                   if (pSSAMap.allVariables().contains(parsedName.getFirst() + PRIME_SUFFIX)
                   && pSSAMap.allVariables().contains(parsedName.getFirst())
                   && pSSAMap.getIndex(parsedName.getFirst()+ PRIME_SUFFIX) == index) {
                     return parsedName.getFirst() + PRIME_SUFFIX;
-                  } else return parsedName.getFirst();
+                  } else {
+                    return parsedName.getFirst();
+                  }
                 }
               }
               return name;
@@ -1591,7 +1593,9 @@ public class FormulaManagerView {
    * @return A BooleanFormula object with replaced variables
    */
   public BooleanFormula replaceVariableInFormula(BooleanFormula f, List<Formula> variableOrderList) {
-    if (variableOrderList.isEmpty()) return null;
+    if (variableOrderList.isEmpty()) {
+      return null;
+    }
 
     BooleanFormula newFormula;
     if (this.isNotFormula(f)) { // If is not formula then reverse make operation between 2 variable
@@ -1602,20 +1606,20 @@ public class FormulaManagerView {
         case BV_ULT -> this.makeGreaterOrEqual(variableOrderList.get(0), variableOrderList.get(1), false);
         case BV_SGT -> this.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), true);
         case BV_UGT -> this.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), false);
-        case BV_SLE -> this.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), false);
-        case BV_ULE -> this.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), true);
-        case BV_SGE -> this.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), false);
-        case BV_UGE -> this.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), true);
+        case BV_SLE -> this.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), true);
+        case BV_ULE -> this.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), false);
+        case BV_SGE -> this.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), true);
+        case BV_UGE -> this.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), false);
         case BV_EQ -> this.makeEqual(variableOrderList.get(0), variableOrderList.get(1));
         default -> null;
       };
     } else {
       FunctionDeclarationKind funcKind = this.extractFunctionDeclarationKind(f);
       newFormula = switch (funcKind) {
-        case BV_SLT -> this.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), false);
-        case BV_ULT -> this.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), true);
-        case BV_SGT -> this.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), false);
-        case BV_UGT -> this.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), true);
+        case BV_SLT -> this.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), true);
+        case BV_ULT -> this.makeLessThan(variableOrderList.get(0), variableOrderList.get(1), false);
+        case BV_SGT -> this.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), true);
+        case BV_UGT -> this.makeGreaterThan(variableOrderList.get(0), variableOrderList.get(1), false);
         case BV_SLE -> this.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), true);
         case BV_ULE -> this.makeLessOrEqual(variableOrderList.get(0), variableOrderList.get(1), false);
         case BV_SGE -> this.makeGreaterOrEqual(variableOrderList.get(0), variableOrderList.get(1), true);
@@ -1633,11 +1637,11 @@ public class FormulaManagerView {
    * @param varName the name of variable with index
    * @return An array of string contain the variable name at idx 0 and the string value of idx at idx 1
    */
-  public String[] splitIndexSeparator(String varName) {
+  public List<String> splitIndexSeparator(String varName) {
     if (!varName.contains(Character.toString(INDEX_SEPARATOR))) {
       throw new IllegalArgumentException("Variable name " + varName + "does not contain index separator to split! ");
     }
-    return varName.split(Character.toString(INDEX_SEPARATOR), 2);
+    return Splitter.on(INDEX_SEPARATOR).limit(2).splitToList(varName);
   }
 
   public List<BooleanFormula> createTransitionFormulas(String varName) {

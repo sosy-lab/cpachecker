@@ -12,9 +12,9 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -256,14 +256,16 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
   ) {
     PathFormula resultPathFormula = pPathFormula;
     SSAMap ssaMap = pPathFormula.getSsa();
-    HashMap<String, Integer> varNameToMinIdx = pathFormulaManager.extractVariablesWithTransition(pPathFormula);
+    Map<String, Integer> varNameToMinIdx = pathFormulaManager.extractVariablesWithTransition(pPathFormula);
     final String PRIME_SUFFIX = FormulaManagerView.PRIME_SUFFIX;
     final String PRIME_DEFAULT_IDX = Integer.toString(SSAMap.PRIME_DEFAULT_IDX);
 
     for (AbstractionPredicate predicate : pPredicates) {
       BooleanFormula predicateTerm = predicate.getSymbolicAtom();
       List<String> varNameListInPredicate = new ArrayList<>(fmgr.extractVariableNames(predicateTerm));
-      if (varNameListInPredicate.size() != 2) continue;
+      if (varNameListInPredicate.size() != 2) {
+        continue;
+      }
       for (int i = 0; i < 2; i++) {
         String varNameInPredicate = varNameListInPredicate.get(i);
         if (varNameInPredicate.contains(PRIME_SUFFIX) && varNameInPredicate.contains(varNameListInPredicate.get(1-i))) { // This predicate is transition predicate
@@ -300,7 +302,7 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
   ) {
     PathFormula resultPathFormula = pPathFormula;
     SSAMap ssaMap = pPathFormula.getSsa();
-    HashMap<String, Integer> varNameToMinIdx = pathFormulaManager.extractVariablesWithTransition(pPathFormula);
+    Map<String, Integer> varNameToMinIdx = pathFormulaManager.extractVariablesWithTransition(pPathFormula);
     final String PRIME_SUFFIX = FormulaManagerView.PRIME_SUFFIX;
 
     for (AbstractionPredicate predicate : satTransitionPredicates) {

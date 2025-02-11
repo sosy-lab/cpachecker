@@ -282,7 +282,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   @SuppressWarnings("NonApiType")
-  public HashMap<String, Integer> extractVariablesWithTransition(PathFormula pPathFormula) {
+  public Map<String, Integer> extractVariablesWithTransition(PathFormula pPathFormula) {
     return delegate.extractVariablesWithTransition(pPathFormula);
   }
 }

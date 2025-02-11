@@ -14,6 +14,7 @@ import static com.google.common.base.Predicates.equalTo;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -39,7 +40,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
@@ -933,17 +933,20 @@ public class PredicateAbstractionManager {
 
   public List<AbstractionPredicate> getSatTransitionPredicates(PathFormula pPathFormula) {
     List<AbstractionPredicate> satTransitionPredicateList = new ArrayList<>(amgr.getVarNameToTransitionPredicates().size());
-    HashMap<String, Integer> varNameToMinIdx = pfmgr.extractVariablesWithTransition(pPathFormula);
+    Map<String, Integer> varNameToMinIdx = pfmgr.extractVariablesWithTransition(pPathFormula);
     SSAMap ssaMap = pPathFormula.getSsa();
 
     if (FormulaManagerView.isUsingTPA() && !amgr.getVarNameToTransitionPredicates().isEmpty()) {
       Set<String> varNamesWithIdx = fmgr.extractVariableNames(pPathFormula.getFormula());
-      Set<String> varNames = varNamesWithIdx.stream().map(s -> fmgr.splitIndexSeparator(s)[0]).collect(
-          Collectors.toSet());
+      Set<String> varNames = varNamesWithIdx.stream()
+          .map(s -> fmgr.splitIndexSeparator(s).get(0))
+          .collect(ImmutableSet.toImmutableSet());
       ListMultimap<String, AbstractionPredicate> varNameToTransPredsMap = amgr.getVarNameToTransitionPredicates();
       for (String varName : varNames) {
 
-        if (!varNameToTransPredsMap.containsKey(varName)) continue;
+        if (!varNameToTransPredsMap.containsKey(varName)) {
+          continue;
+        }
 
         List<AbstractionPredicate> transPredList = varNameToTransPredsMap.get(varName);
 
@@ -956,7 +959,7 @@ public class PredicateAbstractionManager {
           ssaMap = builder.build();
         }
 
-        for (int i = 0; i < transPredList.size(); i++ ) {
+        for (int i = 0; i < transPredList.size(); i++) {
           AbstractionPredicate transPred = transPredList.get(i);
 
           BooleanFormula transitionSymbAtom = transPred.getSymbolicAtom();
@@ -973,9 +976,9 @@ public class PredicateAbstractionManager {
               satTransitionPredicateList.add(transPred);
               break;
             }
-          } catch (SolverException | InterruptedException pE) {
+          } catch (SolverException | InterruptedException e) {
             logger.log(Level.INFO, "Error when checking satisfiability of conjunction between path formula and transition predicates");
-            throw new RuntimeException(pE);
+            throw new RuntimeException(e);
           }
         }
       }
@@ -1504,10 +1507,11 @@ public class PredicateAbstractionManager {
   AbstractionFormulaTPA makeAbstractionFormulaTPA(Region abs, SSAMap ssaMap, PathFormula blockFormula,
                                                   List<AbstractionPredicate> satTransitionPredicates)
       throws InterruptedException {
-    BooleanFormula transitionsFormula;
     BooleanFormula symbolicAbs;
     if (!satTransitionPredicates.isEmpty()) {
-      transitionsFormula = bfmgr.and(satTransitionPredicates.stream().map(p -> p.getSymbolicAtom()).collect(Collectors.toList()));
+      BooleanFormula transitionsFormula = bfmgr.and(satTransitionPredicates.stream()
+          .map(p -> p.getSymbolicAtom())
+          .collect(ImmutableList.toImmutableList()));
       symbolicAbs = fmgr.makeAnd(amgr.convertRegionToFormula(abs), transitionsFormula);
       abs = rmgr.makeAnd(abs, amgr.convertFormulaToRegion(transitionsFormula));
 

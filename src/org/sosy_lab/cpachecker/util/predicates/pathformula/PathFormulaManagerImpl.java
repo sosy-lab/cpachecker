@@ -554,17 +554,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   @SuppressWarnings("NonApiType")
-  public HashMap<String, Integer> extractVariablesWithTransition(PathFormula pPathFormula) {
-    HashMap<String, Integer> variableWithTransition = new HashMap<>();
+  public Map<String, Integer> extractVariablesWithTransition(PathFormula pPathFormula) {
+    Map<String, Integer> variableWithTransition = new HashMap<>();
     List<String> allVarNameInPathFormula = new ArrayList<>(fmgr.extractVariableNames(pPathFormula.getFormula()));
     SSAMap ssaMap = pPathFormula.getSsa();
     for (String varNameWithIdx : allVarNameInPathFormula) {
-      String[] splitedName = fmgr.splitIndexSeparator(varNameWithIdx);
-      String varName = splitedName[0];
-      if (splitedName[1].isEmpty()) {
+      List<String> splitedName = fmgr.splitIndexSeparator(varNameWithIdx);
+      String varName = splitedName.get(0);
+      if (splitedName.get(1).isEmpty()) {
         continue;
       } else {
-        int idx = Integer.parseInt(splitedName[1]);
+        int idx = Integer.parseInt(splitedName.get(1));
         if (idx < ssaMap.getIndex(varName)) {
           variableWithTransition.put(varName, idx);
         }

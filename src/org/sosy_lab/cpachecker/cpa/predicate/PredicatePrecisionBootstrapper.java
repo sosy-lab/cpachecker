@@ -380,7 +380,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   }
 
   private PredicatePrecision createInitialPrecisionWithTransitionPredicates() {
-    Set<String> relevantVariables = cfa.getVarClassification().get().getRelevantVariables();
+    Set<String> relevantVariables = cfa.getVarClassification().orElseThrow().getRelevantVariables();
     Set<String> functions = cfa.getAllFunctionNames();
     List<AbstractionPredicate> globalPredicates = new ArrayList<>();
     ListMultimap<String, AbstractionPredicate> functionPredicates = ArrayListMultimap.create();
@@ -408,7 +408,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   }
 
   private void createInitialTransitionPredicates() {
-    Set<String> relevantVariables = cfa.getVarClassification().get().getRelevantVariables();
+    Set<String> relevantVariables = cfa.getVarClassification().orElseThrow().getRelevantVariables();
     for (String varName : relevantVariables) {
       List<BooleanFormula> transitionFormulas = formulaManagerView.createTransitionFormulas(varName);
       for (BooleanFormula f : transitionFormulas) {
