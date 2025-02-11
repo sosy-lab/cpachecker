@@ -453,7 +453,7 @@ class WebInterface:
         if "toolName" not in tool_information:
             logging.warning(
                 "Could not retrieve the tool name. Using fallback value: %s",
-                "CPAchecker",
+                DEFAULT_TOOL_NAME,
             )
 
         if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
@@ -829,7 +829,7 @@ class WebInterface:
 
         # TODO use code from CPAchecker module, it add --stats and sets --timelimit,
         # instead of doing it here manually, too
-        if self._tool_name == "CPAchecker":
+        if self._tool_name == DEFAULT_TOOL_NAME:
             params.append(("option", "statistics.print=true"))
 
             if "softtimelimit" in rlimits:
