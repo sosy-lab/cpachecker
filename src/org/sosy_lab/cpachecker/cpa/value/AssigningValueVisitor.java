@@ -186,7 +186,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     }
   }
 
-  private Value invertCast(final CType pOriginalType, final CType pCastType, final Value pValue) {
+  Value invertCast(final CType pOriginalType, final CType pCastType, final Value pValue) {
     Preconditions.checkArgument(pValue.isExplicitlyKnown());
 
     if (pOriginalType.getCanonicalType().equals(pCastType.getCanonicalType())) {
@@ -200,11 +200,11 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
       if (origType.getType().isFloatingPointType()) { // orig type floating point
         Preconditions.checkArgument(castType.getType().isFloatingPointType());
-        if (getMachineModel().getSizeof(castType) == getMachineModel().getSizeof(origType)) {
-          return pValue;
-        } else { // potential precision loss, be conservative
-          return UnknownValue.getInstance();
-        }
+        Preconditions.checkArgument(
+            getMachineModel().getSizeof(castType) != getMachineModel().getSizeof(origType));
+
+        // potential precision loss, be conservative
+        return UnknownValue.getInstance();
       } else if (castType.getType().isFloatingPointType()) { // cast type floating point,
         Preconditions.checkArgument(pValue instanceof NumericValue); // but orig type not
         NumericValue numVal = (NumericValue) pValue;

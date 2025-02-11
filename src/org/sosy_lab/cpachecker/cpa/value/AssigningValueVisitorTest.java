@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
@@ -189,6 +190,84 @@ public class AssigningValueVisitorTest {
                 unsignedInt,
                 new NumericValue(Long.valueOf(4294967167L)),
                 true))
+        .isEqualTo(UnknownValue.getInstance());
+  }
+
+  @Test
+  public void testInvertCast() throws InvalidConfigurationException {
+    MachineModel model = MachineModel.LINUX64;
+    AssigningValueVisitor visitor = createVisitor(model);
+
+    CSimpleType unsignedChar = CNumericTypes.UNSIGNED_CHAR;
+    CSimpleType unsignedInt = CNumericTypes.UNSIGNED_INT;
+    CSimpleType signedInt = CNumericTypes.SIGNED_INT;
+
+    NumericValue val1 = new NumericValue(Integer.valueOf(257));
+    // same canoncial type
+    assertThat(
+            visitor.invertCast(new CTypedefType(false, false, "myInt", signedInt), signedInt, val1))
+        .isEqualTo(val1);
+
+    // not both CSimple Types
+    assertThat(visitor.invertCast(new CProblemType("test"), signedInt, val1)).isEqualTo(val1);
+    assertThat(visitor.invertCast(signedInt, new CProblemType("test"), val1)).isEqualTo(val1);
+
+    // both floats
+    NumericValue val2 = new NumericValue(Float.valueOf(255));
+    assertThat(visitor.invertCast(CNumericTypes.FLOAT, CNumericTypes.FLOAT, val2)).isEqualTo(val2);
+    assertThat(visitor.invertCast(CNumericTypes.FLOAT, CNumericTypes.DOUBLE, val2))
+        .isEqualTo(UnknownValue.getInstance());
+
+    // test undo cast from integer to float
+    // no equivalent values for integer
+    assertThat(visitor.invertCast(signedInt, CNumericTypes.DOUBLE, new NumericValue(Double.NaN)))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(
+            visitor.invertCast(
+                signedInt, CNumericTypes.DOUBLE, new NumericValue(NegativeNaN.VALUE)))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(
+            visitor.invertCast(
+                signedInt, CNumericTypes.DOUBLE, new NumericValue(Double.POSITIVE_INFINITY)))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(
+            visitor.invertCast(
+                signedInt, CNumericTypes.DOUBLE, new NumericValue(Double.NEGATIVE_INFINITY)))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(visitor.invertCast(signedInt, CNumericTypes.FLOAT, new NumericValue(Float.NaN)))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(
+            visitor.invertCast(
+                signedInt, CNumericTypes.FLOAT, new NumericValue(Float.POSITIVE_INFINITY)))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(
+            visitor.invertCast(
+                signedInt, CNumericTypes.FLOAT, new NumericValue(Float.NEGATIVE_INFINITY)))
+        .isEqualTo(UnknownValue.getInstance());
+
+    // float representable as integer value
+    assertThat(visitor.invertCast(signedInt, CNumericTypes.FLOAT, new NumericValue(Rational.ONE)))
+        .isEqualTo(new NumericValue(BigInteger.ONE));
+    assertThat(
+            visitor.invertCast(
+                signedInt, CNumericTypes.DOUBLE, new NumericValue(Double.valueOf(3.0))))
+        .isEqualTo(new NumericValue(BigInteger.valueOf(3)));
+
+    // float not representable as integer value
+    assertThat(
+            visitor.invertCast(
+                signedInt, CNumericTypes.DOUBLE, new NumericValue(Rational.ofLongs(3, 5))))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(
+            visitor.invertCast(
+                signedInt, CNumericTypes.FLOAT, new NumericValue(Float.valueOf(2.3f))))
+        .isEqualTo(UnknownValue.getInstance());
+
+    // both integer types
+    assertThat(visitor.invertCast(signedInt, unsignedInt, val1)).isEqualTo(val1);
+    assertThat(visitor.invertCast(unsignedChar, unsignedInt, val1))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(visitor.invertCast(unsignedChar, unsignedInt, NullValue.getInstance()))
         .isEqualTo(UnknownValue.getInstance());
   }
 }
