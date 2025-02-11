@@ -94,6 +94,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -119,6 +120,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -1087,6 +1089,119 @@ abstract class AbstractBMCAlgorithm
       }
     },
 
+    NOT_EQUAL {
+      @Override
+      InvariantGenerator createInvariantGenerator(
+          Configuration pConfig,
+          LogManager pLogger,
+          ReachedSetFactory pReachedSetFactory,
+          ShutdownManager pShutdownManager,
+          CFA pCFA,
+          Specification pSpecification,
+          AggregatedReachedSets pAggregatedReachedSets,
+          TargetLocationProvider pTargetLocationProvider) {
+        return new AbstractInvariantGenerator() {
+
+          @Override
+          protected void startImpl(CFANode pInitialLocation) {
+            // do nothing
+          }
+
+          @Override
+          public boolean isProgramSafe() {
+            // just return false, program will be ended by parallel algorithm if the invariant
+            // generator can prove safety before the current analysis
+            return false;
+          }
+
+          @Override
+          public void cancel() {
+            // do nothing
+          }
+
+          @Override
+          public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
+            return new InvariantSupplier() {
+              @Override
+              public BooleanFormula getInvariantFor(
+                  CFANode node,
+                  Optional<CallstackStateEqualsWrapper> callstackInformation,
+                  FormulaManagerView fmgr,
+                  PathFormulaManager pfmgr,
+                  PathFormula pContext) throws InterruptedException {
+
+
+
+                AbstractState state1 = new AbstractState() {
+                  @Override
+                  public boolean equals(Object obj) {
+                    if (this == obj) {
+                      return true;
+                    }
+                    if (obj == null || getClass() != obj.getClass()) {
+                      return false;
+                    }
+                    AbstractState addedStates = (AbstractState) obj;
+                    return this.toString().equals(addedStates.toString());
+                  }
+
+                  @Override
+                  public int hashCode() {
+                    return this.toString().hashCode();
+                  }
+
+                  @Override
+                  public String toString() {
+                    return "State1";
+                  }
+                };
+
+
+                AbstractState state2 = new AbstractState() {
+                  @Override
+                  public boolean equals(Object obj) {
+                    if (this == obj) {
+                      return true;
+                    }
+                    if (obj == null || getClass() != obj.getClass()) {
+                      return false;
+                    }
+                    AbstractState addedStates = (AbstractState) obj;
+                    return this.toString().equals(addedStates.toString());
+                  }
+
+                  @Override
+                  public int hashCode() {
+                    return this.toString().hashCode();
+                  }
+
+                  @Override
+                  public String toString() {
+                    return "State2";
+                  }
+                };
+
+
+
+                if (!state1.equals(state2)) {
+                  return fmgr.getBooleanFormulaManager().makeTrue();
+                } else {
+                  return fmgr.getBooleanFormulaManager().makeFalse();
+                }
+              }
+
+            };
+          }
+
+          @Override
+          public ExpressionTreeSupplier getExpressionTreeSupplier()
+              throws CPAException, InterruptedException {
+            return new ExpressionTreeInvariantSupplier(pAggregatedReachedSets, pCFA);
+          }
+        };
+      }
+    },
+
     REACHED_SET {
       @Override
       InvariantGenerator createInvariantGenerator(
@@ -1130,6 +1245,8 @@ abstract class AbstractBMCAlgorithm
         };
       }
     },
+
+
 
     DO_NOTHING {
 
