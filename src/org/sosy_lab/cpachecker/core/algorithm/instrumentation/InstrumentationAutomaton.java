@@ -297,7 +297,7 @@ public class InstrumentationAutomaton {
                                         : ""))
                         .collect(Collectors.joining("; "))
                     + (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
-            InstrumentationOrder.AFTER,
+            InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t2 =
         new InstrumentationTransition(
