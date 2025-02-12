@@ -1201,6 +1201,109 @@ abstract class AbstractBMCAlgorithm
         };
       }
     },
+//
+//    NOT_EQUAL2 {
+//      @Override
+//      InvariantGenerator createInvariantGenerator(
+//          Configuration pConfig,
+//          LogManager pLogger,
+//          ReachedSetFactory pReachedSetFactory,
+//          ShutdownManager pShutdownManager,
+//          CFA pCFA,
+//          Specification pSpecification,
+//          AggregatedReachedSets pAggregatedReachedSets,
+//          TargetLocationProvider pTargetLocationProvider) {
+//        return new NotEqualInvariantGenerator();
+//        {
+//
+//
+//        }
+//      }
+//    };
+
+
+
+
+//    public class NotEqualInvariantGenerator extends AbstractInvariantGenerator {
+//
+//     @Override
+//          protected void startImpl(CFANode pInitialLocation) {
+//            // do nothing
+//          }
+//
+//          @Override
+//          public boolean isProgramSafe() {
+//            // just return false, program will be ended by parallel algorithm if the invariant
+//            // generator can prove safety before the current analysis
+//            return false;
+//          }
+//
+//          @Override
+//          public void cancel() {
+//            // do nothing
+//          }
+//
+//      @Override
+//      public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
+//        return new InvariantSupplier() {
+//
+//          private final Set<AbstractState> allStates = new HashSet<>();
+//
+//          @Override
+//          public BooleanFormula getInvariantFor(
+//              CFANode node,
+//              Optional<CallstackStateEqualsWrapper> callstackInformation,
+//              FormulaManagerView fmgr,
+//              PathFormulaManager pfmgr,
+//              PathFormula pContext) throws InterruptedException {
+//
+//
+//            @Override
+//            public boolean equals (Object obj){
+//              if (this == obj) {
+//                return true;
+//              }
+//              if (obj == null || getClass() != obj.getClass()) {
+//                return false;
+//              }
+//
+//              return true;
+//            }
+//
+//            @Override
+//            public int hashCode () {
+//
+//              return true;
+//            }
+//
+//            @Override
+//            public String toString () {
+//              return true;
+//            }
+//
+//
+//           for (AbstractState state1 : allStates) {
+//            for (AbstractState state2 : allStates) {
+//
+//              if (!state1.equals(state2)) {
+//
+//                if (!allStates.contains(state1)) {
+//                  a llStates.add(state1);
+//                }
+//
+//                if (!allStates.contains(state2)) {
+//                    allStates.add(state2);
+//                }
+//
+//                return fmgr.getBooleanFormulaManager().makeTrue();
+//               }
+//            }
+//          }
+//
+//        };
+//      }
+//    }
+
 
     REACHED_SET {
       @Override
