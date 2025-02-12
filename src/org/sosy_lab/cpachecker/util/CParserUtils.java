@@ -387,7 +387,7 @@ public class CParserUtils {
     CStatement s;
     try {
       s = parseSingleStatement(functionCall, parser, scope);
-    } catch (InvalidAutomatonException pE) {
+    } catch (InvalidAutomatonException e) {
       throw new RuntimeException("Not a valid statement: " + functionCall);
     }
     // if s not instance of CFunctionCallStatement throw exception
@@ -416,7 +416,7 @@ public class CParserUtils {
     CStatement statement;
     try {
       statement = parseSingleStatement(lString, parser, scope);
-    } catch (InvalidAutomatonException pE) {
+    } catch (InvalidAutomatonException e) {
       throw new RuntimeException("Not a valid statement: " + lString);
     }
     if (!(statement instanceof CExpressionStatement)) {
