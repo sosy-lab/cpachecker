@@ -396,7 +396,7 @@ public class CParserUtils {
   }
 
   public static CExpression parseLemmaStatement(String lAssumeCode, CParser parser, Scope scope)
-      throws InterruptedException {
+      throws InterruptedException, InvalidAutomatonException {
 
     String lString = lAssumeCode;
     Map<String, CLemmaFunctionCall> replacements = new HashMap<>();
@@ -413,13 +413,16 @@ public class CParserUtils {
       lm = lp.matcher(lString);
     }
 
-    CExpression exp;
+    CStatement statement;
     try {
-      exp = ((CExpressionStatement) parseSingleStatement(lString, parser, scope)).getExpression();
+      statement = parseSingleStatement(lString, parser, scope);
     } catch (InvalidAutomatonException pE) {
       throw new RuntimeException("Not a valid statement: " + lString);
     }
-
+    if(!(statement instanceof CExpressionStatement)){
+      throw new InvalidAutomatonException("Cannot interpret String as CExpressionStatement" + lString);
+    }
+    CExpression exp = ((CExpressionStatement) statement).getExpression();
     exp = exp.accept(new LemmaParserVisitor(replacements));
     return exp;
   }
