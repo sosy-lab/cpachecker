@@ -202,6 +202,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   private String computeLineNumberBasedOnTransition(
       InstrumentationTransition pTransition, CFAEdge pEdge) {
     if (pTransition.getSource().isInitialAnnotation()) {
+      return "1";
+    }
+    if (pTransition.getSource().isFunctionHeadAnnotation()) {
       return Integer.toString(
           pEdge.getPredecessor().getFunction().getFileLocation().getStartingLineInOrigin() + 1);
     }

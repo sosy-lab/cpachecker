@@ -44,6 +44,10 @@ public class InstrumentationState {
     return stateAnnotation == StateAnnotation.INIT;
   }
 
+  public boolean isFunctionHeadAnnotation() {
+    return stateAnnotation == StateAnnotation.FUNCTIONHEAD;
+  }
+
   public boolean stateMatchesCfaNode(CFANode pCFANode) {
     return ((stateAnnotation == StateAnnotation.INIT || stateAnnotation == StateAnnotation.TRUE)
             && !name.equals("DUMMY"))
