@@ -322,7 +322,7 @@ public class BlockGraphModification {
             ImmutableSet.of(),
             pBlockGraph.getRoot().getLoopPredecessorIds(),
             pBlockGraph.getRoot().getSuccessorIds());
-    return new BlockGraph(root, instrumentedBlocks.build());
+    return BlockGraph.fromBlockNodes(root, instrumentedBlocks.build());
   }
 
   private static MappingInformation createMappingBetweenOriginalAndInstrumentedCFA(

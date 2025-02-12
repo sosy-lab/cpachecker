@@ -42,19 +42,19 @@ public class DssMessageLogger {
   @FileOption(Type.OUTPUT_FILE)
   private Path blockCFAFile = Path.of("block_analysis/blocks.json");
 
-  private final BlockGraph tree;
+  private final BlockGraph blockGraph;
   private static final UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
 
   private final int hashCode = Instant.now().hashCode();
 
-  public DssMessageLogger(BlockGraph pTree, Configuration pConfiguration)
+  public DssMessageLogger(BlockGraph pBlockGraph, Configuration pConfiguration)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
-    tree = pTree;
+    blockGraph = pBlockGraph;
   }
 
   public void logBlockGraph() throws IOException {
-    tree.export(blockCFAFile);
+    blockGraph.export(blockCFAFile);
   }
 
   // suppress warnings is fine here because error-prone does not recognize that we call

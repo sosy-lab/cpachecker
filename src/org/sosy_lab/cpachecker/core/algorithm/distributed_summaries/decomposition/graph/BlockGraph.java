@@ -9,29 +9,25 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -47,7 +43,7 @@ public class BlockGraph {
   private final BlockNode root;
   private final ImmutableSet<BlockNode> nodes;
 
-  public BlockGraph(BlockNode pRoot, ImmutableSet<BlockNode> pNodes) {
+  private BlockGraph(BlockNode pRoot, ImmutableSet<BlockNode> pNodes) {
     checkArgument(
         pRoot.getPredecessorIds().isEmpty(), "Node with ID: '%s' has predecessors.", ROOT_ID);
     Preconditions.checkArgument(
@@ -179,29 +175,8 @@ public class BlockGraph {
     return new BlockGraph(root, blockNodes);
   }
 
-  public static BlockGraph fromImportedNodes(
-      Set<BlockNodeWithoutGraphInformation> pBlockNodes,
-      Map<String, ImportedBlock> pImportedBlockMap,
-      Map<Integer, CFANode> pIdToNodeMap) {
-    ImmutableSet.Builder<BlockNode> nodes = ImmutableSet.builder();
-    for (BlockNodeWithoutGraphInformation blockNode : pBlockNodes) {
-      ImportedBlock importedBlock = pImportedBlockMap.get(blockNode.getId());
-      nodes.add(
-          new BlockNode(
-              blockNode.getId(),
-              blockNode.getInitialLocation(),
-              blockNode.getFinalLocation(),
-              blockNode.getNodes(),
-              blockNode.getEdges(),
-              ImmutableSet.copyOf(importedBlock.predecessors()),
-              ImmutableSet.copyOf(importedBlock.loopPredecessors()),
-              ImmutableSet.copyOf(importedBlock.successors()),
-              pIdToNodeMap.get(importedBlock.abstractionLocation())));
-    }
-    ImmutableSet<BlockNode> allNodes = nodes.build();
-    BlockNode root =
-        Iterables.getOnlyElement(FluentIterable.from(allNodes).filter(BlockNode::isRoot));
-    return new BlockGraph(root, FluentIterable.from(allNodes).filter(b -> !b.isRoot()).toSet());
+  public static BlockGraph fromBlockNodes(BlockNode pRoot, Set<BlockNode> pNodes) {
+    return new BlockGraph(pRoot, ImmutableSet.copyOf(pNodes));
   }
 
   private static Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation>
@@ -225,30 +200,15 @@ public class BlockGraph {
   }
 
   public void export(Path blockCFAFile) throws IOException {
-    Map<String, Map<String, Object>> treeMap = new HashMap<>();
-    Iterables.concat(getNodes(), ImmutableList.of(getRoot()))
-        .forEach(
-            n -> {
-              Map<String, Object> attributes = new HashMap<>();
-              attributes.put("code", Splitter.on("\n").splitToList(n.getCode()));
-              attributes.put("predecessors", ImmutableList.copyOf(n.getPredecessorIds()));
-              attributes.put("successors", ImmutableList.copyOf(n.getSuccessorIds()));
-              attributes.put(
-                  "edges",
-                  transformedImmutableListCopy(
-                      n.getEdges(),
-                      e ->
-                          ImmutableList.of(
-                              e.getPredecessor().getNodeNumber(),
-                              e.getSuccessor().getNodeNumber())));
-              attributes.put("startNode", n.getInitialLocation().getNodeNumber());
-              attributes.put("endNode", n.getFinalLocation().getNodeNumber());
-              attributes.put("loopPredecessors", n.getLoopPredecessorIds());
-              attributes.put(
-                  "abstractionLocation", n.getViolationConditionLocation().getNodeNumber());
-              treeMap.put(n.getId(), attributes);
-            });
-    JSON.writeJSONString(treeMap, blockCFAFile);
+    ObjectMapper mapper = new ObjectMapper();
+    SimpleModule module = new SimpleModule();
+    module.addSerializer(BlockNode.class, new BlockNodeSerialization());
+    mapper.registerModule(module);
+    mapper
+        .writerWithDefaultPrettyPrinter()
+        .writeValue(
+            blockCFAFile.toFile(),
+            ImmutableSet.<BlockNode>builder().addAll(nodes).add(root).build());
   }
 
   @Override
