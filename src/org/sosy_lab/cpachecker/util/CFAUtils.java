@@ -8,14 +8,11 @@
 
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
@@ -443,10 +440,10 @@ public class CFAUtils {
 
   /** Returns the other AssumeEdge (with the negated condition) of a given AssumeEdge. */
   public static AssumeEdge getComplimentaryAssumeEdge(AssumeEdge edge) {
-    checkArgument(edge.getPredecessor().getNumLeavingEdges() == 2);
-    return (AssumeEdge)
-        Iterables.getOnlyElement(
-            CFAUtils.leavingEdges(edge.getPredecessor()).filter(not(Predicates.equalTo(edge))));
+    return Iterables.getOnlyElement(
+        CFAUtils.leavingEdges(edge.getPredecessor())
+            .filter(e -> !e.equals(edge))
+            .filter(AssumeEdge.class));
   }
 
   /**
