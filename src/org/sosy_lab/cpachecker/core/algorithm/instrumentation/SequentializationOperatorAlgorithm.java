@@ -171,7 +171,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                       mapDecomposedOperationsCondition,
                       matchedVariables)
                   || isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist)) {
-                matched = true;
+                // If there is a self-loop in the automaton, we have to move forward.
+                matched = matched || (!transition.getDestination().equals(transition.getSource()));
               }
               newEdges.add(
                   computeLineNumberBasedOnTransition(transition, edge)
@@ -216,6 +217,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation().toString();
       }
       fileLocation = fileLocation.replaceFirst("line ", "");
+      fileLocation = fileLocation.split("-")[0].replaceFirst("lines ", "");
       location = Integer.parseInt(fileLocation);
       if (pTransition.getOrderAsString().equals("AFTER")) {
         location += 1;
