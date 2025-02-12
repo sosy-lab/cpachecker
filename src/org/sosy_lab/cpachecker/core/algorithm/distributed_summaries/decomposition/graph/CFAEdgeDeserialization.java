@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -75,13 +73,5 @@ public class CFAEdgeDeserialization extends StdDeserializer<CFAEdge> {
                             + e.getPredecessor().getNodeNumber()
                             + "N"
                             + e.getSuccessor().getNodeNumber())));
-  }
-
-  public static CFAEdge deserialize(CFA pCFA, String edge) throws IOException {
-    ObjectMapper mapper = new ObjectMapper();
-    SimpleModule module = new SimpleModule();
-    module.addDeserializer(CFAEdge.class, new CFAEdgeDeserialization(pCFA));
-    mapper.registerModule(module);
-    return mapper.readValue(edge, CFAEdge.class);
   }
 }
