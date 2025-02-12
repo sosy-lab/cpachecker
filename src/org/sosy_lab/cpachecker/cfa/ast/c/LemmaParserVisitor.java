@@ -49,7 +49,7 @@ public class LemmaParserVisitor extends DefaultCExpressionVisitor<CExpression, N
               expression.getFileLocation(),
               expression.getExpressionType(),
               expression.getCalculationType(),
-              (CExpression) replacements.get(((CIdExpression) op1).getName()),
+              replacements.get(((CIdExpression) op1).getName()),
               expression.getOperand2(),
               expression.getOperator());
     }
@@ -70,7 +70,7 @@ public class LemmaParserVisitor extends DefaultCExpressionVisitor<CExpression, N
               expression.getExpressionType(),
               expression.getCalculationType(),
               expression.getOperand1(),
-              (CExpression) replacements.get(((CIdExpression) op2).getName()),
+              replacements.get(((CIdExpression) op2).getName()),
               expression.getOperator());
     }
 

@@ -419,8 +419,9 @@ public class CParserUtils {
     } catch (InvalidAutomatonException pE) {
       throw new RuntimeException("Not a valid statement: " + lString);
     }
-    if(!(statement instanceof CExpressionStatement)){
-      throw new InvalidAutomatonException("Cannot interpret String as CExpressionStatement" + lString);
+    if (!(statement instanceof CExpressionStatement)) {
+      throw new InvalidAutomatonException(
+          "Cannot interpret String as CExpressionStatement" + lString);
     }
     CExpression exp = ((CExpressionStatement) statement).getExpression();
     exp = exp.accept(new LemmaParserVisitor(replacements));
