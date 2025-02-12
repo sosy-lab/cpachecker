@@ -44,8 +44,8 @@ public class ImportDecomposition implements DssBlockDecomposition {
       ImmutableSet<@NonNull BlockNode> remainingNodes =
           FluentIterable.from(nodes).filter(b -> !b.isRoot()).toSet();
       return BlockGraph.fromBlockNodes(Iterables.getOnlyElement(roots), remainingNodes);
-    } catch (IOException pE) {
-      throw new AssertionError("Could not read from file", pE);
+    } catch (IOException e) {
+      throw new AssertionError("Could not read from file", e);
     }
   }
 }
