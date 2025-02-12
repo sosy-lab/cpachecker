@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph.GHOST_EDGE_DESCRIPTION;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -349,7 +350,7 @@ public class BlockGraphModification {
       Set<CFAEdge> foundCorrespondingEdges = new LinkedHashSet<>();
       for (CFAEdge cfaEdge : originalOutgoing) {
         CFAEdge corresponding = findCorrespondingEdge(cfaEdge, instrumentedOutgoing);
-        assertOrFail(
+        Preconditions.checkState(
             !foundCorrespondingEdges.contains(corresponding), "Corresponding edge already covered");
         originalToInstrumentedNodes.put(cfaEdge.getSuccessor(), corresponding.getSuccessor());
         originalToInstrumentedEdges.put(cfaEdge, corresponding);
@@ -368,12 +369,6 @@ public class BlockGraphModification {
       }
     }
     throw new AssertionError("No matching edge found");
-  }
-
-  private static void assertOrFail(boolean condition, String message) {
-    if (!condition) {
-      throw new AssertionError(message);
-    }
   }
 
   private static boolean virtuallyEqual(CFAEdge pCFAEdge, CFAEdge pCFAEdge2) {
