@@ -18,11 +18,14 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.io.IOException;
+import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class CFAEdgeDeserialization extends StdDeserializer<CFAEdge> {
+
+  @Serial private static final long serialVersionUID = 2739496247736816649L;
 
   private final Multimap<Integer, CFAEdge> edgeMap;
 

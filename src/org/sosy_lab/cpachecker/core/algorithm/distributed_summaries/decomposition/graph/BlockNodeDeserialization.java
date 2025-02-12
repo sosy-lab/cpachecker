@@ -19,11 +19,14 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class BlockNodeDeserialization extends StdDeserializer<BlockNode> {
+
+  @Serial private static final long serialVersionUID = -258539948499994266L;
 
   private final ObjectMapper edgeMapper;
 

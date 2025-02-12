@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.io.Serial;
 import java.util.Collection;
 import java.util.Set;
 import java.util.function.Function;
@@ -22,6 +23,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockNodeSerialization extends StdSerializer<BlockNode> {
+
+  @Serial private static final long serialVersionUID = 4286858119025006696L;
 
   private final CFAEdgeSerialization edgeSerialization;
 
