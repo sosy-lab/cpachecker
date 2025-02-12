@@ -288,7 +288,7 @@ public class InstrumentationAutomaton {
                                 entry.getValue()
                                     + " "
                                     + entry.getKey()
-                                    + "_instr_"
+                                    + "_INSTR_"
                                     + pIndex
                                     + (entry.getKey().charAt(0) == '*'
                                         ? " = alloca(sizeof("
@@ -314,7 +314,7 @@ public class InstrumentationAutomaton {
                             (entry) ->
                                 getDereferencesForPointer(entry.getValue())
                                     + entry.getKey()
-                                    + "_instr_"
+                                    + "_INSTR_"
                                     + pIndex
                                     + " = "
                                     + getDereferencesForPointer(entry.getValue())
@@ -334,7 +334,7 @@ public class InstrumentationAutomaton {
                                     + " != "
                                     + getDereferencesForPointer(entry.getValue())
                                     + entry.getKey()
-                                    + "_instr_"
+                                    + "_INSTR_"
                                     + pIndex
                                     + ")")
                         .collect(Collectors.joining("||"))
@@ -363,14 +363,14 @@ public class InstrumentationAutomaton {
             q1,
             new InstrumentationPattern("true"),
             new InstrumentationOperation(
-                (pIndex == 0 ? "int saved = 0; int pc = 0; int pc_instr = 0; " : "")
+                (pIndex == 0 ? "int saved = 0; int pc = 0; int pc_INSTR = 0; " : "")
                     + undeclaredVariables.entrySet().stream()
                         .map(
                             (entry) ->
                                 entry.getValue()
                                     + " "
                                     + entry.getKey()
-                                    + "_instr"
+                                    + "_INSTR"
                                     + (entry.getKey().charAt(0) == '*'
                                         ? " = alloca(sizeof("
                                             + getAllocationForPointer(entry.getValue())
@@ -390,20 +390,20 @@ public class InstrumentationAutomaton {
                     + "; "
                     + "if(__VERIFIER_nondet_int() && saved"
                     + " == 0) { saved"
-                    + " =1; pc_instr = pc; "
+                    + " =1; pc_INSTR = pc; "
                     + liveVariablesAndTypes.entrySet().stream()
                         .map(
                             (entry) ->
                                 getDereferencesForPointer(entry.getValue())
                                     + entry.getKey()
-                                    + "_instr"
+                                    + "_INSTR"
                                     + " = "
                                     + getDereferencesForPointer(entry.getValue())
                                     + entry.getKey())
                         .collect(Collectors.joining("; "))
                     + (!liveVariablesAndTypes.isEmpty() ? "; " : "")
                     + "} else { __VERIFIER_assert((saved"
-                    + " == 0) || (pc_instr != pc)"
+                    + " == 0) || (pc_INSTR != pc)"
                     + (!liveVariablesAndTypes.isEmpty() ? " || " : "")
                     + liveVariablesAndTypes.entrySet().stream()
                         .map(
@@ -414,7 +414,7 @@ public class InstrumentationAutomaton {
                                     + " != "
                                     + getDereferencesForPointer(entry.getValue())
                                     + entry.getKey()
-                                    + "_instr"
+                                    + "_INSTR"
                                     + ")")
                         .collect(Collectors.joining("||"))
                     + ");}"),
@@ -425,7 +425,7 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("[cond]"),
             new InstrumentationOperation(
-                "if (saved == 0 && !((pc_instr == pc)"
+                "if (saved == 0 && !((pc_INSTR == pc)"
                     + (!liveVariablesAndTypes.isEmpty() ? " && " : "")
                     + liveVariablesAndTypes.entrySet().stream()
                         .map(
@@ -436,7 +436,7 @@ public class InstrumentationAutomaton {
                                     + " == "
                                     + getDereferencesForPointer(entry.getValue())
                                     + entry.getKey()
-                                    + "_instr"
+                                    + "_INSTR"
                                     + ")")
                         .collect(Collectors.joining("&&"))
                     + ")){abort();}"),
@@ -462,14 +462,14 @@ public class InstrumentationAutomaton {
         new InstrumentationTransition(
             q1,
             new InstrumentationPattern("true"),
-            new InstrumentationOperation("int first_instr_" + pIndex + " = 0;"),
+            new InstrumentationOperation("int first_INSTR_" + pIndex + " = 0;"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t2 =
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("[cond]"),
-            new InstrumentationOperation("first_instr_" + pIndex + " = 1;"),
+            new InstrumentationOperation("first_INSTR_" + pIndex + " = 1;"),
             InstrumentationOrder.AFTER,
             q3);
     InstrumentationTransition t3 =
