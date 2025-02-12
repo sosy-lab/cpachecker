@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -217,7 +219,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation().toString();
       }
       fileLocation = fileLocation.replaceFirst("line ", "");
-      fileLocation = fileLocation.split("-")[0].replaceFirst("lines ", "");
+      fileLocation =
+          Iterables.get(Splitter.on('-').split(fileLocation), 0).replaceFirst("lines ", "");
       location = Integer.parseInt(fileLocation);
       if (pTransition.getOrderAsString().equals("AFTER")) {
         location += 1;
