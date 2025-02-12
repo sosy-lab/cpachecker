@@ -131,7 +131,7 @@ public class InvariantExchangeFormatTransformer {
         };
     try {
       return CParserUtils.parseLemmaStatement(pLemmaEntry.getValue(), cparser, scope);
-    } catch (InvalidAutomatonException pE) {
+    } catch (InvalidAutomatonException e) {
       throw new InterruptedException(
           "Could not parse statement as CExpression:" + pLemmaEntry.getValue());
     }
