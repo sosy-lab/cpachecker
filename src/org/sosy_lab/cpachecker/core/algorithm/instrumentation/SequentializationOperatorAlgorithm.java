@@ -174,7 +174,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                       matchedVariables)
                   || isThePairNew(currentNode, transition.getDestination(), waitlist, reachlist)) {
                 // If there is a self-loop in the automaton, we have to move forward.
-                matched = matched ||  !transition.getDestination().equals(transition.getSource());
+                matched = matched || !transition.getDestination().equals(transition.getSource());
               }
               newEdges.add(
                   computeLineNumberBasedOnTransition(transition, edge)
